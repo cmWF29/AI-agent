@@ -3,53 +3,86 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1220" />
 <title>Hive Agent</title>
 <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
 <div id="login" class="login hidden">
   <div class="login-box">
-    <h1>Hive Agent</h1>
+    <h1>Hive<span>Agent</span></h1>
     <p class="muted">输入访问密码进入控制台</p>
     <input id="password" type="password" placeholder="password" autocomplete="current-password" />
-    <button id="login-btn">登录</button>
+    <button id="login-btn" class="primary">登录</button>
     <div id="login-err" class="err"></div>
   </div>
 </div>
 
-<main id="app" class="app hidden">
+<div id="app" class="app hidden">
   <header>
+    <button id="btn-groups" class="icon-btn" title="群聊列表">☰</button>
     <div class="brand">Hive<span>Agent</span></div>
     <div id="status-pill" class="pill">连接中…</div>
     <div class="spacer"></div>
-    <button class="ghost" id="btn-status">状态</button>
-    <button class="ghost" id="btn-tickets">工单</button>
+    <button class="ghost" id="btn-health">健康</button>
+    <button class="ghost" id="btn-versions">版本</button>
     <button class="ghost" id="btn-events">事件</button>
   </header>
 
-  <section id="chat" class="chat"></section>
+  <div class="shell">
+    <aside class="rail" id="rail">
+      <div class="rail-block">
+        <div class="rail-title">项目</div>
+        <div class="row">
+          <select id="project-select"></select>
+          <button class="mini" id="btn-newproject" title="新建项目">+</button>
+        </div>
+      </div>
+      <div class="rail-block">
+        <div class="rail-title">群聊</div>
+        <div id="groups" class="groups"></div>
+      </div>
+      <div class="rail-block actions">
+        <button class="ghost" id="btn-newticket">新建工单</button>
+        <button class="ghost" id="btn-compact">压缩秘书上下文</button>
+        <button class="warn" id="btn-restart">重启 agent</button>
+        <button class="danger" id="btn-stop">彻底停止</button>
+      </div>
+    </aside>
 
-  <footer class="composer">
-    <textarea id="input" rows="1" placeholder="给秘书发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
-    <button id="send">发送</button>
-  </footer>
+    <main class="chatwrap">
+      <div class="chathead">
+        <strong id="chat-title">秘书</strong>
+        <span id="chat-sub" class="muted"></span>
+        <div class="spacer"></div>
+        <button class="mini" id="btn-files" title="交付件">📎</button>
+      </div>
+      <div id="messages" class="messages"></div>
+      <div class="composer">
+        <textarea id="input" rows="1" placeholder="给秘书发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
+        <button id="send" class="primary">发送</button>
+      </div>
+    </main>
 
-  <section class="ops">
-    <button class="warn" id="btn-compact">压缩上下文</button>
-    <button class="warn" id="btn-restart">重启 agent</button>
-    <button class="warn" id="btn-rollback">回退版本</button>
-    <button class="danger" id="btn-stop">彻底停止</button>
-    <button class="ghost" id="btn-newticket">新建工单</button>
-  </section>
-
-  <div id="drawer" class="drawer hidden">
-    <div class="drawer-head">
-      <strong id="drawer-title">面板</strong>
-      <button class="ghost" id="drawer-close">关闭</button>
-    </div>
-    <pre id="drawer-body"></pre>
+    <aside class="side hidden" id="side">
+      <div class="side-head">
+        <strong id="side-title">交付件</strong>
+        <button class="mini" id="side-close">✕</button>
+      </div>
+      <div id="side-body" class="side-body"></div>
+    </aside>
   </div>
-</main>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <strong id="modal-title">面板</strong>
+      <button class="mini" id="modal-close">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
 
 <div id="toast" class="toast hidden"></div>
 <script src="/app.js"></script>

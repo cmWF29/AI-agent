@@ -114,30 +114,48 @@ class Ops(Module):
         return {"action": "stop", "note": "已请求彻底停止 watchdog+agent（先回包再执行，页面可能短时失联）"}
 
     def rollback(self, payload):
-        target = payload.get("target") or ""
+        import re
+        target = (payload.get("target") or "HEAD^").strip()
+        if not re.match(r"^[A-Za-z0-9_.~/^@{}-]{1,80}$", target):
+            raise ApiError("非法的回退目标: %r" % target, code="bad_target")
         self._control("rollback", {"target": target})
-        return {"action": "rollback", "target": target or "HEAD^",
-                "note": "已通知 watchdog 回退一个版本（回退前会自动存档当前改动，不会丢）"}
+        return {"action": "rollback", "target": target,
+                "note": "已通知 watchdog 回退到 %s（回退前会自动存档当前改动，不会丢）" % target}
 
     def versions(self, payload):
+        """版本列表：网页的“版本管理”直接消费，可指定任意一个版本回退。"""
         root = self.cfg["root"]
+        n = min(int((payload or {}).get("limit") or 20), 60)
         try:
-            head = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=10)
-            log = subprocess.run(["git", "-C", root, "log", "-8", "--pretty=%h %ad %s", "--date=short"],
+            head = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"],
+                                  capture_output=True, text=True, timeout=10)
+            log = subprocess.run(["git", "-C", root, "log", "-%d" % n,
+                                  "--pretty=%h\t%H\t%ad\t%an\t%s", "--date=iso"],
                                  capture_output=True, text=True, timeout=10)
             branches = subprocess.run(["git", "-C", root, "branch", "--list", "autosave/*"],
                                       capture_output=True, text=True, timeout=10)
-            status = subprocess.run(["git", "-C", root, "status", "--porcelain"], capture_output=True, text=True, timeout=10)
+            status = subprocess.run(["git", "-C", root, "status", "--porcelain"],
+                                    capture_output=True, text=True, timeout=10)
         except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
             return {"version": __version__, "git": {"available": False, "error": repr(exc)}}
+        current = (head.stdout or "").strip()
+        commits = []
+        for line in (log.stdout or "").splitlines():
+            parts = line.split("\t")
+            if len(parts) < 5:
+                continue
+            commits.append({"short": parts[0], "hash": parts[1], "date": parts[2],
+                            "author": parts[3], "subject": parts[4],
+                            "current": parts[0] == current})
         return {
             "version": __version__,
             "git": {
                 "available": True,
-                "head": head.stdout.strip(),
-                "log": [l for l in log.stdout.splitlines() if l.strip()],
-                "autosave_branches": [b.strip() for b in branches.stdout.splitlines() if b.strip()],
-                "dirty": bool(status.stdout.strip()),
+                "head": current,
+                "commits": commits,
+                "log": ["%s %s %s" % (c["short"], c["date"][:16], c["subject"]) for c in commits],
+                "autosave_branches": [b.strip() for b in (branches.stdout or "").splitlines() if b.strip()],
+                "dirty": bool((status.stdout or "").strip()),
             },
         }
 

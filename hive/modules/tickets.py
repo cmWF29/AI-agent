@@ -58,6 +58,9 @@ class Tickets(Module):
         self.api.route("POST", "/api/tickets/{ticket_id}/close", name="close")(self.close_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/note", name="note")(self.note_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/roles", name="roles")(self.role_api)
+        self.api.route("POST", "/api/tickets/{ticket_id}/message", name="message")(self.message_api)
+        self.api.route("GET", "/api/tickets/{ticket_id}/files", name="files")(self.files_api)
+        self.api.route("GET", "/api/tickets/{ticket_id}/file", name="file")(self.file_api)
 
         self._register_tools()
 
@@ -79,6 +82,10 @@ class Tickets(Module):
     # ---------------- 创建 ----------------
     def create(self, title, goal, project=None, roles_hint=None):
         project = project or self.default_project
+        try:
+            project = self.ctx.api("projects.ensure", name=project)["project"]["id"]
+        except ApiError:
+            project = project
         tid = "T-%s-%s" % (time.strftime("%Y%m%d"), uuid.uuid4().hex[:6])
         workdir = ensure_dir(os.path.join(self.root, tid, "workspace"))
         ticket = {
@@ -331,8 +338,14 @@ class Tickets(Module):
 
     def list_api(self, payload):
         items = [self._public(t) for t in self.store.list()]
+        if payload.get("project"):
+            items = [i for i in items if i["project"] == payload["project"]]
+        if payload.get("status"):
+            want = str(payload["status"]).split(",")
+            items = [i for i in items if i["status"] in want]
         items.sort(key=lambda t: t["created"], reverse=True)
-        return {"items": items, "total": len(items)}
+        open_items = [i for i in items if i["status"] != "closed"]
+        return {"items": items, "total": len(items), "open": len(open_items)}
 
     def get_api(self, payload):
         t = self._get(payload["ticket_id"])
@@ -365,6 +378,78 @@ class Tickets(Module):
             self._history(t, "note", text)
             self._save(t)
         return {"ticket": self._public(t)}
+
+    # ---------------- 群聊：对工单说话 ----------------
+    def message_api(self, payload):
+        """在工单“群聊”里发一句话：默认发给 PM，也可指定某个角色会话。"""
+        t = self._get(payload["ticket_id"])
+        text = (payload.get("text") or "").strip()
+        if not text:
+            raise ApiError("text 必填", code="missing_text")
+        target = payload.get("session") or t.get("pm")
+        if not target:
+            raise ApiError("该工单已经没有在跑的 PM（可能已结单），新需求请另开工单", code="no_pm")
+        res = self.ctx.api("sessions.send", session=target, text=text)
+        self._history(t, "user_message", text[:200])
+        self._save(t)
+        self.emit("ticket.message", {"ticket": t["id"], "session": target, "chars": len(text)})
+        return {"ticket": t["id"], "session": target, "injected": res.get("injected"), "job": res.get("job_id")}
+
+    # ---------------- 交付件 ----------------
+    def _safe_path(self, t, rel):
+        base = os.path.realpath(t["workdir"])
+        p = os.path.realpath(os.path.join(base, rel or ""))
+        if p != base and not p.startswith(base + os.sep):
+            raise ApiError("非法路径（越界）", status=400, code="bad_path")
+        return p
+
+    def files_api(self, payload):
+        """列出工单工作目录里的交付件（全部是相对路径，网页直接可点）。"""
+        t = self._get(payload["ticket_id"])
+        base = os.path.realpath(t["workdir"])
+        limit = int(payload.get("limit") or 200)
+        items = []
+        total = 0
+        for dirpath, dirnames, filenames in os.walk(base):
+            dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+            for fn in filenames:
+                p = os.path.join(dirpath, fn)
+                try:
+                    st = os.stat(p)
+                except OSError:
+                    continue
+                total += 1
+                if len(items) < limit:
+                    items.append({
+                        "path": os.path.relpath(p, base).replace(os.sep, "/"),
+                        "size": st.st_size,
+                        "mtime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(st.st_mtime)),
+                    })
+        items.sort(key=lambda i: (i["path"].count("/"), i["path"]))
+        return {"ticket": t["id"], "root": base, "items": items, "total": total}
+
+    def file_api(self, payload):
+        """读一个交付件：文本给 text，二进制给 base64（图片可直接在网页里显示）。"""
+        import base64
+        t = self._get(payload["ticket_id"])
+        rel = (payload.get("path") or "").strip().lstrip("/")
+        if not rel:
+            raise ApiError("path 必填", code="missing_path")
+        p = self._safe_path(t, rel)
+        if not os.path.isfile(p):
+            raise ApiError("文件不存在: %s" % rel, status=404, code="no_file")
+        size = os.path.getsize(p)
+        limit = int(payload.get("max_bytes") or 262144)
+        with open(p, "rb") as f:
+            raw = f.read(min(size, limit))
+        enc = "utf-8"
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            text = base64.b64encode(raw).decode("ascii")
+            enc = "base64"
+        return {"ticket": t["id"], "path": rel, "size": size, "truncated": size > limit,
+                "encoding": enc, "text": text}
 
     def _public(self, t):
         return {

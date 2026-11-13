@@ -167,7 +167,7 @@ class Watchdog:
             return False, {"error": repr(exc)}
 
     # ---------------- 回退 ----------------
-    def rollback(self, reason):
+    def rollback(self, reason, target=None):
         now = time.time()
         self.rollbacks = [t for t in self.rollbacks if now - t < 3600]
         if len(self.rollbacks) >= self.rollback_limit:
@@ -183,15 +183,20 @@ class Watchdog:
             branch = "autosave/" + stamp
             self._git("branch", branch, "HEAD")
             self.log("rollback.autosave", branch=branch, commit=(commit.stdout.strip() if commit else "?"))
-        prev = self._git("rev-parse", "HEAD^")
+        ref = target or "HEAD^"
+        prev = self._git("rev-parse", ref)
         if not prev or prev.returncode != 0:
-            self.log("rollback.no_prev", head=before)
+            self.log("rollback.no_prev", head=before, target=ref)
             return False
         prev_sha = prev.stdout.strip()
+        if before and prev_sha.startswith(before[:7]):
+            self.log("rollback.same_version", head=before, target=ref)
+            return False
         # 先记账再动工作区：reset 有可能连带删掉被误跟踪的 data/，日志要能留证据
         self.record_rollback({
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "reason": reason,
+            "target": ref,
             "from": before,
             "to": prev_sha,
             "autosave_branch": branch,
@@ -205,12 +210,13 @@ class Watchdog:
         self.record_rollback({
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "reason": reason,
+            "target": ref,
             "from": before,
             "to": after,
             "autosave_branch": branch,
             "ok": ok,
         })
-        self.log("rollback.done", ok=ok, before=before, after=after, autosave=branch)
+        self.log("rollback.done", ok=ok, before=before, after=after, target=ref, autosave=branch)
         return ok
 
     def record_rollback(self, rec):
@@ -249,7 +255,8 @@ class Watchdog:
                 self.start_agent()
             elif name == "rollback":
                 self.stop_agent("control:rollback")
-                ok = self.rollback("网页手动回退")
+                target = (cmd.get("target") or "").strip() or None
+                ok = self.rollback("网页手动回退 %s" % (target or "HEAD^"), target=target)
                 self.start_agent()
                 self.write_heartbeat("rolled_back" if ok else "running")
             elif name == "stop":

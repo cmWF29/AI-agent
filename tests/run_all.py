@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -334,11 +335,151 @@ def test_ops(mock):
         env.close()
 
 
+def test_secretary_policy(mock):
+    print("[10] 秘书的工具策略：只发作业，没有执行权")
+    mock.set([{"content": "工单已派出"}])
+    env = Env(mock)
+    try:
+        env.api("sessions.ensure")
+        sec = env.api("sessions.get", session_id="secretary")["session"]
+        tools = sec.get("tools") or []
+        for banned in ("shell", "read_file", "write_file", "grep", "http_get"):
+            check("秘书没有 %s 工具" % banned, banned not in tools, tools)
+        check("秘书有 ticket_create", "ticket_create" in tools, tools)
+        check("秘书有 project_list", "project_list" in tools, tools)
+    finally:
+        env.close()
+
+
+def test_projects_and_concurrency(mock):
+    print("[11] 多项目 + 多工单并发")
+    mock.set([{"content": "PM-A 已安排"}, {"content": "PM-B 已安排"},
+              {"content": "PM-A 收尾"}, {"content": "PM-B 收尾"}])
+    env = Env(mock, with_http=True)
+    try:
+        p = env.api("projects.create", name="alpha", title="阿尔法项目")["project"]
+        check("项目创建", p["id"] == "alpha", p)
+        check("项目幂等", env.api("projects.ensure", name="alpha")["project"]["id"] == "alpha")
+
+        t1 = env.api("tickets.create", goal="任务一", project="alpha")["ticket"]
+        t2 = env.api("tickets.create", goal="任务二", project="beta")["ticket"]
+        check("两个工单同时存在", t1["id"] != t2["id"] and t1["status"] == "running" and t2["status"] == "running")
+        check("工单挂在项目上", t1["project"] == "alpha" and t2["project"] == "beta", (t1["project"], t2["project"]))
+        check("未登记的项目被自动创建",
+              env.api("projects.get", project_id="beta")["project"]["id"] == "beta")
+
+        env.api("sessions.wait", session=t1["pm"], timeout=30)
+        env.api("sessions.wait", session=t2["pm"], timeout=30)
+        a = env.api("projects.get", project_id="alpha")["project"]
+        check("项目统计工单数", a["ticket_count"] == 1 and a["open_tickets"] == 1, a.get("ticket_count"))
+        listing = env.api("tickets.list", project="alpha")["items"]
+        check("工单按项目过滤", len(listing) == 1 and listing[0]["id"] == t1["id"], listing)
+
+        st = env.api("sessions.state")
+        check("并发闸门可见", st["active"] >= 0 and st["max_concurrent"] == 4, st)
+
+        # 两个 PM 分别收到自己的任务，不串话
+        m1 = env.api("sessions.messages", session_id=t1["pm"], limit=10)
+        m2 = env.api("sessions.messages", session_id=t2["pm"], limit=10)
+        text1 = " ".join(i["content"] for i in m1["items"])
+        text2 = " ".join(i["content"] for i in m2["items"])
+        check("PM 各自拿到自己的工单", "任务一" in text1 and "任务二" not in text1, text1[:80])
+        check("第二个 PM 没被串话", "任务二" in text2, text2[:80])
+    finally:
+        env.close()
+
+
+def test_group_chat(mock):
+    print("[12] 群聊：分组 / 时间线 / 对工单说话 / 交付件")
+    mock.set([
+        {"content": "我是秘书，已开工单"},                              # 秘书
+        {"content": "PM 收到，开始编排"},                               # PM
+        {"content": "再补一条要求：要写测试"},                          # PM 收到群聊插话
+        {"tool_calls": [{"name": "write_file", "arguments": {
+            "path": "deliver/report.md", "content": "# 报告\n交付完成\n"}}]},
+        {"content": "交付完成：deliver/report.md"},                     # 角色
+    ])
+    env = Env(mock, with_http=True)
+    try:
+        env.api("sessions.ask", text="帮我做一份报告", timeout=30)
+        groups = env.http("/api/web/groups")[1]
+        check("群列表含秘书", any(g["id"] == "secretary" for g in groups["items"]), groups["items"])
+        check("群列表含项目", len(groups.get("projects", [])) >= 1, groups.get("projects"))
+
+        tl = env.http("/api/web/timeline?group=secretary&limit=50")[1]
+        check("秘书时间线可读", len(tl["items"]) >= 2, len(tl.get("items", [])))
+        check("时间线有用户发言", any(i["role"] == "user" for i in tl["items"]))
+        check("时间线有助手发言", any(i["role"] == "assistant" for i in tl["items"]))
+        check("时间线带 ts", all(i.get("ts") is not None for i in tl["items"]))
+
+        t = env.api("tickets.create", goal="写一份报告", project="default")["ticket"]
+        env.api("sessions.wait", session=t["pm"], timeout=30)
+        msg = env.http("/api/tickets/%s/message" % t["id"], method="POST",
+                       body={"text": "再补一条要求：要写测试"})[1]
+        check("工单群消息投递给 PM", msg.get("session") == t["pm"], msg)
+
+        role = env.api("tickets.roles", ticket_id=t["id"], role="writer", task="写报告")["role"]
+        env.api("sessions.wait", session=role["session"], timeout=30)
+
+        tl2 = env.http("/api/web/timeline?group=%s&limit=80" % t["id"])[1]
+        speakers = [i["speaker"] for i in tl2["items"]]
+        check("工单时间线聚合 PM 与角色", any("PM" in s for s in speakers) and any("writer" in s for s in speakers), speakers[:6])
+        check("工单时间线含系统事件", any(i["role"] == "event" for i in tl2["items"]), len(tl2["items"]))
+
+        files = env.http("/api/tickets/%s/files" % t["id"])[1]
+        check("交付件可见", any(f["path"].endswith("report.md") for f in files["items"]), files)
+        rel = [x["path"] for x in files["items"] if x["path"].endswith("report.md")][0]
+        f = env.http("/api/tickets/%s/file?path=%s" % (t["id"], urllib.parse.quote(rel)))[1]
+        check("交付件可读", "交付完成" in (f.get("text") or ""), f.get("text", "")[:60])
+        bad = env.http("/api/tickets/%s/file?path=../../config/config.json" % t["id"])[1]
+        check("路径穿越被拒", bad.get("ok") is False, bad)
+    finally:
+        env.close()
+
+
+def test_versions(mock):
+    print("[13] 版本管理：列表 / 指定版本回退")
+    mock.set([{"content": "ok"}])
+    env = Env(mock, with_http=True)
+    try:
+        root = env.tmp
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+        open(os.path.join(root, "VERSION"), "w").write("0.0.1")
+        subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "v1"], cwd=root, check=True)
+        open(os.path.join(root, "VERSION"), "w").write("0.0.2")
+        subprocess.run(["git", "commit", "-aqm", "v2"], cwd=root, check=True)
+
+        v = env.http("/api/ops/versions")[1]
+        check("版本列表有 commits", len(v["git"].get("commits", [])) >= 2, v["git"].get("log"))
+        check("当前版本被标记", any(c["current"] for c in v["git"]["commits"]), v["git"]["commits"])
+        old = [c for c in v["git"]["commits"] if not c["current"]][0]
+
+        st, r, _ = env.http("/api/ops/rollback", method="POST", body={"target": old["short"]})
+        check("回退到指定版本被接受", st == 200 and r["target"] == old["short"], r)
+        control = os.path.join(root, "data", "control")
+        cmds = [f for f in os.listdir(control) if f.startswith("cmd-")]
+        payloads = []
+        for f in cmds:
+            try:
+                payloads.append(json.load(open(os.path.join(control, f), encoding="utf-8")))
+            except ValueError:
+                pass
+        check("控制文件带 target", any(p.get("target") == old["short"] for p in payloads), payloads)
+        bad = env.http("/api/ops/rollback", method="POST", body={"target": "a;rm -rf /"})[1]
+        check("非法 target 被拒", bad.get("ok") is False, bad)
+    finally:
+        env.close()
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
     tests = [test_bus, test_output_policy, test_react_offload, test_react_interrupt,
-             test_sessions_compact, test_tickets, test_http_auth, test_cli_and_webchat, test_ops]
+             test_sessions_compact, test_tickets, test_http_auth, test_cli_and_webchat, test_ops,
+             test_secretary_policy, test_projects_and_concurrency, test_group_chat, test_versions]
     t0 = time.time()
     for t in tests:
         try:

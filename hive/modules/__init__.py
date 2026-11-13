@@ -10,6 +10,7 @@ from .knowledge import Knowledge
 from .memory import Memory
 from .observability import Observability
 from .ops import Ops
+from .projects import Projects
 from .sessions import Sessions
 from .tickets import Tickets
 from .toolpack import ToolPack
@@ -19,11 +20,12 @@ ORDER = [
     Observability,   # 先起来，好观察后面所有人的事件
     Knowledge,       # 知识层要先能读，秘书/PM 的提示词靠它
     Memory,
+    Projects,        # 项目是一等公民：工单挂在项目下
     ToolPack,        # 基础执行工具
     Sessions,        # 会话/agent 管理（注册 agent_* 工具）
-    Tickets,         # 工单（依赖 sessions 的 API，不依赖其实现）
-    WebChat,         # 网页对话桥
-    Ops,             # 固定命令
+    Tickets,         # 工单（依赖 sessions / projects 的 API，不依赖其实现）
+    WebChat,         # 网页对话桥（群聊时间线）
+    Ops,             # 固定命令 / 版本管理
     Health,          # 最后挂，确保能检查前面所有人
 ]
 

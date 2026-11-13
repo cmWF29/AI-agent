@@ -84,13 +84,18 @@ class SessionRuntime:
             except Exception as exc:
                 self.manager.log.warn("session.autocompact.failed", session=self.id, error=repr(exc))
 
-        result = self.manager.react.run(
-            session=rec,
-            user_text=task.get("text") or None,
-            drain=self.drain,
-            hooks=self._hook,
-            max_steps=task.get("max_steps"),
-        )
+        result = None
+        self.manager.acquire_slot()
+        try:
+            result = self.manager.react.run(
+                session=rec,
+                user_text=task.get("text") or None,
+                drain=self.drain,
+                hooks=self._hook,
+                max_steps=task.get("max_steps"),
+            )
+        finally:
+            self.manager.release_slot()
         reply = result.get("final") or ""
         job.update({"status": result.get("status"), "reply": reply, "steps": result.get("steps"), "error": result.get("error")})
         with self.lock:
@@ -128,6 +133,9 @@ class SessionRuntime:
         self.manager.emit("session.hook",
                           {"session": self.id, "hook": name,
                            **{k: v for k, v in payload.items() if k != "session"}})
+        # 边跑边落盘：否则长任务跑到一半，网页上的时间线还是旧内容
+        if name in ("llm.response", "tool.result"):
+            self.manager.persist(self.record)
 
     # ---------------- 中断 ----------------
     def drain(self):
@@ -159,7 +167,10 @@ class Sessions(Module):
         self.jobs = {}
         self.lock = threading.RLock()
         self.max_concurrent = int(self.cfg["sessions"].get("max_concurrent", 8))
-        self.log.info("sessions.ready", root=self.root)
+        self.slots = threading.BoundedSemaphore(max(1, self.max_concurrent))
+        self.active = 0
+        self.active_lock = threading.Lock()
+        self.log.info("sessions.ready", root=self.root, max_concurrent=self.max_concurrent)
 
         # 常驻会话在首次访问时按需拉起，避免启动阶段就依赖 LLM
         self.secretary_id = self.cfg["secretary"].get("session_id") or "secretary"
@@ -169,6 +180,7 @@ class Sessions(Module):
         self.api.route("POST", "/api/sessions/ask", name="ask")(self.ask_api)
         self.api.route("POST", "/api/sessions/wait", name="wait")(self.wait_api)
         self.api.route("GET", "/api/sessions/list", name="list")(self.list_api)
+        self.api.route("GET", "/api/sessions/state", name="state")(self._state_api)
         self.api.route("GET", "/api/sessions/{session_id}", name="get")(self.get_api)
         self.api.route("GET", "/api/sessions/{session_id}/messages", name="messages")(self.messages_api)
         self.api.route("POST", "/api/sessions/{session_id}/compact", name="compact")(self.compact_api)
@@ -187,6 +199,29 @@ class Sessions(Module):
             except Exception:
                 pass
         self.log.info("sessions.shutdown", count=len(self.runtimes))
+
+    # ---------------- 并发闸门 ----------------
+    # 会话本身是“一会话一线程”，会话之间天然并发；这里只限制“同时在跑 LLM 的会话数”，
+    # 超出的会话在各自队列里排队。多工单并发时，靠这一个闸门保证不会把 VPS 打爆。
+    def acquire_slot(self):
+        self.slots.acquire()
+        with self.active_lock:
+            self.active += 1
+
+    def release_slot(self):
+        with self.active_lock:
+            self.active = max(0, self.active - 1)
+        try:
+            self.slots.release()
+        except ValueError:
+            pass
+
+    def _state_api(self, payload):
+        with self.active_lock:
+            active = self.active
+        return {"active": active, "max_concurrent": self.max_concurrent,
+                "sessions": len(self.store.list()),
+                "queued": sum(1 for r in self.runtimes.values() if r.state == "running") - active}
 
     # ---------------- 记录 ----------------
     def persist(self, record):
@@ -388,13 +423,14 @@ class Sessions(Module):
         if reset and self.store.exists(sid):
             self.destroy(sid)
         prompt = self._secretary_prompt()
+        # 秘书只“发作业/查进度”，不碰执行类工具（shell/文件/爬网页一律没有）。
+        # 这是需求 7 的硬约束：秘书只负责发作业，收作业都不用秘书做。
         tools = [
-            "agent_spawn", "agent_send", "agent_wait", "agent_list", "agent_status",
-            "agent_interrupt", "agent_destroy", "agent_compact",
-            "ticket_create", "ticket_list", "ticket_status", "ticket_close",
-            "knowledge_read", "knowledge_list", "knowledge_search", "knowledge_write",
+            "ticket_create", "ticket_list", "ticket_status",
+            "project_list", "project_create", "project_status",
+            "knowledge_read", "knowledge_list", "knowledge_search",
             "memory_add", "memory_search",
-            "shell", "read_file", "grep", "http_get",
+            "agent_list", "agent_status", "agent_wait",
         ]
         return self.spawn(
             kind="secretary",
@@ -428,7 +464,7 @@ class Sessions(Module):
             parent=payload.get("parent") or "",
             tools=payload.get("tools"),
             meta=payload.get("meta") or {},
-            input_text=payload.get("input"),
+            input_text=payload.get("input") or payload.get("input_text"),
             workspace=payload.get("workspace"),
         )
         return {"session": self._summary(res)}
@@ -461,10 +497,18 @@ class Sessions(Module):
 
     def list_api(self, payload):
         kind = payload.get("kind")
+        project = payload.get("project")
+        ticket = payload.get("ticket")
         items = [self._summary(r) for r in self.store.list()]
         if kind:
             items = [i for i in items if i["kind"] == kind]
-        return {"items": items, "total": len(items)}
+        if project:
+            items = [i for i in items if (i.get("project") or "") == project]
+        if ticket:
+            items = [i for i in items if (i.get("ticket") or "") == ticket]
+        items.sort(key=lambda i: i.get("updated") or "", reverse=True)
+        return {"items": items, "total": len(items), "active": self.active,
+                "max_concurrent": self.max_concurrent}
 
     def get_api(self, payload):
         rec = self.get_record(payload["session_id"])
@@ -474,12 +518,31 @@ class Sessions(Module):
         return {"session": out}
 
     def messages_api(self, payload):
+        """消息读取：带 ts / 说话人 / 工具名，网页群聊直接消费这个结果。"""
         rec = self.get_record(payload["session_id"])
-        limit = min(int(payload.get("limit") or 40), 200)
+        limit = min(int(payload.get("limit") or 40), 500)
+        since = payload.get("since_ts")
         msgs = rec.get("messages") or []
-        items = [{"role": m.get("role"), "content": (m.get("content") or "")[:2000],
-                  "tool_calls": len(m.get("tool_calls") or [])} for m in msgs[-limit:]]
-        return {"session": rec["id"], "total": len(msgs), "items": items}
+        if since is not None and str(since) != "":
+            try:
+                cut = float(since)
+                msgs = [m for m in msgs if float(m.get("ts") or 0) > cut]
+            except (TypeError, ValueError):
+                pass
+        items = []
+        for m in msgs[-limit:]:
+            items.append({
+                "session": rec["id"],
+                "speaker": rec.get("title") or rec.get("role") or rec["id"],
+                "kind": rec.get("kind"),
+                "role_name": rec.get("role"),
+                "role": m.get("role"),
+                "ts": m.get("ts"),
+                "content": (m.get("content") or "")[:2000],
+                "tool_names": [(tc.get("function") or {}).get("name") for tc in (m.get("tool_calls") or [])],
+                "tool_calls": len(m.get("tool_calls") or []),
+            })
+        return {"session": rec["id"], "total": len(rec.get("messages") or []), "items": items}
 
     def compact_api(self, payload):
         sid = payload.get("session_id") or self.secretary_id
@@ -517,6 +580,7 @@ class Sessions(Module):
             "updated": rec.get("updated"),
             "stats": rec.get("stats"),
             "last_reply": (rec.get("last_reply") or "")[:300],
+            "tools": rec.get("tools"),
         }
 
     # ---------------- 工具 ----------------

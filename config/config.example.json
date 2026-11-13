@@ -38,6 +38,10 @@
     "root": "data/sessions",
     "workspace_root": "data/workspaces"
   },
+  "projects": {
+    "root": "data/projects",
+    "default": "default"
+  },
   "tickets": {
     "root": "data/tickets",
     "close_reply_timeout": 120,

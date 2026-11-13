@@ -193,9 +193,53 @@ git push vps main
 - **换模型/加模型**：`config.llm.base_url/model` 即可接任意 OpenAI 兼容端点。
 - **分布式**：知识三层已拆开；下一步把 `sessions`/`tickets` 的存储换成 HTTP 后端即可跨机。
 
-## 十、已知边界
+## 十、网页 = 工作群聊
 
-- 单进程单端口（模块靠路由表隔离），不是微服务；要横向拆只需把 router 换成 HTTP 转发。
-- 会话并发上限由 `sessions.max_concurrent` 约束（当前只是计数，未做排队限流）。
+- 左边是**群列表**：一个「秘书」群 + 每个工单一个群（含该工单的 PM 和全部角色）。历史工单在下方的折叠区，点进去能看到当时每个角色的发言。
+- 右边是**交付件**面板：列出该工单工作目录里的全部产物，点开直接看（文本 / 图片）。
+- 在秘书群说话 → 秘书接活、开单；在工单群说话 → 直接发给该工单的 PM（等于给 PM 加需求或给验收意见）。
+- 顶部三个面板：**健康**（`/api/health/self` 逐项检查 + watchdog 心跳）、**版本**（提交列表，可一键回退到任意一版）、**事件**（总线事件流）。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/web/groups` | 群列表（秘书 + 各工单 + 项目） |
+| GET | `/api/web/timeline?group=&limit=&since_ts=` | 群时间线（`since_ts` 做增量拉取） |
+| POST | `/api/chat/send` | `{text, group}`：`secretary` 走秘书，`T-xxx` 走该工单 PM |
+| POST | `/api/tickets/{id}/message` | 往工单群投递一句话（默认发给 PM） |
+| GET | `/api/tickets/{id}/files` | 交付件列表（相对路径） |
+| GET | `/api/tickets/{id}/file?path=` | 读单个交付件（文本给 text，二进制给 base64；越界路径直接拒） |
+| GET | `/api/ops/versions` | 版本列表：`commits[]`（短 hash / 全 hash / 时间 / 作者 / 标题 / 是否当前） |
+| POST | `/api/ops/rollback` | `{"target": "<commit>"}` 回退到任意版本 |
+
+回退语义：watchdog 先把当前改动提交到 `autosave/<时间戳>` 分支（不丢），再 `reset --hard <target>`，然后重启 agent，并把 `from/to/target` 记进 `data/logs/rollback.jsonl`。
+
+## 十一、多项目 / 多工单并发
+
+- 项目是一等公民（`projects` 模块）：`/api/projects/list|create|get|ensure|archive`；知识库的 project 层以项目名为键。
+- 建工单会自动 `projects.ensure`，不会出现孤儿工单。
+- 会话层有**并发闸门**：`sessions.max_concurrent`（默认 8）。每个会话一个线程、会话间并发，但同一时刻最多 8 个在跑 LLM，其余排队 —— 多工单同时跑不会把 VPS 打爆。`GET /api/sessions/state` 看 `active/max_concurrent/queued`。
+
+## 十二、需求对照（自查）
+
+| 需求 | 状态 |
+|------|------|
+| 1 ReAct + 工具输出落盘/阈值 | 完成 |
+| 1b 大输出只给路径、模型自己 grep/read | 完成 |
+| 2 agent CLI | 完成（20+ 子命令） |
+| 3 watchdog + systemd + 三次失败回退 | 完成（另加任意版本回退） |
+| 4 网页 = 远程跑 CLI | 完成（`/api/chat/send` 内部起 `hive.cli`） |
+| 5 网页固定命令 | 完成（压缩/重启/回退/停止/新建工单） |
+| 6 常驻秘书 + 自动/手动压缩 | 完成 |
+| 7 秘书只发作业、PM 收作业 | **修正过**：秘书工具白名单里已删除 shell/文件/网页类工具 |
+| 8 极简 ReAct + 可插拔（串行/并发/插队/打断） | 完成 |
+| 9 模块解耦、只暴露 API、测试打 API | 完成（94 条断言全是 API 级） |
+| 10 知识三层 + 结单沉淀 | 完成 |
+| 多项目 / 多工单并发 / 群聊 / 版本管理 / 健康页 | 本版新增 |
+
+## 十三、已知边界
+
+- 单进程单端口（模块靠路由表隔离），不是微服务；要横向拆把 router 换成 HTTP 转发即可。
+- 并发只有上限、没有优先级（后到的排队）。
 - 网页无多用户/权限分级，只有单一访问密码。
 - `shell` 工具以 root 运行（VPS 场景如此设计），仅靠 `tools.deny_patterns` + 内置危险命令正则兜底。
+- 角色写文件落在自己的 role 子目录（工单目录下的 `writer-1/`），交付件面板按相对路径展示。

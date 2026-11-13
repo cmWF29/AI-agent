@@ -20,7 +20,8 @@ from .tools import ToolContext
 
 
 def _msg(role, content, **extra):
-    m = {"role": role, "content": content}
+    """统一的消息构造：带 ts（网页群聊要按时间线排序）。"""
+    m = {"role": role, "content": content, "ts": round(time.time(), 3)}
     m.update(extra)
     return m
 

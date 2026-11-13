@@ -86,6 +86,56 @@ def cmd_version(args):
     print("hive %s" % __version__)
 
 
+def cmd_ticket_msg(args):
+    """在工单群里说一句话（网页群聊走的就是这条命令）。"""
+    c = _client(args)
+    res = c.post("/api/tickets/%s/message" % args.ticket, {"text": args.text,
+                                                          "session": args.session or ""})
+    if not args.wait:
+        _print(res, True)
+        return 0
+    sid = res.get("session")
+    out = c.post("/api/sessions/wait", {"session": sid, "timeout": args.timeout}, timeout=args.timeout)
+    print(json.dumps({"ok": True, "ticket": args.ticket, "session": sid,
+                      "status": out.get("status"), "reply": out.get("reply") or ""}, ensure_ascii=False))
+    return 0
+
+
+def cmd_ticket_files(args):
+    c = _client(args)
+    _print(c.get("/api/tickets/%s/files" % args.ticket, limit=args.limit), args.json)
+
+
+def cmd_ticket_file(args):
+    c = _client(args)
+    _print(c.get("/api/tickets/%s/file" % args.ticket, path=args.path), args.json)
+
+
+def cmd_projects(args):
+    c = _client(args)
+    _print(c.get("/api/projects/list"), args.json)
+
+
+def cmd_project_create(args):
+    c = _client(args)
+    _print(c.post("/api/projects/create", {"name": args.name, "title": args.title or ""}), args.json)
+
+
+def cmd_groups(args):
+    c = _client(args)
+    _print(c.get("/api/web/groups"), args.json)
+
+
+def cmd_timeline(args):
+    c = _client(args)
+    data = c.get("/api/web/timeline", group=args.group, limit=args.limit)
+    if args.json:
+        _print(data, True)
+        return
+    for i in data.get("items", []):
+        print("[%s] %s: %s" % (i.get("ts") or "-", i.get("speaker") or "-", (i.get("text") or "")[:300]))
+
+
 def cmd_health(args):
     c = _client(args)
     _print(c.get("/api/health/self"), args.json)
@@ -212,7 +262,10 @@ def cmd_ops(args):
     c = _client(args)
     if args.action == "status":
         return cmd_status(args)
-    _print(c.post("/api/ops/%s" % args.action, {}), args.json)
+    payload = {}
+    if args.action == "rollback":
+        payload["target"] = args.target or "HEAD^"
+    _print(c.post("/api/ops/%s" % args.action, payload), args.json)
 
 
 def cmd_versions(args):
@@ -306,6 +359,39 @@ def build_parser():
     tcl.add_argument("--async", dest="async_", action="store_true")
     tcl.set_defaults(func=cmd_ticket_close)
 
+    tm = sub.add_parser("ticket-msg", parents=[common], help="在工单群里说一句话")
+    tm.add_argument("--ticket", required=True)
+    tm.add_argument("--text", required=True)
+    tm.add_argument("--session", default="", help="指定某个角色会话，默认发给 PM")
+    tm.add_argument("--wait", action="store_true")
+    tm.set_defaults(func=cmd_ticket_msg)
+
+    tf = sub.add_parser("ticket-files", parents=[common], help="列工单交付件")
+    tf.add_argument("--ticket", required=True)
+    tf.add_argument("--limit", type=int, default=200)
+    tf.set_defaults(func=cmd_ticket_files)
+
+    tfile = sub.add_parser("ticket-file", parents=[common], help="读一个交付件")
+    tfile.add_argument("--ticket", required=True)
+    tfile.add_argument("--path", required=True)
+    tfile.set_defaults(func=cmd_ticket_file)
+
+    pj = sub.add_parser("projects", parents=[common])
+    pj.set_defaults(func=cmd_projects)
+
+    pjc = sub.add_parser("project-create", parents=[common])
+    pjc.add_argument("--name", required=True)
+    pjc.add_argument("--title", default="")
+    pjc.set_defaults(func=cmd_project_create)
+
+    gp = sub.add_parser("groups", parents=[common], help="列网页群聊（秘书 + 各工单）")
+    gp.set_defaults(func=cmd_groups)
+
+    tl = sub.add_parser("timeline", parents=[common], help="读某个群的时间线")
+    tl.add_argument("--group", default="secretary")
+    tl.add_argument("--limit", type=int, default=60)
+    tl.set_defaults(func=cmd_timeline)
+
     lg = sub.add_parser("logs", parents=[common])
     lg.add_argument("--limit", type=int, default=50)
     lg.add_argument("--level", default="")
@@ -318,6 +404,7 @@ def build_parser():
 
     op = sub.add_parser("ops", parents=[common])
     op.add_argument("action", choices=["status", "restart", "stop", "rollback"])
+    op.add_argument("--target", default="", help="rollback 回退到哪个版本（commit/分支），默认 HEAD^")
     op.set_defaults(func=cmd_ops)
 
     sv = sub.add_parser("serve", help="前台启动 daemon（生产由 watchdog 托管）")
