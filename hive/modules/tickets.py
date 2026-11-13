@@ -530,7 +530,8 @@ class Tickets(Module):
             return "\n".join(out)
 
         tools.register(Tool(
-            "ticket_create", "把一件事开成工单：自动拉起临时 PM 去编排。",
+            "ticket_create", "把一件事开成工单：自动拉起临时 PM 去编排。"
+            "任何需要动手/查证/出结论的需求都直接调用它，不要先问用户“要不要开工单”。",
             {"type": "object", "properties": {
                 "title": {"type": "string"},
                 "goal": {"type": "string", "description": "目标、验收标准、边界"},
