@@ -603,10 +603,10 @@ function openArtifact(path, project, isTicket) {
 }
 
 // ---------------- 文件浏览 ----------------
-function openProjectFiles() {
+function openProjectFiles(path) {
   var pid = state.project; if (!pid) return;
   openModal('项目文件 · ' + pid, '<div id="ftree" class="muted">加载中…</div>', { root: true });
-  browseProject('', pid);
+  browseProject(path || '', pid);
 }
 function browseProject(path, pid) {
   api('/api/projects/' + encodeURIComponent(pid) + '/files?path=' + encodeURIComponent(path)).then(function (r) {
@@ -624,8 +624,7 @@ function browseProject(path, pid) {
         if (row.dataset.t === 'dir') browseProject(row.dataset.p, pid);
         else api('/api/projects/' + encodeURIComponent(pid) + '/file?path=' + encodeURIComponent(row.dataset.p))
           .then(function (f) { openModal(row.dataset.p, f.encoding === 'utf-8' ? md(f.text) : '<div class="muted">二进制</div>', { back: function () {
-            openModal('项目文件 · ' + pid, '<div id="ftree" class="muted">加载中…</div>', { root: true });
-            browseProject(path, pid);
+            openProjectFiles(path);
           } }); })
           .catch(function (e) { toast(e.message, 'err'); });
       };
@@ -636,7 +635,7 @@ function openSource(opts) {
   opts = opts || {};
   openModal('agent 源码 / 配置（只读）', '<div id="ftree" class="muted">加载中…</div>', { root: true });
   if (!opts.fromRoute) overlayRoute('#/source', 'source');
-  browseSource('');
+  browseSource(opts.path || '');
 }
 function browseSource(path) {
   api('/api/ops/files?path=' + encodeURIComponent(path)).then(function (r) {
@@ -654,7 +653,7 @@ function browseSource(path) {
         if (row.dataset.t === 'dir') browseSource(row.dataset.p);
         else api('/api/ops/file?path=' + encodeURIComponent(row.dataset.p))
           .then(function (f) { openModal(row.dataset.p, md(f.text), { back: function () {
-            openSource({ fromRoute: true }); browseSource(path);
+            openSource({ fromRoute: true, path: path });
           } }); })
           .catch(function (e) { toast(e.message, 'err'); });
       };
@@ -1006,7 +1005,7 @@ $('btn-restart').onclick = restartAgent;
 $('btn-stop').onclick = stopAll;
 $('btn-newproject').onclick = createProject;
 $('pv-rename').onclick = renameProject;
-$('pv-files').onclick = openProjectFiles;
+$('pv-files').onclick = function () { openProjectFiles(); };
 $('pv-delete').onclick = deleteProject;
 $('pv-secretary').onclick = function () { selectGroup('sec-' + state.project); };
 $('pv-compact').onclick = compactProjectSecretary;

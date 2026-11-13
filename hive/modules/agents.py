@@ -37,6 +37,22 @@ class ClaudeCodeBackend:
         self.timeout = int(a.get("timeout") or 0)  # 0 = 不设固定上限，靠插话/abort 中断
         self.extra_env = a.get("env") or {}
 
+    def _resolve_command(self):
+        """优先找常见 npm 全局安装位置，避免服务进程的 PATH 不含 npm。"""
+        cmd = self.command
+        candidates = [cmd]
+        if os.name == "nt":
+            appdata = os.environ.get("APPDATA") or ""
+            if appdata:
+                candidates += [os.path.join(appdata, "npm", "claude.exe"),
+                               os.path.join(appdata, "npm", "claude.cmd")]
+        else:
+            candidates += ["/usr/local/bin/claude", "/opt/homebrew/bin/claude"]
+        for c in candidates:
+            if c and os.path.isfile(c):
+                return c
+        return shutil.which(cmd) or cmd
+
     def _prompt_file(self, session, user_text, drain):
         sid = session.get("id") or "session"
         d = ensure_dir(os.path.join(self.root, sid))
@@ -67,7 +83,7 @@ class ClaudeCodeBackend:
         prompt_file = self._prompt_file(session, user_text, drain)
         instruction = "请读取文件 %s，按其中任务执行；完成后输出结果摘要。" % prompt_file
         argv = [instruction if x == "{prompt}" else x for x in self.args]
-        exe = shutil.which(self.command) or self.command
+        exe = self._resolve_command()
         cmd = [exe] + argv
         # Windows 的 npm 全局命令是 .cmd，需要 cmd /c 包一层
         if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
