@@ -82,12 +82,50 @@ class MockLLM:
                     }],
                     "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
                 }
+                if req.get("stream"):
+                    return self._stream(body, msg, calls)
                 data = json.dumps(body, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)
+
+            def _stream(self, body, msg, calls):
+                """按 OpenAI SSE 分片回放：正文按词切开，工具调用按参数切片。"""
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "close")
+                self.end_headers()
+
+                def emit(obj):
+                    line = "data: " + json.dumps(obj, ensure_ascii=False) + "\n\n"
+                    self.wfile.write(line.encode("utf-8"))
+                    self.wfile.flush()
+
+                base = {"id": body["id"], "object": "chat.completion.chunk", "created": body["created"],
+                        "model": body["model"]}
+                content = msg.get("content") or ""
+                for i in range(0, len(content), 8):
+                    emit(dict(base, choices=[{"index": 0, "delta": {"content": content[i:i + 8]},
+                                              "finish_reason": None}]))
+                for ti, tc in enumerate(msg.get("tool_calls") or []):
+                    fn = tc.get("function") or {}
+                    emit(dict(base, choices=[{"index": 0, "delta": {"tool_calls": [
+                        {"index": ti, "id": tc["id"], "type": "function",
+                         "function": {"name": fn.get("name"), "arguments": ""}}]},
+                        "finish_reason": None}]))
+                    args = fn.get("arguments") or ""
+                    for k in range(0, len(args), 16):
+                        emit(dict(base, choices=[{"index": 0, "delta": {"tool_calls": [
+                            {"index": ti, "function": {"arguments": args[k:k + 16]}}]},
+                            "finish_reason": None}]))
+                emit(dict(base, choices=[{"index": 0, "delta": {},
+                                          "finish_reason": "tool_calls" if calls else "stop"}],
+                          usage=body["usage"]))
+                self.wfile.write(b"data: [DONE]\n\n")
+                self.wfile.flush()
 
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.httpd.daemon_threads = True

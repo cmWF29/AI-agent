@@ -11,6 +11,7 @@ import os
 import re
 import secrets
 import socket
+import ssl
 import threading
 import time
 import urllib.parse
@@ -38,6 +39,28 @@ class HttpService:
         self._thread = None
         self.started_at = None
         self.counters = {"requests": 0, "errors": 0, "auth_fail": 0}
+        self.tls_context = None
+        self.scheme = "http"
+
+    def _tls_config(self):
+        tls = self.cfg["server"].get("tls") if isinstance(self.cfg["server"].get("tls"), dict) else {}
+        if not tls.get("enabled"):
+            return None
+        from .config import path_of
+        cert = path_of(self.cfg, "server.tls.cert", "config/tls/server.crt")
+        key = path_of(self.cfg, "server.tls.key", "config/tls/server.key")
+        if not (os.path.isfile(cert) and os.path.isfile(key)):
+            if self.log:
+                self.log.warn("http.tls.skip", reason="证书不存在，退回 HTTP", cert=cert)
+            return None
+        try:
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ctx.load_cert_chain(cert, key)
+            return ctx
+        except (ssl.SSLError, OSError) as exc:
+            if self.log:
+                self.log.error("http.tls.load_failed", error=repr(exc))
+            return None
 
     def ensure_token(self):
         """token 为空时生成一个并写回配置文件，保证 CLI 与网页用的是同一个。"""
@@ -93,7 +116,9 @@ class HttpService:
                     return self._login()
 
                 if path == "/api/auth/status" and method == "GET":
-                    return self._json(200, {"ok": True, "authed": self._authed(), "login_required": True})
+                    return self._json(200, {"ok": True, "authed": self._authed(), "login_required": True,
+                                            "scheme": service.scheme,
+                                            "https": service.scheme == "https"})
 
                 route, params = service.router.match(method, path)
                 if route is None:
@@ -224,10 +249,33 @@ class HttpService:
 
         ThreadingHTTPServer.allow_reuse_address = True
         ThreadingHTTPServer.daemon_threads = True
-        self._httpd = ThreadingHTTPServer((self.host, self.port), Handler)
+        self.tls_context = self._tls_config()
+
+        class TLSHTTPServer(ThreadingHTTPServer):
+            """在 accept 之后包一层 TLS —— 比包 listening socket 稳，握手失败只影响那一条连接。"""
+            tls = None
+
+            def get_request(self):
+                sock, addr = super().get_request()
+                if self.tls is not None:
+                    try:
+                        return self.tls.wrap_socket(sock, server_side=True), addr
+                    except (ssl.SSLError, OSError):
+                        try:
+                            sock.close()
+                        except OSError:
+                            pass
+                        raise
+                return sock, addr
+
+        server_cls = TLSHTTPServer if self.tls_context is not None else ThreadingHTTPServer
+        self._httpd = server_cls((self.host, self.port), Handler)
+        if self.tls_context is not None:
+            self._httpd.tls = self.tls_context
+            self.scheme = "https"
         self.started_at = time.time()
         if self.log:
-            self.log.info("http.listen", host=self.host, port=self.port, web_dir=self.web_dir)
+            self.log.info("http.listen", host=self.host, port=self.port, scheme=self.scheme, web_dir=self.web_dir)
         self._httpd.serve_forever(poll_interval=0.2)
 
     def start_background(self):
@@ -249,4 +297,4 @@ class HttpService:
 
     def url(self):
         host = "127.0.0.1" if self.host in ("0.0.0.0", "::") else self.host
-        return "http://%s:%d" % (host, self.port)
+        return "%s://%s:%d" % (self.scheme, host, self.port)

@@ -46,6 +46,7 @@ class Projects(Module):
         self.api.route("POST", "/api/projects/create", name="create")(self.create_api)
         self.api.route("GET", "/api/projects/{project_id}", name="get")(self.get_api)
         self.api.route("POST", "/api/projects/{project_id}/archive", name="archive")(self.archive_api)
+        self.api.route("POST", "/api/projects/{project_id}/delete", name="delete")(self.delete_api)
         self.api.route("POST", "/api/projects/ensure", name="ensure")(self.ensure_api)
 
         self._register_tools()
@@ -69,6 +70,11 @@ class Projects(Module):
         if not silent:
             self.emit("project.created", {"project": pid, "title": rec["title"]})
             self.log.info("project.created", project=pid)
+        # 每个项目一份 git 仓库（工单各自从它拉分支，收口合回 main）
+        try:
+            self.ctx.api("gitflow.project_init", project=pid)
+        except ApiError as exc:
+            self.log.warn("project.git.init_failed", project=pid, error=exc.message)
         return rec
 
     def _get(self, project_id):
@@ -111,7 +117,32 @@ class Projects(Module):
         out["tickets"] = [{"id": t["id"], "title": t["title"], "status": t["status"]} for t in tickets]
         out["ticket_count"] = len(tickets)
         out["open_tickets"] = len([t for t in tickets if t["status"] not in ("closed",)])
+        out["secretary"] = "sec-" + rec["id"]
+        out["artifacts_root"] = "artifacts/projects/" + rec["id"]
         return {"project": out}
+
+    def delete_api(self, payload):
+        """删除项目（需求 8）。
+
+        后处理只做一件必要的事：清掉这个项目的秘书会话（否则它会一直挂着一个已不存在的项目）。
+        知识/交付件/工单记录都保留（知识已经运行时沉淀，删掉反而丢证据）。
+        """
+        pid = _slug(payload["project_id"], self.default)
+        rec = self.store.get(pid)
+        if rec is None:
+            raise ApiError("项目不存在: %s" % pid, status=404, code="no_project")
+        destroyed = []
+        try:
+            self.ctx.api("sessions.destroy", session_id="sec-" + pid)
+            destroyed.append("sec-" + pid)
+        except ApiError:
+            pass
+        self.store.delete(pid)
+        self.emit("project.deleted", {"project": pid, "destroyed": destroyed})
+        self.log.info("project.deleted", project=pid)
+        return {"deleted": pid, "destroyed_sessions": destroyed,
+                "kept": {"tickets": "data/tickets/*", "artifacts": "data/artifacts/projects/%s" % pid,
+                         "knowledge": "data/knowledge/projects/%s" % pid}}
 
     def archive_api(self, payload):
         rec = self._get(payload["project_id"])

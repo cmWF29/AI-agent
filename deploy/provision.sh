@@ -49,6 +49,22 @@ with open(p, "w", encoding="utf-8") as f:
     json.dump(cfg, f, ensure_ascii=False, indent=2)
 PY
 
+# HTTPS 证书自举（需求 5）：只有 IP 没有域名，只能自签；手机浏览器首次会告警，信任一次即可
+TLS_DIR="$REPO/config/tls"
+TLS_ON="$(python3 -c "import json;print('1' if (json.load(open('$REPO/config/config.json')).get('server',{}).get('tls',{}) or {}).get('enabled') else '0')")"
+if [ "$TLS_ON" = "1" ] && [ ! -f "$TLS_DIR/server.crt" ]; then
+  mkdir -p "$TLS_DIR"
+  IP="${HIVE_PUBLIC_IP:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
+  [ -z "$IP" ] && IP="127.0.0.1"
+  openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+    -subj "/CN=$IP/O=Hive Agent" \
+    -addext "subjectAltName=IP:$IP" \
+    -keyout "$TLS_DIR/server.key" -out "$TLS_DIR/server.crt" >/dev/null 2>&1
+  chmod 600 "$TLS_DIR/server.key"
+  chmod 644 "$TLS_DIR/server.crt"
+  echo "[provision] 已生成自签证书（IP=$IP）"
+fi
+
 PYTHON_BIN="$(command -v python3)"
 sed -e "s|__REPO__|$REPO|g" -e "s|__PYTHON__|$PYTHON_BIN|g" \
     "$REPO/deploy/hive-watchdog.service" > /etc/systemd/system/hive-watchdog.service
@@ -63,4 +79,7 @@ if [ "$AUTOSTART" = "1" ]; then
 fi
 
 PORT="$(python3 -c "import json;print(json.load(open('$REPO/config/config.json'))['server']['port'])")"
-echo "[provision] 完成：http://<VPS_IP>:$PORT/   （密码见 config/config.json 的 server.web_password）"
+SCHEME="http"
+[ "$TLS_ON" = "1" ] && [ -f "$TLS_DIR/server.crt" ] && SCHEME="https"
+echo "[provision] 完成：$SCHEME://<VPS_IP>:$PORT/   （密码见 config/config.json 的 server.web_password）"
+[ "$SCHEME" = "https" ] && echo "[provision] 自签证书：首次访问需在浏览器点“继续访问”（安卓 Chrome：高级 → 继续前往）"

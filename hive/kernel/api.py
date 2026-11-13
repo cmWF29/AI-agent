@@ -8,6 +8,8 @@ route_id 形如 "sessions.get"、"tickets.create"，由 模块名.函数名 组�
 from __future__ import annotations
 
 import re
+import sys
+import time
 from collections import defaultdict
 
 
@@ -140,6 +142,7 @@ class Context:
         self.modules = {}
         self.tools = None                 # ToolRegistry，由 kernel 装配
         self.state = {}
+        self.trace = None                 # Trace，由 kernel 注入（记录模块间 API 通信）
         self.started_at = None
 
     def register(self, module):
@@ -155,14 +158,39 @@ class Context:
         return self.modules.get(name)
 
     def api(self, route_id, **payload):
-        """模块间同步调用：直接走对外 API，不 import 对方的实现。"""
+        """模块间同步调用：直接走对外 API，不 import 对方的实现。
+
+        同时把“谁调了谁、入参出参”记进 trace（需求 19：模块间通信要可视化）。
+        """
         route = self.router.by_id(route_id)
         if route is None:
             raise ApiError("unknown route: %s" % route_id, status=404, code="no_route")
-        result = route.func(payload)
+        t0 = time.time()
+        try:
+            result = route.func(payload)
+        except ApiError as exc:
+            self._trace_api(route_id, payload, None, int((time.time() - t0) * 1000), error=exc.message)
+            raise
         if result is None:
             result = {}
+        self._trace_api(route_id, payload, result, int((time.time() - t0) * 1000))
         return result
+
+    def _trace_api(self, route_id, payload, result, ms, error=""):
+        trace = self.trace
+        if trace is None:
+            return
+        try:
+            caller = ""
+            frame = sys._getframe(2)
+            caller = (frame.f_globals.get("__name__") or "").rsplit(".", 1)[-1]
+            trace.record("api.call", {
+                "from": caller, "route": route_id, "ms": ms,
+                "payload": payload, "result": result, "error": error,
+            }, session=payload.get("session") or payload.get("session_id") or "",
+               ticket=payload.get("ticket") or "")
+        except Exception:
+            pass
 
     def shutdown(self):
         for name in reversed(list(self.modules.keys())):

@@ -38,6 +38,7 @@ class Bus:
         self.counters = defaultdict(int)
         self.log = AppendLog(log_path, max_log_bytes) if log_path else None
         self.error_handler = None      # 由 observability 模块注入
+        self.trace = None              # 由 kernel 注入：总线事件也要可视化
         self.started_at = ts()
 
     # ---------------- 订阅 ----------------
@@ -81,6 +82,7 @@ class Bus:
                 self.log.append(ev)
             except OSError:
                 pass
+        self._trace(ev)
         for sid, sub in self._dispatch(ev):
             if sync:
                 self._run_handler(sub, ev, sid)
@@ -89,6 +91,22 @@ class Bus:
                     self._pending += 1
                 self._pool.submit(self._run_handler_async, sub, ev, sid)
         return ev
+
+    def _trace(self, ev):
+        """总线上广播了什么，也进 trace（llm.delta 这种高频事件只记一条摘要，避免刷盘）。"""
+        trace = self.trace
+        if trace is None:
+            return
+        try:
+            payload = ev.get("payload") or {}
+            if ev["topic"] == "llm.delta":
+                return
+            trace.record("bus.event", {
+                "topic": ev["topic"], "source": ev.get("source"),
+                "payload": payload,
+            }, session=payload.get("session") or "", ticket=payload.get("ticket") or "")
+        except Exception:
+            pass
 
     def _run_handler(self, sub, ev, sid):
         try:

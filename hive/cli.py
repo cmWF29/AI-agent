@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import urllib.error
+import ssl
 import urllib.parse
 import urllib.request
 
@@ -35,8 +36,9 @@ class Client:
             data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             headers["Content-Type"] = "application/json"
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        ctx = ssl._create_unverified_context() if url.startswith("https") else None
         try:
-            with urllib.request.urlopen(req, timeout=timeout or self.timeout) as resp:
+            with urllib.request.urlopen(req, timeout=timeout or self.timeout, context=ctx) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             raw = e.read().decode("utf-8", "ignore")
@@ -62,7 +64,15 @@ class Client:
 
 def _client(args):
     cfg = load_config(args.config)
-    url = args.url or os.environ.get("HIVE_URL") or "http://127.0.0.1:%d" % int(cfg["server"]["port"])
+    scheme = "http"
+    tls = (cfg.get("server") or {}).get("tls") or {}
+    if tls.get("enabled"):
+        cert = tls.get("cert") or "config/tls/server.crt"
+        if not os.path.isabs(cert):
+            cert = os.path.join(cfg.get("root") or ".", cert)
+        if os.path.exists(cert):
+            scheme = "https"
+    url = args.url or os.environ.get("HIVE_URL") or "%s://127.0.0.1:%d" % (scheme, int(cfg["server"]["port"]))
     token = args.token or os.environ.get("HIVE_TOKEN") or cfg["server"].get("token") or ""
     return Client(url, token, timeout=args.timeout)
 

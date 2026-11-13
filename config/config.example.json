@@ -3,7 +3,12 @@
     "host": "0.0.0.0",
     "port": 8787,
     "token": "",
-    "web_password": "hive-please-change"
+    "web_password": "hive-please-change",
+    "tls": {
+      "enabled": true,
+      "cert": "config/tls/server.crt",
+      "key": "config/tls/server.key"
+    }
   },
   "llm": {
     "provider": "deepseek",
@@ -13,7 +18,8 @@
     "temperature": 0.2,
     "timeout": 180,
     "max_retries": 3,
-    "max_tokens": 0
+    "max_tokens": 0,
+    "stream": true
   },
   "react": {
     "max_steps": 20,
@@ -50,7 +56,11 @@
   },
   "knowledge": {
     "root": "data/knowledge",
-    "layers": ["public", "project", "ticket"],
+    "layers": [
+      "public",
+      "project",
+      "ticket"
+    ],
     "max_inject_chars": 20000
   },
   "tools": {
@@ -67,5 +77,28 @@
   },
   "ops": {
     "control_dir": "data/control"
+  },
+  "instance": {
+    "id": "local-1",
+    "title": "本地节点",
+    "layer": "local"
+  },
+  "artifacts": {
+    "root": "data/artifacts",
+    "compress_threshold_mb": 200,
+    "compress_after_days": 7
+  },
+  "library": {
+    "root": "data/library"
+  },
+  "gitflow": {
+    "enabled": true,
+    "author_name": "Hive Agent",
+    "author_email": "agent@hive.local"
+  },
+  "trace": {
+    "root": "data/traces",
+    "ring": 800,
+    "max_bytes": 8388608
   }
 }

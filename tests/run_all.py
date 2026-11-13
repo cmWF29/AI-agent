@@ -45,7 +45,8 @@ def free_port():
 
 
 class Env:
-    def __init__(self, mock, inline_max=1000, compact_threshold=800, with_http=False, keep_recent=2):
+    def __init__(self, mock, inline_max=1000, compact_threshold=800, with_http=False, keep_recent=2,
+                 overrides=None):
         self.tmp = tempfile.mkdtemp(prefix="hive-test-")
         self.port = free_port()
         cfg_path = os.path.join(self.tmp, "config", "config.json")
@@ -59,6 +60,9 @@ class Env:
             "observability": {"level": "debug"},
             "sessions": {"max_concurrent": 4},
         })
+        if overrides:
+            from hive.kernel.config import _deep_merge
+            self.cfg = _deep_merge(self.cfg, overrides)
         self.kernel = Kernel(cfg=self.cfg, web_dir=os.path.join(REPO, "web"))
         self.kernel.boot()
         if with_http:
@@ -295,19 +299,12 @@ def test_cli_and_webchat(mock):
 
         st, body, _ = env.http("/api/chat/send", method="POST", body={"text": "网页来的消息"})
         check("网页发送被接受", st == 200 and body.get("job_id"), (st, body))
-        job_id = body["job_id"]
-        job = {}
-        for _ in range(90):
-            time.sleep(1)
-            st, payload, _ = env.http("/api/chat/job/%s" % job_id)
-            job = payload.get("job") or {}
-            if job.get("status") != "running":
-                break
+        check("网页直达秘书会话", body.get("session") == "secretary", body)
+        job = env.http("/api/chat/job/%s" % body["job_id"])[1]["job"]
         check("网页任务完成", job.get("status") == "done", job)
-        check("网页拿到回复", bool(job.get("reply")), job.get("reply"))
-        check("网页走的是 CLI", "hive.cli" in (job.get("log") or "") or job.get("via") == "cli", job.get("via"))
-        hist = env.http("/api/chat/history?limit=5")[1]
-        check("历史可读", hist.get("total", 0) >= 1, hist.get("total"))
+        env.api("sessions.wait", session="secretary", timeout=30)
+        tl = env.http("/api/web/timeline?group=secretary&limit=20")[1]
+        check("历史可读", any("秘书的回复" in (i.get("text") or "") for i in tl["items"]), tl.get("items"))
     finally:
         env.close()
 
@@ -423,8 +420,10 @@ def test_group_chat(mock):
 
         tl2 = env.http("/api/web/timeline?group=%s&limit=80" % t["id"])[1]
         speakers = [i["speaker"] for i in tl2["items"]]
-        check("工单时间线聚合 PM 与角色", any("PM" in s for s in speakers) and any("writer" in s for s in speakers), speakers[:6])
-        check("工单时间线含系统事件", any(i["role"] == "event" for i in tl2["items"]), len(tl2["items"]))
+        check("工单时间线用角色中文名", "项目经理" in speakers and any("撰写" in s for s in speakers), speakers[:8])
+        check("工单时间线不含系统事件", not any(i["role"] == "event" for i in tl2["items"]), len(tl2["items"]))
+        flow = env.http("/api/tickets/%s/flow" % t["id"])[1]
+        check("生命周期流程图有节点", len(flow.get("nodes") or []) >= 4 and flow["nodes"][0]["done"], flow.get("nodes"))
 
         files = env.http("/api/tickets/%s/files" % t["id"])[1]
         check("交付件可见", any(f["path"].endswith("report.md") for f in files["items"]), files)
@@ -477,12 +476,232 @@ def test_versions(mock):
         env.close()
 
 
+# ---------------- v3 新功能用例 ----------------
+def test_stream_trace(mock):
+    print("[14] 流式输出 + 全链路 trace")
+    mock.set([{"content": "流式回复内容 ABCDEFG"}])
+    env = Env(mock, with_http=True)
+    try:
+        env.api("sessions.ensure")
+        env.api("sessions.ask", text="你好", timeout=60)
+        topics = [e["topic"] for e in env.kernel.bus.recent]
+        check("有流式增量事件", "llm.delta" in topics, topics[-6:])
+        delta = "".join(e["payload"].get("text", "") for e in env.kernel.bus.recent
+                        if e["topic"] == "llm.delta")
+        check("增量拼回完整正文", "ABCDEFG" in delta, delta[:80])
+        st, tr, _ = env.http("/api/trace/recent?session=secretary&limit=50")
+        kinds = {i["kind"] for i in tr.get("items", [])}
+        check("trace 记录 llm.request", "llm.request" in kinds, kinds)
+        check("trace 记录 llm.response", "llm.response" in kinds, kinds)
+        req = [i for i in tr["items"] if i["kind"] == "llm.request"][-1]["data"]
+        check("trace 请求结构含 messages/tools", "messages" in req and "tools" in req, list(req)[:8])
+        check("trace 不含 api key", "sk-" not in json.dumps(tr, ensure_ascii=False), "leak")
+        tpath = os.path.join(env.tmp, "data", "traces", "secretary.jsonl")
+        check("trace 落盘", os.path.exists(tpath) and os.path.getsize(tpath) > 0, tpath)
+    finally:
+        env.close()
+
+
+def test_library_flow(mock):
+    print("[15] 角色库/流程库/技能库 + 流程插件校验")
+    mock.set([{"content": "ok"}])
+    env = Env(mock)
+    try:
+        roles = env.api("library.list", kind="roles")["items"]
+        check("内置角色库有条目", any(r["id"] == "architect" for r in roles), [r["id"] for r in roles])
+        flows = env.api("library.list", kind="flows")["items"]
+        check("内置流程插件", any(f["id"] == "architect" for f in flows), [f["id"] for f in flows])
+
+        res = env.api("library.design", role="security", cn="安全", responsibility="做安全审计",
+                      must_outputs=["docs/**/*security*.md"],
+                      skills=[{"id": "sec-audit", "name": "安全审计手册", "body": "先看依赖再看入口"}])
+        check("流程专家产出角色卡", res["role"]["id"] == "security" and res["role"]["must_outputs"], res["role"])
+        check("流程插件记录了必交产物", len(res["flow"]["checks"]) == 1, res["flow"])
+        check("技能入库", res["skills"] == ["sec-audit"], res["skills"])
+
+        miss = env.api("library.check", flow="security", files=["docs/a.md"])
+        check("缺件被识别", miss["missing"] == ["docs/**/*security*.md"], miss)
+        ok = env.api("library.check", flow="security", files=["docs/security-audit.md"])
+        check("齐件通过", ok["missing"] == [] and ok["known"], ok)
+    finally:
+        env.close()
+
+
+def test_project_secretary_delete(mock):
+    print("[16] 项目秘书 + 删除项目")
+    mock.set([{"content": "项目秘书在线"}])
+    env = Env(mock, with_http=True)
+    try:
+        env.api("projects.create", name="gamma", title="伽马")
+        sec = env.api("sessions.ensure", project="gamma")["session"]
+        check("项目秘书按项目隔离", sec["id"] == "sec-gamma", sec["id"])
+        env.api("sessions.ask", session="sec-gamma", text="在吗", timeout=60)
+        groups = env.http("/api/web/groups")[1]
+        check("群列表含项目秘书", any(g["id"] == "sec-gamma" for g in groups["items"]),
+              [g["id"] for g in groups["items"]])
+        check("群列表含本地层信息", groups.get("instance", {}).get("layer") == "local", groups.get("instance"))
+
+        d = env.api("projects.delete", project_id="gamma")
+        check("项目删除成功", d.get("deleted") == "gamma", d)
+        gone = None
+        try:
+            env.api("sessions.get", session_id="sec-gamma")
+        except Exception:
+            gone = True
+        check("项目秘书被清理", gone is True)
+        check("项目已不在列表", all(p["id"] != "gamma" for p in env.api("projects.list")["items"]))
+    finally:
+        env.close()
+
+
+def test_close_readonly_artifacts(mock):
+    print("[17] 结单只读 + 三层交付件归档")
+    mock.set([
+        {"content": "PM 收到"},
+        {"content": "写完了"}, {"content": "DONE"},
+        {"content": "DONE"},
+        {"content": "DONE"},
+    ])
+    env = Env(mock, with_http=True)
+    try:
+        t = env.api("tickets.create", goal="产出一份交付文档", project="arch")["ticket"]
+        env.api("sessions.wait", session=t["pm"], timeout=30)
+        role_api = env.api("tickets.roles", ticket_id=t["id"], role="writer", task="写 docs/report.md")
+        sess = role_api["role"]["session"]
+        ws = role_api["role"]["workspace"]
+        os.makedirs(os.path.join(ws, "docs"), exist_ok=True)
+        with open(os.path.join(ws, "docs", "report.md"), "w", encoding="utf-8") as f:
+            f.write("# 报告\n内容\n")
+        env.api("sessions.wait", session=sess, timeout=30)
+
+        env.api("tickets.close", ticket_id=t["id"], summary="完成")
+        detail = env.api("tickets.get", ticket_id=t["id"])["ticket"]
+        check("结单后只读", detail["status"] == "closed" and detail["readonly"], detail["status"])
+
+        st, body, _ = env.http("/api/tickets/%s/message" % t["id"], method="POST", body={"text": "再改一下"})
+        check("结单后发消息被拒", st == 410 and body.get("code") == "ticket_closed", (st, body))
+
+        apath = os.path.join(env.tmp, "data", "artifacts", "projects", "arch", "tickets", t["id"], "docs", "report.md")
+        check("交付件按三层路径归档", os.path.exists(apath), apath)
+        stats = env.api("artifacts.stats")
+        check("健康可读交付件体积", stats["total_bytes"] > 0 and stats["biggest"], stats["total_human"])
+        lst = env.api("artifacts.list", layer="ticket", project="arch", ticket=t["id"])
+        check("工单层可浏览", any(i["path"].endswith("report.md") for i in lst["items"]), lst["items"])
+        cmp = env.api("artifacts.compress", project="arch", ticket=t["id"])
+        tar = cmp["result"].get("tar") or ""
+        check("压缩工单交付件", cmp["result"]["bytes_after"] > 0 and os.path.exists(tar), cmp)
+    finally:
+        env.close()
+
+
+def test_gitflow(mock):
+    print("[18] 工单级 git：分支推拉 + 冲突检测")
+    mock.set([{"content": "ok"}])
+    env = Env(mock)
+    try:
+        env.api("projects.create", name="repo1")
+        git = env.api("gitflow.list")
+        check("项目建了裸仓库", any(i["project"] == "repo1" for i in git["items"]), git)
+        bare = os.path.join(env.tmp, "data", "projects", "repo1", "repo.git")
+        check("裸仓库存在", os.path.isdir(bare), bare)
+
+        t1 = env.api("tickets.create", goal="改 README A", project="repo1")["ticket"]
+        t2 = env.api("tickets.create", goal="改 README B", project="repo1")["ticket"]
+        check("工单各自有工作树", os.path.isdir(t1["repo"]) and os.path.isdir(t2["repo"]),
+              (t1.get("repo"), t2.get("repo")))
+        check("工单分支名", "ticket/" + t1["id"] in env.api("gitflow.ticket_status", ticket=t1["id"])["status"]["branch"],
+              env.api("gitflow.ticket_status", ticket=t1["id"])["status"])
+
+        # t1 改标题 → 推 → 合回 main
+        with open(os.path.join(t1["repo"], "README.md"), "w", encoding="utf-8") as f:
+            f.write("# repo1 A\n\n第一版\n")
+        r1 = env.api("gitflow.ticket_sync", ticket=t1["id"], message="t1")["result"]
+        check("工单推送到远端分支", r1.get("ok") is True, r1)
+        m1 = env.api("gitflow.ticket_merge", ticket=t1["id"], project="repo1")["result"]
+        check("合回 main", m1.get("ok") is True, m1)
+
+        # t2 改同一行 → 推的时候会与 main 冲突
+        with open(os.path.join(t2["repo"], "README.md"), "w", encoding="utf-8") as f:
+            f.write("# repo1 B\n\n第二版\n")
+        r2 = env.api("gitflow.ticket_sync", ticket=t2["id"], message="t2")["result"]
+        check("冲突被识别", bool(r2.get("conflict")), r2)
+        check("冲突文件是 README", any("README" in f for f in (r2.get("conflict") or [])), r2.get("conflict"))
+
+        # 冲突工单结单 → 不应直接关掉，而是进 conflict 等重测
+        closed = env.api("tickets.close", ticket_id=t2["id"], summary="硬关")["ticket"]
+        check("冲突时工单不结单", closed["status"] == "conflict", closed["status"])
+    finally:
+        env.close()
+
+
+def test_three_by_three(mock):
+    print("[19] 3 个项目 × 3 个工单并发")
+    mock.set([{"content": "PM ok"} for _ in range(40)])
+    env = Env(mock, with_http=True, overrides={"sessions": {"max_concurrent": 6}})
+    try:
+        tickets = []
+        for p in ("p1", "p2", "p3"):
+            env.api("projects.create", name=p)
+            for i in range(3):
+                t = env.api("tickets.create", goal="%s 的第 %d 单" % (p, i), project=p)["ticket"]
+                tickets.append(t)
+        check("9 个工单同时存在", len(tickets) == 9 and all(t["pm"] for t in tickets), len(tickets))
+        check("落在 3 个项目", len({t["project"] for t in tickets}) == 3)
+        state = env.api("sessions.state")
+        check("并发闸门在工作", state["active"] <= state["max_concurrent"], state)
+        live = env.api("sessions.list", kind="pm")["items"]
+        check("9 个 PM 会话", len(live) >= 9, len(live))
+        for t in tickets:
+            env.api("tickets.close", ticket_id=t["id"], summary="批量收尾", force=True)
+        closed = env.api("tickets.list")["items"]
+        check("批量结单完成", all(t["status"] == "closed" for t in closed), [t["status"] for t in closed][:5])
+    finally:
+        env.close()
+
+
+def test_https(mock):
+    print("[20] HTTPS：自签证书 + 自动降级")
+    import ssl
+    mock.set([{"content": "ok"}])
+    tmp = tempfile.mkdtemp(prefix="hive-tls-")
+    cert = os.path.join(tmp, "server.crt")
+    key = os.path.join(tmp, "server.key")
+    try:
+        subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "2",
+                        "-subj", "/CN=127.0.0.1", "-keyout", key, "-out", cert],
+                       capture_output=True, timeout=30, check=True)
+    except Exception as exc:
+        check("openssl 可用（跳过 HTTPS 实测）", False, repr(exc))
+        shutil.rmtree(tmp, ignore_errors=True)
+        return
+    env = None
+    try:
+        env = Env(mock, with_http=True,
+                  overrides={"server": {"tls": {"enabled": True, "cert": cert, "key": key}}})
+        ctx = ssl._create_unverified_context()
+        with urllib.request.urlopen("https://127.0.0.1:%d/api/health" % env.port, context=ctx, timeout=10) as r:
+            body = json.loads(r.read().decode("utf-8"))
+        check("HTTPS 端口可访问", r.status == 200 and body.get("status") == "ok", body)
+        check("自检报告 https", env.api("health.self_check").get("tls") is True)
+        req = urllib.request.Request("https://127.0.0.1:%d/api/ops/status" % env.port)
+        req.add_header("X-Auth-Token", "test-token")
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as r:
+            s = json.loads(r.read().decode("utf-8"))
+        check("HTTPS 下业务接口可用", r.status == 200 and s.get("version"), s.get("version"))
+    finally:
+        if env:
+            env.close()
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
     tests = [test_bus, test_output_policy, test_react_offload, test_react_interrupt,
              test_sessions_compact, test_tickets, test_http_auth, test_cli_and_webchat, test_ops,
-             test_secretary_policy, test_projects_and_concurrency, test_group_chat, test_versions]
+             test_secretary_policy, test_projects_and_concurrency, test_group_chat, test_versions,
+             test_stream_trace, test_library_flow, test_project_secretary_delete,
+             test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https]
     t0 = time.time()
     for t in tests:
         try:

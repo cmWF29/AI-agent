@@ -19,6 +19,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import ssl
 import urllib.request
 
 
@@ -155,10 +156,27 @@ class Watchdog:
         return self.proc is not None and self.proc.poll() is None
 
     # ---------------- 健康 ----------------
-    def health(self):
-        url = "http://127.0.0.1:%d/api/health/self" % self.port
+    def _scheme(self):
+        """TLS 开了就用 https 探活（自签证书不校验）。"""
         try:
-            with urllib.request.urlopen(url, timeout=self.health_timeout) as resp:
+            cfg = json.load(open(self.config_path or os.path.join(self.repo, "config", "config.json")))
+            tls = (cfg.get("server") or {}).get("tls") or {}
+            cert = os.path.join(self.repo, tls.get("cert") or "config/tls/server.crt")
+            if tls.get("enabled") and os.path.exists(cert):
+                return "https"
+        except Exception:
+            pass
+        return "http"
+
+    def health(self):
+        url = "%s://127.0.0.1:%d/api/health/self" % (self._scheme(), self.port)
+        try:
+            if url.startswith("https"):
+                ctx = ssl._create_unverified_context()
+                resp = urllib.request.urlopen(url, timeout=self.health_timeout, context=ctx)
+            else:
+                resp = urllib.request.urlopen(url, timeout=self.health_timeout)
+            with resp:
                 data = json.loads(resp.read().decode("utf-8"))
             return bool(data.get("healthy")), data
         except urllib.error.HTTPError as e:

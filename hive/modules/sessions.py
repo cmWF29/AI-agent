@@ -259,13 +259,14 @@ class Sessions(Module):
     # ---------------- 生命周期 ----------------
     def spawn(self, kind="role", title="", system_prompt="", project="", ticket="", role="",
               parent="", tools=None, meta=None, input_text=None, workspace=None,
-              model_temperature=None, session_id=None):
+              model_temperature=None, session_id=None, display=""):
         sid = session_id or "%s-%s" % (kind[:3], uuid.uuid4().hex[:8])
         ws = ensure_dir(workspace or os.path.join(self.ws_root, sid))
         record = {
             "id": sid,
             "kind": kind,
             "title": title or ("%s/%s" % (role, sid)),
+            "display": display or title or role or sid,
             "role": role,
             "project": project,
             "ticket": ticket,
@@ -293,8 +294,9 @@ class Sessions(Module):
         return record
 
     def submit(self, session_id, text, max_steps=None):
-        if session_id == self.secretary_id:
-            self.ensure_secretary()      # 幂等：顺带把提示词/工具策略升级热更新进来
+        if session_id == self.secretary_id or session_id.startswith("sec-"):
+            project = "" if session_id == self.secretary_id else session_id[4:]
+            self.ensure_secretary(project=project)      # 幂等：顺带把提示词/工具策略升级热更新进来
         rec = self.get_record(session_id)
         rt = self._runtime(session_id)
         if rt.state == "destroyed":
@@ -313,16 +315,17 @@ class Sessions(Module):
         rt.queue.put({"job": job, "text": text, "max_steps": max_steps})
         return {"job_id": job["id"], "injected": False, "state": "queued"}
 
-    def wait(self, session_id, job_id=None, timeout=300):
+    def wait(self, session_id, job_id=None, timeout=0):
+        """timeout<=0 = 一直等（需求 16：复杂任务跑多久都正常，不要固定超时）。"""
         if job_id and job_id in self.jobs:
             job = self.jobs[job_id]
-            if not job["event"].wait(timeout):
+            if not job["event"].wait(None if not timeout or timeout <= 0 else timeout):
                 return {"status": "timeout", "session": session_id, "job_id": job_id}
             return {"status": job["status"], "reply": job.get("reply", ""), "job_id": job_id,
                     "steps": job.get("steps"), "error": job.get("error")}
         rt = self._runtime(session_id)
-        end = time.time() + timeout
-        while time.time() < end:
+        end = None if not timeout or timeout <= 0 else time.time() + timeout
+        while end is None or time.time() < end:
             if rt.state == "idle" and not rt.queue.qsize():
                 rec = self.get_record(session_id)
                 return {"status": rec.get("last_status") or "idle", "reply": rec.get("last_reply") or "", "job_id": None}
@@ -436,9 +439,13 @@ class Sessions(Module):
                 "messages_before": len(msgs), "messages_after": len(new_msgs)}
 
     # ---------------- 秘书 ----------------
-    def ensure_secretary(self, reset=False):
-        sid = self.secretary_id
-        prompt = self._secretary_prompt()
+    def secretary_for(self, project=""):
+        """本地层一个总秘书；每个项目一个项目秘书（需求 6：一个项目一个秘书，可行）。"""
+        return ("sec-" + project) if project else self.secretary_id
+
+    def ensure_secretary(self, reset=False, project=""):
+        sid = self.secretary_for(project)
+        prompt = self._secretary_prompt(project)
         # 秘书只“发作业/查进度”，不碰执行类工具（shell/文件/爬网页一律没有）。
         # 这是需求 7 的硬约束：秘书只负责发作业，收作业都不用秘书做。
         tools = [
@@ -459,34 +466,44 @@ class Sessions(Module):
                               old=rec.get("tools"), new=tools)
                 self.destroy(sid, archive=True)
                 self.emit("session.secretary.recreated", {"session": sid, "reason": "tool_policy"})
-                return self._spawn_secretary(prompt, tools)
+                return self._spawn_secretary(prompt, tools, project, sid)
             # 提示词变了 = 行为准则变了，同样重建（旧对话里的“旧习气”会污染新策略）
             if prompt and rec.get("system_prompt") != prompt:
                 self.log.warn("session.secretary.prompt_changed", session=sid)
                 self.destroy(sid, archive=True)
                 self.emit("session.secretary.recreated", {"session": sid, "reason": "prompt"})
-                return self._spawn_secretary(prompt, tools)
+                return self._spawn_secretary(prompt, tools, project, sid)
             return rec
-        return self._spawn_secretary(prompt, tools)
+        return self._spawn_secretary(prompt, tools, project, sid)
 
-    def _spawn_secretary(self, prompt, tools):
+    def _spawn_secretary(self, prompt, tools, project="", sid=None):
+        sid = sid or self.secretary_id
         return self.spawn(
             kind="secretary",
-            title="秘书",
+            title=("项目秘书/" + project) if project else "秘书",
+            display=("项目秘书·" + project) if project else "秘书",
             system_prompt=prompt,
             role="secretary",
+            project=project,
             tools=tools,
             meta={"resident": True},
-            workspace=os.path.join(self.ws_root, self.secretary_id),
-            session_id=self.secretary_id,
+            workspace=os.path.join(self.ws_root, sid),
+            session_id=sid,
         )
-    def _secretary_prompt(self):
+
+    def _secretary_prompt(self, project=""):
         try:
             compose = self.ctx.api("knowledge.compose", scopes=[{"layer": "public"}])
             base = compose.get("text") or ""
         except ApiError:
             base = ""
-        return base.strip() + "\n\n" if base.strip() else ""
+        scope = ""
+        if project:
+            scope = (
+                "\n\n## 你服务的项目：%s\n"
+                "你只管这个项目。开工单一律带 project=\"%s\"，不要碰别的项目。\n" % (project, project)
+            )
+        return (base.strip() + "\n\n" if base.strip() else "") + scope
 
     # ---------------- API ----------------
     def spawn_api(self, payload):
@@ -515,10 +532,11 @@ class Sessions(Module):
 
     def ask_api(self, payload):
         sid = payload.get("session") or self.secretary_id
-        if sid == self.secretary_id:
-            self.ensure_secretary()
+        if sid == self.secretary_id or sid.startswith("sec-"):
+            self.ensure_secretary(project="" if sid == self.secretary_id else sid[4:])
         text = payload.get("text")
-        timeout = int(payload.get("timeout") or 300)
+        # 默认不设超时（需求 16：复杂任务跑很久是正常的）；需要上限时显式传 timeout。
+        timeout = int(payload.get("timeout") or 0)
         job = self.submit(sid, text, max_steps=payload.get("max_steps"))
         if job.get("injected"):
             return {"status": "injected", "reply": "", "job_id": None}
@@ -530,7 +548,7 @@ class Sessions(Module):
         sid = payload.get("session")
         if not sid:
             raise ApiError("session 必填", code="missing_session")
-        return self.wait(sid, payload.get("job_id"), timeout=int(payload.get("timeout") or 300))
+        return self.wait(sid, payload.get("job_id"), timeout=int(payload.get("timeout") or 0))
 
     def list_api(self, payload):
         kind = payload.get("kind")
@@ -552,6 +570,8 @@ class Sessions(Module):
         out = self._summary(rec)
         out["messages"] = len(rec.get("messages") or [])
         out["meta"] = rec.get("meta", {})
+        out["partial"] = rec.get("partial") or {}
+        out["workspace"] = rec.get("workspace")
         return {"session": out}
 
     def messages_api(self, payload):
@@ -570,7 +590,7 @@ class Sessions(Module):
         for m in msgs[-limit:]:
             items.append({
                 "session": rec["id"],
-                "speaker": rec.get("title") or rec.get("role") or rec["id"],
+                "speaker": rec.get("display") or rec.get("title") or rec.get("role") or rec["id"],
                 "kind": rec.get("kind"),
                 "role_name": rec.get("role"),
                 "role": m.get("role"),
@@ -596,7 +616,8 @@ class Sessions(Module):
         return self.destroy(payload["session_id"], archive=payload.get("archive", True))
 
     def ensure_api(self, payload):
-        rec = self.ensure_secretary(reset=bool(payload.get("reset")))
+        rec = self.ensure_secretary(reset=bool(payload.get("reset")),
+                                    project=payload.get("project") or "")
         return {"session": self._summary(rec)}
 
     def _summary(self, rec):
@@ -605,6 +626,7 @@ class Sessions(Module):
             "id": rec["id"],
             "kind": rec.get("kind"),
             "title": rec.get("title"),
+            "display": rec.get("display") or rec.get("title") or rec.get("role") or rec["id"],
             "role": rec.get("role"),
             "project": rec.get("project"),
             "ticket": rec.get("ticket"),
@@ -618,6 +640,9 @@ class Sessions(Module):
             "stats": rec.get("stats"),
             "last_reply": (rec.get("last_reply") or "")[:300],
             "tools": rec.get("tools"),
+            "partial": {"text": (rec.get("partial") or {}).get("text", "")[-2000:],
+                        "step": (rec.get("partial") or {}).get("step"),
+                        "state": (rec.get("partial") or {}).get("state")},
         }
 
     # ---------------- 工具 ----------------

@@ -13,7 +13,8 @@ from ..kernel.api import Module
 from ..kernel.store import ensure_dir
 from ..version import __version__
 
-REQUIRED_MODULES = ["obs", "knowledge", "memory", "toolpack", "sessions", "tickets", "webchat", "ops"]
+REQUIRED_MODULES = ["obs", "knowledge", "memory", "library", "artifacts", "projects",
+                    "toolpack", "sessions", "gitflow", "tickets", "webchat", "ops"]
 
 
 class Health(Module):
@@ -57,7 +58,8 @@ class Health(Module):
         add("modules_loaded", not missing, True, "missing=" + ",".join(missing) if missing else "all")
 
         # 3) 三个核心 API 可响应
-        for route in ("sessions.list", "tickets.list", "knowledge.overview"):
+        for route in ("sessions.list", "tickets.list", "knowledge.overview",
+                      "library.summary", "artifacts.stats", "projects.list"):
             try:
                 self.ctx.api(route)
                 add("api_" + route.replace(".", "_"), True, True, route)
@@ -78,7 +80,25 @@ class Health(Module):
         except OSError as exc:
             add("disk_free", False, False, repr(exc))
 
-        # 6) LLM 配置（缺 key 只降级，不算致命：网页仍可打开）
+        # 6) 交付件体积 + 压缩情况（需求 20）
+        try:
+            art = self.ctx.api("artifacts.stats")
+            total = art.get("total_bytes", 0)
+            add("artifacts_size", True, False, "%s（压缩 %d 个工单）" % (art.get("total_human"), art.get("compressed", 0)))
+            add("artifacts_disk_headroom", total < 200 * 1024 * 1024, False,
+                "交付件 %dMB；超过 200MB 建议开压缩" % (total // (1024 * 1024)))
+            self._artifacts = art
+        except Exception as exc:
+            add("artifacts_size", False, False, repr(exc))
+
+        # 7) trace 落盘情况（透明化要能查）
+        try:
+            tr = self.ctx.state["trace"].stats()
+            add("trace", True, False, "%d 文件 / %dKB" % (tr["files"], tr["bytes"] // 1024))
+        except Exception as exc:
+            add("trace", False, False, repr(exc))
+
+        # 8) LLM 配置（缺 key 只降级，不算致命：网页仍可打开）
         llm = self.ctx.state.get("llm")
         add("llm_key", bool(llm and llm.api_key), False, "model=%s" % (llm.model if llm else "-"))
 
@@ -91,5 +111,7 @@ class Health(Module):
             "pid": os.getpid(),
             "uptime_sec": int(time.time() - self.boot_ts),
             "checks": checks,
+            "artifacts": getattr(self, "_artifacts", {}),
+            "tls": bool(self.ctx.state.get("http") and self.ctx.state["http"].scheme == "https"),
             "failed": [c["name"] for c in critical_failed],
         }

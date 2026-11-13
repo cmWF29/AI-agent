@@ -20,6 +20,8 @@ DEFAULTS = {
         "web_password": "hive",      # 网页登录密码
         "request_max_bytes": 4 * 1024 * 1024,
         "cookie_name": "hive_auth",
+        # HTTPS（需求 5）：自签证书，由 deploy/provision.sh 生成；没有证书就自动退回 HTTP
+        "tls": {"enabled": True, "cert": "config/tls/server.crt", "key": "config/tls/server.key"},
     },
     "llm": {
         "provider": "deepseek",
@@ -30,6 +32,7 @@ DEFAULTS = {
         "timeout": 180,
         "max_retries": 3,
         "max_tokens": 0,             # 0 表示不传该字段
+        "stream": True,              # 流式输出（需求 16）
     },
     "react": {
         "max_steps": 20,
@@ -62,6 +65,25 @@ DEFAULTS = {
         "max_roles": 8,
         "default_project": "default",
     },
+    "projects": {
+        "root": "data/projects",
+        "default": "default",
+    },
+    "artifacts": {
+        "root": "data/artifacts",
+        "compress_after_days": 7,
+        "compress": True,
+    },
+    "library": {"root": "data/library"},
+    "gitflow": {
+        "enabled": True,
+        "remote_name": "origin",
+        "branch_prefix": "ticket/",
+        "main_branch": "main",
+        "sync_on_close": True,
+    },
+    "trace": {"root": "data/traces", "enabled": True, "ring": 800},
+    "instance": {"id": "local-1", "title": "本地节点", "layer": "local"},
     "knowledge": {
         "root": "data/knowledge",
         "layers": ["public", "project", "ticket"],

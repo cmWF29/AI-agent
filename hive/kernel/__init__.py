@@ -21,6 +21,7 @@ from .output import OutputPolicy
 from .react import ReactLoop
 from .store import ensure_dir, ts
 from .tools import ToolRegistry
+from .trace import Trace
 
 
 class Kernel:
@@ -50,16 +51,21 @@ class Kernel:
         self.tools = ToolRegistry(self.cfg)
         self.output = OutputPolicy(self.cfg)
         self.llm = LLMClient(self.cfg)
+        self.trace = Trace(self.cfg, log=self.log)
+        self.bus.trace = self.trace
         self.ctx = Context(self.cfg, self.bus, self.log)
         self.ctx.tools = self.tools
+        self.ctx.trace = self.trace
         self.ctx.started_at = ts()
 
-        self.react = ReactLoop(self.cfg, self.bus, self.log, self.llm, self.tools, self.output, api=self.ctx.api)
+        self.react = ReactLoop(self.cfg, self.bus, self.log, self.llm, self.tools, self.output,
+                               api=self.ctx.api, trace=self.trace)
         self.ctx.state.update({
             "react": self.react,
             "llm": self.llm,
             "output": self.output,
             "tools": self.tools,
+            "trace": self.trace,
             "kernel": self,
         })
 
