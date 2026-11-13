@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from .artifacts import Artifacts
 from .health import Health
+from .idle import Idle
 from .gitflow import GitFlow
 from .knowledge import Knowledge
 from .library import Library
@@ -32,6 +33,7 @@ ORDER = [
     Tickets,         # 工单（依赖 sessions / projects / library / artifacts / gitflow 的 API）
     WebChat,         # 网页对话桥（群聊时间线 + 流式 + 透明化）
     Ops,             # 固定命令 / 版本管理
+    Idle,            # 空闲/高峰判断 + 需求排队（工单/消息都往这里问）
     Health,          # 最后挂，确保能检查前面所有人
 ]
 

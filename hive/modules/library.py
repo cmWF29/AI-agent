@@ -88,6 +88,8 @@ class Library(Module):
         self.api.route("POST", "/api/library/check", name="check")(self.check_api)
         self.api.route("POST", "/api/library/design", name="design")(self.design_api)
         self.api.route("GET", "/api/library/summary", name="summary")(self.summary_api)
+        self.api.route("GET", "/api/library/tags", name="tags")(self.tags_api)
+        self.api.route("POST", "/api/library/tag_add", name="tag_add")(self.tag_add_api)
         self._register_tools()
 
     def _seed(self):
@@ -212,6 +214,53 @@ class Library(Module):
         return self.design(payload.get("role") or "", payload.get("responsibility") or "",
                            payload.get("must_outputs") or [], payload.get("prompt") or "",
                            payload.get("skills") or [], payload.get("cn") or "")
+
+    def _tag_path(self, scope, project=""):
+        import os
+        base = os.path.join(self.root, "tags")
+        if scope == "project" and project:
+            return os.path.join(base, "projects", project + ".json")
+        return os.path.join(base, "public.json")
+
+    def _tags_read(self, scope, project=""):
+        import json, os
+        p = self._tag_path(scope, project)
+        if not os.path.exists(p):
+            return []
+        try:
+            return json.load(open(p, encoding="utf-8")).get("tags") or []
+        except Exception:
+            return []
+
+    def tag_add(self, name, project=""):
+        import json, os
+        ensure = os.path.dirname(self._tag_path("project", project or "x"))
+        os.makedirs(ensure, exist_ok=True)
+        for scope, proj in (("public", ""), ("project", project)):
+            if scope == "project" and not project:
+                continue
+            tags = self._tags_read(scope, proj)
+            if name not in tags:
+                tags.append(name)
+            path = self._tag_path(scope, proj)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"tags": tags}, f, ensure_ascii=False)
+        self.emit("library.tag", {"tag": name, "project": project})
+        return {"tag": name}
+
+    def tag_add_api(self, payload):
+        name = (payload.get("name") or "").strip()
+        if not name:
+            from ..kernel.api import ApiError
+            raise ApiError("name 必填", code="missing_name")
+        return self.tag_add(name[:24], payload.get("project") or "")
+
+    def tags_api(self, payload):
+        from ..kernel.api import ApiError
+        project = payload.get("project") or ""
+        return {"public": self._tags_read("public"),
+                "project": self._tags_read("project", project) if project else []}
 
     def summary_api(self, payload):
         return {"root": self.root,

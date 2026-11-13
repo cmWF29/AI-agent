@@ -19,88 +19,125 @@
 </div>
 
 <div id="app" class="app hidden">
+  <div id="rail-mask" class="rail-mask"></div>
   <header class="topbar">
-    <button id="btn-rail" class="icon-btn" title="群聊列表">☰</button>
+    <button id="btn-rail" class="icon-btn" title="项目/秘书">☰</button>
     <div class="brand">Hive<span>Agent</span></div>
-    <div id="instance-pill" class="pill small">本地节点</div>
+    <button id="idle-chip" class="pill small idle">空闲判断</button>
     <div class="spacer"></div>
     <nav class="tabs">
       <button class="tab active" data-tab="chat">群聊</button>
       <button class="tab" data-tab="library">库</button>
       <button class="tab" data-tab="health">健康</button>
       <button class="tab" data-tab="versions">版本</button>
-      <button class="tab" data-tab="trace">链路</button>
+      <button class="tab" data-tab="source">源码</button>
     </nav>
   </header>
 
   <div class="shell">
     <aside class="rail" id="rail">
       <div class="rail-block">
-        <div class="rail-title">本地层 <span id="layer-id" class="muted"></span></div>
-        <div class="layer-card">
-          <div id="layer-title">本地节点</div>
-          <div class="muted small" id="layer-sub">layer=local · http</div>
-        </div>
-      </div>
-      <div class="rail-block">
         <div class="rail-title">项目
           <button class="mini" id="btn-newproject" title="新建项目">+</button>
         </div>
         <div id="projects" class="projects"></div>
       </div>
-      <div class="rail-block grow">
-        <div class="rail-title">群聊</div>
+      <div class="rail-block">
+        <div class="rail-title">会话</div>
         <div id="groups" class="groups"></div>
       </div>
       <div class="rail-block actions">
-        <button class="ghost" id="btn-newticket">新建工单</button>
-        <button class="ghost" id="btn-compact">压缩秘书上下文</button>
-        <button class="warn" id="btn-restart">重启 agent</button>
+        <button class="ghost" id="btn-restart">重启 agent</button>
         <button class="danger" id="btn-stop">彻底停止</button>
       </div>
     </aside>
 
-    <main class="chatwrap">
-      <div class="chathead">
-        <div class="chathead-main">
-          <strong id="chat-title">秘书</strong>
-          <button class="chip hidden" id="btn-copy-ticket" title="复制工单号">⧉ 工单号</button>
-          <span id="chat-sub" class="muted small"></span>
+    <main class="mainwrap">
+      <!-- 项目页 -->
+      <section id="projectview" class="projectview hidden">
+        <div class="pv-head">
+          <div>
+            <div class="muted small">项目管理</div>
+            <h2 id="pv-title">项目</h2>
+            <div class="muted small" id="pv-sub"></div>
+          </div>
+          <div class="row-btns">
+            <button class="ghost" id="pv-rename">改名</button>
+            <button class="ghost" id="pv-files">项目文件</button>
+            <button class="danger-ghost" id="pv-delete">删除项目</button>
+          </div>
         </div>
-        <div class="spacer"></div>
-        <button class="mini" id="btn-fork-ticket" title="基于此单新开">⎇</button>
-        <button class="mini" id="btn-files" title="交付件">📎</button>
-        <button class="mini" id="btn-refresh" title="刷新">⟳</button>
-      </div>
-
-      <div id="flow" class="flow hidden"></div>
-
-      <div id="messages" class="messages"></div>
-      <div id="livebar" class="livebar hidden">
-        <div class="live-dot"></div>
-        <div class="live-text">
-          <div class="live-who" id="live-who">角色正在说…</div>
-          <div class="live-body" id="live-body"></div>
+        <div class="pv-grid">
+          <div class="card">
+            <div class="card-head"><strong>工单</strong><span class="muted small" id="pv-ticketstat"></span></div>
+            <div id="pv-tickets" class="ticketlist"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><strong>秘书</strong></div>
+            <p class="muted small">项目的管家：接需求、判断是否开工单。上下文只属于这个项目。</p>
+            <div class="row-btns">
+              <button class="primary" id="pv-secretary">进入秘书对话</button>
+              <button class="ghost" id="pv-compact">压缩本项目秘书上下文</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><strong>新建工单</strong></div>
+            <label class="field">标题<input id="pv-newtitle" placeholder="可空，默认取目标前 40 字" /></label>
+            <label class="field">目标<textarea id="pv-newgoal" rows="3" placeholder="要做什么、验收标准、边界"></textarea></label>
+            <label class="field">标签<input id="pv-newtags" placeholder="frontend,backend,docs（逗号分隔）" /></label>
+            <label class="checkline"><input type="checkbox" id="pv-now" /> 立即执行（高峰期也不排队）</label>
+            <button class="primary" id="pv-create">派给项目经理</button>
+          </div>
+          <div class="card">
+            <div class="card-head"><strong>交付件</strong></div>
+            <div class="muted small">三层归档：公共层 / 项目层 / 工单层（带工单号与版本）。</div>
+            <div class="row-btns"><button class="ghost" id="pv-artifacts">打开项目层交付件</button></div>
+          </div>
         </div>
-        <div class="live-acts">
-          <button class="mini" id="btn-interrupt" title="打断">■ 打断</button>
-          <button class="mini hidden" id="btn-open-trace" title="看这条请求">链路</button>
-        </div>
-      </div>
+      </section>
 
-      <div class="composer">
-        <textarea id="input" rows="1" placeholder="给秘书发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
-        <button id="send" class="primary">发送</button>
-      </div>
-      <div id="readonly-tip" class="readonly-tip hidden">该工单已结单，群聊只读 —— 要改结果请「基于此单新开」。</div>
+      <!-- 聊天页 -->
+      <section id="chatview" class="chatwrap hidden">
+        <div class="chathead">
+          <div class="chathead-main">
+            <strong id="chat-title">秘书</strong>
+            <button class="chip hidden" id="btn-copy-ticket" title="复制工单号">⧉</button>
+            <span id="chat-sub" class="muted small"></span>
+            <div id="chat-tags" class="tags"></div>
+          </div>
+          <div class="spacer"></div>
+          <button class="mini" id="btn-addtag" title="加工单标签">＋tag</button>
+          <button class="mini" id="btn-fork-ticket" title="基于此单新开">⎇</button>
+          <button class="mini" id="btn-files" title="交付件">📎</button>
+          <button class="mini" id="btn-refresh" title="刷新">⟳</button>
+        </div>
+
+        <div id="flow" class="flow hidden"></div>
+
+        <div id="messages" class="messages"></div>
+        <div id="livebar" class="livebar hidden">
+          <div class="live-dot"></div>
+          <div class="live-text">
+            <div class="live-who" id="live-who">角色正在说…</div>
+            <div class="live-body" id="live-body"></div>
+          </div>
+          <div class="live-acts"><button class="mini" id="btn-interrupt" title="打断">■ 打断</button></div>
+        </div>
+
+        <div class="composer">
+          <textarea id="input" rows="1" placeholder="给秘书发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
+          <div class="composer-side">
+            <label class="checkline small"><input type="checkbox" id="force-now" /> 立即执行</label>
+            <button id="send" class="primary">发送</button>
+          </div>
+        </div>
+        <div id="readonly-tip" class="readonly-tip hidden">该工单已结单，群聊只读 —— 要改结果请「基于此单新开」。</div>
+      </section>
     </main>
 
     <aside class="side hidden" id="side">
       <div class="side-head">
-        <div class="side-tabs">
-          <button class="stab active" data-side="files">交付件</button>
-          <button class="stab" data-side="trace">链路</button>
-        </div>
+        <div class="side-tabs"><button class="stab active" data-side="files">交付件</button></div>
         <button class="mini" id="side-close">✕</button>
       </div>
       <div id="side-body" class="side-body"></div>
@@ -117,7 +154,6 @@
     <div id="modal-body" class="modal-body"></div>
   </div>
 </div>
-
 <div id="toast" class="toast hidden"></div>
 <script src="/app.js"></script>
 </body>

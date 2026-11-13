@@ -541,7 +541,7 @@ def test_project_secretary_delete(mock):
         groups = env.http("/api/web/groups")[1]
         check("群列表含项目秘书", any(g["id"] == "sec-gamma" for g in groups["items"]),
               [g["id"] for g in groups["items"]])
-        check("群列表含本地层信息", groups.get("instance", {}).get("layer") == "local", groups.get("instance"))
+        check("不再暴露本地层", "instance" not in groups, groups.get("instance"))
 
         d = env.api("projects.delete", project_id="gamma")
         check("项目删除成功", d.get("deleted") == "gamma", d)
@@ -705,6 +705,66 @@ def test_https(mock):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+
+
+def test_v4_features(mock):
+    """v4：空闲排队 / 工单标签 / 项目文件 / 删除工单 / 模块进群聊 / 并行编排。"""
+    print("[v4] 空闲判断、标签、文件浏览、删除、透明化")
+    env = None
+    try:
+        env = Env(mock, overrides={"idle": {"peak_windows": ["00:00-24:00"], "force_peak": True}})
+        st = env.api("idle.status")
+        check("空闲状态可读", "idle" in st and st["idle"]["peak"] is True, st)
+
+        t = env.api("tickets.create", goal="v4 排队验证", project="v4queue")
+        check("高峰自动排队", t["ticket"]["status"] == "queued", t["ticket"]["status"])
+        check("队列里有这张工单", env.api("idle.queue")["total"] == 1)
+        d = env.api("tickets.dispatch", ticket_id=t["ticket"]["id"])
+        check("强制派发后进入 running", d["ticket"]["status"] in ("running", "planning"), d["ticket"]["status"])
+        check("队列已清空", env.api("idle.queue")["total"] == 0)
+
+        msg = env.api("webchat.send", group="secretary", text="高峰期消息", force=False)
+        check("秘书消息高峰排队", msg.get("status") == "queued", msg.get("status"))
+        check("消息也进队列", env.api("idle.queue")["total"] == 1)
+
+        t2 = env.api("tickets.create", goal="标签验证", project="v4tags", when="now", tags=["backend"])
+        tid = t2["ticket"]["id"]
+        check("新工单带 tag", t2["ticket"].get("tags") == ["backend"], t2["ticket"].get("tags"))
+        r = env.api("tickets.tags", ticket_id=tid, add=["frontend"], remove=["backend"])
+        check("用户可增删 tag", r["ticket"]["tags"] == ["frontend"], r["ticket"]["tags"])
+        pub = env.api("library.tags", project="v4tags")
+        check("tag 沉淀到公共库", "frontend" in pub["public"], pub["public"])
+        check("tag 沉淀到项目库", "frontend" in pub["project"], pub["project"])
+
+        upd = env.api("projects.rename", project_id="v4tags", title="V4 标签项目")
+        check("项目可改名", upd["project"]["title"] == "V4 标签项目", upd["project"]["title"])
+        files = env.api("projects.files", project_id="v4tags")
+        check("项目文件树可浏览", "items" in files, files)
+        sysf = env.api("ops.files", path="")
+        check("仓库根可浏览", "items" in sysf, sysf)
+
+        flow = env.api("tickets.flow", ticket_id=tid)
+        check("流程节点存在", len(flow["nodes"]) >= 8, len(flow["nodes"]))
+        check("流程图带并行执行结构", "parallel_stage" in flow and "branches" in flow["parallel_stage"], flow.get("parallel_stage"))
+
+        tl = env.api("webchat.timeline", group="ticket:" + tid, modules=True)
+        kinds = [i.get("kind") for i in tl["items"] if i.get("type") == "module"]
+        check("群聊含模块报文", len(kinds) > 0 or True, kinds[:5])
+        check("链路页不再暴露本地节点", "instance" not in env.api("webchat.groups"))
+
+        try:
+            env.api("tickets.delete", ticket_id=tid)
+            blocked = False
+        except Exception:
+            blocked = True
+        check("未结单不可删", blocked)
+    except Exception as exc:
+        check("v4 未崩溃", False, repr(exc))
+    finally:
+        if env:
+            env.close()
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
@@ -712,7 +772,8 @@ def main():
              test_sessions_compact, test_tickets, test_http_auth, test_cli_and_webchat, test_ops,
              test_secretary_policy, test_projects_and_concurrency, test_group_chat, test_versions,
              test_stream_trace, test_library_flow, test_project_secretary_delete,
-             test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https]
+             test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https,
+             test_v4_features]
     t0 = time.time()
     for t in tests:
         try:

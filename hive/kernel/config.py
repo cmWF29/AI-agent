@@ -34,6 +34,15 @@ DEFAULTS = {
         "max_tokens": 0,             # 0 表示不传该字段
         "stream": True,              # 流式输出（需求 16）
     },
+    "idle": {
+        "enabled": True,
+        "peak_windows": ["09:00-12:00", "14:00-18:00"],   # 工作日高峰（贵）
+        "peak_days": [0, 1, 2, 3, 4],                      # 周一~周五
+        "offpeak_discount": 0.6,                            # 空闲时段相对价格（仅展示/决策用）
+        "holidays": [],                                     # 法定节假日，后续接日历插件
+        "tick_seconds": 30,
+        "root": "data/idle",
+    },
     "react": {
         "max_steps": 20,
         "parallel_tools": False,

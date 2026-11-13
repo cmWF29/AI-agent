@@ -76,6 +76,24 @@ class WebChat(Module):
                 self.jobs.pop(k, None)
 
         session, kind = self._target_of(group)
+        # 高峰排队：先判断，再决定“发”还是“囤”
+        force = payload.get("force") in (True, 1, "1")
+        if not force:
+            try:
+                idle = self.ctx.api("idle.judge")["idle"]
+            except ApiError:
+                idle = {"peak": False}
+            if idle.get("peak"):
+                self.ctx.api("idle.enqueue", kind="message",
+                             payload={"session": session, "text": text},
+                             note=idle.get("reason") or "")
+                job.update({"status": "queued", "reply": "高峰排队中，空闲时自动发送", "idle": idle,
+                            "session": session})
+                job["ms"] = int((time.time() - job["t0"]) * 1000)
+                self.emit("webchat.queued", {"group": group, "session": session})
+                return {"job_id": job_id, "status": "queued", "group": group, "session": session,
+                        "idle": idle}
+
         if kind == "ticket":
             if not session:
                 raise ApiError("该工单当前没有 PM（可能已结单）", status=410, code="ticket_closed")
@@ -102,12 +120,6 @@ class WebChat(Module):
 
     # ---------------- 群列表 ----------------
     def groups(self, payload):
-        inst = self.cfg.get("instance") if isinstance(self.cfg.get("instance"), dict) else {}
-        info = {"layer": "local", "id": inst.get("id") or "local-1",
-                "title": inst.get("title") or "本地节点",
-                "scheme": self.ctx.state["http"].scheme if self.ctx.state.get("http") else "http",
-                "ticket_root": self.cfg["tickets"].get("root")}
-
         items = [{"id": self.secretary_id, "kind": "secretary", "title": "秘书", "display": "秘书",
                   "project": "", "layer": "local", "open": True}]
         try:
@@ -142,7 +154,7 @@ class WebChat(Module):
                           "open": t["status"] != "closed", "created": t.get("created"),
                           "parent": t.get("parent") or ""})
         return {"items": items, "projects": projects, "secretary": self.secretary_id,
-                "instance": info, "default_project": (projects[0]["id"] if projects else "")}
+                "default_project": (projects[0]["id"] if projects else "")}
 
     # ---------------- 时间线 ----------------
     def timeline(self, payload):
@@ -154,6 +166,9 @@ class WebChat(Module):
             group = group.split(":", 1)[-1]
         if group.startswith("T-"):
             items = self._ticket_timeline(group, limit)
+            if payload.get("modules") not in (False, "0", 0):
+                items.extend(self._module_timeline(group, limit))
+                items.sort(key=lambda i: i.get("ts") or 0)
         elif group.startswith("sec-"):
             items = self._session_timeline(group, limit, user_label="我", bot_label="项目秘书")
         else:
@@ -242,6 +257,83 @@ class WebChat(Module):
                         "role": role, "session": sid, "text": text,
                         "tools": m.get("tool_names") or []})
         return out
+
+    # ---------------- 模块作为“角色”进群聊（需求 19） ----------------
+    KINDS = {
+        "llm.request": ("LLM", "请求"),
+        "llm.response": ("LLM", "响应"),
+        "llm.delta": ("LLM", "流式增量"),
+        "llm.error": ("LLM", "错误"),
+        "tool.call": ("工具", "调用"),
+        "tool.result": ("工具", "返回"),
+        "api.call": ("模块", "API 调用"),
+        "bus.event": ("总线", "事件"),
+        "agent.message": ("通信", "agent 消息"),
+    }
+
+    def _module_timeline(self, ticket_id, limit):
+        import json, os
+        from ..kernel.config import path_of
+        try:
+            t = self.ctx.api("tickets.get", ticket_id=ticket_id)["ticket"]
+        except ApiError:
+            return []
+        ids = []
+        if t.get("pm"):
+            ids.append(t["pm"])
+        for r in t.get("roles") or []:
+            if r.get("session"):
+                ids.append(r["session"])
+        for tr in t.get("transcript") or []:
+            if tr.get("session"):
+                ids.append(tr["session"])
+        ids = list(dict.fromkeys([i for i in ids if i]))
+        root = path_of(self.cfg, "trace.root", "data/traces")
+        out = []
+        per = max(20, limit // max(1, len(ids)))
+        for sid in ids:
+            path = os.path.join(root, sid + ".jsonl")
+            if not os.path.exists(path):
+                continue
+            try:
+                lines = open(path, encoding="utf-8").read().splitlines()[-per:]
+            except OSError:
+                continue
+            for line in lines:
+                try:
+                    ev = json.loads(line)
+                except ValueError:
+                    continue
+                kind = ev.get("kind")
+                if kind not in self.KINDS:
+                    continue
+                actor, action = self.KINDS[kind]
+                data = ev.get("data") or {}
+                out.append({"ts": float(ev.get("t") or 0), "type": "module", "role": "module",
+                            "speaker": actor, "session": sid, "kind": kind,
+                            "text": self._module_line(actor, action, kind, data),
+                            "payload": data, "ticket": ticket_id})
+        out.sort(key=lambda i: i.get("ts") or 0)
+        return out[-limit:]
+
+    def _module_line(self, actor, action, kind, data):
+        if kind == "api.call":
+            return "%s → %s（%sms）" % (data.get("caller") or data.get("from") or "?", data.get("route") or "",
+                                         data.get("ms") or 0)
+        if kind == "bus.event":
+            return "广播 %s" % (data.get("topic") or data.get("event") or "")
+        if kind == "tool.call":
+            return "调用 %s" % (data.get("name") or data.get("tool") or "")
+        if kind == "tool.result":
+            return "返回 %s" % (str(data.get("text") or data.get("result") or "")[:80])
+        if kind in ("llm.request", "llm.response"):
+            return "%s 第 %s 步%s" % (action, data.get("step") or "", data.get("model") or "")
+        if kind == "llm.delta":
+            return "“%s”" % (str(data.get("text") or "")[:60])
+        if kind == "agent.message":
+            return "%s → %s：%s" % (data.get("from") or "?", data.get("to") or "?",
+                                    str(data.get("text") or "")[:60])
+        return action
 
     def _ts(self, v):
         if isinstance(v, (int, float)):

@@ -36,7 +36,7 @@ ROLE_TOOLS = [
     "memory_add", "memory_search", "session_result",
     "artifact_write", "artifact_list",
     "git_sync", "git_status",
-    "library_get", "flow_check",
+    "library_get", "flow_check", "ticket_tag",
 ]
 
 PM_TOOLS = [
@@ -51,7 +51,7 @@ PM_TOOLS = [
     "library_list", "library_get", "flow_design", "flow_check",
     # 交付件与 git
     "artifact_write", "artifact_list", "artifact_stats",
-    "git_status", "git_sync", "git_merge",
+    "git_status", "git_sync", "git_merge", "ticket_tag",
     "knowledge_read", "knowledge_write", "knowledge_list", "knowledge_search",
     "memory_add", "memory_search",
 ]
@@ -94,6 +94,9 @@ class Tickets(Module):
         self.api.route("GET", "/api/tickets/{ticket_id}/files", name="files")(self.files_api)
         self.api.route("GET", "/api/tickets/{ticket_id}/file", name="file")(self.file_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/sync", name="sync")(self.sync_api)
+        self.api.route("POST", "/api/tickets/{ticket_id}/tags", name="tags")(self.tags_api)
+        self.api.route("POST", "/api/tickets/{ticket_id}/delete", name="delete")(self.delete_api)
+        self.api.route("POST", "/api/tickets/dispatch", name="dispatch")(self.dispatch_api)
 
         self._register_tools()
         self.bus.subscribe("session.result", self._on_session_result, name="tickets.result")
@@ -121,7 +124,8 @@ class Tickets(Module):
         return entry
 
     # ---------------- 创建 ----------------
-    def create(self, title, goal, project=None, roles_hint=None, parent=""):
+    def create(self, title, goal, project=None, roles_hint=None, parent="", when="auto",
+               force=False, tags=None):
         project = project or self.default_project
         try:
             project = self.ctx.api("projects.ensure", name=project)["project"]["id"]
@@ -148,8 +152,46 @@ class Tickets(Module):
             "stages": [],
         }
         self._stage(ticket, "created", goal[:200])
+        ticket["tags"] = list(tags or [])
         self._save(ticket)
 
+        # 空闲/高峰：高峰时先排队，等便宜时段再真启动（用户可选“直接执行”覆盖）
+        if not force and when not in ("now", "direct"):
+            try:
+                state = self.ctx.api("idle.judge")["idle"]
+            except ApiError:
+                state = {"peak": False}
+            if state.get("peak"):
+                ticket["status"] = "queued"
+                ticket["queued"] = _now()
+                self._stage(ticket, "queued", state.get("reason") or "高峰排队")
+                self._save(ticket)
+                try:
+                    item = self.ctx.api("idle.enqueue", kind="ticket", payload={"ticket_id": tid},
+                                       note=state.get("reason") or "")
+                    ticket["queue_id"] = (item.get("item") or {}).get("id") or ""
+                    self._save(ticket)
+                except ApiError as exc:
+                    self.log.warn("ticket.enqueue.failed", ticket=tid, error=exc.message)
+                self.emit("ticket.queued", {"ticket": tid, "reason": state.get("reason")})
+                self.log.info("ticket.queued", ticket=tid)
+                return ticket
+
+        return self._dispatch(ticket)
+
+    def _dispatch(self, ticket):
+        """真正启动一张工单：建分支 -> 拉 PM -> 投递作业。排队恢复也走这里。"""
+        tid = ticket["id"]
+        project = ticket["project"]
+        self._stage(ticket, "starting", "开始执行")
+        self._save(ticket)
+
+        # 标签沉淀：角色/用户打过的标签进公共库+项目库（需求 4）
+        try:
+            for tag in ticket.get("tags") or []:
+                self.ctx.api("library.tag_add", name=tag, project=project)
+        except ApiError:
+            pass
         # 工单级 git：一个工单一个分支一个工作树（需求 2）
         try:
             repo = self.ctx.api("gitflow.ticket_init", ticket=tid, project=project).get("repo") or {}
@@ -187,6 +229,7 @@ class Tickets(Module):
 
         self.ctx.api("sessions.send", session=pm["id"], text=self._pm_kickoff(ticket), max_steps=60)
         return ticket
+
 
     def _pm_prompt(self, ticket):
         parts = [self._compose([{"layer": "public"},
@@ -630,8 +673,61 @@ class Tickets(Module):
         if not goal:
             raise ApiError("goal 必填", code="missing_goal")
         t = self.create(payload.get("title") or "", goal, payload.get("project"),
-                        payload.get("roles_hint"), payload.get("parent") or "")
+                        payload.get("roles_hint"), payload.get("parent") or "",
+                        when=payload.get("when") or "auto", force=bool(payload.get("force")),
+                        tags=payload.get("tags") or [])
         return {"ticket": self._public(t)}
+
+    def dispatch_api(self, payload):
+        t = self._get(payload["ticket_id"])
+        if t.get("status") != "queued":
+            return {"ticket": self._public(t), "note": "不是排队状态"}
+        if t.get("queue_id"):
+            try:
+                self.ctx.api("idle.dequeue", queue_id=t["queue_id"])
+            except ApiError:
+                pass
+        return {"ticket": self._public(self._dispatch(t))}
+
+    def tags_api(self, payload):
+        t = self._get(payload["ticket_id"])
+        add = [x.strip() for x in (payload.get("add") or []) if x and x.strip()]
+        remove = [x.strip() for x in (payload.get("remove") or []) if x and x.strip()]
+        cur = list(t.get("tags") or [])
+        for tag in add:
+            tag = tag[:24]
+            if tag not in cur:
+                cur.append(tag)
+        for tag in remove:
+            cur = [x for x in cur if x != tag]
+        t["tags"] = cur
+        t["updated"] = _now()
+        self._save(t)
+        for tag in add:
+            try:
+                self.ctx.api("library.tag_add", name=tag, project=t["project"])
+            except ApiError:
+                pass
+        self.emit("ticket.tags", {"ticket": t["id"], "tags": cur})
+        return {"ticket": self._public(t)}
+
+    def delete_api(self, payload):
+        """删除已结单的工单（只删记录与工作树；知识/交付件保留，作为证据沉淀）。"""
+        t = self._get(payload["ticket_id"])
+        if t.get("status") != "closed":
+            raise ApiError("只能删除已结单的工单", status=409, code="ticket_not_closed")
+        import shutil
+        try:
+            self.ctx.api("sessions.destroy", session_id=t.get("pm") or "")
+        except ApiError:
+            pass
+        tdir = os.path.join(self.root, t["id"])
+        shutil.rmtree(tdir, ignore_errors=True)
+        self.store.delete(t["id"])
+        self.emit("ticket.deleted", {"ticket": t["id"], "project": t["project"]})
+        self.log.info("ticket.deleted", ticket=t["id"])
+        return {"deleted": t["id"], "kept": {"artifacts": "artifacts/projects/%s/tickets/%s" % (t["project"], t["id"]),
+                                            "knowledge": "knowledge/tickets/%s" % t["id"]}}
 
     def list_api(self, payload):
         items = [self._public(t) for t in self.store.list()]
@@ -670,7 +766,18 @@ class Tickets(Module):
             nodes.append({"key": key, "label": label, "done": key in seen,
                           "ts": (seen.get(key) or {}).get("ts"),
                           "detail": (seen.get(key) or {}).get("detail")})
-        return {"ticket": t["id"], "status": current, "nodes": nodes,
+        branches = []
+        for r in roles:
+            branches.append({"id": r.get("session"), "label": r.get("display") or r.get("role") or "角色",
+                             "state": r.get("state"), "task": r.get("task") or "",
+                             "chars": r.get("chars") or 0, "started": r.get("started") or ""})
+        # 并行编排：角色是同时被拉起的（需求 8），这里给前端画并行 lane 的结构
+        exec_stage = {"key": "execute", "label": "并行执行", "branches": branches,
+                      "parallel": len(branches) > 1}
+        for n in nodes:
+            if n["key"] == "role_spawned":
+                n["parallel"] = branches
+        return {"ticket": t["id"], "status": current, "nodes": nodes, "parallel_stage": exec_stage,
                 "roles": roles, "stages": stages, "readonly": current == "closed"}
 
     def close_api(self, payload):
@@ -802,16 +909,27 @@ class Tickets(Module):
             "closed": t.get("closed") or "",
             "conflict_files": t.get("conflict_files") or [],
             "transcript": t.get("transcript") or [],
+            "tags": t.get("tags") or [],
+            "queued": t.get("queued") or "",
         }
 
     # ---------------- 工具 ----------------
     def _register_tools(self):
         tools = self.ctx.tools
 
+        def tag_tool(args, tctx):
+            tid = args.get("ticket") or tctx.session.get("ticket")
+            if not tid:
+                return "缺少 ticket 上下文"
+            res = self.tags_api({"ticket_id": tid, "add": args.get("add") or [], "remove": args.get("remove") or []})
+            return "标签已更新：%s" % ", ".join(res["ticket"].get("tags") or [])
+
         def create_tool(args, tctx):
             t = self.create(args.get("title") or "", args.get("goal") or "",
                             args.get("project") or tctx.session.get("project"),
-                            parent=args.get("parent") or "")
+                            parent=args.get("parent") or "",
+                            when=args.get("when") or "auto", force=bool(args.get("force")),
+                            tags=args.get("tags") or [])
             return "工单已创建：%s（PM 会话 %s 已开工）。后续你可以用 ticket_status 查看进度。" % (t["id"], t["pm"])
 
         def list_tool(args, tctx):
@@ -883,6 +1001,8 @@ class Tickets(Module):
                 "goal": {"type": "string", "description": "目标、验收标准、边界"},
                 "project": {"type": "string"},
                 "parent": {"type": "string", "description": "可选：前序工单号，如 T-20261113-57fd20"},
+                "tags": {"type": "array", "items": {"type": "string"}, "description": "模块标签，如 frontend/backend/docs"},
+                "when": {"type": "string", "description": "auto=按空闲时段排队；now=立即执行"},
             }, "required": ["goal"]},
             create_tool, origin=self.name))
 
@@ -895,6 +1015,15 @@ class Tickets(Module):
             "ticket_status", "查看某个工单的 PM/角色/进度。",
             {"type": "object", "properties": {"ticket": {"type": "string"}}},
             status_tool, origin=self.name))
+
+        tools.register(Tool(
+            "ticket_tag", "给当前工单打/删模块标签（frontend/backend/comm/docs...）。标签会自动沉淀到公共库与项目库。",
+            {"type": "object", "properties": {
+                "ticket": {"type": "string"},
+                "add": {"type": "array", "items": {"type": "string"}},
+                "remove": {"type": "array", "items": {"type": "string"}},
+            }},
+            tag_tool, origin=self.name))
 
         tools.register(Tool(
             "ticket_close", "结单：校验必交产物→归档交付件→合并 git 分支→通知角色沉淀知识→销毁临时会话。",

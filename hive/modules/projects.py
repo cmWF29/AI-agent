@@ -48,6 +48,9 @@ class Projects(Module):
         self.api.route("POST", "/api/projects/{project_id}/archive", name="archive")(self.archive_api)
         self.api.route("POST", "/api/projects/{project_id}/delete", name="delete")(self.delete_api)
         self.api.route("POST", "/api/projects/ensure", name="ensure")(self.ensure_api)
+        self.api.route("POST", "/api/projects/{project_id}/rename", name="rename")(self.rename_api)
+        self.api.route("GET", "/api/projects/{project_id}/files", name="files")(self.files_api)
+        self.api.route("GET", "/api/projects/{project_id}/file", name="file")(self.file_api)
 
         self._register_tools()
         self.ensure(self.default, title="默认项目", silent=True)
@@ -120,6 +123,57 @@ class Projects(Module):
         out["secretary"] = "sec-" + rec["id"]
         out["artifacts_root"] = "artifacts/projects/" + rec["id"]
         return {"project": out}
+
+    def rename_api(self, payload):
+        rec = self._get(payload["project_id"])
+        title = (payload.get("title") or "").strip()
+        if not title:
+            raise ApiError("title 必填", code="missing_title")
+        rec["title"] = title[:64]
+        rec["updated"] = _now()
+        self.store.put(rec["id"], rec)
+        self.emit("project.renamed", {"project": rec["id"], "title": rec["title"]})
+        return {"project": self._public(rec)}
+
+    def _main_tree(self, project_id):
+        import os
+        rec = self._get(project_id)
+        return os.path.realpath(os.path.join(self.root, rec["id"], "main"))
+
+    def files_api(self, payload):
+        import os
+        base = self._main_tree(payload["project_id"])
+        rel = (payload.get("path") or "").strip("/")
+        target = os.path.realpath(os.path.join(base, rel))
+        if not target.startswith(base):
+            raise ApiError("路径越界", status=400, code="bad_path")
+        if not os.path.isdir(target):
+            return {"root": base, "path": rel, "items": [], "note": "项目还没有 main 工作树"}
+        items = []
+        for name in sorted(os.listdir(target)):
+            if name in (".git",):
+                continue
+            full = os.path.join(target, name)
+            items.append({"name": name, "path": os.path.relpath(full, base),
+                          "type": "dir" if os.path.isdir(full) else "file",
+                          "size": os.path.getsize(full) if os.path.isfile(full) else 0})
+        return {"root": base, "path": rel, "items": items}
+
+    def file_api(self, payload):
+        import os
+        base = self._main_tree(payload["project_id"])
+        rel = (payload.get("path") or "").strip("/")
+        target = os.path.realpath(os.path.join(base, rel))
+        if not target.startswith(base) or not os.path.isfile(target):
+            raise ApiError("文件不存在", status=404, code="no_file")
+        if os.path.getsize(target) > 512 * 1024:
+            raise ApiError("文件过大（>512KB），请用 git 查看", status=413, code="too_big")
+        try:
+            text = open(target, encoding="utf-8").read()
+            enc = "utf-8"
+        except UnicodeDecodeError:
+            text, enc = "", "binary"
+        return {"path": rel, "text": text, "encoding": enc, "bytes": os.path.getsize(target)}
 
     def delete_api(self, payload):
         """删除项目（需求 8）。

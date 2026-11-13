@@ -37,6 +37,8 @@ class Ops(Module):
         self.api.route("POST", "/api/ops/selftest")(self.selftest)
         self.api.route("POST", "/api/ops/llm/ping")(self.llm_ping)
         self.api.route("POST", "/api/ops/service")(self.service)
+        self.api.route("GET", "/api/ops/files")(self.files)
+        self.api.route("GET", "/api/ops/file")(self.file_view)
 
     # ---------------- 控制文件 ----------------
     def _control(self, name, extra=None):
@@ -121,6 +123,48 @@ class Ops(Module):
         self._control("rollback", {"target": target})
         return {"action": "rollback", "target": target,
                 "note": "已通知 watchdog 回退到 %s（回退前会自动存档当前改动，不会丢）" % target}
+
+    def _repo_root(self):
+        root = self.cfg.get("repo")
+        if not root:
+            cand = os.path.abspath(self.cfg["root"])
+            root = cand if os.path.exists(os.path.join(cand, ".git")) else os.path.dirname(cand)
+        return os.path.realpath(root)
+
+    def files(self, payload):
+        """agent 自身源码/配置浏览（只读）。跳过 .git / data 运行数据。"""
+        base = self._repo_root()
+        rel = (payload.get("path") or "").strip("/")
+        target = os.path.realpath(os.path.join(base, rel))
+        if not target.startswith(base):
+            raise ApiError("路径越界", status=400, code="bad_path")
+        if not os.path.isdir(target):
+            raise ApiError("目录不存在", status=404, code="no_dir")
+        items = []
+        for name in sorted(os.listdir(target)):
+            if name in (".git", "__pycache__", "data"):
+                continue
+            full = os.path.join(target, name)
+            items.append({"name": name, "path": os.path.relpath(full, base),
+                          "type": "dir" if os.path.isdir(full) else "file",
+                          "size": os.path.getsize(full) if os.path.isfile(full) else 0})
+        return {"root": base, "path": rel, "items": items}
+
+    def file_view(self, payload):
+        base = self._repo_root()
+        rel = (payload.get("path") or "").strip("/")
+        if rel.startswith("data/") or rel.startswith(".git/"):
+            raise ApiError("运行数据/版本库不开放浏览", status=403, code="forbidden")
+        target = os.path.realpath(os.path.join(base, rel))
+        if not target.startswith(base) or not os.path.isfile(target):
+            raise ApiError("文件不存在", status=404, code="no_file")
+        if os.path.getsize(target) > 512 * 1024:
+            raise ApiError("文件过大（>512KB）", status=413, code="too_big")
+        try:
+            text = open(target, encoding="utf-8").read()
+        except UnicodeDecodeError:
+            text = ""
+        return {"path": rel, "text": text, "bytes": os.path.getsize(target)}
 
     def versions(self, payload):
         """版本列表：网页的“版本管理”直接消费，可指定任意一个版本回退。"""
