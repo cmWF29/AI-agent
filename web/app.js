@@ -39,6 +39,12 @@ function esc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function tok(u) {
+  if (!u || !u.total_tokens) return '本进程还没跑过模型调用';
+  const k = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n));
+  return `${k(u.prompt_tokens)} in / ${k(u.completion_tokens)} out · ${u.calls} 次` + (u.errors ? ` · ${u.errors} 失败` : '');
+}
+
 function fmtTime(ts) {
   if (!ts) return '';
   const d = new Date(ts * 1000);
@@ -277,7 +283,7 @@ async function showHealth() {
         <div><span>心跳</span><b>${wd.heartbeat_age_sec != null ? wd.heartbeat_age_sec + 's 前' : '-'}</b></div>
         <div><span>模型</span><b>${esc(st.llm.model)} ${st.llm.has_key ? '' : '(无 Key)'}</b></div>
         <div><span>会话 / 工单</span><b>${st.sessions} / ${st.tickets}</b></div>
-        <div><span>tokens</span><b>${esc(JSON.stringify(st.llm.usage || {}))}</b></div>
+        <div><span>tokens</span><b>${tok(st.llm.usage)}</b></div>
       </div>
       <table class="checks">${rows}</table>
       <div class="muted small">刷新页面可重新检查；watchdog 每 10 秒自检一次。</div>`;

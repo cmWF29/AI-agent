@@ -102,16 +102,16 @@ python3 tests/run_all.py     # 60/60
 
 ```bash
 # 1) 首次初始化：装 git/python3、建裸仓库、装 push 即部署钩子
-ssh root@104.168.140.96 'bash -s' < deploy/bootstrap.sh
+ssh root@104.168.148.112 'bash -s' < deploy/bootstrap.sh
 
 # 2) 本地推到 VPS（裸仓库 → 自动检出到 /opt/hive/current → 装 systemd → 启动）
-git remote add vps ssh://root@104.168.140.96/opt/hive/repo.git
+git remote add vps ssh://root@104.168.148.112/opt/hive/repo.git
 git push vps main
 
 # 3) 填密钥：编辑 VPS 上 /opt/hive/secrets.env（HIVE_LLM_API_KEY / HIVE_WEB_PASSWORD），再 push 一次
 ```
 
-- 网页：`http://104.168.140.96:8787/`（密码 = `server.web_password`）
+- 网页：`http://104.168.148.112:8787/`（密码 = `server.web_password`）
 - 服务：`systemctl status hive-watchdog`；开机自启已 `enable`
 - 配置：`/opt/hive/current/config/config.json`（push 不会覆盖它）
 

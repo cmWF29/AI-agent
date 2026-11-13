@@ -6,32 +6,32 @@
 
 ```bash
 # 0) 先在 VPS 上做一次性初始化（装 git/python3、建裸仓库、装 post-receive 钩子）
-ssh root@104.168.140.96 'bash -s' < deploy/bootstrap.sh
+ssh root@104.168.148.112 'bash -s' < deploy/bootstrap.sh
 
 # 1) 本地加远端并推
-git remote add vps ssh://root@104.168.140.96/opt/hive/repo.git
+git remote add vps ssh://root@104.168.148.112/opt/hive/repo.git
 git push vps main
 
 # 2) 首次推送会自动：检出到 /opt/hive/current -> 装 systemd 单元 -> 启动 watchdog
-ssh root@104.168.140.96 'systemctl status hive-watchdog --no-pager'
+ssh root@104.168.148.112 'systemctl status hive-watchdog --no-pager'
 
 # 3) 填 DeepSeek Key 与网页密码（在 VPS 上编辑，然后重启）
-ssh root@104.168.140.96 'vi /opt/hive/secrets.env'      # HIVE_LLM_API_KEY / HIVE_WEB_PASSWORD
-ssh root@104.168.140.96 'systemctl restart hive-watchdog'
+ssh root@104.168.148.112 'vi /opt/hive/secrets.env'      # HIVE_LLM_API_KEY / HIVE_WEB_PASSWORD
+ssh root@104.168.148.112 'systemctl restart hive-watchdog'
 
 # 4) 验证
-curl http://104.168.140.96:8787/api/health
+curl http://104.168.148.112:8787/api/health
 ```
 
-访问 `http://104.168.140.96:8787/`，密码 = `HIVE_WEB_PASSWORD`。
+访问 `http://104.168.148.112:8787/`，密码 = `HIVE_WEB_PASSWORD`。
 
 ## 路径 B：直接上传目录（没有 git 或没有远端时）
 
 ```bash
 # 本地打包（排除运行期数据与真配置）
 tar czf hive-agent.tar.gz --exclude data --exclude config/config.json hive-agent
-scp hive-agent.tar.gz root@104.168.140.96:/tmp/
-ssh root@104.168.140.96 'mkdir -p /opt/hive/current \
+scp hive-agent.tar.gz root@104.168.148.112:/tmp/
+ssh root@104.168.148.112 'mkdir -p /opt/hive/current \
   && tar xzf /tmp/hive-agent.tar.gz -C /opt/hive/current --strip-components=1 \
   && cd /opt/hive/current && bash deploy/provision.sh --repo /opt/hive/current --autostart'
 ```
@@ -40,7 +40,7 @@ ssh root@104.168.140.96 'mkdir -p /opt/hive/current \
 ## 路径 C：VPS 自己当构建机
 
 ```bash
-ssh root@104.168.140.96
+ssh root@104.168.148.112
 git clone <你的远端> /opt/hive/current     # 或直接把目录上传上来
 cd /opt/hive/current && bash deploy/provision.sh --repo /opt/hive/current --autostart
 ```
@@ -76,3 +76,37 @@ curl -s localhost:8787/api/health                   # 又活了
 | 一直重启 | 看 `data/logs/agent.out` 与 `journalctl -u hive-watchdog -n 50` |
 | push 后没生效 | 看 push 输出里的 `[deploy]`；或手动 `cd /opt/hive/current && bash deploy/provision.sh --autostart` |
 | 回退后 Key 没了 | 回退会把 config.json 复位到示例（它在 .gitignore 里，通常不会），重新填 secrets.env 再重启 |
+
+
+## 六、工作树形态（本轮更新，别踩坑）
+
+`/opt/hive/current` 现在是**真正的 git clone**（不是 `--work-tree` 检出），这样 `git log / status / branch`
+和 watchdog 的 `autosave` 分支才能在部署目录里正常工作。post-receive 钩子对两种形态都兼容：
+
+```bash
+# 钩子里的实际动作
+if [ -d "$WORK/.git" ]; then
+  git -C "$WORK" fetch -q origin main && git -C "$WORK" reset -q --hard origin/main
+else
+  git --work-tree="$WORK" --git-dir="$GIT_DIR" checkout -f main
+fi
+```
+
+注意两点：
+
+1. **钩子文件本身不会随 push 更新**（它在 `/opt/hive/repo.git/hooks/`，不归工作树管理）。
+   改了 `deploy/bootstrap.sh` 里的钩子内容，必须手动跑一次 `bash /opt/hive/current/deploy/bootstrap.sh` 才生效。
+2. 手动把旧部署迁到 clone 形态：
+
+```bash
+systemctl stop hive-watchdog
+cd /opt/hive && mv current current.old
+git clone /opt/hive/repo.git current
+cp -a current.old/data current/data
+cp -a current.old/config/config.json current/config/config.json
+bash current/deploy/bootstrap.sh
+bash current/deploy/provision.sh --repo /opt/hive/current --autostart
+# 验证通过后再 rm -rf /opt/hive/current.old
+```
+
+`data/` 与 `config/config.json` 都在 `.gitignore` 里，`reset --hard` 不会动它们。
