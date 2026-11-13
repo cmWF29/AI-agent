@@ -124,7 +124,11 @@ class Ops(Module):
 
     def versions(self, payload):
         """版本列表：网页的“版本管理”直接消费，可指定任意一个版本回退。"""
-        root = self.cfg["root"]
+        # 代码仓库：优先 config.repo；否则在 root / root 的上一级里找带 .git 的那个
+        root = self.cfg.get("repo")
+        if not root:
+            cand = os.path.abspath(self.cfg["root"])
+            root = cand if os.path.isdir(os.path.join(cand, ".git")) else os.path.dirname(cand)
         n = min(int((payload or {}).get("limit") or 20), 60)
         try:
             head = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"],
