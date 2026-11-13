@@ -623,6 +623,9 @@ class Sessions(Module):
 
     def _summary(self, rec):
         rt = self.runtimes.get(rec["id"])
+        # 运行中的会话，磁盘上的 rec 还是旧快照；流式增量写在 runtime 的 record 上，
+        # 这里必须优先读 runtime，否则网页 livebar 永远看不到 partial（表现为“没在流式输出”）。
+        live = rt.record if (rt is not None and getattr(rt, "record", None)) else rec
         return {
             "id": rec["id"],
             "kind": rec.get("kind"),
@@ -641,9 +644,9 @@ class Sessions(Module):
             "stats": rec.get("stats"),
             "last_reply": (rec.get("last_reply") or "")[:300],
             "tools": rec.get("tools"),
-            "partial": {"text": (rec.get("partial") or {}).get("text", "")[-2000:],
-                        "step": (rec.get("partial") or {}).get("step"),
-                        "state": (rec.get("partial") or {}).get("state")},
+            "partial": {"text": (live.get("partial") or {}).get("text", "")[-2000:],
+                        "step": (live.get("partial") or {}).get("step"),
+                        "state": (live.get("partial") or {}).get("state")},
         }
 
     # ---------------- 工具 ----------------
