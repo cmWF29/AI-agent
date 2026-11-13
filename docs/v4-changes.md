@@ -8,7 +8,7 @@
 
 ## 2. 空闲/高峰判断 + 排队
 - 模块：`hive/modules/idle.py`，只暴露 `idle.status / judge / queue / enqueue / dequeue / flush / config`。
-- 默认高峰：工作日 `09:00-12:00`、`14:00-18:00`；周末与 `holidays` 视为空闲；`offpeak_discount=0.6`。
+- 默认高峰：工作日 `09:00-12:00`、`14:00-18:00`（按 `utc_offset_hours=8` 本地时间判断，避免 VPS UTC 错 8 小时）；周末与 `holidays` 视为空闲；`offpeak_discount=0.6`。
 - 工单 `tickets.create(when=auto)` 在高峰返回 `status=queued`，不进 git、不拉 PM；`idle` 每 30s 在空闲时调 `tickets.dispatch` 启动。
 - 给秘书的消息 `webchat.send(force=false)` 在高峰进队列，空闲时 `sessions.send`。
 - 用户勾“立即执行”= `force=true`，绕开排队。UI 顶栏显示 `高峰/空闲 · 排队 N`，点击可查看队列并“立即执行队列”。
@@ -36,7 +36,7 @@
 
 ## 7. 群聊里的模块报文
 - `webchat.timeline?modules=1` 把 trace 的 `llm.request/response`、`tool.call/result`、`api.call`、`bus.event`、`agent.message` 变成“模块角色”消息（模块·LLM / 工具 / 总线 / 模块 / 通信）。
-- 点击任意模块消息弹出**完整 JSON 报文**；不再有独立“链路”页（trace 后端保留，供群聊消费）。
+- 群聊里模块报文按连续段折叠成“执行过程 · N 条”（点开才展开），避免淹没角色发言；点任意模块消息弹出**完整 JSON 报文**。不再有独立“链路”页（trace 后端保留，供群聊消费）。
 - 交付件侧栏只放交付件，不再塞链路。
 
 ## 8. 并行编排 + 点击式详情
