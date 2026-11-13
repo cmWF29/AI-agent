@@ -15,7 +15,7 @@ import time
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
-from ..kernel.store import Collection
+from ..kernel.store import Collection, inside
 from ..kernel.tools import Tool
 
 MAX_NAME = 48
@@ -146,7 +146,7 @@ class Projects(Module):
         base = self._main_tree(payload["project_id"])
         rel = (payload.get("path") or "").strip("/")
         target = os.path.realpath(os.path.join(base, rel))
-        if not target.startswith(base):
+        if not inside(base, target):
             raise ApiError("路径越界", status=400, code="bad_path")
         if not os.path.isdir(target):
             return {"root": base, "path": rel, "items": [], "note": "项目还没有 main 工作树"}
@@ -165,7 +165,7 @@ class Projects(Module):
         base = self._main_tree(payload["project_id"])
         rel = (payload.get("path") or "").strip("/")
         target = os.path.realpath(os.path.join(base, rel))
-        if not target.startswith(base) or not os.path.isfile(target):
+        if not inside(base, target) or not os.path.isfile(target):
             raise ApiError("文件不存在", status=404, code="no_file")
         if os.path.getsize(target) > 512 * 1024:
             raise ApiError("文件过大（>512KB），请用 git 查看", status=413, code="too_big")

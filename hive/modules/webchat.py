@@ -214,6 +214,8 @@ class WebChat(Module):
         except ApiError:
             pass
         out = []
+        # 用户本人在工单群里说过的话：显示成“我”，不能伪装成秘书/PM 的派活
+        user_texts = {m.get("text") for m in (t.get("user_messages") or []) if m.get("text")}
         # 会话还活着：直接读消息
         per = max(15, limit // max(1, len(sessions) or 1))
         for s in sessions:
@@ -222,19 +224,21 @@ class WebChat(Module):
             except ApiError:
                 continue
             out.extend(self._session_chat(s["id"], s.get("display") or s.get("title") or s.get("role") or s["id"],
-                                          s.get("kind") or "", items))
+                                          s.get("kind") or "", items, user_texts=user_texts))
         # 结单后会话已销毁：回放结单时冻结的 transcript（聊天记录不会随之消失）
         if not out:
             for ts in t.get("transcript") or []:
                 out.extend(self._session_chat(ts.get("session") or "", ts.get("display") or "角色",
-                                              ts.get("kind") or "", ts.get("items") or []))
+                                              ts.get("kind") or "", ts.get("items") or [],
+                                              user_texts=user_texts))
         out.sort(key=lambda i: i.get("ts") or 0)
         return out
 
-    def _session_chat(self, sid, speaker, kind, items):
+    def _session_chat(self, sid, speaker, kind, items, user_texts=None):
         """"把某个会话的消息渲染成群聊口径：PM 的入活显示为“秘书→项目经理”，
-        角色的入活显示为“项目经理→角色”，其余是本人发言。"""
+        角色的入活显示为“项目经理→角色”，用户本人发的话显示为“我”，系统消息不进群聊。"""
         out = []
+        user_texts = user_texts or set()
         for m in items:
             role = m.get("role")
             if role not in ("user", "assistant"):
@@ -242,10 +246,18 @@ class WebChat(Module):
             text = (m.get("content") or "").strip()
             if not text:
                 continue
+            if role == "user" and text.startswith("（系统）"):
+                continue                     # 系统注入的续跑/催补/冲突提示，群聊里不展示
+            if role == "user" and text in user_texts:
+                out.append({"ts": self._ts(m.get("ts")), "type": "chat",
+                            "speaker": "我", "role": "user", "session": sid, "text": text})
+                continue
             if role == "user" and kind == "pm":
                 out.append({"ts": self._ts(m.get("ts")), "type": "task",
                             "speaker": "秘书", "to": speaker, "role": "user",
                             "session": sid, "text": text})
+                continue
+            if role == "user" and text.startswith("（系统）"):
                 continue
             if role == "user" and kind == "role":
                 out.append({"ts": self._ts(m.get("ts")), "type": "task",

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 import time
 from collections import deque
@@ -25,6 +26,12 @@ from .store import ensure_dir
 
 MAX_FILE_BYTES = 8 * 1024 * 1024
 TRUNC = 1200
+_SECRET_KEY = re.compile(r"(?i)(api[_-]?key|authorization|token|secret|password|cookie)")
+_SECRET_VAL = re.compile(r"(sk-[A-Za-z0-9_-]{12,}|Bearer\s+[A-Za-z0-9._-]{16,}|(?i:token=)[A-Za-z0-9._-]{12,})")
+
+
+def _scrub(text):
+    return _SECRET_VAL.sub("[redacted]", text)
 
 
 def _clip(value, n=TRUNC):
@@ -33,9 +40,12 @@ def _clip(value, n=TRUNC):
         if depth > 4:
             return "..."
         if isinstance(v, str):
+            v = _scrub(v)
             return v if len(v) <= n else v[:n] + "...(%d字)" % len(v)
         if isinstance(v, dict):
-            return {k: walk(val, depth + 1) for k, val in list(v.items())[:24]}
+            return {(k if not _SECRET_KEY.search(str(k)) else str(k) + "_redacted"): "[redacted]"
+                    if _SECRET_KEY.search(str(k)) else walk(val, depth + 1)
+                    for k, val in list(v.items())[:24]}
         if isinstance(v, (list, tuple)):
             return [walk(x, depth + 1) for x in list(v)[:16]]
         return v

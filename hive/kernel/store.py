@@ -24,6 +24,13 @@ def ensure_dir(path):
     return path
 
 
+def inside(base, target):
+    """判断 target 是否真的在 base 目录内（防止 `/a/b` 被 `/a/bc` 前缀绕过）。"""
+    base = os.path.realpath(base)
+    target = os.path.realpath(target)
+    return target == base or target.startswith(base + os.sep)
+
+
 def ts():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -87,6 +94,8 @@ class Collection:
     def __init__(self, directory, default=None):
         self.dir = ensure_dir(directory)
         self._default = default if default is not None else {}
+        # 同一集合的写操作串行化：HTTP 线程 / 空闲线程 / 工单线程可能同时写
+        self._lock = threading.RLock()
 
     def path(self, item_id):
         return os.path.join(self.dir, safe_id(item_id) + ".json")
@@ -98,19 +107,23 @@ class Collection:
         return read_json(self.path(item_id), default)
 
     def put(self, item_id, obj):
-        atomic_write_json(self.path(item_id), obj)
+        with self._lock:
+            atomic_write_json(self.path(item_id), obj)
         return obj
 
     def delete(self, item_id):
-        try:
-            os.remove(self.path(item_id))
-            return True
-        except FileNotFoundError:
-            return False
+        with self._lock:
+            try:
+                os.remove(self.path(item_id))
+                return True
+            except FileNotFoundError:
+                return False
 
     def list(self):
         out = []
-        for name in sorted(os.listdir(self.dir)):
+        with self._lock:
+            names = sorted(os.listdir(self.dir))
+        for name in names:
             if not name.endswith(".json"):
                 continue
             obj = read_json(os.path.join(self.dir, name), None)

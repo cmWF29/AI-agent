@@ -87,6 +87,13 @@ class Env:
             except ValueError:
                 return e.code, {}, dict(e.headers)
 
+    def http_raw(self, path):
+        """取原始响应（静态页不是 JSON，不能走 http()）。"""
+        url = "http://127.0.0.1:%d%s" % (self.port, path)
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status, resp.read(), dict(resp.headers)
+
     def close(self):
         try:
             self.kernel.stop()
@@ -772,6 +779,118 @@ def test_v4_features(mock):
             env.close()
 
 
+def test_security_and_ui_contract(mock):
+    """v4 自迭代：安全加固 + 前端路由/返回契约。"""
+    print("[自迭代] 安全加固、返回键、状态机")
+    env = None
+    try:
+        env = Env(mock, with_http=True)
+        pid = env.api("projects.create", name="secpath")["project"]["id"]
+        # 路径前缀绕过：/main-evil 不能因为字符串前缀像 /main 就放行
+        for fn, kw in (("projects.files", {"project_id": pid, "path": "../outside"}),
+                       ("ops.files", {"path": "../"})):
+            try:
+                env.api(fn, **kw)
+                blocked = False
+            except Exception:
+                blocked = True
+            check("%s 拒绝越界路径" % fn, blocked)
+
+        st, _, headers = env.http_raw("/")
+        low = {k.lower(): v for k, v in headers.items()}
+        check("静态页有 CSP", "content-security-policy" in low, low.get("content-security-policy"))
+        check("静态页禁止被嵌套", low.get("x-frame-options") == "DENY", low.get("x-frame-options"))
+        check("静态页 nosniff", low.get("x-content-type-options") == "nosniff")
+
+        # 连续错 5 次后，第 6 次应被限流（不是继续校验密码）
+        codes = [env.http("/api/auth/login", "POST", {"password": "wrong"}, token=None)[0] for _ in range(5)]
+        check("错误密码返回 401", codes == [401] * 5, codes)
+        code6 = env.http("/api/auth/login", "POST", {"password": "pw123"}, token=None)[0]
+        check("暴力尝试被 429 限制", code6 == 429, code6)
+
+        # 前端契约：有 hash 路由、返回按钮、popstate，不再有链路页
+        index = open(os.path.join(REPO, "web", "index.html"), encoding="utf-8").read()
+        app = open(os.path.join(REPO, "web", "app.js"), encoding="utf-8").read()
+        for token, name in (("btn-back", "返回按钮"), ("routeOfHash", "hash 路由"),
+                            ("popstate", "浏览器返回监听"), ("applyRoute", "路由恢复"),
+                            ("history.pushState", "历史栈")):
+            check("前端包含" + name, token in index or token in app, token)
+        check("前端不再有链路 tab", 'data-tab="trace"' not in index and 'id="trace"' not in index)
+        check("状态机文档存在", os.path.isfile(os.path.join(REPO, "docs", "ui-state-machine.md")))
+
+        # trace 脱敏：密钥/Authorization 不能原样落盘
+        trace = env.kernel.ctx.state["trace"]
+        trace.record("llm.request", {"api_key": "sk-abcdefghijklmnopqrstuvwx",
+                                     "headers": {"Authorization": "Bearer abcdefghijklmnopqrstuvwx"},
+                                     "note": "token=abcdefghijklmnopqrst"})
+        ev = trace.recent(limit=1)[0]
+        raw = json.dumps(ev, ensure_ascii=False)
+        check("trace 不落 api key", "sk-abcdefghijklmnopqrstuvwx" not in raw, raw)
+        check("trace 不落 Bearer", "Bearer abcdefghijklmnopqrstuvwx" not in raw, raw)
+        check("trace 有脱敏标记", "[redacted]" in raw, raw)
+
+        # 群聊发言人：用户本人说的话显示“我”，系统注入消息不混进群聊
+        wc = env.kernel.ctx.modules["webchat"]
+        rows = wc._session_chat("pm-x", "项目经理", "pm", [
+            {"role": "user", "content": "把登录页改一下", "ts": 1},
+            {"role": "user", "content": "（系统）服务重启，继续跑", "ts": 2},
+            {"role": "assistant", "content": "收到", "ts": 3},
+        ], user_texts={"把登录页改一下"})
+        check("工单群用户发言显示“我”", any(r["speaker"] == "我" and r["type"] == "chat" for r in rows), rows)
+        check("系统消息不进群聊", all("（系统）" not in r["text"] for r in rows), rows)
+        roles = wc._session_chat("role-x", "开发A", "role", [
+            {"role": "user", "content": "实现登录接口", "ts": 4},
+        ])
+        check("PM 派活显示项目经理→角色", roles and roles[0]["speaker"] == "项目经理", roles)
+    except Exception as exc:
+        check("安全/UI 契约未崩溃", False, repr(exc))
+    finally:
+        if env:
+            env.close()
+
+
+def test_flow_content_and_reverify(mock):
+    """流程插件不能只查“文件存在”，冲突后必须先复验才能结单。"""
+    print("[自迭代] 流程内容校验、冲突复验")
+    env = None
+    try:
+        env = Env(mock)
+        d = env.api("library.design", role="archx", cn="架构师X", responsibility="架构设计",
+                    must_outputs=["docs/*.md"], checks=[
+                        {"kind": "glob", "path": "docs/*.md", "min_bytes": 50, "contains": ["架构", "回滚"]}])
+        root = os.path.join(env.tmp, "flowroot")
+        os.makedirs(os.path.join(root, "docs"))
+        open(os.path.join(root, "docs", "a.md"), "w", encoding="utf-8").write("")
+        miss = env.api("library.check", flow="archx", files=["docs/a.md"], root=root)
+        check("空文件不能骗过流程校验", bool(miss.get("missing")), miss)
+        open(os.path.join(root, "docs", "a.md"), "w", encoding="utf-8").write(
+            "架构设计：模块边界与数据流。\n取舍：为什么这样拆。\n失败与回滚：如何退回。\n" + "x" * 20)
+        ok = env.api("library.check", flow="archx", files=["docs/a.md"], root=root)
+        check("有内容的架构文档通过校验", not ok.get("missing"), ok)
+
+        t = env.api("tickets.create", goal="复验流程验证", project="verifyproj", when="now")["ticket"]
+        tid = t["id"]
+        r = env.api("tickets.verify", ticket_id=tid, summary="解决冲突", commands="python3 tests/run_all.py",
+                    result="164/164 通过")
+        check("复验证据可登记", r["ticket"]["reverify"].get("passed") is True, r["ticket"].get("reverify"))
+        # 人为制造“冲突后未复验”的状态，结单必须被挡住
+        mod = env.kernel.ctx.modules["tickets"]
+        rec = mod._get(tid)
+        mod._require_reverify(rec, "测试注入冲突")
+        try:
+            env.api("tickets.close", ticket_id=tid, summary="未复验", force=False, block=True)
+            blocked = False
+        except Exception:
+            blocked = True
+        check("未复验不能结单", blocked)
+        env.api("tickets.close", ticket_id=tid, summary="强制结单", force=True, block=True)
+    except Exception as exc:
+        check("流程/复验未崩溃", False, repr(exc))
+    finally:
+        if env:
+            env.close()
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
@@ -780,7 +899,7 @@ def main():
              test_secretary_policy, test_projects_and_concurrency, test_group_chat, test_versions,
              test_stream_trace, test_library_flow, test_project_secretary_delete,
              test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https,
-             test_v4_features]
+             test_v4_features, test_security_and_ui_contract, test_flow_content_and_reverify]
     t0 = time.time()
     for t in tests:
         try:

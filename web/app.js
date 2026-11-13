@@ -11,6 +11,7 @@ var state = {
   view: 'chat', group: 'secretary', groups: [], projects: [], project: '',
   cursor: 0, seen: {}, liveTimer: null, pollTimer: null,
   sideLayer: 'ticket', flow: null, idle: null,
+  navDepth: 0, booted: false,
 };
 
 function $(id) { return document.getElementById(id); }
@@ -24,6 +25,65 @@ function toast(msg, kind) {
 }
 function hide(id) { var e = $(id); if (e) e.classList.add('hidden'); }
 function show(id) { var e = $(id); if (e) e.classList.remove('hidden'); }
+
+// ---------------- 路由 / 返回（PC + 安卓一致） ----------------
+// 路由只用 hash，不依赖 History API 的服务端回退：刷新后仍能回到同一个项目/工单。
+function enc(v) { return encodeURIComponent(v || ''); }
+function dec(v) { try { return decodeURIComponent(v || ''); } catch (e) { return v || ''; } }
+function routeOfHash() {
+  var raw = String(location.hash || '').replace(/^#\/?/, '');
+  var parts = raw.split('/');
+  var type = parts[0] || 'chat';
+  if (type === 'project') return { type: 'project', id: dec(parts[1]) };
+  if (type === 'chat') return { type: 'chat', id: dec(parts[1] || 'secretary') };
+  if (type === 'library') return { type: 'overlay', tab: 'library', kind: parts[1] || 'roles' };
+  if (type === 'health' || type === 'versions' || type === 'source') return { type: 'overlay', tab: type };
+  return { type: 'chat', id: 'secretary' };
+}
+function hashOfView() {
+  if (state.view === 'project') return '#/project/' + enc(state.project);
+  return '#/chat/' + enc(state.group || 'secretary');
+}
+function pushHash(hash) {
+  if (!hash || location.hash === hash) return;
+  try { history.pushState({ hive: hash }, '', hash); state.navDepth += 1; } catch (e) { location.hash = hash; }
+}
+function replaceHash(hash) {
+  if (!hash) return;
+  try { history.replaceState({ hive: hash }, '', hash); } catch (e) { /* 老浏览器忽略 */ }
+}
+function isOverlayHash() {
+  var r = routeOfHash(); return r.type === 'overlay';
+}
+function currentOverlay() {
+  var m = $('modal'); return m && !m.classList.contains('hidden') ? $('modal-title').textContent : '';
+}
+function updateBackBtn() {
+  var b = $('btn-back'); if (!b) return;
+  var atHome = state.view === 'chat' && state.group === 'secretary';
+  var overlay = currentOverlay();
+  b.classList.toggle('hidden', atHome && !overlay && $('side').classList.contains('hidden'));
+}
+function goBack() {
+  // 优先级：弹窗 -> 交付件侧栏 -> 抽屉 -> 历史栈 -> 层级回退
+  if (currentOverlay()) {
+    if (isOverlayHash()) history.back(); else { closeModal(); updateBackBtn(); }
+    return;
+  }
+  if (!$('side').classList.contains('hidden')) { hide('side'); updateBackBtn(); return; }
+  if ($('rail').classList.contains('open')) { toggleRail(false); return; }
+  if (state.navDepth > 0) { history.back(); return; }
+  var pid = state.view === 'project' ? state.project : ((findGroup(state.group) || {}).project || state.project);
+  if (state.view === 'chat' && state.group.indexOf('T-') === 0 && pid) {
+    openProject(pid, true, { replace: true }); return;
+  }
+  if (state.view === 'project') { selectGroup('secretary', true, { replace: true }); return; }
+  if (state.view === 'chat' && state.group !== 'secretary') { selectGroup('secretary', true, { replace: true }); return; }
+  toast('已经是最外层了', 'warn');
+}
+function setTab(name) {
+  document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x.dataset.tab === name); });
+}
 
 function api(path, opts) {
   opts = opts || {};
@@ -113,17 +173,22 @@ function doLogin() {
     state.token = r.token; localStorage.setItem('hive_token', r.token); enterApp();
   }).catch(function (e) { $('login-err').textContent = e.status === 401 ? '密码不对' : (e.message || '登录失败'); });
 }
-function enterApp() { hide('login'); show('app'); loadGroups(true); loadIdle(); startPolling(); }
+function enterApp() {
+  hide('login'); show('app'); applyRailPref(); loadGroups(true); loadIdle(); startPolling();
+}
+function applyRailPref() {
+  var collapsed = localStorage.getItem('hive_rail_collapsed') === '1';
+  if (window.innerWidth > 900) document.body.classList.toggle('rail-collapsed', collapsed);
+}
 
 // ---------------- 侧栏 / 项目 ----------------
 function loadGroups(first) {
   return api('/api/web/groups').then(function (r) {
     state.groups = r.items || []; state.projects = r.projects || [];
     renderProjects(); renderRailGroups();
-    if (first && !state.groups.length) return;
     if (first) {
-      if (state.project && findProject(state.project)) openProject(state.project, true);
-      else selectGroup(state.group, true);
+      applyRoute(routeOfHash(), { initial: true }); state.booted = true;
+      if (!location.hash) replaceHash(hashOfView());
     }
   }).catch(function (e) { if (e.message !== '未登录') toast('加载失败：' + e.message, 'err'); });
 }
@@ -155,11 +220,40 @@ function renderRailGroups() {
 function findProject(id) { for (var i = 0; i < state.projects.length; i++) if (state.projects[i].id === id) return state.projects[i]; return null; }
 function findGroup(id) { for (var i = 0; i < state.groups.length; i++) if (state.groups[i].id === id) return state.groups[i]; return null; }
 
-function openProject(pid, silent) {
+function applyRoute(r, opts) {
+  opts = opts || {};
+  if (r.type === 'project') {
+    if (findProject(r.id)) { openProject(r.id, true, { fromRoute: true }); return; }
+    toast('项目不存在：' + r.id, 'warn');
+    selectGroup('secretary', true, { replace: true }); return;
+  }
+  if (r.type === 'chat') {
+    if (r.id === 'secretary' || findGroup(r.id)) { selectGroup(r.id, true, { fromRoute: true }); return; }
+    if (r.id.indexOf('sec-') === 0 && findProject(r.id.slice(4))) { selectGroup(r.id, true, { fromRoute: true }); return; }
+    toast('会话不存在：' + r.id, 'warn');
+    selectGroup('secretary', true, { replace: true }); return;
+  }
+  // 覆盖层（库/健康/版本/源码）：底下保留当前会话/项目，关闭后自然回去
+  if (!state.booted) selectGroup('secretary', true, { fromRoute: true });
+  setTab(r.tab);
+  if (r.tab === 'library') openLibrary(r.kind, { fromRoute: true });
+  else if (r.tab === 'health') openHealth({ fromRoute: true });
+  else if (r.tab === 'versions') openVersions({ fromRoute: true });
+  else openSource({ fromRoute: true });
+}
+
+function openProject(pid, silent, opts) {
+  opts = opts || {};
+  if (!findProject(pid)) { selectGroup('secretary', true, { replace: true }); return; }
   state.view = 'project'; state.project = pid;
-  hide('chatview'); show('projectview'); hide('side');
+  hide('chatview'); show('projectview'); hide('side'); closeModal();
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
-  renderProjects();
+  renderProjects(); setTab('chat');
+  if (!opts.fromRoute) {
+    var h = '#/project/' + enc(pid);
+    if (opts.replace) replaceHash(h); else pushHash(h);
+  }
+  updateBackBtn();
   api('/api/projects/' + encodeURIComponent(pid)).then(function (r) {
     renderProject(r.project || {});
   }).catch(function (e) { toast('项目读取失败：' + e.message, 'err'); });
@@ -199,12 +293,21 @@ function renderProject(p) {
 }
 
 // ---------------- 会话 ----------------
-function selectGroup(id, silent) {
+function selectGroup(id, silent, opts) {
+  opts = opts || {};
+  if (id !== 'secretary' && !findGroup(id) && !(id.indexOf('sec-') === 0 && findProject(id.slice(4)))) {
+    toast('会话不存在：' + id, 'warn'); selectGroup('secretary', true, { replace: true }); return;
+  }
   state.view = 'chat'; state.group = id; state.cursor = 0; state.seen = {}; state.lastLive = '';
-  hide('projectview'); show('chatview'); hide('flow');
+  hide('projectview'); show('chatview'); hide('flow'); hide('side'); closeModal();
   $('messages').innerHTML = '';
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
-  renderProjects(); renderRailGroups();
+  renderProjects(); renderRailGroups(); setTab('chat');
+  if (!opts.fromRoute) {
+    var h = '#/chat/' + enc(id);
+    if (opts.replace) replaceHash(h); else pushHash(h);
+  }
+  updateBackBtn();
   var g = findGroup(id) || {};
   var isTicket = id.indexOf('T-') === 0;
   var isSec = id.indexOf('sec-') === 0;
@@ -412,7 +515,7 @@ function openIdle() {
 
 // ---------------- 侧栏：交付件 ----------------
 function openSide() {
-  show('side'); loadFiles();
+  show('side'); loadFiles(); updateBackBtn();
 }
 function loadFiles() {
   var body = $('side-body');
@@ -479,8 +582,10 @@ function browseProject(path, pid) {
     });
   }).catch(function (e) { toast(e.message, 'err'); });
 }
-function openSource() {
+function openSource(opts) {
+  opts = opts || {};
   openModal('agent 源码 / 配置（只读）', '<div id="ftree" class="muted">加载中…</div>');
+  if (!opts.fromRoute) overlayRoute('#/source', 'source');
   browseSource('');
 }
 function browseSource(path) {
@@ -506,10 +611,17 @@ function browseSource(path) {
 }
 
 // ---------------- 弹窗 / 库 / 健康 / 版本 ----------------
-function openModal(title, html) { $('modal-title').textContent = title; $('modal-body').innerHTML = html; show('modal'); }
-function closeModal() { hide('modal'); }
+function openModal(title, html) { $('modal-title').textContent = title; $('modal-body').innerHTML = html; show('modal'); updateBackBtn(); }
+function closeModal() { hide('modal'); updateBackBtn(); }
 
-function openLibrary(kind) {
+function overlayRoute(hash, tab) {
+  setTab(tab);
+  if (isOverlayHash()) replaceHash(hash); else pushHash(hash);
+  updateBackBtn();
+}
+
+function openLibrary(kind, opts) {
+  opts = opts || {};
   kind = kind || 'roles';
   var kinds = [['roles', '角色'], ['flows', '流程'], ['skills', '技能']];
   var tabs = '<div class="seg">' + kinds.map(function (k) {
@@ -517,6 +629,7 @@ function openLibrary(kind) {
   }).join('') + '</div><div id="libbody" class="libbody"></div>' +
     '<h4>标签库（公共 / 项目）</h4><div id="tagbody" class="muted small">加载中…</div>';
   openModal('可插拔能力库', tabs);
+  if (!opts.fromRoute) overlayRoute('#/library/' + kind, 'library');
   document.querySelectorAll('#modal-body .seg button').forEach(function (b) { b.onclick = function () { openLibrary(b.dataset.kind); }; });
   api('/api/library/list?kind=' + kind).then(function (r) {
     var box = $('libbody');
@@ -534,8 +647,10 @@ function openLibrary(kind) {
   }).catch(function () {});
 }
 
-function openHealth() {
+function openHealth(opts) {
+  opts = opts || {};
   openModal('健康自检', '<div id="hbody" class="muted">检查中…</div>');
+  if (!opts.fromRoute) overlayRoute('#/health', 'health');
   Promise.all([api('/api/health/self'), api('/api/artifacts/stats'), api('/api/ops/status').catch(function () { return {}; })])
     .then(function (rs) {
       var h = rs[0] || {}, a = rs[1] || {}, s = rs[2] || {};
@@ -562,8 +677,10 @@ function openHealth() {
       };
     }).catch(function (e) { $('hbody').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
 }
-function openVersions() {
+function openVersions(opts) {
+  opts = opts || {};
   openModal('版本管理', '<div id="vbody" class="muted">读取中…</div>');
+  if (!opts.fromRoute) overlayRoute('#/versions', 'versions');
   api('/api/ops/versions').then(function (v) {
     var g = v.git || {};
     if (!g.available) { $('vbody').innerHTML = '<div class="muted">部署目录不是 git 仓库。</div>'; return; }
@@ -675,17 +792,23 @@ function toggleRail(force) {
   if (window.innerWidth > 900) {
     var hide = force === undefined ? !document.body.classList.contains('rail-collapsed') : !force;
     document.body.classList.toggle('rail-collapsed', hide);
+    localStorage.setItem('hive_rail_collapsed', hide ? '1' : '0');
+    updateBackBtn();
     return;
   }
   var open = force === undefined ? !$('rail').classList.contains('open') : force;
   $('rail').classList.toggle('open', open);
   $('rail-mask').classList.toggle('show', open);
+  updateBackBtn();
 }
 $('btn-rail').onclick = function () { toggleRail(); };
+$('btn-back').onclick = goBack;
 $('rail-mask').onclick = function () { toggleRail(false); };
 $('btn-files').onclick = openSide;
-$('side-close').onclick = function () { hide('side'); };
-$('modal-close').onclick = closeModal;
+$('side-close').onclick = function () { hide('side'); updateBackBtn(); };
+$('modal-close').onclick = function () {
+  if (isOverlayHash()) history.back(); else { closeModal(); }
+};
 $('idle-chip').onclick = openIdle;
 $('btn-addtag').onclick = addTag;
 $('btn-fork-ticket').onclick = function () { openFork('基于 ' + state.group + ' 的后续修改：', state.group); };
@@ -704,12 +827,14 @@ $('pv-delete').onclick = deleteProject;
 $('pv-secretary').onclick = function () { selectGroup('sec-' + state.project); };
 $('pv-compact').onclick = compactProjectSecretary;
 $('pv-create').onclick = createTicket;
-$('pv-artifacts').onclick = function () { state.group = 'sec-' + state.project; state.sideLayer = 'project'; openSide(); };
+$('pv-artifacts').onclick = function () { state.group = 'sec-' + state.project; state.sideLayer = 'project'; show('side'); loadFiles(); updateBackBtn(); };
 document.querySelectorAll('.tab').forEach(function (b) {
   b.onclick = function () {
     var tab = b.dataset.tab;
-    document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x === b); });
-    if (tab === 'chat') { closeModal(); hide('side'); }
+    setTab(tab);
+    if (tab === 'chat') {
+      if (isOverlayHash()) history.back(); else { closeModal(); hide('side'); }
+    }
     else if (tab === 'library') openLibrary('roles');
     else if (tab === 'health') openHealth();
     else if (tab === 'versions') openVersions();
@@ -717,6 +842,13 @@ document.querySelectorAll('.tab').forEach(function (b) {
   };
 });
 document.querySelectorAll('#side .stab').forEach(function (b) { b.onclick = function () { openSide(); }; });
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') { goBack(); }
+});
+window.addEventListener('popstate', function () {
+  state.navDepth = Math.max(0, state.navDepth - 1);
+  applyRoute(routeOfHash(), { fromRoute: true });
+});
 
 // ---------------- 启动 ----------------
 api('/api/auth/status').then(function (r) {

@@ -132,8 +132,17 @@ class Library(Module):
     def flow_for(self, role):
         return self.stores["flows"].get(role)
 
-    def check_files(self, flow_id, files):
-        """用流程插件校验：files 是相对路径列表，返回缺失项。"""
+    def check_files(self, flow_id, files, root=""):
+        """用流程插件校验：files 是相对路径列表，返回缺失项。
+
+        检查项（可组合）：
+          {"kind":"glob","path":"docs/**/*architect*.md"}
+          {"kind":"glob","path":"docs/**/*.md","min_bytes":120}
+          {"kind":"glob","path":"docs/**/*.md","contains":["取舍","回滚"]}
+        只给 glob 时是“文件存在”；加了 min_bytes / contains 就是“文件真的写了东西”，
+        防止交一个空文件骗过流程校验。
+        """
+        import os
         flow = self._store("flows").get(flow_id)
         if not flow:
             return {"flow": flow_id, "missing": [], "checked": 0, "known": False}
@@ -141,21 +150,44 @@ class Library(Module):
         missing = []
         for check in flow.get("checks") or []:
             kind = check.get("kind") or "glob"
-            if kind != "glob":
+            if kind not in ("glob", "contains"):
                 continue
             pattern = (check.get("path") or "").replace("\\", "/")
             if not pattern:
                 continue
-            hit = any(fnmatch.fnmatch(f, pattern) or fnmatch.fnmatch(f, pattern.replace("**/", ""))
-                      for f in files)
-            if not hit:
+            matched = [f for f in files
+                       if fnmatch.fnmatch(f, pattern) or fnmatch.fnmatch(f, pattern.replace("**/", ""))]
+            if not matched:
                 missing.append(pattern)
+                continue
+            min_bytes = int(check.get("min_bytes") or 0)
+            if min_bytes and root:
+                ok = False
+                for f in matched:
+                    try:
+                        ok = ok or os.path.getsize(os.path.join(root, f)) >= min_bytes
+                    except OSError:
+                        continue
+                if not ok:
+                    missing.append("%s（至少 %d bytes）" % (pattern, min_bytes))
+                    continue
+            needles = check.get("contains") or []
+            if needles and root:
+                text = ""
+                for f in matched:
+                    try:
+                        text += open(os.path.join(root, f), encoding="utf-8", errors="ignore").read()
+                    except OSError:
+                        continue
+                if not all(str(n) in text for n in needles):
+                    missing.append("%s（包含：%s）" % (pattern, "、".join(map(str, needles))))
         return {"flow": flow_id, "role": flow.get("role"), "missing": missing,
                 "checked": len(flow.get("checks") or []), "known": True,
                 "max_retry": flow.get("max_retry", 2)}
 
     # ---------------- 流程专家 ----------------
-    def design(self, role, responsibility, must_outputs=None, prompt="", skills=None, cn=""):
+    def design(self, role, responsibility, must_outputs=None, prompt="", skills=None, cn="",
+               checks=None):
         """把一个“还不存在的角色”落成三件套：角色卡 + 流程插件 + 技能。"""
         role = (role or "").strip().lower().replace(" ", "-")[:40]
         if not role:
@@ -174,7 +206,7 @@ class Library(Module):
         })
         flow = self.upsert("flows", {
             "id": role, "role": role,
-            "checks": [{"kind": "glob", "path": p} for p in must_outputs],
+            "checks": checks or [{"kind": "glob", "path": p} for p in must_outputs],
             "max_retry": 2, "builtin": False, "source": "process-expert",
         })
         created_skills = []
@@ -208,12 +240,14 @@ class Library(Module):
         return {"kind": kind, "item": self.upsert(kind, rec)}
 
     def check_api(self, payload):
-        return self.check_files(payload.get("flow") or "", payload.get("files") or [])
+        return self.check_files(payload.get("flow") or "", payload.get("files") or [],
+                                root=payload.get("root") or "")
 
     def design_api(self, payload):
         return self.design(payload.get("role") or "", payload.get("responsibility") or "",
                            payload.get("must_outputs") or [], payload.get("prompt") or "",
-                           payload.get("skills") or [], payload.get("cn") or "")
+                           payload.get("skills") or [], payload.get("cn") or "",
+                           payload.get("checks") or [])
 
     def _tag_path(self, scope, project=""):
         import os
@@ -289,7 +323,8 @@ class Library(Module):
         def design_tool(args, tctx):
             res = self.design(args.get("role") or "", args.get("responsibility") or "",
                               args.get("must_outputs") or [], args.get("prompt") or "",
-                              args.get("skills") or [], args.get("cn") or "")
+                              args.get("skills") or [], args.get("cn") or "",
+                              args.get("checks") or [])
             return ("已把角色 %s 固化：提示词已入库、流程插件校验 %d 条必交产物、技能 %d 个。"
                     "派活时直接用 role_spawn(role=%s)。" % (
                         res["role"]["id"], len(res["flow"].get("checks") or []),
@@ -324,6 +359,8 @@ class Library(Module):
                 "prompt": {"type": "string", "description": "可选：角色提示词"},
                 "skills": {"type": "array", "items": {"type": "object"},
                            "description": "可选：[{id,name,body}] 操作手册"},
+                "checks": {"type": "array", "items": {"type": "object"},
+                           "description": "可选：流程校验项，如 {kind:glob,path:docs/**/*architect*.md,min_bytes:200,contains:[取舍]}"},
             }, "required": ["role", "responsibility"]},
             design_tool, origin=self.name))
         tools.register(Tool("flow_check", "用流程插件校验一批文件是否齐（缺件清单）。",

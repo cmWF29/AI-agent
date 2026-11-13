@@ -14,7 +14,7 @@ import time
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
-from ..kernel.store import ensure_dir, read_json, safe_id
+from ..kernel.store import ensure_dir, inside, read_json, safe_id
 from ..version import __version__
 
 SERVICE_NAME = "hive-watchdog"
@@ -136,7 +136,7 @@ class Ops(Module):
         base = self._repo_root()
         rel = (payload.get("path") or "").strip("/")
         target = os.path.realpath(os.path.join(base, rel))
-        if not target.startswith(base):
+        if not inside(base, target):
             raise ApiError("路径越界", status=400, code="bad_path")
         if not os.path.isdir(target):
             raise ApiError("目录不存在", status=404, code="no_dir")
@@ -156,7 +156,7 @@ class Ops(Module):
         if rel.startswith("data/") or rel.startswith(".git/"):
             raise ApiError("运行数据/版本库不开放浏览", status=403, code="forbidden")
         target = os.path.realpath(os.path.join(base, rel))
-        if not target.startswith(base) or not os.path.isfile(target):
+        if not inside(base, target) or not os.path.isfile(target):
             raise ApiError("文件不存在", status=404, code="no_file")
         if os.path.getsize(target) > 512 * 1024:
             raise ApiError("文件过大（>512KB）", status=413, code="too_big")

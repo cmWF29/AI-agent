@@ -18,6 +18,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .api import ApiError
+from .store import inside
 
 WEB_DIR_DEFAULT = "web"
 _PUBLIC_PATHS = {"/", "/index.html", "/app.js", "/style.css", "/favicon.ico", "/api/health", "/api/auth/login", "/api/auth/status"}
@@ -41,6 +42,24 @@ class HttpService:
         self.counters = {"requests": 0, "errors": 0, "auth_fail": 0}
         self.tls_context = None
         self.scheme = "http"
+        self._login_fails = {}
+        self._login_lock = threading.Lock()
+
+    def _login_blocked(self, ip):
+        """同一 IP 5 分钟内错 5 次就暂时拒绝，挡住脚本暴力猜密码。"""
+        now = time.time()
+        with self._login_lock:
+            rows = [t for t in self._login_fails.get(ip, []) if now - t < 300]
+            self._login_fails[ip] = rows
+            return len(rows) >= 5
+
+    def _login_failed(self, ip):
+        with self._login_lock:
+            self._login_fails.setdefault(ip, []).append(time.time())
+
+    def _login_ok(self, ip):
+        with self._login_lock:
+            self._login_fails.pop(ip, None)
 
     def _tls_config(self):
         tls = self.cfg["server"].get("tls") if isinstance(self.cfg["server"].get("tls"), dict) else {}
@@ -205,13 +224,20 @@ class HttpService:
                     body = self._read_body()
                 except ValueError as e:
                     return self._json(400, {"ok": False, "error": str(e)})
+                ip = self.client_address[0]
+                if service._login_blocked(ip):
+                    service.counters["auth_fail"] += 1
+                    return self._json(429, {"ok": False, "error": "尝试过于频繁，请 5 分钟后再试", "code": "too_many_attempts"})
                 pw = str(body.get("password") or "")
                 if service.web_password and not secrets.compare_digest(pw, service.web_password):
                     service.counters["auth_fail"] += 1
+                    service._login_failed(ip)
                     return self._json(401, {"ok": False, "error": "密码错误"})
+                service._login_ok(ip)
                 token = service.ensure_token()
-                cookie = "%s=%s; Path=/; HttpOnly; SameSite=Lax; Max-Age=%d" % (
+                cookie = "%s=%s; Path=/; HttpOnly; SameSite=Lax; Max-Age=%d%s" % (
                     service.cookie_name, urllib.parse.quote(token), 60 * 60 * 24 * 30,
+                    "; Secure" if service.scheme == "https" else "",
                 )
                 return self._json(200, {"ok": True, "token": token}, {"Set-Cookie": cookie})
 
@@ -220,7 +246,7 @@ class HttpService:
                 if rel.startswith("static/"):
                     rel = rel[len("static/"):]
                 full = os.path.normpath(os.path.join(service.web_dir, rel))
-                if not full.startswith(os.path.normpath(service.web_dir)) or not os.path.isfile(full):
+                if not inside(service.web_dir, full) or not os.path.isfile(full):
                     return self._json(404, {"ok": False, "error": "not found"})
                 ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
                 if ctype.startswith("text/") or ctype in ("application/javascript",):
@@ -237,6 +263,16 @@ class HttpService:
 
             def _send(self, status, data, headers):
                 self.send_response(status)
+                headers = dict(headers or {})
+                headers.setdefault("X-Content-Type-Options", "nosniff")
+                headers.setdefault("X-Frame-Options", "DENY")
+                headers.setdefault("Referrer-Policy", "no-referrer")
+                headers.setdefault("Content-Security-Policy",
+                                   "default-src 'self'; img-src 'self' data:; "
+                                   "style-src 'self' 'unsafe-inline'; script-src 'self'; "
+                                   "connect-src 'self'; frame-ancestors 'none'")
+                if service.scheme == "https":
+                    headers.setdefault("Strict-Transport-Security", "max-age=31536000")
                 for k, v in headers.items():
                     self.send_header(k, v)
                 self.send_header("Content-Length", str(len(data)))

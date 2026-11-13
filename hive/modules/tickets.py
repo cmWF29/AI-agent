@@ -44,7 +44,7 @@ PM_TOOLS = [
     "agent_spawn", "agent_send", "agent_wait", "agent_list", "agent_status",
     "agent_interrupt", "agent_destroy", "agent_compact",
     "role_spawn", "role_task", "role_wait", "role_report",
-    "ticket_list", "ticket_status", "ticket_close",
+    "ticket_list", "ticket_status", "ticket_verify", "ticket_close",
     # 自己动手（需求 3：PM 得先能“了解项目”，小活自己干）
     "shell", "read_file", "write_file", "grep",
     # 库与流程（需求 15/17）
@@ -95,6 +95,7 @@ class Tickets(Module):
         self.api.route("GET", "/api/tickets/{ticket_id}/file", name="file")(self.file_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/sync", name="sync")(self.sync_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/tags", name="tags")(self.tags_api)
+        self.api.route("POST", "/api/tickets/{ticket_id}/verify", name="verify")(self.verify_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/delete", name="delete")(self.delete_api)
         self.api.route("POST", "/api/tickets/dispatch", name="dispatch")(self.dispatch_api)
 
@@ -402,7 +403,7 @@ class Tickets(Module):
         """返回 {'missing': [...], 'known': bool}"""
         try:
             res = self.ctx.api("library.check", flow=role_entry["role"],
-                               files=self._ticket_files(ticket))
+                               files=self._ticket_files(ticket), root=ticket["workdir"])
             return res
         except ApiError:
             return {"missing": [], "known": False}
@@ -425,7 +426,7 @@ class Tickets(Module):
                               "%s 缺 %s（已催 %d 次）" % (r.get("display"), chk["missing"], retry))
                 continue
             r["flow_retry"] = retry + 1
-            note = ("流程插件校验未通过：还缺 %d 项必交产物：%s。\n"
+            note = ("（系统）流程插件校验未通过：还缺 %d 项必交产物：%s。\n"
                     "请补齐后再调 session_result 上报（这是硬性检查，不是建议）。"
                     % (len(chk["missing"]), ", ".join(chk["missing"])))
             try:
@@ -455,11 +456,22 @@ class Tickets(Module):
                 self.log.warn("ticket.flow.check.failed", ticket=ticket_id, error=repr(exc))
         threading.Thread(target=_run, name="flow-" + ticket_id[-6:], daemon=True).start()
 
+    def _require_reverify(self, ticket, reason):
+        ticket["reverify"] = {"required": True, "passed": False, "since": _now(),
+                              "reason": str(reason)[:300]}
+        self._stage(ticket, "verification_required", reason)
+        self._save(ticket)
+
     # ---------------- 关闭 ----------------
     def close(self, ticket_id, summary="", force=False, block=True):
         ticket = self._get(ticket_id)
         if ticket["status"] in ("closed", "closing"):
             return {"ticket": ticket, "already_closed": ticket["status"] == "closed"}
+        rv = ticket.get("reverify") or {}
+        if rv.get("required") and not rv.get("passed") and not force:
+            raise ApiError(
+                "工单 %s 发生过 git 冲突，必须先重新审视改动、重跑测试并调用 ticket_verify 记录证据，再结单。"
+                % ticket_id, status=409, code="reverify_required")
         ticket["status"] = "closing"
         ticket["summary"] = summary or ticket.get("summary") or ""
         self._stage(ticket, "closing", summary[:200])
@@ -502,6 +514,7 @@ class Tickets(Module):
             if sync.get("conflict"):
                 ticket["status"] = "conflict"
                 ticket["conflict_files"] = sync["conflict"]
+                self._require_reverify(ticket, "push 冲突：" + ",".join(sync["conflict"]))
                 self._stage(ticket, "conflict", ",".join(sync["conflict"]))
                 self._save(ticket)
                 self.emit("ticket.conflict", {"ticket": ticket_id, "files": sync["conflict"]})
@@ -510,7 +523,7 @@ class Tickets(Module):
                         self.ctx.api("sessions.send", session=ticket["pm"], text=(
                             "（系统）工单 %s 推送时与 main 冲突：%s。\n"
                             "请：1) 在工作树里解决冲突；2) **重新审视改动并重跑测试**（结果要贴出来）；"
-                            "3) 再 git_sync；4) 确认无误后重新 ticket_close。"
+                            "3) 再 git_sync；4) 调用 ticket_verify(summary=..., commands=..., result=...) 记录验证；5) 再 ticket_close。"
                             % (ticket_id, ", ".join(sync["conflict"]))))
                     except ApiError:
                         pass
@@ -525,6 +538,8 @@ class Tickets(Module):
             if merge.get("conflict") or not merge.get("ok"):
                 ticket["status"] = "conflict"
                 ticket["conflict_files"] = merge["conflict"]
+                self._require_reverify(ticket, "merge 失败：" + (",".join(merge.get("conflict") or [])
+                                                               or merge.get("error") or "merge failed"))
                 self._stage(ticket, "conflict", "merge: " + (",".join(merge.get("conflict") or [])
                                                               or merge.get("error") or "merge failed"))
                 self._save(ticket)
@@ -692,6 +707,24 @@ class Tickets(Module):
                 pass
         return {"ticket": self._public(self._dispatch(t))}
 
+    def verify_api(self, payload):
+        """冲突后的强制复验：记录“改了什么、跑了什么、结果如何”，通过后才允许结单。"""
+        t = self._get(payload["ticket_id"])
+        summary = (payload.get("summary") or "").strip()
+        commands = (payload.get("commands") or "").strip()
+        result = (payload.get("result") or "").strip()
+        if not (summary and commands and result):
+            raise ApiError("summary / commands / result 都必须填写", code="missing_verification")
+        rv = dict(t.get("reverify") or {})
+        rv.update({"required": True, "passed": True, "verified_at": _now(),
+                   "summary": summary[:300], "commands": commands[:500], "result": result[:500]})
+        t["reverify"] = rv
+        self._stage(t, "verified", summary[:200])
+        self._save(t)
+        self.emit("ticket.verified", {"ticket": t["id"], "summary": summary[:200]})
+        return {"ticket": self._public(t), "verification": {k: rv.get(k) for k in
+                                                           ("summary", "commands", "result", "verified_at")}}
+
     def tags_api(self, payload):
         t = self._get(payload["ticket_id"])
         add = [x.strip() for x in (payload.get("add") or []) if x and x.strip()]
@@ -724,6 +757,10 @@ class Tickets(Module):
             self.ctx.api("sessions.destroy", session_id=t.get("pm") or "")
         except ApiError:
             pass
+        try:
+            self.ctx.api("gitflow.ticket_remove", ticket=t["id"], project=t["project"])
+        except ApiError as exc:
+            self.log.warn("ticket.delete.git", ticket=t["id"], error=exc.message)
         tdir = os.path.join(self.root, t["id"])
         shutil.rmtree(tdir, ignore_errors=True)
         self.store.delete(t["id"])
@@ -763,7 +800,9 @@ class Tickets(Module):
         for s in stages:
             seen[s["stage"]] = s
         order = [("created", "立项"), ("git_branch", "建分支"), ("pm_spawned", "派项目经理"),
-                 ("role_spawned", "拉角色"), ("conflict", "冲突处理"), ("closing", "验收结单"),
+                 ("role_spawned", "拉角色"), ("conflict", "冲突处理"),
+                 ("verification_required", "复验要求"), ("verified", "复验通过"),
+                 ("closing", "验收结单"),
                  ("archived", "归档交付件"), ("merged", "合并 main"), ("closed", "结单")]
         for key, label in order:
             nodes.append({"key": key, "label": label, "done": key in seen,
@@ -835,6 +874,9 @@ class Tickets(Module):
         if not target:
             raise ApiError("该工单已经没有在跑的 PM（可能已结单），新需求请另开工单", code="no_pm")
         res = self.ctx.api("sessions.send", session=target, text=text)
+        # 记录“这是用户本人在群里说的”，网页据此把发言人显示成“我”，而不是“秘书/PM”
+        t.setdefault("user_messages", []).append({"ts": time.time(), "session": target, "text": text})
+        t["user_messages"] = t["user_messages"][-30:]
         self._history(t, "user_message", text[:200])
         self.emit("ticket.message", {"ticket": t["id"], "session": target, "chars": len(text),
                                      "text": text[:500]})
@@ -911,6 +953,7 @@ class Tickets(Module):
             "workdir": t.get("workdir"), "readonly": t.get("status") == "closed",
             "closed": t.get("closed") or "",
             "conflict_files": t.get("conflict_files") or [],
+            "reverify": t.get("reverify") or {},
             "transcript": t.get("transcript") or [],
             "tags": t.get("tags") or [],
             "queued": t.get("queued") or "",
@@ -1018,6 +1061,27 @@ class Tickets(Module):
             "ticket_status", "查看某个工单的 PM/角色/进度。",
             {"type": "object", "properties": {"ticket": {"type": "string"}}},
             status_tool, origin=self.name))
+
+        def verify_tool(args, tctx):
+            try:
+                tid = args.get("ticket") or tctx.session.get("ticket") or ""
+                r = self.verify_api({"ticket_id": tid,
+                                     "summary": args.get("summary") or "",
+                                     "commands": args.get("commands") or "",
+                                     "result": args.get("result") or ""})
+                return "复验已登记：%s" % (r.get("verification") or {})
+            except ApiError as exc:
+                return "复验登记失败：%s" % exc.message
+
+        tools.register(Tool(
+            "ticket_verify", "冲突后强制复验：登记重新审视的结论、重跑的命令与结果；不登记不能结单。",
+            {"type": "object", "properties": {
+                "ticket": {"type": "string"},
+                "summary": {"type": "string", "description": "改了什么、为什么这样解决冲突"},
+                "commands": {"type": "string", "description": "实际重跑的命令"},
+                "result": {"type": "string", "description": "真实输出/通过情况"},
+            }, "required": ["summary", "commands", "result"]},
+            verify_tool, origin=self.name))
 
         tools.register(Tool(
             "ticket_tag", "给当前工单打/删模块标签（frontend/backend/comm/docs...）。标签会自动沉淀到公共库与项目库。",

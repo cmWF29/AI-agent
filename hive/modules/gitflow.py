@@ -63,6 +63,7 @@ class GitFlow(Module):
         self.api.route("POST", "/api/gitflow/ticket/sync", name="ticket_sync")(self.ticket_sync_api)
         self.api.route("GET", "/api/gitflow/ticket/status", name="ticket_status")(self.ticket_status_api)
         self.api.route("POST", "/api/gitflow/ticket/merge", name="ticket_merge")(self.ticket_merge_api)
+        self.api.route("POST", "/api/gitflow/ticket/remove", name="ticket_remove")(self.ticket_remove_api)
         self.api.route("GET", "/api/gitflow/list", name="list")(self.list_api)
         self._register_tools()
 
@@ -262,6 +263,22 @@ class GitFlow(Module):
         self.log.info("gitflow.merged", ticket=ticket, project=project, head=head)
         return {"ok": push["ok"], "stage": "merged", "head": head, "push_error": "" if push["ok"] else push["err"]}
 
+    def remove_ticket(self, ticket, project):
+        """删除工单时清掉工作树和已合入的临时分支（交付件/知识在别处，不受影响）。"""
+        tree = self.ticket_tree(ticket)
+        branch = self.prefix + ticket
+        removed_tree = False
+        if os.path.isdir(tree):
+            shutil.rmtree(tree, ignore_errors=True)
+            removed_tree = True
+        branch_removed = False
+        bare = self.bare(project)
+        if os.path.isdir(bare):
+            branch_removed = self._run(["branch", "-D", branch], cwd=bare)["ok"]
+        self.emit("gitflow.ticket.removed", {"ticket": ticket, "project": project,
+                                             "branch": branch, "tree": removed_tree})
+        return {"removed": ticket, "tree": removed_tree, "branch": branch, "branch_removed": branch_removed}
+
     # ---------------- API ----------------
     def project_init_api(self, payload):
         return {"repo": self.init_project(payload["project"], force=bool(payload.get("force")))}
@@ -277,6 +294,9 @@ class GitFlow(Module):
 
     def ticket_merge_api(self, payload):
         return {"result": self.merge_ticket(payload["ticket"], payload["project"])}
+
+    def ticket_remove_api(self, payload):
+        return {"result": self.remove_ticket(payload["ticket"], payload["project"])}
 
     def list_api(self, payload):
         items = []
