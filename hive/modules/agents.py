@@ -89,17 +89,21 @@ class ClaudeCodeBackend:
         if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
             cmd = ["cmd.exe", "/c"] + cmd
         env = dict(os.environ)
-        env.update({str(k): str(v) for k, v in self.extra_env.items()})
-        # 从统一的 llm 配置推导 Anthropic 兼容端点，避免把 key 再写一份
+        # llm 配置是唯一事实源：必须覆盖进程环境里可能残留的 ANTHROPIC_*，
+        # 否则服务进程会拿宿主的旧 model 去连 DeepSeek，表现为 CLI 长时间不返回。
         llm = self.cfg.get("llm") if isinstance(self.cfg, dict) else {}
-        if not env.get("ANTHROPIC_AUTH_TOKEN") and llm.get("api_key"):
+        if llm.get("api_key"):
             env["ANTHROPIC_AUTH_TOKEN"] = str(llm["api_key"])
-        if not env.get("ANTHROPIC_BASE_URL") and llm.get("base_url"):
+        if llm.get("base_url"):
             env["ANTHROPIC_BASE_URL"] = str(llm["base_url"]).rstrip("/") + "/anthropic"
-        if not env.get("ANTHROPIC_MODEL") and llm.get("model"):
+        if llm.get("model"):
             env["ANTHROPIC_MODEL"] = str(llm["model"])
+            env["ANTHROPIC_SMALL_FAST_MODEL"] = str(llm["model"])
+        # 显式 agents.claude_code.env 优先，用于个别部署覆盖
+        env.update({str(k): str(v) for k, v in self.extra_env.items()})
         t0 = time.time()
-        self.log.info("agent.claude.start", session=session.get("id"), cwd=ws, cmd=cmd[:2])
+        self.log.info("agent.claude.start", session=session.get("id"), cwd=ws, cmd=cmd[:2],
+                      model=env.get("ANTHROPIC_MODEL"), has_token=bool(env.get("ANTHROPIC_AUTH_TOKEN")))
         try:
             p = subprocess.Popen(cmd, cwd=ws, env=env, stdin=subprocess.DEVNULL,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
