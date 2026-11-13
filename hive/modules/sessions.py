@@ -418,10 +418,6 @@ class Sessions(Module):
     # ---------------- 秘书 ----------------
     def ensure_secretary(self, reset=False):
         sid = self.secretary_id
-        if not reset and self.store.exists(sid):
-            return self.store.get(sid)
-        if reset and self.store.exists(sid):
-            self.destroy(sid)
         prompt = self._secretary_prompt()
         # 秘书只“发作业/查进度”，不碰执行类工具（shell/文件/爬网页一律没有）。
         # 这是需求 7 的硬约束：秘书只负责发作业，收作业都不用秘书做。
@@ -432,6 +428,25 @@ class Sessions(Module):
             "memory_add", "memory_search",
             "agent_list", "agent_status", "agent_wait",
         ]
+        if reset and self.store.exists(sid):
+            self.destroy(sid)
+        if not reset and self.store.exists(sid):
+            # 提示词/工具集升级：原地热更新（不丢历史对话），让新策略立刻生效
+            rec = self.store.get(sid)
+            changed = False
+            if rec.get("tools") != tools:
+                rec["tools"] = tools
+                changed = True
+            if prompt and rec.get("system_prompt") != prompt and rec.get("messages"):
+                rec["system_prompt"] = prompt
+                rec["messages"][0] = {"role": "system", "content": prompt}
+                changed = True
+            if changed:
+                rec["updated"] = _now()
+                self.persist(rec)
+                self.emit("session.updated", {"session": sid, "reason": "tool_policy_or_prompt"})
+                self.log.info("session.secretary.updated", session=sid)
+            return rec
         return self.spawn(
             kind="secretary",
             title="秘书",
