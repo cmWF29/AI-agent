@@ -440,14 +440,12 @@ class Sessions(Module):
                 self.destroy(sid, archive=True)
                 self.emit("session.secretary.recreated", {"session": sid, "reason": "tool_policy"})
                 return self._spawn_secretary(prompt, tools)
-            # 只是提示词升级：原地换 system 消息，保留对话
-            if prompt and rec.get("system_prompt") != prompt and rec.get("messages"):
-                rec["system_prompt"] = prompt
-                rec["messages"][0] = {"role": "system", "content": prompt}
-                rec["updated"] = _now()
-                self.persist(rec)
-                self.emit("session.updated", {"session": sid, "reason": "prompt"})
-                self.log.info("session.secretary.prompt_updated", session=sid)
+            # 提示词变了 = 行为准则变了，同样重建（旧对话里的“旧习气”会污染新策略）
+            if prompt and rec.get("system_prompt") != prompt:
+                self.log.warn("session.secretary.prompt_changed", session=sid)
+                self.destroy(sid, archive=True)
+                self.emit("session.secretary.recreated", {"session": sid, "reason": "prompt"})
+                return self._spawn_secretary(prompt, tools)
             return rec
         return self._spawn_secretary(prompt, tools)
 
