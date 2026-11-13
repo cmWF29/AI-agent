@@ -528,6 +528,26 @@ class Tickets(Module):
             except Exception as exc:
                 self.log.warn("ticket.close.pm", ticket=ticket_id, error=repr(exc))
 
+        # 4.5) 冻结聊天记录：会话马上要销毁，但群聊历史要能回看（需求 7 / 11）
+        transcript = []
+        for r in list(ticket.get("roles") or []):
+            try:
+                items = self.ctx.api("sessions.messages", session_id=r["session"], limit=80).get("items") or []
+            except ApiError:
+                items = []
+            transcript.append({"session": r["session"], "display": r.get("display") or r.get("role"),
+                               "kind": "role",
+                               "items": [m for m in items if m.get("role") in ("user", "assistant")]})
+        if pm:
+            try:
+                items = self.ctx.api("sessions.messages", session_id=pm, limit=80).get("items") or []
+            except ApiError:
+                items = []
+            transcript.append({"session": pm, "display": "项目经理", "kind": "pm",
+                               "items": [m for m in items if m.get("role") in ("user", "assistant")]})
+        if transcript:
+            ticket["transcript"] = transcript
+
         # 5) 销毁临时会话（需求 10：结单后 PM/角色不该还能聊）
         for r in list(ticket.get("roles") or []):
             try:
@@ -781,6 +801,7 @@ class Tickets(Module):
             "workdir": t.get("workdir"), "readonly": t.get("status") == "closed",
             "closed": t.get("closed") or "",
             "conflict_files": t.get("conflict_files") or [],
+            "transcript": t.get("transcript") or [],
         }
 
     # ---------------- 工具 ----------------

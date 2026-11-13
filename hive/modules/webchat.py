@@ -198,39 +198,49 @@ class WebChat(Module):
             sessions = self.ctx.api("sessions.list", ticket=ticket_id).get("items", [])
         except ApiError:
             pass
-        # 结单后会话被销毁了：从归档里补历史，群聊仍可回看（但只读）
-        per = max(15, limit // max(1, len(sessions) or 1))
         out = []
+        # 会话还活着：直接读消息
+        per = max(15, limit // max(1, len(sessions) or 1))
         for s in sessions:
             try:
-                res = self.ctx.api("sessions.messages", session_id=s["id"], limit=per)
+                items = self.ctx.api("sessions.messages", session_id=s["id"], limit=per).get("items", [])
             except ApiError:
                 continue
-            speaker = s.get("display") or s.get("title") or s.get("role") or s["id"]
-            for m in res.get("items", []):
-                role = m.get("role")
-                if role not in ("user", "assistant"):
-                    continue
-                text = (m.get("content") or "").strip()
-                if not text:
-                    continue
-                if role == "user" and s.get("kind") == "pm":
-                    # PM 会话里的 user 消息 = 系统/秘书派给 PM 的作业（需求 12：不混进群聊当“我”说）
-                    out.append({"ts": self._ts(m.get("ts")), "type": "task",
-                                "speaker": "秘书", "to": speaker, "role": "user",
-                                "session": s["id"], "text": text})
-                    continue
-                if role == "user" and s.get("kind") == "role":
-                    # 角色会话里的 user 消息 = PM 派给它的任务，显示成“项目经理 → 开发A”
-                    out.append({"ts": self._ts(m.get("ts")), "type": "task",
-                                "speaker": "项目经理", "to": speaker, "role": "user",
-                                "session": s["id"], "text": text})
-                    continue
-                out.append({"ts": self._ts(m.get("ts")), "type": "chat",
-                            "speaker": "我" if role == "user" else speaker,
-                            "role": role, "session": s["id"], "text": text,
-                            "tools": m.get("tool_names") or []})
+            out.extend(self._session_chat(s["id"], s.get("display") or s.get("title") or s.get("role") or s["id"],
+                                          s.get("kind") or "", items))
+        # 结单后会话已销毁：回放结单时冻结的 transcript（聊天记录不会随之消失）
+        if not out:
+            for ts in t.get("transcript") or []:
+                out.extend(self._session_chat(ts.get("session") or "", ts.get("display") or "角色",
+                                              ts.get("kind") or "", ts.get("items") or []))
         out.sort(key=lambda i: i.get("ts") or 0)
+        return out
+
+    def _session_chat(self, sid, speaker, kind, items):
+        """"把某个会话的消息渲染成群聊口径：PM 的入活显示为“秘书→项目经理”，
+        角色的入活显示为“项目经理→角色”，其余是本人发言。"""
+        out = []
+        for m in items:
+            role = m.get("role")
+            if role not in ("user", "assistant"):
+                continue
+            text = (m.get("content") or "").strip()
+            if not text:
+                continue
+            if role == "user" and kind == "pm":
+                out.append({"ts": self._ts(m.get("ts")), "type": "task",
+                            "speaker": "秘书", "to": speaker, "role": "user",
+                            "session": sid, "text": text})
+                continue
+            if role == "user" and kind == "role":
+                out.append({"ts": self._ts(m.get("ts")), "type": "task",
+                            "speaker": "项目经理", "to": speaker, "role": "user",
+                            "session": sid, "text": text})
+                continue
+            out.append({"ts": self._ts(m.get("ts")), "type": "chat",
+                        "speaker": "我" if role == "user" else speaker,
+                        "role": role, "session": sid, "text": text,
+                        "tools": m.get("tool_names") or []})
         return out
 
     def _ts(self, v):

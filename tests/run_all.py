@@ -583,6 +583,9 @@ def test_close_readonly_artifacts(mock):
         st, body, _ = env.http("/api/tickets/%s/message" % t["id"], method="POST", body={"text": "再改一下"})
         check("结单后发消息被拒", st == 410 and body.get("code") == "ticket_closed", (st, body))
 
+        st_tl, body_tl, _ = env.http("/api/web/timeline?group=%s&limit=100" % t["id"])
+        tl = (body_tl or {}).get("items") or []
+        check("结单后群聊仍能回看历史", len(tl) >= 2, len(tl))
         apath = os.path.join(env.tmp, "data", "artifacts", "projects", "arch", "tickets", t["id"], "docs", "report.md")
         check("交付件按三层路径归档", os.path.exists(apath), apath)
         stats = env.api("artifacts.stats")
