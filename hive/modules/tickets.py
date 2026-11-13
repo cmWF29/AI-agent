@@ -347,7 +347,7 @@ class Tickets(Module):
                     st = self.ctx.api("sessions.get", session_id=t["pm"])["session"]
                 except Exception:
                     continue
-                if st.get("state") != "idle":
+                if st.get("state") not in ("idle", "interrupted"):
                     continue           # 有别的活正在跑就别插队
                 try:
                     self.ctx.api("sessions.send", session_id=t["pm"], text=(

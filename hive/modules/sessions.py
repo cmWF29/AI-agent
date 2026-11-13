@@ -181,6 +181,7 @@ class Sessions(Module):
             except Exception:
                 continue
             if rec.get("state") in ("running", "queued") or rec.get("status") in ("running", "queued"):
+                rec["prev_state"] = rec.get("state") or rec.get("status")
                 rec["state"] = "idle"
                 rec["status"] = "interrupted"
                 rec["updated"] = _now()
