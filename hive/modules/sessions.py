@@ -511,6 +511,7 @@ class Sessions(Module):
         res = self.spawn(
             kind=kind,
             title=payload.get("title") or "",
+            display=payload.get("display") or "",
             system_prompt=payload.get("system_prompt") or "",
             project=payload.get("project") or "",
             ticket=payload.get("ticket") or "",

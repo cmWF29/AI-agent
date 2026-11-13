@@ -185,7 +185,7 @@ class Context:
             frame = sys._getframe(2)
             caller = (frame.f_globals.get("__name__") or "").rsplit(".", 1)[-1]
             trace.record("api.call", {
-                "from": caller, "route": route_id, "ms": ms,
+                "caller": caller, "from": caller, "route": route_id, "ms": ms,
                 "payload": payload, "result": result, "error": error,
             }, session=payload.get("session") or payload.get("session_id") or "",
                ticket=payload.get("ticket") or "")

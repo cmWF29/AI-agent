@@ -214,6 +214,12 @@ class WebChat(Module):
                 text = (m.get("content") or "").strip()
                 if not text:
                     continue
+                if role == "user" and s.get("kind") == "pm":
+                    # PM 会话里的 user 消息 = 系统/秘书派给 PM 的作业（需求 12：不混进群聊当“我”说）
+                    out.append({"ts": self._ts(m.get("ts")), "type": "task",
+                                "speaker": "秘书", "to": speaker, "role": "user",
+                                "session": s["id"], "text": text})
+                    continue
                 if role == "user" and s.get("kind") == "role":
                     # 角色会话里的 user 消息 = PM 派给它的任务，显示成“项目经理 → 开发A”
                     out.append({"ts": self._ts(m.get("ts")), "type": "task",

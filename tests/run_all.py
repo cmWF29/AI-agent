@@ -226,6 +226,8 @@ def test_tickets(mock):
     try:
         t = env.api("tickets.create", goal="把 README 补一版架构说明", project="demo")["ticket"]
         check("工单创建", t["status"] == "running" and t["pm"], t)
+        pms = [i for i in env.api("sessions.list", kind="pm")["items"] if i["id"] == t["pm"]]
+        check("PM 显示名是中文", pms and pms[0]["display"] == "项目经理", pms)
         pm = t["pm"]
         env.api("sessions.wait", session=pm, timeout=30)
         role = env.api("tickets.roles", ticket_id=t["id"], role="architect", task="输出架构说明")["role"]

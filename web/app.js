@@ -492,7 +492,7 @@ function fetchTrace(kind, session) {
   api(q).then(function (r) {
     var list = $('tracelist');
     var stats = r.stats || {};
-    if ($('tracestat')) $('tracestat').textContent = '内存 ' + (stats.ring || 0) + ' 条 · 落盘 ' + (stats.lines || 0) + ' 行';
+    if ($('tracestat')) $('tracestat').textContent = '内存 ' + ((stats.counters && stats.counters.ring) || stats.files || 0) + ' · 文件 ' + (stats.files || 0) + ' 个 / ' + fmtBytes(stats.bytes);
     list.innerHTML = (r.items || []).map(function (it, idx) {
       var data = JSON.stringify(it.data || {}, null, 2);
       return '<div class="trace-row" data-idx="' + idx + '">' +
@@ -514,7 +514,7 @@ function summaryOf(it) {
   if (it.kind === 'llm.response') return '← ' + (d.content ? d.content.slice(0, 60) : '') + (d.tool_calls && d.tool_calls.length ? ' [tool_calls ' + d.tool_calls.length + ']' : '');
   if (it.kind === 'tool.call') return (d.tool || '') + ' ' + String(d.args || '').slice(0, 80);
   if (it.kind === 'tool.result') return (d.tool || '') + ' 返回 ' + (d.chars || 0) + ' 字（' + (d.mode || '') + '）';
-  if (it.kind === 'api.call') return (d.caller || '?') + ' → ' + (d.route || '') + ' ' + (d.ms || 0) + 'ms';
+  if (it.kind === 'api.call') return (d.caller || d.from || '?') + ' → ' + (d.route || '') + ' ' + (d.ms || 0) + 'ms';
   if (it.kind === 'bus.event') return (d.topic || '');
   return it.kind;
 }
