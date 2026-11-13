@@ -32,7 +32,6 @@ PM_TOOLS = [
     "ticket_list", "ticket_status", "ticket_close",
     "knowledge_read", "knowledge_write", "knowledge_list", "knowledge_search",
     "memory_add", "memory_search",
-    "shell", "read_file", "write_file", "grep",
 ]
 
 
