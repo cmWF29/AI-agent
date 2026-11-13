@@ -46,8 +46,14 @@ WORK=/opt/hive/current
 while read -r oldrev newrev refname; do
   [ "$refname" = "refs/heads/main" ] || continue
   echo "[deploy] 收到 main@${newrev:0:8}，检出到 $WORK"
-  mkdir -p "$WORK"
-  git --work-tree="$WORK" --git-dir="$GIT_DIR" checkout -f main || { echo "[deploy] 检出失败"; exit 0; }
+  if [ -d "$WORK/.git" ]; then
+    # 正常工作树（git clone 出来的）：fetch + reset，保留 data/ config/ secrets（都在 .gitignore）
+    git -C "$WORK" fetch -q origin main && git -C "$WORK" reset -q --hard origin/main \
+      || { echo "[deploy] reset 失败，回退到裸仓库检出"; }
+  else
+    mkdir -p "$WORK"
+    git --work-tree="$WORK" --git-dir="$GIT_DIR" checkout -f main || { echo "[deploy] 检出失败"; exit 0; }
+  fi
   ( cd "$WORK" && bash deploy/provision.sh --repo "$WORK" --autostart ) 2>&1 | sed 's/^/[deploy] /' | tail -40
   echo "[deploy] 完成"
 done

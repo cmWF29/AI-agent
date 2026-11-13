@@ -182,7 +182,11 @@ class Watchdog:
             commit = self._git("commit", "-m", "watchdog autosave %s before rollback (%s)" % (stamp, reason))
             branch = "autosave/" + stamp
             self._git("branch", branch, "HEAD")
-            self.log("rollback.autosave", branch=branch, commit=(commit.stdout.strip() if commit else "?"))
+            # 尽力把存档分支推回裸仓库：机器整块挂了，改动也还在
+            pushed = self._git("push", "-q", "origin", branch)
+            self.log("rollback.autosave", branch=branch,
+                     commit=(commit.stdout.strip() if commit else "?"),
+                     pushed=bool(pushed and pushed.returncode == 0))
         ref = target or "HEAD^"
         prev = self._git("rev-parse", ref)
         if not prev or prev.returncode != 0:

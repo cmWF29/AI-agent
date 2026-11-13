@@ -128,7 +128,7 @@ class Ops(Module):
         root = self.cfg.get("repo")
         if not root:
             cand = os.path.abspath(self.cfg["root"])
-            root = cand if os.path.isdir(os.path.join(cand, ".git")) else os.path.dirname(cand)
+            root = cand if os.path.exists(os.path.join(cand, ".git")) else os.path.dirname(cand)
         n = min(int((payload or {}).get("limit") or 20), 60)
         try:
             head = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"],
