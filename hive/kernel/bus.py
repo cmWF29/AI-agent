@@ -128,4 +128,7 @@ class Bus:
         }
 
     def shutdown(self):
-        self._pool.shutdown(wait=False, cancel_futures=True)
+        try:
+            self._pool.shutdown(wait=False, cancel_futures=True)   # py3.9+
+        except TypeError:                                          # py3.8 没有这个参数
+            self._pool.shutdown(wait=False)
