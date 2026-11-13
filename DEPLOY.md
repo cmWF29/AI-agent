@@ -110,3 +110,16 @@ bash current/deploy/provision.sh --repo /opt/hive/current --autostart
 ```
 
 `data/` 与 `config/config.json` 都在 `.gitignore` 里，`reset --hard` 不会动它们。
+
+
+---
+
+## v3 部署补充（HTTPS / 三层 / 回退）
+
+1. `provision.sh` 首次部署会自签证书到 `config/tls/`（SAN=IP，825 天）。
+   老配置里没有 `server.tls` 段时按默认开启并写回，避免“文件里的 server 段整段覆盖内核默认值”。
+2. 浏览器首次访问 `https://<ip>:8787/`：Chrome/安卓点“高级 → 继续前往”；之后正常。
+3. 健康页会显示 `tls` 与 `artifacts_size / disk_headroom`；自检失败连续 3 次，watchdog 自动回退上一版本（改动在 `autosave/*` 分支保留）。
+4. 版本页可对任意 commit 点“回退”；回退前 watchdog 会先 `autosave` 当前工作区。
+5. 交付件目录：`data/artifacts/{public,projects/<p>,projects/<p>/tickets/<T>}`；
+   `data/artifacts/stats` 超阈值时用 `artifacts.compress` 压缩。
