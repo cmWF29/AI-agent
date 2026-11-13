@@ -241,7 +241,10 @@ class GitFlow(Module):
         self._run(["checkout", self.main], cwd=main)
         # 主工作树是派生副本：直接对齐远端 main，避免本地落后导致的假冲突
         self._run(["reset", "--hard", "%s/%s" % (self.remote, self.main)], cwd=main)
-        r = self._run(["merge", "--no-ff", "%s/%s" % (self.remote, branch),
+        # 早期在“空裸库”上建的工单分支是孤儿历史（没有 main 父提交），
+        # 这类分支合并时要显式允许无关历史，否则永远合不进去。
+        r = self._run(["merge", "--no-ff", "--allow-unrelated-histories",
+                       "%s/%s" % (self.remote, branch),
                        "-m", "merge: %s" % ticket], cwd=main, timeout=60)
         if not r["ok"]:
             conflicts = self._conflict_files(main)
