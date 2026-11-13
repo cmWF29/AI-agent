@@ -172,6 +172,25 @@ class Sessions(Module):
         self.active_lock = threading.Lock()
         self.log.info("sessions.ready", root=self.root, max_concurrent=self.max_concurrent)
 
+        # 上次是“跑到一半被重启”：记录里的 running/queued 状态已经没有线程了，
+        # 不清掉会永远显示 running，工单也会卡住。这里统一标成 interrupted。
+        recovered = []
+        for sid in self.store.ids():
+            try:
+                rec = self.store.get(sid)
+            except Exception:
+                continue
+            if rec.get("state") in ("running", "queued") or rec.get("status") in ("running", "queued"):
+                rec["state"] = "idle"
+                rec["status"] = "interrupted"
+                rec["updated"] = _now()
+                self.persist(rec)
+                recovered.append(sid)
+        if recovered:
+            self.log.warn("sessions.recovered", count=len(recovered), ids=recovered[:10])
+            self.emit("sessions.recovered", {"count": len(recovered), "ids": recovered[:10]})
+        self.recovered_ids = recovered
+
         # 常驻会话在首次访问时按需拉起，避免启动阶段就依赖 LLM
         self.secretary_id = self.cfg["secretary"].get("session_id") or "secretary"
 

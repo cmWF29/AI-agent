@@ -50,6 +50,7 @@ class Tickets(Module):
         self.default_project = self.cfg["tickets"].get("default_project") or "default"
         self._closing = set()
         self.log.info("tickets.ready", root=self.root)
+        self._resume_after_boot()
 
         self.api.route("POST", "/api/tickets/create", name="create")(self.create_api)
         self.api.route("GET", "/api/tickets/list", name="list")(self.list_api)
@@ -326,6 +327,39 @@ class Tickets(Module):
         self.emit("ticket.closed", {"ticket": ticket_id, "roles": len(ticket.get("roles") or [])})
         self.log.info("ticket.closed", ticket=ticket_id)
         return ticket
+
+    def _resume_after_boot(self):
+        """重启后把“跑到一半”的工单接回来：给它的 PM 发一条续跑指令（限 3 个，避免齐刷）。"""
+        def _run():
+            time.sleep(15)                     # 等 server / 各模块就绪
+            resumed = 0
+            try:
+                rows = self.store.list()
+            except Exception as exc:
+                self.log.error("tickets.resume.scan_failed", error=repr(exc))
+                return
+            for t in rows:
+                if resumed >= 3:
+                    break
+                if t.get("status") != "running" or not t.get("pm"):
+                    continue
+                try:
+                    st = self.ctx.api("sessions.get", session_id=t["pm"])["session"]
+                except Exception:
+                    continue
+                if st.get("state") != "idle":
+                    continue           # 有别的活正在跑就别插队
+                try:
+                    self.ctx.api("sessions.send", session_id=t["pm"], text=(
+                        "（系统）服务重启，你这单被打断了。先用 role_list 看角色和产物是否齐全，"
+                        "缺什么就重派，齐了就直接收尾（写总结并 ticket_close）。"
+                    ))
+                    resumed += 1
+                    self.log.info("ticket.resumed", ticket=t["id"], pm=t["pm"])
+                    self.emit("ticket.resumed", {"ticket": t["id"], "pm": t["pm"]})
+                except Exception as exc:
+                    self.log.error("ticket.resume.failed", ticket=t["id"], error=repr(exc))
+        threading.Thread(target=_run, name="ticket-resume", daemon=True).start()
 
     # ---------------- API ----------------
     def create_api(self, payload):
