@@ -573,7 +573,7 @@ class Tickets(Module):
                 self.log.error("tickets.resume.scan_failed", error=repr(exc))
                 return
             for t in rows:
-                if resumed >= 3:
+                if resumed >= 8:
                     break
                 if t.get("status") not in ("running", "closing", "conflict") or not t.get("pm"):
                     continue
@@ -583,6 +583,10 @@ class Tickets(Module):
                     continue
                 if st.get("state") not in ("idle", "interrupted"):
                     continue           # 有别的活正在跑就别插队
+                if t.get("status") == "closing":
+                    # 结单中途被打断：退回 running，让 PM 重新收尾（不然永远卡在 closing）
+                    t["status"] = "running"
+                    self._save(t)
                 try:
                     self.ctx.api("sessions.send", session=t["pm"], text=(
                         "（系统）服务重启，你这单被打断了。先用 role_list 看角色和产物是否齐全，"
