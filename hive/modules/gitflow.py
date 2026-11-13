@@ -224,10 +224,16 @@ class GitFlow(Module):
             return {"enabled": False}
         main = self.main_tree(project)
         branch = self.prefix + ticket
-        fetch = self._run(["fetch", self.remote, branch], cwd=main, timeout=30)
+        # 必须显式 refspec：git fetch origin ticket/x 只会写 FETCH_HEAD，
+        # 不会产生 origin/ticket/x 引用，后面 merge 就会“not something we can merge”。
+        fetch = self._run(["fetch", self.remote,
+                           "%s:refs/remotes/%s/%s" % (branch, self.remote, branch)], cwd=main, timeout=30)
+        self._run(["fetch", self.remote, self.main], cwd=main, timeout=30)
         if not fetch["ok"]:
             return {"ok": False, "stage": "fetch", "error": fetch["err"]}
         self._run(["checkout", self.main], cwd=main)
+        # 主工作树是派生副本：直接对齐远端 main，避免本地落后导致的假冲突
+        self._run(["reset", "--hard", "%s/%s" % (self.remote, self.main)], cwd=main)
         r = self._run(["merge", "--no-ff", "%s/%s" % (self.remote, branch),
                        "-m", "merge: %s" % ticket], cwd=main, timeout=60)
         if not r["ok"]:
@@ -236,6 +242,10 @@ class GitFlow(Module):
             self.emit("gitflow.merge.conflict", {"ticket": ticket, "project": project, "files": conflicts})
             return {"ok": False, "stage": "merge", "conflict": conflicts,
                     "hint": "冲突未合入；工单需要重新审视/改代码/重跑测试后再合"}
+        if not r["ok"] and not conflicts:
+            # 不是内容冲突，而是 git 层面的失败：一样不许当作“已合并”
+            return {"ok": False, "stage": "merge", "error": r["err"] or r["out"],
+                    "hint": "合并失败，先排查 git 状态再重试"}
         push = self._run(["push", self.remote, self.main], cwd=main, timeout=60)
         head = self._run(["rev-parse", "--short", "HEAD"], cwd=main)["out"]
         self.emit("gitflow.merged", {"ticket": ticket, "project": project, "head": head})

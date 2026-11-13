@@ -622,6 +622,8 @@ def test_gitflow(mock):
         check("工单推送到远端分支", r1.get("ok") is True, r1)
         m1 = env.api("gitflow.ticket_merge", ticket=t1["id"], project="repo1")["result"]
         check("合回 main", m1.get("ok") is True, m1)
+        main_readme = os.path.join(env.tmp, "data", "projects", "repo1", "main", "README.md")
+        check("main 真的合进了内容", "repo1 A" in open(main_readme, encoding="utf-8").read(), main_readme)
 
         # t2 改同一行 → 推的时候会与 main 冲突
         with open(os.path.join(t2["repo"], "README.md"), "w", encoding="utf-8") as f:

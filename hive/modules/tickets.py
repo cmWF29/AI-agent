@@ -476,16 +476,17 @@ class Tickets(Module):
                 merge = self.ctx.api("gitflow.ticket_merge", ticket=ticket_id, project=project)["result"]
             except ApiError as exc:
                 merge = {"ok": False, "error": exc.message}
-            if merge.get("conflict"):
+            if merge.get("conflict") or not merge.get("ok"):
                 ticket["status"] = "conflict"
                 ticket["conflict_files"] = merge["conflict"]
-                self._stage(ticket, "conflict", "merge: " + ",".join(merge["conflict"]))
+                self._stage(ticket, "conflict", "merge: " + (",".join(merge.get("conflict") or [])
+                                                              or merge.get("error") or "merge failed"))
                 self._save(ticket)
                 if ticket.get("pm"):
                     try:
                         self.ctx.api("sessions.send", session=ticket["pm"], text=(
-                            "（系统）工单 %s 合并回 main 冲突：%s。解决后重跑测试，再重新结单。"
-                            % (ticket_id, ", ".join(merge["conflict"]))))
+                            "（系统）工单 %s 合并回 main 冲突/失败：%s。解决后重跑测试，再重新结单。"
+                            % (ticket_id, ", ".join(merge.get("conflict") or []) or merge.get("error") or "merge failed")))
                     except ApiError:
                         pass
                 return ticket
