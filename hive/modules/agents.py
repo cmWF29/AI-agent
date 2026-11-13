@@ -13,6 +13,8 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
+import queue
 import time
 import uuid
 
@@ -32,8 +34,8 @@ class ClaudeCodeBackend:
         self.log = log
         self.root = ensure_dir(root)
         self.command = a.get("command") or "claude"
-        self.args = a.get("args") or ["-p", "{prompt}", "--output-format", "json",
-                                      "--permission-mode", "bypassPermissions"]
+        self.args = list(a.get("args") or ["-p", "{prompt}", "--output-format", "stream-json",
+                                           "--permission-mode", "bypassPermissions"])
         self.timeout = int(a.get("timeout") or 0)  # 0 = 不设固定上限，靠插话/abort 中断
         self.extra_env = a.get("env") or {}
 
@@ -87,6 +89,16 @@ class ClaudeCodeBackend:
         prompt_file = self._prompt_file(session, user_text, drain)
         instruction = "请读取文件 %s，按其中任务执行；完成后输出结果摘要。" % prompt_file
         argv = [instruction if x == "{prompt}" else x for x in self.args]
+        # 外部 CLI 的流式输出统一用 stream-json；兼容旧配置里的 json/text。
+        for i, x in enumerate(argv):
+            if x == "--output-format" and i + 1 < len(argv):
+                argv[i + 1] = "stream-json"
+        if "--output-format" not in argv:
+            argv += ["--output-format", "stream-json"]
+        if "--include-partial-messages" not in argv:
+            argv.append("--include-partial-messages")
+        if "--verbose" not in argv:
+            argv.append("--verbose")
         exe = self._resolve_command()
         cmd = [exe] + argv
         # Windows 的 npm 全局命令是 .cmd，需要 cmd /c 包一层
@@ -115,13 +127,64 @@ class ClaudeCodeBackend:
         except FileNotFoundError:
             raise ApiError("找不到 agent CLI：%s（请先安装 Claude Code）" % self.command,
                            code="backend_not_installed")
-        out = err = ""
+        # 分流 stdout/stderr，主线程只做三件事：读增量、响应 abort、判结束。
+        lines = queue.Queue()
+
+        def _reader(stream, tag):
+            try:
+                for line in iter(stream.readline, ""):
+                    if line:
+                        lines.put((tag, line))
+            finally:
+                try:
+                    stream.close()
+                except Exception:
+                    pass
+
+        for stream, tag in ((p.stdout, "out"), (p.stderr, "err")):
+            threading.Thread(target=_reader, args=(stream, tag), daemon=True).start()
+
+        out_lines, err_lines = [], []
+        stream_text = []
+        final = ""
+        meta = {}
         aborted = False
+        last_emit = 0.0
         while True:
             try:
-                out, err = p.communicate(timeout=2)
-                break
-            except subprocess.TimeoutExpired:
+                tag, line = lines.get(timeout=2)
+                if tag == "out":
+                    out_lines.append(line)
+                    try:
+                        obj = json.loads(line)
+                    except ValueError:
+                        obj = None
+                    if isinstance(obj, dict):
+                        typ = obj.get("type")
+                        if typ == "stream_event":
+                            ev = obj.get("event") or {}
+                            if ev.get("type") == "content_block_delta":
+                                delta = ev.get("delta") or {}
+                                txt = delta.get("text") if delta.get("type") == "text_delta" else ""
+                                if txt:
+                                    stream_text.append(txt)
+                                    now = time.time()
+                                    if hooks and (now - last_emit >= 0.15 or len(txt) >= 48):
+                                        last_emit = now
+                                        hooks("llm.delta", {"text": "".join(stream_text),
+                                                            "model": "claude-code", "step": 1})
+                        elif typ == "result":
+                            final = obj.get("result") or final
+                            meta = {k: obj.get(k) for k in ("session_id", "is_error", "total_cost_usd", "num_turns") if k in obj}
+                        elif typ == "assistant" and not stream_text:
+                            # 有些版本只给 assistant 整段消息，没有 partial
+                            msg = obj.get("message") or {}
+                            for block in msg.get("content") or []:
+                                if block.get("type") == "text":
+                                    stream_text.append(block.get("text") or "")
+                else:
+                    err_lines.append(line)
+            except queue.Empty:
                 # 外部 agent 默认不设固定超时；只响应会话插话/abort 与显式配置上限
                 for item in (drain() if drain else []) or []:
                     if item.get("kind") == "abort":
@@ -132,40 +195,40 @@ class ClaudeCodeBackend:
                             pass
                         break
                 if aborted:
-                    try:
-                        out, err = p.communicate(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        out, err = "", "aborted"
                     break
                 if self.timeout and (time.time() - t0) >= self.timeout:
                     try:
                         p.kill()
                     except OSError:
                         pass
-                    try:
-                        out, err = p.communicate(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        out, err = "", "timeout"
                     break
-        out = (out or "").strip()
-        err = (err or "").strip()
+                if p.poll() is not None and lines.empty():
+                    break
+            if p.poll() is not None and lines.empty():
+                break
+        out = "".join(out_lines).strip()
+        err = "".join(err_lines).strip()
         if aborted:
+            if hooks:
+                hooks("llm.delta", {"text": "", "state": "aborted", "model": "claude-code"})
             raise ApiError("agent 任务已被用户打断", code="backend_aborted")
-        final = out
-        meta = {}
-        try:
-            obj = json.loads(out)
-            if isinstance(obj, dict):
-                final = obj.get("result") or obj.get("content") or final
-                meta = {k: obj.get(k) for k in ("session_id", "is_error", "total_cost_usd", "num_turns") if k in obj}
-        except ValueError:
-            pass
+        if not final:
+            final = "".join(stream_text).strip() or out
+        if not meta:
+            try:
+                obj = json.loads(out.splitlines()[-1] if out else "{}")
+                if isinstance(obj, dict) and obj.get("result"):
+                    final = obj["result"]
+                    meta = {k: obj.get(k) for k in ("session_id", "is_error", "total_cost_usd", "num_turns") if k in obj}
+            except ValueError:
+                pass
         if p.returncode != 0 and not final:
             raise ApiError("agent CLI 失败（exit %s）：%s" % (p.returncode, err[:300]),
                            code="backend_failed")
         ms = int((time.time() - t0) * 1000)
         if hooks:
-            hooks("llm.response", {"text": final, "model": "claude-code", "ms": ms, **(meta or {})})
+            hooks("llm.delta", {"text": final, "state": "done", "model": "claude-code"})
+            hooks("llm.response", {"text": final, "model": "claude-code", "ms": ms, "streamed": True, **(meta or {})})
         rec = session
         rec.setdefault("messages", [])
         if user_text:

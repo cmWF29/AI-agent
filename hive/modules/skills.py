@@ -243,7 +243,7 @@ class Skills(Module):
                 shutil.rmtree(tmp, ignore_errors=True)
 
     # ---------------- decompose ----------------
-    def decompose(self, sid, role_id="", overwrite=False):
+    def decompose(self, sid, role_id="", overwrite=False, backend=""):
         meta = self._read_meta(sid)
         if not meta:
             raise ApiError("没有这个已安装 Skill: %s" % sid, code="no_skill")
@@ -275,7 +275,7 @@ class Skills(Module):
                                role=role, responsibility=responsibilities, must_outputs=outputs,
                                prompt=prompt, skills=[{"id": sid, "name": meta.get("name") or sid,
                                                        "body": body[:8000]}],
-                               cn=cn, checks=checks, overwrite=bool(overwrite))
+                               cn=cn, checks=checks, overwrite=bool(overwrite), backend=backend or "")
         except ApiError as exc:
             if exc.status == 409:
                 return {"skill": sid, "role": role, "existing": True, "note": exc.message}
@@ -318,12 +318,14 @@ class Skills(Module):
                            overwrite=bool(payload.get("overwrite")))
         if payload.get("decompose"):
             res["decompose"] = self.decompose(res["skill"]["id"], payload.get("role") or "",
-                                              overwrite=bool(payload.get("overwrite")))
+                                              overwrite=bool(payload.get("overwrite")),
+                                              backend=payload.get("backend") or "")
         return res
 
     def decompose_api(self, payload):
         return self.decompose(payload.get("id") or payload.get("skill") or "",
-                              payload.get("role") or "", overwrite=bool(payload.get("overwrite")))
+                              payload.get("role") or "", overwrite=bool(payload.get("overwrite")),
+                              backend=payload.get("backend") or "")
 
     def remove_api(self, payload):
         sid = payload.get("id") or payload.get("skill") or ""
@@ -369,7 +371,7 @@ class Skills(Module):
 
         def decompose_tool(args, tctx):
             res = self.decompose(args.get("id") or "", args.get("role") or "",
-                                 bool(args.get("overwrite")))
+                                 bool(args.get("overwrite")), backend=args.get("backend") or "")
             if res.get("existing"):
                 return "角色 %s 已存在，未覆盖。" % res.get("role")
             return "已拆解：Skill %s -> 角色 %s；流程校验 %d 项。" % (
@@ -377,6 +379,7 @@ class Skills(Module):
         self.ctx.tools.register(Tool(
             "skill_decompose", "Skill 拆解者：把 SKILL.md 拆成角色卡+技能卡+流程插件。",
             {"type": "object", "properties": {
-                "id": {"type": "string"}, "role": {"type": "string"}, "overwrite": {"type": "boolean"}},
+                "id": {"type": "string"}, "role": {"type": "string"}, "overwrite": {"type": "boolean"},
+                "backend": {"type": "string", "enum": ["", "api", "claude-code"]}},
              "required": ["id"]},
             decompose_tool, origin=self.name))

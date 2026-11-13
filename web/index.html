@@ -24,14 +24,11 @@
     <button id="btn-rail" class="icon-btn" title="项目/秘书">☰</button>
     <button id="btn-back" class="icon-btn hidden" title="返回上一页">←</button>
     <div class="brand">Hive<span>Agent</span></div>
-    <button id="idle-chip" class="pill small idle">空闲判断</button>
     <div class="spacer"></div>
     <nav class="tabs">
-      <button class="tab active" data-tab="chat">群聊</button>
       <button class="tab" data-tab="library">库</button>
       <button class="tab" data-tab="health">健康</button>
       <button class="tab" data-tab="versions">版本</button>
-      <button class="tab" data-tab="source">源码</button>
     </nav>
   </header>
 
@@ -42,10 +39,6 @@
           <button class="mini" id="btn-newproject" title="新建项目">+</button>
         </div>
         <div id="projects" class="projects"></div>
-      </div>
-      <div class="rail-block">
-        <div class="rail-title">会话</div>
-        <div id="groups" class="groups"></div>
       </div>
       <div class="rail-block actions">
         <button class="ghost" id="btn-restart">重启 agent</button>
@@ -65,6 +58,8 @@
           <div class="row-btns">
             <button class="ghost" id="pv-rename">改名</button>
             <button class="ghost" id="pv-files">项目文件</button>
+            <button class="ghost" id="pv-source">项目源码</button>
+            <button class="ghost" id="pv-bindsource">绑定源码路径</button>
             <button class="danger-ghost" id="pv-delete">删除项目</button>
           </div>
         </div>
@@ -72,6 +67,13 @@
           <div class="card">
             <div class="card-head"><strong>工单</strong><span class="muted small" id="pv-ticketstat"></span></div>
             <div id="pv-tickets" class="ticketlist"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><strong>运行模式</strong></div>
+            <p class="muted small">项目默认后端：api = 内核 ReAct；claude-code = 已有 Agent CLI。工单可单独覆盖。</p>
+            <label class="field">默认后端<select id="pv-backend"><option value="api">api（内核循环）</option><option value="claude-code">claude-code（已有 Agent）</option></select></label>
+            <div class="row-btns"><button class="ghost" id="pv-savebackend">保存模式</button><button class="ghost" id="pv-apiconfig">查看 API 配置</button></div>
+            <div class="muted small" id="pv-modeinfo"></div>
           </div>
           <div class="card">
             <div class="card-head"><strong>秘书</strong></div>
@@ -86,13 +88,15 @@
             <label class="field">标题<input id="pv-newtitle" placeholder="可空，默认取目标前 40 字" /></label>
             <label class="field">目标<textarea id="pv-newgoal" rows="3" placeholder="要做什么、验收标准、边界"></textarea></label>
             <label class="field">标签<input id="pv-newtags" placeholder="frontend,backend,docs（逗号分隔）" /></label>
+            <label class="field">后端<select id="pv-newbackend"><option value="">跟随项目</option><option value="api">api</option><option value="claude-code">claude-code</option></select></label>
             <label class="checkline"><input type="checkbox" id="pv-now" /> 立即执行（高峰期也不排队）</label>
+            <label class="checkline"><input type="checkbox" id="pv-trace" /> 群聊并入模块报文 trace（默认关闭，创建后不可改）</label>
             <button class="primary" id="pv-create">派给项目经理</button>
           </div>
           <div class="card">
             <div class="card-head"><strong>交付件</strong></div>
             <div class="muted small">三层归档：公共层 / 项目层 / 工单层（带工单号与版本）。</div>
-            <div class="row-btns"><button class="ghost" id="pv-artifacts">打开项目层交付件</button></div>
+            <div class="row-btns"><button class="ghost" id="pv-artifacts">打开项目层交付件</button><button class="ghost" id="pv-idle">本项目空闲队列</button></div>
           </div>
         </div>
       </section>
@@ -126,7 +130,7 @@
         </div>
 
         <div class="composer">
-          <textarea id="input" rows="1" placeholder="给秘书发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
+          <textarea id="input" rows="1" placeholder="给项目秘书/PM 发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
           <div class="composer-side">
             <label class="checkline small"><input type="checkbox" id="force-now" /> 立即执行</label>
             <button id="send" class="primary">发送</button>

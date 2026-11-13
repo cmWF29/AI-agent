@@ -97,6 +97,10 @@ class Library(Module):
         self.api.route("POST", "/api/library/upsert", name="upsert")(self.upsert_api)
         self.api.route("POST", "/api/library/check", name="check")(self.check_api)
         self.api.route("POST", "/api/library/design", name="design")(self.design_api)
+        self.api.route("POST", "/api/library/update_prompt", name="update_prompt")(
+            lambda payload: self.update_prompt(payload.get("role") or "", payload.get("prompt") or "",
+                                               payload.get("must_outputs") or [], payload.get("checks") or [],
+                                               payload.get("change_note") or ""))
         self.api.route("GET", "/api/library/summary", name="summary")(self.summary_api)
         self.api.route("GET", "/api/library/tags", name="tags")(self.tags_api)
         self.api.route("POST", "/api/library/tag_add", name="tag_add")(self.tag_add_api)
@@ -274,6 +278,34 @@ class Library(Module):
         self.log.info("library.design", role=role, outputs=len(must_outputs))
         return {"role": card, "flow": flow, "skills": created_skills}
 
+    def update_prompt(self, role, prompt, must_outputs=None, checks=None, change_note=""):
+        """提示词自迭代：只改非内置角色，保留 id/来源，流程校验同步更新。"""
+        rec = self.get("roles", role)
+        if not rec:
+            raise ApiError("角色不存在: %s" % role, status=404, code="no_role")
+        if rec.get("builtin"):
+            raise ApiError("内置角色 %s 不允许在线改写；请用 flow_design 新建 v2 角色，避免污染公共基线"
+                           % role, status=409, code="builtin_role")
+        before = rec.get("prompt") or ""
+        rec["prompt"] = prompt or before
+        if must_outputs:
+            rec["must_outputs"] = list(must_outputs)
+        rec["updated"] = _now()
+        self.upsert("roles", rec)
+        flow = self.get("flows", role) or {"id": role, "role": role, "checks": [], "max_retry": 2}
+        if checks:
+            flow["checks"] = list(checks)
+        elif must_outputs:
+            flow["checks"] = [{"kind": "glob", "path": p} for p in must_outputs]
+        flow["source"] = flow.get("source") or "prompt-iteration"
+        flow["updated"] = _now()
+        self.upsert("flows", flow)
+        self.emit("library.prompt.updated", {"role": role, "before_chars": len(before),
+                                             "after_chars": len(rec["prompt"]),
+                                             "note": change_note[:200]})
+        return {"role": rec, "flow": flow, "before_chars": len(before),
+                "after_chars": len(rec["prompt"])}
+
     # ---------------- API ----------------
     def list_api(self, payload):
         kind = payload.get("kind") or "roles"
@@ -387,6 +419,14 @@ class Library(Module):
                         res["role"]["id"], len(res["flow"].get("checks") or []),
                         len(res["skills"]), res["role"]["id"]))
 
+        def update_prompt_tool(args, tctx):
+            res = self.update_prompt(args.get("role") or "", args.get("prompt") or "",
+                                     args.get("must_outputs") or [], args.get("checks") or [],
+                                     args.get("change_note") or "")
+            return ("已更新角色 %s 的提示词（%d -> %d 字），流程校验 %d 项。"
+                    % (res["role"]["id"], res["before_chars"], res["after_chars"],
+                       len(res["flow"].get("checks") or [])))
+
         def check_tool(args, tctx):
             res = self.check_files(args.get("flow") or "", args.get("files") or [],
                                    root=args.get("root") or getattr(tctx, "workspace", "") or "")
@@ -421,6 +461,15 @@ class Library(Module):
                            "description": "可选：流程校验项，如 {kind:glob,path:docs/**/*architect*.md,min_bytes:200,contains:[取舍]}"},
             }, "required": ["role", "responsibility"]},
             design_tool, origin=self.name))
+        tools.register(Tool(
+            "library_update_prompt", "流程专家：在回顾工单里迭代非内置角色/流程提示词；内置角色受保护。",
+            {"type": "object", "properties": {
+                "role": {"type": "string"}, "prompt": {"type": "string"},
+                "must_outputs": {"type": "array", "items": {"type": "string"}},
+                "checks": {"type": "array", "items": {"type": "object"}},
+                "change_note": {"type": "string", "description": "为什么改、来自哪张旧工单"},
+            }, "required": ["role", "prompt"]},
+            update_prompt_tool, origin=self.name))
         tools.register(Tool("flow_check", "用流程插件校验一批文件是否齐（缺件清单）。",
                             {"type": "object", "properties": {
                                 "flow": {"type": "string"},

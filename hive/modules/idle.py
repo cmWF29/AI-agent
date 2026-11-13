@@ -95,10 +95,11 @@ class Idle(Module):
     def _save_q(self, q):
         self.store.put("queue", q)
 
-    def enqueue(self, kind, payload, note=""):
+    def enqueue(self, kind, payload, note="", project=""):
         with self.q_lock:
             q = self._q()
             item = {"id": "q-" + uuid.uuid4().hex[:8], "kind": kind, "payload": payload,
+                    "project": project or payload.get("project") or "",
                     "note": note, "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "status": "queued", "attempts": 0}
             q["items"].append(item)
@@ -130,12 +131,14 @@ class Idle(Module):
             return self.ctx.api("sessions.send", session=p["session"], text=p["text"], force=True)
         raise ApiError("未知队列类型: %s" % item["kind"], code="bad_queue_kind")
 
-    def flush(self, limit=20, force=False):
+    def flush(self, limit=20, force=False, project=""):
         if not force and self.judge()["peak"]:
             return {"ok": True, "skipped": "仍处于高峰，不执行队列", "done": []}
         done = []
         with self.q_lock:
-            batch = list(self._q()["items"][:limit])
+            batch = [i for i in self._q()["items"]
+                     if not project or i.get("project") == project or
+                     (i.get("payload") or {}).get("project") == project][:limit]
         for item in batch:
             try:
                 self._dispatch(item)
@@ -163,16 +166,19 @@ class Idle(Module):
 
     # ---------------- API ----------------
     def status_api(self, payload):
-        return {"idle": self.judge(), "queue": len(self._q()["items"]),
-                "queued": self._q()["items"][-10:], "windows": self.windows,
-                "discount": self.offpeak_discount, "holidays": sorted(self.holidays)}
+        project = (payload.get("project") or "").strip()
+        items = [i for i in self._q()["items"] if not project or i.get("project") == project]
+        return {"idle": self.judge(), "queue": len(items),
+                "queued": items[-10:], "windows": self.windows,
+                "discount": self.offpeak_discount, "holidays": sorted(self.holidays),
+                "project": project}
 
     def queue_api(self, payload):
         return {"items": self._q()["items"], "total": len(self._q()["items"])}
 
     def enqueue_api(self, payload):
         item = self.enqueue(payload.get("kind") or "message", payload.get("payload") or {},
-                            payload.get("note") or "")
+                            payload.get("note") or "", payload.get("project") or "")
         return {"item": item}
 
     def dequeue_api(self, payload):
@@ -183,7 +189,8 @@ class Idle(Module):
         return {"ok": True, "removed": before - len(self._q()["items"])}
 
     def flush_api(self, payload):
-        return self.flush(limit=int(payload.get("limit") or 20), force=bool(payload.get("force")))
+        return self.flush(limit=int(payload.get("limit") or 20), force=bool(payload.get("force")),
+                          project=(payload.get("project") or "").strip())
 
     def config_api(self, payload):
         if "enabled" in payload:

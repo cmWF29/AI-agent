@@ -8,6 +8,9 @@
 > v3（0.3.0）新增：HTTPS、三层交付件归档、项目秘书/删除项目、工单生命周期与只读、git 冲突重测、流程专家与流程插件、链路全透明、交付件体积自检。
 > 细节见 [docs/v3-architecture.md](docs/v3-architecture.md)。
 
+> v4.4（0.4.4）新增：外部 Claude Code 逐 token 流式角色、PM 强制 api + 角色可 claude-code、回顾工单与提示词自迭代、项目级秘书/源码/后端、trace 创建后不可改、健康日志与网页流量、消息级交付件、Skill API/Agent 双模式、网页状态机一致性测试。
+> 验收证据见 [docs/v4.4-verification/README.md](docs/v4.4-verification/README.md)。
+
 ## 一、这套东西解决什么
 
 | # | 需求 | 在代码里的落点 |
@@ -18,7 +21,7 @@
 | 3 | 保活 + 开机自启 + 连续失败自动回退（改动不丢） | `deploy/watchdog.py` + `deploy/hive-watchdog.service` |
 | 4 | 网页对话框，本质是“远程执行 agent CLI” | `hive/modules/webchat.py` + `web/` |
 | 5 | 网页固定命令：停止全部 / 重启 agent / 手动回退 / 压缩上下文 | `hive/modules/ops.py` |
-| 6 | 常驻“秘书”会话（不是一问一销毁）+ 自动/手动压缩 | `hive/modules/sessions.py`（`ensure_secretary` / `compact_session`） |
+| 6 | 每个项目一个常驻“项目秘书”会话（不是一问一销毁）+ 自动/手动压缩；不再创建全局秘书 | `hive/modules/sessions.py`（`ensure_secretary` / `compact_session`） |
 | 7 | 工单模式：秘书只发作业，PM 编排，角色干活，PM 收作业 | `hive/modules/tickets.py` |
 | 8 | 极简 ReAct + 可插拔介入（串行/并发/插队/打断） | `react.parallel_tools` / `session.inbox` note|abort |
 | 9 | 模块完全解耦，只暴露 API + 事件总线 | `hive/kernel/api.py` / `hive/kernel/bus.py` |

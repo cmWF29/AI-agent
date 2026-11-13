@@ -8,7 +8,7 @@
 
 var state = {
   token: localStorage.getItem('hive_token') || '',
-  view: 'chat', group: 'secretary', groups: [], projects: [], project: '',
+  view: 'project', group: '', groups: [], projects: [], project: '',
   cursor: 0, seen: {}, liveTimer: null, pollTimer: null,
   sideLayer: 'ticket', flow: null, idle: null,
   navDepth: 0, booted: false, modalStack: [],
@@ -33,16 +33,27 @@ function dec(v) { try { return decodeURIComponent(v || ''); } catch (e) { return
 function routeOfHash() {
   var raw = String(location.hash || '').replace(/^#\/?/, '');
   var parts = raw.split('/');
-  var type = parts[0] || 'chat';
-  if (type === 'project') return { type: 'project', id: dec(parts[1]) };
-  if (type === 'chat') return { type: 'chat', id: dec(parts[1] || 'secretary') };
+  var type = parts[0] || 'project';
+  if (type === 'project') {
+    if (parts[2] === 'source') return { type: 'overlay', tab: 'source', project: dec(parts[1]),
+      path: dec(parts.slice(3).join('/')) };
+    if (parts[2] === 'idle') return { type: 'overlay', tab: 'idle', project: dec(parts[1]) };
+    return { type: 'project', id: dec(parts[1]) };
+  }
+  if (type === 'chat') {
+    if (parts[2] === 'artifacts') return { type: 'overlay', tab: 'artifacts', group: dec(parts[1]) };
+    if (parts[2] === 'artifact') return { type: 'overlay', tab: 'artifact', group: dec(parts[1]),
+      path: dec(parts.slice(3).join('/')) };
+    if (parts[2] === 'fork') return { type: 'overlay', tab: 'fork', group: dec(parts[1]) };
+    return { type: 'chat', id: dec(parts[1] || '') };
+  }
   if (type === 'library') return { type: 'overlay', tab: 'library', kind: parts[1] || 'roles' };
-  if (type === 'health' || type === 'versions' || type === 'source') return { type: 'overlay', tab: type };
-  return { type: 'chat', id: 'secretary' };
+  if (type === 'health' || type === 'versions') return { type: 'overlay', tab: type };
+  return { type: 'project', id: dec(parts[1] || '') };
 }
 function hashOfView() {
   if (state.view === 'project') return '#/project/' + enc(state.project);
-  return '#/chat/' + enc(state.group || 'secretary');
+  return '#/chat/' + enc(state.group || '');
 }
 function pushHash(hash) {
   if (!hash || location.hash === hash) return;
@@ -60,7 +71,7 @@ function currentOverlay() {
 }
 function updateBackBtn() {
   var b = $('btn-back'); if (!b) return;
-  var atHome = state.view === 'chat' && state.group === 'secretary';
+  var atHome = state.view === 'project' && !state.project;
   var overlay = currentOverlay();
   b.classList.toggle('hidden', atHome && !overlay && $('side').classList.contains('hidden'));
 }
@@ -74,8 +85,12 @@ function goBack() {
   if (state.view === 'chat' && state.group.indexOf('T-') === 0 && pid) {
     openProject(pid, true, { replace: true }); return;
   }
-  if (state.view === 'project') { selectGroup('secretary', true, { replace: true }); return; }
-  if (state.view === 'chat' && state.group !== 'secretary') { selectGroup('secretary', true, { replace: true }); return; }
+  if (state.view === 'project') { toast('已经是最外层了', 'warn'); return; }
+  if (state.view === 'chat') {
+    var pid2 = (findGroup(state.group) || {}).project || state.project;
+    if (pid2) openProject(pid2, true, { replace: true });
+    return;
+  }
   toast('已经是最外层了', 'warn');
 }
 function setTab(name) {
@@ -204,6 +219,15 @@ function loadGroups(first) {
     state.groups = r.items || []; state.projects = r.projects || [];
     renderProjects(); renderRailGroups();
     if (first) {
+      if (!state.projects.length) {
+        state.view = 'project'; state.project = '';
+        hide('chatview'); show('projectview');
+        $('pv-title').textContent = '还没有项目';
+        $('pv-sub').textContent = '点左侧「+」新建项目，再进入项目秘书/工单。';
+        $('pv-tickets').innerHTML = '<div class="empty">暂无项目</div>';
+        state.booted = true;
+        return;
+      }
       applyRoute(routeOfHash(), { initial: true }); state.booted = true;
       if (!location.hash) replaceHash(hashOfView());
     }
@@ -224,15 +248,7 @@ function renderProjects() {
     box.appendChild(el);
   });
 }
-function renderRailGroups() {
-  var box = $('groups'); box.innerHTML = '';
-  var g = state.groups.filter(function (x) { return x.kind === 'secretary'; })[0];
-  var el = document.createElement('div');
-  el.className = 'group-row' + (state.view === 'chat' && state.group === 'secretary' ? ' active' : '');
-  el.innerHTML = avatar('秘书') + '<div class="grow"><div class="gt">全局秘书</div><div class="muted small">判断需求、分单</div></div>';
-  el.onclick = function () { selectGroup('secretary'); };
-  box.appendChild(el);
-}
+function renderRailGroups() { /* 侧栏不再放秘书/全局会话：只从项目页进入项目秘书或工单。 */ }
 
 function findProject(id) { for (var i = 0; i < state.projects.length; i++) if (state.projects[i].id === id) return state.projects[i]; return null; }
 function findGroup(id) { for (var i = 0; i < state.groups.length; i++) if (state.groups[i].id === id) return state.groups[i]; return null; }
@@ -240,44 +256,79 @@ function findGroup(id) { for (var i = 0; i < state.groups.length; i++) if (state
 function applyRoute(r, opts) {
   opts = opts || {};
   if (r.type === 'project') {
-    if (findProject(r.id)) { openProject(r.id, true, { fromRoute: true }); return; }
-    toast('项目不存在：' + r.id, 'warn');
-    selectGroup('secretary', true, { replace: true }); return;
+    if (r.id && findProject(r.id)) { openProject(r.id, true, { fromRoute: true }); return; }
+    var first = state.projects[0];
+    if (first) { openProject(first.id, true, { fromRoute: true, replace: true }); return; }
+    toast('还没有项目；请先在左侧新建项目', 'warn');
+    return;
   }
   if (r.type === 'chat') {
-    if (r.id === 'secretary' || findGroup(r.id)) { selectGroup(r.id, true, { fromRoute: true }); return; }
+    if (findGroup(r.id)) { selectGroup(r.id, true, { fromRoute: true }); return; }
     if (r.id.indexOf('sec-') === 0 && findProject(r.id.slice(4))) { selectGroup(r.id, true, { fromRoute: true }); return; }
     toast('会话不存在：' + r.id, 'warn');
-    selectGroup('secretary', true, { replace: true }); return;
+    var p0 = state.projects[0]; if (p0) openProject(p0.id, true, { replace: true });
+    return;
   }
-  // 覆盖层（库/健康/版本/源码）：底下保留当前会话/项目，关闭后自然回去
-  if (!state.booted) selectGroup('secretary', true, { fromRoute: true });
+  // 覆盖层（库/健康/版本）：底下保留当前项目/会话，关闭后自然回去
+  if (!state.booted) {
+    var p1 = state.projects[0];
+    if (p1) openProject(p1.id, true, { fromRoute: true });
+  }
   setTab(r.tab);
   if (r.tab === 'library') openLibrary(r.kind, { fromRoute: true });
   else if (r.tab === 'health') openHealth({ fromRoute: true });
   else if (r.tab === 'versions') openVersions({ fromRoute: true });
-  else openSource({ fromRoute: true });
+  else if (r.tab === 'source') {
+    if (r.project && findProject(r.project)) { state.project = r.project; openProject(r.project, true, { fromRoute: true }); }
+    openProjectSource(r.path || '');
+  } else if (r.tab === 'idle') {
+    if (r.project && findProject(r.project)) { state.project = r.project; openProject(r.project, true, { fromRoute: true }); }
+    openIdle();
+  } else if (r.tab === 'artifacts') {
+    state.view = 'chat'; state.group = r.group || state.group;
+    show('side'); loadFiles(); updateBackBtn();
+  } else if (r.tab === 'artifact') {
+    state.view = 'chat'; state.group = r.group || state.group;
+    openArtifact(r.path || '', (findGroup(state.group) || {}).project || state.project,
+      (state.group || '').indexOf('T-') === 0, 'ticket');
+  } else if (r.tab === 'fork') {
+    state.view = 'chat'; state.group = r.group || state.group;
+    openFork('基于 ' + state.group + ' 的后续修改：', state.group);
+  }
 }
 
 function openProject(pid, silent, opts) {
   opts = opts || {};
-  if (!findProject(pid)) { selectGroup('secretary', true, { replace: true }); return; }
+  if (!findProject(pid)) {
+    var pp = state.projects[0];
+    if (pp) { pid = pp.id; } else { toast('还没有项目', 'warn'); return; }
+  }
   state.view = 'project'; state.project = pid;
   hide('chatview'); show('projectview'); hide('side'); closeModal({ silent: true });
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
-  renderProjects(); setTab('chat');
+  renderProjects(); setTab('');
   if (!opts.fromRoute) {
     var h = '#/project/' + enc(pid);
     if (opts.replace) replaceHash(h); else pushHash(h);
   }
   updateBackBtn();
+  loadIdle();
   api('/api/projects/' + encodeURIComponent(pid)).then(function (r) {
     renderProject(r.project || {});
   }).catch(function (e) { toast('项目读取失败：' + e.message, 'err'); });
 }
 function renderProject(p) {
   $('pv-title').textContent = p.title || p.id;
-  $('pv-sub').textContent = 'id=' + p.id + ' · 交付件 ' + (p.artifacts_root || '') + ' · 秘书 ' + (p.secretary || '');
+  $('pv-sub').textContent = 'id=' + p.id + ' · 后端 ' + (p.backend || '未设置（跟随全局）') +
+    ' · 源码 ' + (p.source_path || '未绑定') + ' · 交付件 ' + (p.artifacts_root || '') + ' · 秘书 ' + (p.secretary || '');
+  if ($('pv-backend')) $('pv-backend').value = p.backend || 'api';
+  if ($('pv-modeinfo')) $('pv-modeinfo').textContent = '源码绑定后可浏览项目代码；Agent 模式由本机 Claude Code CLI 执行。';
+  api('/api/agents/backends').then(function (r) {
+    var cc = ((r.items || []).filter(function (x) { return x.name === 'claude-code'; })[0]) || {};
+    if ($('pv-modeinfo')) $('pv-modeinfo').textContent = '源码 ' + (p.source_path || '未绑定') +
+      '；claude-code ' + (cc.available ? '可用' : '不可用（本机未装 CLI）') +
+      '；全局默认 ' + (r.default || 'api');
+  }).catch(function () {});
   var tickets = p.tickets || [];
   $('pv-ticketstat').textContent = tickets.length + ' 个（' + tickets.filter(function (t) { return t.status !== 'closed'; }).length + ' 在跑）';
   var box = $('pv-tickets');
@@ -312,8 +363,10 @@ function renderProject(p) {
 // ---------------- 会话 ----------------
 function selectGroup(id, silent, opts) {
   opts = opts || {};
-  if (id !== 'secretary' && !findGroup(id) && !(id.indexOf('sec-') === 0 && findProject(id.slice(4)))) {
-    toast('会话不存在：' + id, 'warn'); selectGroup('secretary', true, { replace: true }); return;
+  if (!id || id === 'secretary' || (!findGroup(id) && !(id.indexOf('sec-') === 0 && findProject(id.slice(4))))) {
+    toast('会话不存在：' + id, 'warn');
+    var pd = state.projects[0]; if (pd) openProject(pd.id, true, { replace: true });
+    return;
   }
   var prevGroup = state.group;
   // 从 hash 路由返回同一会话时保留交付件侧栏；切换会话或用户主动点击才关闭
@@ -324,7 +377,7 @@ function selectGroup(id, silent, opts) {
   closeModal({ silent: true });
   $('messages').innerHTML = '';
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
-  renderProjects(); renderRailGroups(); setTab('chat');
+  renderProjects(); renderRailGroups(); setTab('');
   if (!opts.fromRoute) {
     var h = '#/chat/' + enc(id);
     if (opts.replace) replaceHash(h); else pushHash(h);
@@ -333,8 +386,9 @@ function selectGroup(id, silent, opts) {
   var g = findGroup(id) || {};
   var isTicket = id.indexOf('T-') === 0;
   var isSec = id.indexOf('sec-') === 0;
-  $('chat-title').textContent = isTicket ? (g.title || id) : (isSec ? ('项目秘书·' + id.slice(4)) : '秘书');
-  $('chat-sub').textContent = isTicket ? ('工单群 · ' + (g.project || '')) : (isSec ? '项目秘书' : '全局秘书');
+  $('chat-title').textContent = isTicket ? (g.title || id) : ('项目秘书·' + (isSec ? id.slice(4) : ''));
+  $('chat-sub').textContent = isTicket ? ('工单群 · ' + (g.project || '') + ' · ' + (g.backend || 'api') +
+    (g.kind === 'retrospective' ? ' · 回顾迭代' : '') + (g.trace_enabled ? ' · trace on' : '')) : '项目秘书';
   $('chat-tags').innerHTML = '';
   if (isTicket) {
     show('btn-copy-ticket'); $('btn-copy-ticket').textContent = '⧉ ' + id; show('btn-fork-ticket');
@@ -350,7 +404,6 @@ function selectGroup(id, silent, opts) {
 
 function loadTimeline(silent) {
   var url = '/api/web/timeline?group=' + encodeURIComponent(state.group) + '&limit=240';
-  if (state.group.indexOf('T-') === 0) url += '&modules=1';
   return api(url).then(function (r) {
     var box = $('messages');
     var atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
@@ -362,12 +415,7 @@ function loadTimeline(silent) {
       d.innerHTML = '<summary>执行过程 · ' + modBuf.length + ' 条模块报文（点开看完整内容）</summary>';
       var earliest = modBuf[0].ts;
       modBuf.forEach(function (x) { d.appendChild(renderModuleMsg(x)); });
-      if (state.group.indexOf('T-') === 0) {
-        var eb = document.createElement('button');
-        eb.className = 'mini modearlier'; eb.textContent = '查看更早的模块报文';
-        eb.onclick = function (e) { e.preventDefault(); e.stopPropagation(); openEarlierModules(earliest); };
-        d.appendChild(eb);
-      }
+      // trace 开关在创建工单时决定；不在群聊里追加“查看更早报文”入口。
       box.appendChild(d); modBuf = [];
     }
     (r.items || []).forEach(function (m) {
@@ -389,23 +437,25 @@ function renderMsg(m) {
   el.className = 'msg ' + (mine ? 'mine' : 'other') + (m.type === 'task' ? ' taskmsg' : '');
   var who = m.type === 'task' ? (m.speaker + ' → ' + (m.to || '角色')) : (m.speaker || '?');
   var tools = (m.tools && m.tools.length) ? '<div class="tools">' + m.tools.map(function (t) { return '<span class="toolchip">' + esc(t) + '</span>'; }).join('') + '</div>' : '';
+  var arts = (m.artifacts && m.artifacts.length) ? '<div class="msg-arts">' + m.artifacts.map(function (a) {
+    return '<button class="artifact-chip" data-art="' + esc(JSON.stringify(a)) + '">📎 ' + esc(a.path || '') + '</button>';
+  }).join('') + '</div>' : '';
   el.innerHTML = (mine ? '' : avatar(who)) +
     '<div class="bubble"><div class="meta"><span class="who">' + esc(who) + '</span>' +
     '<span class="muted small">' + fmtTime(m.ts) + '</span>' + (m.type === 'task' ? '<span class="tag">派活</span>' : '') + '</div>' +
-    '<div class="body">' + (mine ? '<p>' + esc(m.text).replace(/\n/g, '<br>') + '</p>' : md(m.text)) + '</div>' + tools + '</div>' +
+    '<div class="body">' + (mine ? '<p>' + esc(m.text).replace(/\n/g, '<br>') + '</p>' : md(m.text)) + '</div>' + tools + arts + '</div>' +
     (mine ? avatar('我') : '');
+  el.querySelectorAll('.artifact-chip').forEach(function (b) {
+    b.onclick = function () {
+      var a = {}; try { a = JSON.parse(b.dataset.art || '{}'); } catch (e) { a = {}; }
+      var g = findGroup(state.group) || {};
+      state.sideLayer = a.layer || 'ticket';
+      openArtifact(a.path || '', g.project || state.project, true, a.layer || 'ticket');
+    };
+  });
   return el;
 }
 
-function openEarlierModules(before) {
-  api('/api/web/modules?group=' + encodeURIComponent(state.group) + '&limit=200&before_ts=' + encodeURIComponent(before || 0))
-    .then(function (r) {
-      openModal('更早的模块报文', '<div id="earlymods" class="modlist"></div>', { root: true });
-      var box = $('earlymods');
-      if (!(r.items || []).length) { box.innerHTML = '<div class="empty">没有更早的模块报文了</div>'; return; }
-      (r.items || []).forEach(function (m) { box.appendChild(renderModuleMsg(m)); });
-    }).catch(function (e) { toast(e.message, 'err'); });
-}
 function renderModuleMsg(m) {
   var el = document.createElement('div');
   el.className = 'msg modulemsg';
@@ -527,15 +577,12 @@ function send() {
 
 // ---------------- 空闲判断 ----------------
 function loadIdle() {
-  api('/api/idle/status').then(function (r) {
-    state.idle = r;
-    var el = $('idle-chip'), i = r.idle || {};
-    el.textContent = (i.peak ? '高峰' : '空闲') + (r.queue ? ' · 排队 ' + r.queue : '');
-    el.className = 'pill small idle ' + (i.peak ? 'peak' : 'off');
-  }).catch(function () {});
+  var q = state.project ? ('?project=' + encodeURIComponent(state.project)) : '';
+  api('/api/idle/status' + q).then(function (r) { state.idle = r; }).catch(function () {});
 }
 function openIdle() {
-  api('/api/idle/status').then(function (r) {
+  var pid = state.project;
+  api('/api/idle/status' + (pid ? ('?project=' + encodeURIComponent(pid)) : '')).then(function (r) {
     var i = r.idle || {};
     var items = (r.queued || []).map(function (q) {
       return '<div class="file-row"><span>' + esc(q.kind) + ' · ' + esc(q.id) + '</span>' +
@@ -590,19 +637,105 @@ function loadFiles() {
           '<span class="muted small">' + fmtBytes(f.size) + '</span></div>';
       }).join('');
     box.querySelectorAll('.file-row').forEach(function (row) {
-      row.onclick = function () { openArtifact(row.dataset.path, project, isTicket); };
+      row.onclick = function () { openArtifact(row.dataset.path, project, isTicket, state.sideLayer); };
     });
   }).catch(function (e) { body.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
 }
-function openArtifact(path, project, isTicket) {
-  var q = '/api/artifacts/file?layer=' + state.sideLayer + '&project=' + encodeURIComponent(project) +
-    '&ticket=' + encodeURIComponent(isTicket ? state.group : '') + '&path=' + encodeURIComponent(path);
+function openArtifact(path, project, isTicket, layer) {
+  layer = layer || state.sideLayer || 'ticket';
+  var ticket = isTicket ? state.group : '';
+  var q = '/api/artifacts/file?layer=' + encodeURIComponent(layer) + '&project=' + encodeURIComponent(project) +
+    '&ticket=' + encodeURIComponent(ticket) + '&path=' + encodeURIComponent(path);
   api(q).then(function (f) {
-    openModal(path, f.encoding === 'utf-8' ? md(f.text) : '<div class="muted">二进制文件</div>');
+    var mime = (/^data:image\/\w+/.test('') ? '' : '') || '';
+    var ext = (path.split('.').pop() || '').toLowerCase();
+    var isImg = f.encoding === 'base64' && ['png','jpg','jpeg','gif','webp','svg','bmp'].indexOf(ext) >= 0;
+    var body;
+    if (isImg) {
+      var mt = ext === 'svg' ? 'image/svg+xml' : 'image/' + (ext === 'jpg' ? 'jpeg' : ext);
+      body = '<div class="artifact-imgwrap"><img class="artifact-img" alt="' + esc(path) + '" src="data:' + mt + ';base64,' + f.text + '"></div>';
+    } else if (f.encoding === 'utf-8') {
+      body = md(f.text);
+    } else {
+      body = '<div class="muted">二进制文件（' + esc(fmtBytes(f.size || 0)) + '）</div>';
+    }
+    body += '<div class="row-btns" style="justify-content:flex-start;margin-top:10px">' +
+      '<button class="primary" id="art-download">下载 ' + esc(path.split('/').pop()) + '</button>' +
+      '<span class="muted small">layer=' + esc(layer) + ' · ' + esc(fmtBytes(f.size || 0)) + '</span></div>';
+    openModal(path, body);
+    var btn = $('art-download');
+    if (btn) btn.onclick = function () {
+      var blob;
+      if (f.encoding === 'base64') {
+        var raw = atob(f.text || ''), arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        blob = new Blob([arr], { type: 'application/octet-stream' });
+      } else {
+        blob = new Blob([f.text || ''], { type: 'text/plain;charset=utf-8' });
+      }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = path.split('/').pop(); document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    };
   }).catch(function (e) { toast('打不开：' + e.message, 'err'); });
 }
 
 // ---------------- 文件浏览 ----------------
+function openProjectSource(path) {
+  var pid = state.project; if (!pid) return;
+  openModal('项目源码 · ' + pid, '<div id="stree" class="muted">加载中…</div>', { root: true });
+  browseProjectSource(path || '', pid);
+}
+function browseProjectSource(path, pid) {
+  api('/api/projects/' + encodeURIComponent(pid) + '/source/files?path=' + encodeURIComponent(path)).then(function (r) {
+    var box = $('stree'); if (!box) return;
+    var up = path ? '<div class="file-row" data-up="1"><span>..</span></div>' : '';
+    box.innerHTML = '<div class="muted small">' + esc(r.root || '') + ' / ' + esc(path || '') + '</div>' + up +
+      (r.items || []).map(function (f) {
+        return '<div class="file-row" data-p="' + esc(f.path) + '" data-t="' + f.type + '">' +
+          '<span>' + (f.type === 'dir' ? '📁 ' : '📄 ') + esc(f.name) + '</span>' +
+          '<span class="muted small">' + (f.type === 'file' ? fmtBytes(f.size) : '') + '</span></div>';
+      }).join('');
+    box.querySelectorAll('.file-row').forEach(function (row) {
+      row.onclick = function () {
+        if (row.dataset.up) { browseProjectSource(path.split('/').slice(0, -1).join('/'), pid); return; }
+        if (row.dataset.t === 'dir') browseProjectSource(row.dataset.p, pid);
+        else api('/api/projects/' + encodeURIComponent(pid) + '/source/file?path=' + encodeURIComponent(row.dataset.p))
+          .then(function (f) { openModal(row.dataset.p, f.encoding === 'utf-8' ? md(f.text) : '<div class="muted">二进制</div>', { back: function () {
+            openProjectSource(path);
+          } }); })
+          .catch(function (e) { toast(e.message, 'err'); });
+      };
+    });
+  }).catch(function (e) { toast(e.message, 'err'); });
+}
+function bindProjectSource() {
+  var pid = state.project; if (!pid) return;
+  var p = findProject(pid) || {};
+  var path = prompt('绑定源码目录绝对路径（空=解绑）', p.source_path || '');
+  if (path === null) return;
+  api('/api/projects/' + encodeURIComponent(pid) + '/source', { method: 'POST', body: { path: path } })
+    .then(function (r) { toast(r.bound ? '源码已绑定' : '已解绑源码'); openProject(pid, true); })
+    .catch(function (e) { toast('绑定失败：' + e.message, 'err'); });
+}
+function saveProjectBackend() {
+  var pid = state.project; if (!pid) return;
+  api('/api/projects/' + encodeURIComponent(pid) + '/backend', { method: 'POST', body: { backend: $('pv-backend').value } })
+    .then(function () { toast('项目默认后端已保存'); openProject(pid, true); })
+    .catch(function (e) { toast('保存失败：' + e.message, 'err'); });
+}
+function openApiConfig() {
+  api('/api/ops/config').then(function (r) {
+    var cfg = r.config || r || {};
+    var llm = cfg.llm || {};
+    openModal('API 配置（只读，改配置走 git）', '<div class="rawbox">' +
+      esc('provider: ' + (llm.provider || '') + '\nbase_url: ' + (llm.base_url || '') + '\nmodel: ' + (llm.model || '') +
+        '\napi_key: ' + (llm.api_key_present ? '已配置（已隐藏）' : '未配置') +
+        '\nclaude-code command: ' + (((cfg.agents || {}).claude_code || {}).command || '') +
+        '\n\n后端: ' + JSON.stringify(cfg.sessions || {})) +
+      '</div><div class="muted small">网页不直接编辑配置；改 config/config.json 后走部署流程。</div>');
+  }).catch(function (e) { toast(e.message, 'err'); });
+}
 function openProjectFiles(path) {
   var pid = state.project; if (!pid) return;
   openModal('项目文件 · ' + pid, '<div id="ftree" class="muted">加载中…</div>', { root: true });
@@ -710,6 +843,7 @@ function openLibrary(kind, opts) {
     '<div class="muted small">从本地目录或 GitHub tree / raw SKILL.md 安装；装完可拆成“角色+技能+流程”。</div>' +
     '<div class="row-btns" style="justify-content:flex-start;margin-top:6px">' +
     '<input id="skill-src" placeholder="GitHub tree URL / raw SKILL.md / 本地目录">' +
+    '<select id="skill-backend"><option value="api">api</option><option value="claude-code">claude-code</option></select>' +
     '<button id="skill-install" class="primary">安装 Skill</button>' +
     '<button id="skill-decompose-last">装好后拆解</button></div>' +
     '<div id="skill-examples" class="muted small"></div></div>') : '';
@@ -775,7 +909,7 @@ function openLibrary(kind, opts) {
       var src = ($('skill-src') || {}).value || '';
       if (!src.trim()) { toast('请填来源', 'err'); return; }
       installBtn.disabled = true; installBtn.textContent = '安装中…';
-      api('/api/skills/install', { method: 'POST', body: { source: src.trim(), decompose: false } })
+      api('/api/skills/install', { method: 'POST', body: { source: src.trim(), decompose: false, backend: ($('skill-backend') || {}).value || 'api' } })
         .then(function (r) { toast('已安装 ' + (r.skill || {}).id); openLibrary('skills'); })
         .catch(function (e) { toast('安装失败：' + e.message, 'err'); installBtn.disabled = false; installBtn.textContent = '安装 Skill'; });
     };
@@ -784,7 +918,7 @@ function openLibrary(kind, opts) {
       var src = ($('skill-src') || {}).value || '';
       if (!src.trim()) { toast('请先填来源', 'err'); return; }
       lastBtn.disabled = true; lastBtn.textContent = '安装并拆解…';
-      api('/api/skills/install', { method: 'POST', body: { source: src.trim(), decompose: true } })
+      api('/api/skills/install', { method: 'POST', body: { source: src.trim(), decompose: true, backend: ($('skill-backend') || {}).value || 'api' } })
         .then(function (r) { toast('已安装并拆解 ' + (r.skill || {}).id); openLibrary('skills'); })
         .catch(function (e) { toast('安装/拆解失败：' + e.message, 'err'); lastBtn.disabled = false; lastBtn.textContent = '装好后拆解'; });
     };
@@ -820,7 +954,7 @@ function decomposeSkill(id) {
 var HEALTH_LABELS = {
   data_writable: '数据目录可写', modules_loaded: '模块齐全', bus: '事件总线可用',
   disk_free: '磁盘余量', artifacts_size: '交付件体积', artifacts_disk_headroom: '交付件占用余量',
-  trace: '全链路 trace 落盘', llm_key: '大模型 Key'
+  trace: '全链路 trace 落盘', llm_key: '大模型 Key', http_traffic: '网页流量'
 };
 var FLOW_STATE_LABELS = { done: '已完成', running: '进行中', idle: '等待中', destroyed: '已结束', gone: '已结束', error: '异常' };
 function healthLabel(n) {
@@ -836,9 +970,20 @@ function openHealth(opts) {
   opts = opts || {};
   openModal('健康自检', '<div id="hbody" class="muted">检查中…</div>', { root: true });
   if (!opts.fromRoute) overlayRoute('#/health', 'health');
-  Promise.all([api('/api/health/self'), api('/api/artifacts/stats'), api('/api/ops/status').catch(function () { return {}; })])
+  Promise.all([api('/api/health/self'), api('/api/artifacts/stats'), api('/api/ops/status').catch(function () { return {}; }),
+    api('/api/health/logs?limit=80').catch(function () { return {}; }),
+    api('/api/health/traffic').catch(function () { return {}; })])
     .then(function (rs) {
-      var h = rs[0] || {}, a = rs[1] || {}, s = rs[2] || {};
+      var h = rs[0] || {}, a = rs[1] || {}, s = rs[2] || {}, lg = rs[3] || {}, tr = rs[4] || {};
+      var traffic = tr.traffic || h.traffic || {};
+      var allLogs = (lg.items || []).concat(lg.bus_items || []).sort(function (a, b) {
+        return (a.t || 0) - (b.t || 0);
+      }).slice(-100);
+      var logs = allLogs.map(function (x) {
+        return '<div class="logrow"><span class="muted small">' + esc(x.ts || '') + '</span>' +
+          '<span class="loglv ' + esc(x.level || '') + '">' + esc(x.level || 'info') + '</span>' +
+          '<span class="grow">' + esc(x.event || x.msg || x.message || '') + '</span></div>';
+      }).join('') || '<div class="empty">暂无日志</div>';
       var checks = (h.checks || []).map(function (c) {
         return '<div class="check ' + (c.ok ? 'ok' : 'bad') + '"><span class="dot"></span><div><div>' + esc(healthLabel(c.name)) +
           '</div><div class="muted small">' + esc(c.detail || '') + '</div></div></div>';
@@ -851,10 +996,15 @@ function openHealth(opts) {
         '<div class="health-top"><span class="pill ' + (h.healthy ? 'good' : 'bad') + '">' + (h.healthy ? '健康' : '有异常') + '</span>' +
         '<span class="muted small">v' + esc(h.version || '') + ' · TLS ' + (h.tls ? 'on' : 'off') + ' · uptime ' + (h.uptime_sec || 0) + 's</span></div>' +
         '<div class="checks">' + checks + '</div>' +
+        '<h4>网页流量</h4><div class="traffic">' +
+        '<span>请求 <b>' + (traffic.requests || 0) + '</b></span><span>API <b>' + (traffic.api_requests || 0) + '</b></span>' +
+        '<span>静态 <b>' + (traffic.static_requests || 0) + '</b></span><span>收 <b>' + fmtBytes(traffic.bytes_in || 0) + '</b></span>' +
+        '<span>发 <b>' + fmtBytes(traffic.bytes_out || 0) + '</b></span></div>' +
         '<h4>交付件体积（含所有层）</h4><div class="muted small">合计 ' + fmtBytes(a.total_bytes) + ' · 磁盘余量 ' + fmtBytes(a.disk_free) + '</div>' +
         '<div class="filelist">' + big + '</div>' +
         (a.need_compress ? '<div class="warnbox">交付件偏大，建议压缩归档</div>' : '') +
-        '<div class="row-btns"><button class="ghost" id="btn-compress-all">压缩 7 天前工单</button></div>';
+        '<div class="row-btns"><button class="ghost" id="btn-compress-all">压缩 7 天前工单</button></div>' +
+        '<h4>消息链路 / 系统日志</h4><div class="loglist">' + logs + '</div>';
       var cb = $('btn-compress-all');
       if (cb) cb.onclick = function () {
         api('/api/artifacts/compress', { method: 'POST', body: { days: 7 } }).then(function (r) { toast('已压缩 ' + (r.compressed || []).length + ' 个'); openHealth(); })
@@ -888,7 +1038,8 @@ function rollback(t) {
 // ---------------- 项目动作 ----------------
 function createProject() {
   var name = prompt('项目 id（英文/数字，例如 webapp）'); if (!name) return;
-  api('/api/projects/create', { method: 'POST', body: { name: name, title: name } })
+  var src = prompt('可选：绑定源码目录绝对路径（本机/服务器上真实存在的目录；空=不绑定）') || '';
+  api('/api/projects/create', { method: 'POST', body: { name: name, title: name, source_path: src } })
     .then(function () { toast('项目已创建'); loadGroups().then(function () { openProject(name); }); })
     .catch(function (e) { toast(e.message, 'err'); });
 }
@@ -903,7 +1054,9 @@ function deleteProject() {
   var p = findProject(state.project); if (!p) return;
   if (!confirm('删除项目「' + (p.title || p.id) + '」？\n只清理项目秘书会话；工单、交付件、知识保留。')) return;
   api('/api/projects/' + encodeURIComponent(p.id) + '/delete', { method: 'POST', body: {} })
-    .then(function () { toast('项目已删除，证据保留'); state.project = ''; loadGroups(); selectGroup('secretary'); })
+    .then(function () { toast('项目已删除，证据保留'); state.project = ''; loadGroups().then(function () {
+      var n = state.projects[0]; if (n) openProject(n.id); else toast('已没有项目，可点左侧 + 新建', 'warn');
+    }); })
     .catch(function (e) { toast(e.message, 'err'); });
 }
 function compactProjectSecretary() {
@@ -917,6 +1070,8 @@ function createTicket() {
   var tags = $('pv-newtags').value.split(/[,，\s]+/).filter(Boolean);
   api('/api/tickets/create', { method: 'POST', body: {
     title: $('pv-newtitle').value.trim(), goal: goal, project: state.project, tags: tags,
+    backend: ($('pv-newbackend') || {}).value || '',
+    trace_enabled: !!($('pv-trace') || {}).checked,
     force: $('pv-now').checked, when: $('pv-now').checked ? 'now' : 'auto',
   } }).then(function (r) {
     toast(r.ticket.status === 'queued' ? '高峰期已排队，空闲自动开跑' : ('工单已开：' + r.ticket.id));
@@ -932,14 +1087,17 @@ function openFork(goal, parent) {
     '<label class="field">目标<textarea id="tk-goal" rows="4">' + esc(goal || '') + '</textarea></label>' +
     '<label class="field">项目<select id="tk-project">' + opts + '</select></label>' +
     '<label class="field">标签<input id="tk-tags" placeholder="逗号分隔" /></label>' +
+    '<label class="field">后端<select id="tk-backend"><option value="">跟随项目</option><option value="api">api</option><option value="claude-code">claude-code</option></select></label>' +
     '<label class="checkline"><input type="checkbox" id="tk-now" /> 立即执行</label>' +
+    '<label class="checkline"><input type="checkbox" id="tk-trace" /> 群聊并入模块报文 trace（创建后不可改）</label>' +
     '<div class="row-btns"><button class="primary" id="tk-create">派给项目经理</button></div>');
   var def = (findGroup(state.group) || {}).project || state.project;
   if (def) $('tk-project').value = def;
   $('tk-create').onclick = function () {
     var g = $('tk-goal').value.trim(); if (!g) { toast('目标不能空', 'warn'); return; }
     api('/api/tickets/create', { method: 'POST', body: { goal: g, project: $('tk-project').value, parent: parent || '',
-      tags: $('tk-tags').value.split(/[,，\s]+/).filter(Boolean), force: $('tk-now').checked } })
+      tags: $('tk-tags').value.split(/[,，\s]+/).filter(Boolean), force: $('tk-now').checked,
+      backend: ($('tk-backend') || {}).value || '', trace_enabled: !!($('tk-trace') || {}).checked } })
       .then(function (r) { closeModal(); toast('工单已开：' + r.ticket.id); loadGroups().then(function () { if (r.ticket.status !== 'queued') selectGroup(r.ticket.id); }); })
       .catch(function (e) { toast(e.message, 'err'); });
   };
@@ -992,7 +1150,6 @@ $('rail-mask').onclick = function () { toggleRail(false); };
 $('btn-files').onclick = openSide;
 $('side-close').onclick = function () { hide('side'); updateBackBtn(); };
 $('modal-close').onclick = function () { closeModal(); };
-$('idle-chip').onclick = openIdle;
 $('btn-addtag').onclick = addTag;
 $('btn-fork-ticket').onclick = function () { openFork('基于 ' + state.group + ' 的后续修改：', state.group); };
 $('btn-copy-ticket').onclick = function () {
@@ -1006,6 +1163,11 @@ $('btn-stop').onclick = stopAll;
 $('btn-newproject').onclick = createProject;
 $('pv-rename').onclick = renameProject;
 $('pv-files').onclick = function () { openProjectFiles(); };
+$('pv-source').onclick = function () { openProjectSource(); };
+$('pv-bindsource').onclick = bindProjectSource;
+$('pv-savebackend').onclick = saveProjectBackend;
+$('pv-apiconfig').onclick = openApiConfig;
+$('pv-idle').onclick = openIdle;
 $('pv-delete').onclick = deleteProject;
 $('pv-secretary').onclick = function () { selectGroup('sec-' + state.project); };
 $('pv-compact').onclick = compactProjectSecretary;
@@ -1015,20 +1177,9 @@ document.querySelectorAll('.tab').forEach(function (b) {
   b.onclick = function () {
     var tab = b.dataset.tab;
     setTab(tab);
-    if (tab === 'chat') {
-      state.modalStack = []; hide('modal'); hide('side');
-      if (state.view === 'project') {
-        var backTo = findGroup(state.group) ? state.group : 'secretary';
-        selectGroup(backTo, true, { replace: true });
-        return;
-      }
-      if (isOverlayHash()) replaceHash(hashOfView());
-      updateBackBtn();
-    }
-    else if (tab === 'library') openLibrary('roles');
+    if (tab === 'library') openLibrary('roles');
     else if (tab === 'health') openHealth();
     else if (tab === 'versions') openVersions();
-    else openSource();
   };
 });
 document.querySelectorAll('#side .stab').forEach(function (b) { b.onclick = function () { openSide(); }; });

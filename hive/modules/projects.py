@@ -55,12 +55,16 @@ class Projects(Module):
         self.api.route("POST", "/api/projects/{project_id}/rename", name="rename")(self.rename_api)
         self.api.route("GET", "/api/projects/{project_id}/files", name="files")(self.files_api)
         self.api.route("GET", "/api/projects/{project_id}/file", name="file")(self.file_api)
+        self.api.route("POST", "/api/projects/{project_id}/backend", name="backend")(self.backend_api)
+        self.api.route("POST", "/api/projects/{project_id}/source", name="source_bind")(self.source_bind_api)
+        self.api.route("GET", "/api/projects/{project_id}/source/files", name="source_files")(self.source_files_api)
+        self.api.route("GET", "/api/projects/{project_id}/source/file", name="source_file")(self.source_file_api)
 
         self._register_tools()
         self.ensure(self.default, title="默认项目", silent=True)
 
     # ---------------- 存储 ----------------
-    def ensure(self, name, title="", description="", silent=False):
+    def ensure(self, name, title="", description="", silent=False, backend="", source_path=""):
         pid = _slug(name, self.default)
         rec = self.store.get(pid)
         if rec:
@@ -72,6 +76,8 @@ class Projects(Module):
             "created": _now(),
             "updated": _now(),
             "archived": False,
+            "backend": backend or "",
+            "source_path": source_path or "",
         }
         self.store.put(pid, rec)
         if not silent:
@@ -96,6 +102,8 @@ class Projects(Module):
             "id": rec["id"], "title": rec.get("title"), "description": rec.get("description"),
             "created": rec.get("created"), "updated": rec.get("updated"),
             "archived": bool(rec.get("archived")),
+            "backend": rec.get("backend") or "",
+            "source_path": rec.get("source_path") or "",
         }
 
     # ---------------- API ----------------
@@ -111,7 +119,8 @@ class Projects(Module):
         name = payload.get("name") or payload.get("title") or ""
         if not name.strip():
             raise ApiError("name 必填", code="missing_name")
-        rec = self.ensure(name, title=payload.get("title") or "", description=payload.get("description") or "")
+        rec = self.ensure(name, title=payload.get("title") or "", description=payload.get("description") or "",
+                          backend=payload.get("backend") or "", source_path=payload.get("source_path") or "")
         return {"project": self._public(rec)}
 
     def get_api(self, payload):
@@ -128,6 +137,78 @@ class Projects(Module):
         out["secretary"] = "sec-" + rec["id"]
         out["artifacts_root"] = "artifacts/projects/" + rec["id"]
         return {"project": out}
+
+    def backend_api(self, payload):
+        rec = self._get(payload["project_id"])
+        backend = (payload.get("backend") or "").strip()
+        if backend not in ("", "api", "claude-code"):
+            raise ApiError("未知 backend: %s" % backend, status=400, code="bad_backend")
+        rec["backend"] = backend
+        rec["updated"] = _now()
+        self.store.put(rec["id"], rec)
+        self.emit("project.backend", {"project": rec["id"], "backend": backend})
+        return {"project": self._public(rec)}
+
+    def source_bind_api(self, payload):
+        import os
+        rec = self._get(payload["project_id"])
+        raw = (payload.get("path") or "").strip()
+        if not raw:
+            rec["source_path"] = ""
+            rec["updated"] = _now()
+            self.store.put(rec["id"], rec)
+            return {"project": self._public(rec), "bound": False}
+        path = os.path.realpath(raw)
+        if not os.path.isdir(path):
+            raise ApiError("目录不存在: %s" % raw, status=404, code="no_source")
+        rec["source_path"] = path
+        rec["updated"] = _now()
+        self.store.put(rec["id"], rec)
+        self.emit("project.source", {"project": rec["id"], "path": path})
+        return {"project": self._public(rec), "bound": True}
+
+    def _source_tree(self, project_id):
+        return self._get(project_id).get("source_path") or ""
+
+    def source_files_api(self, payload):
+        import os
+        base = self._source_tree(payload["project_id"])
+        if not base:
+            raise ApiError("项目还没有绑定源码目录", status=404, code="no_source")
+        rel = (payload.get("path") or "").strip("/")
+        target = os.path.realpath(os.path.join(base, rel))
+        if not inside(base, target):
+            raise ApiError("路径越界", status=400, code="bad_path")
+        if not os.path.isdir(target):
+            return {"root": base, "path": rel, "items": []}
+        items = []
+        for name in sorted(os.listdir(target)):
+            if name in (".git", "__pycache__"):
+                continue
+            full = os.path.join(target, name)
+            items.append({"name": name, "path": os.path.relpath(full, base).replace(os.sep, "/"),
+                          "type": "dir" if os.path.isdir(full) else "file",
+                          "size": os.path.getsize(full) if os.path.isfile(full) else 0})
+        return {"root": base, "path": rel, "items": items}
+
+    def source_file_api(self, payload):
+        import base64, os
+        base = self._source_tree(payload["project_id"])
+        if not base:
+            raise ApiError("项目还没有绑定源码目录", status=404, code="no_source")
+        rel = (payload.get("path") or "").strip("/")
+        target = os.path.realpath(os.path.join(base, rel))
+        if not inside(base, target) or not os.path.isfile(target):
+            raise ApiError("文件不存在", status=404, code="no_file")
+        size = os.path.getsize(target)
+        if size > 512 * 1024:
+            raise ApiError("文件过大（>512KB）", status=413, code="too_big")
+        raw = open(target, "rb").read()
+        try:
+            text, enc = raw.decode("utf-8"), "utf-8"
+        except UnicodeDecodeError:
+            text, enc = base64.b64encode(raw).decode("ascii"), "base64"
+        return {"path": rel, "text": text, "encoding": enc, "bytes": size}
 
     def rename_api(self, payload):
         rec = self._get(payload["project_id"])

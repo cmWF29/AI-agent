@@ -39,7 +39,9 @@ class HttpService:
         self._httpd = None
         self._thread = None
         self.started_at = None
-        self.counters = {"requests": 0, "errors": 0, "auth_fail": 0}
+        self.counters = {"requests": 0, "errors": 0, "auth_fail": 0,
+                         "api_requests": 0, "static_requests": 0,
+                         "bytes_in": 0, "bytes_out": 0}
         self.tls_context = None
         self.scheme = "http"
         self._login_fails = {}
@@ -126,6 +128,10 @@ class HttpService:
                 service.counters["requests"] += 1
                 parsed = urllib.parse.urlsplit(self.path)
                 path = urllib.parse.unquote(parsed.path) or "/"
+                if path.startswith("/api/"):
+                    service.counters["api_requests"] += 1
+                else:
+                    service.counters["static_requests"] += 1
                 query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
 
                 if method == "GET" and not path.startswith("/api/"):
@@ -186,6 +192,7 @@ class HttpService:
                     return {}
                 if length > service.max_bytes:
                     raise ValueError("请求体过大（>%d bytes）" % service.max_bytes)
+                service.counters["bytes_in"] += length
                 raw = self.rfile.read(length)
                 ctype = (self.headers.get("Content-Type") or "").lower()
                 if "application/json" in ctype or raw.strip().startswith(b"{"):
@@ -275,6 +282,7 @@ class HttpService:
                     headers.setdefault("Strict-Transport-Security", "max-age=31536000")
                 for k, v in headers.items():
                     self.send_header(k, v)
+                service.counters["bytes_out"] += len(data)
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 if data:

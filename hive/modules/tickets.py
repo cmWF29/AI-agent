@@ -36,7 +36,7 @@ ROLE_TOOLS = [
     "memory_add", "memory_search", "session_result",
     "artifact_write", "artifact_list",
     "git_sync", "git_status",
-    "library_get", "flow_check", "ticket_tag",
+    "library_get", "library_update_prompt", "flow_check", "ticket_tag",
 ]
 
 PM_TOOLS = [
@@ -48,7 +48,7 @@ PM_TOOLS = [
     # 自己动手（需求 3：PM 得先能“了解项目”，小活自己干）
     "shell", "read_file", "write_file", "grep",
     # 库与流程（需求 15/17）
-    "library_list", "library_get", "flow_design", "flow_check",
+    "library_list", "library_get", "library_update_prompt", "flow_design", "flow_check",
     "skill_sources", "skill_install", "skill_decompose",
     # 交付件与 git
     "artifact_write", "artifact_list", "artifact_stats",
@@ -103,6 +103,7 @@ class Tickets(Module):
         self._register_tools()
         self.bus.subscribe("session.result", self._on_session_result, name="tickets.result")
         self.bus.subscribe("gitflow.conflict", self._on_git_conflict, name="tickets.git-conflict")
+        self.bus.subscribe("artifacts.written", self._on_artifact_written, name="tickets.artifact")
 
     # ---------------- 工单存储 ----------------
     def _get(self, ticket_id):
@@ -128,10 +129,14 @@ class Tickets(Module):
 
     # ---------------- 创建 ----------------
     def create(self, title, goal, project=None, roles_hint=None, parent="", when="auto",
-               force=False, tags=None):
+               force=False, tags=None, backend="", trace_enabled=False, kind="normal",
+               auto_retrospective=True):
         project = project or self.default_project
+        project_backend = ""
         try:
-            project = self.ctx.api("projects.ensure", name=project)["project"]["id"]
+            prep = self.ctx.api("projects.ensure", name=project)["project"]
+            project = prep["id"]
+            project_backend = prep.get("backend") or ""
         except ApiError:
             project = project
         tid = "T-%s-%s" % (time.strftime("%Y%m%d"), uuid.uuid4().hex[:6])
@@ -148,6 +153,10 @@ class Tickets(Module):
             "workdir": workdir,
             "repo": "",
             "parent": parent or "",
+            "backend": backend or project_backend,
+            "kind": kind or "normal",
+            "trace_enabled": bool(trace_enabled),
+            "auto_retrospective": bool(auto_retrospective) and kind != "retrospective",
             "summary": "",
             "created": _now(),
             "updated": _now(),
@@ -170,8 +179,9 @@ class Tickets(Module):
                 self._stage(ticket, "queued", state.get("reason") or "高峰排队")
                 self._save(ticket)
                 try:
-                    item = self.ctx.api("idle.enqueue", kind="ticket", payload={"ticket_id": tid},
-                                       note=state.get("reason") or "")
+                    item = self.ctx.api("idle.enqueue", kind="ticket",
+                                       payload={"ticket_id": tid, "project": project},
+                                       note=state.get("reason") or "", project=project)
                     ticket["queue_id"] = (item.get("item") or {}).get("id") or ""
                     self._save(ticket)
                 except ApiError as exc:
@@ -225,6 +235,9 @@ class Tickets(Module):
             ticket=tid,
             role="pm",
             tools=PM_TOOLS,
+            # PM 必须能调 role_spawn/ticket_close，始终走内核 API；
+            # ticket.backend 只决定“被派出去的角色”用 API 还是已有 Agent。
+            backend="api",
         )["session"]
         ticket["pm"] = pm["id"]
         ticket["status"] = "running"
@@ -261,11 +274,24 @@ class Tickets(Module):
             "全部达标后调用 ticket_close(ticket, summary)；结单会自动归档交付件、合并分支、\n"
             "通知角色沉淀知识并销毁临时会话。卡住/需要用户拍板时，直接说清卡点。\n"
         )
+        if ticket.get("kind") == "retrospective":
+            parts.append(
+                "\n\n## 这是一个“提示词自迭代”回顾工单\n"
+                "你的目标不是重复旧活，而是判断旧工单的协作过程是否值得改进角色/技能/流程提示词。\n"
+                "1. 先用 knowledge_read/knowledge_search 读旧工单 %s 的知识，用 artifact_list 看旧工单交付件；\n"
+                "2. 判断：是否有角色缺输入、流程校验缺项、提示词导致返工/漏项？没有就 ticket_close(summary='NO_RETROSPECTIVE: 原因')；\n"
+                "3. 有就 role_spawn(role='process', task='...') 拉起临时流程专家，讨论出最小改动；\n"
+                "4. 让流程专家用 library_update_prompt 或 flow_design 落地改动，并写 docs/retrospective.md 记录前后差异；\n"
+                "5. 结单时写清改了什么、证据、对下一次工单的影响。不要为了迭代而迭代。\n"
+                % (ticket.get("parent") or "(无)"))
+        elif ticket.get("parent"):
+            parts.append("\n\n## 前序工单\n本工单基于 %s；先读它的知识与交付件，不要重复造轮子。\n"
+                         % ticket["parent"])
         return "".join(parts)
 
     def _pm_kickoff(self, ticket):
         repo = ticket.get("repo") or "(未启用 git)"
-        parent = ("\n前序工单：%s（这次是在它的基础上改）" % ticket["parent"]) if ticket.get("parent") else ""
+        parent = ("\n前序工单：%s（先读旧单知识与交付件，再决定怎么做）" % ticket["parent"]) if ticket.get("parent") else ""
         return (
             "工单 %s\n标题：%s\n目标：%s\n项目：%s\n工作目录：%s\n代码工作树：%s%s\n\n"
             "请开始：先给拆解与角色安排（简短），然后立即 role_spawn 分发；能自己干的小活直接干。"
@@ -323,6 +349,8 @@ class Tickets(Module):
         display = role_display(role, same)
         # 角色共用工单工作目录：交付件直接落在 docs/ 下，归档后路径干净（带工单号前缀）
         ws = ensure_dir(ticket["workdir"])
+        if not backend:
+            backend = ticket.get("backend") or ""
         if not backend:
             try:
                 flow = self.ctx.api("library.get", kind="flows", id=role).get("item") or {}
@@ -450,6 +478,21 @@ class Tickets(Module):
         if fixed:
             self._save(ticket)
         return fixed
+
+    def _on_artifact_written(self, ev):
+        payload = ev.get("payload") or {}
+        tid = payload.get("ticket")
+        if not tid:
+            return
+        t = self.store.get(tid)
+        if not t:
+            return
+        ref = {"session": payload.get("session") or "", "path": payload.get("path") or "",
+               "layer": payload.get("layer") or "ticket", "ts": payload.get("ts") or time.time()}
+        if ref["path"]:
+            t.setdefault("artifact_refs", []).append(ref)
+            t["artifact_refs"] = t["artifact_refs"][-80:]
+            self._save(t)
 
     def _on_git_conflict(self, ev):
         """PM 过程中自己 sync 冲突，也要登记复验；不能只有结单 merge 冲突才算。"""
@@ -639,6 +682,15 @@ class Tickets(Module):
                                    paths=changed if (ticket.get("base") and changed) else None)["index"]
             files = archive.get("files") or []
             self._stage(ticket, "archived", "%d 个文件 / %s bytes" % (len(files), archive.get("bytes", 0)))
+            # 把归档文件挂到 PM 的最后一条消息上，保证“消息级交付件”不是空壳。
+            for f in files[:30]:
+                rel = f.get("path") if isinstance(f, dict) else ""
+                if not rel:
+                    continue
+                ticket.setdefault("artifact_refs", []).append({
+                    "session": ticket.get("pm") or "", "path": rel,
+                    "layer": "ticket", "ts": time.time()})
+            ticket["artifact_refs"] = (ticket.get("artifact_refs") or [])[-80:]
         except ApiError as exc:
             self.log.warn("ticket.close.archive", ticket=ticket_id, error=exc.message)
 
@@ -725,6 +777,38 @@ class Tickets(Module):
         self._save(ticket)
         self.emit("ticket.closed", {"ticket": ticket_id, "roles": len(ticket.get("roles") or [])})
         self.log.info("ticket.closed", ticket=ticket_id)
+        self._maybe_spawn_retrospective(ticket)
+
+    def _maybe_spawn_retrospective(self, ticket):
+        """结单后由项目秘书拉起回顾工单；新 PM 自己判断要不要改提示词。"""
+        if not ticket.get("auto_retrospective") or ticket.get("kind") == "retrospective":
+            return
+        cfg = self.cfg.get("tickets") if isinstance(self.cfg.get("tickets"), dict) else {}
+        if not bool(cfg.get("auto_retrospective", True)):
+            return
+        old = ticket["id"]
+        project = ticket["project"]
+        goal = (
+            "回顾工单 %s 的协作过程，判断是否需要迭代角色/流程提示词。\n"
+            "旧工单目标：%s\n旧工单结论：%s\n"
+            "旧交付件：artifacts/projects/%s/tickets/%s\n"
+            "要求：先读旧工单知识（ticket 层）和交付件；没有明确改进点就写 NO_RETROSPECTIVE 结单；"
+            "有改进点则拉起临时流程专家（role=process），用 library_update_prompt/flow_design 落地最小改动，"
+            "并在 docs/retrospective.md 记录前因后果。"
+            % (old, ticket.get("goal") or "", ticket.get("summary") or "(无)", project, old))
+        def _run():
+            time.sleep(1.0)
+            try:
+                t = self.create(
+                    title="回顾迭代：" + (ticket.get("title") or old)[:40],
+                    goal=goal, project=project, parent=old,
+                    when="now", force=True, backend=ticket.get("backend") or "",
+                    kind="retrospective", auto_retrospective=False)
+                self.emit("ticket.retrospective.created", {"ticket": t["id"], "parent": old})
+                self.log.info("ticket.retrospective.created", ticket=t["id"], parent=old)
+            except Exception as exc:
+                self.log.warn("ticket.retrospective.failed", parent=old, error=repr(exc))
+        threading.Thread(target=_run, name="retro-" + old[-6:], daemon=True).start()
         return ticket
 
     def _resume_after_boot(self):
@@ -772,7 +856,9 @@ class Tickets(Module):
         t = self.create(payload.get("title") or "", goal, payload.get("project"),
                         payload.get("roles_hint"), payload.get("parent") or "",
                         when=payload.get("when") or "auto", force=bool(payload.get("force")),
-                        tags=payload.get("tags") or [])
+                        tags=payload.get("tags") or [], backend=payload.get("backend") or "",
+                        trace_enabled=bool(payload.get("trace") or payload.get("trace_enabled")),
+                        auto_retrospective=bool(payload.get("auto_retrospective", True)))
         return {"ticket": self._public(t)}
 
     def dispatch_api(self, payload):
@@ -1031,6 +1117,10 @@ class Tickets(Module):
             "id": t["id"], "title": t["title"], "goal": t["goal"], "project": t["project"],
             "status": t["status"], "pm": t.get("pm"), "summary": t.get("summary"),
             "parent": t.get("parent") or "", "repo": t.get("repo") or "",
+            "backend": t.get("backend") or "api", "kind": t.get("kind") or "normal",
+            "trace_enabled": bool(t.get("trace_enabled")),
+            "auto_retrospective": bool(t.get("auto_retrospective")),
+            "artifact_refs": t.get("artifact_refs") or [],
             "roles": [{"session": r["session"], "role": r["role"],
                        "display": r.get("display") or role_display(r["role"]),
                        "backend": r.get("backend") or "api",
@@ -1062,7 +1152,10 @@ class Tickets(Module):
                             args.get("project") or tctx.session.get("project"),
                             parent=args.get("parent") or "",
                             when=args.get("when") or "auto", force=bool(args.get("force")),
-                            tags=args.get("tags") or [])
+                            tags=args.get("tags") or [],
+                            backend=args.get("backend") or "",
+                            trace_enabled=bool(args.get("trace_enabled")),
+                            auto_retrospective=bool(args.get("auto_retrospective", True)))
             return "工单已创建：%s（PM 会话 %s 已开工）。后续你可以用 ticket_status 查看进度。" % (t["id"], t["pm"])
 
         def list_tool(args, tctx):
@@ -1137,6 +1230,10 @@ class Tickets(Module):
                 "parent": {"type": "string", "description": "可选：前序工单号，如 T-20261113-57fd20"},
                 "tags": {"type": "array", "items": {"type": "string"}, "description": "模块标签，如 frontend/backend/docs"},
                 "when": {"type": "string", "description": "auto=按空闲时段排队；now=立即执行"},
+                "backend": {"type": "string", "enum": ["", "api", "claude-code"],
+                            "description": "空=项目默认；claude-code=交给已有 Agent CLI"},
+                "trace_enabled": {"type": "boolean", "description": "是否把模块报文并入群聊；默认关闭"},
+                "auto_retrospective": {"type": "boolean", "description": "结单后是否自动起回顾工单；默认是"},
             }, "required": ["goal"]},
             create_tool, origin=self.name))
 

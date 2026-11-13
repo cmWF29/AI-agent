@@ -45,6 +45,13 @@ class WebChat(Module):
         self.api.route("GET", "/api/trace/recent", name="trace_recent")(self.trace_recent)
         self.api.route("GET", "/api/trace/file", name="trace_file")(self.trace_file)
 
+    def _default_secretary(self):
+        try:
+            projects = self.ctx.api("projects.list").get("items", [])
+        except ApiError:
+            projects = []
+        return ("sec-" + projects[0]["id"]) if projects else ""
+
     # ---------------- 发送 ----------------
     def _target_of(self, group):
         """group -> (session_id, kind)。传 'T-xxx' 走工单；'sec-<p>' 走项目秘书；其余走全局秘书。"""
@@ -60,13 +67,18 @@ class WebChat(Module):
             return t.get("pm") or "", "ticket"
         if g.startswith("sec-"):
             return g, "secretary"
-        return self.secretary_id, "secretary"
+        if not g or g == self.secretary_id:
+            g = self._default_secretary()
+            if not g:
+                raise ApiError("还没有项目；请先创建项目，全局秘书已移除", code="no_project")
+            return g, "secretary"
+        return g, "secretary"
 
     def send(self, payload):
         text = (payload.get("text") or "").strip()
         if not text:
             raise ApiError("text 不能为空", code="empty_text")
-        group = (payload.get("group") or self.secretary_id).strip()
+        group = (payload.get("group") or self._default_secretary()).strip()
         job_id = "c-" + uuid.uuid4().hex[:10]
         job = {"id": job_id, "group": group, "text": text, "status": "running",
                "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -85,9 +97,10 @@ class WebChat(Module):
             except ApiError:
                 idle = {"peak": False}
             if idle.get("peak"):
+                project = session[4:] if session.startswith("sec-") else ""
                 self.ctx.api("idle.enqueue", kind="message",
-                             payload={"session": session, "text": text},
-                             note=idle.get("reason") or "")
+                             payload={"session": session, "text": text, "project": project},
+                             note=idle.get("reason") or "", project=project)
                 job.update({"status": "queued", "reply": "高峰排队中，空闲时自动发送", "idle": idle,
                             "session": session})
                 job["ms"] = int((time.time() - job["t0"]) * 1000)
@@ -103,7 +116,9 @@ class WebChat(Module):
                         "reply": "已投递"})
         else:
             if kind == "secretary":
-                project = "" if session == self.secretary_id else session[4:]
+                project = session[4:] if session.startswith("sec-") else ""
+                if not project:
+                    raise ApiError("全局秘书已移除，请使用项目秘书", code="no_project")
                 self.ctx.api("sessions.ensure", project=project)
             res = self.ctx.api("sessions.send", session=session, text=text)
             job.update({"status": "done", "session": session, "injected": res.get("injected"),
@@ -121,8 +136,8 @@ class WebChat(Module):
 
     # ---------------- 群列表 ----------------
     def groups(self, payload):
-        items = [{"id": self.secretary_id, "kind": "secretary", "title": "秘书", "display": "秘书",
-                  "project": "", "layer": "local", "open": True}]
+        # 全局秘书已移除：只保留项目秘书与工单群。
+        items = []
         try:
             projects = self.ctx.api("projects.list").get("items", [])
         except ApiError:
@@ -151,15 +166,18 @@ class WebChat(Module):
             items.append({"id": t["id"], "kind": "ticket", "title": t["title"], "display": t["title"],
                           "project": t["project"], "status": t["status"],
                           "state": t["status"], "pm": t.get("pm") or "",
+                          "backend": t.get("backend") or "api",
+                          "trace_enabled": bool(t.get("trace_enabled")),
                           "roles": len(t.get("roles") or []), "updated": t.get("updated"),
                           "open": t["status"] != "closed", "created": t.get("created"),
                           "parent": t.get("parent") or ""})
-        return {"items": items, "projects": projects, "secretary": self.secretary_id,
-                "default_project": (projects[0]["id"] if projects else "")}
+        return {"items": items, "projects": projects, "secretary": "",
+                "default_project": (projects[0]["id"] if projects else ""),
+                "default_group": self._default_secretary()}
 
     # ---------------- 时间线 ----------------
     def timeline(self, payload):
-        group = (payload.get("group") or self.secretary_id).strip()
+        group = (payload.get("group") or self._default_secretary()).strip()
         limit = max(10, min(int(payload.get("limit") or 120), 500))
         since = payload.get("since_ts")
         items = []
@@ -167,7 +185,11 @@ class WebChat(Module):
             group = group.split(":", 1)[-1]
         if group.startswith("T-"):
             items = self._ticket_timeline(group, limit)
-            if payload.get("modules") not in (False, "0", 0):
+            try:
+                trace_on = bool(self.ctx.api("tickets.get", ticket_id=group)["ticket"].get("trace_enabled"))
+            except ApiError:
+                trace_on = False
+            if trace_on:
                 items.extend(self._module_timeline(group, limit))
                 items.sort(key=lambda i: i.get("ts") or 0)
         elif group.startswith("sec-"):
@@ -233,6 +255,15 @@ class WebChat(Module):
                                               ts.get("kind") or "", ts.get("items") or [],
                                               user_texts=user_texts))
         out.sort(key=lambda i: i.get("ts") or 0)
+        refs = t.get("artifact_refs") or []
+        # 每条角色的最后一条发言附上它在本次工单中写过的交付件（按会话+时间匹配）
+        for sid in {x.get("session") for x in out if x.get("session")}:
+            mine = [x for x in out if x.get("session") == sid and x.get("role") == "assistant"]
+            if not mine:
+                continue
+            arts = [a for a in refs if a.get("session") == sid][-3:]
+            if arts:
+                mine[-1]["artifacts"] = arts
         return out
 
     def _session_chat(self, sid, speaker, kind, items, user_texts=None):
@@ -389,7 +420,7 @@ class WebChat(Module):
 
     # ---------------- 直播（流式 + 打断） ----------------
     def live(self, payload):
-        group = (payload.get("group") or self.secretary_id).strip()
+        group = (payload.get("group") or self._default_secretary()).strip()
         limit = min(int(payload.get("limit") or 12), 40)
         sessions = []
         try:

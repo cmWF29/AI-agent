@@ -17,6 +17,15 @@ REQUIRED_MODULES = ["obs", "knowledge", "memory", "library", "artifacts", "proje
                     "toolpack", "sessions", "gitflow", "tickets", "webchat", "ops"]
 
 
+def _human(n):
+    n = int(n or 0)
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return ("%d %s" % (n, unit)) if unit == "B" else ("%.1f %s" % (n, unit))
+        n /= 1024.0
+    return "%d B" % n
+
+
 class Health(Module):
     name = "health"
 
@@ -25,6 +34,8 @@ class Health(Module):
         self.heartbeat = 0
         self.api.route("GET", "/api/health", auth=False)(self.health)
         self.api.route("GET", "/api/health/self", auth=False)(self.self_check)
+        self.api.route("GET", "/api/health/traffic", name="traffic")(self.traffic_api)
+        self.api.route("GET", "/api/health/logs", name="logs")(self.logs_api)
         self.bus.subscribe("*", lambda ev: None, name="health.heartbeat")
         self.log.info("health.ready")
 
@@ -98,6 +109,19 @@ class Health(Module):
         except Exception as exc:
             add("trace", False, False, repr(exc))
 
+        # 7.5) 网页流量 + 消息链路日志
+        try:
+            http = self.ctx.state.get("http")
+            counters = dict(http.counters) if http else {}
+            add("http_traffic", True, False,
+                "请求 %d（API %d / 静态 %d）· 收 %s / 发 %s" % (
+                    counters.get("requests", 0), counters.get("api_requests", 0),
+                    counters.get("static_requests", 0),
+                    _human(counters.get("bytes_in", 0)), _human(counters.get("bytes_out", 0))))
+            self._counters = counters
+        except Exception as exc:
+            add("http_traffic", False, False, repr(exc))
+
         # 8) LLM 配置（缺 key 只降级，不算致命：网页仍可打开）
         llm = self.ctx.state.get("llm")
         add("llm_key", bool(llm and llm.api_key), False, "model=%s" % (llm.model if llm else "-"))
@@ -113,5 +137,32 @@ class Health(Module):
             "checks": checks,
             "artifacts": getattr(self, "_artifacts", {}),
             "tls": bool(self.ctx.state.get("http") and self.ctx.state["http"].scheme == "https"),
+            "traffic": getattr(self, "_counters", {}),
             "failed": [c["name"] for c in critical_failed],
         }
+
+
+    def traffic_api(self, payload):
+        http = self.ctx.state.get("http")
+        counters = dict(http.counters) if http else {}
+        return {"traffic": counters, "scheme": getattr(http, "scheme", ""), "port": getattr(http, "port", 0),
+                "human": {"in": _human(counters.get("bytes_in", 0)),
+                          "out": _human(counters.get("bytes_out", 0))}}
+
+    def logs_api(self, payload):
+        limit = max(10, min(int(payload.get("limit") or 80), 300))
+        items = self.ctx.log.recent(limit=limit)
+        bus_items = []
+        try:
+            skip = ("llm.delta", "session.hook", "react.step")
+            for ev in list(getattr(self.bus, "recent", []))[-limit * 3:]:
+                topic = str(ev.get("topic") or "")
+                if any(topic.startswith(x) for x in skip):
+                    continue
+                bus_items.append({"t": ev.get("t") or 0, "ts": ev.get("ts") or "",
+                                  "level": "info", "event": "bus." + topic,
+                                  "source": ev.get("source") or ""})
+        except Exception:
+            pass
+        return {"items": items, "bus_items": bus_items, "stats": self.ctx.log.stats(),
+                "bus": self.bus.stats() if hasattr(self.bus, "stats") else {}}

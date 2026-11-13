@@ -198,25 +198,26 @@ def test_sessions_compact(mock):
               {"content": "这是压缩后的摘要_ACK"}])
     env = Env(mock, compact_threshold=10 ** 9)   # 关掉自动压缩，先测手动
     try:
-        r1 = env.api("sessions.ask", text="你好", timeout=30)
+        env.api("sessions.ensure", project="default")
+        r1 = env.api("sessions.ask", session="sec-default", text="你好", timeout=30)
         check("秘书自动创建并回复",
               r1.get("status") == "ok" and (r1.get("reply") or "").startswith("第一轮回复"), (r1.get("status"), len(r1.get("reply") or "")))
-        r2 = env.api("sessions.ask", text="第二句", timeout=30)
+        r2 = env.api("sessions.ask", session="sec-default", text="第二句", timeout=30)
         check("同一会话继续对话", (r2.get("reply") or "").startswith("第二轮回复"), len(r2.get("reply") or ""))
-        rec = env.api("sessions.get", session_id="secretary")["session"]
+        rec = env.api("sessions.get", session_id="sec-default")["session"]
         check("会话消息累积", rec["messages"] >= 5, rec["messages"])
-        msg = env.api("sessions.messages", session_id="secretary", limit=10)
+        msg = env.api("sessions.messages", session_id="sec-default", limit=10)
         check("消息 API 可读", msg["total"] >= 5)
-        comp = env.api("sessions.compact", session_id="secretary")
+        comp = env.api("sessions.compact", session_id="sec-default")
         check("手动压缩生效", comp.get("compacted") is True and comp["after_chars"] < comp["before_chars"], comp)
-        after = env.api("sessions.messages", session_id="secretary", limit=10)
+        after = env.api("sessions.messages", session_id="sec-default", limit=10)
         joined = " ".join(i["content"] for i in after["items"])
         check("压缩后保留摘要", "这是压缩后的摘要_ACK" in joined, joined[:200])
         listed = env.api("sessions.list")
-        check("会话列表正确", any(i["id"] == "secretary" for i in listed["items"]))
-        env.api("sessions.destroy", session_id="secretary")
+        check("会话列表正确", any(i["id"] == "sec-default" for i in listed["items"]))
+        env.api("sessions.destroy", session_id="sec-default")
         check("销毁后会话消失", env.api("sessions.list")["total"] == 0)
-        check("销毁后归档存在", os.path.exists(os.path.join(env.tmp, "data", "sessions", "archive", "secretary.json")))
+        check("销毁后归档存在", os.path.exists(os.path.join(env.tmp, "data", "sessions", "archive", "sec-default.json")))
     finally:
         env.close()
 
@@ -304,7 +305,7 @@ def test_http_auth(mock):
 
 def test_cli_and_webchat(mock):
     print("[8] CLI + 网页对话（网页确实是通过 CLI 跑的）")
-    mock.set([{"content": "这是秘书的回复"}])
+    mock.set([{"content": "这是秘书的回复"}, {"content": "这是秘书的回复"}])
     env = Env(mock, with_http=True)
     try:
         cmd = [sys.executable, "-m", "hive.cli", "ask", "--text", "你好", "--json",
@@ -318,11 +319,11 @@ def test_cli_and_webchat(mock):
 
         st, body, _ = env.http("/api/chat/send", method="POST", body={"text": "网页来的消息"})
         check("网页发送被接受", st == 200 and body.get("job_id"), (st, body))
-        check("网页直达秘书会话", body.get("session") == "secretary", body)
+        check("网页直达秘书会话", body.get("session") == "sec-default", body)
         job = env.http("/api/chat/job/%s" % body["job_id"])[1]["job"]
         check("网页任务完成", job.get("status") == "done", job)
-        env.api("sessions.wait", session="secretary", timeout=30)
-        tl = env.http("/api/web/timeline?group=secretary&limit=20")[1]
+        env.api("sessions.wait", session="sec-default", timeout=30)
+        tl = env.http("/api/web/timeline?group=sec-default&limit=20")[1]
         check("历史可读", any("秘书的回复" in (i.get("text") or "") for i in tl["items"]), tl.get("items"))
     finally:
         env.close()
@@ -356,8 +357,8 @@ def test_secretary_policy(mock):
     mock.set([{"content": "工单已派出"}])
     env = Env(mock)
     try:
-        env.api("sessions.ensure")
-        sec = env.api("sessions.get", session_id="secretary")["session"]
+        env.api("sessions.ensure", project="default")
+        sec = env.api("sessions.get", session_id="sec-default")["session"]
         tools = sec.get("tools") or []
         for banned in ("shell", "read_file", "write_file", "grep", "http_get"):
             check("秘书没有 %s 工具" % banned, banned not in tools, tools)
@@ -417,12 +418,13 @@ def test_group_chat(mock):
     ])
     env = Env(mock, with_http=True)
     try:
-        env.api("sessions.ask", text="帮我做一份报告", timeout=30)
+        env.api("sessions.ensure", project="default")
+        env.api("sessions.ask", session="sec-default", text="帮我做一份报告", timeout=30)
         groups = env.http("/api/web/groups")[1]
-        check("群列表含秘书", any(g["id"] == "secretary" for g in groups["items"]), groups["items"])
+        check("群列表含秘书", any(g["id"] == "sec-default" for g in groups["items"]), groups["items"])
         check("群列表含项目", len(groups.get("projects", [])) >= 1, groups.get("projects"))
 
-        tl = env.http("/api/web/timeline?group=secretary&limit=50")[1]
+        tl = env.http("/api/web/timeline?group=sec-default&limit=50")[1]
         check("秘书时间线可读", len(tl["items"]) >= 2, len(tl.get("items", [])))
         check("时间线有用户发言", any(i["role"] == "user" for i in tl["items"]))
         check("时间线有助手发言", any(i["role"] == "assistant" for i in tl["items"]))
@@ -501,21 +503,21 @@ def test_stream_trace(mock):
     mock.set([{"content": "流式回复内容 ABCDEFG"}])
     env = Env(mock, with_http=True)
     try:
-        env.api("sessions.ensure")
-        env.api("sessions.ask", text="你好", timeout=60)
+        env.api("sessions.ensure", project="default")
+        env.api("sessions.ask", session="sec-default", text="你好", timeout=60)
         topics = [e["topic"] for e in env.kernel.bus.recent]
         check("有流式增量事件", "llm.delta" in topics, topics[-6:])
         delta = "".join(e["payload"].get("text", "") for e in env.kernel.bus.recent
                         if e["topic"] == "llm.delta")
         check("增量拼回完整正文", "ABCDEFG" in delta, delta[:80])
-        st, tr, _ = env.http("/api/trace/recent?session=secretary&limit=50")
+        st, tr, _ = env.http("/api/trace/recent?session=sec-default&limit=50")
         kinds = {i["kind"] for i in tr.get("items", [])}
         check("trace 记录 llm.request", "llm.request" in kinds, kinds)
         check("trace 记录 llm.response", "llm.response" in kinds, kinds)
         req = [i for i in tr["items"] if i["kind"] == "llm.request"][-1]["data"]
         check("trace 请求结构含 messages/tools", "messages" in req and "tools" in req, list(req)[:8])
         check("trace 不含 api key", "sk-" not in json.dumps(tr, ensure_ascii=False), "leak")
-        tpath = os.path.join(env.tmp, "data", "traces", "secretary.jsonl")
+        tpath = os.path.join(env.tmp, "data", "traces", "sec-default.jsonl")
         check("trace 落盘", os.path.exists(tpath) and os.path.getsize(tpath) > 0, tpath)
     finally:
         env.close()
@@ -671,7 +673,8 @@ def test_gitflow(mock):
 def test_three_by_three(mock):
     print("[19] 3 个项目 × 3 个工单并发")
     mock.set([{"content": "PM ok"} for _ in range(40)])
-    env = Env(mock, with_http=True, overrides={"sessions": {"max_concurrent": 6}})
+    env = Env(mock, with_http=True, overrides={"sessions": {"max_concurrent": 6},
+                                                "tickets": {"auto_retrospective": False}})
     try:
         tickets = []
         for p in ("p1", "p2", "p3"):
@@ -687,7 +690,7 @@ def test_three_by_three(mock):
         check("9 个 PM 会话", len(live) >= 9, len(live))
         for t in tickets:
             env.api("tickets.close", ticket_id=t["id"], summary="批量收尾", force=True)
-        closed = env.api("tickets.list")["items"]
+        closed = [x for x in env.api("tickets.list")["items"] if x.get("kind") != "retrospective"]
         check("批量结单完成", all(t["status"] == "closed" for t in closed), [t["status"] for t in closed][:5])
     finally:
         env.close()
@@ -752,7 +755,7 @@ def test_v4_features(mock):
               (fl, q["items"][:1]))
         env.api("idle.dequeue", queue_id=bad["item"]["id"])
 
-        msg = env.api("webchat.send", group="secretary", text="高峰期消息", force=False)
+        msg = env.api("webchat.send", group="sec-default", text="高峰期消息", force=False)
         check("秘书消息高峰排队", msg.get("status") == "queued", msg.get("status"))
         check("消息也进队列", env.api("idle.queue")["total"] == 1)
 
@@ -962,6 +965,76 @@ def test_agent_backends_and_skills(mock):
             env.close()
 
 
+def test_v44_features(mock):
+    print("[v4.4] 项目后端/源码、trace 开关、回顾工单、健康日志与流量")
+    env = None
+    try:
+        env = Env(mock, with_http=True, overrides={"tickets": {"auto_retrospective": False}})
+        p = env.api("projects.create", name="v44", title="v44")["project"]
+        env.api("projects.backend", project_id="v44", backend="claude-code")
+        check("项目可保存默认后端", env.api("projects.get", project_id="v44")["project"]["backend"] == "claude-code")
+        env.api("projects.source_bind", project_id="v44", path=os.path.abspath("."))
+        files = env.api("projects.source_files", project_id="v44", path="")
+        check("项目可绑定源码并列文件", any(x["name"] == "README.md" for x in files["items"]), files["items"][:2])
+        try:
+            env.api("projects.source_file", project_id="v44", path="../../etc/passwd")
+            check("源码浏览拒绝越界", False)
+        except Exception:
+            check("源码浏览拒绝越界", True)
+        t = env.api("tickets.create", goal="trace off", project="v44")["ticket"]
+        check("trace 默认关闭", t.get("trace_enabled") is False, t.get("trace_enabled"))
+        env.api("sessions.wait", session=t["pm"], timeout=30)
+        env.api("tickets.close", ticket_id=t["id"], summary="done", force=True)
+        tl = env.api("webchat.timeline", group=t["id"], limit=50)
+        check("未开 trace 不返回模块报文", not any(x.get("type") == "module" for x in tl["items"]), tl["items"][:3])
+        t2 = env.api("tickets.create", goal="trace on", project="v44", trace_enabled=True)["ticket"]
+        check("创建时可开 trace", t2.get("trace_enabled") is True, t2.get("trace_enabled"))
+        env.api("sessions.wait", session=t2["pm"], timeout=30)
+        env.api("tickets.close", ticket_id=t2["id"], summary="done", force=True)
+        tl2 = env.api("webchat.timeline", group=t2["id"], limit=50)
+        check("开 trace 后返回模块报文", any(x.get("type") == "module" for x in tl2["items"]), len(tl2["items"]))
+
+        # 回顾工单：独立开关下验证“新工单能找到旧工单”
+        env.cfg.setdefault("tickets", {})["auto_retrospective"] = True
+        t3 = env.api("tickets.create", goal="可回顾的目标", project="v44")["ticket"]
+        env.api("sessions.wait", session=t3["pm"], timeout=30)
+        env.api("tickets.close", ticket_id=t3["id"], summary="可回顾的结论", force=True)
+        time.sleep(2.2)
+        items = env.api("tickets.list")["items"]
+        retro = [x for x in items if x.get("parent") == t3["id"] and x.get("kind") == "retrospective"]
+        check("结单后生成回顾工单", len(retro) == 1, items[:3])
+        check("回顾工单包含旧目标与交付路径", retro and "可回顾的目标" in retro[0].get("goal", "") and
+              "artifacts/projects" in retro[0].get("goal", ""), retro[0].get("goal")[:80] if retro else "")
+        check("回顾工单不再递归", retro and retro[0].get("auto_retrospective") is False, retro[0].get("auto_retrospective") if retro else None)
+
+        # 提示词自迭代只允许非内置角色
+        env.api("library.design", role="critic", cn="评审", responsibility="评审", must_outputs=["docs/**/*.md"])
+        up = env.api("library.update_prompt", role="critic", prompt="先列风险再结论。", change_note="test")
+        check("非内置角色提示词可迭代", up.get("after_chars") and up["after_chars"] < 76, up)
+        try:
+            env.api("library.update_prompt", role="architect", prompt="x")
+            check("内置角色提示词受保护", False)
+        except Exception:
+            check("内置角色提示词受保护", True)
+
+        # 通过真实 HTTP 调用一次，验证流量计数
+        env.http("/api/health")
+        tr = env.api("health.traffic")["traffic"]
+        check("网页流量有请求计数", tr.get("requests", 0) > 0 and tr.get("api_requests", 0) > 0, tr)
+        lg = env.api("health.logs", limit=20)
+        check("健康页可读系统日志", len(lg.get("items") or []) > 0, len(lg.get("items") or []))
+        check("健康页可读消息链路", "bus_items" in lg, list(lg))
+    finally:
+        if env:
+            env.close()
+
+
+def test_web_state_machine():
+    from hive.webstate import validate
+    ok, errors = validate()
+    check("网页状态机与实现一致", ok, errors[:4])
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
@@ -971,11 +1044,11 @@ def main():
              test_stream_trace, test_library_flow, test_project_secretary_delete,
              test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https,
              test_v4_features, test_security_and_ui_contract, test_flow_content_and_reverify,
-             test_agent_backends_and_skills]
+             test_agent_backends_and_skills, test_v44_features, test_web_state_machine]
     t0 = time.time()
     for t in tests:
         try:
-            if t in (test_bus,):
+            if t in (test_bus, test_web_state_machine):
                 t()
             else:
                 t(mock)

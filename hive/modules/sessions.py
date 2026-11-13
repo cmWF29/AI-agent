@@ -108,6 +108,7 @@ class SessionRuntime:
             rec["stats"]["steps"] += int(result.get("steps") or 0)
             rec["last_reply"] = reply[:2000]
             rec["last_status"] = result.get("status")
+            rec["partial"] = {"text": "", "step": rec.get("partial", {}).get("step"), "state": "done"}
         self.manager.persist(rec)
         self.state = "idle"
         self.current_job = None
@@ -132,6 +133,10 @@ class SessionRuntime:
     def _hook(self, name, payload):
         if name == "tool.start":
             self.record["stats"]["tool_calls"] += 1
+        elif name == "llm.delta":
+            self.record["partial"] = {"text": str(payload.get("text") or "")[-2000:],
+                                      "step": payload.get("step") or 1,
+                                      "state": payload.get("state") or "streaming"}
         elif name == "llm.response":
             self.record["stats"]["llm_calls"] += 1
         self.manager.emit("session.hook",

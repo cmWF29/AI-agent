@@ -23,8 +23,8 @@ import base64
 import json
 import os
 import shutil
-import tarfile
 import time
+import tarfile
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
@@ -302,7 +302,9 @@ class Artifacts(Module):
             f.write(payload.get("content") or "")
         self.emit("artifacts.written", {"layer": layer, "path": rel,
                                         "project": payload.get("project") or "",
-                                        "ticket": payload.get("ticket") or ""})
+                                        "ticket": payload.get("ticket") or "",
+                                        "session": payload.get("session") or "",
+                                        "ts": time.time()})
         return {"layer": layer, "path": rel, "bytes": os.path.getsize(p)}
 
     def archive_api(self, payload):
@@ -379,6 +381,7 @@ class Artifacts(Module):
 
         def write_tool(args, tctx):
             res = self.write_api({
+                "session": tctx.session_id,
                 "layer": args.get("layer") or "ticket",
                 "project": args.get("project") or tctx.session.get("project") or "",
                 "ticket": args.get("ticket") or tctx.session.get("ticket") or "",
