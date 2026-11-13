@@ -446,6 +446,9 @@ def test_versions(mock):
         subprocess.run(["git", "init", "-q"], cwd=root, check=True)
         subprocess.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
         subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+        # Windows 上 core.autocrlf 默认 true，会把 LF 当错误拦下来（fatal: LF would be replaced by CRLF）
+        subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
+        subprocess.run(["git", "config", "core.safecrlf", "false"], cwd=root, check=True)
         open(os.path.join(root, "VERSION"), "w").write("0.0.1")
         subprocess.run(["git", "add", "-A"], cwd=root, check=True)
         subprocess.run(["git", "commit", "-qm", "v1"], cwd=root, check=True)
