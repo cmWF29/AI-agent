@@ -431,22 +431,27 @@ class Sessions(Module):
         if reset and self.store.exists(sid):
             self.destroy(sid)
         if not reset and self.store.exists(sid):
-            # 提示词/工具集升级：原地热更新（不丢历史对话），让新策略立刻生效
             rec = self.store.get(sid)
-            changed = False
+            # 工具集变了 = 权限模型变了：旧对话里可能残留“它当时确实执行过”的上下文，
+            # 新策略下模型会拿旧输出冒充新结果。这种情况必须重建会话（旧会话进归档）。
             if rec.get("tools") != tools:
-                rec["tools"] = tools
-                changed = True
+                self.log.warn("session.secretary.policy_changed", session=sid,
+                              old=rec.get("tools"), new=tools)
+                self.destroy(sid, archive=True)
+                self.emit("session.secretary.recreated", {"session": sid, "reason": "tool_policy"})
+                return self._spawn_secretary(prompt, tools)
+            # 只是提示词升级：原地换 system 消息，保留对话
             if prompt and rec.get("system_prompt") != prompt and rec.get("messages"):
                 rec["system_prompt"] = prompt
                 rec["messages"][0] = {"role": "system", "content": prompt}
-                changed = True
-            if changed:
                 rec["updated"] = _now()
                 self.persist(rec)
-                self.emit("session.updated", {"session": sid, "reason": "tool_policy_or_prompt"})
-                self.log.info("session.secretary.updated", session=sid)
+                self.emit("session.updated", {"session": sid, "reason": "prompt"})
+                self.log.info("session.secretary.prompt_updated", session=sid)
             return rec
+        return self._spawn_secretary(prompt, tools)
+
+    def _spawn_secretary(self, prompt, tools):
         return self.spawn(
             kind="secretary",
             title="秘书",
@@ -454,10 +459,9 @@ class Sessions(Module):
             role="secretary",
             tools=tools,
             meta={"resident": True},
-            workspace=os.path.join(self.ws_root, sid),
-            session_id=sid,
+            workspace=os.path.join(self.ws_root, self.secretary_id),
+            session_id=self.secretary_id,
         )
-
     def _secretary_prompt(self):
         try:
             compose = self.ctx.api("knowledge.compose", scopes=[{"layer": "public"}])
