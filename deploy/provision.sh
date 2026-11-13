@@ -45,6 +45,9 @@ if pw:
 tok = os.environ.get("HIVE_TOKEN") or ""
 if tok:
     cfg.setdefault("server", {})["token"] = tok
+# 老配置文件没有 tls 段时补上（内核默认开启，但文件里的 server 段会整段覆盖默认值）
+srv = cfg.setdefault("server", {})
+srv.setdefault("tls", {"enabled": True, "cert": "config/tls/server.crt", "key": "config/tls/server.key"})
 with open(p, "w", encoding="utf-8") as f:
     json.dump(cfg, f, ensure_ascii=False, indent=2)
 PY

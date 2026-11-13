@@ -169,13 +169,24 @@ class Watchdog:
         return "http"
 
     def health(self):
-        url = "%s://127.0.0.1:%d/api/health/self" % (self._scheme(), self.port)
+        # 两个协议都探：配置与实际不符（比如证书刚生成/老配置没 tls 段）时不要误判成“挂了”
+        last = None
+        for scheme in (self._scheme(), "http" if self._scheme() == "https" else "https"):
+            url = "%s://127.0.0.1:%d/api/health/self" % (scheme, self.port)
+            try:
+                if scheme == "https":
+                    ctx = ssl._create_unverified_context()
+                    resp = urllib.request.urlopen(url, timeout=self.health_timeout, context=ctx)
+                else:
+                    resp = urllib.request.urlopen(url, timeout=self.health_timeout)
+                return self._read_health(resp)
+            except Exception as exc:
+                last = exc
+                continue
+        return False, repr(last)
+
+    def _read_health(self, resp):
         try:
-            if url.startswith("https"):
-                ctx = ssl._create_unverified_context()
-                resp = urllib.request.urlopen(url, timeout=self.health_timeout, context=ctx)
-            else:
-                resp = urllib.request.urlopen(url, timeout=self.health_timeout)
             with resp:
                 data = json.loads(resp.read().decode("utf-8"))
             return bool(data.get("healthy")), data
