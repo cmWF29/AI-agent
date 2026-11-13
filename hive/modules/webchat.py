@@ -287,6 +287,12 @@ class WebChat(Module):
         for tr in t.get("transcript") or []:
             if tr.get("session"):
                 ids.append(tr["session"])
+        # 老工单可能没冻结 transcript：从 stages 里补 pm/role 会话，至少能看到执行报文
+        for st in t.get("stages") or []:
+            if st.get("stage") in ("pm_spawned", "role_spawned") and st.get("detail"):
+                detail = str(st["detail"]).split("@")[0].strip()
+                if detail.startswith(("pm-", "role-")):
+                    ids.append(detail)
         ids = list(dict.fromkeys([i for i in ids if i]))
         root = path_of(self.cfg, "trace.root", "data/traces")
         out = []

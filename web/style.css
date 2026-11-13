@@ -98,7 +98,7 @@ button.mini:disabled, button:disabled { opacity: .45; cursor: not-allowed; }
 .chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #0e1c2f; border: 1px solid #22405f;
   color: #9ecfe8; font-family: ui-monospace, Menlo, monospace; }
 .flow { padding: 8px 10px 10px; border-bottom: 1px solid var(--line); overflow: auto; background: #08111e; }
-.flowline { display: flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 12px; }
+.flowline { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 12px; }
 .fn { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px;
   border: 1px solid #1d2f46; color: #7f92ab; }
 .fn.done { color: #b7f0cd; border-color: #1e6b3f; background: #0d2418; }
@@ -292,3 +292,9 @@ body.rail-collapsed .rail { display: none; }
   .pv-grid { grid-template-columns: 1fr; }
   body.rail-collapsed .rail { display: flex; }
 }
+
+/* 模块报文折叠组：角色发言为主，执行过程按需展开 */
+.modgroup { margin: 2px 0 2px 30px; border-left: 2px solid #1a3350; padding-left: 8px; }
+.modgroup summary { cursor: pointer; font-size: 11px; color: #7f92ab; list-style: none; padding: 2px 0; }
+.modgroup summary:hover { color: #9ecfe8; }
+.modgroup .msg.modulemsg { margin: 4px 0; }

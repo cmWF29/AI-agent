@@ -229,11 +229,23 @@ function loadTimeline(silent) {
   return api(url).then(function (r) {
     var box = $('messages');
     var atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
+    var modBuf = [];
+    function flushMods() {
+      if (!modBuf.length) return;
+      var d = document.createElement('details');
+      d.className = 'modgroup';
+      d.innerHTML = '<summary>执行过程 · ' + modBuf.length + ' 条模块报文（点开看完整内容）</summary>';
+      modBuf.forEach(function (x) { d.appendChild(renderModuleMsg(x)); });
+      box.appendChild(d); modBuf = [];
+    }
     (r.items || []).forEach(function (m) {
       var key = (m.session || '') + '|' + (m.ts || 0) + '|' + (m.kind || '') + '|' + (m.speaker || '') + '|' + String(m.text || '').slice(0, 24);
       if (state.seen[key]) return; state.seen[key] = 1;
+      if (m.type === 'module') { modBuf.push(m); return; }
+      flushMods();
       box.appendChild(renderMsg(m));
     });
+    flushMods();
     if (atBottom || !silent) box.scrollTop = box.scrollHeight;
   }).catch(function () {});
 }
