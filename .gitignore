@@ -1,0 +1,15 @@
+# 运行时数据：会话、工单、知识、日志、工具大输出
+data/
+# 本地配置（含 DeepSeek Key / 网页密码，永远不进仓库）
+config/config.json
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+# 其它
+*.log
+.DS_Store
+.idea/
+.vscode/

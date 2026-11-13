@@ -1,0 +1,19 @@
+[Unit]
+Description=Hive Agent Watchdog (保活 + 自动版本回退)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__REPO__
+ExecStart=__PYTHON__ __REPO__/deploy/watchdog.py --repo __REPO__ --config __REPO__/config/config.json --interval 10 --threshold 3
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hive Agent</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="login" class="login hidden">
+  <div class="login-box">
+    <h1>Hive Agent</h1>
+    <p class="muted">输入访问密码进入控制台</p>
+    <input id="password" type="password" placeholder="password" autocomplete="current-password" />
+    <button id="login-btn">登录</button>
+    <div id="login-err" class="err"></div>
+  </div>
+</div>
+
+<main id="app" class="app hidden">
+  <header>
+    <div class="brand">Hive<span>Agent</span></div>
+    <div id="status-pill" class="pill">连接中…</div>
+    <div class="spacer"></div>
+    <button class="ghost" id="btn-status">状态</button>
+    <button class="ghost" id="btn-tickets">工单</button>
+    <button class="ghost" id="btn-events">事件</button>
+  </header>
+
+  <section id="chat" class="chat"></section>
+
+  <footer class="composer">
+    <textarea id="input" rows="1" placeholder="给秘书发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
+    <button id="send">发送</button>
+  </footer>
+
+  <section class="ops">
+    <button class="warn" id="btn-compact">压缩上下文</button>
+    <button class="warn" id="btn-restart">重启 agent</button>
+    <button class="warn" id="btn-rollback">回退版本</button>
+    <button class="danger" id="btn-stop">彻底停止</button>
+    <button class="ghost" id="btn-newticket">新建工单</button>
+  </section>
+
+  <div id="drawer" class="drawer hidden">
+    <div class="drawer-head">
+      <strong id="drawer-title">面板</strong>
+      <button class="ghost" id="drawer-close">关闭</button>
+    </div>
+    <pre id="drawer-body"></pre>
+  </div>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/app.js"></script>
+</body>
+</html>
