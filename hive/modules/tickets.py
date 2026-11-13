@@ -517,7 +517,9 @@ class Tickets(Module):
         if pm:
             try:
                 self.ctx.api("sessions.send", session=pm, text=archive_note)
-                self.ctx.api("sessions.wait", session=pm, timeout=5 if force else self.close_timeout)
+                # PM 正在执行 ticket_close 这个工具本身，等它“回话”会自锁；
+                # 给它一个很短的窗口把知识写完即可，然后直接销毁。
+                self.ctx.api("sessions.wait", session=pm, timeout=5)
             except Exception as exc:
                 self.log.warn("ticket.close.pm", ticket=ticket_id, error=repr(exc))
 

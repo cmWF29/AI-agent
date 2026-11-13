@@ -61,7 +61,7 @@ DEFAULTS = {
     },
     "tickets": {
         "root": "data/tickets",
-        "close_reply_timeout": 120,
+        "close_reply_timeout": 30,
         "max_roles": 8,
         "default_project": "default",
     },
