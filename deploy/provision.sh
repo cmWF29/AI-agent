@@ -51,7 +51,8 @@ PY
 
 # HTTPS 证书自举（需求 5）：只有 IP 没有域名，只能自签；手机浏览器首次会告警，信任一次即可
 TLS_DIR="$REPO/config/tls"
-TLS_ON="$(python3 -c "import json;print('1' if (json.load(open('$REPO/config/config.json')).get('server',{}).get('tls',{}) or {}).get('enabled') else '0')")"
+# 注意：老配置里可能没有 tls 段，而内核默认是开的 —— 缺省按“开”处理
+TLS_ON="$(python3 -c "import json;c=json.load(open('$REPO/config/config.json'));(print('1') if ((c.get('server',{}).get('tls') or {}).get('enabled', True)) else print('0'))")"
 if [ "$TLS_ON" = "1" ] && [ ! -f "$TLS_DIR/server.crt" ]; then
   mkdir -p "$TLS_DIR"
   IP="${HIVE_PUBLIC_IP:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
