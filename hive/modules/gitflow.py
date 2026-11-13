@@ -103,15 +103,22 @@ class GitFlow(Module):
         if not os.path.isdir(bare):
             r = self._run(["init", "--bare", "-b", self.main, bare])
             if not r["ok"]:
-                # 老 git 不支持 -b
+                # 老 git（2.25 及以前）不支持 init -b，默认分支会是 master
                 r = self._run(["init", "--bare", bare])
             if not r["ok"]:
                 raise ApiError("git init 失败: %s" % r["err"], code="git_init_failed")
+        # 不管用哪种方式建出来的，都把默认分支钉死在 main（否则后面 origin/main 永远不存在）。
+        self._run(["symbolic-ref", "HEAD", "refs/heads/" + self.main], cwd=bare)
+        has_main = self._run(["rev-parse", "--verify", "refs/heads/" + self.main], cwd=bare)["ok"]
+        has_master = self._run(["rev-parse", "--verify", "refs/heads/master"], cwd=bare)["ok"]
+        if has_master and not has_main:
+            self._run(["branch", "-m", "master", self.main], cwd=bare)
         main = self.main_tree(project)
         if not os.path.isdir(main):
             r = self._run(["clone", bare, main])
             if not r["ok"]:
                 raise ApiError("git clone 失败: %s" % r["err"], code="git_clone_failed")
+            self._run(["checkout", "-B", self.main], cwd=main)
             ensure_dir(os.path.join(main, "docs"))
             with open(os.path.join(main, "README.md"), "w", encoding="utf-8") as f:
                 f.write("# %s\n\n本仓库由 Hive Agent 管理：每个工单一个分支，收口后合回 %s。\n" % (project, self.main))

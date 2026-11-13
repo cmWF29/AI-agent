@@ -606,6 +606,9 @@ def test_gitflow(mock):
         check("项目建了裸仓库", any(i["project"] == "repo1" for i in git["items"]), git)
         bare = os.path.join(env.tmp, "data", "projects", "repo1", "repo.git")
         check("裸仓库存在", os.path.isdir(bare), bare)
+        head = subprocess.run(["git", "-C", bare, "symbolic-ref", "HEAD"],
+                              capture_output=True, text=True)
+        check("裸仓库默认分支是 main", head.stdout.strip() == "refs/heads/main", head.stdout)
 
         t1 = env.api("tickets.create", goal="改 README A", project="repo1")["ticket"]
         t2 = env.api("tickets.create", goal="改 README B", project="repo1")["ticket"]
