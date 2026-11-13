@@ -117,6 +117,7 @@ async function selectGroup(id) {
   state.cursor = 0;
   $('messages').innerHTML = '';
   $('side').classList.add('hidden');
+  $('rail').classList.remove('open');       // 手机上选完群，抽屉收起来
   renderGroups();
   renderChatHead();
   await loadTimeline(true);
@@ -172,6 +173,7 @@ function renderItem(m) {
     return;
   }
   const mine = role === 'user';
+  if (!mine && !(m.text || '').trim()) return;   // 只调工具、没说话的回合不画空气泡
   const row = document.createElement('div');
   row.className = 'row-msg ' + (mine ? 'mine' : 'other');
   const name = mine ? '我' : (m.speaker || 'agent');
