@@ -48,7 +48,8 @@ while read -r oldrev newrev refname; do
   echo "[deploy] 收到 main@${newrev:0:8}，检出到 $WORK"
   if [ -d "$WORK/.git" ]; then
     # 正常工作树（git clone 出来的）：fetch + reset，保留 data/ config/ secrets（都在 .gitignore）
-    git -C "$WORK" fetch -q origin main && git -C "$WORK" reset -q --hard origin/main \
+    # 钩子里 git 会导出 GIT_DIR，必须清掉，否则 -C 无效、reset 打在裸库上
+    ( unset GIT_DIR GIT_WORK_TREE; cd "$WORK" && git fetch -q origin main && git reset -q --hard origin/main ) \
       || { echo "[deploy] reset 失败，回退到裸仓库检出"; }
   else
     mkdir -p "$WORK"
