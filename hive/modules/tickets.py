@@ -350,7 +350,7 @@ class Tickets(Module):
                 if st.get("state") not in ("idle", "interrupted"):
                     continue           # 有别的活正在跑就别插队
                 try:
-                    self.ctx.api("sessions.send", session_id=t["pm"], text=(
+                    self.ctx.api("sessions.send", session=t["pm"], text=(
                         "（系统）服务重启，你这单被打断了。先用 role_list 看角色和产物是否齐全，"
                         "缺什么就重派，齐了就直接收尾（写总结并 ticket_close）。"
                     ))
