@@ -155,6 +155,9 @@ class Tickets(Module):
             repo = self.ctx.api("gitflow.ticket_init", ticket=tid, project=project).get("repo") or {}
             if repo.get("tree"):
                 ticket["repo"] = repo["tree"]
+                # 工作目录就是工单分支的工作树：PM/角色写的 docs/ 直接进 git，
+                # 结单归档时也是从这里复制 → 交付件天然带工单号与版本。
+                ticket["workdir"] = repo["tree"]
                 self._stage(ticket, "git_branch", "%s @ %s" % (repo.get("branch"), repo["tree"]))
                 self._save(ticket)
         except ApiError as exc:
@@ -168,6 +171,7 @@ class Tickets(Module):
         pm = self.ctx.api(
             "sessions.spawn",
             kind="pm",
+            workspace=ticket["workdir"],
             title="PM/" + ticket["title"][:30],
             display="项目经理",
             system_prompt=pm_prompt,

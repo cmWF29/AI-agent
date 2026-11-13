@@ -611,6 +611,7 @@ def test_gitflow(mock):
         t2 = env.api("tickets.create", goal="改 README B", project="repo1")["ticket"]
         check("工单各自有工作树", os.path.isdir(t1["repo"]) and os.path.isdir(t2["repo"]),
               (t1.get("repo"), t2.get("repo")))
+        check("工作目录就是工单分支工作树", t1["workdir"] == t1["repo"], (t1.get("workdir"), t1.get("repo")))
         check("工单分支名", "ticket/" + t1["id"] in env.api("gitflow.ticket_status", ticket=t1["id"])["status"]["branch"],
               env.api("gitflow.ticket_status", ticket=t1["id"])["status"])
 
