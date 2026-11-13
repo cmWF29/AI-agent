@@ -298,8 +298,13 @@ function selectGroup(id, silent, opts) {
   if (id !== 'secretary' && !findGroup(id) && !(id.indexOf('sec-') === 0 && findProject(id.slice(4)))) {
     toast('会话不存在：' + id, 'warn'); selectGroup('secretary', true, { replace: true }); return;
   }
+  var prevGroup = state.group;
+  // 从 hash 路由返回同一会话时保留交付件侧栏；切换会话或用户主动点击才关闭
+  var keepSide = !!(opts.fromRoute && prevGroup === id);
   state.view = 'chat'; state.group = id; state.cursor = 0; state.seen = {}; state.lastLive = '';
-  hide('projectview'); show('chatview'); hide('flow'); hide('side'); closeModal();
+  hide('projectview'); show('chatview'); hide('flow');
+  if (!keepSide) hide('side');
+  closeModal();
   $('messages').innerHTML = '';
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
   renderProjects(); renderRailGroups(); setTab('chat');
