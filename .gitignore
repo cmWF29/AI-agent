@@ -13,3 +13,6 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# 运行期证书/密钥，不进仓库
+config/tls/
