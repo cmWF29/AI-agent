@@ -273,8 +273,8 @@ class Sessions(Module):
         return record
 
     def submit(self, session_id, text, max_steps=None):
-        if session_id == self.secretary_id and not self.store.exists(session_id):
-            self.ensure_secretary()
+        if session_id == self.secretary_id:
+            self.ensure_secretary()      # 幂等：顺带把提示词/工具策略升级热更新进来
         rec = self.get_record(session_id)
         rt = self._runtime(session_id)
         if rt.state == "destroyed":
@@ -493,7 +493,7 @@ class Sessions(Module):
 
     def ask_api(self, payload):
         sid = payload.get("session") or self.secretary_id
-        if sid == self.secretary_id and not self.store.exists(sid):
+        if sid == self.secretary_id:
             self.ensure_secretary()
         text = payload.get("text")
         timeout = int(payload.get("timeout") or 300)
