@@ -1035,6 +1035,11 @@ window.addEventListener('popstate', function () {
   state.navDepth = Math.max(0, state.navDepth - 1);
   applyRoute(routeOfHash(), { fromRoute: true });
 });
+// 地址栏直接改 hash / 外部分享链不会触发 popstate；补一个 hashchange，避免旧弹窗盖在新路由上
+window.addEventListener('hashchange', function () {
+  if (!state.booted) return;
+  applyRoute(routeOfHash(), { fromRoute: true });
+});
 
 // ---------------- 启动 ----------------
 api('/api/auth/status').then(function (r) {

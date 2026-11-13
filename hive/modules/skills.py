@@ -254,7 +254,7 @@ class Skills(Module):
             raise ApiError("Skill 包缺少 SKILL.md", code="no_skill_md")
         front, body = parse_frontmatter(text)
         role = _slug(role_id or front.get("role") or ROLE_ALIASES.get(sid, sid))
-        cn = str(front.get("cn") or front.get("name") or sid)
+        cn = str(front.get("cn") or role)
         outputs = front.get("must_outputs") or front.get("outputs")
         if isinstance(outputs, str):
             outputs = [x.strip() for x in outputs.split(",") if x.strip()]
