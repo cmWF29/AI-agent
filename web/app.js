@@ -1017,6 +1017,11 @@ document.querySelectorAll('.tab').forEach(function (b) {
     setTab(tab);
     if (tab === 'chat') {
       state.modalStack = []; hide('modal'); hide('side');
+      if (state.view === 'project') {
+        var backTo = findGroup(state.group) ? state.group : 'secretary';
+        selectGroup(backTo, true, { replace: true });
+        return;
+      }
       if (isOverlayHash()) replaceHash(hashOfView());
       updateBackBtn();
     }
