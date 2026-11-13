@@ -758,6 +758,13 @@ def test_v4_features(mock):
         except Exception:
             blocked = True
         check("未结单不可删", blocked)
+
+        c = env.api("tickets.close", ticket_id=tid, summary="v4 测试结单", force=True, block=True)
+        check("强制结单成功", c["ticket"]["status"] == "closed", c["ticket"]["status"])
+        d2 = env.api("tickets.delete", ticket_id=tid)
+        check("已结单可删除", d2.get("deleted") == tid, d2)
+        art = os.path.join(env.tmp, "data", "artifacts", "projects", "v4tags", "tickets", tid)
+        check("删除后交付件保留", os.path.exists(art), art)
     except Exception as exc:
         check("v4 未崩溃", False, repr(exc))
     finally:

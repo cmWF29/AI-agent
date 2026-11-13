@@ -212,7 +212,8 @@ function selectGroup(id, silent) {
   $('chat-sub').textContent = isTicket ? ('工单群 · ' + (g.project || '')) : (isSec ? '项目秘书' : '全局秘书');
   $('chat-tags').innerHTML = '';
   if (isTicket) {
-    show('btn-copy-ticket'); $('btn-copy-ticket').textContent = '⧉ ' + id; show('btn-fork-ticket'); show('btn-addtag');
+    show('btn-copy-ticket'); $('btn-copy-ticket').textContent = '⧉ ' + id; show('btn-fork-ticket');
+    if ((g.status || '') !== 'closed') show('btn-addtag'); else hide('btn-addtag');
     loadTags(); loadFlow();
   } else {
     hide('btn-copy-ticket'); hide('btn-fork-ticket'); hide('btn-addtag'); hide('flow');
@@ -316,7 +317,8 @@ function loadTags() {
   api('/api/tickets/' + encodeURIComponent(state.group)).then(function (r) {
     var tags = (r.ticket || {}).tags || [];
     $('chat-tags').innerHTML = tags.map(function (t) {
-      return '<span class="tagchip">' + esc(t) + '<button data-t="' + esc(t) + '">×</button></span>';
+      var lock = (findGroup(state.group) || {}).status === 'closed';
+      return '<span class="tagchip">' + esc(t) + (lock ? '' : '<button data-t="' + esc(t) + '">×</button>') + '</span>';
     }).join('') || '<span class="muted small">无标签</span>';
     $('chat-tags').querySelectorAll('button').forEach(function (b) {
       b.onclick = function (e) {

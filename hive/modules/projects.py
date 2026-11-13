@@ -117,7 +117,8 @@ class Projects(Module):
             tickets = self.ctx.api("tickets.list", project=rec["id"]).get("items", [])
         except ApiError:
             tickets = []
-        out["tickets"] = [{"id": t["id"], "title": t["title"], "status": t["status"]} for t in tickets]
+        out["tickets"] = [{"id": t["id"], "title": t["title"], "status": t["status"],
+                           "tags": t.get("tags") or []} for t in tickets]
         out["ticket_count"] = len(tickets)
         out["open_tickets"] = len([t for t in tickets if t["status"] not in ("closed",)])
         out["secretary"] = "sec-" + rec["id"]

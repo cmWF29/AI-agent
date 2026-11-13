@@ -248,6 +248,8 @@ class Tickets(Module):
             "   角色卡+提示词+流程插件，再 role_spawn；\n"
             "3. 流程插件会在角色交作业后自动校验必交产物，缺件系统会替你催，你也可以 role_task 让它补。\n"
             "4. 一个角色一个会话，任务写清验收标准、产出路径、边界。\n"
+            "5. 开工后按涉及模块用 ticket_tag 给工单打 tag（frontend/backend/comm/docs...），\n"
+            "   标签会自动沉淀到公共库与项目库。\n"
             "\n### git（需求 2）\n"
             "工单有自己的分支工作树（见 kickoff 里的 repo 路径）。代码改动必须在工作树里做；\n"
             "收尾前 git_sync 提交并推送；合并冲突时先解决冲突、**重跑测试**，再 sync/merge。\n"
@@ -294,7 +296,8 @@ class Tickets(Module):
             "\n### 规则\n"
             "1. 交付文档/数据写到工作目录 %s；代码改动在 git 工作树 %s 里做（cd 过去改，改完 git_status 看一眼）。\n"
             "2. 结论必须可验证：给出命令/文件/证据，别只给形容。\n"
-            "3. 完成后调用 session_result(summary) 上报，再用 knowledge_write 沉淀（ticket 层）。\n"
+            "3. 完成后调用 session_result(summary) 上报，再用 knowledge_write 沉淀（ticket 层），\n"
+            "   并按你负责的模块用 ticket_tag 给工单补 tag。\n"
             "4. 遇到阻塞就明确写出来，不要编造完成。\n"
             % (ticket["workdir"], repo or "(未启用)")
         )
