@@ -37,6 +37,10 @@ class ClaudeCodeBackend:
         self.timeout = int(a.get("timeout") or 0)  # 0 = 不设固定上限，靠插话/abort 中断
         self.extra_env = a.get("env") or {}
 
+    def available(self):
+        p = self._resolve_command()
+        return bool(p and (os.path.isfile(p) or shutil.which(p)))
+
     def _resolve_command(self):
         """优先找常见 npm 全局安装位置，避免服务进程的 PATH 不含 npm。"""
         cmd = self.command
@@ -191,7 +195,12 @@ class Agents(Module):
         self.log.info("agents.ready", backends=[b["name"] for b in self.backends.list()])
 
     def backends_api(self, payload=None):
-        return {"items": self.backends.list(), "default": self.cfg.get("sessions", {}).get("backend") or "api"}
+        items = self.backends.list()
+        for b in items:
+            backend = self.backends.get(b.get("name"))
+            if hasattr(backend, "available"):
+                b["available"] = bool(backend.available())
+        return {"items": items, "default": self.cfg.get("sessions", {}).get("backend") or "api"}
 
     def run_api(self, payload):
         """直接验证后端：不建会话，只在一个临时工作目录跑一轮。"""
