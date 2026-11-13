@@ -36,6 +36,7 @@ class Idle(Module):
         self.tz_offset = float(cfg.get("utc_offset_hours", 8))   # 高峰窗口按本地时间判断
         self.root = path_of(self.cfg, "idle.root", "data/idle")
         self.store = Collection(self.root)
+        self.q_lock = threading.RLock()
         if self.store.get("queue") is None:
             self.store.put("queue", {"items": []})
         self.log.info("idle.ready", windows=self.windows, discounts=self.offpeak_discount)
@@ -95,19 +96,31 @@ class Idle(Module):
         self.store.put("queue", q)
 
     def enqueue(self, kind, payload, note=""):
-        q = self._q()
-        item = {"id": "q-" + uuid.uuid4().hex[:8], "kind": kind, "payload": payload,
-                "note": note, "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "status": "queued"}
-        q["items"].append(item)
-        self._save_q(q)
+        with self.q_lock:
+            q = self._q()
+            item = {"id": "q-" + uuid.uuid4().hex[:8], "kind": kind, "payload": payload,
+                    "note": note, "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "status": "queued", "attempts": 0}
+            q["items"].append(item)
+            self._save_q(q)
         self.emit("idle.queued", {"queue_id": item["id"], "kind": kind})
         return item
 
     def _pop(self, qid):
-        q = self._q()
-        keep = [i for i in q["items"] if i["id"] != qid]
-        self._save_q({"items": keep})
+        with self.q_lock:
+            q = self._q()
+            keep = [i for i in q["items"] if i["id"] != qid]
+            self._save_q({"items": keep})
+
+    def _mark_failed(self, qid, error):
+        with self.q_lock:
+            q = self._q()
+            for it in q["items"]:
+                if it["id"] == qid:
+                    it["attempts"] = int(it.get("attempts") or 0) + 1
+                    it["last_error"] = str(error)[:300]
+                    it["last_try"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            self._save_q(q)
 
     def _dispatch(self, item):
         p = item.get("payload") or {}
@@ -121,13 +134,17 @@ class Idle(Module):
         if not force and self.judge()["peak"]:
             return {"ok": True, "skipped": "仍处于高峰，不执行队列", "done": []}
         done = []
-        for item in self._q()["items"][:limit]:
+        with self.q_lock:
+            batch = list(self._q()["items"][:limit])
+        for item in batch:
             try:
                 self._dispatch(item)
                 done.append({"id": item["id"], "kind": item["kind"], "ok": True})
+                # 只有成功才出队；失败保留，避免静默丢消息/丢工单
+                self._pop(item["id"])
             except Exception as exc:
+                self._mark_failed(item["id"], exc)
                 done.append({"id": item["id"], "kind": item["kind"], "ok": False, "error": repr(exc)[:200]})
-            self._pop(item["id"])
         if done:
             self.emit("idle.flushed", {"count": len(done)})
             self.log.info("idle.flushed", count=len(done))

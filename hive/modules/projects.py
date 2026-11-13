@@ -15,7 +15,7 @@ import time
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
-from ..kernel.store import Collection, inside
+from ..kernel.store import Collection, inside, valid_id
 from ..kernel.tools import Tool
 
 MAX_NAME = 48
@@ -27,9 +27,13 @@ def _now():
 
 def _slug(text, fallback="project"):
     """项目名规范化：允许中文，去掉空格和斜杠，长度受限。"""
-    name = re.sub(r"[\s/\\]+", "-", (text or "").strip())
-    name = re.sub(r"-{2,}", "-", name).strip("-")
-    return (name or fallback)[:MAX_NAME]
+    name = (text or "").strip()
+    # 只保留字母/数字/下划线/中文/连字符；点号也去掉，避免 ".." 变成路径
+    name = re.sub(r"[^\w\u4e00-\u9fff-]+", "-", name, flags=re.UNICODE)
+    name = re.sub(r"-{2,}", "-", name).strip("-_")
+    if not valid_id(name):
+        name = fallback
+    return name[:MAX_NAME]
 
 
 class Projects(Module):

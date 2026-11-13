@@ -11,7 +11,7 @@ var state = {
   view: 'chat', group: 'secretary', groups: [], projects: [], project: '',
   cursor: 0, seen: {}, liveTimer: null, pollTimer: null,
   sideLayer: 'ticket', flow: null, idle: null,
-  navDepth: 0, booted: false,
+  navDepth: 0, booted: false, modalStack: [],
 };
 
 function $(id) { return document.getElementById(id); }
@@ -65,11 +65,8 @@ function updateBackBtn() {
   b.classList.toggle('hidden', atHome && !overlay && $('side').classList.contains('hidden'));
 }
 function goBack() {
-  // 优先级：弹窗 -> 交付件侧栏 -> 抽屉 -> 历史栈 -> 层级回退
-  if (currentOverlay()) {
-    if (isOverlayHash()) history.back(); else { closeModal(); updateBackBtn(); }
-    return;
-  }
+  // 优先级：弹窗（含弹窗栈）-> 交付件侧栏 -> 抽屉 -> 历史栈 -> 层级回退
+  if (currentOverlay()) { closeModal(); return; }
   if (!$('side').classList.contains('hidden')) { hide('side'); updateBackBtn(); return; }
   if ($('rail').classList.contains('open')) { toggleRail(false); return; }
   if (state.navDepth > 0) { history.back(); return; }
@@ -116,10 +113,23 @@ function inline(s) {
 }
 function md(src) {
   if (!src) return '';
-  var blocks = String(src).replace(/\r\n/g, '\n').split(/\n{2,}/), out = [];
+  var text = String(src).replace(/\r\n/g, '\n');
+  // 先把围栏代码块整体摘出来，避免代码里的空行/竖线被当成普通 Markdown
+  var codes = [];
+  text = text.replace(/```([^\n]*)\n([\s\S]*?)```/g, function (m, lang, body) {
+    codes.push(body.replace(/\n$/, ''));
+    return '\n\n@@CODE' + (codes.length - 1) + '@@\n\n';
+  });
+  // 未闭合的围栏也按代码块处理，直到文件结尾
+  text = text.replace(/```([^\n]*)\n([\s\S]*)$/g, function (m, lang, body) {
+    codes.push(body.replace(/\n$/, ''));
+    return '\n\n@@CODE' + (codes.length - 1) + '@@\n\n';
+  });
+  var blocks = text.split(/\n{2,}/), out = [];
   blocks.forEach(function (block) {
+    var m = block.match(/^@@CODE(\d+)@@$/);
+    if (m) { out.push('<pre class="code"><code>' + esc(codes[Number(m[1])] || '') + '</code></pre>'); return; }
     var lines = block.split('\n');
-    if (/^```/.test(lines[0])) { out.push('<pre class="code"><code>' + esc(lines.slice(1).join('\n').replace(/```$/, '')) + '</code></pre>'); return; }
     if (lines.length >= 2 && /\|/.test(lines[0]) && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[1])) {
       var head = lines[0].replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|');
       var rows = lines.slice(2);
@@ -130,8 +140,8 @@ function md(src) {
       });
       out.push(h + '</table>'); return;
     }
-    var m;
-    if ((m = block.match(/^(#{1,4})\s+(.*)$/))) { var lv = m[1].length + 1; out.push('<h' + lv + '>' + inline(m[2]) + '</h' + lv + '>'); return; }
+    var hd;
+    if ((hd = block.match(/^(#{1,4})\s+(.*)$/))) { var lv = hd[1].length + 1; out.push('<h' + lv + '>' + inline(hd[2]) + '</h' + lv + '>'); return; }
     if (/^\s*([-*]|\d+\.)\s+/.test(block)) {
       var ordered = /^\s*\d+\./.test(block);
       var items = lines.filter(function (l) { return /^\s*([-*]|\d+\.)\s+/.test(l); })
@@ -146,12 +156,14 @@ function md(src) {
 
 // ---------------- 头像 ----------------
 var PALETTE = ['#3b82f6', '#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#6366f1', '#84cc16'];
+var AVATARS = ['🦊', '🐼', '🐧', '🦉', '🐯', '🐸', '🐨', '🦁', '🐺', '🐹', '🐰', '🐵'];
 function avatar(name) {
   name = name || '?';
   var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
   var c = PALETTE[Math.abs(h) % PALETTE.length];
-  var initials = name.replace(/·/g, '').slice(0, 2);
-  return '<span class="avatar" style="background:' + c + '">' + esc(initials) + '</span>';
+  // 每个发言人一个稳定的卡通头像（不依赖外部图片，CSP 下也能显示）
+  var face = name === '我' ? '🙂' : AVATARS[Math.abs(h) % AVATARS.length];
+  return '<span class="avatar" style="background:' + c + '">' + esc(face) + '</span>';
 }
 function fmtTime(ts) {
   if (!ts) return '';
@@ -165,7 +177,12 @@ function fmtBytes(n) {
 }
 
 // ---------------- 登录 ----------------
-function showLogin() { hide('app'); show('login'); }
+function showLogin() {
+  // 401 后必须停掉轮询，否则后台会每 0.9/5 秒继续 401
+  clearInterval(state.pollTimer); clearInterval(state.liveTimer);
+  state.pollTimer = null; state.liveTimer = null;
+  hide('app'); show('login');
+}
 function doLogin() {
   var pw = $('password').value; if (!pw) return;
   $('login-err').textContent = '';
@@ -246,7 +263,7 @@ function openProject(pid, silent, opts) {
   opts = opts || {};
   if (!findProject(pid)) { selectGroup('secretary', true, { replace: true }); return; }
   state.view = 'project'; state.project = pid;
-  hide('chatview'); show('projectview'); hide('side'); closeModal();
+  hide('chatview'); show('projectview'); hide('side'); closeModal({ silent: true });
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
   renderProjects(); setTab('chat');
   if (!opts.fromRoute) {
@@ -271,7 +288,7 @@ function renderProject(p) {
       return '<div class="trow" data-id="' + esc(t.id) + '">' +
         '<div class="grow"><div class="tt">' + esc(t.title || t.id) + '</div>' +
         '<div class="muted small"><code>' + esc(t.id) + '</code> ' + chips + '</div></div>' +
-        '<span class="status-chip ' + esc(t.status) + '">' + esc(t.status) + '</span>' +
+        '<span class="status-chip ' + esc(t.status) + '">' + esc(statusLabel(t.status)) + '</span>' +
         '<button class="mini" data-open="1">进入</button>' +
         (t.status === 'closed' ? '<button class="mini danger-ghost" data-del="1">删除</button>' : '') +
         '</div>';
@@ -304,7 +321,7 @@ function selectGroup(id, silent, opts) {
   state.view = 'chat'; state.group = id; state.cursor = 0; state.seen = {}; state.lastLive = '';
   hide('projectview'); show('chatview'); hide('flow');
   if (!keepSide) hide('side');
-  closeModal();
+  closeModal({ silent: true });
   $('messages').innerHTML = '';
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
   renderProjects(); renderRailGroups(); setTab('chat');
@@ -321,7 +338,7 @@ function selectGroup(id, silent, opts) {
   $('chat-tags').innerHTML = '';
   if (isTicket) {
     show('btn-copy-ticket'); $('btn-copy-ticket').textContent = '⧉ ' + id; show('btn-fork-ticket');
-    if ((g.status || '') !== 'closed') show('btn-addtag'); else hide('btn-addtag');
+    if ((g.status || '') !== 'closed' && (g.status || '') !== 'closing') show('btn-addtag'); else hide('btn-addtag');
     loadTags(); loadFlow();
   } else {
     hide('btn-copy-ticket'); hide('btn-fork-ticket'); hide('btn-addtag'); hide('flow');
@@ -343,7 +360,14 @@ function loadTimeline(silent) {
       var d = document.createElement('details');
       d.className = 'modgroup';
       d.innerHTML = '<summary>执行过程 · ' + modBuf.length + ' 条模块报文（点开看完整内容）</summary>';
+      var earliest = modBuf[0].ts;
       modBuf.forEach(function (x) { d.appendChild(renderModuleMsg(x)); });
+      if (state.group.indexOf('T-') === 0) {
+        var eb = document.createElement('button');
+        eb.className = 'mini modearlier'; eb.textContent = '查看更早的模块报文';
+        eb.onclick = function (e) { e.preventDefault(); e.stopPropagation(); openEarlierModules(earliest); };
+        d.appendChild(eb);
+      }
       box.appendChild(d); modBuf = [];
     }
     (r.items || []).forEach(function (m) {
@@ -373,6 +397,15 @@ function renderMsg(m) {
   return el;
 }
 
+function openEarlierModules(before) {
+  api('/api/web/modules?group=' + encodeURIComponent(state.group) + '&limit=200&before_ts=' + encodeURIComponent(before || 0))
+    .then(function (r) {
+      openModal('更早的模块报文', '<div id="earlymods" class="modlist"></div>', { root: true });
+      var box = $('earlymods');
+      if (!(r.items || []).length) { box.innerHTML = '<div class="empty">没有更早的模块报文了</div>'; return; }
+      (r.items || []).forEach(function (m) { box.appendChild(renderModuleMsg(m)); });
+    }).catch(function (e) { toast(e.message, 'err'); });
+}
 function renderModuleMsg(m) {
   var el = document.createElement('div');
   el.className = 'msg modulemsg';
@@ -406,7 +439,7 @@ function renderFlow(f) {
   }).join('<span class="farrow">›</span>');
   var branches = ((f.parallel_stage || {}).branches || []).map(function (b) {
     return '<div class="branch" data-s="' + esc(b.id) + '"><span class="bdot ' + esc(b.state || '') + '"></span>' +
-      '<span class="blabel">' + esc(b.label) + '</span><span class="muted small">' + esc(b.state || '') + '</span></div>';
+      '<span class="blabel">' + esc(b.label) + '</span><span class="muted small">' + esc(stateLabel(b.state)) + '</span></div>';
   }).join('');
   box.innerHTML = '<div class="flowline">' + nodes + '</div>' +
     (branches ? '<div class="parallel"><div class="ptitle">PM 并行编排 <span class="muted small">（点角色看任务/状态）</span></div>' +
@@ -437,7 +470,8 @@ function loadTags() {
   api('/api/tickets/' + encodeURIComponent(state.group)).then(function (r) {
     var tags = (r.ticket || {}).tags || [];
     $('chat-tags').innerHTML = tags.map(function (t) {
-      var lock = (findGroup(state.group) || {}).status === 'closed';
+      var st = (r.ticket || {}).status || (findGroup(state.group) || {}).status;
+      var lock = st === 'closed' || st === 'closing';
       return '<span class="tagchip">' + esc(t) + (lock ? '' : '<button data-t="' + esc(t) + '">×</button>') + '</span>';
     }).join('') || '<span class="muted small">无标签</span>';
     $('chat-tags').querySelectorAll('button').forEach(function (b) {
@@ -520,13 +554,21 @@ function openIdle() {
 
 // ---------------- 侧栏：交付件 ----------------
 function openSide() {
+  var isTicket = state.view === 'chat' && state.group.indexOf('T-') === 0;
+  if (state.view === 'project') state.sideLayer = 'project';
+  else if (isTicket && state.sideLayer === 'public') state.sideLayer = 'public';
+  else if (isTicket) state.sideLayer = 'ticket';
+  else state.sideLayer = (state.group.indexOf('sec-') === 0 && state.project) ? 'project' : 'public';
   show('side'); loadFiles(); updateBackBtn();
 }
 function loadFiles() {
   var body = $('side-body');
-  var isTicket = state.group.indexOf('T-') === 0;
+  var isTicket = state.view === 'chat' && state.group.indexOf('T-') === 0;
   var g = findGroup(state.group) || {};
-  var project = g.project || (state.group.indexOf('sec-') === 0 ? state.group.slice(4) : state.project);
+  var project = state.view === 'project' ? state.project
+    : (g.project || (state.group.indexOf('sec-') === 0 ? state.group.slice(4) : ''));
+  if (!isTicket && state.sideLayer === 'ticket') state.sideLayer = project ? 'project' : 'public';
+  if (!project && state.sideLayer === 'project') state.sideLayer = 'public';
   var tabs = '<div class="seg">' +
     (isTicket ? '<button data-layer="ticket" class="' + (state.sideLayer === 'ticket' ? 'on' : '') + '">工单层</button>' : '') +
     (project ? '<button data-layer="project" class="' + (state.sideLayer === 'project' ? 'on' : '') + '">项目层</button>' : '') +
@@ -563,7 +605,7 @@ function openArtifact(path, project, isTicket) {
 // ---------------- 文件浏览 ----------------
 function openProjectFiles() {
   var pid = state.project; if (!pid) return;
-  openModal('项目文件 · ' + pid, '<div id="ftree" class="muted">加载中…</div>');
+  openModal('项目文件 · ' + pid, '<div id="ftree" class="muted">加载中…</div>', { root: true });
   browseProject('', pid);
 }
 function browseProject(path, pid) {
@@ -581,7 +623,10 @@ function browseProject(path, pid) {
         if (row.dataset.up) { browseProject(path.split('/').slice(0, -1).join('/'), pid); return; }
         if (row.dataset.t === 'dir') browseProject(row.dataset.p, pid);
         else api('/api/projects/' + encodeURIComponent(pid) + '/file?path=' + encodeURIComponent(row.dataset.p))
-          .then(function (f) { openModal(row.dataset.p, f.encoding === 'utf-8' ? md(f.text) : '<div class="muted">二进制</div>'); })
+          .then(function (f) { openModal(row.dataset.p, f.encoding === 'utf-8' ? md(f.text) : '<div class="muted">二进制</div>', { back: function () {
+            openModal('项目文件 · ' + pid, '<div id="ftree" class="muted">加载中…</div>', { root: true });
+            browseProject(path.split('/').slice(0, -1).join('/'), pid);
+          } }); })
           .catch(function (e) { toast(e.message, 'err'); });
       };
     });
@@ -589,7 +634,7 @@ function browseProject(path, pid) {
 }
 function openSource(opts) {
   opts = opts || {};
-  openModal('agent 源码 / 配置（只读）', '<div id="ftree" class="muted">加载中…</div>');
+  openModal('agent 源码 / 配置（只读）', '<div id="ftree" class="muted">加载中…</div>', { root: true });
   if (!opts.fromRoute) overlayRoute('#/source', 'source');
   browseSource('');
 }
@@ -608,7 +653,9 @@ function browseSource(path) {
         if (row.dataset.up) { browseSource(path.split('/').slice(0, -1).join('/')); return; }
         if (row.dataset.t === 'dir') browseSource(row.dataset.p);
         else api('/api/ops/file?path=' + encodeURIComponent(row.dataset.p))
-          .then(function (f) { openModal(row.dataset.p, md(f.text)); })
+          .then(function (f) { openModal(row.dataset.p, md(f.text), { back: function () {
+            openSource({ fromRoute: true }); browseSource(path.split('/').slice(0, -1).join('/'));
+          } }); })
           .catch(function (e) { toast(e.message, 'err'); });
       };
     });
@@ -616,8 +663,39 @@ function browseSource(path) {
 }
 
 // ---------------- 弹窗 / 库 / 健康 / 版本 ----------------
-function openModal(title, html) { $('modal-title').textContent = title; $('modal-body').innerHTML = html; show('modal'); updateBackBtn(); }
-function closeModal() { hide('modal'); updateBackBtn(); }
+function openModal(title, html, opts) {
+  opts = opts || {};
+  var visible = !$('modal').classList.contains('hidden');
+  if (opts.root) state.modalStack = [];
+  else if (visible) state.modalStack.push({
+    title: $('modal-title').textContent,
+    html: $('modal-body').innerHTML,
+    back: opts.back || null
+  });
+  $('modal-title').textContent = title;
+  $('modal-body').innerHTML = html;
+  show('modal'); updateBackBtn();
+}
+function closeModal(opts) {
+  opts = opts || {};
+  if (!opts.silent && state.modalStack.length) {
+    var prev = state.modalStack.pop();
+    if (prev.back) { prev.back(); }
+    else { $('modal-title').textContent = prev.title; $('modal-body').innerHTML = prev.html; show('modal'); }
+    updateBackBtn();
+    return;
+  }
+  hide('modal');
+  if (!opts.silent) {
+    state.modalStack = [];
+    // 深链直接打开 #/health 时 navDepth=0，不能 history.back 到浏览器外部
+    if (isOverlayHash()) {
+      if (state.navDepth > 0) history.back();
+      else replaceHash(hashOfView());
+    }
+  }
+  updateBackBtn();
+}
 
 function overlayRoute(hash, tab) {
   setTab(tab);
@@ -633,34 +711,54 @@ function openLibrary(kind, opts) {
     return '<button data-kind="' + k[0] + '" class="' + (kind === k[0] ? 'on' : '') + '">' + k[1] + '库</button>';
   }).join('') + '</div><div id="libbody" class="libbody"></div>' +
     '<h4>标签库（公共 / 项目）</h4><div id="tagbody" class="muted small">加载中…</div>';
-  openModal('可插拔能力库', tabs);
+  openModal('可插拔能力库', tabs, { root: true });
   if (!opts.fromRoute) overlayRoute('#/library/' + kind, 'library');
   document.querySelectorAll('#modal-body .seg button').forEach(function (b) { b.onclick = function () { openLibrary(b.dataset.kind); }; });
   api('/api/library/list?kind=' + kind).then(function (r) {
     var box = $('libbody');
     box.innerHTML = (r.items || []).map(function (it, i) {
-      var sub = kind === 'roles' ? (it.responsibility || '') : kind === 'flows' ? ((it.checks || []).map(function (c) { return c.must || c; }).join(' · ')) : (it.body || '').slice(0, 80);
+      var sub = kind === 'roles' ? (it.responsibility || '') : kind === 'flows' ? ((it.checks || []).map(function (c) { return c.path || c.must || JSON.stringify(c); }).join(' · ')) : (it.body || '').slice(0, 80);
       return '<div class="libcard" data-i="' + i + '"><div class="libtitle">' + esc(it.cn || it.name || it.id) +
         (it.builtin ? '<span class="tag">内置</span>' : '') + '</div><div class="muted small">' + esc(it.id) + ' · ' + esc(sub) + '</div></div>';
     }).join('') || '<div class="empty">空</div>';
     box.querySelectorAll('.libcard').forEach(function (c) {
-      c.onclick = function () { var it = r.items[Number(c.dataset.i)]; openModal((it.cn || it.id) + ' · ' + kind, '<pre class="raw">' + esc(JSON.stringify(it, null, 2)) + '</pre>'); };
+      c.onclick = function () {
+        var it = r.items[Number(c.dataset.i)];
+        openModal((it.cn || it.id) + ' · ' + kind, '<pre class="raw">' + esc(JSON.stringify(it, null, 2)) + '</pre>',
+          { back: function () { openLibrary(kind); } });
+      };
     });
   }).catch(function (e) { $('libbody').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
-  api('/api/library/tags?project=' + encodeURIComponent(state.project || '')).then(function (t) {
+  var libProject = state.project || ((findGroup(state.group) || {}).project || '');
+  api('/api/library/tags?project=' + encodeURIComponent(libProject)).then(function (t) {
     $('tagbody').innerHTML = '公共: ' + ((t.public || []).join(', ') || '空') + '<br>项目: ' + ((t.project || []).join(', ') || '空');
   }).catch(function () {});
 }
 
+var HEALTH_LABELS = {
+  data_writable: '数据目录可写', modules_loaded: '模块齐全', bus: '事件总线可用',
+  disk_free: '磁盘余量', artifacts_size: '交付件体积', artifacts_disk_headroom: '交付件占用余量',
+  trace: '全链路 trace 落盘', llm_key: '大模型 Key'
+};
+var FLOW_STATE_LABELS = { done: '已完成', running: '进行中', idle: '等待中', destroyed: '已结束', gone: '已结束', error: '异常' };
+function healthLabel(n) {
+  if (HEALTH_LABELS[n]) return HEALTH_LABELS[n];
+  if (/^api_/.test(n)) return '接口可用：' + n.slice(4).replace(/_/g, '.');
+  return n;
+}
+function stateLabel(s) { return FLOW_STATE_LABELS[s] || s || ''; }
+var STATUS_LABELS = { running: '进行中', queued: '排队中', closing: '结单中', closed: '已结单',
+  conflict: '有冲突', working: '处理中', blocked: '被拦下', interrupted: '已中断', error: '异常' };
+function statusLabel(s) { return STATUS_LABELS[s] || s || ''; }
 function openHealth(opts) {
   opts = opts || {};
-  openModal('健康自检', '<div id="hbody" class="muted">检查中…</div>');
+  openModal('健康自检', '<div id="hbody" class="muted">检查中…</div>', { root: true });
   if (!opts.fromRoute) overlayRoute('#/health', 'health');
   Promise.all([api('/api/health/self'), api('/api/artifacts/stats'), api('/api/ops/status').catch(function () { return {}; })])
     .then(function (rs) {
       var h = rs[0] || {}, a = rs[1] || {}, s = rs[2] || {};
       var checks = (h.checks || []).map(function (c) {
-        return '<div class="check ' + (c.ok ? 'ok' : 'bad') + '"><span class="dot"></span><div><div>' + esc(c.name) +
+        return '<div class="check ' + (c.ok ? 'ok' : 'bad') + '"><span class="dot"></span><div><div>' + esc(healthLabel(c.name)) +
           '</div><div class="muted small">' + esc(c.detail || '') + '</div></div></div>';
       }).join('');
       var big = (a.biggest || []).slice(0, 8).map(function (b) {
@@ -684,7 +782,7 @@ function openHealth(opts) {
 }
 function openVersions(opts) {
   opts = opts || {};
-  openModal('版本管理', '<div id="vbody" class="muted">读取中…</div>');
+  openModal('版本管理', '<div id="vbody" class="muted">读取中…</div>', { root: true });
   if (!opts.fromRoute) overlayRoute('#/versions', 'versions');
   api('/api/ops/versions').then(function (v) {
     var g = v.git || {};
@@ -811,9 +909,7 @@ $('btn-back').onclick = goBack;
 $('rail-mask').onclick = function () { toggleRail(false); };
 $('btn-files').onclick = openSide;
 $('side-close').onclick = function () { hide('side'); updateBackBtn(); };
-$('modal-close').onclick = function () {
-  if (isOverlayHash()) history.back(); else { closeModal(); }
-};
+$('modal-close').onclick = function () { closeModal(); };
 $('idle-chip').onclick = openIdle;
 $('btn-addtag').onclick = addTag;
 $('btn-fork-ticket').onclick = function () { openFork('基于 ' + state.group + ' 的后续修改：', state.group); };
@@ -832,13 +928,15 @@ $('pv-delete').onclick = deleteProject;
 $('pv-secretary').onclick = function () { selectGroup('sec-' + state.project); };
 $('pv-compact').onclick = compactProjectSecretary;
 $('pv-create').onclick = createTicket;
-$('pv-artifacts').onclick = function () { state.group = 'sec-' + state.project; state.sideLayer = 'project'; show('side'); loadFiles(); updateBackBtn(); };
+$('pv-artifacts').onclick = function () { state.sideLayer = 'project'; show('side'); loadFiles(); updateBackBtn(); };
 document.querySelectorAll('.tab').forEach(function (b) {
   b.onclick = function () {
     var tab = b.dataset.tab;
     setTab(tab);
     if (tab === 'chat') {
-      if (isOverlayHash()) history.back(); else { closeModal(); hide('side'); }
+      state.modalStack = []; hide('modal'); hide('side');
+      if (isOverlayHash()) replaceHash(hashOfView());
+      updateBackBtn();
     }
     else if (tab === 'library') openLibrary('roles');
     else if (tab === 'health') openHealth();

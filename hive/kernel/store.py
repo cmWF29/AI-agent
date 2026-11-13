@@ -11,6 +11,13 @@ import threading
 import time
 
 _SAFE_ID = re.compile(r"[^A-Za-z0-9_.\-]")
+_ID_RE = re.compile(r"^[A-Za-z0-9_\-\u4e00-\u9fff]{1,64}$")
+
+
+def valid_id(value):
+    """项目/工单/库 id 的严格白名单：不允许点号、斜杠，避免路径逃逸。"""
+    s = str(value or "")
+    return bool(_ID_RE.match(s)) and s not in (".", "..")
 
 
 def safe_id(value):

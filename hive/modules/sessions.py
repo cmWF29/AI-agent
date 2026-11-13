@@ -558,7 +558,7 @@ class Sessions(Module):
         items = [self._summary(r) for r in self.store.list()]
         if kind:
             items = [i for i in items if i["kind"] == kind]
-        if project:
+        if project is not None and (project or "project" in payload):
             items = [i for i in items if (i.get("project") or "") == project]
         if ticket:
             items = [i for i in items if (i.get("ticket") or "") == ticket]

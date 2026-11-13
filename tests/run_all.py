@@ -242,8 +242,18 @@ def test_tickets(mock):
         detail = env.api("tickets.get", ticket_id=t["id"])["ticket"]
         check("角色已登记", len(detail["roles"]) == 1 and detail["roles"][0]["role"] == "architect", detail["roles"])
         check("角色会话在跑且已完成", detail["roles"][0]["state"] in ("idle", "running"), detail["roles"][0])
+        # 结单硬门禁：架构师还没交架构文档，必须拦下
+        gate = None
+        try:
+            env.api("tickets.close", ticket_id=t["id"], summary="README 已补齐")
+        except Exception as exc:
+            gate = exc
+        check("缺必交产物时结单被拦", gate is not None and "缺必交产物" in str(gate), gate)
+        os.makedirs(os.path.join(detail["workdir"], "docs"), exist_ok=True)
+        with open(os.path.join(detail["workdir"], "docs", "架构-architect.md"), "w", encoding="utf-8") as f:
+            f.write("# 架构说明\n\n模块边界与取舍。\n")
         closed = env.api("tickets.close", ticket_id=t["id"], summary="README 已补齐")["ticket"]
-        check("结单成功", closed["status"] == "closed", closed)
+        check("补齐后结单成功", closed["status"] == "closed", closed)
         check("结单后 PM 销毁", not closed["pm"], closed["pm"])
         check("结单后角色销毁", closed["roles"] and closed["roles"][0]["status"] == "destroyed", closed["roles"])
         kpath = os.path.join(env.tmp, "data", "knowledge", "tickets", t["id"], "00-summary.md")
@@ -589,6 +599,8 @@ def test_close_readonly_artifacts(mock):
 
         st, body, _ = env.http("/api/tickets/%s/message" % t["id"], method="POST", body={"text": "再改一下"})
         check("结单后发消息被拒", st == 410 and body.get("code") == "ticket_closed", (st, body))
+        st_t, body_t, _ = env.http("/api/tickets/%s/tags" % t["id"], method="POST", body={"add": ["late"]})
+        check("结单后标签只读", st_t == 410 and body_t.get("code") == "ticket_closed", (st_t, body_t))
 
         st_tl, body_tl, _ = env.http("/api/web/timeline?group=%s&limit=100" % t["id"])
         tl = (body_tl or {}).get("items") or []
@@ -602,6 +614,10 @@ def test_close_readonly_artifacts(mock):
         cmp = env.api("artifacts.compress", project="arch", ticket=t["id"])
         tar = cmp["result"].get("tar") or ""
         check("压缩工单交付件", cmp["result"]["bytes_after"] > 0 and os.path.exists(tar), cmp)
+        lst2 = env.api("artifacts.list", layer="ticket", project="arch", ticket=t["id"])
+        check("压缩后仍能看到文件清单", any(i["path"].endswith("report.md") for i in lst2["items"]), lst2["items"])
+        got = env.api("artifacts.file", layer="ticket", project="arch", ticket=t["id"], path="docs/report.md")
+        check("压缩后仍能读取文件内容", "报告" in (got.get("text") or "") or "report" in (got.get("text") or "").lower(), got.get("text", "")[:80])
     finally:
         env.close()
 
@@ -729,6 +745,12 @@ def test_v4_features(mock):
         d = env.api("tickets.dispatch", ticket_id=t["ticket"]["id"])
         check("强制派发后进入 running", d["ticket"]["status"] in ("running", "planning"), d["ticket"]["status"])
         check("队列已清空", env.api("idle.queue")["total"] == 0)
+        bad = env.api("idle.enqueue", kind="no-such-kind", payload={})
+        fl = env.api("idle.flush", force=True)
+        q = env.api("idle.queue")
+        check("失败队列项不静默丢失", q["total"] == 1 and q["items"][0]["attempts"] >= 1,
+              (fl, q["items"][:1]))
+        env.api("idle.dequeue", queue_id=bad["item"]["id"])
 
         msg = env.api("webchat.send", group="secretary", text="高峰期消息", force=False)
         check("秘书消息高峰排队", msg.get("status") == "queued", msg.get("status"))

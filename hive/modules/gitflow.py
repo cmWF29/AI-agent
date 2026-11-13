@@ -28,7 +28,7 @@ import subprocess
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
-from ..kernel.store import ensure_dir
+from ..kernel.store import ensure_dir, valid_id
 from ..kernel.tools import Tool
 
 GIT_ENV = {
@@ -49,6 +49,8 @@ class GitFlow(Module):
         self.projects_root = path_of(self.cfg, "projects.root", "data/projects")
         self.tickets_root = path_of(self.cfg, "tickets.root", "data/tickets")
         g = self.cfg.get("gitflow") if isinstance(self.cfg.get("gitflow"), dict) else {}
+        import threading
+        self._merge_lock = threading.RLock()
         self.enabled = bool(g.get("enabled", True))
         self.prefix = g.get("branch_prefix") or "ticket/"
         self.main = g.get("main_branch") or "main"
@@ -62,6 +64,7 @@ class GitFlow(Module):
         self.api.route("POST", "/api/gitflow/ticket/init", name="ticket_init")(self.ticket_init_api)
         self.api.route("POST", "/api/gitflow/ticket/sync", name="ticket_sync")(self.ticket_sync_api)
         self.api.route("GET", "/api/gitflow/ticket/status", name="ticket_status")(self.ticket_status_api)
+        self.api.route("GET", "/api/gitflow/ticket/changed", name="ticket_changed")(self.ticket_changed_api)
         self.api.route("POST", "/api/gitflow/ticket/merge", name="ticket_merge")(self.ticket_merge_api)
         self.api.route("POST", "/api/gitflow/ticket/remove", name="ticket_remove")(self.ticket_remove_api)
         self.api.route("GET", "/api/gitflow/list", name="list")(self.list_api)
@@ -139,7 +142,8 @@ class GitFlow(Module):
         tree = self.ticket_tree(ticket)
         branch = self.prefix + ticket
         if os.path.isdir(os.path.join(tree, ".git")):
-            return {"enabled": True, "tree": tree, "branch": branch, "existing": True}
+            base = self._run(["merge-base", "%s/%s" % (self.remote, self.main), "HEAD"], cwd=tree)["out"]
+            return {"enabled": True, "tree": tree, "branch": branch, "existing": True, "base": base}
         ensure_dir(os.path.dirname(tree))
         if os.path.isdir(tree):
             shutil.rmtree(tree, ignore_errors=True)
@@ -149,11 +153,12 @@ class GitFlow(Module):
         r = self._run(["checkout", "-b", branch], cwd=tree)
         if not r["ok"]:
             r = self._run(["checkout", branch], cwd=tree)
+        base = self._run(["rev-parse", "HEAD"], cwd=tree)["out"]
         # 注意：不要往每个工单分支写同名文件（比如 .hive-ticket），
         # 否则多个工单合并回 main 时会在“同一路径不同内容”上必然冲突。
         self.emit("gitflow.ticket.ready", {"ticket": ticket, "project": project, "branch": branch})
         self.log.info("gitflow.ticket.init", ticket=ticket, branch=branch)
-        return {"enabled": True, "tree": tree, "branch": branch, "existing": False}
+        return {"enabled": True, "tree": tree, "branch": branch, "base": base, "existing": False}
 
     def ticket_status(self, ticket):
         tree = self.ticket_tree(ticket)
@@ -161,9 +166,9 @@ class GitFlow(Module):
             return {"enabled": self.enabled, "exists": False, "tree": tree}
         branch = self._run(["rev-parse", "--abbrev-ref", "HEAD"], cwd=tree)["out"]
         dirty = self._run(["status", "--porcelain"], cwd=tree)["out"]
-        ahead = self._run(["rev-list", "--count", "HEAD"] + ([]), cwd=tree)
         last = self._run(["log", "-1", "--pretty=%h %s"], cwd=tree)["out"]
         self._run(["fetch", self.remote], cwd=tree, timeout=30)
+        ahead = self._run(["rev-list", "--count", "%s/%s..HEAD" % (self.remote, self.main)], cwd=tree)
         behind = self._run(["rev-list", "--count", "HEAD..%s/%s" % (self.remote, self.main)], cwd=tree)
         files = {}
         try:
@@ -218,6 +223,25 @@ class GitFlow(Module):
         self.log.info("gitflow.pushed", ticket=ticket, branch=branch, head=head)
         return {"ok": True, "stage": "done", "branch": branch, "head": head, "committed": committed}
 
+    def changed_files(self, ticket, base):
+        """工单相对远端 main 改了哪些文件；结单归档只收这些，避免把 main 全量复制一遍。
+
+        用 `origin/main...HEAD`（三点）而不是 `base..HEAD`：工单 sync 时 rebase 到最新 main，
+        旧 base 会把 main 上的其他提交也算进来。三点取 merge-base，只保留工单自己的改动。
+        """
+        tree = self.ticket_tree(ticket)
+        if not base or not os.path.isdir(tree):
+            return []
+        ref = "%s/%s" % (self.remote, self.main)
+        if not self._run(["rev-parse", "--verify", ref], cwd=tree)["ok"]:
+            ref = base
+        r = self._run(["diff", "--name-only", ref + "...HEAD"], cwd=tree)
+        if not r["ok"]:
+            r = self._run(["diff", "--name-only", base + "..HEAD"], cwd=tree)
+        if not r["ok"]:
+            return []
+        return [x for x in (r["out"] or "").splitlines() if x]
+
     def _conflict_files(self, tree):
         out = self._run(["diff", "--name-only", "--diff-filter=U"], cwd=tree)
         files = [f for f in (out["out"] or "").splitlines() if f]
@@ -230,6 +254,10 @@ class GitFlow(Module):
         """把工单分支合回 main（在项目主工作树里做，冲突就返回清单）。"""
         if not self.enabled:
             return {"enabled": False}
+        with self._merge_lock:
+            return self._merge_ticket(ticket, project)
+
+    def _merge_ticket(self, ticket, project):
         main = self.main_tree(project)
         branch = self.prefix + ticket
         # 必须显式 refspec：git fetch origin ticket/x 只会写 FETCH_HEAD，
@@ -250,18 +278,25 @@ class GitFlow(Module):
         if not r["ok"]:
             conflicts = self._conflict_files(main)
             self._run(["merge", "--abort"], cwd=main)
-            self.emit("gitflow.merge.conflict", {"ticket": ticket, "project": project, "files": conflicts})
-            return {"ok": False, "stage": "merge", "conflict": conflicts,
-                    "hint": "冲突未合入；工单需要重新审视/改代码/重跑测试后再合"}
-        if not r["ok"] and not conflicts:
-            # 不是内容冲突，而是 git 层面的失败：一样不许当作“已合并”
+            if conflicts:
+                self.emit("gitflow.merge.conflict", {"ticket": ticket, "project": project, "files": conflicts})
+                return {"ok": False, "stage": "merge", "conflict": conflicts,
+                        "hint": "冲突未合入；工单需要重新审视/改代码/重跑测试后再合"}
+            self.emit("gitflow.merge.failed", {"ticket": ticket, "project": project,
+                                                "error": (r["err"] or r["out"])[:300]})
             return {"ok": False, "stage": "merge", "error": r["err"] or r["out"],
                     "hint": "合并失败，先排查 git 状态再重试"}
         push = self._run(["push", self.remote, self.main], cwd=main, timeout=60)
         head = self._run(["rev-parse", "--short", "HEAD"], cwd=main)["out"]
+        if not push["ok"]:
+            self.emit("gitflow.merge.failed", {"ticket": ticket, "project": project,
+                                                "error": "本地已合并，但推送失败: %s" % (push["err"] or push["out"])[:240]})
+            return {"ok": False, "stage": "push", "head": head,
+                    "error": push["err"] or push["out"],
+                    "hint": "本地 merge 已完成但远端未更新；排查网络/权限后重试 merge"}
         self.emit("gitflow.merged", {"ticket": ticket, "project": project, "head": head})
         self.log.info("gitflow.merged", ticket=ticket, project=project, head=head)
-        return {"ok": push["ok"], "stage": "merged", "head": head, "push_error": "" if push["ok"] else push["err"]}
+        return {"ok": True, "stage": "merged", "head": head}
 
     def remove_ticket(self, ticket, project):
         """删除工单时清掉工作树和已合入的临时分支（交付件/知识在别处，不受影响）。"""
@@ -280,22 +315,39 @@ class GitFlow(Module):
         return {"removed": ticket, "tree": removed_tree, "branch": branch, "branch_removed": branch_removed}
 
     # ---------------- API ----------------
+    @staticmethod
+    def _ids(project="", ticket=""):
+        if project and not valid_id(project):
+            raise ApiError("非法 project id", status=400, code="bad_project")
+        if ticket and not valid_id(ticket):
+            raise ApiError("非法 ticket id", status=400, code="bad_ticket")
+
     def project_init_api(self, payload):
+        self._ids(project=payload["project"])
         return {"repo": self.init_project(payload["project"], force=bool(payload.get("force")))}
 
     def ticket_init_api(self, payload):
+        self._ids(payload["project"], payload["ticket"])
         return {"repo": self.init_ticket(payload["ticket"], payload["project"])}
 
     def ticket_sync_api(self, payload):
+        self._ids(ticket=payload["ticket"])
         return {"result": self.sync_ticket(payload["ticket"], payload.get("message") or "")}
 
     def ticket_status_api(self, payload):
+        self._ids(ticket=payload["ticket"])
         return {"status": self.ticket_status(payload["ticket"])}
 
+    def ticket_changed_api(self, payload):
+        self._ids(ticket=payload["ticket"])
+        return {"files": self.changed_files(payload["ticket"], payload.get("base") or "")}
+
     def ticket_merge_api(self, payload):
+        self._ids(payload["project"], payload["ticket"])
         return {"result": self.merge_ticket(payload["ticket"], payload["project"])}
 
     def ticket_remove_api(self, payload):
+        self._ids(payload["project"], payload["ticket"])
         return {"result": self.remove_ticket(payload["ticket"], payload["project"])}
 
     def list_api(self, payload):

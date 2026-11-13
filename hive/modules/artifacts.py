@@ -28,7 +28,7 @@ import time
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
-from ..kernel.store import ensure_dir
+from ..kernel.store import ensure_dir, valid_id
 from ..kernel.tools import Tool
 
 SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", "repo"}
@@ -53,6 +53,8 @@ class Artifacts(Module):
     def setup(self):
         self.root = ensure_dir(path_of(self.cfg, "artifacts.root", "data/artifacts"))
         self.cfg_a = self.cfg.get("artifacts") if isinstance(self.cfg.get("artifacts"), dict) else {}
+        import threading
+        self._archive_lock = threading.RLock()
         for sub in ("public",):
             ensure_dir(os.path.join(self.root, sub))
         self.log.info("artifacts.ready", root=self.root)
@@ -71,12 +73,12 @@ class Artifacts(Module):
         if layer == "public":
             return os.path.join(self.root, "public")
         if layer == "project":
-            if not project:
-                raise ApiError("project 必填", code="missing_project")
+            if not valid_id(project):
+                raise ApiError("非法 project id", status=400, code="bad_project")
             return os.path.join(self.root, "projects", project)
         if layer == "ticket":
-            if not (project and ticket):
-                raise ApiError("project/ticket 必填", code="missing_scope")
+            if not (valid_id(project) and valid_id(ticket)):
+                raise ApiError("非法 project/ticket id", status=400, code="bad_scope")
             return os.path.join(self.root, "projects", project, "tickets", ticket)
         raise ApiError("layer 只能是 public/project/ticket", code="bad_layer")
 
@@ -89,19 +91,27 @@ class Artifacts(Module):
         return p, rel
 
     # ---------------- 归档 ----------------
-    def archive_ticket(self, ticket, project, source_dir):
-        """把工单工作目录复制进工单层，并写 index.json。返回归档信息。"""
+    def archive_ticket(self, ticket, project, source_dir, paths=None):
+        """把工单工作目录复制进工单层，并写 index.json。paths 给定时只归档这些相对路径。"""
+        with self._archive_lock:
+            return self._archive_ticket(ticket, project, source_dir, paths)
+
+    def _archive_ticket(self, ticket, project, source_dir, paths=None):
         dest = self.base_of("ticket", project=project, ticket=ticket)
-        if os.path.isdir(dest):
-            shutil.rmtree(dest, ignore_errors=True)
-        ensure_dir(dest)
+        # 先写 staging 目录，成功后再整体替换；中途失败不会毁掉上一次归档
+        staging = dest + ".tmp"
+        shutil.rmtree(staging, ignore_errors=True)
+        ensure_dir(staging)
         files = []
+        wanted = set((p or "").replace("\\", "/").lstrip("/") for p in paths) if paths is not None else None
         if source_dir and os.path.isdir(source_dir):
             for dirpath, dirnames, filenames in os.walk(source_dir):
                 dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
                 for fn in filenames:
                     src = os.path.join(dirpath, fn)
                     rel = os.path.relpath(src, source_dir)
+                    if wanted is not None and rel.replace(os.sep, "/") not in wanted:
+                        continue
                     if rel.startswith("repo" + os.sep):
                         continue
                     # 角色各自的工作目录在 workspace/<role-N>/ 下，归档时去掉这层前缀，
@@ -113,7 +123,7 @@ class Artifacts(Module):
                         size = os.path.getsize(src)
                     except OSError:
                         continue
-                    target = os.path.join(dest, rel)
+                    target = os.path.join(staging, rel)
                     ensure_dir(os.path.dirname(target))
                     try:
                         shutil.copy2(src, target)
@@ -122,7 +132,18 @@ class Artifacts(Module):
                     files.append({"path": rel.replace(os.sep, "/"), "size": size})
         index = {"ticket": ticket, "project": project, "archived": _now(),
                  "files": files, "bytes": sum(f["size"] for f in files), "compressed": False}
-        self._write_index(dest, index)
+        self._write_index(staging, index)
+        backup = dest + ".old"
+        shutil.rmtree(backup, ignore_errors=True)
+        try:
+            if os.path.exists(dest):
+                shutil.move(dest, backup)
+            shutil.move(staging, dest)
+        except OSError:
+            if not os.path.exists(dest) and os.path.exists(backup):
+                shutil.move(backup, dest)
+            raise
+        shutil.rmtree(backup, ignore_errors=True)
         self.emit("artifacts.archived", {"ticket": ticket, "project": project,
                                          "files": len(files), "bytes": index["bytes"]})
         self.log.info("artifacts.archived", ticket=ticket, files=len(files), bytes=index["bytes"])
@@ -134,6 +155,18 @@ class Artifacts(Module):
                 json.dump(index, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
+
+    def _index_any(self, project, ticket):
+        dest = self.base_of("ticket", project=project, ticket=ticket)
+        idx = self._read_index(dest)
+        if idx:
+            return idx, dest
+        sibling = os.path.join(self.root, "projects", project, "tickets", ticket + ".index.json")
+        try:
+            with open(sibling, "r", encoding="utf-8") as f:
+                return json.load(f), dest
+        except (OSError, ValueError):
+            return None, dest
 
     def _read_index(self, dest):
         p = os.path.join(dest, "index.json")
@@ -189,6 +222,14 @@ class Artifacts(Module):
     def list_files(self, layer, project="", ticket="", limit=300):
         base = self.base_of(layer, project=project, ticket=ticket)
         if not os.path.isdir(base):
+            if layer == "ticket" and project and ticket:
+                idx, _ = self._index_any(project, ticket)
+                if idx:
+                    files = idx.get("files") or []
+                    return {"layer": layer, "root": base, "compressed": True,
+                            "items": [{"path": f.get("path"), "size": f.get("size") or 0,
+                                       "mtime": idx.get("archived") or ""} for f in files[:limit]],
+                            "total": len(files), "bytes": idx.get("bytes_after") or idx.get("bytes") or 0}
             return {"layer": layer, "root": base, "items": [], "total": 0, "bytes": 0}
         items = []
         total = 0
@@ -219,11 +260,27 @@ class Artifacts(Module):
         layer = payload.get("layer") or "public"
         base = self.base_of(layer, payload.get("project") or "", payload.get("ticket") or "")
         p, rel = self._safe(base, payload.get("path"))
-        if not os.path.isfile(p):
+        raw = None
+        size = 0
+        if os.path.isfile(p):
+            size = os.path.getsize(p)
+            with open(p, "rb") as f:
+                raw = f.read(min(size, MAX_FILE))
+        elif layer == "ticket" and payload.get("ticket"):
+            # 压缩后的工单：从 tar 里按成员读取，网页仍然能查看
+            idx, dest = self._index_any(payload.get("project") or "", payload.get("ticket"))
+            if idx and os.path.isfile(dest + ".tar.gz"):
+                member = payload["ticket"] + "/" + rel
+                try:
+                    with tarfile.open(dest + ".tar.gz", "r:gz") as tar:
+                        info = tar.getmember(member)
+                        size = int(info.size)
+                        fp = tar.extractfile(info)
+                        raw = fp.read(min(size, MAX_FILE)) if fp else b""
+                except (KeyError, OSError, tarfile.TarError):
+                    raise ApiError("文件不存在: %s" % rel, status=404, code="no_file")
+        if raw is None:
             raise ApiError("文件不存在: %s" % rel, status=404, code="no_file")
-        size = os.path.getsize(p)
-        with open(p, "rb") as f:
-            raw = f.read(min(size, MAX_FILE))
         try:
             text = raw.decode("utf-8")
             enc = "utf-8"
@@ -249,7 +306,8 @@ class Artifacts(Module):
         return {"layer": layer, "path": rel, "bytes": os.path.getsize(p)}
 
     def archive_api(self, payload):
-        return {"index": self.archive_ticket(payload["ticket"], payload["project"], payload.get("source"))}
+        return {"index": self.archive_ticket(payload["ticket"], payload["project"], payload.get("source"),
+                                              paths=payload.get("paths"))}
 
     def compress_api(self, payload):
         if payload.get("ticket"):
@@ -264,6 +322,13 @@ class Artifacts(Module):
             for tid in os.listdir(tdir):
                 full = os.path.join(tdir, tid)
                 if not os.path.isdir(full):
+                    continue
+                # 只压缩已结单工单，避免把仍在跑的交付件拿走
+                try:
+                    st = self.ctx.api("tickets.get", ticket_id=tid)["ticket"].get("status")
+                except ApiError:
+                    st = None
+                if st not in (None, "closed"):
                     continue
                 age_days = (time.time() - os.path.getmtime(full)) / 86400.0
                 if age_days >= days:

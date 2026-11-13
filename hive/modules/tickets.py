@@ -101,6 +101,7 @@ class Tickets(Module):
 
         self._register_tools()
         self.bus.subscribe("session.result", self._on_session_result, name="tickets.result")
+        self.bus.subscribe("gitflow.conflict", self._on_git_conflict, name="tickets.git-conflict")
 
     # ---------------- 工单存储 ----------------
     def _get(self, ticket_id):
@@ -198,6 +199,7 @@ class Tickets(Module):
             repo = self.ctx.api("gitflow.ticket_init", ticket=tid, project=project).get("repo") or {}
             if repo.get("tree"):
                 ticket["repo"] = repo["tree"]
+                ticket["base"] = repo.get("base") or ""
                 # 工作目录就是工单分支的工作树：PM/角色写的 docs/ 直接进 git，
                 # 结单归档时也是从这里复制 → 交付件天然带工单号与版本。
                 ticket["workdir"] = repo["tree"]
@@ -440,6 +442,27 @@ class Tickets(Module):
             self._save(ticket)
         return fixed
 
+    def _on_git_conflict(self, ev):
+        """PM 过程中自己 sync 冲突，也要登记复验；不能只有结单 merge 冲突才算。"""
+        payload = ev.get("payload") or {}
+        tid = payload.get("ticket")
+        if not tid:
+            return
+        t = self.store.get(tid)
+        if not t or t.get("status") in ("closed", "closing"):
+            return
+        files = payload.get("files") or []
+        self._require_reverify(t, "git sync 冲突：" + ", ".join(files) if files else "git sync 冲突")
+
+    def _flow_missing(self, ticket):
+        out = []
+        for r in ticket.get("roles") or []:
+            chk = self._check_role_flow(ticket, r)
+            if chk.get("known") and chk.get("missing"):
+                out.append({"session": r.get("session"), "display": r.get("display") or r.get("role"),
+                            "missing": chk["missing"]})
+        return out
+
     def _on_session_result(self, ev):
         payload = ev.get("payload") or {}
         ticket_id = payload.get("ticket")
@@ -472,6 +495,17 @@ class Tickets(Module):
             raise ApiError(
                 "工单 %s 发生过 git 冲突，必须先重新审视改动、重跑测试并调用 ticket_verify 记录证据，再结单。"
                 % ticket_id, status=409, code="reverify_required")
+        if not force:
+            # 结单前硬门禁：缺必交产物就不允许进入 closing（不是催一句就放过）
+            self._enforce_flows(ticket)
+            missing = self._flow_missing(ticket)
+            if missing:
+                self.emit("ticket.flow.blocked", {"ticket": ticket_id, "missing": missing})
+                raise ApiError(
+                    "工单 %s 还有角色缺必交产物，已发消息催补：%s。补齐后再结单。"
+                    % (ticket_id, "；".join("%s 缺 %s" % (m["display"], ", ".join(m["missing"]))
+                                            for m in missing)),
+                    status=409, code="flow_incomplete")
         ticket["status"] = "closing"
         ticket["summary"] = summary or ticket.get("summary") or ""
         self._stage(ticket, "closing", summary[:200])
@@ -498,10 +532,25 @@ class Tickets(Module):
         ticket_id = ticket["id"]
         project = ticket["project"]
 
-        # 0) 流程插件兜底校验（还没补的，这里再催一次并等一会儿）
+        # 0) 流程插件兜底校验：再查一次；仍缺就退回 working，不销毁会话
         if not force:
             self._enforce_flows(ticket)
-            time.sleep(0.2)
+            missing = self._flow_missing(ticket)
+            if missing:
+                ticket["status"] = "working"
+                stage = self._stage(ticket, "flow_incomplete",
+                                    "；".join("%s 缺 %s" % (m["display"], ", ".join(m["missing"])) for m in missing))
+                ticket["status"] = "working"
+                self._save(ticket)
+                self.emit("ticket.flow.blocked", {"ticket": ticket_id, "missing": missing})
+                if ticket.get("pm"):
+                    try:
+                        self.ctx.api("sessions.send", session=ticket["pm"], text=(
+                            "（系统）结单被拦下：%s。请让对应角色补齐必交产物，再调用 ticket_close。"
+                            % stage["detail"]))
+                    except ApiError:
+                        pass
+                return ticket
 
         # 1) 工单分支：commit + rebase + push（需求 2）
         sync = {}
@@ -525,6 +574,20 @@ class Tickets(Module):
                             "请：1) 在工作树里解决冲突；2) **重新审视改动并重跑测试**（结果要贴出来）；"
                             "3) 再 git_sync；4) 调用 ticket_verify(summary=..., commands=..., result=...) 记录验证；5) 再 ticket_close。"
                             % (ticket_id, ", ".join(sync["conflict"]))))
+                    except ApiError:
+                        pass
+                return ticket
+            if sync.get("enabled") is not False and not sync.get("ok"):
+                # fetch / commit / push 失败不是冲突，也不能继续归档结单
+                ticket["status"] = "conflict"
+                err = sync.get("error") or "git sync 失败"
+                self._stage(ticket, "conflict", "sync: " + err[:300])
+                self._save(ticket)
+                self.emit("ticket.conflict", {"ticket": ticket_id, "error": err})
+                if ticket.get("pm"):
+                    try:
+                        self.ctx.api("sessions.send", session=ticket["pm"], text=(
+                            "（系统）工单 %s 同步失败：%s。请排查后重试 ticket_close。" % (ticket_id, err)))
                     except ApiError:
                         pass
                 return ticket
@@ -556,8 +619,15 @@ class Tickets(Module):
         # 3) 三层交付件归档（需求 9）
         archive = {}
         try:
+            changed = []
+            try:
+                changed = self.ctx.api("gitflow.changed_files", ticket=ticket_id,
+                                       base=ticket.get("base") or "")["files"]
+            except ApiError:
+                changed = []
             archive = self.ctx.api("artifacts.archive", ticket=ticket_id, project=project,
-                                   source=ticket["workdir"])["index"]
+                                   source=ticket["workdir"],
+                                   paths=changed if (ticket.get("base") and changed) else None)["index"]
             files = archive.get("files") or []
             self._stage(ticket, "archived", "%d 个文件 / %s bytes" % (len(files), archive.get("bytes", 0)))
         except ApiError as exc:
@@ -727,6 +797,8 @@ class Tickets(Module):
 
     def tags_api(self, payload):
         t = self._get(payload["ticket_id"])
+        if t.get("status") in ("closed", "closing") and (payload.get("add") or payload.get("remove")):
+            raise ApiError("工单已结单/正在结单，标签只读", status=410, code="ticket_closed")
         add = [x.strip() for x in (payload.get("add") or []) if x and x.strip()]
         remove = [x.strip() for x in (payload.get("remove") or []) if x and x.strip()]
         cur = list(t.get("tags") or [])
@@ -786,7 +858,7 @@ class Tickets(Module):
         out["roles"] = self.role_status(t["id"])
         out["history"] = t.get("history", [])[-30:]
         out["stages"] = t.get("stages", [])
-        out["readonly"] = t.get("status") == "closed"
+        out["readonly"] = t.get("status") in ("closed", "closing")
         return {"ticket": out}
 
     def flow_api(self, payload):
@@ -802,9 +874,13 @@ class Tickets(Module):
         order = [("created", "立项"), ("git_branch", "建分支"), ("pm_spawned", "派项目经理"),
                  ("role_spawned", "拉角色"), ("conflict", "冲突处理"),
                  ("verification_required", "复验要求"), ("verified", "复验通过"),
-                 ("closing", "验收结单"),
-                 ("archived", "归档交付件"), ("merged", "合并 main"), ("closed", "结单")]
+                 ("closing", "验收结单"), ("merged", "合并 main"),
+                 ("archived", "归档交付件"), ("closed", "结单")]
+        optional = {"conflict", "verification_required", "verified"}
         for key, label in order:
+            # 没发生过的冲突/复验节点不画在正常流程线上；发生过才显示
+            if key in optional and key not in seen:
+                continue
             nodes.append({"key": key, "label": label, "done": key in seen,
                           "ts": (seen.get(key) or {}).get("ts"),
                           "detail": (seen.get(key) or {}).get("detail")})
@@ -820,7 +896,7 @@ class Tickets(Module):
             if n["key"] == "role_spawned":
                 n["parallel"] = branches
         return {"ticket": t["id"], "status": current, "nodes": nodes, "parallel_stage": exec_stage,
-                "roles": roles, "stages": stages, "readonly": current == "closed"}
+                "roles": roles, "stages": stages, "readonly": current in ("closed", "closing")}
 
     def close_api(self, payload):
         t = self.close(
@@ -865,9 +941,9 @@ class Tickets(Module):
         text = (payload.get("text") or "").strip()
         if not text:
             raise ApiError("text 必填", code="missing_text")
-        if t.get("status") == "closed":
+        if t.get("status") in ("closed", "closing"):
             raise ApiError(
-                "工单 %s 已结单，群聊只读。要改结果请新开工单并在目标里写“基于 %s”："
+                "工单 %s 已结单或正在结单，群聊只读。要改结果请新开工单并在目标里写“基于 %s”："
                 "这样前后因果会沉淀到项目知识库。" % (t["id"], t["id"]),
                 status=410, code="ticket_closed")
         target = payload.get("session") or t.get("pm")

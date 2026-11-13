@@ -10,15 +10,19 @@ import subprocess
 import urllib.request
 
 from ..kernel.api import Module
-from ..kernel.store import ensure_dir
+from ..kernel.store import ensure_dir, inside
 from ..kernel.tools import Tool, ToolError
 
 
 def _resolve(workspace, path):
     if not path:
         raise ToolError("path 必填")
-    p = path if os.path.isabs(path) else os.path.join(workspace, path)
-    return os.path.normpath(p)
+    base = os.path.realpath(workspace)
+    p = path if os.path.isabs(path) else os.path.join(base, path)
+    p = os.path.realpath(p)
+    if not inside(base, p):
+        raise ToolError("路径越界（只能读写本会话工作目录）: %s" % path)
+    return p
 
 
 class ToolPack(Module):
@@ -89,6 +93,9 @@ class ToolPack(Module):
             if pat.search(cmd):
                 raise ToolError("命令命中禁止规则，已拒绝执行: %s" % cmd[:80])
         cwd = args.get("cwd") or tctx.workspace
+        cwd = os.path.realpath(cwd)
+        if not inside(os.path.realpath(tctx.workspace), cwd):
+            raise ToolError("cwd 越界（只能在本会话工作目录内执行）: %s" % cwd)
         ensure_dir(cwd)
         timeout = int(args.get("timeout") or self.shell_timeout)
         env = dict(os.environ)
@@ -113,7 +120,7 @@ class ToolPack(Module):
 
     # ---------------- 文件 ----------------
     def read_file(self, args, tctx):
-        path = _resolve(args.get("cwd") or tctx.workspace, args.get("path"))
+        path = _resolve(tctx.workspace, args.get("path"))
         if not os.path.isfile(path):
             raise ToolError("文件不存在: %s" % path)
         size = os.path.getsize(path)

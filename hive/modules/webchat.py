@@ -40,6 +40,7 @@ class WebChat(Module):
         self.api.route("GET", "/api/web/groups", name="groups")(self.groups)
         self.api.route("GET", "/api/web/timeline", name="timeline")(self.timeline)
         self.api.route("GET", "/api/web/live", name="live")(self.live)
+        self.api.route("GET", "/api/web/modules", name="modules")(self.modules_api)
         self.api.route("GET", "/api/web/events", name="events")(self.events)
         self.api.route("GET", "/api/trace/recent", name="trace_recent")(self.trace_recent)
         self.api.route("GET", "/api/trace/file", name="trace_file")(self.trace_file)
@@ -52,9 +53,9 @@ class WebChat(Module):
             g = g.split(":", 1)[-1]
         if g.startswith("T-"):
             t = self.ctx.api("tickets.get", ticket_id=g)["ticket"]
-            if t.get("status") == "closed":
+            if t.get("status") in ("closed", "closing"):
                 raise ApiError(
-                    "工单 %s 已结单，群聊只读。要改结果请新开工单，并在目标里写“基于 %s”。" % (g, g),
+                    "工单 %s 已结单或正在结单，群聊只读。要改结果请新开工单，并在目标里写“基于 %s”。" % (g, g),
                     status=410, code="ticket_closed")
             return t.get("pm") or "", "ticket"
         if g.startswith("sec-"):
@@ -283,7 +284,7 @@ class WebChat(Module):
         "agent.message": ("通信", "agent 消息"),
     }
 
-    def _module_timeline(self, ticket_id, limit):
+    def _module_timeline(self, ticket_id, limit, before_ts=None, full=False):
         import json, os
         from ..kernel.config import path_of
         try:
@@ -308,13 +309,13 @@ class WebChat(Module):
         ids = list(dict.fromkeys([i for i in ids if i]))
         root = path_of(self.cfg, "trace.root", "data/traces")
         out = []
-        per = max(20, limit // max(1, len(ids)))
+        per = max(40 if full else 20, limit // max(1, len(ids)))
         for sid in ids:
             path = os.path.join(root, sid + ".jsonl")
             if not os.path.exists(path):
                 continue
             try:
-                lines = open(path, encoding="utf-8").read().splitlines()[-per:]
+                lines = open(path, encoding="utf-8").read().splitlines()[-max(per, 200 if full else per):]
             except OSError:
                 continue
             for line in lines:
@@ -324,6 +325,9 @@ class WebChat(Module):
                     continue
                 kind = ev.get("kind")
                 if kind not in self.KINDS or kind == "llm.delta":
+                    continue
+                ev_ts = float(ev.get("t") or 0)
+                if before_ts and ev_ts >= before_ts:
                     continue
                 # 降噪：总线的 llm/tool/session.hook 广播与界面重复，只保留业务事件
                 if kind == "bus.event":
@@ -337,8 +341,22 @@ class WebChat(Module):
                             "text": self._module_line(actor, action, kind, data),
                             "payload": data, "ticket": ticket_id})
         out.sort(key=lambda i: i.get("ts") or 0)
-        # 只放最近 60 条模块报文，避免把角色发言淹没；完整记录在 trace 文件里
-        return out[-min(limit, 60):]
+        # 群聊时间线默认只放最近 60 条，避免淹没角色发言；单独查看更早时按请求数量返回
+        return out[-limit:] if full else out[-min(limit, 60):]
+
+    def modules_api(self, payload):
+        group = (payload.get("group") or "").strip()
+        if group.startswith("ticket:"):
+            group = group.split(":", 1)[-1]
+        if not group.startswith("T-"):
+            return {"items": []}
+        limit = max(10, min(int(payload.get("limit") or 200), 300))
+        try:
+            before = float(payload.get("before_ts") or 0)
+        except (TypeError, ValueError):
+            before = 0
+        items = self._module_timeline(group, limit, before_ts=before or None, full=True)
+        return {"items": items, "oldest": (items[0].get("ts") if items else None)}
 
     def _module_line(self, actor, action, kind, data):
         if kind == "api.call":
@@ -375,8 +393,13 @@ class WebChat(Module):
         limit = min(int(payload.get("limit") or 12), 40)
         sessions = []
         try:
-            q = {"ticket": group.split(":", 1)[-1]} if group.startswith(("T-", "ticket:")) else None
-            items = self.ctx.api("sessions.list", **q) if q else self.ctx.api("sessions.list")
+            if group.startswith(("T-", "ticket:")):
+                q = {"ticket": group.split(":", 1)[-1]}
+            elif group.startswith("sec-"):
+                q = {"kind": "secretary", "project": group[4:]}
+            else:
+                q = {"kind": "secretary", "project": ""}
+            items = self.ctx.api("sessions.list", **q)
             sessions = items.get("items", [])
         except ApiError:
             sessions = []

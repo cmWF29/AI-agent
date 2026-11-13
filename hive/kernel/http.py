@@ -202,11 +202,11 @@ class HttpService:
                 token = service.token
                 if not token:
                     return True
+                # 只接受 Header / Cookie：?token= 会进访问日志、Referer、浏览器历史
                 supplied = (
                     self.headers.get("X-Auth-Token")
                     or (self.headers.get("Authorization") or "").replace("Bearer ", "").strip()
                     or self._cookie_token()
-                    or urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("token", [""])[0]
                 )
                 return bool(supplied) and secrets.compare_digest(supplied, token)
 

@@ -22,7 +22,7 @@ import time
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
-from ..kernel.store import Collection, ensure_dir
+from ..kernel.store import Collection, ensure_dir, valid_id
 from ..kernel.tools import Tool
 
 KINDS = ("roles", "flows", "skills")
@@ -155,12 +155,15 @@ class Library(Module):
             pattern = (check.get("path") or "").replace("\\", "/")
             if not pattern:
                 continue
-            matched = [f for f in files
-                       if fnmatch.fnmatch(f, pattern) or fnmatch.fnmatch(f, pattern.replace("**/", ""))]
+            matched = [f for f in files if self._glob_match(f, pattern)]
             if not matched:
                 missing.append(pattern)
                 continue
             min_bytes = int(check.get("min_bytes") or 0)
+            needles = check.get("contains") or []
+            if (min_bytes or needles) and not root:
+                missing.append("%s（校验内容需要工作树 root）" % pattern)
+                continue
             if min_bytes and root:
                 ok = False
                 for f in matched:
@@ -171,27 +174,64 @@ class Library(Module):
                 if not ok:
                     missing.append("%s（至少 %d bytes）" % (pattern, min_bytes))
                     continue
-            needles = check.get("contains") or []
             if needles and root:
-                text = ""
+                # 必须是“同一份文件”里同时包含这些要点；把所有文件拼起来会放过分散敷衍
+                ok = False
                 for f in matched:
                     try:
-                        text += open(os.path.join(root, f), encoding="utf-8", errors="ignore").read()
+                        text = open(os.path.join(root, f), encoding="utf-8", errors="ignore").read()
                     except OSError:
                         continue
-                if not all(str(n) in text for n in needles):
+                    if all(str(n) in text for n in needles):
+                        ok = True
+                        break
+                if not ok:
                     missing.append("%s（包含：%s）" % (pattern, "、".join(map(str, needles))))
         return {"flow": flow_id, "role": flow.get("role"), "missing": missing,
                 "checked": len(flow.get("checks") or []), "known": True,
                 "max_retry": flow.get("max_retry", 2)}
 
+    @staticmethod
+    def _glob_match(path, pattern):
+        """真正的 glob：**/ 可跨任意层级，* 不跨 /。Python fnmatch 做不到 **。"""
+        import re
+        rx = []
+        i = 0
+        while i < len(pattern):
+            c = pattern[i]
+            if c == "*" and i + 1 < len(pattern) and pattern[i + 1] == "*":
+                if i + 2 < len(pattern) and pattern[i + 2] == "/":
+                    rx.append("(?:.*/)?")
+                    i += 3
+                    continue
+                rx.append(".*")
+                i += 2
+                continue
+            if c == "*":
+                rx.append("[^/]*")
+            elif c == "?":
+                rx.append("[^/]")
+            elif c == "/":
+                rx.append("/")
+            else:
+                rx.append(re.escape(c))
+            i += 1
+        return re.match("".join(rx) + "$", path) is not None
+
     # ---------------- 流程专家 ----------------
     def design(self, role, responsibility, must_outputs=None, prompt="", skills=None, cn="",
-               checks=None):
+               checks=None, overwrite=False):
         """把一个“还不存在的角色”落成三件套：角色卡 + 流程插件 + 技能。"""
         role = (role or "").strip().lower().replace(" ", "-")[:40]
         if not role:
             raise ApiError("role 必填", code="missing_role")
+        if not valid_id(role):
+            raise ApiError("role 只能用字母/数字/中文/下划线/连字符: %r" % role,
+                           status=400, code="bad_role")
+        old = self._store("roles").get(role)
+        if old and old.get("builtin") and not overwrite:
+            raise ApiError("角色 %s 是公共库内置角色，不能被流程专家覆盖；请换一个名字或显式 overwrite"
+                           % role, status=409, code="builtin_role")
         must_outputs = [p for p in (must_outputs or []) if p] or ["docs/**/*.md"]
         body = prompt.strip() or (
             "你是%s。职责：%s\n"
@@ -252,7 +292,9 @@ class Library(Module):
     def _tag_path(self, scope, project=""):
         import os
         base = os.path.join(self.root, "tags")
-        if scope == "project" and project:
+        if scope == "project":
+            if not valid_id(project):
+                raise ApiError("非法 project id", status=400, code="bad_project")
             return os.path.join(base, "projects", project + ".json")
         return os.path.join(base, "public.json")
 
@@ -293,6 +335,8 @@ class Library(Module):
     def tags_api(self, payload):
         from ..kernel.api import ApiError
         project = payload.get("project") or ""
+        if project and not valid_id(project):
+            raise ApiError("非法 project id", status=400, code="bad_project")
         return {"public": self._tags_read("public"),
                 "project": self._tags_read("project", project) if project else []}
 
@@ -331,7 +375,8 @@ class Library(Module):
                         len(res["skills"]), res["role"]["id"]))
 
         def check_tool(args, tctx):
-            res = self.check_files(args.get("flow") or "", args.get("files") or [])
+            res = self.check_files(args.get("flow") or "", args.get("files") or [],
+                                   root=args.get("root") or getattr(tctx, "workspace", "") or "")
             if not res["known"]:
                 return "没有这个流程插件: %s" % args.get("flow")
             if not res["missing"]:
@@ -366,6 +411,7 @@ class Library(Module):
         tools.register(Tool("flow_check", "用流程插件校验一批文件是否齐（缺件清单）。",
                             {"type": "object", "properties": {
                                 "flow": {"type": "string"},
-                                "files": {"type": "array", "items": {"type": "string"}}},
+                                "files": {"type": "array", "items": {"type": "string"}},
+                                "root": {"type": "string", "description": "可选：工作树根目录，用于 min_bytes/contains"}},
                              "required": ["flow"]},
                             check_tool, origin=self.name))
