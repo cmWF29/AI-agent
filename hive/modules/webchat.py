@@ -305,8 +305,13 @@ class WebChat(Module):
                 except ValueError:
                     continue
                 kind = ev.get("kind")
-                if kind not in self.KINDS:
+                if kind not in self.KINDS or kind == "llm.delta":
                     continue
+                # 降噪：总线的 llm/tool/session.hook 广播与界面重复，只保留业务事件
+                if kind == "bus.event":
+                    topic = str((ev.get("data") or {}).get("topic") or "")
+                    if topic.startswith(("llm.", "tool.", "session.hook")):
+                        continue
                 actor, action = self.KINDS[kind]
                 data = ev.get("data") or {}
                 out.append({"ts": float(ev.get("t") or 0), "type": "module", "role": "module",
@@ -314,7 +319,8 @@ class WebChat(Module):
                             "text": self._module_line(actor, action, kind, data),
                             "payload": data, "ticket": ticket_id})
         out.sort(key=lambda i: i.get("ts") or 0)
-        return out[-limit:]
+        # 只放最近 60 条模块报文，避免把角色发言淹没；完整记录在 trace 文件里
+        return out[-min(limit, 60):]
 
     def _module_line(self, actor, action, kind, data):
         if kind == "api.call":

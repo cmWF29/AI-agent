@@ -33,6 +33,7 @@ class Idle(Module):
         self.offpeak_discount = float(cfg.get("offpeak_discount", 0.6))
         self.holidays = set(cfg.get("holidays") or [])
         self.tick = int(cfg.get("tick_seconds", 30))
+        self.tz_offset = float(cfg.get("utc_offset_hours", 8))   # 高峰窗口按本地时间判断
         self.root = path_of(self.cfg, "idle.root", "data/idle")
         self.store = Collection(self.root)
         if self.store.get("queue") is None:
@@ -59,7 +60,8 @@ class Idle(Module):
             return None
 
     def judge(self, now=None):
-        now = now or _dt.datetime.now()
+        if now is None:
+            now = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=self.tz_offset)))
         date_s = now.strftime("%Y-%m-%d")
         minute = now.hour * 60 + now.minute
         if not self.enabled:

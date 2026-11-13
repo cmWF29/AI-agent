@@ -41,6 +41,7 @@ DEFAULTS = {
         "offpeak_discount": 0.6,                            # 空闲时段相对价格（仅展示/决策用）
         "holidays": [],                                     # 法定节假日，后续接日历插件
         "tick_seconds": 30,
+        "utc_offset_hours": 8,                             # 高峰窗口按本地时间（默认东八区）
         "root": "data/idle",
     },
     "react": {
