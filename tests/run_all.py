@@ -913,6 +913,55 @@ def test_flow_content_and_reverify(mock):
             env.close()
 
 
+def test_agent_backends_and_skills(mock):
+    """v4.3：循环后端可插拔 + 开源 Skill 安装/拆解。"""
+    print("[v4.3] Agent 后端插件、Skill 安装与拆解")
+    env = None
+    try:
+        skill_root = tempfile.mkdtemp(prefix="hive-skill-fixture-")
+        env = Env(mock, with_http=True, overrides={"skills": {"root": skill_root}})
+        backs = env.http("/api/agents/backends")[1]
+        names = [b["name"] for b in backs.get("items") or []]
+        check("后端注册表含 api", "api" in names, names)
+        check("后端注册表含 claude-code 插件", "claude-code" in names, names)
+
+        sess = env.api("sessions.spawn", kind="manual", role="probe", title="api-loop",
+                       backend="api", input="只回复 OK")["session"]
+        check("会话记录保存 backend", sess.get("backend") == "api", sess)
+
+        designed = env.api("library.design", role="backend-role", cn="后端角色",
+                           responsibility="验证流程插件选择后端", must_outputs=["docs/*.md"],
+                           backend="claude-code")
+        check("流程插件可声明 backend", (designed.get("flow") or {}).get("backend") == "claude-code",
+              designed.get("flow"))
+
+        fixture = os.path.join(env.tmp, "fixture-skill")
+        os.makedirs(fixture)
+        open(os.path.join(fixture, "SKILL.md"), "w", encoding="utf-8").write(
+            "---\nname: demo-image\ndescription: 生成一张图片的测试 Skill\n---\n"
+            "# Demo\n读取本文件，生成 docs/demo.png。\n")
+        inst = env.http("/api/skills/install", method="POST", body={"source": fixture})[1]
+        check("本地 Skill 安装成功", (inst.get("skill") or {}).get("id") == "demo-image", inst)
+        installed = env.http("/api/skills/installed")[1]["items"]
+        check("已安装列表可见", any(x["id"] == "demo-image" for x in installed), installed)
+        dec = env.http("/api/skills/decompose", method="POST", body={"id": "demo-image"})[1]
+        check("Skill 拆解出角色与流程", dec.get("role") and dec.get("flow"), dec)
+        role = env.api("library.get", kind="roles", id=dec["role"])["item"]
+        check("拆解角色带 skill 来源", role.get("skill_id") == "demo-image" and role.get("source") == "skill-decomposer",
+              role)
+        flow = env.api("library.get", kind="flows", id=dec["role"])["item"]
+        check("拆解流程有必交校验", bool(flow.get("checks")), flow)
+        app = open(os.path.join(REPO, "web", "app.js"), encoding="utf-8").read()
+        for token, name in (("/api/skills/install", "Skill 安装入口"), ("decomposeSkill", "Skill 拆解入口"),
+                            ("skill-src", "Skill 来源输入")):
+            check("前端包含" + name, token in app, token)
+    except Exception as exc:
+        check("v4.3 未崩溃", False, repr(exc))
+    finally:
+        if env:
+            env.close()
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
@@ -921,7 +970,8 @@ def main():
              test_secretary_policy, test_projects_and_concurrency, test_group_chat, test_versions,
              test_stream_trace, test_library_flow, test_project_secretary_delete,
              test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https,
-             test_v4_features, test_security_and_ui_contract, test_flow_content_and_reverify]
+             test_v4_features, test_security_and_ui_contract, test_flow_content_and_reverify,
+             test_agent_backends_and_skills]
     t0 = time.time()
     for t in tests:
         try:

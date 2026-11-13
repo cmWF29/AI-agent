@@ -78,7 +78,7 @@ class SessionRuntime:
         self.manager.emit("session.run.start", {"session": self.id, "kind": rec["kind"], "job": job["id"],
                                                 "chars": len(task.get("text") or "")})
 
-        if self.manager.should_compact(rec):
+        if (rec.get("backend") or self.manager.default_backend) == "api" and self.manager.should_compact(rec):
             try:
                 self.manager.compact_session(self.id, manual=False)
             except Exception as exc:
@@ -87,7 +87,11 @@ class SessionRuntime:
         result = None
         self.manager.acquire_slot()
         try:
-            result = self.manager.react.run(
+            backend = self.manager.backends.get(rec.get("backend") or self.manager.default_backend)
+            if backend is None:
+                raise ApiError("未知 agent 后端: %s" % (rec.get("backend") or self.manager.default_backend),
+                               code="bad_backend")
+            result = backend.run(
                 session=rec,
                 user_text=task.get("text") or None,
                 drain=self.drain,
@@ -162,6 +166,8 @@ class Sessions(Module):
         self.archive_dir = ensure_dir(os.path.join(self.root, "archive"))
         self.store = Collection(self.root)
         self.react = self.ctx.state["react"]
+        self.backends = self.ctx.state["backends"]
+        self.default_backend = self.cfg["sessions"].get("backend") or "api"
         self.llm = self.ctx.state["llm"]
         self.runtimes = {}
         self.jobs = {}
@@ -259,7 +265,7 @@ class Sessions(Module):
     # ---------------- 生命周期 ----------------
     def spawn(self, kind="role", title="", system_prompt="", project="", ticket="", role="",
               parent="", tools=None, meta=None, input_text=None, workspace=None,
-              model_temperature=None, session_id=None, display=""):
+              model_temperature=None, session_id=None, display="", backend=""):
         sid = session_id or "%s-%s" % (kind[:3], uuid.uuid4().hex[:8])
         ws = ensure_dir(workspace or os.path.join(self.ws_root, sid))
         record = {
@@ -271,6 +277,7 @@ class Sessions(Module):
             "project": project,
             "ticket": ticket,
             "parent": parent,
+            "backend": backend or self.default_backend,
             "system_prompt": system_prompt,
             "messages": ([{"role": "system", "content": system_prompt}] if system_prompt else []),
             "status": "idle",
@@ -518,6 +525,7 @@ class Sessions(Module):
             role=payload.get("role") or "",
             parent=payload.get("parent") or "",
             tools=payload.get("tools"),
+            backend=payload.get("backend") or "",
             meta=payload.get("meta") or {},
             input_text=payload.get("input") or payload.get("input_text"),
             workspace=payload.get("workspace"),
@@ -632,6 +640,7 @@ class Sessions(Module):
             "title": rec.get("title"),
             "display": rec.get("display") or rec.get("title") or rec.get("role") or rec["id"],
             "role": rec.get("role"),
+            "backend": rec.get("backend") or self.default_backend,
             "project": rec.get("project"),
             "ticket": rec.get("ticket"),
             "parent": rec.get("parent"),
@@ -674,6 +683,7 @@ class Sessions(Module):
                 ticket=args.get("ticket") or tctx.session.get("ticket") or "",
                 parent=tctx.session_id,
                 tools=args.get("tools"),
+                backend=args.get("backend") or "",
                 input_text=args.get("task"),
             )
             return "已创建会话 %s（kind=%s role=%s），任务已投递。" % (res["id"], kind, res.get("role") or "-")
@@ -740,6 +750,8 @@ class Sessions(Module):
                 "title": {"type": "string"},
                 "task": {"type": "string", "description": "投递给它的首个任务"},
                 "system_prompt": {"type": "string", "description": "可选：自定义角色提示词"},
+                "backend": {"type": "string", "enum": ["api", "claude-code"],
+                            "description": "可选：本会话用哪个 agent 循环"},
                 "tools": {"type": "array", "items": {"type": "string"}, "description": "可选：限制可用工具"},
             }, "required": ["role", "task"]},
             spawn_tool, origin=self.name))

@@ -64,6 +64,14 @@ BUILTIN_ROLES = {
         "prompt": "你是流程专家。把模糊的角色需求拆成：角色定义（提示词）、技能（操作手册）、流程插件"
                   "（必交产物与校验规则）。产出必须是结构化 JSON，可被系统直接加载。",
     },
+    "skill-decomposer": {
+        "cn": "Skill 拆解者", "must_outputs": ["**/*.json", "docs/**/*.md"],
+        "prompt": "你是 Skill 拆解者。读取一个开源 Skill 的 SKILL.md，把它拆成三层："
+                  "1) 角色：谁来做（角色名、职责、提示词、边界）；2) 技能：怎么做（Skill 包路径、"
+                  "触发条件、资源/脚本）；3) 流程插件：交什么（必交产物 glob、内容校验、失败重试）。"
+                  "先用 skill_sources 看来源，再 skill_install 安装，最后 skill_decompose 固化；"
+                  "拆完检查角色卡、流程校验项是否真的可执行，不要把 Skill 原文原样当角色提示词。",
+    },
 }
 
 
@@ -84,6 +92,8 @@ class Library(Module):
 
         self.api.route("GET", "/api/library/list", name="list")(self.list_api)
         self.api.route("GET", "/api/library/item", name="item")(self.item_api)
+        # 兼容内部调用名 library.get；对外仍保留 /api/library/item
+        self.api.route("GET", "/api/library/get", name="get")(self.item_api)
         self.api.route("POST", "/api/library/upsert", name="upsert")(self.upsert_api)
         self.api.route("POST", "/api/library/check", name="check")(self.check_api)
         self.api.route("POST", "/api/library/design", name="design")(self.design_api)
@@ -220,7 +230,7 @@ class Library(Module):
 
     # ---------------- 流程专家 ----------------
     def design(self, role, responsibility, must_outputs=None, prompt="", skills=None, cn="",
-               checks=None, overwrite=False):
+               checks=None, overwrite=False, backend=""):
         """把一个“还不存在的角色”落成三件套：角色卡 + 流程插件 + 技能。"""
         role = (role or "").strip().lower().replace(" ", "-")[:40]
         if not role:
@@ -249,6 +259,9 @@ class Library(Module):
             "checks": checks or [{"kind": "glob", "path": p} for p in must_outputs],
             "max_retry": 2, "builtin": False, "source": "process-expert",
         })
+        if backend:
+            flow["backend"] = backend
+            self.upsert("flows", flow)
         created_skills = []
         for s in skills or []:
             sid = (s.get("id") or s.get("name") or "").strip().lower().replace(" ", "-")[:40]
@@ -287,7 +300,7 @@ class Library(Module):
         return self.design(payload.get("role") or "", payload.get("responsibility") or "",
                            payload.get("must_outputs") or [], payload.get("prompt") or "",
                            payload.get("skills") or [], payload.get("cn") or "",
-                           payload.get("checks") or [])
+                           payload.get("checks") or [], backend=payload.get("backend") or "")
 
     def _tag_path(self, scope, project=""):
         import os

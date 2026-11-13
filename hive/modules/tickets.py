@@ -49,6 +49,7 @@ PM_TOOLS = [
     "shell", "read_file", "write_file", "grep",
     # 库与流程（需求 15/17）
     "library_list", "library_get", "flow_design", "flow_check",
+    "skill_sources", "skill_install", "skill_decompose",
     # 交付件与 git
     "artifact_write", "artifact_list", "artifact_stats",
     "git_status", "git_sync", "git_merge", "ticket_tag",
@@ -313,7 +314,7 @@ class Tickets(Module):
             return ""
 
     # ---------------- 角色 ----------------
-    def spawn_role(self, ticket, role, task, title=""):
+    def spawn_role(self, ticket, role, task, title="", backend=""):
         ticket = self._get(ticket["id"]) if isinstance(ticket, dict) else self._get(ticket)
         if len(ticket.get("roles") or []) >= self.max_roles:
             raise ApiError("角色数已达上限 %d" % self.max_roles, code="too_many_roles")
@@ -322,6 +323,12 @@ class Tickets(Module):
         display = role_display(role, same)
         # 角色共用工单工作目录：交付件直接落在 docs/ 下，归档后路径干净（带工单号前缀）
         ws = ensure_dir(ticket["workdir"])
+        if not backend:
+            try:
+                flow = self.ctx.api("library.get", kind="flows", id=role).get("item") or {}
+                backend = flow.get("backend") or ""
+            except ApiError:
+                backend = ""
         sess = self.ctx.api(
             "sessions.spawn",
             kind="role",
@@ -333,10 +340,12 @@ class Tickets(Module):
             role=role,
             tools=ROLE_TOOLS,
             workspace=ws,
+            backend=backend,
             input_text=task,
         )["session"]
         entry = {"session": sess["id"], "role": role, "display": display, "task": task[:400],
-                 "status": "running", "created": _now(), "workspace": ws, "flow_retry": 0}
+                 "status": "running", "created": _now(), "workspace": ws, "flow_retry": 0,
+                 "backend": backend or "api"}
         ticket["roles"].append(entry)
         ticket["status"] = "running"
         self._stage(ticket, "role_spawned", "%s %s" % (display, sess["id"]))
@@ -358,7 +367,7 @@ class Tickets(Module):
             info = live.get(r["session"]) or {}
             out.append({
                 "session": r["session"], "role": r["role"], "display": r.get("display") or role_display(r["role"]),
-                "task": r["task"],
+                "backend": r.get("backend") or "api", "task": r["task"],
                 "state": info.get("state") or ("destroyed" if r.get("status") == "destroyed" else "gone"),
                 "status": info.get("status") or r.get("status") or "gone",
                 "chars": info.get("chars", 0),
@@ -912,7 +921,8 @@ class Tickets(Module):
     def role_api(self, payload):
         t = self._get(payload["ticket_id"])
         entry = self.spawn_role(t, payload.get("role") or "developer",
-                                payload.get("task") or t["goal"], payload.get("title") or "")
+                                payload.get("task") or t["goal"], payload.get("title") or "",
+                                backend=payload.get("backend") or "")
         return {"role": entry}
 
     def note_api(self, payload):
@@ -1023,6 +1033,7 @@ class Tickets(Module):
             "parent": t.get("parent") or "", "repo": t.get("repo") or "",
             "roles": [{"session": r["session"], "role": r["role"],
                        "display": r.get("display") or role_display(r["role"]),
+                       "backend": r.get("backend") or "api",
                        "status": r.get("status"), "task": r["task"][:160]}
                       for r in t.get("roles") or []],
             "created": t["created"], "updated": t.get("updated"),
@@ -1086,7 +1097,8 @@ class Tickets(Module):
                 return "缺少 ticket 上下文"
             t = self._get(tid)
             entry = self.spawn_role(t, args.get("role") or "developer", args.get("task") or "",
-                                    args.get("title") or "")
+                                    args.get("title") or "",
+                                    backend=args.get("backend") or "")
             return "已拉起角色 %s（会话 %s），任务已投递：%s" % (entry["display"], entry["session"], entry["task"][:80])
 
         def role_task_tool(args, tctx):
@@ -1183,6 +1195,8 @@ class Tickets(Module):
                 "role": {"type": "string"},
                 "task": {"type": "string", "description": "任务：目标、产出路径、验收标准"},
                 "title": {"type": "string"},
+                "backend": {"type": "string", "enum": ["api", "claude-code"],
+                            "description": "可选：用哪个 agent 循环；不填走流程插件/全局默认"},
                 "ticket": {"type": "string"},
             }, "required": ["role", "task"]},
             role_spawn_tool, origin=self.name))

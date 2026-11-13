@@ -301,3 +301,9 @@ body.rail-collapsed .rail { display: none; }
 .modgroup summary { cursor: pointer; font-size: 11px; color: #7f92ab; list-style: none; padding: 2px 0; }
 .modgroup summary:hover { color: #9ecfe8; }
 .modgroup .msg.modulemsg { margin: 4px 0; }
+
+/* Skill 安装条 */
+.skillbar { margin: 4px 0 10px; padding: 8px 10px; border: 1px dashed #24405f; border-radius: 10px; background: #0b1728; }
+.skillbar input { flex: 1; min-width: 0; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line);
+  background: #0a1424; color: var(--text); font: inherit; }
+button.mini { padding: 3px 8px; font-size: 11px; border-radius: 8px; }

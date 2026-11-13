@@ -39,6 +39,7 @@
     "keep_recent_messages": 8
   },
   "sessions": {
+    "backend": "api",
     "max_concurrent": 8,
     "role_timeout": 900,
     "root": "data/sessions",
@@ -90,6 +91,22 @@
   },
   "library": {
     "root": "data/library"
+  },
+  "skills": {
+    "root": "data/skills"
+  },
+  "agents": {
+    "root": "data/agents",
+    "claude_code": {
+      "command": "claude",
+      "args": ["-p", "{prompt}", "--output-format", "json", "--permission-mode", "bypassPermissions"],
+      "timeout": 0,
+      "env": {
+        "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+        "ANTHROPIC_MODEL": "deepseek-chat",
+        "ANTHROPIC_SMALL_FAST_MODEL": "deepseek-chat"
+      }
+    }
   },
   "gitflow": {
     "enabled": true,

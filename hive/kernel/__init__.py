@@ -12,6 +12,7 @@ import sys
 import time
 
 from .api import Context
+from .backends import ApiLoopBackend, BackendRegistry
 from .bus import Bus
 from .config import load_config, path_of, resolve
 from .http import HttpService
@@ -60,7 +61,10 @@ class Kernel:
 
         self.react = ReactLoop(self.cfg, self.bus, self.log, self.llm, self.tools, self.output,
                                api=self.ctx.api, trace=self.trace)
+        self.backends = BackendRegistry()
+        self.backends.register("api", ApiLoopBackend(self.react))
         self.ctx.state.update({
+            "backends": self.backends,
             "react": self.react,
             "llm": self.llm,
             "output": self.output,
