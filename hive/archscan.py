@@ -95,52 +95,59 @@ def module_graph(mods):
     return {k: sorted(v) for k, v in calls.items()}
 
 
+def _flow_record(fid, role, nodes, edges, checks, dag=True):
+    graph = defaultdict(set)
+    node_ids = []
+    for n in nodes:
+        if isinstance(n, str):
+            node_ids.append(n); graph[n]
+        elif isinstance(n, dict) and n.get("id"):
+            node_ids.append(n["id"]); graph[n["id"]]
+            for dep in (n.get("depends_on") or n.get("after") or []):
+                graph[dep].add(n["id"])
+    for e in edges:
+        if isinstance(e, dict):
+            a, b = e.get("from"), e.get("to")
+        else:
+            a, b = (list(e) + [None, None])[:2]
+        if a and b:
+            graph[a].add(b)
+            for x in (a, b):
+                if x not in node_ids:
+                    node_ids.append(x)
+    if not node_ids:
+        node_ids = [role or "role"]; graph[node_ids[0]]
+    return {"id": fid, "role": role or "", "nodes": len(node_ids), "node_ids": node_ids,
+            "edges": sorted([[a, b] for a, bs in graph.items() for b in bs]),
+            "cycles": _cycles(graph), "dag": bool(dag), "checks": len(checks or [])}
+
+
 def scan_flows():
     flows = []
-    if not os.path.isdir(FLOWS_DIR):
-        return flows
-    for fn in sorted(os.listdir(FLOWS_DIR)):
-        if not fn.endswith(".json"):
-            continue
-        path = os.path.join(FLOWS_DIR, fn)
-        try:
-            data = json.loads(_read(path))
-        except Exception as exc:
-            flows.append({"id": fn[:-5], "error": "JSON 解析失败: %r" % exc, "cycles": []})
-            continue
-        fid = data.get("id") or fn[:-5]
-        graph = defaultdict(set)
-        nodes = []
-        raw_nodes = data.get("nodes") or []
-        if isinstance(raw_nodes, dict):
-            raw_nodes = [dict({"id": k}, **(v if isinstance(v, dict) else {})) for k, v in raw_nodes.items()]
-        for n in raw_nodes:
-            if isinstance(n, str):
-                nodes.append(n); graph[n]
-            elif isinstance(n, dict) and n.get("id"):
-                nodes.append(n["id"]); graph[n["id"]]
-                for dep in (n.get("depends_on") or n.get("after") or []):
-                    graph[dep].add(n["id"])
-        for e in (data.get("edges") or []):
-            if isinstance(e, dict):
-                a, b = e.get("from"), e.get("to")
-            else:
-                a, b = (list(e) + [None, None])[:2]
-            if a and b:
-                graph[a].add(b)
-                for x in (a, b):
-                    if x not in nodes:
-                        nodes.append(x)
-        if not nodes:
-            role = data.get("role") or "role"
-            graph[role]; nodes = [role]
-        flows.append({
-            "id": fid, "role": data.get("role") or "", "nodes": len(nodes),
-            "node_ids": nodes, "edges": sorted([[a, b] for a, bs in graph.items() for b in bs]),
-            "cycles": _cycles(graph),
-            "dag": bool(data.get("nodes") or data.get("edges")),
-            "checks": len(data.get("checks") or []),
-        })
+    if os.path.isdir(FLOWS_DIR):
+        for fn in sorted(os.listdir(FLOWS_DIR)):
+            if not fn.endswith(".json"):
+                continue
+            path = os.path.join(FLOWS_DIR, fn)
+            try:
+                data = json.loads(_read(path))
+            except Exception as exc:
+                flows.append({"id": fn[:-5], "error": "JSON 解析失败: %r" % exc, "cycles": []})
+                continue
+            flows.append(_flow_record(data.get("id") or fn[:-5], data.get("role") or "",
+                                      data.get("nodes") or [], data.get("edges") or [],
+                                      data.get("checks") or [], bool(data.get("nodes") or data.get("edges"))))
+    # 代码内置的需求级流程也要被扫描；它们不一定已落到 data/library。
+    try:
+        from hive.modules.library import BUILTIN_FLOWS
+        have = {f["id"] for f in flows}
+        for fid, spec in BUILTIN_FLOWS.items():
+            if fid in have:
+                continue
+            flows.append(_flow_record(fid, "", spec.get("nodes") or [], spec.get("edges") or [],
+                                      spec.get("checks") or [], True))
+    except Exception as exc:
+        flows.append({"id": "__builtin__", "error": "内置流程读取失败: %r" % exc, "cycles": []})
     return flows
 
 

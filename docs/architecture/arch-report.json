@@ -1107,6 +1107,227 @@
       "cycles": [],
       "dag": false,
       "checks": 1
+    },
+    {
+      "id": "project-lifecycle",
+      "role": "",
+      "nodes": 6,
+      "node_ids": [
+        "project.active",
+        "project.archived",
+        "project.delete.preview",
+        "project.delete.confirm",
+        "project.data.purge",
+        "project.done"
+      ],
+      "edges": [
+        [
+          "project.active",
+          "project.archived"
+        ],
+        [
+          "project.active",
+          "project.delete.preview"
+        ],
+        [
+          "project.archived",
+          "project.done"
+        ],
+        [
+          "project.data.purge",
+          "project.done"
+        ],
+        [
+          "project.delete.confirm",
+          "project.data.purge"
+        ],
+        [
+          "project.delete.preview",
+          "project.delete.confirm"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "architecture-gate",
+      "role": "",
+      "nodes": 8,
+      "node_ids": [
+        "scan.modules",
+        "scan.imports",
+        "scan.api-edges",
+        "scan.flows",
+        "scan.web-state",
+        "gate.report",
+        "gate.pass",
+        "gate.block"
+      ],
+      "edges": [
+        [
+          "gate.report",
+          "gate.block"
+        ],
+        [
+          "gate.report",
+          "gate.pass"
+        ],
+        [
+          "scan.api-edges",
+          "gate.report"
+        ],
+        [
+          "scan.flows",
+          "gate.report"
+        ],
+        [
+          "scan.imports",
+          "gate.report"
+        ],
+        [
+          "scan.modules",
+          "scan.api-edges"
+        ],
+        [
+          "scan.modules",
+          "scan.imports"
+        ],
+        [
+          "scan.web-state",
+          "gate.report"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "system-timeline",
+      "role": "",
+      "nodes": 4,
+      "node_ids": [
+        "ticket.history",
+        "system.event",
+        "chat.timeline",
+        "module.trace.optional"
+      ],
+      "edges": [
+        [
+          "module.trace.optional",
+          "chat.timeline"
+        ],
+        [
+          "system.event",
+          "chat.timeline"
+        ],
+        [
+          "ticket.history",
+          "system.event"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "project-idle",
+      "role": "",
+      "nodes": 5,
+      "node_ids": [
+        "project.config",
+        "idle.judge",
+        "queue.enqueue",
+        "queue.flush",
+        "queue.done"
+      ],
+      "edges": [
+        [
+          "idle.judge",
+          "queue.enqueue"
+        ],
+        [
+          "project.config",
+          "idle.judge"
+        ],
+        [
+          "queue.enqueue",
+          "queue.flush"
+        ],
+        [
+          "queue.flush",
+          "queue.done"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "requirement-to-flow",
+      "role": "",
+      "nodes": 5,
+      "node_ids": [
+        "requirement.intake",
+        "requirement.classify",
+        "flow.design",
+        "flow.dag.check",
+        "flow.library.upsert"
+      ],
+      "edges": [
+        [
+          "flow.dag.check",
+          "flow.library.upsert"
+        ],
+        [
+          "flow.design",
+          "flow.dag.check"
+        ],
+        [
+          "requirement.classify",
+          "flow.design"
+        ],
+        [
+          "requirement.intake",
+          "requirement.classify"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "web-state-contract",
+      "role": "",
+      "nodes": 5,
+      "node_ids": [
+        "state-machine.json",
+        "component.inventory",
+        "event.binding",
+        "webstate.validate",
+        "gate.report"
+      ],
+      "edges": [
+        [
+          "component.inventory",
+          "event.binding"
+        ],
+        [
+          "event.binding",
+          "webstate.validate"
+        ],
+        [
+          "state-machine.json",
+          "component.inventory"
+        ],
+        [
+          "webstate.validate",
+          "gate.report"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
     }
   ],
   "web": {

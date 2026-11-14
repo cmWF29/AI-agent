@@ -1,12 +1,12 @@
 # 架构静态扫描报告
 
-生成时间：2026-11-14T06:49:42Z
+生成时间：2026-11-14T06:51:28Z
 
 ## 结论
 
 - 门禁：**通过**
 - 模块数：16；API 调用边：26；API 环：5；import 环：0
-- 流程数：11；流程 DAG 环：0
+- 流程数：17；流程 DAG 环：0
 - 网页状态：一致（状态 11 / 事件 14 / DOM id 101）
 
 ## 模块唯一出口与对外 API
@@ -56,14 +56,20 @@
 | --- | --- | --- | --- | --- |
 | agent-skill-demo | 1 | 0 | 无（仅 role/checks） | 无 |
 | architect | 1 | 0 | 无（仅 role/checks） | 无 |
+| architecture-gate | 8 | 8 | 有 | 无 |
 | developer | 1 | 0 | 无（仅 role/checks） | 无 |
 | developer-docs | 1 | 0 | 无（仅 role/checks） | 无 |
 | ops | 1 | 0 | 无（仅 role/checks） | 无 |
 | process | 1 | 0 | 无（仅 role/checks） | 无 |
+| project-idle | 5 | 4 | 有 | 无 |
+| project-lifecycle | 6 | 6 | 有 | 无 |
+| requirement-to-flow | 5 | 4 | 有 | 无 |
 | researcher | 1 | 0 | 无（仅 role/checks） | 无 |
 | reviewer | 1 | 0 | 无（仅 role/checks） | 无 |
 | skill-decomposer | 1 | 0 | 无（仅 role/checks） | 无 |
+| system-timeline | 4 | 3 | 有 | 无 |
 | tester | 1 | 0 | 无（仅 role/checks） | 无 |
+| web-state-contract | 5 | 4 | 有 | 无 |
 | writer | 1 | 0 | 无（仅 role/checks） | 无 |
 
 ## 网页状态机
