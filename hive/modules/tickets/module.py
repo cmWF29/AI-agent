@@ -1049,9 +1049,6 @@ class Tickets(Module):
                     "pm_state": pm_state, "last_activity": t.get("updated") or "",
                     "reason": reason, "audit": existing}
             found.append(item)
-            if t.get("stall_audit"):
-                item["audit"] = t["stall_audit"] if not existing else existing
-                continue
             if existing:
                 item["audit"] = existing
                 continue
