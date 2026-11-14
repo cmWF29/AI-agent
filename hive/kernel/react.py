@@ -28,6 +28,11 @@ def _msg(role, content, **extra):
     return m
 
 
+# max_steps=0 表示“不限”。用一个足够大的整数而不是 math.inf，
+# 因为 limit 会进 emit 事件和日志，inf 不好序列化。
+UNLIMITED_STEPS = 10 ** 9
+
+
 class ReactLoop:
     def __init__(self, cfg, bus, log, llm, tools, output, api=None, trace=None):
         self.cfg = cfg
@@ -43,7 +48,18 @@ class ReactLoop:
     def run(self, session, user_text=None, drain=None, hooks=None, max_steps=None):
         sid = session.get("id", "unknown")
         messages = session.setdefault("messages", [])
-        limit = int(max_steps or session.get("max_steps") or self.cfg["react"]["max_steps"])
+        # 步数上限语义（实测确认，勿改回 `or` 链）：
+        #   None  -> 依次回落到 session.max_steps、cfg.react.max_steps（默认 20）
+        #   0     -> 显式“不限”，用一个大到不会触顶的数表示
+        #   正数  -> 该值
+        # 注意不能用 `max_steps or ...`：0 会被当成假值而退化成默认 20，
+        # 那样“不限”就永远表达不出来。
+        if max_steps is None:
+            limit = int(session.get("max_steps") or self.cfg["react"]["max_steps"])
+        else:
+            limit = int(max_steps)
+        if limit <= 0:
+            limit = UNLIMITED_STEPS
         emit = self._emitter(sid, hooks)
         trace_fn = self._tracer(sid, session.get("ticket") or "")
 

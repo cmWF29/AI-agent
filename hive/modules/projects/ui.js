@@ -304,9 +304,13 @@ function createTicket() {
   } }).then(function (r) {
     toast(r.ticket.status === 'queued' ? '高峰期已排队，空闲自动开跑' : ('工单已开：' + r.ticket.id));
     $('pv-newgoal').value = ''; $('pv-newtitle').value = ''; $('pv-newtags').value = '';
-    loadGroups(); HiveUI.emit('idle:refresh', {});
-    if (r.ticket.status !== 'queued') HiveUI.emit('chat:open', { id: r.ticket.id });
-    else openProject(state.project, true);
+    HiveUI.emit('idle:refresh', {});
+    // 先等分组刷新完成，再打开会话：否则群聊/侧栏还没拿到新工单就切过去，会看到空列表或旧数据。
+    // loadGroups 内部已 catch 掉错误（不会 reject），这里再兜一层，保证刷新失败也不吞掉 chat:open。
+    loadGroups().catch(function () {}).then(function () {
+      if (r.ticket.status !== 'queued') HiveUI.emit('chat:open', { id: r.ticket.id });
+      else openProject(state.project, true);
+    });
   }).catch(function (e) { toast('开工单失败：' + e.message, 'err'); });
 }
 function openFork(goal, parent) {

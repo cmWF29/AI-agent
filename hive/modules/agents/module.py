@@ -21,6 +21,7 @@ import uuid
 from ...kernel.api import ApiError, Module
 from ...kernel.config import path_of
 from ...kernel.store import ensure_dir
+from ...kernel.hostres import check_host_resources, guard_config
 
 
 class ClaudeCodeBackend:
@@ -40,8 +41,59 @@ class ClaudeCodeBackend:
         self.extra_env = a.get("env") or {}
 
     def available(self):
+        """布尔可用性：只看 CLI 装没装。
+
+        前端（projects/ui.js）读的是 `cc.available`，这里必须保持布尔语义；
+        资源门禁的结论放在 `reason` / `resources` 里，不改变 available 的含义，
+        否则“机器忙”会被误显示成“没装 CLI”。
+        """
         p = self._resolve_command()
         return bool(p and (os.path.isfile(p) or shutil.which(p)))
+
+    def status(self):
+        """给 /api/agents/backends 用的完整状态：available + reason + resources。"""
+        installed = self.available()
+        gate = check_host_resources(self.cfg)
+        if not installed:
+            reason = "本机未安装 claude CLI"
+        elif not gate["ok"]:
+            reason = gate["reason"]
+        else:
+            reason = ""
+        return {
+            "available": installed,
+            "installed": installed,
+            "reason": reason,
+            "resources": gate["resources"],
+            "guard": gate["guard"],
+        }
+
+    def _fallback_api(self, session, user_text, drain, hooks, max_steps, gate):
+        """资源不足时降级到内核 api 后端跑同一轮。
+
+        降级不是静默的：返回值里带 degraded / degraded_reason / resources，
+        会话记录也打上标记，前端和工单都能看到“这轮不是 claude-code 跑的”。
+        """
+        api = getattr(self, "api_backend", None)
+        if api is None:
+            err = ApiError("宿主机资源不足且 api 后端不可用：%s" % gate["reason"],
+                           status=503, code="host_resources_insufficient")
+            err.reason = gate["reason"]
+            err.resources = gate["resources"]
+            err.guard_code = gate["code"]
+            raise err
+        self.log.info("agent.claude.fallback_api", session=session.get("id"),
+                      code=gate["code"], reason=gate["reason"])
+        res = api.run(session, user_text=user_text, drain=drain, hooks=hooks,
+                      max_steps=max_steps)
+        if isinstance(res, dict):
+            res = dict(res)
+            res["degraded"] = True
+            res["degraded_from"] = "claude-code"
+            res["degraded_reason"] = gate["reason"]
+            res["degraded_code"] = gate["code"]
+            res["resources"] = gate["resources"]
+        return res
 
     def _resolve_command(self):
         """优先找常见 npm 全局安装位置，避免服务进程的 PATH 不含 npm。"""
@@ -117,6 +169,25 @@ class ClaudeCodeBackend:
             env["ANTHROPIC_SMALL_FAST_MODEL"] = str(llm["model"])
         # 显式 agents.claude_code.env 优先，用于个别部署覆盖
         env.update({str(k): str(v) for k, v in self.extra_env.items()})
+        # 宿主机资源门禁：在真正 Popen 之前判定，避免把机器打爆。
+        # 不足时按 agents.claude_code.guard.on_insufficient 处理：
+        #   reject       -> 抛 ApiError（带 reason/resources），调用方看到明确原因
+        #   fallback_api -> 降级到内核 api 后端，结果带 degraded=true
+        gate = check_host_resources(self.cfg)
+        if not gate["ok"]:
+            self.log.warn("agent.claude.guard", session=session.get("id"),
+                          code=gate["code"], reason=gate["reason"],
+                          action=gate["action"], resources=gate["resources"])
+            if gate["action"] == "fallback_api":
+                return self._fallback_api(session, user_text, drain, hooks, max_steps, gate)
+            err = ApiError("宿主机资源不足，已拒绝启动 claude-code：%s" % gate["reason"],
+                           status=503, code="host_resources_insufficient")
+            # ApiError 只有 message/status/code；把结构化原因挂在实例上，
+            # 供 HTTP 层和测试读取，不改变 ApiError 的对外契约。
+            err.reason = gate["reason"]
+            err.resources = gate["resources"]
+            err.guard_code = gate["code"]
+            raise err
         t0 = time.time()
         self.log.info("agent.claude.start", session=session.get("id"), cwd=ws, cmd=cmd[:2],
                       model=env.get("ANTHROPIC_MODEL"), has_token=bool(env.get("ANTHROPIC_AUTH_TOKEN")))
@@ -251,6 +322,8 @@ class Agents(Module):
         self.root = ensure_dir(root)
         self.claude = ClaudeCodeBackend(self.cfg, self.log, self.root)
         self.backends = self.ctx.state["backends"]
+        # 资源门禁降级目标：内核 api 后端（可能尚未注册，run 时再取）
+        self.claude.api_backend = self.backends.get("api")
         self.backends.register("claude-code", self.claude, label="Claude Code CLI",
                                description="已有 agent 进程；使用本机文件/shell，不自建 ReAct")
         self.api.route("GET", "/api/agents/backends", name="backends")(self.backends_api)
@@ -261,7 +334,9 @@ class Agents(Module):
         items = self.backends.list()
         for b in items:
             backend = self.backends.get(b.get("name"))
-            if hasattr(backend, "available"):
+            if hasattr(backend, "status"):
+                b.update(backend.status())
+            elif hasattr(backend, "available"):
                 b["available"] = bool(backend.available())
         return {"items": items, "default": self.cfg.get("sessions", {}).get("backend") or "api"}
 

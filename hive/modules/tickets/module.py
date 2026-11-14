@@ -248,7 +248,16 @@ class Tickets(Module):
         self._stage(ticket, "pm_spawned", pm["id"])
         self._save(ticket)
 
-        self.ctx.rule("ticket.send_instruction", session=pm["id"], text=self._pm_kickoff(ticket), max_steps=60)
+        # PM 步数由配置决定：tickets.pm_max_steps，默认 0 = 不限。
+        # 0 必须显式传下去（react 里 0 表示不限），不能写成 `or None`，
+        # 否则会退化成 cfg.react.max_steps（默认 20），PM 干到一半被截断。
+        pm_max_steps = self.cfg.get("tickets", {}).get("pm_max_steps", 0)
+        try:
+            pm_max_steps = int(pm_max_steps)
+        except (TypeError, ValueError):
+            pm_max_steps = 0
+        self.ctx.rule("ticket.send_instruction", session=pm["id"], text=self._pm_kickoff(ticket),
+                      max_steps=pm_max_steps)
         return ticket
 
 

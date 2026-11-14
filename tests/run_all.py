@@ -1080,6 +1080,30 @@ def test_web_state_machine():
     check("网页状态机与实现一致", ok, errors[:4])
 
 
+def test_ui_create_ticket_race():
+    """前端竞态回归：createTicket 必须先刷新分组再打开会话（源码级静态断言）。"""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
+    import test_ui_race
+    ok, errors = test_ui_race.run()
+    check("createTicket 先刷新分组再打开会话", ok, errors[:4])
+
+
+def test_host_resources_guard():
+    """宿主机资源门禁：注入假 probe，验证放行/拒绝/降级/关闭/未知值。"""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
+    import test_hostres
+    ok, errors = test_hostres.run()
+    check("宿主机资源门禁", ok, errors[:4])
+
+
+def test_pm_max_steps_config():
+    """PM 步数配置化：0=不限，且 react 不能再用 `max_steps or` 吞掉 0。"""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
+    import test_pm_steps
+    ok, errors = test_pm_steps.run()
+    check("PM 步数配置化", ok, errors[:4])
+
+
 def test_architecture_gate():
     from hive.archscan import scan
     r = scan()
@@ -1296,11 +1320,11 @@ def main():
              test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https,
              test_v4_features, test_security_and_ui_contract, test_flow_content_and_reverify,
              test_agent_backends_and_skills, test_v44_features, test_web_state_machine,
-             test_architecture_gate, test_rules_execution, test_v45_lifecycle_idle_system]
+             test_ui_create_ticket_race, test_host_resources_guard, test_pm_max_steps_config, test_architecture_gate, test_rules_execution, test_v45_lifecycle_idle_system]
     t0 = time.time()
     for t in tests:
         try:
-            if t in (test_bus, test_web_state_machine, test_architecture_gate):
+            if t in (test_bus, test_web_state_machine, test_ui_create_ticket_race, test_host_resources_guard, test_pm_max_steps_config, test_architecture_gate):
                 t()
             else:
                 t(mock)

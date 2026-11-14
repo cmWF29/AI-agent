@@ -53,7 +53,8 @@
     "root": "data/tickets",
     "close_reply_timeout": 120,
     "max_roles": 8,
-    "default_project": "default"
+    "default_project": "default",
+    "pm_max_steps": 0
   },
   "knowledge": {
     "root": "data/knowledge",
@@ -105,6 +106,13 @@
         "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
         "ANTHROPIC_MODEL": "deepseek-chat",
         "ANTHROPIC_SMALL_FAST_MODEL": "deepseek-chat"
+      },
+      "guard": {
+        "enabled": true,
+        "min_free_mem_mb": 1024,
+        "max_load_ratio": 1.5,
+        "max_claude_procs": 3,
+        "on_insufficient": "reject"
       }
     }
   },
