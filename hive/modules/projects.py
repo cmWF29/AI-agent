@@ -357,11 +357,10 @@ class Projects(Module):
                            status=409, code="open_tickets",
                            extra={"open_tickets": open_tickets})
         destroyed, deleted_tickets = [], []
-        try:
-            self.ctx.api("sessions.destroy", session_id="sec-" + pid)
-            destroyed.append("sec-" + pid)
-        except ApiError:
-            pass
+        # 项目秘书由 sessions 订阅 project.delete.before 自行清理；
+        # 这里只发同步事件，不同步调用 sessions.destroy，保持模块 API 单向依赖。
+        self.bus.publish("project.delete.before", {"project": pid}, source=self.name, sync=True)
+        destroyed.append("sec-" + pid)
         if cascade.get("tickets"):
             for t in tickets:
                 if t.get("status") != "closed":

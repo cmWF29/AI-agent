@@ -132,7 +132,7 @@ class Artifacts(Module):
                         continue
                     files.append({"path": rel.replace(os.sep, "/"), "size": size})
         index = {"ticket": ticket, "project": project, "archived": _now(),
-                 "files": files, "bytes": sum(f["size"] for f in files), "compressed": False}
+                 "closed": True, "files": files, "bytes": sum(f["size"] for f in files), "compressed": False}
         self._write_index(staging, index)
         backup = dest + ".old"
         shutil.rmtree(backup, ignore_errors=True)
@@ -326,12 +326,10 @@ class Artifacts(Module):
                 full = os.path.join(tdir, tid)
                 if not os.path.isdir(full):
                     continue
-                # 只压缩已结单工单，避免把仍在跑的交付件拿走
-                try:
-                    st = self.ctx.api("tickets.get", ticket_id=tid)["ticket"].get("status")
-                except ApiError:
-                    st = None
-                if st not in (None, "closed"):
+                # 只压缩已结单工单的归档；归档快照的 index 会记录 closed，
+                # 旧 index 没有该字段时按“已归档即已结单”处理。
+                idx = self._read_index(full)
+                if idx is not None and idx.get("closed") is False:
                     continue
                 age_days = (time.time() - os.path.getmtime(full)) / 86400.0
                 if age_days >= days:

@@ -205,6 +205,10 @@ class Sessions(Module):
 
         # 常驻会话在首次访问时按需拉起，避免启动阶段就依赖 LLM
         self.secretary_id = self.cfg["secretary"].get("session_id") or "secretary"
+        # 项目删除时由 projects 发同步事件，sessions 自己清理项目秘书；
+        # 这样 projects 不再同步调用 sessions.destroy，两个模块的 API 依赖保持单向。
+        self.bus.subscribe("project.delete.before", self._on_project_delete_before,
+                           name="sessions.project_cleanup")
 
         self.api.route("POST", "/api/sessions/spawn", name="spawn")(self.spawn_api)
         self.api.route("POST", "/api/sessions/send", name="send")(self.send_api)
@@ -451,6 +455,19 @@ class Sessions(Module):
                 "messages_before": len(msgs), "messages_after": len(new_msgs)}
 
     # ---------------- 秘书 ----------------
+    def _on_project_delete_before(self, ev):
+        """项目删除前同步清理项目秘书会话；失败只记日志，不阻断项目删除。"""
+        pid = ((ev.get("payload") or {}).get("project") or "").strip()
+        if not pid:
+            return
+        sid = "sec-" + pid
+        try:
+            self.destroy(sid)
+        except ApiError as exc:
+            self.log.warn("session.project_cleanup.failed", session=sid, error=exc.message)
+        except Exception as exc:
+            self.log.warn("session.project_cleanup.failed", session=sid, error=repr(exc))
+
     def secretary_for(self, project=""):
         """一个项目一个秘书；不再创建全局秘书。
 

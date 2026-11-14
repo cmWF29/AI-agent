@@ -67,9 +67,7 @@
         "route:/api/artifacts/remove-project remove_project"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "tickets.get"
-      ],
+      "api_calls": [],
       "private_tests": false
     },
     {
@@ -568,7 +566,6 @@
         "artifacts.remove_project",
         "gitflow.project_init",
         "knowledge.remove_project",
-        "sessions.destroy",
         "tickets.delete",
         "tickets.list"
       ],
@@ -897,9 +894,6 @@
     }
   ],
   "module_graph": {
-    "artifacts": [
-      "tickets"
-    ],
     "health": [
       "artifacts"
     ],
@@ -916,7 +910,6 @@
       "artifacts",
       "gitflow",
       "knowledge",
-      "sessions",
       "tickets"
     ],
     "sessions": [
@@ -944,34 +937,22 @@
   },
   "api_cycles": [
     [
-      "artifacts",
-      "tickets",
-      "artifacts"
-    ],
-    [
-      "artifacts",
-      "tickets",
       "idle",
       "sessions",
       "projects",
-      "artifacts"
+      "tickets",
+      "idle"
+    ],
+    [
+      "projects",
+      "tickets",
+      "projects"
     ],
     [
       "sessions",
       "projects",
+      "tickets",
       "sessions"
-    ],
-    [
-      "tickets",
-      "idle",
-      "sessions",
-      "projects",
-      "tickets"
-    ],
-    [
-      "tickets",
-      "idle",
-      "tickets"
     ]
   ],
   "import_cycles": [],
@@ -1344,11 +1325,9 @@
   },
   "errors": [],
   "warnings": [
-    "模块 API 调用环: artifacts -> tickets -> artifacts",
-    "模块 API 调用环: artifacts -> tickets -> idle -> sessions -> projects -> artifacts",
-    "模块 API 调用环: sessions -> projects -> sessions",
-    "模块 API 调用环: tickets -> idle -> sessions -> projects -> tickets",
-    "模块 API 调用环: tickets -> idle -> tickets"
+    "模块 API 调用环: idle -> sessions -> projects -> tickets -> idle（已登记债务）",
+    "模块 API 调用环: projects -> tickets -> projects（已登记债务）",
+    "模块 API 调用环: sessions -> projects -> tickets -> sessions（已登记债务）"
   ],
   "ok": true,
   "strict_api": false

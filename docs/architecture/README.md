@@ -10,10 +10,14 @@
 - 对外能力只有两类：`self.api.route(...)` 注册的 HTTP/内部 API，以及
   `Tool(...)` 注册的 Agent 工具；其余函数按内部实现处理。
 - 跨模块调用统一走 `ctx.api("module.method", ...)`，扫描器据此生成模块 API 依赖图。
-- 门禁硬错误：跨模块 import、import 环、网页契约错误、流程 DAG 环。
-- 当前 API 调用图仍有历史环（`sessions <-> projects`、`tickets <-> idle`、
-  `artifacts <-> tickets` 等）。它们被报告为“已知债务”，不阻塞当前门禁，但
-  `--strict-api` 会升级为阻塞。下一阶段应按“同步依赖 / 异步事件”拆边，不能假装环不存在。
+- 门禁硬错误：跨模块 import、import 环、网页契约错误、流程 DAG 环、**基线之外的新 API 环**。
+- API 环基线在 `docs/architecture/api-cycles-baseline.json`。当前只剩 3 条已登记债务：
+  `projects <-> tickets`、`sessions -> projects -> tickets -> sessions`、
+  `idle -> sessions -> projects -> tickets -> idle`。本轮已拆掉
+  `sessions <-> projects`（项目秘书改由 `project.delete.before` 同步事件清理）和
+  `artifacts <-> tickets`（压缩只读归档 index 的 `closed`，不再查工单状态）。
+- 新代码如果引入未登记环，默认门禁直接失败；`--strict-api` 则把所有环（包括基线）
+  升级为阻塞。拆掉一条边后必须同步删除基线项，不能把基线当永久豁免。
 
 ## 2. 项目生命周期（归档 / 删除 / 级联）
 

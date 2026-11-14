@@ -8,8 +8,9 @@
 
 门禁策略：
 * 硬错误（会阻塞 git push / 工单结单）：跨模块 import、import 环、网页契约错误、流程环。
-* API 调用环：当前代码存在历史环（sessions<->projects 等），作为“已知债务”报告；
-  用 --strict-api 才升级为阻塞。这样新代码不会偷偷加环，同时不假装旧环已经消失。
+* API 调用环：只允许 docs/architecture/api-cycles-baseline.json 登记的已知环；
+  新环默认阻塞。--strict-api 会把所有环（包括已知债务）升级为阻塞。
+* 拆掉一条边后必须同步删除基线项，避免“基线”变成永久豁免。
 """
 from __future__ import annotations
 
@@ -23,6 +24,26 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODULES_DIR = os.path.join(ROOT, "hive", "modules")
 FLOWS_DIR = os.path.join(ROOT, "data", "library", "flows")
 WEB_DIR = os.path.join(ROOT, "web")
+API_BASELINE = os.path.join(ROOT, "docs", "architecture", "api-cycles-baseline.json")
+
+
+def _cycle_key(cycle):
+    """环的节点顺序可旋转；用字典序最小节点做起点，得到稳定 key。"""
+    nodes = list(cycle or [])
+    if nodes and nodes[0] == nodes[-1]:
+        nodes = nodes[:-1]
+    if not nodes:
+        return ""
+    start = min(range(len(nodes)), key=lambda i: nodes[i])
+    return " -> ".join(nodes[start:] + nodes[:start])
+
+
+def _known_api_cycles():
+    try:
+        data = json.loads(_read(API_BASELINE))
+        return {_cycle_key(c) for c in (data.get("cycles") or []) if c}
+    except Exception:
+        return set()
 
 
 def _read(path):
@@ -201,9 +222,15 @@ def scan(strict_api=False):
             errors.append("模块 %s 直接 import 其他模块: %s" % (m["name"], m["cross_imports"]))
     for c in import_cycles:
         errors.append("模块 import 环: %s" % " -> ".join(c))
+    known_cycles = _known_api_cycles()
     for c in api_cycles:
         msg = "模块 API 调用环: %s" % " -> ".join(c)
-        (errors if strict_api else warnings).append(msg)
+        if strict_api:
+            errors.append(msg)
+        elif _cycle_key(c) in known_cycles:
+            warnings.append(msg + "（已登记债务）")
+        else:
+            errors.append(msg + "（新增环，未登记；请拆边或显式登记到基线并说明理由）")
     for f in flows:
         if f.get("error"):
             errors.append("流程 %s: %s" % (f["id"], f["error"]))

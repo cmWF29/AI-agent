@@ -1,0 +1,8 @@
+{
+  "description": "已知 API 调用环基线。只允许这里登记过的环；出现新环时默认门禁直接失败。拆掉一条边后必须从本文件删除对应项，不能长期留着。",
+  "cycles": [
+    ["idle", "sessions", "projects", "tickets", "idle"],
+    ["projects", "tickets", "projects"],
+    ["sessions", "projects", "tickets", "sessions"]
+  ]
+}

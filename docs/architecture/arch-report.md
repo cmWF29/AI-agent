@@ -1,11 +1,11 @@
 # 架构静态扫描报告
 
-生成时间：2026-11-14T06:51:28Z
+生成时间：2026-11-14T07:18:48Z
 
 ## 结论
 
 - 门禁：**通过**
-- 模块数：16；API 调用边：26；API 环：5；import 环：0
+- 模块数：16；API 调用边：24；API 环：3；import 环：0
 - 流程数：17；流程 DAG 环：0
 - 网页状态：一致（状态 11 / 事件 14 / DOM id 101）
 
@@ -32,11 +32,10 @@
 
 ## 模块 API 依赖（同步调用）
 
-- `artifacts` -> `tickets`
 - `health` -> `artifacts`
 - `idle` -> `sessions`, `tickets`
 - `ops` -> `knowledge`, `sessions`, `tickets`
-- `projects` -> `artifacts`, `gitflow`, `knowledge`, `sessions`, `tickets`
+- `projects` -> `artifacts`, `gitflow`, `knowledge`, `tickets`
 - `sessions` -> `knowledge`, `projects`
 - `skills` -> `library`
 - `tickets` -> `artifacts`, `gitflow`, `idle`, `knowledge`, `library`, `projects`, `sessions`
@@ -44,11 +43,9 @@
 
 ### API 环
 
-- artifacts -> tickets -> artifacts
-- artifacts -> tickets -> idle -> sessions -> projects -> artifacts
-- sessions -> projects -> sessions
-- tickets -> idle -> sessions -> projects -> tickets
-- tickets -> idle -> tickets
+- idle -> sessions -> projects -> tickets -> idle
+- projects -> tickets -> projects
+- sessions -> projects -> tickets -> sessions
 
 ## 流程 DAG
 
@@ -82,8 +79,6 @@
 
 ## 已知债务（不阻塞当前门禁）
 
-- 模块 API 调用环: artifacts -> tickets -> artifacts
-- 模块 API 调用环: artifacts -> tickets -> idle -> sessions -> projects -> artifacts
-- 模块 API 调用环: sessions -> projects -> sessions
-- 模块 API 调用环: tickets -> idle -> sessions -> projects -> tickets
-- 模块 API 调用环: tickets -> idle -> tickets
+- 模块 API 调用环: idle -> sessions -> projects -> tickets -> idle（已登记债务）
+- 模块 API 调用环: projects -> tickets -> projects（已登记债务）
+- 模块 API 调用环: sessions -> projects -> tickets -> sessions（已登记债务）
