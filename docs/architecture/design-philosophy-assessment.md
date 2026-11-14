@@ -1,7 +1,7 @@
 ﻿# Hive Agent 设计哲学与落地评估（修复后）
 
 > 评估时间：2026-11-14  
-> 评估对象：`main` 工作树（基于生产 HEAD `9d69955`，架构实现提交 `b661972`，版本 `0.5.0`；本次修复已提交本地 main，未推送/未部署）  
+> 评估对象：`main` 工作树（基于生产 HEAD `9d69955`，架构实现提交 `b661972`，版本 `0.5.0`；本次修复已推送 GitHub 并部署生产，生产 HEAD `bb4fac9`）  
 > 评估方式：代码/规则目录/静态门禁/全量回归/浏览器实测/生产健康检查  
 > 相关证据：`docs/architecture/arch-report.md`、`docs/architecture/rule-coverage.md`、`data/rules/catalog.json`
 
@@ -185,7 +185,7 @@ tickets.create
 | 全量回归 | 277/277 通过，74.2s |
 | 架构门禁 | `ARCH GATE PASS` |
 | 本地 HTTPS 真机 | 规则面板 `58 / 9 / 9`、12 条对外契约、模块关系图、校验通过 |
-| 生产版本 | `0.5.0`，HEAD `9d69955`（本次修复未部署前） |
+| 生产版本 | `0.5.0`，HEAD `bb4fac9` |
 | 生产健康 | `ok`，`healthy: true`，watchdog active |
 | 生产规则目录 | 58 关系 / 9 流程 / 9 事件 / 0 errors |
 | 部署形态 | 本地 main → GitHub main → 生产 bare repo → post-receive 自动检出 + provision |
@@ -311,9 +311,10 @@ tickets.create
 未登记 UI API 契约：0
 全量回归：277/277，74.2s
 生产版本：0.5.0
-生产 HEAD：9d69955
+生产 HEAD：bb4fac9
 生产健康：ok，healthy true
 ```
+
 
 
 
