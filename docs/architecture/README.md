@@ -68,7 +68,7 @@
   `python -m hive.archscan`，失败则阻断推送。
 - 工单：`tickets.close(force=False)` 先跑同一个架构门禁；失败返回
   `code=arch_gate_failed`，工单不能进入 closing。
-- 生产远端：需要在 VPS 的 bare 仓库加 `pre-receive` 调同一个扫描器（见
-  `deploy/hooks/pre-receive`）。当前本地 hook 已安装，生产 hook 需随部署脚本安装。
+- 生产远端：VPS 的 `/opt/hive/repo.git/hooks/pre-receive` 已安装并实测通过（对
+  `430c564..8333a60` 的 tree 跑同一扫描器）。生产部署后版本为 `0.4.5`，HEAD `8333a60`。
 - `--strict-api` 是下一阶段的严格模式：解决 API 环后再打开，才能把“API 依赖也是 DAG”
   变成真正的硬约束。
