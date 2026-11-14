@@ -63,10 +63,11 @@ hive/modules/<name>/
 
 ### 4. 验证
 
-- 全量回归：**251/251 通过，66.9s**。
+- 全量回归：**253/253 通过，67.7s**。
 - `python -m hive.archscan --strict-api`：**ARCH GATE PASS**。
 - 20 个模块、24 条 API 边、API 环 0、import 环 0、流程 50、流程环 0。
-- 本地 HTTPS 真机验收：项目页、秘书群聊、返回键、模板注入、控制台无脚本错误。
+- 本地 HTTPS 真机验收：项目页、秘书群聊、返回键、模板注入、项目文件侧栏，
+  控制台无脚本错误。
 - 新模块 API 已实测：`/api/gate/arch` 返回 20 模块 / 24 边，`/api/test/catalog` 正常，
   `/api/gitsync/status` 正常。
 
