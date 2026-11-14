@@ -212,7 +212,9 @@ def cmd_send(args):
     c = _client(args)
     res = c.post("/api/sessions/send", {"session": args.session, "text": args.text})
     if args.wait:
-        sid = args.session
+        sid = args.session or (res.get("session") or "")
+        if not sid:
+            raise SystemExit("send 返回没有 session，无法 wait")
         out = c.post("/api/sessions/wait", {"session": sid, "timeout": args.timeout}, timeout=args.timeout)
         print(out.get("reply") or out.get("status"))
     else:
@@ -321,12 +323,12 @@ def build_parser():
     st.set_defaults(func=cmd_selftest)
 
     a = sub.add_parser("ask", parents=[common], help="向常驻会话发一句话并等回复")
-    a.add_argument("--session", default="secretary")
+    a.add_argument("--session", default="", help="默认第一个项目的项目秘书")
     a.add_argument("--text", required=True)
     a.set_defaults(func=cmd_ask)
 
     s = sub.add_parser("send", parents=[common])
-    s.add_argument("--session", default="secretary")
+    s.add_argument("--session", default="", help="默认第一个项目的项目秘书")
     s.add_argument("--text", required=True)
     s.add_argument("--wait", action="store_true")
     s.set_defaults(func=cmd_send)

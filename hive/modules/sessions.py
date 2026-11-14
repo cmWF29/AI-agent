@@ -452,8 +452,20 @@ class Sessions(Module):
 
     # ---------------- 秘书 ----------------
     def secretary_for(self, project=""):
-        """本地层一个总秘书；每个项目一个项目秘书（需求 6：一个项目一个秘书，可行）。"""
-        return ("sec-" + project) if project else self.secretary_id
+        """一个项目一个秘书；不再创建全局秘书。
+
+        兼容旧 API 的 project=""：落到第一个项目（通常是 default），
+        这样 CLI/旧调用即使没传 project，也不会凭空造出一个全局秘书。
+        """
+        if project:
+            return "sec-" + project
+        try:
+            items = self.ctx.api("projects.list").get("items") or []
+            if items:
+                return "sec-" + items[0]["id"]
+        except ApiError:
+            pass
+        return self.secretary_id
 
     def ensure_secretary(self, reset=False, project=""):
         sid = self.secretary_for(project)
@@ -538,14 +550,16 @@ class Sessions(Module):
         return {"session": self._summary(res)}
 
     def send_api(self, payload):
-        sid = payload.get("session") or self.secretary_id
+        sid = payload.get("session") or self.secretary_for("")
         text = payload.get("text")
         if text is None:
             raise ApiError("text 必填", code="missing_text")
-        return self.submit(sid, text, max_steps=payload.get("max_steps"))
+        res = self.submit(sid, text, max_steps=payload.get("max_steps"))
+        res["session"] = sid
+        return res
 
     def ask_api(self, payload):
-        sid = payload.get("session") or self.secretary_id
+        sid = payload.get("session") or self.secretary_for("")
         if sid == self.secretary_id or sid.startswith("sec-"):
             self.ensure_secretary(project="" if sid == self.secretary_id else sid[4:])
         text = payload.get("text")
@@ -616,7 +630,7 @@ class Sessions(Module):
         return {"session": rec["id"], "total": len(rec.get("messages") or []), "items": items}
 
     def compact_api(self, payload):
-        sid = payload.get("session_id") or self.secretary_id
+        sid = payload.get("session_id") or self.secretary_for("")
         return self.compact_session(sid, manual=True)
 
     def interrupt_api(self, payload):
@@ -734,7 +748,7 @@ class Sessions(Module):
             return "已销毁 %s（已归档）" % args.get("session")
 
         def compact_tool(args, tctx):
-            res = self.compact_session(args.get("session") or self.secretary_id, manual=True)
+            res = self.compact_session(args.get("session") or self.secretary_for(""), manual=True)
             return "压缩结果: %s" % res
 
         def result_tool(args, tctx):
