@@ -84,7 +84,8 @@ class Knowledge(Module):
         其它用户自己写的 public 文档不覆盖。旧环境没有 marker 也能补齐新增文件。
         """
         target = os.path.join(self.root, "public")
-        src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "prompts")
+        src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                           "prompts")
         copied, updated, failed = [], [], []
         if os.path.isdir(src):
             for name in sorted(os.listdir(src)):
