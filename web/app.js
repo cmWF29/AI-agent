@@ -318,6 +318,16 @@ function openProject(pid, silent, opts) {
     renderProject(r.project || {});
   }).catch(function (e) { toast('项目读取失败：' + e.message, 'err'); });
 }
+function applyBackendAvailability() {
+  var available = state.backendAvailable !== false;
+  ['pv-backend', 'pv-newbackend', 'tk-backend'].forEach(function (id) {
+    var sel = $(id); if (!sel) return;
+    var opt = sel.querySelector('option[value="claude-code"]'); if (!opt) return;
+    opt.disabled = !available;
+    opt.textContent = available ? 'claude-code（已有 Agent）' : 'claude-code（本机未装 CLI，不可选）';
+    if (!available && sel.value === 'claude-code') sel.value = 'api';
+  });
+}
 function renderProject(p) {
   $('pv-title').textContent = p.title || p.id;
   $('pv-sub').textContent = 'id=' + p.id + ' · 后端 ' + (p.backend || '未设置（跟随全局）') +
@@ -326,8 +336,10 @@ function renderProject(p) {
   if ($('pv-modeinfo')) $('pv-modeinfo').textContent = '源码绑定后可浏览项目代码；Agent 模式由本机 Claude Code CLI 执行。';
   api('/api/agents/backends').then(function (r) {
     var cc = ((r.items || []).filter(function (x) { return x.name === 'claude-code'; })[0]) || {};
+    state.backendAvailable = !!cc.available;
+    applyBackendAvailability();
     if ($('pv-modeinfo')) $('pv-modeinfo').textContent = '源码 ' + (p.source_path || '未绑定') +
-      '；claude-code ' + (cc.available ? '可用' : '不可用（本机未装 CLI）') +
+      '；claude-code ' + (cc.available ? '可用' : '不可用（本机未装 CLI，已置灰）') +
       '；全局默认 ' + (r.default || 'api');
   }).catch(function () {});
   var tickets = p.tickets || [];
@@ -743,6 +755,9 @@ function bindProjectSource() {
 }
 function saveProjectBackend() {
   var pid = state.project; if (!pid) return;
+  if ($('pv-backend').value === 'claude-code' && state.backendAvailable === false) {
+    toast('claude-code 在本机不可用，不能保存为项目默认后端', 'err'); return;
+  }
   api('/api/projects/' + encodeURIComponent(pid) + '/backend', { method: 'POST', body: { backend: $('pv-backend').value } })
     .then(function () { toast('项目默认后端已保存'); openProject(pid, true); })
     .catch(function (e) { toast('保存失败：' + e.message, 'err'); });
@@ -1121,6 +1136,9 @@ function compactProjectSecretary() {
 }
 function createTicket() {
   var goal = $('pv-newgoal').value.trim(); if (!goal) { toast('目标不能空', 'warn'); return; }
+  if ($('pv-newbackend').value === 'claude-code' && state.backendAvailable === false) {
+    toast('claude-code 在本机不可用，请改选 api 或跟随项目', 'err'); return;
+  }
   var tags = $('pv-newtags').value.split(/[,，\s]+/).filter(Boolean);
   api('/api/tickets/create', { method: 'POST', body: {
     title: $('pv-newtitle').value.trim(), goal: goal, project: state.project, tags: tags,
@@ -1147,8 +1165,12 @@ function openFork(goal, parent) {
     '<div class="row-btns"><button class="primary" id="tk-create">派给项目经理</button></div>');
   var def = (findGroup(state.group) || {}).project || state.project;
   if (def) $('tk-project').value = def;
+  applyBackendAvailability();
   $('tk-create').onclick = function () {
     var g = $('tk-goal').value.trim(); if (!g) { toast('目标不能空', 'warn'); return; }
+    if ($('tk-backend').value === 'claude-code' && state.backendAvailable === false) {
+      toast('claude-code 在本机不可用，请改选 api 或跟随项目', 'err'); return;
+    }
     api('/api/tickets/create', { method: 'POST', body: { goal: g, project: $('tk-project').value, parent: parent || '',
       tags: $('tk-tags').value.split(/[,，\s]+/).filter(Boolean), force: $('tk-now').checked,
       backend: ($('tk-backend') || {}).value || '', trace_enabled: !!($('tk-trace') || {}).checked } })
