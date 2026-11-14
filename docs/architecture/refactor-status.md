@@ -105,8 +105,10 @@ hive/modules/<name>/
 - 21 个模块、0 条直接跨模块 API 边、0 条直接 `bus.subscribe`、API 环 0、import 环 0、
   流程 50、流程环 0。
 - 规则统计：58 关系 / 9 流程 / 9 事件 / 58 活跃 / 9 活跃事件 / 需求覆盖 18/33 / 0 冲突。
-- 本地 HTTPS 真机验收（事件改造后待重启复测）：规则面板、项目页、库页面、健康页、
-  版本页、返回键、模板注入均正常；控制台无脚本错误。
+- 本地 HTTPS 真机验收（事件改造后已重启复测）：规则面板显示
+  `关系 58 · 流程 9 · 订阅 9 · 活跃 58 · 需求覆盖 18/33`，9 条事件订阅全部可见，
+  `校验规则` 返回“规则校验通过（无冲突）”；项目页、库页面、健康页、版本页、
+  返回键、模板注入均正常；控制台无脚本错误。
 - 新模块 API 已实测：`/api/rules/catalog`、`/api/rules/graph`、
   `/api/rules/validate`、`/api/rules/run`、`/api/rules/process` 正常；
   `/api/gate/arch`、`/api/test/catalog`、`/api/gitsync/status` 正常。
