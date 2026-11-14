@@ -80,6 +80,8 @@ function selectGroup(id, silent, opts) {
   $('readonly-tip').classList.add('hidden');
   $('input').disabled = false; $('send').disabled = false;
   loadTimeline(silent); loadLive();
+  // 群聊实例挂载事实：只有该实例通道的订阅者需要响应。
+  HiveUI.mount('chat', id, 'mount-chat');
 }
 
 function loadTimeline(silent) {

@@ -166,10 +166,16 @@ function openProject(pid, silent, opts) {
   updateBackBtn();
   loadIdle();
   loadProjectIdle(pid);
-  api('/api/projects/' + encodeURIComponent(pid)).then(function (r) {
+  // 项目容器只收到“该挂载了”的事实；项目数据读取与渲染仍由项目模块自己完成。
+  HiveUI.mount('project', pid, 'mount-project');
+}
+
+HiveUI.on('project:mounted', function (payload) {
+  if (payload.projectId !== state.project) return;
+  api('/api/projects/' + encodeURIComponent(payload.projectId)).then(function (r) {
     renderProject(r.project || {});
   }).catch(function (e) { toast('项目读取失败：' + e.message, 'err'); });
-}
+});
 function applyBackendAvailability() {
   var available = state.backendAvailable !== false;
   ['pv-backend', 'pv-newbackend', 'tk-backend'].forEach(function (id) {

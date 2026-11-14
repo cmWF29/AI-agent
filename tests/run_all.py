@@ -1093,6 +1093,9 @@ def test_architecture_gate():
     check("网页全部按钮已绑定", not r["web"].get("unbound_buttons") and
           not r["web"].get("empty_buttons"), r["web"])
     check("网页全部控件已绑定", not r["web"].get("unbound_controls"), r["web"])
+    check("主容器只留模块挂载点", r["web"].get("mount_ok"), r["web"].get("module_render"))
+    check("每个前端模块自带渲染", all(r["web"].get("module_render", {}).values()),
+          r["web"].get("module_render"))
     check("流程库全部可扫描", all(not f.get("error") for f in r["flows"]), r["flows"])
     check("流程 DAG 无环", not any(f.get("cycles") for f in r["flows"]), r["flows"])
     req_flows = [f for f in r["flows"] if f.get("id", "").startswith("req-")]

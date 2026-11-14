@@ -240,13 +240,29 @@ def scan_web():
         web_ok, web_errors = validate()
     except Exception as exc:
         web_ok, web_errors = False, ["webstate 校验异常: %r" % exc]
+    # 渲染闭环门禁：主容器只留挂载点，模块模板和脚本都必须在模块目录内。
+    mount_ok = ('id="mount-project"' in html and 'id="mount-chat"' in html
+                and 'id="pv-title"' not in html and 'id="messages"' not in html
+                and not os.path.exists(os.path.join(WEB_DIR, "app.js")))
+    module_render = {}
+    for name in ("project", "chat", "files", "library", "health", "idle", "ops"):
+        rel = os.path.join(WEB_DIR, "modules", name, "render.js")
+        module_render[name] = os.path.exists(rel)
+    render_errors = []
+    if not mount_ok:
+        render_errors.append("项目/聊天容器不是空挂载点，或仍存在 web/app.js")
+    for name, ok in module_render.items():
+        if not ok:
+            render_errors.append("模块 %s 缺少自己的 render.js" % name)
     return {"ok": web_ok and not bad_targets and not component_missing
-                  and not unbound_buttons and not empty_buttons and not unbound_controls,
-            "errors": web_errors + (["事件目标不存在: %s" % x for x in bad_targets] if bad_targets else []) +
+                  and not unbound_buttons and not empty_buttons and not unbound_controls
+                  and mount_ok and all(module_render.values()),
+            "errors": web_errors + render_errors + (["事件目标不存在: %s" % x for x in bad_targets] if bad_targets else []) +
                       (["状态机缺少组件 id: %s" % x for x in component_missing] if component_missing else []) +
                       (["按钮未绑定脚本: %s" % x for x in unbound_buttons] if unbound_buttons else []) +
                       (["按钮无文本: %s" % x for x in empty_buttons] if empty_buttons else []) +
                       (["控件未绑定脚本: %s" % x for x in unbound_controls] if unbound_controls else []),
+            "mount_ok": mount_ok, "module_render": module_render,
             "states": len(states), "events": len(events),
             "dom_ids": len(ids), "dom_refs": len(refs), "missing_refs": missing_refs,
             "buttons": buttons, "unbound_buttons": unbound_buttons, "empty_buttons": empty_buttons,

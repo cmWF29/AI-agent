@@ -2537,6 +2537,16 @@
   "web": {
     "ok": true,
     "errors": [],
+    "mount_ok": true,
+    "module_render": {
+      "project": true,
+      "chat": true,
+      "files": true,
+      "library": true,
+      "health": true,
+      "idle": true,
+      "ops": true
+    },
     "states": 11,
     "events": 14,
     "dom_ids": 103,
