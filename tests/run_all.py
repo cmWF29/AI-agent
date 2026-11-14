@@ -27,6 +27,7 @@ from hive.kernel import Kernel        # noqa: E402
 from hive.kernel.bus import Bus       # noqa: E402
 from hive.kernel.config import load_config  # noqa: E402
 from hive.kernel.output import OutputPolicy  # noqa: E402
+from hive.webstate import frontend_source  # noqa: E402
 
 RESULTS = []
 
@@ -857,7 +858,7 @@ def test_security_and_ui_contract(mock):
 
         # 前端契约：有 hash 路由、返回按钮、popstate，不再有链路页
         index = open(os.path.join(REPO, "web", "index.html"), encoding="utf-8").read()
-        app = open(os.path.join(REPO, "web", "app.js"), encoding="utf-8").read()
+        app = frontend_source()
         for token, name in (("btn-back", "返回按钮"), ("routeOfHash", "hash 路由"),
                             ("popstate", "浏览器返回监听"), ("applyRoute", "路由恢复"),
                             ("history.pushState", "历史栈")):
@@ -995,7 +996,7 @@ def test_agent_backends_and_skills(mock):
               role)
         flow = env.api("library.get", kind="flows", id=dec["role"])["item"]
         check("拆解流程有必交校验", bool(flow.get("checks")), flow)
-        app = open(os.path.join(REPO, "web", "app.js"), encoding="utf-8").read()
+        app = frontend_source()
         for token, name in (("/api/skills/install", "Skill 安装入口"), ("decomposeSkill", "Skill 拆解入口"),
                             ("skill-src", "Skill 来源输入")):
             check("前端包含" + name, token in app, token)

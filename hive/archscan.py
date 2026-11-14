@@ -187,9 +187,11 @@ def scan_flows():
 
 
 def scan_web():
-    app = _read(os.path.join(WEB_DIR, "app.js"))
+    from hive.webstate import frontend_source
+    app = frontend_source(WEB_DIR)
     html = _read(os.path.join(WEB_DIR, "index.html"))
     spec = json.loads(_read(os.path.join(WEB_DIR, "state-machine.json")))
+    markup = html + "\n" + app
     ids = set(re.findall(r'id="([A-Za-z0-9_-]+)"', html))
     ids |= set(re.findall(r'id="([A-Za-z0-9_-]+)"', app))
     ids |= set(re.findall(r"id='([A-Za-z0-9_-]+)'", app))
@@ -200,11 +202,11 @@ def scan_web():
     # 组件扫描：所有带 id 的按钮/输入控件都必须被脚本显式绑定；
     # 按钮还必须有可读文本或 title/aria-label，避免“空按钮”。
     buttons, unbound_buttons, empty_buttons = 0, [], []
-    for m in re.finditer(r"<button([^>]*)>(.*?)</button>", html, re.S):
+    for m in re.finditer(r"<button([^>]*)>(.*?)</button>", markup, re.S):
         buttons += 1
         attrs, inner = m.group(1), re.sub(r"<[^>]+>", "", m.group(2)).strip()
         im = re.search(r'id="([^"]+)"', attrs)
-        if im and im.group(1) not in refs:
+        if im and re.match(r'^[A-Za-z0-9_-]+$', im.group(1)) and im.group(1) not in refs:
             unbound_buttons.append(im.group(1))
         name = re.search(r'(?:title|aria-label)="([^"]*)"', attrs)
         if not inner and not (name and name.group(1).strip()):
@@ -212,9 +214,9 @@ def scan_web():
 
     controls, unbound_controls = 0, []
     for tag in ("input", "select", "textarea"):
-        for m in re.finditer(r"<" + tag + r'([^>]*)>', html):
+        for m in re.finditer(r"<" + tag + r'([^>]*)>', markup):
             im = re.search(r'id="([^"]+)"', m.group(1))
-            if not im:
+            if not im or not re.match(r'^[A-Za-z0-9_-]+$', im.group(1)):
                 continue
             controls += 1
             if im.group(1) not in refs:

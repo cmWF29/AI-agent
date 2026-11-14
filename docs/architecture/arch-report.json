@@ -31,6 +31,30 @@
       "private_tests": false
     },
     {
+      "name": "archgate",
+      "entry": "hive/modules/archgate/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [],
+      "bad_event_topics": [],
+      "transport": "hub.request",
+      "routes": [
+        {
+          "path": "/api/gate/arch",
+          "name": "arch"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/gate/arch arch"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
       "name": "artifacts",
       "entry": "hive/modules/artifacts/__init__.py",
       "internal_files": [
@@ -158,6 +182,35 @@
         "tool:git_sync",
         "tool:git_status",
         "tool:git_merge"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
+      "name": "gitsync",
+      "entry": "hive/modules/gitsync/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [],
+      "bad_event_topics": [],
+      "transport": "hub.request",
+      "routes": [
+        {
+          "path": "/api/gitsync/status",
+          "name": "status"
+        },
+        {
+          "path": "/api/gitsync/fetch",
+          "name": "fetch"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/gitsync/status status",
+        "route:/api/gitsync/fetch fetch"
       ],
       "cross_imports": [],
       "api_calls": [],
@@ -881,6 +934,35 @@
       "private_tests": false
     },
     {
+      "name": "testrunner",
+      "entry": "hive/modules/testrunner/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [],
+      "bad_event_topics": [],
+      "transport": "hub.request",
+      "routes": [
+        {
+          "path": "/api/test/catalog",
+          "name": "catalog"
+        },
+        {
+          "path": "/api/test/run",
+          "name": "run"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/test/catalog catalog",
+        "route:/api/test/run run"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
       "name": "tickets",
       "entry": "hive/modules/tickets/__init__.py",
       "internal_files": [
@@ -1199,156 +1281,6 @@
       "checks": 2
     },
     {
-      "id": "developer-docs",
-      "role": "developer-docs",
-      "nodes": 1,
-      "node_ids": [
-        "developer-docs"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 1
-    },
-    {
-      "id": "developer",
-      "role": "developer",
-      "nodes": 1,
-      "node_ids": [
-        "developer"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 4
-    },
-    {
-      "id": "ops",
-      "role": "ops",
-      "nodes": 1,
-      "node_ids": [
-        "ops"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 2
-    },
-    {
-      "id": "process",
-      "role": "process",
-      "nodes": 1,
-      "node_ids": [
-        "process"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 1
-    },
-    {
-      "id": "researcher",
-      "role": "researcher",
-      "nodes": 1,
-      "node_ids": [
-        "researcher"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 1
-    },
-    {
-      "id": "reviewer",
-      "role": "reviewer",
-      "nodes": 1,
-      "node_ids": [
-        "reviewer"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 2
-    },
-    {
-      "id": "skill-decomposer",
-      "role": "skill-decomposer",
-      "nodes": 1,
-      "node_ids": [
-        "skill-decomposer"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 2
-    },
-    {
-      "id": "tester",
-      "role": "tester",
-      "nodes": 1,
-      "node_ids": [
-        "tester"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 2
-    },
-    {
-      "id": "writer",
-      "role": "writer",
-      "nodes": 1,
-      "node_ids": [
-        "writer"
-      ],
-      "edges": [],
-      "cycles": [],
-      "dag": false,
-      "checks": 1
-    },
-    {
-      "id": "project-lifecycle",
-      "role": "",
-      "nodes": 6,
-      "node_ids": [
-        "project.active",
-        "project.archived",
-        "project.delete.preview",
-        "project.delete.confirm",
-        "project.data.purge",
-        "project.done"
-      ],
-      "edges": [
-        [
-          "project.active",
-          "project.archived"
-        ],
-        [
-          "project.active",
-          "project.delete.preview"
-        ],
-        [
-          "project.archived",
-          "project.done"
-        ],
-        [
-          "project.data.purge",
-          "project.done"
-        ],
-        [
-          "project.delete.confirm",
-          "project.data.purge"
-        ],
-        [
-          "project.delete.preview",
-          "project.delete.confirm"
-        ]
-      ],
-      "cycles": [],
-      "dag": true,
-      "checks": 0
-    },
-    {
       "id": "architecture-gate",
       "role": "",
       "nodes": 8,
@@ -1401,32 +1333,52 @@
       "checks": 0
     },
     {
-      "id": "system-timeline",
-      "role": "",
-      "nodes": 4,
+      "id": "developer-docs",
+      "role": "developer-docs",
+      "nodes": 1,
       "node_ids": [
-        "ticket.history",
-        "system.event",
-        "chat.timeline",
-        "module.trace.optional"
+        "developer-docs"
       ],
-      "edges": [
-        [
-          "module.trace.optional",
-          "chat.timeline"
-        ],
-        [
-          "system.event",
-          "chat.timeline"
-        ],
-        [
-          "ticket.history",
-          "system.event"
-        ]
-      ],
+      "edges": [],
       "cycles": [],
-      "dag": true,
-      "checks": 0
+      "dag": false,
+      "checks": 1
+    },
+    {
+      "id": "developer",
+      "role": "developer",
+      "nodes": 1,
+      "node_ids": [
+        "developer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 4
+    },
+    {
+      "id": "ops",
+      "role": "ops",
+      "nodes": 1,
+      "node_ids": [
+        "ops"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "process",
+      "role": "process",
+      "nodes": 1,
+      "node_ids": [
+        "process"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
     },
     {
       "id": "project-idle",
@@ -1462,65 +1414,41 @@
       "checks": 0
     },
     {
-      "id": "requirement-to-flow",
+      "id": "project-lifecycle",
       "role": "",
-      "nodes": 5,
+      "nodes": 6,
       "node_ids": [
-        "requirement.intake",
-        "requirement.classify",
-        "flow.design",
-        "flow.dag.check",
-        "flow.library.upsert"
+        "project.active",
+        "project.archived",
+        "project.delete.preview",
+        "project.delete.confirm",
+        "project.data.purge",
+        "project.done"
       ],
       "edges": [
         [
-          "flow.dag.check",
-          "flow.library.upsert"
+          "project.active",
+          "project.archived"
         ],
         [
-          "flow.design",
-          "flow.dag.check"
+          "project.active",
+          "project.delete.preview"
         ],
         [
-          "requirement.classify",
-          "flow.design"
+          "project.archived",
+          "project.done"
         ],
         [
-          "requirement.intake",
-          "requirement.classify"
-        ]
-      ],
-      "cycles": [],
-      "dag": true,
-      "checks": 0
-    },
-    {
-      "id": "web-state-contract",
-      "role": "",
-      "nodes": 5,
-      "node_ids": [
-        "state-machine.json",
-        "component.inventory",
-        "event.binding",
-        "webstate.validate",
-        "gate.report"
-      ],
-      "edges": [
-        [
-          "component.inventory",
-          "event.binding"
+          "project.data.purge",
+          "project.done"
         ],
         [
-          "event.binding",
-          "webstate.validate"
+          "project.delete.confirm",
+          "project.data.purge"
         ],
         [
-          "state-machine.json",
-          "component.inventory"
-        ],
-        [
-          "webstate.validate",
-          "gate.report"
+          "project.delete.preview",
+          "project.delete.confirm"
         ]
       ],
       "cycles": [],
@@ -2450,6 +2378,160 @@
       "cycles": [],
       "dag": true,
       "checks": 0
+    },
+    {
+      "id": "requirement-to-flow",
+      "role": "",
+      "nodes": 5,
+      "node_ids": [
+        "requirement.intake",
+        "requirement.classify",
+        "flow.design",
+        "flow.dag.check",
+        "flow.library.upsert"
+      ],
+      "edges": [
+        [
+          "flow.dag.check",
+          "flow.library.upsert"
+        ],
+        [
+          "flow.design",
+          "flow.dag.check"
+        ],
+        [
+          "requirement.classify",
+          "flow.design"
+        ],
+        [
+          "requirement.intake",
+          "requirement.classify"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "researcher",
+      "role": "researcher",
+      "nodes": 1,
+      "node_ids": [
+        "researcher"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
+    },
+    {
+      "id": "reviewer",
+      "role": "reviewer",
+      "nodes": 1,
+      "node_ids": [
+        "reviewer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "skill-decomposer",
+      "role": "skill-decomposer",
+      "nodes": 1,
+      "node_ids": [
+        "skill-decomposer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "system-timeline",
+      "role": "",
+      "nodes": 4,
+      "node_ids": [
+        "ticket.history",
+        "system.event",
+        "chat.timeline",
+        "module.trace.optional"
+      ],
+      "edges": [
+        [
+          "module.trace.optional",
+          "chat.timeline"
+        ],
+        [
+          "system.event",
+          "chat.timeline"
+        ],
+        [
+          "ticket.history",
+          "system.event"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "tester",
+      "role": "tester",
+      "nodes": 1,
+      "node_ids": [
+        "tester"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "web-state-contract",
+      "role": "",
+      "nodes": 5,
+      "node_ids": [
+        "state-machine.json",
+        "component.inventory",
+        "event.binding",
+        "webstate.validate",
+        "gate.report"
+      ],
+      "edges": [
+        [
+          "component.inventory",
+          "event.binding"
+        ],
+        [
+          "event.binding",
+          "webstate.validate"
+        ],
+        [
+          "state-machine.json",
+          "component.inventory"
+        ],
+        [
+          "webstate.validate",
+          "gate.report"
+        ]
+      ],
+      "cycles": [],
+      "dag": true,
+      "checks": 0
+    },
+    {
+      "id": "writer",
+      "role": "writer",
+      "nodes": 1,
+      "node_ids": [
+        "writer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
     }
   ],
   "web": {
@@ -2457,13 +2539,13 @@
     "errors": [],
     "states": 11,
     "events": 14,
-    "dom_ids": 101,
-    "dom_refs": 96,
+    "dom_ids": 103,
+    "dom_refs": 98,
     "missing_refs": [],
-    "buttons": 32,
+    "buttons": 53,
     "unbound_buttons": [],
     "empty_buttons": [],
-    "controls": 14,
+    "controls": 27,
     "unbound_controls": [],
     "event_targets_bad": [],
     "component_ids": 14,

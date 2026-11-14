@@ -16,12 +16,22 @@ def load_spec(web_dir=None):
         return json.load(f)
 
 
+def frontend_source(web_dir=None):
+    """拼接全部前端脚本。渲染已按模块目录拆分，不再读单一 app.js。"""
+    import glob
+    web_dir = web_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+    paths = sorted(glob.glob(os.path.join(web_dir, "core", "*.js")))
+    paths += sorted(glob.glob(os.path.join(web_dir, "modules", "**", "*.js"), recursive=True))
+    return "\n".join(open(p, encoding="utf-8").read() for p in paths)
+
+
 def validate(web_dir=None):
     """返回 (ok, errors)。只做静态契约检查，运行 pytest/run_all 时调用。"""
     web_dir = web_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
     spec = load_spec(web_dir)
-    app = open(os.path.join(web_dir, "app.js"), encoding="utf-8").read()
+    app = frontend_source(web_dir)
     html = open(os.path.join(web_dir, "index.html"), encoding="utf-8").read()
+    rendered = html + "\n" + app
     errors = []
 
     ids = [s.get("id") for s in spec.get("states", [])]
@@ -33,8 +43,8 @@ def validate(web_dir=None):
         elif s["render"] not in app:
             errors.append("状态 %s 的 render=%s 在 app.js 不存在" % (s["id"], s["render"]))
         for v in s.get("visible", []):
-            if ('id="%s"' % v) not in html:
-                errors.append("状态 %s 需要 DOM #%s，但 index.html 没有" % (s["id"], v))
+            if ('id="%s"' % v) not in rendered:
+                errors.append("状态 %s 需要 DOM #%s，但页面与模块模板都没有" % (s["id"], v))
     # 路由契约：hash 解析必须认识 project/chat/library/health/versions，且不再有 source 顶层
     for token in ('type === \'project\'', 'type === \'chat\'', 'type === \'library\'', 'type === \'health\''):
         if token not in app:
@@ -51,7 +61,7 @@ def validate(web_dir=None):
         errors.append("index.html 仍有顶部全局空闲队列 #idle-chip")
     # 项目内必须能到达的模式/源码/队列
     for need in ("pv-backend", "pv-source", "pv-bindsource", "pv-idle", "pv-trace"):
-        if ('id="%s"' % need) not in html:
+        if ('id="%s"' % need) not in rendered:
             errors.append("项目页缺少控件 #%s" % need)
     # 群聊 trace 不再有“查看更早报文”入口
     if "查看更早的模块报文" in app:

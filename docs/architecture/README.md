@@ -6,11 +6,18 @@
 
 ## 1. 后端：一个模块一个唯一出口
 
-- 每个模块的唯一出口是 `hive/modules/<name>.py`，模块之间没有 Python `import`。
+- 每个模块的唯一出口是 `hive/modules/<name>/__init__.py`，内部实现是同目录的
+  `module.py`，不对外导出；模块之间没有 Python `import`。
 - 对外能力只有两类：`self.api.route(...)` 注册的 HTTP/内部 API，以及
   `Tool(...)` 注册的 Agent 工具；其余函数按内部实现处理。
-- 跨模块调用统一走 `ctx.api("module.method", ...)`，扫描器据此生成模块 API 依赖图。
-- 门禁硬错误：跨模块 import、import 环、网页契约错误、流程 DAG 环、**基线之外的新 API 环**。
+- 跨模块调用统一走 `ctx.api("module.method", ...)`；`ctx.api` 实际寻址
+  `Hub.request(路由 ID)`，调用方只认服务名，不持有对方模块对象。
+- 运行期高频事件走实例通道 `domain:<instanceId>:<action>`；发现期只有
+  `domain:mounted` 广播（项目域带 `projectId` 与 `mountContainerId`）。
+- 事件名统一 `领域:动作`；历史点号名在总线边界自动归一化。门禁会拒绝静态
+  字面量中不符合格式的事件名（`*` 通配除外）。
+- 门禁硬错误：跨模块 import、import 环、事件名不合规、网页契约错误、流程 DAG 环、
+  **基线之外的新 API 环**。
 - API 环基线在 `docs/architecture/api-cycles-baseline.json`。当前 API 调用图为 **0 环**：
   - 项目详情/删除编排拆到 `lifecycle`（lifecycle -> projects / tickets，单向）；
   - `projects` 不再查工单，`tickets` 不再被 `projects` 反向依赖；
@@ -19,6 +26,27 @@
   - `idle -> tickets` 改为 `idle.ticket.dispatch` + `idle.dispatch.ack` 事件，失败保留队列项。
 - 新代码如果引入未登记环，默认门禁直接失败；`--strict-api` 则把所有环升级为阻塞。
   拆掉一条边后必须同步删除基线项，不能把基线当永久豁免。
+
+### 1.1 非业务能力也是模块
+
+- `archgate`：`GET /api/gate/arch`，运行同一套静态门禁。
+- `testrunner`：`GET /api/test/catalog`、`POST /api/test/run`，只跑仓库内置套件。
+- `gitsync`：`GET /api/gitsync/status`、`POST /api/gitsync/fetch`，不自动 merge/push。
+- 模块装配表是动态导入；删除一个非核心模块目录后装配器跳过，其他模块不改代码。
+
+### 1.2 前端：容器只留挂载点
+
+- `web/index.html` 的 `#projectview` 与 `#chatview` 内只有 `#mount-project` /
+  `#mount-chat`，不预设项目卡片、工单列表、聊天输入框等业务 DOM。
+- 每个页面模块在 `web/modules/<name>/` 内自带模板、渲染、事件绑定和销毁逻辑：
+  - `web/modules/project/render.js` 注入项目页并渲染工单/秘书/空闲/交付件；
+  - `web/modules/chat/render.js` 注入群聊页并渲染时间线、标签、编排、输入区；
+  - `web/modules/files|library|health|idle|ops/render.js` 各自渲染侧栏或弹窗内容。
+- `web/core/hive-ui.js` 只做领域事件、实例通道与挂载注册；不包含任何业务渲染。
+- `web/core/core.js` 只保留全局状态、API、路由、登录与通用工具。
+- 静态门禁会拼接 `web/core/*.js` 与 `web/modules/**/*.js` 校验状态机、DOM 引用、
+  按钮/控件绑定；不再读取单一 `app.js`。
+
 
 ## 2. 项目生命周期（归档 / 删除 / 级联）
 

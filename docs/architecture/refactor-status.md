@@ -17,7 +17,7 @@
 - `hive/kernel/api.py`：
   - `Context.register()` 把每个模块路由注册为 Hub service。
   - `Context.api()` 改为 `Hub.request()`，不再直接调用对方路由函数。
-  - 调用链仍然是 `trace` 可观察的，入参/出参/耗时行为不变。
+  - 调用链仍然 `trace` 可观察，入参/出参/耗时行为不变。
 - 事件契约统一：
   - 总线边界把历史 `ticket.created` 归一化为 `ticket:created`。
   - 订阅侧同样归一化，`ticket.*` 等价 `ticket:*`。
@@ -33,29 +33,47 @@ hive/modules/<name>/
   module.py       # 内部实现，不对外导出
 ```
 
-- 17 个业务模块全部迁移，装配顺序保持不变。
-- `archscan` 改为扫描模块目录，报告 `entry=hive/modules/<name>/__init__.py`、
-  `internal_files`、`transport=hub.request`。
-- 新增门禁：入口必须是目录 `__init__.py`、内部实现必须与入口同目录、
-  任意模块不得 import 其他模块。
-- 全量回归：**245/245 通过，67.6s**。
+- 17 个业务模块迁移为目录；装配器改为动态导入。
+- 新增三个非业务模块：
+  - `archgate`：静态架构门禁。
+  - `testrunner`：内置回归套件编排。
+  - `gitsync`：仓库状态与 fetch（不自动 merge/push）。
+- 删除一个非核心模块目录，装配器自动跳过；实测移除 `ops` 后内核启动 19 个模块，
+  `projects/tickets/lifecycle/webchat/health` 全部正常。
+- `archscan` 改为扫描模块目录，报告入口、内部文件和 `transport=hub.request`。
+- 新增门禁：入口必须是目录 `__init__.py`、内部实现必须同目录、
+  任意模块不得 import 其他模块、静态事件名合规。
+
+### 3. 前端全量模块自渲染
+
+- 删除集中式 `web/app.js`（约 75KB）。
+- `web/index.html` 的项目页/聊天页改为空挂载容器：
+  - `#projectview > #mount-project`
+  - `#chatview > #mount-chat`
+- 新增前端通信中枢 `web/core/hive-ui.js`：领域事件、实例通道、挂载注册。
+- 项目模块 `web/modules/project/render.js`：
+  - 自带项目页模板；
+  - 自己渲染工单、运行模式、秘书、新建工单、空闲/队列、交付件；
+  - 自己完成改名、删除、创建工单、派生、源码绑定等交互。
+- 群聊模块 `web/modules/chat/render.js`：
+  - 自带群聊模板；
+  - 自己渲染时间线、标签、生命周期流程、直播、输入区、只读提示。
+- 文件、库、健康、空闲、运维分别落在 `web/modules/*/render.js`。
+- 静态门禁改为拼接 `web/core/*.js` + `web/modules/**/*.js` 校验，不再读 `app.js`。
+
+### 4. 验证
+
+- 全量回归：**251/251 通过，66.9s**。
 - `python -m hive.archscan --strict-api`：**ARCH GATE PASS**。
+- 20 个模块、24 条 API 边、API 环 0、import 环 0、流程 50、流程环 0。
+- 本地 HTTPS 真机验收：项目页、秘书群聊、返回键、模板注入、控制台无脚本错误。
+- 新模块 API 已实测：`/api/gate/arch` 返回 20 模块 / 24 边，`/api/test/catalog` 正常，
+  `/api/gitsync/status` 正常。
 
-## 未完成（不能宣称已满足最终验收）
+## 尚未完成
 
-1. **前端全量模块自渲染尚未开始。**
-   当前仍是 `web/app.js` 集中式渲染；需要把项目、工单、秘书、库、健康、文件等
-   渲染与销毁迁到各自模块目录，`index.html` 只保留挂载容器。
-2. **门禁、回归测试、git 同步尚未收编为独立模块。**
-   仍是 `hive/archscan.py`、`tests/run_all.py`、`deploy/hooks/*`。
-3. **可插拔移除验证尚未做。**
-   需要真实删除一个非核心模块目录并验证主流程。
-4. **未合并、未部署。**
-   主分支与生产仍为 `0b62e0c / 0.4.7`；本分支只在本地。
-
-## 为什么没有继续硬拆前端
-
-前端是单文件 75KB、共享全局状态、32 个按钮/14 个控件，且 245 项回归主要覆盖后端。
-把渲染一次性迁进模块目录会同时改变 DOM 结构、事件绑定时机和路由恢复逻辑，
-如果没有逐模块的真机校验，无法满足“功能完全一致”的验收标准。
-下一步应按模块建立挂载契约、逐个迁移并在浏览器中验收，而不是只做文件切分。
+1. **未合并到主分支。**
+2. **未推送、未部署到生产。**
+   主分支与生产仍是 `0b62e0c / 0.4.7`。
+3. **可插拔验证目前覆盖内核启动与核心模块集合。**
+   `ops` 移除后启动正常；完整“创建项目 → 新建工单 → 执行 → 关闭”在移除态下还未单独跑一遍。

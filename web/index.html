@@ -47,106 +47,11 @@
     </aside>
 
     <main class="mainwrap">
-      <!-- 项目页 -->
-      <section id="projectview" class="projectview hidden">
-        <div class="pv-head">
-          <div>
-            <div class="muted small">项目管理</div>
-            <h2 id="pv-title">项目</h2>
-            <div class="muted small" id="pv-sub"></div>
-          </div>
-          <div class="row-btns">
-            <button class="ghost" id="pv-rename">改名</button>
-            <button class="ghost" id="pv-files">项目文件</button>
-            <button class="ghost" id="pv-source">项目源码</button>
-            <button class="ghost" id="pv-bindsource">绑定源码路径</button>
-            <button class="danger-ghost" id="pv-delete">归档 / 删除</button>
-          </div>
-        </div>
-        <div class="pv-grid">
-          <div class="card">
-            <div class="card-head"><strong>工单</strong><span class="muted small" id="pv-ticketstat"></span></div>
-            <div id="pv-tickets" class="ticketlist"></div>
-          </div>
-          <div class="card">
-            <div class="card-head"><strong>运行模式</strong></div>
-            <p class="muted small">项目默认后端：api = 内核 ReAct；claude-code = 已有 Agent CLI。工单可单独覆盖。</p>
-            <label class="field">默认后端<select id="pv-backend"><option value="api">api（内核循环）</option><option value="claude-code">claude-code（已有 Agent）</option></select></label>
-            <div class="row-btns"><button class="ghost" id="pv-savebackend">保存模式</button><button class="ghost" id="pv-apiconfig">查看 API 配置</button></div>
-            <div class="muted small" id="pv-modeinfo"></div>
-          </div>
-          <div class="card">
-            <div class="card-head"><strong>秘书</strong></div>
-            <p class="muted small">项目的管家：接需求、判断是否开工单。上下文只属于这个项目。</p>
-            <div class="row-btns">
-              <button class="primary" id="pv-secretary">进入秘书对话</button>
-              <button class="ghost" id="pv-compact">压缩本项目秘书上下文</button>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-head"><strong>新建工单</strong></div>
-            <label class="field">标题<input id="pv-newtitle" placeholder="可空，默认取目标前 40 字" /></label>
-            <label class="field">目标<textarea id="pv-newgoal" rows="3" placeholder="要做什么、验收标准、边界"></textarea></label>
-            <label class="field">标签<input id="pv-newtags" placeholder="frontend,backend,docs（逗号分隔）" /></label>
-            <label class="field">后端<select id="pv-newbackend"><option value="">跟随项目</option><option value="api">api</option><option value="claude-code">claude-code</option></select></label>
-            <label class="checkline"><input type="checkbox" id="pv-now" /> 立即执行（高峰期也不排队）</label>
-            <label class="checkline"><input type="checkbox" id="pv-trace" /> 群聊并入模块报文 trace（默认关闭，创建后不可改）</label>
-            <button class="primary" id="pv-create">派给项目经理</button>
-          </div>
-          <div class="card">
-            <div class="card-head"><strong>空闲 / 队列</strong><span class="muted small" id="pv-idleinfo"></span></div>
-            <div class="muted small">忙闲配置按项目保存；队列也只属于本项目。</div>
-            <label class="checkline"><input type="checkbox" id="pv-idle-enabled" /> 启用忙闲判断</label>
-            <label class="field">高峰窗口<input id="pv-idle-windows" placeholder="09:00-12:00, 14:00-18:00" /></label>
-            <label class="field">空闲折扣<input id="pv-idle-discount" type="number" min="0" max="1" step="0.05" /></label>
-            <label class="checkline"><input type="checkbox" id="pv-idle-force" /> 强制高峰（调试）</label>
-            <div class="row-btns"><button class="ghost" id="pv-saveidle">保存忙闲配置</button><button class="ghost" id="pv-idle">本项目空闲队列</button></div>
-          </div>
-          <div class="card">
-            <div class="card-head"><strong>交付件</strong></div>
-            <div class="muted small">三层归档：公共层 / 项目层 / 工单层（带工单号与版本）。</div>
-            <div class="row-btns"><button class="ghost" id="pv-artifacts">打开项目层交付件</button></div>
-          </div>
-        </div>
-      </section>
+      <!-- 项目页：只留挂载点，内容由 web/modules/project 自己渲染 -->
+      <section id="projectview" class="projectview hidden"><div id="mount-project"></div></section>
 
-      <!-- 聊天页 -->
-      <section id="chatview" class="chatwrap hidden">
-        <div class="chathead">
-          <div class="chathead-main">
-            <strong id="chat-title">秘书</strong>
-            <button class="chip hidden" id="btn-copy-ticket" title="复制工单号">⧉</button>
-            <span id="chat-sub" class="muted small"></span>
-            <div id="chat-tags" class="tags"></div>
-          </div>
-          <div class="spacer"></div>
-          <button class="mini" id="btn-addtag" title="加工单标签">＋标签</button>
-          <button class="mini" id="btn-fork-ticket" title="基于此单新开">⎇ 派生</button>
-          <button class="mini" id="btn-files" title="交付件">📎 交付件</button>
-          <button class="mini" id="btn-refresh" title="刷新">⟳ 刷新</button>
-        </div>
-
-        <div id="flow" class="flow hidden"></div>
-
-        <div id="messages" class="messages"></div>
-        <div id="livebar" class="livebar hidden">
-          <div class="live-dot"></div>
-          <div class="live-text">
-            <div class="live-who" id="live-who">角色正在说…</div>
-            <div class="live-body" id="live-body"></div>
-          </div>
-          <div class="live-acts"><button class="mini" id="btn-interrupt" title="打断">■ 打断</button></div>
-        </div>
-
-        <div class="composer">
-          <textarea id="input" rows="1" placeholder="给项目秘书/PM 发一句话…（Enter 发送 / Shift+Enter 换行）"></textarea>
-          <div class="composer-side">
-            <label class="checkline small"><input type="checkbox" id="force-now" /> 立即执行</label>
-            <button id="send" class="primary">发送</button>
-          </div>
-        </div>
-        <div id="readonly-tip" class="readonly-tip hidden">该工单已结单或正在结单，群聊只读 —— 要改结果请「基于此单新开」。</div>
-      </section>
+      <!-- 聊天页：只留挂载点，内容由 web/modules/chat 自己渲染 -->
+      <section id="chatview" class="chatwrap hidden"><div id="mount-chat"></div></section>
     </main>
 
     <aside class="side hidden" id="side">
@@ -169,6 +74,16 @@
   </div>
 </div>
 <div id="toast" class="toast hidden"></div>
-<script src="/app.js"></script>
+<script src="/core/hive-ui.js"></script>
+<script src="/core/core.js"></script>
+<script src="/modules/project/render.js"></script>
+<script src="/modules/chat/render.js"></script>
+<script src="/modules/idle/render.js"></script>
+<script src="/modules/files/render.js"></script>
+<script src="/modules/library/render.js"></script>
+<script src="/modules/health/render.js"></script>
+<script src="/modules/ops/render.js"></script>
+<script src="/core/ui.js"></script>
+<script src="/core/shell.js"></script>
 </body>
 </html>

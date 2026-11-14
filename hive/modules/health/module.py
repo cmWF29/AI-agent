@@ -14,7 +14,7 @@ from ...kernel.store import ensure_dir
 from ...version import __version__
 
 REQUIRED_MODULES = ["obs", "knowledge", "memory", "library", "artifacts", "projects",
-                    "toolpack", "sessions", "gitflow", "tickets", "webchat", "ops"]
+                    "toolpack", "sessions", "gitflow", "tickets", "webchat"]
 
 
 def _human(n):

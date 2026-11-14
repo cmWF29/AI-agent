@@ -1,21 +1,23 @@
 # 架构静态扫描报告
 
-生成时间：2026-11-14T08:24:29Z
+生成时间：2026-11-14T08:39:06Z
 
 ## 结论
 
 - 门禁：**通过**
-- 模块数：17；API 调用边：24；API 环：0；import 环：0
+- 模块数：20；API 调用边：24；API 环：0；import 环：0
 - 流程数：50；流程 DAG 环：0
-- 网页状态：一致（状态 11 / 事件 14 / DOM id 101 / 按钮 32 / 控件 14）
+- 网页状态：一致（状态 11 / 事件 14 / DOM id 103 / 按钮 53 / 控件 27）
 
 ## 模块唯一出口与对外 API
 
 | 模块 | 唯一出口 | 路由 | 工具 | 跨模块 import |
 | --- | --- | --- | --- | --- |
 | agents | `hive/modules/agents/__init__.py` | 2 | 0 | 无 |
+| archgate | `hive/modules/archgate/__init__.py` | 1 | 0 | 无 |
 | artifacts | `hive/modules/artifacts/__init__.py` | 7 | 0 | 无 |
 | gitflow | `hive/modules/gitflow/__init__.py` | 8 | 3 | 无 |
+| gitsync | `hive/modules/gitsync/__init__.py` | 2 | 0 | 无 |
 | health | `hive/modules/health/__init__.py` | 4 | 0 | 无 |
 | idle | `hive/modules/idle/__init__.py` | 7 | 0 | 无 |
 | knowledge | `hive/modules/knowledge/__init__.py` | 7 | 0 | 无 |
@@ -27,6 +29,7 @@
 | projects | `hive/modules/projects/__init__.py` | 14 | 2 | 无 |
 | sessions | `hive/modules/sessions/__init__.py` | 12 | 0 | 无 |
 | skills | `hive/modules/skills/__init__.py` | 6 | 0 | 无 |
+| testrunner | `hive/modules/testrunner/__init__.py` | 2 | 0 | 无 |
 | tickets | `hive/modules/tickets/__init__.py` | 15 | 0 | 无 |
 | toolpack | `hive/modules/toolpack/__init__.py` | 0 | 5 | 无 |
 | webchat | `hive/modules/webchat/__init__.py` | 9 | 0 | 无 |
