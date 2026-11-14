@@ -10,13 +10,14 @@
 from __future__ import annotations
 
 import datetime as _dt
+import os
 import threading
 import time
 import uuid
 
 from ..kernel.api import ApiError, Module
 from ..kernel.config import path_of
-from ..kernel.store import Collection
+from ..kernel.store import Collection, JsonDoc
 
 WEEK = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
@@ -36,6 +37,8 @@ class Idle(Module):
         self.tz_offset = float(cfg.get("utc_offset_hours", 8))   # 高峰窗口按本地时间判断
         self.root = path_of(self.cfg, "idle.root", "data/idle")
         self.store = Collection(self.root)
+        # 项目级忙闲配置：项目页“本项目空闲队列”保存到这里，不覆盖全局默认
+        self.project_store = JsonDoc(os.path.join(self.root, "projects.json"), {"projects": {}})
         self.q_lock = threading.RLock()
         if self.store.get("queue") is None:
             self.store.put("queue", {"items": []})
@@ -51,6 +54,32 @@ class Idle(Module):
         threading.Thread(target=self._loop, name="idle-loop", daemon=True).start()
 
     # ---------------- 判断 ----------------
+    def _defaults(self):
+        return {
+            "enabled": self.enabled,
+            "peak_windows": list(self.windows),
+            "peak_days": list(self.peak_days),
+            "offpeak_discount": self.offpeak_discount,
+            "force_peak": self.force_peak,
+            "holidays": sorted(self.holidays),
+        }
+
+    def settings(self, project=""):
+        """全局配置 + 项目覆盖；项目页保存的值优先。"""
+        base = self._defaults()
+        if not project:
+            return base
+        try:
+            over = ((self.project_store.read() or {}).get("projects") or {}).get(project) or {}
+        except OSError:
+            over = {}
+        out = dict(base)
+        out.update({k: over[k] for k in ("enabled", "peak_windows", "peak_days",
+                                         "offpeak_discount", "force_peak", "holidays")
+                    if k in over})
+        out["project"] = project
+        return out
+
     def _parse(self, text):
         try:
             a, b = text.split("-")
@@ -60,33 +89,42 @@ class Idle(Module):
         except Exception:
             return None
 
-    def judge(self, now=None):
+    def judge(self, now=None, project=""):
+        st = self.settings(project)
+        enabled = bool(st.get("enabled"))
+        windows = st.get("peak_windows") or ["09:00-12:00", "14:00-18:00"]
+        peak_days = st.get("peak_days") or [0, 1, 2, 3, 4]
+        discount = float(st.get("offpeak_discount", 0.6))
+        holidays = set(st.get("holidays") or [])
         if now is None:
             now = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=self.tz_offset)))
         date_s = now.strftime("%Y-%m-%d")
         minute = now.hour * 60 + now.minute
-        if not self.enabled:
-            return {"peak": False, "reason": "空闲判断已关闭", "date": date_s, "discount": self.offpeak_discount,
-                    "next_change": "", "holiday": False, "weekend": now.weekday() >= 5}
+        if not enabled:
+            return {"peak": False, "reason": "空闲判断已关闭", "date": date_s, "discount": discount,
+                    "next_change": "", "holiday": False, "weekend": now.weekday() >= 5,
+                    "project": project}
         weekend = now.weekday() >= 5
-        if self.force_peak:
+        if st.get("force_peak"):
             return {"peak": True, "reason": "强制高峰", "date": date_s, "discount": 1.0,
-                    "next_change": "", "holiday": False, "weekend": weekend}
-        holiday = date_s in self.holidays
+                    "next_change": "", "holiday": False, "weekend": weekend, "project": project}
+        holiday = date_s in holidays
         if holiday or weekend:
             return {"peak": False, "reason": "法定节假日" if holiday else "周末",
-                    "date": date_s, "discount": self.offpeak_discount, "next_change": "",
-                    "holiday": holiday, "weekend": weekend}
-        if now.weekday() not in self.peak_days:
+                    "date": date_s, "discount": discount, "next_change": "",
+                    "holiday": holiday, "weekend": weekend, "project": project}
+        if now.weekday() not in peak_days:
             return {"peak": False, "reason": "非工作日高峰日", "date": date_s,
-                    "discount": self.offpeak_discount, "next_change": "", "holiday": False, "weekend": False}
-        for w in self.windows:
+                    "discount": discount, "next_change": "", "holiday": False, "weekend": False,
+                    "project": project}
+        for w in windows:
             rng = self._parse(w)
             if rng and rng[0] <= minute < rng[1]:
                 return {"peak": True, "reason": "工作日高峰 %s" % w, "date": date_s,
-                        "discount": 1.0, "next_change": "", "holiday": False, "weekend": False}
-        return {"peak": False, "reason": "工作日非高峰", "date": date_s, "discount": self.offpeak_discount,
-                "next_change": "", "holiday": False, "weekend": False}
+                        "discount": 1.0, "next_change": "", "holiday": False,
+                        "weekend": False, "project": project}
+        return {"peak": False, "reason": "工作日非高峰", "date": date_s, "discount": discount,
+                "next_change": "", "holiday": False, "weekend": False, "project": project}
 
     # ---------------- 队列 ----------------
     def _q(self):
@@ -132,13 +170,17 @@ class Idle(Module):
         raise ApiError("未知队列类型: %s" % item["kind"], code="bad_queue_kind")
 
     def flush(self, limit=20, force=False, project=""):
-        if not force and self.judge()["peak"]:
+        if not force and self.judge(project=project)["peak"]:
             return {"ok": True, "skipped": "仍处于高峰，不执行队列", "done": []}
         done = []
         with self.q_lock:
-            batch = [i for i in self._q()["items"]
-                     if not project or i.get("project") == project or
-                     (i.get("payload") or {}).get("project") == project][:limit]
+            if project:
+                batch = [i for i in self._q()["items"]
+                         if i.get("project") == project or
+                         (i.get("payload") or {}).get("project") == project][:limit]
+            else:
+                batch = [i for i in self._q()["items"]
+                         if not i.get("project") and not (i.get("payload") or {}).get("project")][:limit]
         for item in batch:
             try:
                 self._dispatch(item)
@@ -157,10 +199,13 @@ class Idle(Module):
         while not self._stop:
             time.sleep(self.tick)
             try:
-                if self.judge()["peak"]:
-                    continue
-                if self._q()["items"]:
-                    self.flush(limit=10)
+                q = self._q()["items"]
+                projects = sorted({i.get("project") or "" for i in q})
+                for pid in projects:
+                    if pid and not self.judge(project=pid)["peak"]:
+                        self.flush(limit=10, project=pid)
+                if "" in projects and not self.judge()["peak"]:
+                    self.flush(limit=10, project="")
             except Exception as exc:
                 self.log.error("idle.loop", error=repr(exc))
 
@@ -168,10 +213,11 @@ class Idle(Module):
     def status_api(self, payload):
         project = (payload.get("project") or "").strip()
         items = [i for i in self._q()["items"] if not project or i.get("project") == project]
-        return {"idle": self.judge(), "queue": len(items),
-                "queued": items[-10:], "windows": self.windows,
-                "discount": self.offpeak_discount, "holidays": sorted(self.holidays),
-                "project": project}
+        return {"idle": self.judge(project=project), "queue": len(items),
+                "queued": items[-10:], "windows": self.settings(project).get("peak_windows"),
+                "discount": self.settings(project).get("offpeak_discount"),
+                "holidays": self.settings(project).get("holidays"),
+                "project": project, "project_config": self.settings(project)}
 
     def queue_api(self, payload):
         return {"items": self._q()["items"], "total": len(self._q()["items"])}
@@ -193,8 +239,37 @@ class Idle(Module):
                           project=(payload.get("project") or "").strip())
 
     def config_api(self, payload):
+        project = (payload.get("project") or "").strip()
+        allowed = {}
         if "enabled" in payload:
-            self.enabled = bool(payload["enabled"])
-        if payload.get("holidays"):
-            self.holidays = set(payload["holidays"])
-        return {"idle": self.judge(), "enabled": self.enabled, "holidays": sorted(self.holidays)}
+            allowed["enabled"] = bool(payload["enabled"])
+        if payload.get("peak_windows") is not None:
+            windows = [str(x).strip() for x in payload.get("peak_windows") if str(x).strip()]
+            if not all(self._parse(w) for w in windows):
+                raise ApiError("peak_windows 必须是 HH:MM-HH:MM 列表", code="bad_windows")
+            allowed["peak_windows"] = windows
+        if payload.get("peak_days") is not None:
+            allowed["peak_days"] = sorted({int(x) for x in payload.get("peak_days") if 0 <= int(x) <= 6})
+        if payload.get("offpeak_discount") is not None:
+            allowed["offpeak_discount"] = max(0.0, min(1.0, float(payload["offpeak_discount"])))
+        if "force_peak" in payload:
+            allowed["force_peak"] = bool(payload["force_peak"])
+        if payload.get("holidays") is not None:
+            allowed["holidays"] = sorted({str(x) for x in payload["holidays"]})
+        if project:
+            def update(doc):
+                doc.setdefault("projects", {}).setdefault(project, {}).update(allowed)
+                return doc
+            self.project_store.update(update)
+        else:
+            # 全局配置仍保留，兼容 CLI；项目页走 project 分支
+            for k, v in allowed.items():
+                setattr(self, {"enabled": "enabled", "peak_windows": "windows",
+                               "peak_days": "peak_days", "offpeak_discount": "offpeak_discount",
+                               "force_peak": "force_peak", "holidays": "holidays"}[k], v)
+            if "holidays" in allowed:
+                self.holidays = set(allowed["holidays"])
+        self.emit("idle.config", {"project": project, "keys": sorted(allowed)})
+        return {"idle": self.judge(project=project), "project": project,
+                "project_config": self.settings(project)}
+

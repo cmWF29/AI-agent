@@ -114,5 +114,13 @@
     "global_secretary": true,
     "top_tabs": ["chat", "source"],
     "global_idle_chip": true
+  },
+  "components": {
+    "required_ids": [
+      "pv-idle-enabled", "pv-idle-windows", "pv-idle-discount", "pv-idle-force",
+      "pv-saveidle", "pv-idle", "pv-delete",
+      "lc-archive", "lc-delete", "lc-tickets", "lc-artifacts",
+      "lc-knowledge", "lc-main", "lc-source"
+    ]
   }
 }

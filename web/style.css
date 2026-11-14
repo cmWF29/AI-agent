@@ -119,6 +119,9 @@ button.mini:disabled, button:disabled { opacity: .45; cursor: not-allowed; }
   border-radius: 14px; padding: 9px 12px; }
 .msg.mine .bubble { background: linear-gradient(135deg, #123a54, #152a4a); border-color: #1d4763; }
 .msg.taskmsg .bubble { background: #141d2e; border-style: dashed; border-color: #31465f; }
+.msg.systemmsg .bubble { background: #10161f; border-color: #253244; border-style: dotted; opacity: .9; }
+.msg.systemmsg .who { color: #8293aa; }
+.msg.systemmsg .body { font-size: 12px; color: #aab7c7; }
 .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
 .who { font-size: 12px; font-weight: 600; color: #a8c6e6; }
 .tag { font-size: 10px; padding: 0 6px; border-radius: 5px; background: #1c2c44; color: #8fb4d6; }

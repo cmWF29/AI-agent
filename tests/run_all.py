@@ -1035,6 +1035,69 @@ def test_web_state_machine():
     check("网页状态机与实现一致", ok, errors[:4])
 
 
+def test_architecture_gate():
+    from hive.archscan import scan
+    r = scan()
+    check("架构静态门禁通过", r["ok"], r["errors"][:4])
+    entries = [m["entry"] for m in r["modules"]]
+    check("每个模块只有一个出口文件", len(entries) == len(set(entries)), entries)
+    check("模块之间没有 Python import 环", not r["import_cycles"], r["import_cycles"])
+    check("每个模块都能报出对外 API", all(m["public_api"] for m in r["modules"]),
+          [(m["name"], len(m["public_api"])) for m in r["modules"] if not m["public_api"]])
+    check("网页状态机无悬空 DOM 引用", not r["web"]["missing_refs"], r["web"]["missing_refs"])
+    check("流程库全部可扫描", all(not f.get("error") for f in r["flows"]), r["flows"])
+    check("流程 DAG 无环", not any(f.get("cycles") for f in r["flows"]), r["flows"])
+
+
+def test_v45_lifecycle_idle_system(mock):
+    """v4.5 重构：系统事件入群、项目级 idle、归档/删除级联。"""
+    print("[v4.5] 系统事件、项目级空闲、项目生命周期")
+    mock.set([{"content": "PM 收到"}])
+    env = None
+    try:
+        env = Env(mock, overrides={"tickets": {"auto_retrospective": False},
+                                   "idle": {"force_peak": True}})
+        # 项目级配置覆盖全局 force_peak
+        env.api("projects.create", name="life")
+        env.api("idle.config", project="life", enabled=False)
+        st = env.api("idle.status", project="life")
+        check("项目级 idle 配置可保存", st["project_config"]["enabled"] is False, st["project_config"])
+        check("项目配置覆盖全局高峰", st["idle"]["peak"] is False and st["idle"]["project"] == "life", st["idle"])
+
+        t = env.api("tickets.create", goal="生命周期与系统消息", project="life", when="now")["ticket"]
+        env.api("sessions.wait", session=t["pm"], timeout=30)
+        tl = env.api("webchat.timeline", group=t["id"], limit=50)
+        check("trace off 仍返回系统事件", tl["trace_enabled"] is False and
+              any(i.get("type") == "system" for i in tl["items"]), tl.get("items", [])[:4])
+        check("系统事件来自生命周期", any(i.get("event") == "created" for i in tl["items"]), tl["items"][:4])
+
+        os.makedirs(os.path.join(t["workdir"], "docs"), exist_ok=True)
+        open(os.path.join(t["workdir"], "docs", "report.md"), "w", encoding="utf-8").write("# 交付\n")
+        env.api("tickets.close", ticket_id=t["id"], summary="完成", force=True)
+        apath = os.path.join(env.tmp, "data", "artifacts", "projects", "life", "tickets", t["id"])
+        check("删除前交付件已归档", os.path.isdir(apath), apath)
+        kpath = os.path.join(env.tmp, "data", "knowledge", "projects", "life")
+        prev = env.api("projects.delete_preview", project_id="life")
+        check("删除预览统计完整", prev["tickets"] == 1 and prev["closed_tickets"] == 1, prev)
+        d = env.api("projects.delete", project_id="life", cascade={
+            "tickets": True, "artifacts": True, "knowledge": True, "main_tree": True})
+        check("项目级联删除执行", d.get("deleted") == "life" and t["id"] in d["deleted_tickets"], d)
+        check("交付件已级联清理", not os.path.exists(apath), apath)
+        check("项目 main 树已清理", not os.path.exists(os.path.join(env.tmp, "data", "projects", "life")),
+              "data/projects/life")
+
+        env.api("projects.create", name="keepme")
+        a = env.api("projects.archive", project_id="keepme")
+        check("归档模式只打标记", a["project"]["archived"] is True, a["project"])
+        check("归档保留项目目录", os.path.exists(os.path.join(env.tmp, "data", "projects", "keepme")),
+              "data/projects/keepme")
+    except Exception as exc:
+        check("v4.5 未崩溃", False, repr(exc))
+    finally:
+        if env:
+            env.close()
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
@@ -1044,11 +1107,12 @@ def main():
              test_stream_trace, test_library_flow, test_project_secretary_delete,
              test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https,
              test_v4_features, test_security_and_ui_contract, test_flow_content_and_reverify,
-             test_agent_backends_and_skills, test_v44_features, test_web_state_machine]
+             test_agent_backends_and_skills, test_v44_features, test_web_state_machine,
+             test_architecture_gate, test_v45_lifecycle_idle_system]
     t0 = time.time()
     for t in tests:
         try:
-            if t in (test_bus, test_web_state_machine):
+            if t in (test_bus, test_web_state_machine, test_architecture_gate):
                 t()
             else:
                 t(mock)

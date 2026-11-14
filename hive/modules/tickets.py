@@ -548,6 +548,15 @@ class Tickets(Module):
                 "工单 %s 发生过 git 冲突，必须先重新审视改动、重跑测试并调用 ticket_verify 记录证据，再结单。"
                 % ticket_id, status=409, code="reverify_required")
         if not force:
+            # 结单门禁：架构静态扫描必须通过（模块唯一出口/DAG/网页状态机/流程 DAG）
+            from ..archscan import gate as arch_gate
+            ok, errs, _warns = arch_gate()
+            if not ok:
+                self.emit("ticket.arch.blocked", {"ticket": ticket_id, "errors": errs[:5]})
+                raise ApiError(
+                    "工单 %s 的架构静态门禁未通过，不能结单：%s"
+                    % (ticket_id, "；".join(errs[:5]), ),
+                    status=409, code="arch_gate_failed")
             # 结单前硬门禁：缺必交产物就不允许进入 closing（不是催一句就放过）
             self._enforce_flows(ticket)
             missing = self._flow_missing(ticket)

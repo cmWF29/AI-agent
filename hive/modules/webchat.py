@@ -181,6 +181,7 @@ class WebChat(Module):
         limit = max(10, min(int(payload.get("limit") or 120), 500))
         since = payload.get("since_ts")
         items = []
+        trace_on = False
         if group.startswith("ticket:"):
             group = group.split(":", 1)[-1]
         if group.startswith("T-"):
@@ -189,9 +190,11 @@ class WebChat(Module):
                 trace_on = bool(self.ctx.api("tickets.get", ticket_id=group)["ticket"].get("trace_enabled"))
             except ApiError:
                 trace_on = False
+            # 生命周期/系统事件始终进群聊；模块报文只有 trace=true 才合并。
+            items.extend(self._system_timeline(group, limit))
             if trace_on:
                 items.extend(self._module_timeline(group, limit))
-                items.sort(key=lambda i: i.get("ts") or 0)
+            items.sort(key=lambda i: i.get("ts") or 0)
         elif group.startswith("sec-"):
             items = self._session_timeline(group, limit, user_label="我", bot_label="项目秘书")
         else:
@@ -203,7 +206,52 @@ class WebChat(Module):
             except (TypeError, ValueError):
                 pass
         cursor = max([float(i.get("ts") or 0) for i in items] or [0])
-        return {"group": group, "items": items[-limit:], "cursor": cursor}
+        return {"group": group, "items": items[-limit:], "cursor": cursor,
+                "trace_enabled": trace_on,
+                "trace_note": ("模块报文 trace 已开启" if trace_on
+                               else "本工单未开启模块报文 trace；系统生命周期消息仍会显示")}
+
+    def _system_timeline(self, ticket_id, limit):
+        """把工单生命周期事件作为“系统”消息放进群聊。
+
+    这些事件来自 ticket.history（创建/起分支/派 PM/拉角色/合并/归档/结单等），
+    与模块报文 trace 开关无关。历史工单即使 trace=false，也不会丢掉“发生过什么”。
+    """
+        labels = {
+            "created": "工单创建",
+            "starting": "开始执行",
+            "git_branch": "创建工单分支",
+            "pm_spawned": "项目经理已拉起",
+            "role_spawned": "角色已拉起",
+            "closing": "进入结单流程",
+            "merged": "合并回项目 main",
+            "pushed": "推送工单分支",
+            "archived": "交付件归档",
+            "closed": "工单结单",
+            "queued": "进入空闲队列",
+            "dispatched": "队列开始执行",
+            "flow_retry": "流程校验未通过，重试",
+            "force_closed": "强制结单",
+            "note": "系统备注",
+        }
+        try:
+            t = self.ctx.api("tickets.get", ticket_id=ticket_id)["ticket"]
+        except ApiError:
+            return []
+        out = []
+        for h in (t.get("history") or [])[-max(10, min(limit, 60)):]:
+            event = (h.get("event") or "").strip()
+            detail = (h.get("detail") or "").strip()
+            if not event:
+                continue
+            label = labels.get(event, "事件 " + event)
+            out.append({
+                "ts": self._ts(h.get("ts")), "type": "system", "role": "system",
+                "speaker": "系统", "session": "system", "event": event,
+                "text": "【%s】%s" % (label, detail or "—"),
+            })
+        return out
+
 
     def _session_timeline(self, session_id, limit, user_label="我", bot_label="秘书"):
         try:

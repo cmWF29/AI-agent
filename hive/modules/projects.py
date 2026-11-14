@@ -10,7 +10,9 @@
 """
 from __future__ import annotations
 
+import os
 import re
+import shutil
 import time
 
 from ..kernel.api import ApiError, Module
@@ -23,6 +25,48 @@ MAX_NAME = 48
 
 def _now():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _dir_size(path):
+    total = 0
+    if not os.path.isdir(path):
+        return 0
+    for dirpath, _dirnames, filenames in os.walk(path):
+        for fn in filenames:
+            try:
+                total += os.path.getsize(os.path.join(dirpath, fn))
+            except OSError:
+                pass
+    return total
+
+
+def _file_count(path):
+    n = 0
+    if not os.path.isdir(path):
+        return 0
+    for _dirpath, _dirnames, filenames in os.walk(path):
+        n += len(filenames)
+    return n
+
+
+def _rmtree(path):
+    """Windows 上 .git 文件可能短暂被占用；重试，避免“忽略错误”留下半棵树。"""
+    if not os.path.isdir(path):
+        return True
+    for i in range(5):
+        try:
+            shutil.rmtree(path)
+            return not os.path.exists(path)
+        except OSError:
+            # 清掉只读位后重试；不要把错误吞掉
+            for dirpath, dirnames, filenames in os.walk(path):
+                for name in dirnames + filenames:
+                    try:
+                        os.chmod(os.path.join(dirpath, name), 0o700)
+                    except OSError:
+                        pass
+            time.sleep(0.2 * (i + 1))
+    return not os.path.exists(path)
 
 
 def _slug(text, fallback="project"):
@@ -51,6 +95,7 @@ class Projects(Module):
         self.api.route("GET", "/api/projects/{project_id}", name="get")(self.get_api)
         self.api.route("POST", "/api/projects/{project_id}/archive", name="archive")(self.archive_api)
         self.api.route("POST", "/api/projects/{project_id}/delete", name="delete")(self.delete_api)
+        self.api.route("GET", "/api/projects/{project_id}/delete-preview", name="delete_preview")(self.delete_preview_api)
         self.api.route("POST", "/api/projects/ensure", name="ensure")(self.ensure_api)
         self.api.route("POST", "/api/projects/{project_id}/rename", name="rename")(self.rename_api)
         self.api.route("GET", "/api/projects/{project_id}/files", name="files")(self.files_api)
@@ -261,28 +306,99 @@ class Projects(Module):
             text, enc = "", "binary"
         return {"path": rel, "text": text, "encoding": enc, "bytes": os.path.getsize(target)}
 
-    def delete_api(self, payload):
-        """删除项目（需求 8）。
+    def _tickets_of(self, pid):
+        try:
+            return self.ctx.api("tickets.list", project=pid).get("items", [])
+        except ApiError:
+            return []
 
-        后处理只做一件必要的事：清掉这个项目的秘书会话（否则它会一直挂着一个已不存在的项目）。
-        知识/交付件/工单记录都保留（知识已经运行时沉淀，删掉反而丢证据）。
+    def delete_preview_api(self, payload):
+        """删除前预览：有多少工单/未结单、哪些数据会被清掉。"""
+        rec = self._get(payload["project_id"])
+        pid = rec["id"]
+        tickets = self._tickets_of(pid)
+        open_tickets = [t["id"] for t in tickets if t.get("status") != "closed"]
+        art = os.path.join(path_of(self.cfg, "artifacts.root", "data/artifacts"), "projects", pid)
+        know = os.path.join(path_of(self.cfg, "knowledge.root", "data/knowledge"), "projects", pid)
+        main = os.path.join(self.root, pid)
+        return {
+            "project": self._public(rec),
+            "tickets": len(tickets), "closed_tickets": len(tickets) - len(open_tickets),
+            "open_tickets": open_tickets,
+            "artifacts": {"path": art, "exists": os.path.isdir(art),
+                          "bytes": _dir_size(art)},
+            "knowledge": {"path": know, "exists": os.path.isdir(know),
+                           "files": _file_count(know)},
+            "main_tree": {"path": main, "exists": os.path.isdir(main)},
+            "source_path": rec.get("source_path") or "",
+        }
+
+    def delete_api(self, payload):
+        """项目生命周期：归档，或删除（删除可选级联清理）。
+
+        * mode=archive：只打 archived 标记，不删除任何数据。
+        * mode=delete：默认保持旧行为（只删项目记录 + 秘书会话，工单/交付件/知识/工作树保留）。
+        * cascade 为对象：tickets / artifacts / knowledge / main_tree / source。
+          - tickets=true 只删除已结单工单（调用 tickets.delete，按约定保留其交付件/知识）；
+          - 未结单工单存在且 force!=true 时拒绝，避免删掉正在跑的工作。
+          - source=true 只解绑源码路径，绝不删除外部源码目录。
         """
+        if (payload.get("mode") or "delete") == "archive":
+            return self.archive_api(payload)
         pid = _slug(payload["project_id"], self.default)
         rec = self.store.get(pid)
         if rec is None:
             raise ApiError("项目不存在: %s" % pid, status=404, code="no_project")
-        destroyed = []
+        cascade = payload.get("cascade") if isinstance(payload.get("cascade"), dict) else {}
+        tickets = self._tickets_of(pid)
+        open_tickets = [t["id"] for t in tickets if t.get("status") != "closed"]
+        if open_tickets and not bool(payload.get("force")):
+            raise ApiError("还有未结单工单，不能删除项目；先结单或显式 force",
+                           status=409, code="open_tickets",
+                           extra={"open_tickets": open_tickets})
+        destroyed, deleted_tickets = [], []
         try:
             self.ctx.api("sessions.destroy", session_id="sec-" + pid)
             destroyed.append("sec-" + pid)
         except ApiError:
             pass
+        if cascade.get("tickets"):
+            for t in tickets:
+                if t.get("status") != "closed":
+                    continue
+                try:
+                    self.ctx.api("tickets.delete", ticket_id=t["id"])
+                    deleted_tickets.append(t["id"])
+                except ApiError as exc:
+                    self.log.warn("project.delete.ticket_failed", project=pid, ticket=t["id"], error=exc.message)
+        if cascade.get("artifacts"):
+            try:
+                self.ctx.api("artifacts.remove_project", project=pid)
+            except ApiError as exc:
+                self.log.warn("project.delete.artifacts_failed", project=pid, error=exc.message)
+        if cascade.get("knowledge"):
+            try:
+                self.ctx.api("knowledge.remove_project", project=pid)
+            except ApiError as exc:
+                self.log.warn("project.delete.knowledge_failed", project=pid, error=exc.message)
+        if cascade.get("main_tree"):
+            _rmtree(os.path.join(self.root, pid))
+        if cascade.get("source"):
+            rec["source_path"] = ""
+        kept = {}
+        if not cascade.get("tickets"):
+            kept["tickets"] = "data/tickets/*"
+        if not cascade.get("artifacts"):
+            kept["artifacts"] = "data/artifacts/projects/%s" % pid
+        if not cascade.get("knowledge"):
+            kept["knowledge"] = "data/knowledge/projects/%s" % pid
         self.store.delete(pid)
-        self.emit("project.deleted", {"project": pid, "destroyed": destroyed})
-        self.log.info("project.deleted", project=pid)
+        self.emit("project.deleted", {"project": pid, "destroyed": destroyed,
+                                      "deleted_tickets": deleted_tickets, "cascade": cascade})
+        self.log.info("project.deleted", project=pid, cascade=cascade)
         return {"deleted": pid, "destroyed_sessions": destroyed,
-                "kept": {"tickets": "data/tickets/*", "artifacts": "data/artifacts/projects/%s" % pid,
-                         "knowledge": "data/knowledge/projects/%s" % pid}}
+                "deleted_tickets": deleted_tickets, "kept": kept,
+                "cascade": cascade}
 
     def archive_api(self, payload):
         rec = self._get(payload["project_id"])

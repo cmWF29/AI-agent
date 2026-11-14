@@ -60,7 +60,7 @@
             <button class="ghost" id="pv-files">项目文件</button>
             <button class="ghost" id="pv-source">项目源码</button>
             <button class="ghost" id="pv-bindsource">绑定源码路径</button>
-            <button class="danger-ghost" id="pv-delete">删除项目</button>
+            <button class="danger-ghost" id="pv-delete">归档 / 删除</button>
           </div>
         </div>
         <div class="pv-grid">
@@ -94,9 +94,18 @@
             <button class="primary" id="pv-create">派给项目经理</button>
           </div>
           <div class="card">
+            <div class="card-head"><strong>空闲 / 队列</strong><span class="muted small" id="pv-idleinfo"></span></div>
+            <div class="muted small">忙闲配置按项目保存；队列也只属于本项目。</div>
+            <label class="checkline"><input type="checkbox" id="pv-idle-enabled" /> 启用忙闲判断</label>
+            <label class="field">高峰窗口<input id="pv-idle-windows" placeholder="09:00-12:00, 14:00-18:00" /></label>
+            <label class="field">空闲折扣<input id="pv-idle-discount" type="number" min="0" max="1" step="0.05" /></label>
+            <label class="checkline"><input type="checkbox" id="pv-idle-force" /> 强制高峰（调试）</label>
+            <div class="row-btns"><button class="ghost" id="pv-saveidle">保存忙闲配置</button><button class="ghost" id="pv-idle">本项目空闲队列</button></div>
+          </div>
+          <div class="card">
             <div class="card-head"><strong>交付件</strong></div>
             <div class="muted small">三层归档：公共层 / 项目层 / 工单层（带工单号与版本）。</div>
-            <div class="row-btns"><button class="ghost" id="pv-artifacts">打开项目层交付件</button><button class="ghost" id="pv-idle">本项目空闲队列</button></div>
+            <div class="row-btns"><button class="ghost" id="pv-artifacts">打开项目层交付件</button></div>
           </div>
         </div>
       </section>

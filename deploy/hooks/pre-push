@@ -1,0 +1,16 @@
+#!/bin/sh
+# Hive Agent 推送门禁：本地 pre-push 自动跑静态架构扫描。
+# 安装：cp deploy/hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+PY=${PYTHON:-python}
+if ! command -v "$PY" >/dev/null 2>&1; then
+  PY=python3
+fi
+echo "[arch-gate] scanning modules / flows / web state machine ..."
+"$PY" -m hive.archscan || {
+  echo "[arch-gate] FAILED: push blocked. Run 'python -m hive.archscan --report' for details." >&2
+  exit 1
+}
+echo "[arch-gate] PASS"

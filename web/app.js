@@ -313,6 +313,7 @@ function openProject(pid, silent, opts) {
   }
   updateBackBtn();
   loadIdle();
+  loadProjectIdle(pid);
   api('/api/projects/' + encodeURIComponent(pid)).then(function (r) {
     renderProject(r.project || {});
   }).catch(function (e) { toast('项目读取失败：' + e.message, 'err'); });
@@ -388,7 +389,7 @@ function selectGroup(id, silent, opts) {
   var isSec = id.indexOf('sec-') === 0;
   $('chat-title').textContent = isTicket ? (g.title || id) : ('项目秘书·' + (isSec ? id.slice(4) : ''));
   $('chat-sub').textContent = isTicket ? ('工单群 · ' + (g.project || '') + ' · ' + (g.backend || 'api') +
-    (g.kind === 'retrospective' ? ' · 回顾迭代' : '') + (g.trace_enabled ? ' · trace on' : '')) : '项目秘书';
+    (g.kind === 'retrospective' ? ' · 回顾迭代' : '') + (g.trace_enabled ? ' · trace on' : ' · trace off（只有系统事件）')) : '项目秘书';
   $('chat-tags').innerHTML = '';
   if (isTicket) {
     show('btn-copy-ticket'); $('btn-copy-ticket').textContent = '⧉ ' + id; show('btn-fork-ticket');
@@ -434,7 +435,7 @@ function renderMsg(m) {
   if (m.type === 'module') return renderModuleMsg(m);
   var el = document.createElement('div');
   var mine = m.role === 'user' && m.speaker === '我';
-  el.className = 'msg ' + (mine ? 'mine' : 'other') + (m.type === 'task' ? ' taskmsg' : '');
+  el.className = 'msg ' + (mine ? 'mine' : 'other') + (m.type === 'task' ? ' taskmsg' : '') + (m.type === 'system' ? ' systemmsg' : '');
   var who = m.type === 'task' ? (m.speaker + ' → ' + (m.to || '角色')) : (m.speaker || '?');
   var tools = (m.tools && m.tools.length) ? '<div class="tools">' + m.tools.map(function (t) { return '<span class="toolchip">' + esc(t) + '</span>'; }).join('') + '</div>' : '';
   var arts = (m.artifacts && m.artifacts.length) ? '<div class="msg-arts">' + m.artifacts.map(function (a) {
@@ -580,6 +581,28 @@ function loadIdle() {
   var q = state.project ? ('?project=' + encodeURIComponent(state.project)) : '';
   api('/api/idle/status' + q).then(function (r) { state.idle = r; }).catch(function () {});
 }
+function loadProjectIdle(pid) {
+  if (!pid) return;
+  api('/api/idle/status?project=' + encodeURIComponent(pid)).then(function (r) {
+    var c = r.project_config || r.idle || {};
+    state.projectIdle = r;
+    if ($('pv-idle-enabled')) $('pv-idle-enabled').checked = !!c.enabled;
+    if ($('pv-idle-windows')) $('pv-idle-windows').value = (c.peak_windows || []).join(', ');
+    if ($('pv-idle-discount')) $('pv-idle-discount').value = c.offpeak_discount;
+    if ($('pv-idle-force')) $('pv-idle-force').checked = !!c.force_peak;
+    if ($('pv-idleinfo')) $('pv-idleinfo').textContent = (r.idle && r.idle.peak ? '忙时' : '闲时') +
+      ' · 队列 ' + (r.queue || 0) + ' 条 · ' + (r.idle ? r.idle.reason : '');
+  }).catch(function () {});
+}
+function saveProjectIdle() {
+  var pid = state.project; if (!pid) return;
+  var windows = ($('pv-idle-windows').value || '').split(/[,，\n]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  api('/api/idle/config', { method: 'POST', body: {
+    project: pid, enabled: !!$('pv-idle-enabled').checked, peak_windows: windows,
+    offpeak_discount: Number($('pv-idle-discount').value || 0.6), force_peak: !!$('pv-idle-force').checked,
+  } }).then(function () { toast('本项目忙闲配置已保存'); loadProjectIdle(pid); })
+    .catch(function (e) { toast('保存失败：' + e.message, 'err'); });
+}
 function openIdle() {
   var pid = state.project;
   api('/api/idle/status' + (pid ? ('?project=' + encodeURIComponent(pid)) : '')).then(function (r) {
@@ -588,12 +611,12 @@ function openIdle() {
       return '<div class="file-row"><span>' + esc(q.kind) + ' · ' + esc(q.id) + '</span>' +
         '<span class="muted small">' + esc(q.note || '') + '</span></div>';
     }).join('') || '<div class="empty">队列为空</div>';
-    openModal('空闲判断 · 需求排队',
-      '<div class="muted small">' + esc(i.reason || '') + ' · 空闲折扣 ' + (r.discount || '') + ' · 窗口 ' + esc((r.windows || []).join(' / ')) + '</div>' +
-      '<div class="filelist">' + items + '</div><div class="row-btns"><button class="primary" id="idle-flush">立即执行队列</button></div>');
+    openModal('空闲判断 · 本项目队列',
+      '<div class="muted small">' + esc((i.reason || '')) + ' · 空闲折扣 ' + (r.discount || '') + ' · 窗口 ' + esc((r.windows || []).join(' / ')) + '</div>' +
+      '<div class="filelist">' + items + '</div><div class="row-btns"><button class="primary" id="idle-flush">立即执行本项目队列</button></div>');
     $('idle-flush').onclick = function () {
-      api('/api/idle/flush', { method: 'POST', body: { force: true } }).then(function (x) {
-        toast('已执行 ' + ((x.done || []).length) + ' 条'); closeModal(); loadIdle(); loadGroups();
+      api('/api/idle/flush', { method: 'POST', body: { force: true, project: pid } }).then(function (x) {
+        toast('已执行 ' + ((x.done || []).length) + ' 条'); closeModal(); loadIdle(); loadProjectIdle(pid); loadGroups();
       }).catch(function (e) { toast(e.message, 'err'); });
     };
   }).catch(function (e) { toast(e.message, 'err'); });
@@ -1052,12 +1075,43 @@ function renameProject() {
 }
 function deleteProject() {
   var p = findProject(state.project); if (!p) return;
-  if (!confirm('删除项目「' + (p.title || p.id) + '」？\n只清理项目秘书会话；工单、交付件、知识保留。')) return;
-  api('/api/projects/' + encodeURIComponent(p.id) + '/delete', { method: 'POST', body: {} })
-    .then(function () { toast('项目已删除，证据保留'); state.project = ''; loadGroups().then(function () {
-      var n = state.projects[0]; if (n) openProject(n.id); else toast('已没有项目，可点左侧 + 新建', 'warn');
-    }); })
-    .catch(function (e) { toast(e.message, 'err'); });
+  api('/api/projects/' + encodeURIComponent(p.id) + '/delete-preview').then(function (r) {
+    var open = (r.open_tickets || []).length;
+    var warn = open ? '<div class="danger small">还有 ' + open + ' 个未结单工单：' + esc(r.open_tickets.join(', ')) + '。删除会被拒绝，需先结单。</div>' : '';
+    openModal('项目生命周期 · ' + (p.title || p.id),
+      '<div class="muted small">归档只打标记、保留全部数据；删除才会进入下面的清理选项。</div>' + warn +
+      '<div class="filelist"><div class="file-row"><span>工单</span><span class="muted small">' + r.tickets + ' 个（已结单 ' + r.closed_tickets + '）</span></div>' +
+      '<div class="file-row"><span>项目层交付件</span><span class="muted small">' + (r.artifacts.exists ? (r.artifacts.bytes + ' B') : '不存在') + '</span></div>' +
+      '<div class="file-row"><span>项目层知识</span><span class="muted small">' + (r.knowledge.exists ? (r.knowledge.files + ' 个文件') : '不存在') + '</span></div>' +
+      '<div class="file-row"><span>项目 main 工作树</span><span class="muted small">' + (r.main_tree.exists ? '存在' : '不存在') + '</span></div></div>' +
+      '<h3>删除时可选级联清理</h3>' +
+      '<label class="checkline"><input type="checkbox" id="lc-tickets" /> 删除已结单工单（工作树/记录；其交付件仍保留）</label>' +
+      '<label class="checkline"><input type="checkbox" id="lc-artifacts" /> 删除项目层交付件目录</label>' +
+      '<label class="checkline"><input type="checkbox" id="lc-knowledge" /> 删除项目层知识目录</label>' +
+      '<label class="checkline"><input type="checkbox" id="lc-main" /> 删除项目 main 工作树（含 .git）</label>' +
+      '<label class="checkline"><input type="checkbox" id="lc-source" /> 仅解绑外部源码路径（绝不删除外部目录）</label>' +
+      '<div class="row-btns"><button class="ghost" id="lc-archive">归档项目</button>' +
+      '<button class="danger" id="lc-delete" ' + (open ? 'disabled' : '') + '>删除项目</button></div>');
+    $('lc-archive').onclick = function () {
+      api('/api/projects/' + encodeURIComponent(p.id) + '/archive', { method: 'POST', body: { archived: true } })
+        .then(function () { closeModal(); toast('项目已归档'); loadGroups(); })
+        .catch(function (e) { toast(e.message, 'err'); });
+    };
+    $('lc-delete').onclick = function () {
+      if (!confirm('确认删除项目「' + (p.title || p.id) + '」？此操作不可撤销。')) return;
+      api('/api/projects/' + encodeURIComponent(p.id) + '/delete', { method: 'POST', body: {
+        mode: 'delete', cascade: {
+          tickets: $('lc-tickets').checked, artifacts: $('lc-artifacts').checked,
+          knowledge: $('lc-knowledge').checked, main_tree: $('lc-main').checked,
+          source: $('lc-source').checked,
+        },
+      } }).then(function () {
+        closeModal(); toast('项目已删除'); state.project = ''; loadGroups().then(function () {
+          var n = state.projects[0]; if (n) openProject(n.id); else toast('已没有项目，可点左侧 + 新建', 'warn');
+        });
+      }).catch(function (e) { toast('删除失败：' + e.message, 'err'); });
+    };
+  }).catch(function (e) { toast(e.message, 'err'); });
 }
 function compactProjectSecretary() {
   var sid = 'sec-' + state.project;
@@ -1168,6 +1222,7 @@ $('pv-bindsource').onclick = bindProjectSource;
 $('pv-savebackend').onclick = saveProjectBackend;
 $('pv-apiconfig').onclick = openApiConfig;
 $('pv-idle').onclick = openIdle;
+$('pv-saveidle').onclick = saveProjectIdle;
 $('pv-delete').onclick = deleteProject;
 $('pv-secretary').onclick = function () { selectGroup('sec-' + state.project); };
 $('pv-compact').onclick = compactProjectSecretary;

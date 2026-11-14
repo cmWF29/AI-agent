@@ -1,0 +1,1134 @@
+{
+  "root": "E:\\AI\\hive-agent",
+  "modules": [
+    {
+      "name": "agents",
+      "entry": "hive/modules/agents.py.py",
+      "routes": [
+        {
+          "path": "/api/agents/backends",
+          "name": "backends"
+        },
+        {
+          "path": "/api/agents/run",
+          "name": "run"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/agents/backends backends",
+        "route:/api/agents/run run"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
+      "name": "artifacts",
+      "entry": "hive/modules/artifacts.py.py",
+      "routes": [
+        {
+          "path": "/api/artifacts/list",
+          "name": "list"
+        },
+        {
+          "path": "/api/artifacts/file",
+          "name": "file"
+        },
+        {
+          "path": "/api/artifacts/write",
+          "name": "write"
+        },
+        {
+          "path": "/api/artifacts/archive",
+          "name": "archive"
+        },
+        {
+          "path": "/api/artifacts/compress",
+          "name": "compress"
+        },
+        {
+          "path": "/api/artifacts/stats",
+          "name": "stats"
+        },
+        {
+          "path": "/api/artifacts/remove-project",
+          "name": "remove_project"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/artifacts/list list",
+        "route:/api/artifacts/file file",
+        "route:/api/artifacts/write write",
+        "route:/api/artifacts/archive archive",
+        "route:/api/artifacts/compress compress",
+        "route:/api/artifacts/stats stats",
+        "route:/api/artifacts/remove-project remove_project"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "tickets.get"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "gitflow",
+      "entry": "hive/modules/gitflow.py.py",
+      "routes": [
+        {
+          "path": "/api/gitflow/project/init",
+          "name": "project_init"
+        },
+        {
+          "path": "/api/gitflow/ticket/init",
+          "name": "ticket_init"
+        },
+        {
+          "path": "/api/gitflow/ticket/sync",
+          "name": "ticket_sync"
+        },
+        {
+          "path": "/api/gitflow/ticket/status",
+          "name": "ticket_status"
+        },
+        {
+          "path": "/api/gitflow/ticket/changed",
+          "name": "ticket_changed"
+        },
+        {
+          "path": "/api/gitflow/ticket/merge",
+          "name": "ticket_merge"
+        },
+        {
+          "path": "/api/gitflow/ticket/remove",
+          "name": "ticket_remove"
+        },
+        {
+          "path": "/api/gitflow/list",
+          "name": "list"
+        }
+      ],
+      "tools": [
+        "git_sync",
+        "git_status",
+        "git_merge"
+      ],
+      "public_api": [
+        "route:/api/gitflow/project/init project_init",
+        "route:/api/gitflow/ticket/init ticket_init",
+        "route:/api/gitflow/ticket/sync ticket_sync",
+        "route:/api/gitflow/ticket/status ticket_status",
+        "route:/api/gitflow/ticket/changed ticket_changed",
+        "route:/api/gitflow/ticket/merge ticket_merge",
+        "route:/api/gitflow/ticket/remove ticket_remove",
+        "route:/api/gitflow/list list",
+        "tool:git_sync",
+        "tool:git_status",
+        "tool:git_merge"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
+      "name": "health",
+      "entry": "hive/modules/health.py.py",
+      "routes": [
+        {
+          "path": "/api/health",
+          "name": "/api/health"
+        },
+        {
+          "path": "/api/health/self",
+          "name": "/api/health/self"
+        },
+        {
+          "path": "/api/health/traffic",
+          "name": "traffic"
+        },
+        {
+          "path": "/api/health/logs",
+          "name": "logs"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/health /api/health",
+        "route:/api/health/self /api/health/self",
+        "route:/api/health/traffic traffic",
+        "route:/api/health/logs logs"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "artifacts.stats"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "idle",
+      "entry": "hive/modules/idle.py.py",
+      "routes": [
+        {
+          "path": "/api/idle/status",
+          "name": "status"
+        },
+        {
+          "path": "/api/idle/judge",
+          "name": "judge"
+        },
+        {
+          "path": "/api/idle/queue",
+          "name": "queue"
+        },
+        {
+          "path": "/api/idle/enqueue",
+          "name": "enqueue"
+        },
+        {
+          "path": "/api/idle/flush",
+          "name": "flush"
+        },
+        {
+          "path": "/api/idle/dequeue",
+          "name": "dequeue"
+        },
+        {
+          "path": "/api/idle/config",
+          "name": "config"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/idle/status status",
+        "route:/api/idle/judge judge",
+        "route:/api/idle/queue queue",
+        "route:/api/idle/enqueue enqueue",
+        "route:/api/idle/flush flush",
+        "route:/api/idle/dequeue dequeue",
+        "route:/api/idle/config config"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "sessions.send",
+        "tickets.dispatch"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "knowledge",
+      "entry": "hive/modules/knowledge.py.py",
+      "routes": [
+        {
+          "path": "/api/knowledge/overview",
+          "name": "/api/knowledge/overview"
+        },
+        {
+          "path": "/api/knowledge/write",
+          "name": "/api/knowledge/write"
+        },
+        {
+          "path": "/api/knowledge/read",
+          "name": "/api/knowledge/read"
+        },
+        {
+          "path": "/api/knowledge/list",
+          "name": "list"
+        },
+        {
+          "path": "/api/knowledge/search",
+          "name": "/api/knowledge/search"
+        },
+        {
+          "path": "/api/knowledge/compose",
+          "name": "/api/knowledge/compose"
+        },
+        {
+          "path": "/api/knowledge/remove-project",
+          "name": "/api/knowledge/remove-project"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/knowledge/overview /api/knowledge/overview",
+        "route:/api/knowledge/write /api/knowledge/write",
+        "route:/api/knowledge/read /api/knowledge/read",
+        "route:/api/knowledge/list list",
+        "route:/api/knowledge/search /api/knowledge/search",
+        "route:/api/knowledge/compose /api/knowledge/compose",
+        "route:/api/knowledge/remove-project /api/knowledge/remove-project"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "knowledge.compose",
+        "knowledge.search",
+        "knowledge.write"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "library",
+      "entry": "hive/modules/library.py.py",
+      "routes": [
+        {
+          "path": "/api/library/list",
+          "name": "list"
+        },
+        {
+          "path": "/api/library/item",
+          "name": "item"
+        },
+        {
+          "path": "/api/library/get",
+          "name": "get"
+        },
+        {
+          "path": "/api/library/upsert",
+          "name": "upsert"
+        },
+        {
+          "path": "/api/library/check",
+          "name": "check"
+        },
+        {
+          "path": "/api/library/design",
+          "name": "design"
+        },
+        {
+          "path": "/api/library/update_prompt",
+          "name": "update_prompt"
+        },
+        {
+          "path": "/api/library/summary",
+          "name": "summary"
+        },
+        {
+          "path": "/api/library/tags",
+          "name": "tags"
+        },
+        {
+          "path": "/api/library/tag_add",
+          "name": "tag_add"
+        }
+      ],
+      "tools": [
+        "library_list",
+        "library_get",
+        "flow_check"
+      ],
+      "public_api": [
+        "route:/api/library/list list",
+        "route:/api/library/item item",
+        "route:/api/library/get get",
+        "route:/api/library/upsert upsert",
+        "route:/api/library/check check",
+        "route:/api/library/design design",
+        "route:/api/library/update_prompt update_prompt",
+        "route:/api/library/summary summary",
+        "route:/api/library/tags tags",
+        "route:/api/library/tag_add tag_add",
+        "tool:library_list",
+        "tool:library_get",
+        "tool:flow_check"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
+      "name": "memory",
+      "entry": "hive/modules/memory.py.py",
+      "routes": [
+        {
+          "path": "/api/memory/add",
+          "name": "/api/memory/add"
+        },
+        {
+          "path": "/api/memory/search",
+          "name": "/api/memory/search"
+        },
+        {
+          "path": "/api/memory/list",
+          "name": "/api/memory/list"
+        },
+        {
+          "path": "/api/memory/{note_id}",
+          "name": "/api/memory/{note_id}"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/memory/add /api/memory/add",
+        "route:/api/memory/search /api/memory/search",
+        "route:/api/memory/list /api/memory/list",
+        "route:/api/memory/{note_id} /api/memory/{note_id}"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "memory.add",
+        "memory.search"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "observability",
+      "entry": "hive/modules/observability.py.py",
+      "routes": [
+        {
+          "path": "/api/obs/logs",
+          "name": "/api/obs/logs"
+        },
+        {
+          "path": "/api/obs/events",
+          "name": "/api/obs/events"
+        },
+        {
+          "path": "/api/obs/metrics",
+          "name": "/api/obs/metrics"
+        },
+        {
+          "path": "/api/obs/info",
+          "name": "/api/obs/info"
+        },
+        {
+          "path": "/api/bus/publish",
+          "name": "/api/bus/publish"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/obs/logs /api/obs/logs",
+        "route:/api/obs/events /api/obs/events",
+        "route:/api/obs/metrics /api/obs/metrics",
+        "route:/api/obs/info /api/obs/info",
+        "route:/api/bus/publish /api/bus/publish"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
+      "name": "ops",
+      "entry": "hive/modules/ops.py.py",
+      "routes": [
+        {
+          "path": "/api/ops/status",
+          "name": "/api/ops/status"
+        },
+        {
+          "path": "/api/ops/restart",
+          "name": "/api/ops/restart"
+        },
+        {
+          "path": "/api/ops/stop",
+          "name": "/api/ops/stop"
+        },
+        {
+          "path": "/api/ops/rollback",
+          "name": "/api/ops/rollback"
+        },
+        {
+          "path": "/api/ops/versions",
+          "name": "/api/ops/versions"
+        },
+        {
+          "path": "/api/ops/config",
+          "name": "/api/ops/config"
+        },
+        {
+          "path": "/api/ops/selftest",
+          "name": "/api/ops/selftest"
+        },
+        {
+          "path": "/api/ops/llm/ping",
+          "name": "/api/ops/llm/ping"
+        },
+        {
+          "path": "/api/ops/service",
+          "name": "/api/ops/service"
+        },
+        {
+          "path": "/api/ops/files",
+          "name": "/api/ops/files"
+        },
+        {
+          "path": "/api/ops/file",
+          "name": "/api/ops/file"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/ops/status /api/ops/status",
+        "route:/api/ops/restart /api/ops/restart",
+        "route:/api/ops/stop /api/ops/stop",
+        "route:/api/ops/rollback /api/ops/rollback",
+        "route:/api/ops/versions /api/ops/versions",
+        "route:/api/ops/config /api/ops/config",
+        "route:/api/ops/selftest /api/ops/selftest",
+        "route:/api/ops/llm/ping /api/ops/llm/ping",
+        "route:/api/ops/service /api/ops/service",
+        "route:/api/ops/files /api/ops/files",
+        "route:/api/ops/file /api/ops/file"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "knowledge.overview",
+        "sessions.list",
+        "tickets.list"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "projects",
+      "entry": "hive/modules/projects.py.py",
+      "routes": [
+        {
+          "path": "/api/projects/list",
+          "name": "list"
+        },
+        {
+          "path": "/api/projects/create",
+          "name": "create"
+        },
+        {
+          "path": "/api/projects/{project_id}",
+          "name": "get"
+        },
+        {
+          "path": "/api/projects/{project_id}/archive",
+          "name": "archive"
+        },
+        {
+          "path": "/api/projects/{project_id}/delete",
+          "name": "delete"
+        },
+        {
+          "path": "/api/projects/{project_id}/delete-preview",
+          "name": "delete_preview"
+        },
+        {
+          "path": "/api/projects/ensure",
+          "name": "ensure"
+        },
+        {
+          "path": "/api/projects/{project_id}/rename",
+          "name": "rename"
+        },
+        {
+          "path": "/api/projects/{project_id}/files",
+          "name": "files"
+        },
+        {
+          "path": "/api/projects/{project_id}/file",
+          "name": "file"
+        },
+        {
+          "path": "/api/projects/{project_id}/backend",
+          "name": "backend"
+        },
+        {
+          "path": "/api/projects/{project_id}/source",
+          "name": "source_bind"
+        },
+        {
+          "path": "/api/projects/{project_id}/source/files",
+          "name": "source_files"
+        },
+        {
+          "path": "/api/projects/{project_id}/source/file",
+          "name": "source_file"
+        }
+      ],
+      "tools": [
+        "project_list",
+        "project_create",
+        "project_status"
+      ],
+      "public_api": [
+        "route:/api/projects/list list",
+        "route:/api/projects/create create",
+        "route:/api/projects/{project_id} get",
+        "route:/api/projects/{project_id}/archive archive",
+        "route:/api/projects/{project_id}/delete delete",
+        "route:/api/projects/{project_id}/delete-preview delete_preview",
+        "route:/api/projects/ensure ensure",
+        "route:/api/projects/{project_id}/rename rename",
+        "route:/api/projects/{project_id}/files files",
+        "route:/api/projects/{project_id}/file file",
+        "route:/api/projects/{project_id}/backend backend",
+        "route:/api/projects/{project_id}/source source_bind",
+        "route:/api/projects/{project_id}/source/files source_files",
+        "route:/api/projects/{project_id}/source/file source_file",
+        "tool:project_list",
+        "tool:project_create",
+        "tool:project_status"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "artifacts.remove_project",
+        "gitflow.project_init",
+        "knowledge.remove_project",
+        "sessions.destroy",
+        "tickets.delete",
+        "tickets.list"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "sessions",
+      "entry": "hive/modules/sessions.py.py",
+      "routes": [
+        {
+          "path": "/api/sessions/spawn",
+          "name": "spawn"
+        },
+        {
+          "path": "/api/sessions/send",
+          "name": "send"
+        },
+        {
+          "path": "/api/sessions/ask",
+          "name": "ask"
+        },
+        {
+          "path": "/api/sessions/wait",
+          "name": "wait"
+        },
+        {
+          "path": "/api/sessions/list",
+          "name": "list"
+        },
+        {
+          "path": "/api/sessions/state",
+          "name": "state"
+        },
+        {
+          "path": "/api/sessions/{session_id}",
+          "name": "get"
+        },
+        {
+          "path": "/api/sessions/{session_id}/messages",
+          "name": "messages"
+        },
+        {
+          "path": "/api/sessions/{session_id}/compact",
+          "name": "compact"
+        },
+        {
+          "path": "/api/sessions/{session_id}/interrupt",
+          "name": "interrupt"
+        },
+        {
+          "path": "/api/sessions/{session_id}/destroy",
+          "name": "destroy"
+        },
+        {
+          "path": "/api/sessions/secretary/ensure",
+          "name": "ensure"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/sessions/spawn spawn",
+        "route:/api/sessions/send send",
+        "route:/api/sessions/ask ask",
+        "route:/api/sessions/wait wait",
+        "route:/api/sessions/list list",
+        "route:/api/sessions/state state",
+        "route:/api/sessions/{session_id} get",
+        "route:/api/sessions/{session_id}/messages messages",
+        "route:/api/sessions/{session_id}/compact compact",
+        "route:/api/sessions/{session_id}/interrupt interrupt",
+        "route:/api/sessions/{session_id}/destroy destroy",
+        "route:/api/sessions/secretary/ensure ensure"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "knowledge.compose",
+        "projects.list"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "skills",
+      "entry": "hive/modules/skills.py.py",
+      "routes": [
+        {
+          "path": "/api/skills/installed",
+          "name": "installed"
+        },
+        {
+          "path": "/api/skills/sources",
+          "name": "sources"
+        },
+        {
+          "path": "/api/skills/install",
+          "name": "install"
+        },
+        {
+          "path": "/api/skills/decompose",
+          "name": "decompose"
+        },
+        {
+          "path": "/api/skills/remove",
+          "name": "remove"
+        },
+        {
+          "path": "/api/skills/item",
+          "name": "item"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/skills/installed installed",
+        "route:/api/skills/sources sources",
+        "route:/api/skills/install install",
+        "route:/api/skills/decompose decompose",
+        "route:/api/skills/remove remove",
+        "route:/api/skills/item item"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "library.design",
+        "library.upsert"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "tickets",
+      "entry": "hive/modules/tickets.py.py",
+      "routes": [
+        {
+          "path": "/api/tickets/create",
+          "name": "create"
+        },
+        {
+          "path": "/api/tickets/list",
+          "name": "list"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}",
+          "name": "get"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/flow",
+          "name": "flow"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/close",
+          "name": "close"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/note",
+          "name": "note"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/roles",
+          "name": "roles"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/message",
+          "name": "message"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/files",
+          "name": "files"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/file",
+          "name": "file"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/sync",
+          "name": "sync"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/tags",
+          "name": "tags"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/verify",
+          "name": "verify"
+        },
+        {
+          "path": "/api/tickets/{ticket_id}/delete",
+          "name": "delete"
+        },
+        {
+          "path": "/api/tickets/dispatch",
+          "name": "dispatch"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/tickets/create create",
+        "route:/api/tickets/list list",
+        "route:/api/tickets/{ticket_id} get",
+        "route:/api/tickets/{ticket_id}/flow flow",
+        "route:/api/tickets/{ticket_id}/close close",
+        "route:/api/tickets/{ticket_id}/note note",
+        "route:/api/tickets/{ticket_id}/roles roles",
+        "route:/api/tickets/{ticket_id}/message message",
+        "route:/api/tickets/{ticket_id}/files files",
+        "route:/api/tickets/{ticket_id}/file file",
+        "route:/api/tickets/{ticket_id}/sync sync",
+        "route:/api/tickets/{ticket_id}/tags tags",
+        "route:/api/tickets/{ticket_id}/verify verify",
+        "route:/api/tickets/{ticket_id}/delete delete",
+        "route:/api/tickets/dispatch dispatch"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "artifacts.archive",
+        "gitflow.changed_files",
+        "gitflow.ticket_init",
+        "gitflow.ticket_merge",
+        "gitflow.ticket_remove",
+        "gitflow.ticket_sync",
+        "idle.dequeue",
+        "idle.enqueue",
+        "idle.judge",
+        "knowledge.compose",
+        "knowledge.write",
+        "library.check",
+        "library.get",
+        "library.tag_add",
+        "projects.ensure",
+        "sessions.destroy",
+        "sessions.get",
+        "sessions.list",
+        "sessions.messages",
+        "sessions.send",
+        "sessions.wait"
+      ],
+      "private_tests": false
+    },
+    {
+      "name": "toolpack",
+      "entry": "hive/modules/toolpack.py.py",
+      "routes": [],
+      "tools": [
+        "shell",
+        "read_file",
+        "write_file",
+        "grep",
+        "http_get"
+      ],
+      "public_api": [
+        "tool:shell",
+        "tool:read_file",
+        "tool:write_file",
+        "tool:grep",
+        "tool:http_get"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "private_tests": false
+    },
+    {
+      "name": "webchat",
+      "entry": "hive/modules/webchat.py.py",
+      "routes": [
+        {
+          "path": "/api/chat/send",
+          "name": "send"
+        },
+        {
+          "path": "/api/chat/job/{job_id}",
+          "name": "job"
+        },
+        {
+          "path": "/api/web/groups",
+          "name": "groups"
+        },
+        {
+          "path": "/api/web/timeline",
+          "name": "timeline"
+        },
+        {
+          "path": "/api/web/live",
+          "name": "live"
+        },
+        {
+          "path": "/api/web/modules",
+          "name": "modules"
+        },
+        {
+          "path": "/api/web/events",
+          "name": "events"
+        },
+        {
+          "path": "/api/trace/recent",
+          "name": "trace_recent"
+        },
+        {
+          "path": "/api/trace/file",
+          "name": "trace_file"
+        }
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/chat/send send",
+        "route:/api/chat/job/{job_id} job",
+        "route:/api/web/groups groups",
+        "route:/api/web/timeline timeline",
+        "route:/api/web/live live",
+        "route:/api/web/modules modules",
+        "route:/api/web/events events",
+        "route:/api/trace/recent trace_recent",
+        "route:/api/trace/file trace_file"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "idle.enqueue",
+        "idle.judge",
+        "projects.list",
+        "sessions.ensure",
+        "sessions.get",
+        "sessions.list",
+        "sessions.messages",
+        "sessions.send",
+        "sessions.state",
+        "tickets.get",
+        "tickets.list",
+        "tickets.message"
+      ],
+      "private_tests": false
+    }
+  ],
+  "module_graph": {
+    "artifacts": [
+      "tickets"
+    ],
+    "health": [
+      "artifacts"
+    ],
+    "idle": [
+      "sessions",
+      "tickets"
+    ],
+    "ops": [
+      "knowledge",
+      "sessions",
+      "tickets"
+    ],
+    "projects": [
+      "artifacts",
+      "gitflow",
+      "knowledge",
+      "sessions",
+      "tickets"
+    ],
+    "sessions": [
+      "knowledge",
+      "projects"
+    ],
+    "skills": [
+      "library"
+    ],
+    "tickets": [
+      "artifacts",
+      "gitflow",
+      "idle",
+      "knowledge",
+      "library",
+      "projects",
+      "sessions"
+    ],
+    "webchat": [
+      "idle",
+      "projects",
+      "sessions",
+      "tickets"
+    ]
+  },
+  "api_cycles": [
+    [
+      "artifacts",
+      "tickets",
+      "artifacts"
+    ],
+    [
+      "artifacts",
+      "tickets",
+      "idle",
+      "sessions",
+      "projects",
+      "artifacts"
+    ],
+    [
+      "sessions",
+      "projects",
+      "sessions"
+    ],
+    [
+      "tickets",
+      "idle",
+      "sessions",
+      "projects",
+      "tickets"
+    ],
+    [
+      "tickets",
+      "idle",
+      "tickets"
+    ]
+  ],
+  "import_cycles": [],
+  "flows": [
+    {
+      "id": "agent-skill-demo",
+      "role": "agent-skill-demo",
+      "nodes": 1,
+      "node_ids": [
+        "agent-skill-demo"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
+    },
+    {
+      "id": "architect",
+      "role": "architect",
+      "nodes": 1,
+      "node_ids": [
+        "architect"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "developer-docs",
+      "role": "developer-docs",
+      "nodes": 1,
+      "node_ids": [
+        "developer-docs"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
+    },
+    {
+      "id": "developer",
+      "role": "developer",
+      "nodes": 1,
+      "node_ids": [
+        "developer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 4
+    },
+    {
+      "id": "ops",
+      "role": "ops",
+      "nodes": 1,
+      "node_ids": [
+        "ops"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "process",
+      "role": "process",
+      "nodes": 1,
+      "node_ids": [
+        "process"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
+    },
+    {
+      "id": "researcher",
+      "role": "researcher",
+      "nodes": 1,
+      "node_ids": [
+        "researcher"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
+    },
+    {
+      "id": "reviewer",
+      "role": "reviewer",
+      "nodes": 1,
+      "node_ids": [
+        "reviewer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "skill-decomposer",
+      "role": "skill-decomposer",
+      "nodes": 1,
+      "node_ids": [
+        "skill-decomposer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "tester",
+      "role": "tester",
+      "nodes": 1,
+      "node_ids": [
+        "tester"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 2
+    },
+    {
+      "id": "writer",
+      "role": "writer",
+      "nodes": 1,
+      "node_ids": [
+        "writer"
+      ],
+      "edges": [],
+      "cycles": [],
+      "dag": false,
+      "checks": 1
+    }
+  ],
+  "web": {
+    "ok": true,
+    "errors": [],
+    "states": 11,
+    "events": 14,
+    "dom_ids": 101,
+    "dom_refs": 96,
+    "missing_refs": [],
+    "event_targets_bad": [],
+    "component_ids": 14,
+    "component_missing": []
+  },
+  "errors": [],
+  "warnings": [
+    "模块 API 调用环: artifacts -> tickets -> artifacts",
+    "模块 API 调用环: artifacts -> tickets -> idle -> sessions -> projects -> artifacts",
+    "模块 API 调用环: sessions -> projects -> sessions",
+    "模块 API 调用环: tickets -> idle -> sessions -> projects -> tickets",
+    "模块 API 调用环: tickets -> idle -> tickets"
+  ],
+  "ok": true,
+  "strict_api": false
+}

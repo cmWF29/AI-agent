@@ -65,6 +65,7 @@ class Artifacts(Module):
         self.api.route("POST", "/api/artifacts/archive", name="archive")(self.archive_api)
         self.api.route("POST", "/api/artifacts/compress", name="compress")(self.compress_api)
         self.api.route("GET", "/api/artifacts/stats", name="stats")(self.stats_api)
+        self.api.route("POST", "/api/artifacts/remove-project", name="remove_project")(self.remove_project_api)
         self._register_tools()
 
     # ---------------- 路径 ----------------
@@ -374,6 +375,18 @@ class Artifacts(Module):
                 "layers": layers, "biggest": biggest[:10], "disk_free": free,
                 "need_compress": total > threshold, "threshold_bytes": threshold,
                 "compressed": len([b for b in biggest if b["compressed"]])}
+
+    def remove_project_api(self, payload=None):
+        """项目级交付件清理；只允许删 data/artifacts/projects/<合法 id>。"""
+        pid = (payload or {}).get("project") or ""
+        if not valid_id(pid):
+            raise ApiError("非法 project id", status=400, code="bad_project")
+        path = os.path.join(self.root, "projects", pid)
+        if not os.path.isdir(path):
+            return {"removed": False, "project": pid, "path": path}
+        shutil.rmtree(path)
+        self.log.info("artifacts.project_removed", project=pid)
+        return {"removed": True, "project": pid, "path": path}
 
     # ---------------- 工具 ----------------
     def _register_tools(self):

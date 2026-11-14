@@ -37,10 +37,24 @@ class Knowledge(Module):
         self.api.route("GET", "/api/knowledge/list", name="list")(self.list_docs)
         self.api.route("GET", "/api/knowledge/search")(self.search)
         self.api.route("POST", "/api/knowledge/compose")(self.compose)
+        self.api.route("POST", "/api/knowledge/remove-project")(self.remove_project_api)
 
         self._register_tools()
 
     # ---------------- 目录解析 ----------------
+    def remove_project_api(self, payload=None):
+        """删除项目层知识；public 层永远不删。"""
+        pid = (payload or {}).get("project") or ""
+        if not pid:
+            raise ApiError("project 必填", code="missing_scope")
+        path = os.path.join(self.root, "projects", safe_id(pid))
+        if not os.path.isdir(path):
+            return {"removed": False, "project": pid, "path": path}
+        import shutil
+        shutil.rmtree(path)
+        self.log.info("knowledge.project_removed", project=pid)
+        return {"removed": True, "project": pid, "path": path}
+
     def layer_dir(self, layer, project=None, ticket=None):
         if layer == "public":
             return os.path.join(self.root, "public")

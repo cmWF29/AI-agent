@@ -75,6 +75,64 @@ BUILTIN_ROLES = {
 }
 
 
+BUILTIN_FLOWS = {
+    "project-lifecycle": {
+        "cn": "项目生命周期",
+        "nodes": ["project.active", "project.archived", "project.delete.preview",
+                  "project.delete.confirm", "project.data.purge", "project.done"],
+        "edges": [["project.active", "project.archived"],
+                  ["project.active", "project.delete.preview"],
+                  ["project.delete.preview", "project.delete.confirm"],
+                  ["project.delete.confirm", "project.data.purge"],
+                  ["project.data.purge", "project.done"],
+                  ["project.archived", "project.done"]],
+        "checks": [],
+    },
+    "architecture-gate": {
+        "cn": "架构静态门禁",
+        "nodes": ["scan.modules", "scan.imports", "scan.api-edges", "scan.flows",
+                  "scan.web-state", "gate.report", "gate.pass", "gate.block"],
+        "edges": [["scan.modules", "scan.imports"], ["scan.modules", "scan.api-edges"],
+                  ["scan.imports", "gate.report"], ["scan.api-edges", "gate.report"],
+                  ["scan.flows", "gate.report"], ["scan.web-state", "gate.report"],
+                  ["gate.report", "gate.pass"], ["gate.report", "gate.block"]],
+        "checks": [],
+    },
+    "system-timeline": {
+        "cn": "群聊系统消息",
+        "nodes": ["ticket.history", "system.event", "chat.timeline", "module.trace.optional"],
+        "edges": [["ticket.history", "system.event"], ["system.event", "chat.timeline"],
+                  ["module.trace.optional", "chat.timeline"]],
+        "checks": [],
+    },
+    "project-idle": {
+        "cn": "项目级忙闲与队列",
+        "nodes": ["project.config", "idle.judge", "queue.enqueue", "queue.flush", "queue.done"],
+        "edges": [["project.config", "idle.judge"], ["idle.judge", "queue.enqueue"],
+                  ["queue.enqueue", "queue.flush"], ["queue.flush", "queue.done"]],
+        "checks": [],
+    },
+    "requirement-to-flow": {
+        "cn": "需求入库流程",
+        "nodes": ["requirement.intake", "requirement.classify", "flow.design",
+                  "flow.dag.check", "flow.library.upsert"],
+        "edges": [["requirement.intake", "requirement.classify"],
+                  ["requirement.classify", "flow.design"], ["flow.design", "flow.dag.check"],
+                  ["flow.dag.check", "flow.library.upsert"]],
+        "checks": [],
+    },
+    "web-state-contract": {
+        "cn": "网页状态机契约",
+        "nodes": ["state-machine.json", "component.inventory", "event.binding",
+                  "webstate.validate", "gate.report"],
+        "edges": [["state-machine.json", "component.inventory"],
+                  ["component.inventory", "event.binding"],
+                  ["event.binding", "webstate.validate"], ["webstate.validate", "gate.report"]],
+        "checks": [],
+    },
+}
+
+
 def _now():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -117,6 +175,15 @@ class Library(Module):
             self.stores["flows"].put(rid, {
                 "id": rid, "role": rid, "checks": [{"kind": "glob", "path": p} for p in spec["must_outputs"]],
                 "max_retry": 2, "builtin": True, "created": _now(),
+            })
+        # 需求级流程：不是角色插件，而是对用户 15 点重构的可扫描 DAG 表达。
+        for fid, spec in BUILTIN_FLOWS.items():
+            if self.stores["flows"].get(fid):
+                continue
+            self.stores["flows"].put(fid, {
+                "id": fid, "role": "", "cn": spec["cn"], "kind": "process",
+                "nodes": spec["nodes"], "edges": spec["edges"], "checks": spec["checks"],
+                "max_retry": 0, "builtin": True, "created": _now(),
             })
 
     # ---------------- 基础 ----------------
