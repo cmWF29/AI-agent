@@ -4,8 +4,8 @@
 
 ## 已上线状态
 
-- GitHub `main`：`a613939`（本轮收尾提交会继续前移）。
-- 生产 `/opt/hive/current`：`a613939`，`VERSION=0.4.7`。
+- GitHub `main`：功能收尾提交 `471c8f2`（随后仅文档提交）。
+- 生产 `/opt/hive/current`：部署后检出同一代码树，`VERSION=0.4.7`。
 - `hive-watchdog`：active。
 - 健康接口：`{"ok": true, "status": "ok", "version": "0.4.7"}`。
 
