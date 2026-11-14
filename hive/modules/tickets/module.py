@@ -138,7 +138,7 @@ class Tickets(Module):
         project = project or self.default_project
         project_backend = ""
         try:
-            prep = self.ctx.api("projects.ensure", name=project)["project"]
+            prep = self.ctx.rule("ticket.bind_project", name=project)["project"]
             project = prep["id"]
             project_backend = prep.get("backend") or ""
         except ApiError:
@@ -174,7 +174,7 @@ class Tickets(Module):
         # 空闲/高峰：高峰时先排队，等便宜时段再真启动（用户可选“直接执行”覆盖）
         if not force and when not in ("now", "direct"):
             try:
-                state = self.ctx.api("idle.judge")["idle"]
+                state = self.ctx.rule("ticket.judge_capacity")["idle"]
             except ApiError:
                 state = {"peak": False}
             if state.get("peak"):
@@ -183,7 +183,7 @@ class Tickets(Module):
                 self._stage(ticket, "queued", state.get("reason") or "高峰排队")
                 self._save(ticket)
                 try:
-                    item = self.ctx.api("idle.enqueue", kind="ticket",
+                    item = self.ctx.rule("ticket.queue", kind="ticket",
                                        payload={"ticket_id": tid, "project": project},
                                        note=state.get("reason") or "", project=project)
                     ticket["queue_id"] = (item.get("item") or {}).get("id") or ""
@@ -206,12 +206,12 @@ class Tickets(Module):
         # 标签沉淀：角色/用户打过的标签进公共库+项目库（需求 4）
         try:
             for tag in ticket.get("tags") or []:
-                self.ctx.api("library.tag_add", name=tag, project=project)
+                self.ctx.rule("ticket.apply_tag", name=tag, project=project)
         except ApiError:
             pass
         # 工单级 git：一个工单一个分支一个工作树（需求 2）
         try:
-            repo = self.ctx.api("gitflow.ticket_init", ticket=tid, project=project).get("repo") or {}
+            repo = self.ctx.rule("ticket.open_workspace", ticket=tid, project=project).get("repo") or {}
             if repo.get("tree"):
                 ticket["repo"] = repo["tree"]
                 ticket["base"] = repo.get("base") or ""
@@ -228,8 +228,8 @@ class Tickets(Module):
         self.log.info("ticket.created", ticket=tid, project=project, parent=ticket["parent"])
 
         pm_prompt = self._pm_prompt(ticket)
-        pm = self.ctx.api(
-            "sessions.spawn",
+        pm = self.ctx.rule(
+            "ticket.spawn_session",
             kind="pm",
             workspace=ticket["workdir"],
             title="PM/" + ticket["title"][:30],
@@ -248,7 +248,7 @@ class Tickets(Module):
         self._stage(ticket, "pm_spawned", pm["id"])
         self._save(ticket)
 
-        self.ctx.api("sessions.send", session=pm["id"], text=self._pm_kickoff(ticket), max_steps=60)
+        self.ctx.rule("ticket.send_instruction", session=pm["id"], text=self._pm_kickoff(ticket), max_steps=60)
         return ticket
 
 
@@ -313,7 +313,7 @@ class Tickets(Module):
             ]),
         ]
         try:
-            card = self.ctx.api("library.get", kind="roles", id=role).get("item") or {}
+            card = self.ctx.rule("ticket.load_card", kind="roles", id=role).get("item") or {}
         except ApiError:
             card = {}
         parts.append(
@@ -339,7 +339,7 @@ class Tickets(Module):
 
     def _compose(self, scopes):
         try:
-            return self.ctx.api("knowledge.compose", scopes=scopes).get("text") or ""
+            return self.ctx.rule("ticket.load_context", scopes=scopes).get("text") or ""
         except ApiError:
             return ""
 
@@ -357,12 +357,12 @@ class Tickets(Module):
             backend = ticket.get("backend") or ""
         if not backend:
             try:
-                flow = self.ctx.api("library.get", kind="flows", id=role).get("item") or {}
+                flow = self.ctx.rule("ticket.load_card", kind="flows", id=role).get("item") or {}
                 backend = flow.get("backend") or ""
             except ApiError:
                 backend = ""
-        sess = self.ctx.api(
-            "sessions.spawn",
+        sess = self.ctx.rule(
+            "ticket.spawn_session",
             kind="role",
             title="%s/%s" % (display, ticket["id"]),
             display=display,
@@ -390,7 +390,7 @@ class Tickets(Module):
         ticket = self._get(ticket_id)
         live = {}
         try:
-            for item in self.ctx.api("sessions.list").get("items", []):
+            for item in self.ctx.rule("ticket.list_sessions").get("items", []):
                 live[item["id"]] = item
         except ApiError:
             pass
@@ -418,7 +418,7 @@ class Tickets(Module):
         for sid in targets:
             remain = 0 if end is None else max(1, int(end - time.time()))
             try:
-                res = self.ctx.api("sessions.wait", session=sid, timeout=remain)
+                res = self.ctx.rule("ticket.wait_session", session=sid, timeout=remain)
                 results[sid] = res
             except ApiError as exc:
                 results[sid] = {"status": "error", "error": exc.message}
@@ -445,7 +445,7 @@ class Tickets(Module):
     def _check_role_flow(self, ticket, role_entry):
         """返回 {'missing': [...], 'known': bool}"""
         try:
-            res = self.ctx.api("library.check", flow=role_entry["role"],
+            res = self.ctx.rule("ticket.check_outputs", flow=role_entry["role"],
                                files=self._ticket_files(ticket), root=ticket["workdir"])
             return res
         except ApiError:
@@ -473,7 +473,7 @@ class Tickets(Module):
                     "请补齐后再调 session_result 上报（这是硬性检查，不是建议）。"
                     % (len(chk["missing"]), ", ".join(chk["missing"])))
             try:
-                self.ctx.api("sessions.send", session=r["session"], text=note)
+                self.ctx.rule("ticket.send_instruction", session=r["session"], text=note)
                 fixed.append({"session": r["session"], "missing": chk["missing"]})
                 self.emit("ticket.flow.missing", {"ticket": ticket["id"], "session": r["session"],
                                                   "missing": chk["missing"]})
@@ -610,7 +610,7 @@ class Tickets(Module):
                 self.emit("ticket.flow.blocked", {"ticket": ticket_id, "missing": missing})
                 if ticket.get("pm"):
                     try:
-                        self.ctx.api("sessions.send", session=ticket["pm"], text=(
+                        self.ctx.rule("ticket.send_instruction", session=ticket["pm"], text=(
                             "（系统）结单被拦下：%s。请让对应角色补齐必交产物，再调用 ticket_close。"
                             % stage["detail"]))
                     except ApiError:
@@ -621,7 +621,7 @@ class Tickets(Module):
         sync = {}
         if ticket.get("repo"):
             try:
-                sync = self.ctx.api("gitflow.ticket_sync", ticket=ticket_id,
+                sync = self.ctx.rule("ticket.sync_workspace", ticket=ticket_id,
                                     message="ticket: %s" % (summary[:80] or "close"))["result"]
             except ApiError as exc:
                 self.log.warn("ticket.close.git", ticket=ticket_id, error=exc.message)
@@ -634,7 +634,7 @@ class Tickets(Module):
                 self.emit("ticket.conflict", {"ticket": ticket_id, "files": sync["conflict"]})
                 if ticket.get("pm"):
                     try:
-                        self.ctx.api("sessions.send", session=ticket["pm"], text=(
+                        self.ctx.rule("ticket.send_instruction", session=ticket["pm"], text=(
                             "（系统）工单 %s 推送时与 main 冲突：%s。\n"
                             "请：1) 在工作树里解决冲突；2) **重新审视改动并重跑测试**（结果要贴出来）；"
                             "3) 再 git_sync；4) 调用 ticket_verify(summary=..., commands=..., result=...) 记录验证；5) 再 ticket_close。"
@@ -651,7 +651,7 @@ class Tickets(Module):
                 self.emit("ticket.conflict", {"ticket": ticket_id, "error": err})
                 if ticket.get("pm"):
                     try:
-                        self.ctx.api("sessions.send", session=ticket["pm"], text=(
+                        self.ctx.rule("ticket.send_instruction", session=ticket["pm"], text=(
                             "（系统）工单 %s 同步失败：%s。请排查后重试 ticket_close。" % (ticket_id, err)))
                     except ApiError:
                         pass
@@ -660,7 +660,7 @@ class Tickets(Module):
         # 2) 合回 main（冲突同样回退到 conflict 状态）
         if ticket.get("repo") and sync.get("ok"):
             try:
-                merge = self.ctx.api("gitflow.ticket_merge", ticket=ticket_id, project=project)["result"]
+                merge = self.ctx.rule("ticket.merge_workspace", ticket=ticket_id, project=project)["result"]
             except ApiError as exc:
                 merge = {"ok": False, "error": exc.message}
             if merge.get("conflict") or not merge.get("ok"):
@@ -673,7 +673,7 @@ class Tickets(Module):
                 self._save(ticket)
                 if ticket.get("pm"):
                     try:
-                        self.ctx.api("sessions.send", session=ticket["pm"], text=(
+                        self.ctx.rule("ticket.send_instruction", session=ticket["pm"], text=(
                             "（系统）工单 %s 合并回 main 冲突/失败：%s。解决后重跑测试，再重新结单。"
                             % (ticket_id, ", ".join(merge.get("conflict") or []) or merge.get("error") or "merge failed")))
                     except ApiError:
@@ -686,11 +686,11 @@ class Tickets(Module):
         try:
             changed = []
             try:
-                changed = self.ctx.api("gitflow.changed_files", ticket=ticket_id,
+                changed = self.ctx.rule("ticket.list_changes", ticket=ticket_id,
                                        base=ticket.get("base") or "")["files"]
             except ApiError:
                 changed = []
-            archive = self.ctx.api("artifacts.archive", ticket=ticket_id, project=project,
+            archive = self.ctx.rule("ticket.archive_outputs", ticket=ticket_id, project=project,
                                    source=ticket["workdir"],
                                    paths=changed if (ticket.get("base") and changed) else None)["index"]
             files = archive.get("files") or []
@@ -716,8 +716,8 @@ class Tickets(Module):
         for r in list(ticket.get("roles") or []):
             sid = r["session"]
             try:
-                self.ctx.api("sessions.send", session=sid, text=archive_note)
-                self.ctx.api("sessions.wait", session=sid, timeout=5 if force else self.close_timeout)
+                self.ctx.rule("ticket.send_instruction", session=sid, text=archive_note)
+                self.ctx.rule("ticket.wait_session", session=sid, timeout=5 if force else self.close_timeout)
             except ApiError as exc:
                 self.log.warn("ticket.close.role", ticket=ticket_id, session=sid, error=exc.message)
                 r["status"] = "gone"
@@ -726,10 +726,10 @@ class Tickets(Module):
         pm = ticket.get("pm")
         if pm:
             try:
-                self.ctx.api("sessions.send", session=pm, text=archive_note)
+                self.ctx.rule("ticket.send_instruction", session=pm, text=archive_note)
                 # PM 正在执行 ticket_close 这个工具本身，等它“回话”会自锁；
                 # 给它一个很短的窗口把知识写完即可，然后直接销毁。
-                self.ctx.api("sessions.wait", session=pm, timeout=5)
+                self.ctx.rule("ticket.wait_session", session=pm, timeout=5)
             except Exception as exc:
                 self.log.warn("ticket.close.pm", ticket=ticket_id, error=repr(exc))
 
@@ -737,7 +737,7 @@ class Tickets(Module):
         transcript = []
         for r in list(ticket.get("roles") or []):
             try:
-                items = self.ctx.api("sessions.messages", session_id=r["session"], limit=80).get("items") or []
+                items = self.ctx.rule("ticket.session_messages", session_id=r["session"], limit=80).get("items") or []
             except ApiError:
                 items = []
             transcript.append({"session": r["session"], "display": r.get("display") or r.get("role"),
@@ -745,7 +745,7 @@ class Tickets(Module):
                                "items": [m for m in items if m.get("role") in ("user", "assistant")]})
         if pm:
             try:
-                items = self.ctx.api("sessions.messages", session_id=pm, limit=80).get("items") or []
+                items = self.ctx.rule("ticket.session_messages", session_id=pm, limit=80).get("items") or []
             except ApiError:
                 items = []
             transcript.append({"session": pm, "display": "项目经理", "kind": "pm",
@@ -756,13 +756,13 @@ class Tickets(Module):
         # 5) 销毁临时会话（需求 10：结单后 PM/角色不该还能聊）
         for r in list(ticket.get("roles") or []):
             try:
-                self.ctx.api("sessions.destroy", session_id=r["session"])
+                self.ctx.rule("ticket.release_session", session_id=r["session"])
             except ApiError:
                 pass
             r["status"] = "destroyed"
         if pm:
             try:
-                self.ctx.api("sessions.destroy", session_id=pm)
+                self.ctx.rule("ticket.release_session", session_id=pm)
             except ApiError:
                 pass
             ticket["pm"] = ""
@@ -776,7 +776,7 @@ class Tickets(Module):
                       for r in ticket.get("roles") or []),
         )
         try:
-            self.ctx.api("knowledge.write", layer="ticket", ticket=ticket_id, name="00-summary",
+            self.ctx.rule("ticket.write_learning", layer="ticket", ticket=ticket_id, name="00-summary",
                          content=text, project=project)
         except ApiError as exc:
             self.log.warn("ticket.close.knowledge", ticket=ticket_id, error=exc.message)
@@ -840,7 +840,7 @@ class Tickets(Module):
                 if t.get("status") not in ("running", "closing", "conflict") or not t.get("pm"):
                     continue
                 try:
-                    st = self.ctx.api("sessions.get", session_id=t["pm"])["session"]
+                    st = self.ctx.rule("ticket.session_status", session_id=t["pm"])["session"]
                 except Exception:
                     continue
                 if st.get("state") not in ("idle", "interrupted"):
@@ -850,7 +850,7 @@ class Tickets(Module):
                     t["status"] = "running"
                     self._save(t)
                 try:
-                    self.ctx.api("sessions.send", session=t["pm"], text=(
+                    self.ctx.rule("ticket.send_instruction", session=t["pm"], text=(
                         "（系统）服务重启，你这单被打断了。先用 role_list 看角色和产物是否齐全，"
                         "缺什么就重派，齐了就直接收尾（写总结并 ticket_close）。"
                     ))
@@ -894,7 +894,7 @@ class Tickets(Module):
             return {"ticket": self._public(t), "note": "不是排队状态"}
         if t.get("queue_id"):
             try:
-                self.ctx.api("idle.dequeue", queue_id=t["queue_id"])
+                self.ctx.rule("ticket.dequeue", queue_id=t["queue_id"])
             except ApiError:
                 pass
         return {"ticket": self._public(self._dispatch(t))}
@@ -935,7 +935,7 @@ class Tickets(Module):
         self._save(t)
         for tag in add:
             try:
-                self.ctx.api("library.tag_add", name=tag, project=t["project"])
+                self.ctx.rule("ticket.apply_tag", name=tag, project=t["project"])
             except ApiError:
                 pass
         self.emit("ticket.tags", {"ticket": t["id"], "tags": cur})
@@ -948,11 +948,11 @@ class Tickets(Module):
             raise ApiError("只能删除已结单的工单", status=409, code="ticket_not_closed")
         import shutil
         try:
-            self.ctx.api("sessions.destroy", session_id=t.get("pm") or "")
+            self.ctx.rule("ticket.release_session", session_id=t.get("pm") or "")
         except ApiError:
             pass
         try:
-            self.ctx.api("gitflow.ticket_remove", ticket=t["id"], project=t["project"])
+            self.ctx.rule("ticket.remove_workspace", ticket=t["id"], project=t["project"])
         except ApiError as exc:
             self.log.warn("ticket.delete.git", ticket=t["id"], error=exc.message)
         tdir = os.path.join(self.root, t["id"])
@@ -1048,7 +1048,7 @@ class Tickets(Module):
 
     def sync_api(self, payload):
         t = self._get(payload["ticket_id"])
-        res = self.ctx.api("gitflow.ticket_sync", ticket=t["id"], message=payload.get("message") or "")
+        res = self.ctx.rule("ticket.sync_workspace", ticket=t["id"], message=payload.get("message") or "")
         if res.get("result", {}).get("ok"):
             self._stage(t, "synced", res["result"].get("head") or "")
             self._save(t)
@@ -1072,7 +1072,7 @@ class Tickets(Module):
         target = payload.get("session") or t.get("pm")
         if not target:
             raise ApiError("该工单已经没有在跑的 PM（可能已结单），新需求请另开工单", code="no_pm")
-        res = self.ctx.api("sessions.send", session=target, text=text)
+        res = self.ctx.rule("ticket.send_instruction", session=target, text=text)
         # 记录“这是用户本人在群里说的”，网页据此把发言人显示成“我”，而不是“秘书/PM”
         t.setdefault("user_messages", []).append({"ts": time.time(), "session": target, "text": text})
         t["user_messages"] = t["user_messages"][-30:]
@@ -1225,9 +1225,9 @@ class Tickets(Module):
             sid = args.get("session")
             if not sid:
                 return "缺少 session"
-            res = self.ctx.api("sessions.send", session=sid, text=args.get("text") or "")
+            res = self.ctx.rule("ticket.send_instruction", session=sid, text=args.get("text") or "")
             if args.get("wait"):
-                w = self.ctx.api("sessions.wait", session=sid, timeout=int(args.get("timeout") or 300))
+                w = self.ctx.rule("ticket.wait_session", session=sid, timeout=int(args.get("timeout") or 300))
                 return "角色 %s 回复：\n%s" % (sid, (w.get("reply") or w.get("status"))[:2000])
             return "已投递（injected=%s）" % res.get("injected")
 

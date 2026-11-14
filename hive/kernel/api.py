@@ -1,9 +1,9 @@
 """模块 API 框架。
 
 一个模块 = 一组具名的 HTTP 路由 + 自己的事件订阅 + 自己的存储。
-模块之间同步调用必须走 ctx.api(route_id, **payload)，也就是说“对外 API”就是全部。
-
-route_id 形如 "sessions.get"、"tickets.create"，由 模块名.函数名 组成。
+模块只提供自己的能力；跨模块同步关系必须走 ctx.rule(rule_id, ...)，
+实际 peer 路由由 data/rules/catalog.json 的规则步骤决定。
+ctx.api 只用于模块自己的路由或 rules 模块执行规则。
 """
 from __future__ import annotations
 
@@ -108,7 +108,8 @@ class Module:
     约定：
       * setup()     只做自己的初始化、订阅事件、注册工具/路由；
       * shutdown()  只清理自己的资源；
-      * 不 import 其它模块，需要数据时用 self.ctx.api("<module>.<route>", ...)。
+      * 不 import 其它模块；跨模块关系用 self.ctx.rule("规则 id", ...)，
+        不直接调用对方模块 API。
     """
 
     name = "module"
@@ -161,9 +162,54 @@ class Context:
     def get(self, name):
         return self.modules.get(name)
 
-    def api(self, route_id, **payload):
-        """跨模块同步查询：经统一通信中枢 request/reply，不认识对方模块对象。
+    @staticmethod
+    def _caller_module(depth=1):
+        try:
+            frame = sys._getframe(depth)
+            name = frame.f_globals.get("__name__") or ""
+            parts = name.split(".")
+            if len(parts) >= 3 and parts[0] == "hive" and parts[1] == "modules":
+                return parts[2]
+        except Exception:
+            pass
+        return ""
 
+    def rule(self, rule_id, **payload):
+        """按规则 ID 执行跨模块业务关系。
+
+        模块不认识对方模块，只认识“规则”。规则目录（data/rules/catalog.json）
+        才是关系的唯一来源；实际 peer API 调用发生在 rules 模块里。
+        """
+        t0 = time.time()
+        caller = self._caller_module(2)
+        try:
+            result = self.hub.request("rules.run", {
+                "rule": rule_id, "payload": payload, "source": caller,
+            })
+        except ApiError as exc:
+            self._trace_rule(rule_id, payload, None, int((time.time() - t0) * 1000),
+                             caller=caller, error=exc.message)
+            raise
+        self._trace_rule(rule_id, payload, result, int((time.time() - t0) * 1000), caller=caller)
+        return result
+
+    def _trace_rule(self, rule_id, payload, result, ms, caller="", error=""):
+        trace = self.trace
+        if trace is None:
+            return
+        try:
+            trace.record("rule.call", {
+                "caller": caller, "from": caller, "rule": rule_id, "ms": ms,
+                "payload": payload, "result": result, "error": error,
+            }, session=payload.get("session") or payload.get("session_id") or "",
+               ticket=payload.get("ticket") or payload.get("ticket_id") or "")
+        except Exception:
+            pass
+
+    def api(self, route_id, **payload):
+        """执行一条已注册路由（模块自身路由，或 rules 模块的规则步骤）。
+
+        业务模块不得用本方法直接调另一个业务模块；跨模块关系统一走 rule()。
         同时把“谁调了谁、入参出参”记进 trace（需求 19：模块间通信要可视化）。
         """
         if self.router.by_id(route_id) is None:

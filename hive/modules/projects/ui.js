@@ -102,9 +102,6 @@ function renderProjects() {
 }
 function renderRailGroups() { /* 侧栏不再放秘书/全局会话：只从项目页进入项目秘书或工单。 */ }
 
-function findProject(id) { for (var i = 0; i < state.projects.length; i++) if (state.projects[i].id === id) return state.projects[i]; return null; }
-function findGroup(id) { for (var i = 0; i < state.groups.length; i++) if (state.groups[i].id === id) return state.groups[i]; return null; }
-
 function applyRoute(r, opts) {
   opts = opts || {};
   if (r.type === 'project') {
@@ -115,34 +112,34 @@ function applyRoute(r, opts) {
     return;
   }
   if (r.type === 'chat') {
-    if (findGroup(r.id)) { selectGroup(r.id, true, { fromRoute: true }); return; }
-    if (r.id.indexOf('sec-') === 0 && findProject(r.id.slice(4))) { selectGroup(r.id, true, { fromRoute: true }); return; }
+    if (findGroup(r.id)) { HiveUI.emit('chat:open', { id: r.id, silent: true, opts: { fromRoute: true } }); return; }
+    if (r.id.indexOf('sec-') === 0 && findProject(r.id.slice(4))) {
+      HiveUI.emit('chat:open', { id: r.id, silent: true, opts: { fromRoute: true } }); return;
+    }
     toast('会话不存在：' + r.id, 'warn');
     var p0 = state.projects[0]; if (p0) openProject(p0.id, true, { replace: true });
     return;
   }
-  // 覆盖层（库/健康/版本）：底下保留当前项目/会话，关闭后自然回去
+  // 覆盖层（库/健康/版本/规则）：底下保留当前项目/会话，关闭后自然回去
   if (!state.booted) {
     var p1 = state.projects[0];
     if (p1) openProject(p1.id, true, { fromRoute: true });
   }
   setTab(r.tab);
-  if (r.tab === 'library') openLibrary(r.kind, { fromRoute: true });
-  else if (r.tab === 'health') openHealth({ fromRoute: true });
-  else if (r.tab === 'versions') openVersions({ fromRoute: true });
+  if (r.tab === 'rules') HiveUI.emit('panel:open', { name: 'rules', opts: { fromRoute: true } });
+  else if (r.tab === 'library') HiveUI.emit('panel:open', { name: 'library', kind: r.kind, opts: { fromRoute: true } });
+  else if (r.tab === 'health') HiveUI.emit('panel:open', { name: 'health', opts: { fromRoute: true } });
+  else if (r.tab === 'versions') HiveUI.emit('panel:open', { name: 'versions', opts: { fromRoute: true } });
   else if (r.tab === 'source') {
-    if (r.project && findProject(r.project)) { state.project = r.project; openProject(r.project, true, { fromRoute: true }); }
-    openProjectSource(r.path || '');
+    if (r.project && findProject(r.project)) { openProject(r.project, true, { fromRoute: true }); }
+    HiveUI.emit('side:open', { kind: 'project-source', path: r.path || '' });
   } else if (r.tab === 'idle') {
-    if (r.project && findProject(r.project)) { state.project = r.project; openProject(r.project, true, { fromRoute: true }); }
-    openIdle();
+    if (r.project && findProject(r.project)) { openProject(r.project, true, { fromRoute: true }); }
+    HiveUI.emit('idle:open', {});
   } else if (r.tab === 'artifacts') {
-    state.view = 'chat'; state.group = r.group || state.group;
-    show('side'); loadFiles(); updateBackBtn();
+    HiveUI.emit('side:open', { kind: 'artifacts', group: r.group || state.group });
   } else if (r.tab === 'artifact') {
-    state.view = 'chat'; state.group = r.group || state.group;
-    openArtifact(r.path || '', (findGroup(state.group) || {}).project || state.project,
-      (state.group || '').indexOf('T-') === 0, 'ticket');
+    HiveUI.emit('side:open', { kind: 'artifact', group: r.group || state.group, path: r.path || '' });
   } else if (r.tab === 'fork') {
     state.view = 'chat'; state.group = r.group || state.group;
     openFork('基于 ' + state.group + ' 的后续修改：', state.group);
@@ -164,8 +161,7 @@ function openProject(pid, silent, opts) {
     if (opts.replace) replaceHash(h); else pushHash(h);
   }
   updateBackBtn();
-  loadIdle();
-  loadProjectIdle(pid);
+  HiveUI.emit('idle:refresh', { project: pid });
   // 项目容器只收到“该挂载了”的事实；项目数据读取与渲染仍由项目模块自己完成。
   HiveUI.mount('project', pid, 'mount-project');
 }
@@ -217,7 +213,7 @@ function renderProject(p) {
     }).join('');
     box.querySelectorAll('.trow').forEach(function (row) {
       var tid = row.dataset.id;
-      row.querySelector('[data-open]').onclick = function (e) { e.stopPropagation(); selectGroup(tid); };
+      row.querySelector('[data-open]').onclick = function (e) { e.stopPropagation(); HiveUI.emit('chat:open', { id: tid }); };
       var del = row.querySelector('[data-del]');
       if (del) del.onclick = function (e) {
         e.stopPropagation();
@@ -226,9 +222,10 @@ function renderProject(p) {
           .then(function () { toast('工单已删除，证据保留'); loadGroups(); openProject(state.project, true); })
           .catch(function (er) { toast('删除失败：' + er.message, 'err'); });
       };
-      row.onclick = function () { selectGroup(tid); };
+      row.onclick = function () { HiveUI.emit('chat:open', { id: tid }); };
     });
   }
+  HiveUI.emit('idle:project', { project: p.id });
 }
 
 
@@ -307,8 +304,8 @@ function createTicket() {
   } }).then(function (r) {
     toast(r.ticket.status === 'queued' ? '高峰期已排队，空闲自动开跑' : ('工单已开：' + r.ticket.id));
     $('pv-newgoal').value = ''; $('pv-newtitle').value = ''; $('pv-newtags').value = '';
-    loadGroups(); loadIdle();
-    if (r.ticket.status !== 'queued') selectGroup(r.ticket.id);
+    loadGroups(); HiveUI.emit('idle:refresh', {});
+    if (r.ticket.status !== 'queued') HiveUI.emit('chat:open', { id: r.ticket.id });
     else openProject(state.project, true);
   }).catch(function (e) { toast('开工单失败：' + e.message, 'err'); });
 }
@@ -333,7 +330,7 @@ function openFork(goal, parent) {
     api('/api/tickets/create', { method: 'POST', body: { goal: g, project: $('tk-project').value, parent: parent || '',
       tags: $('tk-tags').value.split(/[,，\s]+/).filter(Boolean), force: $('tk-now').checked,
       backend: ($('tk-backend') || {}).value || '', trace_enabled: !!($('tk-trace') || {}).checked } })
-      .then(function (r) { closeModal(); toast('工单已开：' + r.ticket.id); loadGroups().then(function () { if (r.ticket.status !== 'queued') selectGroup(r.ticket.id); }); })
+      .then(function (r) { closeModal(); toast('工单已开：' + r.ticket.id); loadGroups().then(function () { if (r.ticket.status !== 'queued') HiveUI.emit('chat:open', { id: r.ticket.id }); }); })
       .catch(function (e) { toast(e.message, 'err'); });
   };
 }
@@ -390,6 +387,9 @@ function openApiConfig() {
   $('pv-artifacts').onclick = function () { HiveUI.emit('side:open', { kind: 'project-artifacts', layer: 'project' }); };
 })();
 HiveUI.on('ticket:fork', function (payload) { openFork(payload.goal, payload.parent); });
+HiveUI.on('project:open', function (p) { if (p && p.id) openProject(p.id, p.silent, p.opts); });
+HiveUI.on('projects:refresh', function () { loadGroups(false); });
+HiveUI.on('projects:render', function () { renderProjects(); renderRailGroups(); });
 
 HiveUI.on('app:tick', function (p) { if (p && p.visible) loadGroups(false); });
 

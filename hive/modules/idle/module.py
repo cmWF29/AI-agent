@@ -202,7 +202,7 @@ class Idle(Module):
         if item["kind"] == "ticket":
             return self._dispatch_ticket(item)
         if item["kind"] == "message":
-            return self.ctx.api("sessions.send", session=p["session"], text=p["text"], force=True)
+            return self.ctx.rule("idle.send_message", session=p["session"], text=p["text"], force=True)
         raise ApiError("未知队列类型: %s" % item["kind"], code="bad_queue_kind")
 
     def flush(self, limit=20, force=False, project=""):

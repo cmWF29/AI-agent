@@ -65,8 +65,8 @@ class Ops(Module):
                 hb_age = int(time.time() - float(wd["ts"]))
             except (TypeError, ValueError):
                 hb_age = None
-        sessions = self.ctx.api("sessions.list") if "sessions" in self.ctx.modules else {"items": []}
-        tickets = self.ctx.api("tickets.list") if "tickets" in self.ctx.modules else {"items": []}
+        sessions = self.ctx.rule("ops.session_snapshot") if "sessions" in self.ctx.modules else {"items": []}
+        tickets = self.ctx.rule("ops.ticket_snapshot") if "tickets" in self.ctx.modules else {"items": []}
         return {
             "version": __version__,
             "pid": os.getpid(),
@@ -219,12 +219,12 @@ class Ops(Module):
     def selftest(self, payload):
         checks = {}
         try:
-            r = self.ctx.api("sessions.list")
+            r = self.ctx.rule("ops.session_snapshot")
             checks["sessions_api"] = {"ok": True, "sessions": r.get("total", 0)}
         except Exception as exc:
             checks["sessions_api"] = {"ok": False, "error": repr(exc)}
         try:
-            r = self.ctx.api("knowledge.overview")
+            r = self.ctx.rule("ops.knowledge_snapshot")
             checks["knowledge_api"] = {"ok": True, "root": r.get("root")}
         except Exception as exc:
             checks["knowledge_api"] = {"ok": False, "error": repr(exc)}

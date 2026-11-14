@@ -6,6 +6,26 @@
 
 ## 已完成
 
+### 0. 规则层：模块关系从模块代码里拿出来
+
+- 新增 `hive/modules/rules/`：
+  - `RuleBook` 读 `data/rules/ontology.json` 与 `data/rules/catalog.json`；
+  - `rules.catalog` / `rules.graph` / `rules.validate` / `rules.run` 四个 API；
+  - 58 条关系规则、9 条业务流程；静态校验实体、谓词、模块、路由、基数、
+    排他冲突、流程组合、需求引用；
+  - 规则执行只由 `rules` 模块完成；业务模块调用 `ctx.rule(rule_id, **payload)`。
+- `Context.rule()` 通过 `Hub.request("rules.run")` 执行规则并记录 `rule.call` trace；
+  `Context._caller_module()` 从调用栈识别发起模块。
+- 原先 84 处跨模块 `ctx.api(...)` 全部按来源模块映射为规则 id；业务模块中已无
+  字面量跨模块调用。`ticket.bind_project` 是典型例子：`tickets` 只调规则，
+  规则再调 `projects.ensure`。
+- 规则面板：`hive/modules/rules/ui.js`，显示关系规则/流程组合/需求覆盖/校验结果；
+  顶部“规则”tab 与 `#/rules` 深链可用。
+- `archscan` 新增：
+  - `scan_rules()` 校验规则目录与模块调用，规则 `from` 不匹配或规则 id 不存在即失败；
+  - `scan_ui_calls()` 拒绝业务模块 `ui.js` 直接调用另一个业务模块函数；
+  - `orchestration_graph` 输出规则层到能力模块的关系。
+
 ### 1. 统一通信中枢
 
 - 新增 `hive/kernel/hub.py`：
@@ -59,18 +79,24 @@ hive/modules/<name>/
   - `hive/modules/artifacts/ui.js`：交付件/文件/源码侧栏。
   - `hive/modules/library|health|idle|ops/ui.js`：各自弹窗与操作。
 - 业务按钮绑定回到模块 UI；项目页跨模块动作改成事件：
-  - `chat:open`、`side:open`、`idle:open`、`idle:save`、`ticket:fork`。
+  - `project:open`、`chat:open`、`side:open`、`panel:open`、`idle:open`、
+    `idle:save`、`idle:refresh`、`idle:project`、`projects:refresh`、
+    `projects:render`、`ticket:fork`。
+  - `findProject` / `findGroup` / `statusLabel` / `stateLabel` / `overlayRoute`
+    等共享壳工具已迁到 `web/core/`，不再由某个业务模块私自提供。
   - 目标模块订阅自己的事件并处理，宿主不直接渲染业务内容。
 
 
 ### 4. 验证
 
-- 全量回归：**253/253 通过，67.7s**。
+- 全量回归：**267/267 通过，71.3s**（含规则目录、规则执行、来源强校验、基数冲突、规则图、前端边界测试）。
 - `python -m hive.archscan --strict-api`：**ARCH GATE PASS**。
-- 20 个模块、24 条 API 边、API 环 0、import 环 0、流程 50、流程环 0。
-- 本地 HTTPS 真机验收：项目页、秘书群聊、返回键、模板注入、项目文件侧栏，
-  控制台无脚本错误。
-- 新模块 API 已实测：`/api/gate/arch` 返回 20 模块 / 24 边，`/api/test/catalog` 正常，
+- 21 个模块、0 条直接跨模块 API 边、API 环 0、import 环 0、流程 50、流程环 0。
+- 规则统计：58 关系 / 9 流程 / 58 活跃 / 需求覆盖 18/33 / 0 冲突。
+- 本地 HTTPS 真机验收：规则面板、项目页、库页面、健康页、版本页、返回键、
+  模板注入均正常；控制台无脚本错误。
+- 新模块 API 已实测：`/api/rules/catalog`、`/api/rules/graph`、
+  `/api/rules/validate`、`/api/rules/run` 正常；`/api/gate/arch`、`/api/test/catalog`、
   `/api/gitsync/status` 正常。
 
 ## 尚未完成

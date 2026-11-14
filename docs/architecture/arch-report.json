@@ -21,6 +21,10 @@
           "name": "run"
         }
       ],
+      "route_ids": [
+        "agents.backends",
+        "agents.run"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/agents/backends backends",
@@ -28,6 +32,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -46,12 +52,17 @@
           "name": "arch"
         }
       ],
+      "route_ids": [
+        "archgate.arch"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/gate/arch arch"
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -98,6 +109,15 @@
           "name": "remove_project"
         }
       ],
+      "route_ids": [
+        "artifacts.archive",
+        "artifacts.compress",
+        "artifacts.file",
+        "artifacts.list",
+        "artifacts.remove_project",
+        "artifacts.stats",
+        "artifacts.write"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/artifacts/list list",
@@ -110,6 +130,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -150,7 +172,7 @@
         },
         {
           "path": "/api/gitflow/ticket/changed",
-          "name": "ticket_changed"
+          "name": "changed_files"
         },
         {
           "path": "/api/gitflow/ticket/merge",
@@ -165,6 +187,16 @@
           "name": "list"
         }
       ],
+      "route_ids": [
+        "gitflow.changed_files",
+        "gitflow.list",
+        "gitflow.project_init",
+        "gitflow.ticket_init",
+        "gitflow.ticket_merge",
+        "gitflow.ticket_remove",
+        "gitflow.ticket_status",
+        "gitflow.ticket_sync"
+      ],
       "tools": [
         "git_sync",
         "git_status",
@@ -175,7 +207,7 @@
         "route:/api/gitflow/ticket/init ticket_init",
         "route:/api/gitflow/ticket/sync ticket_sync",
         "route:/api/gitflow/ticket/status ticket_status",
-        "route:/api/gitflow/ticket/changed ticket_changed",
+        "route:/api/gitflow/ticket/changed changed_files",
         "route:/api/gitflow/ticket/merge ticket_merge",
         "route:/api/gitflow/ticket/remove ticket_remove",
         "route:/api/gitflow/list list",
@@ -185,6 +217,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -207,6 +241,10 @@
           "name": "fetch"
         }
       ],
+      "route_ids": [
+        "gitsync.fetch",
+        "gitsync.status"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/gitsync/status status",
@@ -214,6 +252,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -246,6 +286,10 @@
           "name": "logs"
         }
       ],
+      "route_ids": [
+        "health.logs",
+        "health.traffic"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/health /api/health",
@@ -254,8 +298,16 @@
         "route:/api/health/logs logs"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "artifacts.stats"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "health.artifact_stats",
+        "health.probe_artifacts",
+        "health.probe_knowledge",
+        "health.probe_library",
+        "health.probe_projects",
+        "health.probe_sessions",
+        "health.probe_tickets"
       ],
       "private_tests": false
     },
@@ -305,6 +357,15 @@
           "name": "config"
         }
       ],
+      "route_ids": [
+        "idle.config",
+        "idle.dequeue",
+        "idle.enqueue",
+        "idle.flush",
+        "idle.judge",
+        "idle.queue",
+        "idle.status"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/idle/status status",
@@ -316,8 +377,10 @@
         "route:/api/idle/config config"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "sessions.send"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "idle.send_message"
       ],
       "private_tests": false
     },
@@ -360,8 +423,17 @@
         },
         {
           "path": "/api/knowledge/remove-project",
-          "name": "/api/knowledge/remove-project"
+          "name": "remove_project"
         }
+      ],
+      "route_ids": [
+        "knowledge.compose",
+        "knowledge.list",
+        "knowledge.overview",
+        "knowledge.read",
+        "knowledge.remove_project",
+        "knowledge.search",
+        "knowledge.write"
       ],
       "tools": [],
       "public_api": [
@@ -371,7 +443,7 @@
         "route:/api/knowledge/list list",
         "route:/api/knowledge/search /api/knowledge/search",
         "route:/api/knowledge/compose /api/knowledge/compose",
-        "route:/api/knowledge/remove-project /api/knowledge/remove-project"
+        "route:/api/knowledge/remove-project remove_project"
       ],
       "cross_imports": [],
       "api_calls": [
@@ -379,6 +451,8 @@
         "knowledge.search",
         "knowledge.write"
       ],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -438,6 +512,18 @@
           "name": "tag_add"
         }
       ],
+      "route_ids": [
+        "library.check",
+        "library.design",
+        "library.get",
+        "library.item",
+        "library.list",
+        "library.summary",
+        "library.tag_add",
+        "library.tags",
+        "library.update_prompt",
+        "library.upsert"
+      ],
       "tools": [
         "library_list",
         "library_get",
@@ -460,6 +546,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -486,6 +574,11 @@
           "name": "delete_project"
         }
       ],
+      "route_ids": [
+        "lifecycle.delete_preview",
+        "lifecycle.delete_project",
+        "lifecycle.get_project"
+      ],
       "tools": [
         "project_status"
       ],
@@ -496,13 +589,15 @@
         "tool:project_status"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "projects.delete",
-        "projects.delete_preview",
-        "projects.get",
-        "projects.list",
-        "tickets.delete",
-        "tickets.list"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "lifecycle.default_project",
+        "lifecycle.delete_project",
+        "lifecycle.delete_ticket",
+        "lifecycle.list_tickets",
+        "lifecycle.preview_delete",
+        "lifecycle.project_snapshot"
       ],
       "private_tests": false
     },
@@ -536,6 +631,12 @@
           "name": "/api/memory/{note_id}"
         }
       ],
+      "route_ids": [
+        "memory.add",
+        "memory.delete",
+        "memory.list_notes",
+        "memory.search"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/memory/add /api/memory/add",
@@ -548,6 +649,8 @@
         "memory.add",
         "memory.search"
       ],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -584,6 +687,13 @@
           "name": "/api/bus/publish"
         }
       ],
+      "route_ids": [
+        "observability.events",
+        "observability.info",
+        "observability.logs",
+        "observability.metrics",
+        "observability.publish"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/obs/logs /api/obs/logs",
@@ -594,6 +704,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -654,6 +766,19 @@
           "name": "/api/ops/file"
         }
       ],
+      "route_ids": [
+        "ops.config_view",
+        "ops.file_view",
+        "ops.files",
+        "ops.llm_ping",
+        "ops.restart",
+        "ops.rollback",
+        "ops.selftest",
+        "ops.service",
+        "ops.status",
+        "ops.stop_all",
+        "ops.versions"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/ops/status /api/ops/status",
@@ -669,10 +794,12 @@
         "route:/api/ops/file /api/ops/file"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "knowledge.overview",
-        "sessions.list",
-        "tickets.list"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "ops.knowledge_snapshot",
+        "ops.session_snapshot",
+        "ops.ticket_snapshot"
       ],
       "private_tests": false
     },
@@ -752,6 +879,22 @@
           "name": "source_file"
         }
       ],
+      "route_ids": [
+        "projects.archive",
+        "projects.backend",
+        "projects.create",
+        "projects.delete",
+        "projects.delete_preview",
+        "projects.ensure",
+        "projects.file",
+        "projects.files",
+        "projects.get",
+        "projects.list",
+        "projects.rename",
+        "projects.source_bind",
+        "projects.source_file",
+        "projects.source_files"
+      ],
       "tools": [
         "project_list",
         "project_create"
@@ -775,11 +918,62 @@
         "tool:project_create"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "artifacts.remove_project",
-        "gitflow.project_init",
-        "knowledge.remove_project"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "project.init_workspace",
+        "project.purge_artifacts",
+        "project.purge_knowledge"
       ],
+      "private_tests": false
+    },
+    {
+      "name": "rules",
+      "entry": "hive/modules/rules/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [],
+      "bad_event_topics": [],
+      "transport": "hub.request",
+      "routes": [
+        {
+          "path": "/api/rules/catalog",
+          "name": "catalog"
+        },
+        {
+          "path": "/api/rules/graph",
+          "name": "graph"
+        },
+        {
+          "path": "/api/rules/validate",
+          "name": "validate"
+        },
+        {
+          "path": "/api/rules/run",
+          "name": "run"
+        }
+      ],
+      "route_ids": [
+        "rules.catalog",
+        "rules.graph",
+        "rules.run",
+        "rules.validate"
+      ],
+      "tools": [],
+      "public_api": [
+        "route:/api/rules/catalog catalog",
+        "route:/api/rules/graph graph",
+        "route:/api/rules/validate validate",
+        "route:/api/rules/run run"
+      ],
+      "cross_imports": [],
+      "api_calls": [],
+      "dynamic_api_calls": [
+        "call"
+      ],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -855,6 +1049,20 @@
           "name": "ensure"
         }
       ],
+      "route_ids": [
+        "sessions.ask",
+        "sessions.compact",
+        "sessions.destroy",
+        "sessions.ensure",
+        "sessions.get",
+        "sessions.interrupt",
+        "sessions.list",
+        "sessions.messages",
+        "sessions.send",
+        "sessions.spawn",
+        "sessions.state",
+        "sessions.wait"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/sessions/spawn spawn",
@@ -871,9 +1079,11 @@
         "route:/api/sessions/secretary/ensure ensure"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "knowledge.compose",
-        "projects.list"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "session.load_context",
+        "session.project_directory"
       ],
       "private_tests": false
     },
@@ -917,6 +1127,14 @@
           "name": "item"
         }
       ],
+      "route_ids": [
+        "skills.decompose",
+        "skills.install",
+        "skills.installed",
+        "skills.item",
+        "skills.remove",
+        "skills.sources"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/skills/installed installed",
@@ -927,9 +1145,11 @@
         "route:/api/skills/item item"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "library.design",
-        "library.upsert"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "skill.design_role",
+        "skill.store"
       ],
       "private_tests": false
     },
@@ -953,6 +1173,10 @@
           "name": "run"
         }
       ],
+      "route_ids": [
+        "testrunner.catalog",
+        "testrunner.run"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/test/catalog catalog",
@@ -960,6 +1184,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -1055,6 +1281,23 @@
           "name": "dispatch"
         }
       ],
+      "route_ids": [
+        "tickets.close",
+        "tickets.create",
+        "tickets.delete",
+        "tickets.dispatch",
+        "tickets.file",
+        "tickets.files",
+        "tickets.flow",
+        "tickets.get",
+        "tickets.list",
+        "tickets.message",
+        "tickets.note",
+        "tickets.roles",
+        "tickets.sync",
+        "tickets.tags",
+        "tickets.verify"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/tickets/create create",
@@ -1074,28 +1317,31 @@
         "route:/api/tickets/dispatch dispatch"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "artifacts.archive",
-        "gitflow.changed_files",
-        "gitflow.ticket_init",
-        "gitflow.ticket_merge",
-        "gitflow.ticket_remove",
-        "gitflow.ticket_sync",
-        "idle.dequeue",
-        "idle.enqueue",
-        "idle.judge",
-        "knowledge.compose",
-        "knowledge.write",
-        "library.check",
-        "library.get",
-        "library.tag_add",
-        "projects.ensure",
-        "sessions.destroy",
-        "sessions.get",
-        "sessions.list",
-        "sessions.messages",
-        "sessions.send",
-        "sessions.wait"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "ticket.apply_tag",
+        "ticket.archive_outputs",
+        "ticket.bind_project",
+        "ticket.check_outputs",
+        "ticket.dequeue",
+        "ticket.judge_capacity",
+        "ticket.list_changes",
+        "ticket.list_sessions",
+        "ticket.load_card",
+        "ticket.load_context",
+        "ticket.merge_workspace",
+        "ticket.open_workspace",
+        "ticket.queue",
+        "ticket.release_session",
+        "ticket.remove_workspace",
+        "ticket.send_instruction",
+        "ticket.session_messages",
+        "ticket.session_status",
+        "ticket.spawn_session",
+        "ticket.sync_workspace",
+        "ticket.wait_session",
+        "ticket.write_learning"
       ],
       "private_tests": false
     },
@@ -1110,6 +1356,7 @@
       "bad_event_topics": [],
       "transport": "hub.request",
       "routes": [],
+      "route_ids": [],
       "tools": [
         "shell",
         "read_file",
@@ -1126,6 +1373,8 @@
       ],
       "cross_imports": [],
       "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [],
       "private_tests": false
     },
     {
@@ -1179,6 +1428,17 @@
           "name": "trace_file"
         }
       ],
+      "route_ids": [
+        "webchat.events",
+        "webchat.groups",
+        "webchat.job",
+        "webchat.live",
+        "webchat.modules",
+        "webchat.send",
+        "webchat.timeline",
+        "webchat.trace_file",
+        "webchat.trace_recent"
+      ],
       "tools": [],
       "public_api": [
         "route:/api/chat/send send",
@@ -1192,67 +1452,26 @@
         "route:/api/trace/file trace_file"
       ],
       "cross_imports": [],
-      "api_calls": [
-        "idle.enqueue",
-        "idle.judge",
-        "projects.list",
-        "sessions.ensure",
-        "sessions.get",
-        "sessions.list",
-        "sessions.messages",
-        "sessions.send",
-        "sessions.state",
-        "tickets.get",
-        "tickets.list",
-        "tickets.message"
+      "api_calls": [],
+      "dynamic_api_calls": [],
+      "rule_calls": [
+        "chat.ensure_secretary",
+        "chat.judge_capacity",
+        "chat.project_directory",
+        "chat.queue_message",
+        "chat.route_ticket_message",
+        "chat.send_message",
+        "chat.session_context",
+        "chat.session_directory",
+        "chat.session_messages",
+        "chat.session_state",
+        "chat.ticket_context",
+        "chat.ticket_directory"
       ],
       "private_tests": false
     }
   ],
-  "module_graph": {
-    "health": [
-      "artifacts"
-    ],
-    "idle": [
-      "sessions"
-    ],
-    "lifecycle": [
-      "projects",
-      "tickets"
-    ],
-    "ops": [
-      "knowledge",
-      "sessions",
-      "tickets"
-    ],
-    "projects": [
-      "artifacts",
-      "gitflow",
-      "knowledge"
-    ],
-    "sessions": [
-      "knowledge",
-      "projects"
-    ],
-    "skills": [
-      "library"
-    ],
-    "tickets": [
-      "artifacts",
-      "gitflow",
-      "idle",
-      "knowledge",
-      "library",
-      "projects",
-      "sessions"
-    ],
-    "webchat": [
-      "idle",
-      "projects",
-      "sessions",
-      "tickets"
-    ]
-  },
+  "module_graph": {},
   "api_cycles": [],
   "import_cycles": [],
   "flows": [
@@ -2534,25 +2753,4013 @@
       "checks": 1
     }
   ],
+  "rules": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "relations": [
+      {
+        "id": "ticket.bind_project",
+        "cn": "工单必须归属项目",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "projects",
+        "subject": "ticket",
+        "predicate": "belongs_to",
+        "object": "project",
+        "cardinality": "N:1",
+        "intent": "创建工单时先确保项目存在，工单只保存 project id",
+        "steps": [
+          {
+            "call": "projects.ensure"
+          }
+        ],
+        "requirements": [
+          "req-02",
+          "req-18"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.judge_capacity",
+        "cn": "工单受理前判断忙闲",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "idle",
+        "subject": "ticket",
+        "predicate": "queues_in",
+        "object": "queue",
+        "cardinality": "N:1",
+        "intent": "高峰时先进入队列，否则直接执行",
+        "steps": [
+          {
+            "call": "idle.judge"
+          }
+        ],
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.queue",
+        "cn": "工单进入空闲队列",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "idle",
+        "subject": "ticket",
+        "predicate": "queues_in",
+        "object": "queue",
+        "cardinality": "N:1",
+        "intent": "排队是工单与调度能力的规则关系，不是工单直接驱动 idle",
+        "steps": [
+          {
+            "call": "idle.enqueue"
+          }
+        ],
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.apply_tag",
+        "cn": "工单标签沉淀到库",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "library",
+        "subject": "ticket",
+        "predicate": "writes",
+        "object": "library",
+        "cardinality": "N:1",
+        "intent": "标签由库模块沉淀，工单只提供标签文本",
+        "steps": [
+          {
+            "call": "library.tag_add"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.open_workspace",
+        "cn": "工单打开独立工作树",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "gitflow",
+        "subject": "ticket",
+        "predicate": "uses",
+        "object": "git_workspace",
+        "cardinality": "N:1",
+        "intent": "一个工单一个分支工作树",
+        "steps": [
+          {
+            "call": "gitflow.ticket_init"
+          }
+        ],
+        "requirements": [
+          "req-14"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.spawn_session",
+        "cn": "工单按角色派生会话",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "sessions",
+        "subject": "ticket",
+        "predicate": "uses",
+        "object": "session",
+        "cardinality": "1:N",
+        "intent": "PM/角色会话由会话模块创建，工单只持有 session id",
+        "steps": [
+          {
+            "call": "sessions.spawn"
+          }
+        ],
+        "requirements": [
+          "req-18",
+          "req-22"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.send_instruction",
+        "cn": "工单向会话投递作业",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "sessions",
+        "subject": "ticket",
+        "predicate": "delegates_to",
+        "object": "session",
+        "cardinality": "1:N",
+        "intent": "工单只表达“要做的事”，不驱动会话内部",
+        "steps": [
+          {
+            "call": "sessions.send"
+          }
+        ],
+        "requirements": [
+          "req-22"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.wait_session",
+        "cn": "工单等待会话回报",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "sessions",
+        "subject": "ticket",
+        "predicate": "observes",
+        "object": "session",
+        "cardinality": "1:N",
+        "intent": "等待是规则层的编排动作",
+        "steps": [
+          {
+            "call": "sessions.wait"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.session_status",
+        "cn": "工单读取会话状态",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "sessions",
+        "subject": "ticket",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "1:N",
+        "intent": "只读状态，不反向修改会话",
+        "steps": [
+          {
+            "call": "sessions.get"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.list_sessions",
+        "cn": "工单列出自己的会话",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "sessions",
+        "subject": "ticket",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "1:N",
+        "intent": "按 ticket id 过滤",
+        "steps": [
+          {
+            "call": "sessions.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.session_messages",
+        "cn": "工单读取会话消息",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "sessions",
+        "subject": "ticket",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "1:N",
+        "intent": "回看角色/PM 的发言",
+        "steps": [
+          {
+            "call": "sessions.messages"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.load_context",
+        "cn": "工单装载知识上下文",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "knowledge",
+        "subject": "ticket",
+        "predicate": "reads",
+        "object": "knowledge",
+        "cardinality": "N:1",
+        "intent": "公共/项目/工单三层知识合成",
+        "steps": [
+          {
+            "call": "knowledge.compose"
+          }
+        ],
+        "requirements": [
+          "req-31"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.write_learning",
+        "cn": "工单沉淀知识",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "knowledge",
+        "subject": "ticket",
+        "predicate": "writes",
+        "object": "knowledge",
+        "cardinality": "N:1",
+        "intent": "结单摘要写回知识层",
+        "steps": [
+          {
+            "call": "knowledge.write"
+          }
+        ],
+        "requirements": [
+          "req-30"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.load_card",
+        "cn": "工单读取角色/流程卡",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "library",
+        "subject": "ticket",
+        "predicate": "reads",
+        "object": "library",
+        "cardinality": "N:1",
+        "intent": "角色库/流程库查询",
+        "steps": [
+          {
+            "call": "library.get"
+          }
+        ],
+        "requirements": [
+          "req-27"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.check_outputs",
+        "cn": "工单按流程插件校验必交产物",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "library",
+        "subject": "ticket",
+        "predicate": "validates",
+        "object": "library",
+        "cardinality": "N:1",
+        "intent": "缺件时禁止结单",
+        "steps": [
+          {
+            "call": "library.check"
+          }
+        ],
+        "requirements": [
+          "req-15"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.sync_workspace",
+        "cn": "工单同步分支",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "gitflow",
+        "subject": "ticket",
+        "predicate": "uses",
+        "object": "git_workspace",
+        "cardinality": "N:1",
+        "intent": "提交并推送工单分支",
+        "steps": [
+          {
+            "call": "gitflow.ticket_sync"
+          }
+        ],
+        "requirements": [
+          "req-14"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.merge_workspace",
+        "cn": "工单合并回项目主干",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "gitflow",
+        "subject": "ticket",
+        "predicate": "uses",
+        "object": "git_workspace",
+        "cardinality": "N:1",
+        "intent": "合并冲突由 gitflow 报告，工单置 conflict",
+        "steps": [
+          {
+            "call": "gitflow.ticket_merge"
+          }
+        ],
+        "requirements": [
+          "req-14"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.list_changes",
+        "cn": "工单列出分支改动",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "gitflow",
+        "subject": "ticket",
+        "predicate": "reads",
+        "object": "git_workspace",
+        "cardinality": "N:1",
+        "intent": "结单归档前确认实际改动",
+        "steps": [
+          {
+            "call": "gitflow.changed_files"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.archive_outputs",
+        "cn": "工单归档交付件",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "artifacts",
+        "subject": "ticket",
+        "predicate": "produces",
+        "object": "artifact",
+        "cardinality": "1:N",
+        "intent": "三层交付件归档，路径带工单号",
+        "steps": [
+          {
+            "call": "artifacts.archive"
+          }
+        ],
+        "requirements": [
+          "req-21"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.release_session",
+        "cn": "工单释放临时会话",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "sessions",
+        "subject": "ticket",
+        "predicate": "uses",
+        "object": "session",
+        "cardinality": "1:N",
+        "intent": "结单后销毁 PM/角色会话，群聊只读",
+        "steps": [
+          {
+            "call": "sessions.destroy"
+          }
+        ],
+        "requirements": [
+          "req-22"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.dequeue",
+        "cn": "工单出队",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "idle",
+        "subject": "ticket",
+        "predicate": "queues_in",
+        "object": "queue",
+        "cardinality": "N:1",
+        "intent": "队列项在真正启动时移除",
+        "steps": [
+          {
+            "call": "idle.dequeue"
+          }
+        ],
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ticket.remove_workspace",
+        "cn": "工单清理工作树",
+        "kind": "relation",
+        "from": "tickets",
+        "to": "gitflow",
+        "subject": "ticket",
+        "predicate": "uses",
+        "object": "git_workspace",
+        "cardinality": "N:1",
+        "intent": "删除工单后的 git 清理",
+        "steps": [
+          {
+            "call": "gitflow.ticket_remove"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.project_directory",
+        "cn": "群聊读取项目目录",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "projects",
+        "subject": "chat",
+        "predicate": "reads",
+        "object": "project",
+        "cardinality": "N:1",
+        "intent": "群列表需要项目范围",
+        "steps": [
+          {
+            "call": "projects.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.ticket_context",
+        "cn": "群聊读取工单上下文",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "tickets",
+        "subject": "chat",
+        "predicate": "reads",
+        "object": "ticket",
+        "cardinality": "N:1",
+        "intent": "群聊只展示工单状态/标题",
+        "steps": [
+          {
+            "call": "tickets.get"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.ticket_directory",
+        "cn": "群聊读取工单目录",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "tickets",
+        "subject": "chat",
+        "predicate": "reads",
+        "object": "ticket",
+        "cardinality": "N:1",
+        "intent": "群列表与过滤",
+        "steps": [
+          {
+            "call": "tickets.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.judge_capacity",
+        "cn": "群聊发言前判断忙闲",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "idle",
+        "subject": "chat",
+        "predicate": "uses",
+        "object": "queue",
+        "cardinality": "N:1",
+        "intent": "高峰消息排队",
+        "steps": [
+          {
+            "call": "idle.judge"
+          }
+        ],
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.queue_message",
+        "cn": "群聊消息进入队列",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "idle",
+        "subject": "chat",
+        "predicate": "queues_in",
+        "object": "queue",
+        "cardinality": "N:1",
+        "intent": "消息排队不阻塞网页",
+        "steps": [
+          {
+            "call": "idle.enqueue"
+          }
+        ],
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.route_ticket_message",
+        "cn": "群聊把消息投给工单",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "tickets",
+        "subject": "chat",
+        "predicate": "delegates_to",
+        "object": "ticket",
+        "cardinality": "N:1",
+        "intent": "工单群发言由工单模块接收",
+        "steps": [
+          {
+            "call": "tickets.message"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.ensure_secretary",
+        "cn": "群聊确保项目秘书存在",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "sessions",
+        "subject": "chat",
+        "predicate": "uses",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "一个项目一个秘书",
+        "steps": [
+          {
+            "call": "sessions.ensure"
+          }
+        ],
+        "requirements": [
+          "req-18"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.send_message",
+        "cn": "群聊把消息投给会话",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "sessions",
+        "subject": "chat",
+        "predicate": "delegates_to",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "秘书/PM 会话是消息的接收者",
+        "steps": [
+          {
+            "call": "sessions.send"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.session_context",
+        "cn": "群聊读取会话上下文",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "sessions",
+        "subject": "chat",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "群聊头部展示会话状态",
+        "steps": [
+          {
+            "call": "sessions.get"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.session_messages",
+        "cn": "群聊读取会话消息",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "sessions",
+        "subject": "chat",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "时间线渲染",
+        "steps": [
+          {
+            "call": "sessions.messages"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.session_directory",
+        "cn": "群聊读取会话目录",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "sessions",
+        "subject": "chat",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "群列表",
+        "steps": [
+          {
+            "call": "sessions.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "chat.session_state",
+        "cn": "群聊读取运行时状态",
+        "kind": "relation",
+        "from": "webchat",
+        "to": "sessions",
+        "subject": "chat",
+        "predicate": "observes",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "并发/运行态指标",
+        "steps": [
+          {
+            "call": "sessions.state"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "lifecycle.default_project",
+        "cn": "生命周期默认项目",
+        "kind": "relation",
+        "from": "lifecycle",
+        "to": "projects",
+        "subject": "project",
+        "predicate": "reads",
+        "object": "project",
+        "cardinality": "1:N",
+        "intent": "删除/归档编排的默认项目入口",
+        "steps": [
+          {
+            "call": "projects.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "lifecycle.project_snapshot",
+        "cn": "生命周期读取项目快照",
+        "kind": "relation",
+        "from": "lifecycle",
+        "to": "projects",
+        "subject": "project",
+        "predicate": "observes",
+        "object": "project",
+        "cardinality": "N:1",
+        "intent": "删除/归档前读取项目",
+        "steps": [
+          {
+            "call": "projects.get"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "lifecycle.list_tickets",
+        "cn": "生命周期列出项目工单",
+        "kind": "relation",
+        "from": "lifecycle",
+        "to": "tickets",
+        "subject": "ticket",
+        "predicate": "reads",
+        "object": "project",
+        "cardinality": "1:N",
+        "intent": "级联删除前统计未结单",
+        "steps": [
+          {
+            "call": "tickets.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "lifecycle.preview_delete",
+        "cn": "生命周期预览删除",
+        "kind": "relation",
+        "from": "lifecycle",
+        "to": "projects",
+        "subject": "project",
+        "predicate": "observes",
+        "object": "project",
+        "cardinality": "N:1",
+        "intent": "删除前展示影响面",
+        "steps": [
+          {
+            "call": "projects.delete_preview"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "lifecycle.delete_ticket",
+        "cn": "生命周期删除已结单工单",
+        "kind": "relation",
+        "from": "lifecycle",
+        "to": "tickets",
+        "subject": "ticket",
+        "predicate": "writes",
+        "object": "project",
+        "cardinality": "1:N",
+        "intent": "只删除已结单工单",
+        "steps": [
+          {
+            "call": "tickets.delete"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "lifecycle.delete_project",
+        "cn": "生命周期删除项目",
+        "kind": "relation",
+        "from": "lifecycle",
+        "to": "projects",
+        "subject": "project",
+        "predicate": "writes",
+        "object": "project",
+        "cardinality": "N:1",
+        "intent": "级联删除由生命周期规则编排",
+        "steps": [
+          {
+            "call": "projects.delete"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ops.session_snapshot",
+        "cn": "运维读取会话快照",
+        "kind": "relation",
+        "from": "ops",
+        "to": "sessions",
+        "subject": "ops",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "健康/运维页展示会话",
+        "steps": [
+          {
+            "call": "sessions.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ops.ticket_snapshot",
+        "cn": "运维读取工单快照",
+        "kind": "relation",
+        "from": "ops",
+        "to": "tickets",
+        "subject": "ops",
+        "predicate": "reads",
+        "object": "ticket",
+        "cardinality": "N:1",
+        "intent": "健康/运维页展示工单",
+        "steps": [
+          {
+            "call": "tickets.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "ops.knowledge_snapshot",
+        "cn": "运维读取知识概览",
+        "kind": "relation",
+        "from": "ops",
+        "to": "knowledge",
+        "subject": "ops",
+        "predicate": "reads",
+        "object": "knowledge",
+        "cardinality": "N:1",
+        "intent": "知识体积/条数",
+        "steps": [
+          {
+            "call": "knowledge.overview"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "project.init_workspace",
+        "cn": "项目初始化主干工作树",
+        "kind": "relation",
+        "from": "projects",
+        "to": "gitflow",
+        "subject": "project",
+        "predicate": "uses",
+        "object": "git_workspace",
+        "cardinality": "1:1",
+        "intent": "项目 main 工作树由 gitflow 创建",
+        "steps": [
+          {
+            "call": "gitflow.project_init"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "project.purge_artifacts",
+        "cn": "项目删除时清理交付件",
+        "kind": "relation",
+        "from": "projects",
+        "to": "artifacts",
+        "subject": "project",
+        "predicate": "produces",
+        "object": "artifact",
+        "cardinality": "1:N",
+        "intent": "级联开关控制",
+        "steps": [
+          {
+            "call": "artifacts.remove_project"
+          }
+        ],
+        "requirements": [
+          "req-21"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "project.purge_knowledge",
+        "cn": "项目删除时清理知识",
+        "kind": "relation",
+        "from": "projects",
+        "to": "knowledge",
+        "subject": "project",
+        "predicate": "reads",
+        "object": "knowledge",
+        "cardinality": "N:1",
+        "intent": "级联开关控制",
+        "steps": [
+          {
+            "call": "knowledge.remove_project"
+          }
+        ],
+        "requirements": [
+          "req-30"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "session.project_directory",
+        "cn": "会话读取项目目录",
+        "kind": "relation",
+        "from": "sessions",
+        "to": "projects",
+        "subject": "session",
+        "predicate": "reads",
+        "object": "project",
+        "cardinality": "N:1",
+        "intent": "秘书上下文需要项目范围",
+        "steps": [
+          {
+            "call": "projects.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "session.load_context",
+        "cn": "会话装载知识上下文",
+        "kind": "relation",
+        "from": "sessions",
+        "to": "knowledge",
+        "subject": "session",
+        "predicate": "reads",
+        "object": "knowledge",
+        "cardinality": "N:1",
+        "intent": "秘书提示词的知识层",
+        "steps": [
+          {
+            "call": "knowledge.compose"
+          }
+        ],
+        "requirements": [
+          "req-31"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "skill.store",
+        "cn": "技能写入能力库",
+        "kind": "relation",
+        "from": "skills",
+        "to": "library",
+        "subject": "library",
+        "predicate": "writes",
+        "object": "library",
+        "cardinality": "N:1",
+        "intent": "技能卡片入库",
+        "steps": [
+          {
+            "call": "library.upsert"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "skill.design_role",
+        "cn": "技能拆解为角色/流程",
+        "kind": "relation",
+        "from": "skills",
+        "to": "library",
+        "subject": "library",
+        "predicate": "produces",
+        "object": "library",
+        "cardinality": "1:N",
+        "intent": "拆解出的角色卡和流程插件",
+        "steps": [
+          {
+            "call": "library.design"
+          }
+        ],
+        "requirements": [
+          "req-27"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "health.artifact_stats",
+        "cn": "健康检查读取交付件统计",
+        "kind": "relation",
+        "from": "health",
+        "to": "artifacts",
+        "subject": "health",
+        "predicate": "reads",
+        "object": "artifact",
+        "cardinality": "N:1",
+        "intent": "体积/条数",
+        "steps": [
+          {
+            "call": "artifacts.stats"
+          }
+        ],
+        "requirements": [
+          "req-32"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "health.probe_sessions",
+        "cn": "自检探活会话 API",
+        "kind": "relation",
+        "from": "health",
+        "to": "sessions",
+        "subject": "health",
+        "predicate": "reads",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "深度自检确认 sessions.list 可响应",
+        "steps": [
+          {
+            "call": "sessions.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "health.probe_tickets",
+        "cn": "自检探活工单 API",
+        "kind": "relation",
+        "from": "health",
+        "to": "tickets",
+        "subject": "health",
+        "predicate": "reads",
+        "object": "ticket",
+        "cardinality": "N:1",
+        "intent": "深度自检确认 tickets.list 可响应",
+        "steps": [
+          {
+            "call": "tickets.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "health.probe_knowledge",
+        "cn": "自检探活知识 API",
+        "kind": "relation",
+        "from": "health",
+        "to": "knowledge",
+        "subject": "health",
+        "predicate": "reads",
+        "object": "knowledge",
+        "cardinality": "N:1",
+        "intent": "深度自检确认 knowledge.overview 可响应",
+        "steps": [
+          {
+            "call": "knowledge.overview"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "health.probe_library",
+        "cn": "自检探活能力库 API",
+        "kind": "relation",
+        "from": "health",
+        "to": "library",
+        "subject": "health",
+        "predicate": "reads",
+        "object": "library",
+        "cardinality": "N:1",
+        "intent": "深度自检确认 library.summary 可响应",
+        "steps": [
+          {
+            "call": "library.summary"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "health.probe_artifacts",
+        "cn": "自检探活交付件 API",
+        "kind": "relation",
+        "from": "health",
+        "to": "artifacts",
+        "subject": "health",
+        "predicate": "reads",
+        "object": "artifact",
+        "cardinality": "N:1",
+        "intent": "深度自检确认 artifacts.stats 可响应",
+        "steps": [
+          {
+            "call": "artifacts.stats"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "health.probe_projects",
+        "cn": "自检探活项目 API",
+        "kind": "relation",
+        "from": "health",
+        "to": "projects",
+        "subject": "health",
+        "predicate": "reads",
+        "object": "project",
+        "cardinality": "N:1",
+        "intent": "深度自检确认 projects.list 可响应",
+        "steps": [
+          {
+            "call": "projects.list"
+          }
+        ],
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "idle.send_message",
+        "cn": "调度器投递消息",
+        "kind": "relation",
+        "from": "idle",
+        "to": "sessions",
+        "subject": "queue",
+        "predicate": "delegates_to",
+        "object": "session",
+        "cardinality": "N:1",
+        "intent": "高峰队列恢复时发消息",
+        "steps": [
+          {
+            "call": "sessions.send"
+          }
+        ],
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      }
+    ],
+    "processes": [
+      {
+        "id": "ticket.create",
+        "cn": "工单创建流程",
+        "kind": "process",
+        "subject": "ticket",
+        "predicate": "uses",
+        "object": "project",
+        "requirements": [
+          "req-02",
+          "req-04",
+          "req-14",
+          "req-18",
+          "req-22",
+          "req-24",
+          "req-27",
+          "req-30"
+        ],
+        "composes": [
+          "ticket.bind_project",
+          "ticket.judge_capacity",
+          "ticket.queue",
+          "ticket.open_workspace",
+          "ticket.load_context",
+          "ticket.load_card",
+          "ticket.spawn_session",
+          "ticket.send_instruction"
+        ]
+      },
+      {
+        "id": "ticket.close",
+        "cn": "工单结单流程",
+        "kind": "process",
+        "subject": "ticket",
+        "predicate": "produces",
+        "object": "artifact",
+        "requirements": [
+          "req-14",
+          "req-15",
+          "req-21",
+          "req-22",
+          "req-25",
+          "req-30"
+        ],
+        "composes": [
+          "ticket.check_outputs",
+          "ticket.sync_workspace",
+          "ticket.merge_workspace",
+          "ticket.list_changes",
+          "ticket.archive_outputs",
+          "ticket.release_session",
+          "ticket.write_learning"
+        ]
+      },
+      {
+        "id": "project.create",
+        "cn": "项目创建流程",
+        "kind": "process",
+        "subject": "project",
+        "predicate": "uses",
+        "object": "git_workspace",
+        "requirements": [
+          "req-11",
+          "req-18",
+          "req-20"
+        ],
+        "composes": [
+          "project.init_workspace"
+        ]
+      },
+      {
+        "id": "project.delete",
+        "cn": "项目删除流程",
+        "kind": "process",
+        "subject": "project",
+        "predicate": "produces",
+        "object": "artifact",
+        "requirements": [
+          "req-06",
+          "req-20",
+          "req-21"
+        ],
+        "composes": [
+          "lifecycle.preview_delete",
+          "lifecycle.delete_ticket",
+          "project.purge_artifacts",
+          "project.purge_knowledge",
+          "lifecycle.delete_project"
+        ]
+      },
+      {
+        "id": "chat.thread",
+        "cn": "群聊线程流程",
+        "kind": "process",
+        "subject": "chat",
+        "predicate": "reads",
+        "object": "session",
+        "requirements": [
+          "req-07",
+          "req-18",
+          "req-23",
+          "req-24"
+        ],
+        "composes": [
+          "chat.project_directory",
+          "chat.ticket_directory",
+          "chat.session_context",
+          "chat.session_messages"
+        ]
+      },
+      {
+        "id": "chat.dispatch",
+        "cn": "群聊投递流程",
+        "kind": "process",
+        "subject": "chat",
+        "predicate": "delegates_to",
+        "object": "ticket",
+        "requirements": [
+          "req-02",
+          "req-18"
+        ],
+        "composes": [
+          "chat.judge_capacity",
+          "chat.queue_message",
+          "chat.ensure_secretary",
+          "chat.send_message",
+          "chat.route_ticket_message"
+        ]
+      },
+      {
+        "id": "lifecycle.delete",
+        "cn": "项目级联删除流程",
+        "kind": "process",
+        "subject": "project",
+        "predicate": "writes",
+        "object": "project",
+        "requirements": [
+          "req-06",
+          "req-20",
+          "req-21"
+        ],
+        "composes": [
+          "lifecycle.preview_delete",
+          "lifecycle.list_tickets",
+          "lifecycle.delete_ticket",
+          "lifecycle.delete_project"
+        ]
+      },
+      {
+        "id": "session.context",
+        "cn": "会话上下文流程",
+        "kind": "process",
+        "subject": "session",
+        "predicate": "reads",
+        "object": "knowledge",
+        "requirements": [
+          "req-18",
+          "req-31"
+        ],
+        "composes": [
+          "session.project_directory",
+          "session.load_context"
+        ]
+      },
+      {
+        "id": "ops.snapshot",
+        "cn": "运维快照流程",
+        "kind": "process",
+        "subject": "ops",
+        "predicate": "observes",
+        "object": "session",
+        "requirements": [
+          "req-32"
+        ],
+        "composes": [
+          "ops.session_snapshot",
+          "ops.ticket_snapshot",
+          "ops.knowledge_snapshot"
+        ]
+      }
+    ],
+    "direct_cross_calls": [],
+    "rule_calls": [
+      {
+        "module": "health",
+        "rule": "health.artifact_stats",
+        "active": true
+      },
+      {
+        "module": "health",
+        "rule": "health.probe_artifacts",
+        "active": true
+      },
+      {
+        "module": "health",
+        "rule": "health.probe_knowledge",
+        "active": true
+      },
+      {
+        "module": "health",
+        "rule": "health.probe_library",
+        "active": true
+      },
+      {
+        "module": "health",
+        "rule": "health.probe_projects",
+        "active": true
+      },
+      {
+        "module": "health",
+        "rule": "health.probe_sessions",
+        "active": true
+      },
+      {
+        "module": "health",
+        "rule": "health.probe_tickets",
+        "active": true
+      },
+      {
+        "module": "idle",
+        "rule": "idle.send_message",
+        "active": true
+      },
+      {
+        "module": "lifecycle",
+        "rule": "lifecycle.default_project",
+        "active": true
+      },
+      {
+        "module": "lifecycle",
+        "rule": "lifecycle.delete_project",
+        "active": true
+      },
+      {
+        "module": "lifecycle",
+        "rule": "lifecycle.delete_ticket",
+        "active": true
+      },
+      {
+        "module": "lifecycle",
+        "rule": "lifecycle.list_tickets",
+        "active": true
+      },
+      {
+        "module": "lifecycle",
+        "rule": "lifecycle.preview_delete",
+        "active": true
+      },
+      {
+        "module": "lifecycle",
+        "rule": "lifecycle.project_snapshot",
+        "active": true
+      },
+      {
+        "module": "ops",
+        "rule": "ops.knowledge_snapshot",
+        "active": true
+      },
+      {
+        "module": "ops",
+        "rule": "ops.session_snapshot",
+        "active": true
+      },
+      {
+        "module": "ops",
+        "rule": "ops.ticket_snapshot",
+        "active": true
+      },
+      {
+        "module": "projects",
+        "rule": "project.init_workspace",
+        "active": true
+      },
+      {
+        "module": "projects",
+        "rule": "project.purge_artifacts",
+        "active": true
+      },
+      {
+        "module": "projects",
+        "rule": "project.purge_knowledge",
+        "active": true
+      },
+      {
+        "module": "sessions",
+        "rule": "session.load_context",
+        "active": true
+      },
+      {
+        "module": "sessions",
+        "rule": "session.project_directory",
+        "active": true
+      },
+      {
+        "module": "skills",
+        "rule": "skill.design_role",
+        "active": true
+      },
+      {
+        "module": "skills",
+        "rule": "skill.store",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.apply_tag",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.archive_outputs",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.bind_project",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.check_outputs",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.dequeue",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.judge_capacity",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.list_changes",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.list_sessions",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.load_card",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.load_context",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.merge_workspace",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.open_workspace",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.queue",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.release_session",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.remove_workspace",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.send_instruction",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.session_messages",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.session_status",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.spawn_session",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.sync_workspace",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.wait_session",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "rule": "ticket.write_learning",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.ensure_secretary",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.judge_capacity",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.project_directory",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.queue_message",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.route_ticket_message",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.send_message",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.session_context",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.session_directory",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.session_messages",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.session_state",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.ticket_context",
+        "active": true
+      },
+      {
+        "module": "webchat",
+        "rule": "chat.ticket_directory",
+        "active": true
+      }
+    ],
+    "orchestration_graph": {
+      "rules": [
+        "artifacts",
+        "gitflow",
+        "idle",
+        "knowledge",
+        "library",
+        "projects",
+        "sessions",
+        "tickets"
+      ]
+    },
+    "graph": {
+      "ok": true,
+      "nodes": [
+        {
+          "id": "entity:project",
+          "type": "entity",
+          "label": "project",
+          "cn": "项目，工单的归属单位"
+        },
+        {
+          "id": "entity:ticket",
+          "type": "entity",
+          "label": "ticket",
+          "cn": "工单，一次可验收的作业"
+        },
+        {
+          "id": "entity:session",
+          "type": "entity",
+          "label": "session",
+          "cn": "会话，承载秘书/PM/角色的上下文"
+        },
+        {
+          "id": "entity:artifact",
+          "type": "entity",
+          "label": "artifact",
+          "cn": "交付件，结单后保留的证据"
+        },
+        {
+          "id": "entity:knowledge",
+          "type": "entity",
+          "label": "knowledge",
+          "cn": "知识条目，跨会话沉淀的文字"
+        },
+        {
+          "id": "entity:git_workspace",
+          "type": "entity",
+          "label": "git_workspace",
+          "cn": "工单分支工作树，代码版本边界"
+        },
+        {
+          "id": "entity:queue",
+          "type": "entity",
+          "label": "queue",
+          "cn": "空闲/高峰队列，延迟执行的调度项"
+        },
+        {
+          "id": "entity:chat",
+          "type": "entity",
+          "label": "chat",
+          "cn": "群聊/时间线，面向人的消息视图"
+        },
+        {
+          "id": "entity:library",
+          "type": "entity",
+          "label": "library",
+          "cn": "角色库/流程库/技能库"
+        },
+        {
+          "id": "entity:health",
+          "type": "entity",
+          "label": "health",
+          "cn": "运行时健康与观测"
+        },
+        {
+          "id": "entity:ops",
+          "type": "entity",
+          "label": "ops",
+          "cn": "运维命令与版本视图"
+        },
+        {
+          "id": "module:artifacts",
+          "type": "module",
+          "label": "artifacts",
+          "active": true
+        },
+        {
+          "id": "module:gitflow",
+          "type": "module",
+          "label": "gitflow",
+          "active": true
+        },
+        {
+          "id": "module:health",
+          "type": "module",
+          "label": "health",
+          "active": true
+        },
+        {
+          "id": "module:idle",
+          "type": "module",
+          "label": "idle",
+          "active": true
+        },
+        {
+          "id": "module:knowledge",
+          "type": "module",
+          "label": "knowledge",
+          "active": true
+        },
+        {
+          "id": "module:library",
+          "type": "module",
+          "label": "library",
+          "active": true
+        },
+        {
+          "id": "module:lifecycle",
+          "type": "module",
+          "label": "lifecycle",
+          "active": true
+        },
+        {
+          "id": "module:ops",
+          "type": "module",
+          "label": "ops",
+          "active": true
+        },
+        {
+          "id": "module:projects",
+          "type": "module",
+          "label": "projects",
+          "active": true
+        },
+        {
+          "id": "module:sessions",
+          "type": "module",
+          "label": "sessions",
+          "active": true
+        },
+        {
+          "id": "module:skills",
+          "type": "module",
+          "label": "skills",
+          "active": true
+        },
+        {
+          "id": "module:tickets",
+          "type": "module",
+          "label": "tickets",
+          "active": true
+        },
+        {
+          "id": "module:webchat",
+          "type": "module",
+          "label": "webchat",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.bind_project",
+          "type": "rule",
+          "label": "工单必须归属项目",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.judge_capacity",
+          "type": "rule",
+          "label": "工单受理前判断忙闲",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.queue",
+          "type": "rule",
+          "label": "工单进入空闲队列",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.apply_tag",
+          "type": "rule",
+          "label": "工单标签沉淀到库",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.open_workspace",
+          "type": "rule",
+          "label": "工单打开独立工作树",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.spawn_session",
+          "type": "rule",
+          "label": "工单按角色派生会话",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.send_instruction",
+          "type": "rule",
+          "label": "工单向会话投递作业",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.wait_session",
+          "type": "rule",
+          "label": "工单等待会话回报",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.session_status",
+          "type": "rule",
+          "label": "工单读取会话状态",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.list_sessions",
+          "type": "rule",
+          "label": "工单列出自己的会话",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.session_messages",
+          "type": "rule",
+          "label": "工单读取会话消息",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.load_context",
+          "type": "rule",
+          "label": "工单装载知识上下文",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.write_learning",
+          "type": "rule",
+          "label": "工单沉淀知识",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.load_card",
+          "type": "rule",
+          "label": "工单读取角色/流程卡",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.check_outputs",
+          "type": "rule",
+          "label": "工单按流程插件校验必交产物",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.sync_workspace",
+          "type": "rule",
+          "label": "工单同步分支",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.merge_workspace",
+          "type": "rule",
+          "label": "工单合并回项目主干",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.list_changes",
+          "type": "rule",
+          "label": "工单列出分支改动",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.archive_outputs",
+          "type": "rule",
+          "label": "工单归档交付件",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.release_session",
+          "type": "rule",
+          "label": "工单释放临时会话",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.dequeue",
+          "type": "rule",
+          "label": "工单出队",
+          "active": true
+        },
+        {
+          "id": "rule:ticket.remove_workspace",
+          "type": "rule",
+          "label": "工单清理工作树",
+          "active": true
+        },
+        {
+          "id": "rule:chat.project_directory",
+          "type": "rule",
+          "label": "群聊读取项目目录",
+          "active": true
+        },
+        {
+          "id": "rule:chat.ticket_context",
+          "type": "rule",
+          "label": "群聊读取工单上下文",
+          "active": true
+        },
+        {
+          "id": "rule:chat.ticket_directory",
+          "type": "rule",
+          "label": "群聊读取工单目录",
+          "active": true
+        },
+        {
+          "id": "rule:chat.judge_capacity",
+          "type": "rule",
+          "label": "群聊发言前判断忙闲",
+          "active": true
+        },
+        {
+          "id": "rule:chat.queue_message",
+          "type": "rule",
+          "label": "群聊消息进入队列",
+          "active": true
+        },
+        {
+          "id": "rule:chat.route_ticket_message",
+          "type": "rule",
+          "label": "群聊把消息投给工单",
+          "active": true
+        },
+        {
+          "id": "rule:chat.ensure_secretary",
+          "type": "rule",
+          "label": "群聊确保项目秘书存在",
+          "active": true
+        },
+        {
+          "id": "rule:chat.send_message",
+          "type": "rule",
+          "label": "群聊把消息投给会话",
+          "active": true
+        },
+        {
+          "id": "rule:chat.session_context",
+          "type": "rule",
+          "label": "群聊读取会话上下文",
+          "active": true
+        },
+        {
+          "id": "rule:chat.session_messages",
+          "type": "rule",
+          "label": "群聊读取会话消息",
+          "active": true
+        },
+        {
+          "id": "rule:chat.session_directory",
+          "type": "rule",
+          "label": "群聊读取会话目录",
+          "active": true
+        },
+        {
+          "id": "rule:chat.session_state",
+          "type": "rule",
+          "label": "群聊读取运行时状态",
+          "active": true
+        },
+        {
+          "id": "rule:lifecycle.default_project",
+          "type": "rule",
+          "label": "生命周期默认项目",
+          "active": true
+        },
+        {
+          "id": "rule:lifecycle.project_snapshot",
+          "type": "rule",
+          "label": "生命周期读取项目快照",
+          "active": true
+        },
+        {
+          "id": "rule:lifecycle.list_tickets",
+          "type": "rule",
+          "label": "生命周期列出项目工单",
+          "active": true
+        },
+        {
+          "id": "rule:lifecycle.preview_delete",
+          "type": "rule",
+          "label": "生命周期预览删除",
+          "active": true
+        },
+        {
+          "id": "rule:lifecycle.delete_ticket",
+          "type": "rule",
+          "label": "生命周期删除已结单工单",
+          "active": true
+        },
+        {
+          "id": "rule:lifecycle.delete_project",
+          "type": "rule",
+          "label": "生命周期删除项目",
+          "active": true
+        },
+        {
+          "id": "rule:ops.session_snapshot",
+          "type": "rule",
+          "label": "运维读取会话快照",
+          "active": true
+        },
+        {
+          "id": "rule:ops.ticket_snapshot",
+          "type": "rule",
+          "label": "运维读取工单快照",
+          "active": true
+        },
+        {
+          "id": "rule:ops.knowledge_snapshot",
+          "type": "rule",
+          "label": "运维读取知识概览",
+          "active": true
+        },
+        {
+          "id": "rule:project.init_workspace",
+          "type": "rule",
+          "label": "项目初始化主干工作树",
+          "active": true
+        },
+        {
+          "id": "rule:project.purge_artifacts",
+          "type": "rule",
+          "label": "项目删除时清理交付件",
+          "active": true
+        },
+        {
+          "id": "rule:project.purge_knowledge",
+          "type": "rule",
+          "label": "项目删除时清理知识",
+          "active": true
+        },
+        {
+          "id": "rule:session.project_directory",
+          "type": "rule",
+          "label": "会话读取项目目录",
+          "active": true
+        },
+        {
+          "id": "rule:session.load_context",
+          "type": "rule",
+          "label": "会话装载知识上下文",
+          "active": true
+        },
+        {
+          "id": "rule:skill.store",
+          "type": "rule",
+          "label": "技能写入能力库",
+          "active": true
+        },
+        {
+          "id": "rule:skill.design_role",
+          "type": "rule",
+          "label": "技能拆解为角色/流程",
+          "active": true
+        },
+        {
+          "id": "rule:health.artifact_stats",
+          "type": "rule",
+          "label": "健康检查读取交付件统计",
+          "active": true
+        },
+        {
+          "id": "rule:health.probe_sessions",
+          "type": "rule",
+          "label": "自检探活会话 API",
+          "active": true
+        },
+        {
+          "id": "rule:health.probe_tickets",
+          "type": "rule",
+          "label": "自检探活工单 API",
+          "active": true
+        },
+        {
+          "id": "rule:health.probe_knowledge",
+          "type": "rule",
+          "label": "自检探活知识 API",
+          "active": true
+        },
+        {
+          "id": "rule:health.probe_library",
+          "type": "rule",
+          "label": "自检探活能力库 API",
+          "active": true
+        },
+        {
+          "id": "rule:health.probe_artifacts",
+          "type": "rule",
+          "label": "自检探活交付件 API",
+          "active": true
+        },
+        {
+          "id": "rule:health.probe_projects",
+          "type": "rule",
+          "label": "自检探活项目 API",
+          "active": true
+        },
+        {
+          "id": "rule:idle.send_message",
+          "type": "rule",
+          "label": "调度器投递消息",
+          "active": true
+        },
+        {
+          "id": "process:ticket.create",
+          "type": "process",
+          "label": "工单创建流程"
+        },
+        {
+          "id": "process:ticket.close",
+          "type": "process",
+          "label": "工单结单流程"
+        },
+        {
+          "id": "process:project.create",
+          "type": "process",
+          "label": "项目创建流程"
+        },
+        {
+          "id": "process:project.delete",
+          "type": "process",
+          "label": "项目删除流程"
+        },
+        {
+          "id": "process:chat.thread",
+          "type": "process",
+          "label": "群聊线程流程"
+        },
+        {
+          "id": "process:chat.dispatch",
+          "type": "process",
+          "label": "群聊投递流程"
+        },
+        {
+          "id": "process:lifecycle.delete",
+          "type": "process",
+          "label": "项目级联删除流程"
+        },
+        {
+          "id": "process:session.context",
+          "type": "process",
+          "label": "会话上下文流程"
+        },
+        {
+          "id": "process:ops.snapshot",
+          "type": "process",
+          "label": "运维快照流程"
+        },
+        {
+          "id": "requirement:req-01",
+          "type": "requirement",
+          "label": "req-01",
+          "cn": "需求 01 · PC 侧边栏可收起，与安卓统一"
+        },
+        {
+          "id": "requirement:req-02",
+          "type": "requirement",
+          "label": "req-02",
+          "cn": "需求 02 · 空闲/高峰判断 + 排队 + 强制立即执行"
+        },
+        {
+          "id": "requirement:req-03",
+          "type": "requirement",
+          "label": "req-03",
+          "cn": "需求 03 · 去掉“本地节点/本地层”展示与代码"
+        },
+        {
+          "id": "requirement:req-04",
+          "type": "requirement",
+          "label": "req-04",
+          "cn": "需求 04 · 工单 tag，角色/用户可增删，双层沉淀"
+        },
+        {
+          "id": "requirement:req-05",
+          "type": "requirement",
+          "label": "req-05",
+          "cn": "需求 05 · 历史工单不动，只做增量"
+        },
+        {
+          "id": "requirement:req-06",
+          "type": "requirement",
+          "label": "req-06",
+          "cn": "需求 06 · 侧栏按项目分层；工单可删且保留知识/交付件"
+        },
+        {
+          "id": "requirement:req-07",
+          "type": "requirement",
+          "label": "req-07",
+          "cn": "需求 07 · 工单群聊内联模块报文，删除“链路”页"
+        },
+        {
+          "id": "requirement:req-08",
+          "type": "requirement",
+          "label": "req-08",
+          "cn": "需求 08 · PM 编排支持并行；悬浮改点击"
+        },
+        {
+          "id": "requirement:req-09",
+          "type": "requirement",
+          "label": "req-09",
+          "cn": "需求 09 · 压缩秘书上下文移到项目面板并标明对象"
+        },
+        {
+          "id": "requirement:req-10",
+          "type": "requirement",
+          "label": "req-10",
+          "cn": "需求 10 · 复核流程是否真可插拔并给示例"
+        },
+        {
+          "id": "requirement:req-11",
+          "type": "requirement",
+          "label": "req-11",
+          "cn": "需求 11 · 项目/agent 文件系统只读浏览；git 取舍"
+        },
+        {
+          "id": "requirement:req-12",
+          "type": "requirement",
+          "label": "req-12",
+          "cn": "需求 12 · 本机仓库移到 `E:\\AI`"
+        },
+        {
+          "id": "requirement:req-13",
+          "type": "requirement",
+          "label": "req-13",
+          "cn": "需求 13 · 推送 GitHub 远端并验证"
+        },
+        {
+          "id": "requirement:req-14",
+          "type": "requirement",
+          "label": "req-14",
+          "cn": "需求 14 · 工单分支 push/pull；冲突由 git 解决，冲突后必须重验"
+        },
+        {
+          "id": "requirement:req-15",
+          "type": "requirement",
+          "label": "req-15",
+          "cn": "需求 15 · PM 先了解项目，简单活自己干"
+        },
+        {
+          "id": "requirement:req-16",
+          "type": "requirement",
+          "label": "req-16",
+          "cn": "需求 16 · 3 项目 × 3 工单并发 + 冲突演练"
+        },
+        {
+          "id": "requirement:req-17",
+          "type": "requirement",
+          "label": "req-17",
+          "cn": "需求 17 · HTTPS 加强安全"
+        },
+        {
+          "id": "requirement:req-18",
+          "type": "requirement",
+          "label": "req-18",
+          "cn": "需求 18 · 秘书架构：一个项目一个秘书"
+        },
+        {
+          "id": "requirement:req-19",
+          "type": "requirement",
+          "label": "req-19",
+          "cn": "需求 19 · 三层架构中“本地层”是否必要"
+        },
+        {
+          "id": "requirement:req-20",
+          "type": "requirement",
+          "label": "req-20",
+          "cn": "需求 20 · 项目可删除，后处理只清秘书会话"
+        },
+        {
+          "id": "requirement:req-21",
+          "type": "requirement",
+          "label": "req-21",
+          "cn": "需求 21 · 交付件按三层归档且路径带工单号"
+        },
+        {
+          "id": "requirement:req-22",
+          "type": "requirement",
+          "label": "req-22",
+          "cn": "需求 22 · 结单后销毁 PM/角色会话，群聊只读"
+        },
+        {
+          "id": "requirement:req-23",
+          "type": "requirement",
+          "label": "req-23",
+          "cn": "需求 23 · 群聊发言人：用户=“我”，角色=角色名，头像"
+        },
+        {
+          "id": "requirement:req-24",
+          "type": "requirement",
+          "label": "req-24",
+          "cn": "需求 24 · 群聊顶层“系统”消息是什么，应 agent→PM→角色"
+        },
+        {
+          "id": "requirement:req-25",
+          "type": "requirement",
+          "label": "req-25",
+          "cn": "需求 25 · 工单生命周期流程图与群聊分离"
+        },
+        {
+          "id": "requirement:req-26",
+          "type": "requirement",
+          "label": "req-26",
+          "cn": "需求 26 · Markdown 渲染"
+        },
+        {
+          "id": "requirement:req-27",
+          "type": "requirement",
+          "label": "req-27",
+          "cn": "需求 27 · “流程专家”角色拆提示词/技能/流程插件"
+        },
+        {
+          "id": "requirement:req-28",
+          "type": "requirement",
+          "label": "req-28",
+          "cn": "需求 28 · 流式显示，可判断卡住/死循环并打断；不要超时"
+        },
+        {
+          "id": "requirement:req-29",
+          "type": "requirement",
+          "label": "req-29",
+          "cn": "需求 29 · 项目/公共交付件、角色库/流程库/技能库"
+        },
+        {
+          "id": "requirement:req-30",
+          "type": "requirement",
+          "label": "req-30",
+          "cn": "需求 30 · 工单号可复制、可基于老单新开、知识沉淀因果"
+        },
+        {
+          "id": "requirement:req-31",
+          "type": "requirement",
+          "label": "req-31",
+          "cn": "需求 31 · 全链路透明：LLM 请求/响应、tool、模块 API、总线、角色通信"
+        },
+        {
+          "id": "requirement:req-32",
+          "type": "requirement",
+          "label": "req-32",
+          "cn": "需求 32 · 健康自检含交付件体积；压缩存储"
+        },
+        {
+          "id": "requirement:req-33",
+          "type": "requirement",
+          "label": "req-33",
+          "cn": "需求 33 · 前端返回键、刷新恢复、完整状态转移图"
+        }
+      ],
+      "edges": [
+        {
+          "from": "rule:ticket.bind_project",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.bind_project",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.bind_project",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.bind_project",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.judge_capacity",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.judge_capacity",
+          "to": "module:idle",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.judge_capacity",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.judge_capacity",
+          "to": "entity:queue",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.queue",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.queue",
+          "to": "module:idle",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.queue",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.queue",
+          "to": "entity:queue",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.apply_tag",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.apply_tag",
+          "to": "module:library",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.apply_tag",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.apply_tag",
+          "to": "entity:library",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.open_workspace",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.open_workspace",
+          "to": "module:gitflow",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.open_workspace",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.open_workspace",
+          "to": "entity:git_workspace",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.spawn_session",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.spawn_session",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.spawn_session",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.spawn_session",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.send_instruction",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.send_instruction",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.send_instruction",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.send_instruction",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.wait_session",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.wait_session",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.wait_session",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.wait_session",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.session_status",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.session_status",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.session_status",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.session_status",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.list_sessions",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.list_sessions",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.list_sessions",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.list_sessions",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.session_messages",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.session_messages",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.session_messages",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.session_messages",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.load_context",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.load_context",
+          "to": "module:knowledge",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.load_context",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.load_context",
+          "to": "entity:knowledge",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.write_learning",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.write_learning",
+          "to": "module:knowledge",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.write_learning",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.write_learning",
+          "to": "entity:knowledge",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.load_card",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.load_card",
+          "to": "module:library",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.load_card",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.load_card",
+          "to": "entity:library",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.check_outputs",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.check_outputs",
+          "to": "module:library",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.check_outputs",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.check_outputs",
+          "to": "entity:library",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.sync_workspace",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.sync_workspace",
+          "to": "module:gitflow",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.sync_workspace",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.sync_workspace",
+          "to": "entity:git_workspace",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.merge_workspace",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.merge_workspace",
+          "to": "module:gitflow",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.merge_workspace",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.merge_workspace",
+          "to": "entity:git_workspace",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.list_changes",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.list_changes",
+          "to": "module:gitflow",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.list_changes",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.list_changes",
+          "to": "entity:git_workspace",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.archive_outputs",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.archive_outputs",
+          "to": "module:artifacts",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.archive_outputs",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.archive_outputs",
+          "to": "entity:artifact",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.release_session",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.release_session",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.release_session",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.release_session",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.dequeue",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.dequeue",
+          "to": "module:idle",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.dequeue",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.dequeue",
+          "to": "entity:queue",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ticket.remove_workspace",
+          "to": "module:tickets",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ticket.remove_workspace",
+          "to": "module:gitflow",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ticket.remove_workspace",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ticket.remove_workspace",
+          "to": "entity:git_workspace",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.project_directory",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.project_directory",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.project_directory",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.project_directory",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.ticket_context",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.ticket_context",
+          "to": "module:tickets",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.ticket_context",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.ticket_context",
+          "to": "entity:ticket",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.ticket_directory",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.ticket_directory",
+          "to": "module:tickets",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.ticket_directory",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.ticket_directory",
+          "to": "entity:ticket",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.judge_capacity",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.judge_capacity",
+          "to": "module:idle",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.judge_capacity",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.judge_capacity",
+          "to": "entity:queue",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.queue_message",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.queue_message",
+          "to": "module:idle",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.queue_message",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.queue_message",
+          "to": "entity:queue",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.route_ticket_message",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.route_ticket_message",
+          "to": "module:tickets",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.route_ticket_message",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.route_ticket_message",
+          "to": "entity:ticket",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.ensure_secretary",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.ensure_secretary",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.ensure_secretary",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.ensure_secretary",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.send_message",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.send_message",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.send_message",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.send_message",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.session_context",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.session_context",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.session_context",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.session_context",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.session_messages",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.session_messages",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.session_messages",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.session_messages",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.session_directory",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.session_directory",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.session_directory",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.session_directory",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:chat.session_state",
+          "to": "module:webchat",
+          "kind": "from"
+        },
+        {
+          "from": "rule:chat.session_state",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:chat.session_state",
+          "to": "entity:chat",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:chat.session_state",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:lifecycle.default_project",
+          "to": "module:lifecycle",
+          "kind": "from"
+        },
+        {
+          "from": "rule:lifecycle.default_project",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:lifecycle.default_project",
+          "to": "entity:project",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:lifecycle.default_project",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:lifecycle.project_snapshot",
+          "to": "module:lifecycle",
+          "kind": "from"
+        },
+        {
+          "from": "rule:lifecycle.project_snapshot",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:lifecycle.project_snapshot",
+          "to": "entity:project",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:lifecycle.project_snapshot",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:lifecycle.list_tickets",
+          "to": "module:lifecycle",
+          "kind": "from"
+        },
+        {
+          "from": "rule:lifecycle.list_tickets",
+          "to": "module:tickets",
+          "kind": "to"
+        },
+        {
+          "from": "rule:lifecycle.list_tickets",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:lifecycle.list_tickets",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:lifecycle.preview_delete",
+          "to": "module:lifecycle",
+          "kind": "from"
+        },
+        {
+          "from": "rule:lifecycle.preview_delete",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:lifecycle.preview_delete",
+          "to": "entity:project",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:lifecycle.preview_delete",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:lifecycle.delete_ticket",
+          "to": "module:lifecycle",
+          "kind": "from"
+        },
+        {
+          "from": "rule:lifecycle.delete_ticket",
+          "to": "module:tickets",
+          "kind": "to"
+        },
+        {
+          "from": "rule:lifecycle.delete_ticket",
+          "to": "entity:ticket",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:lifecycle.delete_ticket",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:lifecycle.delete_project",
+          "to": "module:lifecycle",
+          "kind": "from"
+        },
+        {
+          "from": "rule:lifecycle.delete_project",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:lifecycle.delete_project",
+          "to": "entity:project",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:lifecycle.delete_project",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ops.session_snapshot",
+          "to": "module:ops",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ops.session_snapshot",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ops.session_snapshot",
+          "to": "entity:ops",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ops.session_snapshot",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ops.ticket_snapshot",
+          "to": "module:ops",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ops.ticket_snapshot",
+          "to": "module:tickets",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ops.ticket_snapshot",
+          "to": "entity:ops",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ops.ticket_snapshot",
+          "to": "entity:ticket",
+          "kind": "object"
+        },
+        {
+          "from": "rule:ops.knowledge_snapshot",
+          "to": "module:ops",
+          "kind": "from"
+        },
+        {
+          "from": "rule:ops.knowledge_snapshot",
+          "to": "module:knowledge",
+          "kind": "to"
+        },
+        {
+          "from": "rule:ops.knowledge_snapshot",
+          "to": "entity:ops",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:ops.knowledge_snapshot",
+          "to": "entity:knowledge",
+          "kind": "object"
+        },
+        {
+          "from": "rule:project.init_workspace",
+          "to": "module:projects",
+          "kind": "from"
+        },
+        {
+          "from": "rule:project.init_workspace",
+          "to": "module:gitflow",
+          "kind": "to"
+        },
+        {
+          "from": "rule:project.init_workspace",
+          "to": "entity:project",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:project.init_workspace",
+          "to": "entity:git_workspace",
+          "kind": "object"
+        },
+        {
+          "from": "rule:project.purge_artifacts",
+          "to": "module:projects",
+          "kind": "from"
+        },
+        {
+          "from": "rule:project.purge_artifacts",
+          "to": "module:artifacts",
+          "kind": "to"
+        },
+        {
+          "from": "rule:project.purge_artifacts",
+          "to": "entity:project",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:project.purge_artifacts",
+          "to": "entity:artifact",
+          "kind": "object"
+        },
+        {
+          "from": "rule:project.purge_knowledge",
+          "to": "module:projects",
+          "kind": "from"
+        },
+        {
+          "from": "rule:project.purge_knowledge",
+          "to": "module:knowledge",
+          "kind": "to"
+        },
+        {
+          "from": "rule:project.purge_knowledge",
+          "to": "entity:project",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:project.purge_knowledge",
+          "to": "entity:knowledge",
+          "kind": "object"
+        },
+        {
+          "from": "rule:session.project_directory",
+          "to": "module:sessions",
+          "kind": "from"
+        },
+        {
+          "from": "rule:session.project_directory",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:session.project_directory",
+          "to": "entity:session",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:session.project_directory",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:session.load_context",
+          "to": "module:sessions",
+          "kind": "from"
+        },
+        {
+          "from": "rule:session.load_context",
+          "to": "module:knowledge",
+          "kind": "to"
+        },
+        {
+          "from": "rule:session.load_context",
+          "to": "entity:session",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:session.load_context",
+          "to": "entity:knowledge",
+          "kind": "object"
+        },
+        {
+          "from": "rule:skill.store",
+          "to": "module:skills",
+          "kind": "from"
+        },
+        {
+          "from": "rule:skill.store",
+          "to": "module:library",
+          "kind": "to"
+        },
+        {
+          "from": "rule:skill.store",
+          "to": "entity:library",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:skill.store",
+          "to": "entity:library",
+          "kind": "object"
+        },
+        {
+          "from": "rule:skill.design_role",
+          "to": "module:skills",
+          "kind": "from"
+        },
+        {
+          "from": "rule:skill.design_role",
+          "to": "module:library",
+          "kind": "to"
+        },
+        {
+          "from": "rule:skill.design_role",
+          "to": "entity:library",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:skill.design_role",
+          "to": "entity:library",
+          "kind": "object"
+        },
+        {
+          "from": "rule:health.artifact_stats",
+          "to": "module:health",
+          "kind": "from"
+        },
+        {
+          "from": "rule:health.artifact_stats",
+          "to": "module:artifacts",
+          "kind": "to"
+        },
+        {
+          "from": "rule:health.artifact_stats",
+          "to": "entity:health",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:health.artifact_stats",
+          "to": "entity:artifact",
+          "kind": "object"
+        },
+        {
+          "from": "rule:health.probe_sessions",
+          "to": "module:health",
+          "kind": "from"
+        },
+        {
+          "from": "rule:health.probe_sessions",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:health.probe_sessions",
+          "to": "entity:health",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:health.probe_sessions",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "rule:health.probe_tickets",
+          "to": "module:health",
+          "kind": "from"
+        },
+        {
+          "from": "rule:health.probe_tickets",
+          "to": "module:tickets",
+          "kind": "to"
+        },
+        {
+          "from": "rule:health.probe_tickets",
+          "to": "entity:health",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:health.probe_tickets",
+          "to": "entity:ticket",
+          "kind": "object"
+        },
+        {
+          "from": "rule:health.probe_knowledge",
+          "to": "module:health",
+          "kind": "from"
+        },
+        {
+          "from": "rule:health.probe_knowledge",
+          "to": "module:knowledge",
+          "kind": "to"
+        },
+        {
+          "from": "rule:health.probe_knowledge",
+          "to": "entity:health",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:health.probe_knowledge",
+          "to": "entity:knowledge",
+          "kind": "object"
+        },
+        {
+          "from": "rule:health.probe_library",
+          "to": "module:health",
+          "kind": "from"
+        },
+        {
+          "from": "rule:health.probe_library",
+          "to": "module:library",
+          "kind": "to"
+        },
+        {
+          "from": "rule:health.probe_library",
+          "to": "entity:health",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:health.probe_library",
+          "to": "entity:library",
+          "kind": "object"
+        },
+        {
+          "from": "rule:health.probe_artifacts",
+          "to": "module:health",
+          "kind": "from"
+        },
+        {
+          "from": "rule:health.probe_artifacts",
+          "to": "module:artifacts",
+          "kind": "to"
+        },
+        {
+          "from": "rule:health.probe_artifacts",
+          "to": "entity:health",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:health.probe_artifacts",
+          "to": "entity:artifact",
+          "kind": "object"
+        },
+        {
+          "from": "rule:health.probe_projects",
+          "to": "module:health",
+          "kind": "from"
+        },
+        {
+          "from": "rule:health.probe_projects",
+          "to": "module:projects",
+          "kind": "to"
+        },
+        {
+          "from": "rule:health.probe_projects",
+          "to": "entity:health",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:health.probe_projects",
+          "to": "entity:project",
+          "kind": "object"
+        },
+        {
+          "from": "rule:idle.send_message",
+          "to": "module:idle",
+          "kind": "from"
+        },
+        {
+          "from": "rule:idle.send_message",
+          "to": "module:sessions",
+          "kind": "to"
+        },
+        {
+          "from": "rule:idle.send_message",
+          "to": "entity:queue",
+          "kind": "subject"
+        },
+        {
+          "from": "rule:idle.send_message",
+          "to": "entity:session",
+          "kind": "object"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.bind_project",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.judge_capacity",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.queue",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.open_workspace",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.load_context",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.load_card",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.spawn_session",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "rule:ticket.send_instruction",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-02",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-04",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-14",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-18",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-22",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-24",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-27",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.create",
+          "to": "requirement:req-30",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "rule:ticket.check_outputs",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "rule:ticket.sync_workspace",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "rule:ticket.merge_workspace",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "rule:ticket.list_changes",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "rule:ticket.archive_outputs",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "rule:ticket.release_session",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "rule:ticket.write_learning",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "requirement:req-14",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "requirement:req-15",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "requirement:req-21",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "requirement:req-22",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "requirement:req-25",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ticket.close",
+          "to": "requirement:req-30",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:project.create",
+          "to": "rule:project.init_workspace",
+          "kind": "composes"
+        },
+        {
+          "from": "process:project.create",
+          "to": "requirement:req-11",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:project.create",
+          "to": "requirement:req-18",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:project.create",
+          "to": "requirement:req-20",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "rule:lifecycle.preview_delete",
+          "kind": "composes"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "rule:lifecycle.delete_ticket",
+          "kind": "composes"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "rule:project.purge_artifacts",
+          "kind": "composes"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "rule:project.purge_knowledge",
+          "kind": "composes"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "rule:lifecycle.delete_project",
+          "kind": "composes"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "requirement:req-06",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "requirement:req-20",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:project.delete",
+          "to": "requirement:req-21",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "rule:chat.project_directory",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "rule:chat.ticket_directory",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "rule:chat.session_context",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "rule:chat.session_messages",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "requirement:req-07",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "requirement:req-18",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "requirement:req-23",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:chat.thread",
+          "to": "requirement:req-24",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:chat.dispatch",
+          "to": "rule:chat.judge_capacity",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.dispatch",
+          "to": "rule:chat.queue_message",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.dispatch",
+          "to": "rule:chat.ensure_secretary",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.dispatch",
+          "to": "rule:chat.send_message",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.dispatch",
+          "to": "rule:chat.route_ticket_message",
+          "kind": "composes"
+        },
+        {
+          "from": "process:chat.dispatch",
+          "to": "requirement:req-02",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:chat.dispatch",
+          "to": "requirement:req-18",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:lifecycle.delete",
+          "to": "rule:lifecycle.preview_delete",
+          "kind": "composes"
+        },
+        {
+          "from": "process:lifecycle.delete",
+          "to": "rule:lifecycle.list_tickets",
+          "kind": "composes"
+        },
+        {
+          "from": "process:lifecycle.delete",
+          "to": "rule:lifecycle.delete_ticket",
+          "kind": "composes"
+        },
+        {
+          "from": "process:lifecycle.delete",
+          "to": "rule:lifecycle.delete_project",
+          "kind": "composes"
+        },
+        {
+          "from": "process:lifecycle.delete",
+          "to": "requirement:req-06",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:lifecycle.delete",
+          "to": "requirement:req-20",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:lifecycle.delete",
+          "to": "requirement:req-21",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:session.context",
+          "to": "rule:session.project_directory",
+          "kind": "composes"
+        },
+        {
+          "from": "process:session.context",
+          "to": "rule:session.load_context",
+          "kind": "composes"
+        },
+        {
+          "from": "process:session.context",
+          "to": "requirement:req-18",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:session.context",
+          "to": "requirement:req-31",
+          "kind": "requirement"
+        },
+        {
+          "from": "process:ops.snapshot",
+          "to": "rule:ops.session_snapshot",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ops.snapshot",
+          "to": "rule:ops.ticket_snapshot",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ops.snapshot",
+          "to": "rule:ops.knowledge_snapshot",
+          "kind": "composes"
+        },
+        {
+          "from": "process:ops.snapshot",
+          "to": "requirement:req-32",
+          "kind": "requirement"
+        }
+      ],
+      "stats": {
+        "relations": 58,
+        "processes": 9,
+        "active": 58,
+        "requirements": 18,
+        "requirement_total": 33
+      },
+      "errors": [],
+      "warnings": []
+    },
+    "stats": {
+      "relations": 58,
+      "processes": 9,
+      "active": 58,
+      "requirements": 18,
+      "requirement_total": 33
+    }
+  },
+  "orchestration_graph": {
+    "rules": [
+      "artifacts",
+      "gitflow",
+      "idle",
+      "knowledge",
+      "library",
+      "projects",
+      "sessions",
+      "tickets"
+    ]
+  },
   "web": {
     "ok": true,
     "errors": [],
     "mount_ok": true,
     "module_render": {
-      "project": true,
-      "chat": true,
-      "files": true,
+      "projects": true,
+      "webchat": true,
+      "artifacts": true,
       "library": true,
       "health": true,
       "idle": true,
       "ops": true
     },
-    "states": 11,
-    "events": 14,
-    "dom_ids": 103,
-    "dom_refs": 98,
+    "states": 12,
+    "events": 15,
+    "dom_ids": 107,
+    "dom_refs": 102,
     "missing_refs": [],
-    "buttons": 53,
+    "buttons": 56,
     "unbound_buttons": [],
     "empty_buttons": [],
     "controls": 27,
@@ -2560,6 +6767,87 @@
     "event_targets_bad": [],
     "component_ids": 14,
     "component_missing": []
+  },
+  "ui": {
+    "errors": [],
+    "calls": [],
+    "defs": {
+      "artifacts": [
+        "browseProject",
+        "browseProjectSource",
+        "browseSource",
+        "loadFiles",
+        "openArtifact",
+        "openProjectFiles",
+        "openProjectSource",
+        "openSide",
+        "openSource"
+      ],
+      "health": [
+        "healthLabel",
+        "openHealth"
+      ],
+      "idle": [
+        "loadIdle",
+        "loadProjectIdle",
+        "openIdle",
+        "saveProjectIdle"
+      ],
+      "library": [
+        "decomposeSkill",
+        "openLibrary",
+        "renderSkills"
+      ],
+      "ops": [
+        "openVersions",
+        "restartAgent",
+        "rollback",
+        "stopAll"
+      ],
+      "projects": [
+        "applyBackendAvailability",
+        "applyRoute",
+        "bindProjectSource",
+        "bindProjectUI",
+        "compactProjectSecretary",
+        "createProject",
+        "createTicket",
+        "deleteProject",
+        "loadGroups",
+        "mountProjectTemplate",
+        "openApiConfig",
+        "openFork",
+        "openProject",
+        "renameProject",
+        "renderProject",
+        "renderProjects",
+        "renderRailGroups",
+        "saveProjectBackend"
+      ],
+      "rules": [
+        "loadRules",
+        "openRules",
+        "renderRules",
+        "validateRules"
+      ],
+      "webchat": [
+        "addTag",
+        "bindChatUI",
+        "firstOpen",
+        "flushMods",
+        "interrupt",
+        "loadFlow",
+        "loadLive",
+        "loadTags",
+        "loadTimeline",
+        "mountChatTemplate",
+        "renderFlow",
+        "renderModuleMsg",
+        "renderMsg",
+        "selectGroup",
+        "send"
+      ]
+    }
   },
   "errors": [],
   "warnings": [],

@@ -26,6 +26,7 @@
     <div class="brand">Hive<span>Agent</span></div>
     <div class="spacer"></div>
     <nav class="tabs">
+      <button class="tab" data-tab="rules">规则</button>
       <button class="tab" data-tab="library">库</button>
       <button class="tab" data-tab="health">健康</button>
       <button class="tab" data-tab="versions">版本</button>
@@ -47,10 +48,10 @@
     </aside>
 
     <main class="mainwrap">
-      <!-- 项目页：只留挂载点，内容由 web/modules/project 自己渲染 -->
+      <!-- 项目页：只留挂载点，内容由 hive/modules/projects/ui.js 自己渲染 -->
       <section id="projectview" class="projectview hidden"><div id="mount-project"></div></section>
 
-      <!-- 聊天页：只留挂载点，内容由 web/modules/chat 自己渲染 -->
+      <!-- 聊天页：只留挂载点，内容由 hive/modules/webchat/ui.js 自己渲染 -->
       <section id="chatview" class="chatwrap hidden"><div id="mount-chat"></div></section>
     </main>
 
@@ -79,6 +80,7 @@
 <script src="/module-ui/projects.js"></script>
 <script src="/module-ui/webchat.js"></script>
 <script src="/module-ui/artifacts.js"></script>
+<script src="/module-ui/rules.js"></script>
 <script src="/module-ui/idle.js"></script>
 <script src="/module-ui/library.js"></script>
 <script src="/module-ui/health.js"></script>

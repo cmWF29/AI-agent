@@ -108,10 +108,10 @@ class Skills(Module):
 
     # ---------------- package helpers ----------------
     def _library(self):
-        return self.ctx.api("library.upsert")
+        return self.ctx.rule("skill.store")
 
     def _record(self, rec):
-        return self.ctx.api("library.upsert", kind="skills", item=rec)
+        return self.ctx.rule("skill.store", kind="skills", item=rec)
 
     def _read_meta(self, sid):
         p = os.path.join(self.pkg_root, sid, "meta.json")
@@ -271,7 +271,7 @@ class Skills(Module):
                   "3) 不要编造已完成；4) 交付时写清验证命令/证据。\nSkill 包：%s" % os.path.join(self.pkg_root, sid)
         checks = [{"kind": "glob", "path": p} for p in outputs]
         try:
-            res = self.ctx.api("library.design",
+            res = self.ctx.rule("skill.design_role",
                                role=role, responsibility=responsibilities, must_outputs=outputs,
                                prompt=prompt, skills=[{"id": sid, "name": meta.get("name") or sid,
                                                        "body": body[:8000]}],
@@ -284,7 +284,7 @@ class Skills(Module):
         card = dict(res.get("role") or {})
         card.update({"skill_id": sid, "skill_source": meta.get("source") or "",
                      "source": "skill-decomposer"})
-        self.ctx.api("library.upsert", kind="roles", item=card)
+        self.ctx.rule("skill.store", kind="roles", item=card)
         meta["decomposed"] = True
         meta["role"] = role
         meta["must_outputs"] = outputs

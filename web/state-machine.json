@@ -1,5 +1,5 @@
 {
-  "version": "4.4",
+  "version": "4.6",
   "description": "Hive Agent 网页状态转移的唯一契约。改页面前先改这里，再改 app.js/index.html；tests/test_state_machine.py 负责一致性。",
   "initial": "project.home",
   "states": [
@@ -52,6 +52,14 @@
       "render": "openLibrary",
       "visible": ["modal"],
       "events": { "CLOSE": "project.home" }
+    },
+    {
+      "id": "overlay.rules",
+      "view": "overlay",
+      "route": "#/rules",
+      "render": "openRules",
+      "visible": ["modal"],
+      "events": { "CLOSE": "project.home", "VALIDATE": "overlay.rules" }
     },
     {
       "id": "overlay.health",

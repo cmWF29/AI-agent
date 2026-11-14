@@ -29,6 +29,7 @@ MODULE_SPECS = [
     ("gitsync", "GitSync"),               # 仓库状态与 fetch
     ("ops", "Ops"),                       # 固定命令 / 版本管理（非核心，可移除）
     ("health", "Health"),                 # 最后挂，确保能检查前面所有人
+    ("rules", "Rules"),                   # 业务规则/流程层：模块关系的唯一来源
 ]
 
 

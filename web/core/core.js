@@ -17,6 +17,18 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+function findProject(id) { for (var i = 0; i < state.projects.length; i++) if (state.projects[i].id === id) return state.projects[i]; return null; }
+function findGroup(id) { for (var i = 0; i < state.groups.length; i++) if (state.groups[i].id === id) return state.groups[i]; return null; }
+var FLOW_STATE_LABELS = { done: '已完成', running: '进行中', idle: '等待中', destroyed: '已结束', gone: '已结束', error: '异常' };
+var STATUS_LABELS = { running: '进行中', queued: '排队中', closing: '结单中', closed: '已结单',
+  conflict: '有冲突', working: '处理中', blocked: '被拦下', interrupted: '已中断', error: '异常' };
+function stateLabel(s) { return FLOW_STATE_LABELS[s] || s || ''; }
+function statusLabel(s) { return STATUS_LABELS[s] || s || ''; }
+function overlayRoute(hash, tab) {
+  setTab(tab);
+  if (isOverlayHash()) replaceHash(hash); else pushHash(hash);
+  updateBackBtn();
+}
 function toast(msg, kind) {
   var el = $('toast'); el.textContent = msg; el.className = 'toast ' + (kind || '');
   clearTimeout(el._t); el._t = setTimeout(function () { el.className = 'toast hidden'; }, 2800);
@@ -47,6 +59,7 @@ function routeOfHash() {
   }
   if (type === 'library') return { type: 'overlay', tab: 'library', kind: parts[1] || 'roles' };
   if (type === 'health' || type === 'versions') return { type: 'overlay', tab: type };
+  if (type === 'rules') return { type: 'overlay', tab: 'rules' };
   return { type: 'project', id: dec(parts[1] || '') };
 }
 function hashOfView() {
@@ -81,12 +94,12 @@ function goBack() {
   if (state.navDepth > 0) { history.back(); return; }
   var pid = state.view === 'project' ? state.project : ((findGroup(state.group) || {}).project || state.project);
   if (state.view === 'chat' && state.group.indexOf('T-') === 0 && pid) {
-    openProject(pid, true, { replace: true }); return;
+    HiveUI.emit('project:open', { id: pid, silent: true, opts: { replace: true } }); return;
   }
   if (state.view === 'project') { toast('已经是最外层了', 'warn'); return; }
   if (state.view === 'chat') {
     var pid2 = (findGroup(state.group) || {}).project || state.project;
-    if (pid2) openProject(pid2, true, { replace: true });
+    if (pid2) HiveUI.emit('project:open', { id: pid2, silent: true, opts: { replace: true } });
     return;
   }
   toast('已经是最外层了', 'warn');

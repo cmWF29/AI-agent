@@ -3,16 +3,11 @@ var HEALTH_LABELS = {
   disk_free: '磁盘余量', artifacts_size: '交付件体积', artifacts_disk_headroom: '交付件占用余量',
   trace: '全链路 trace 落盘', llm_key: '大模型 Key', http_traffic: '网页流量'
 };
-var FLOW_STATE_LABELS = { done: '已完成', running: '进行中', idle: '等待中', destroyed: '已结束', gone: '已结束', error: '异常' };
 function healthLabel(n) {
   if (HEALTH_LABELS[n]) return HEALTH_LABELS[n];
   if (/^api_/.test(n)) return '接口可用：' + n.slice(4).replace(/_/g, '.');
   return n;
 }
-function stateLabel(s) { return FLOW_STATE_LABELS[s] || s || ''; }
-var STATUS_LABELS = { running: '进行中', queued: '排队中', closing: '结单中', closed: '已结单',
-  conflict: '有冲突', working: '处理中', blocked: '被拦下', interrupted: '已中断', error: '异常' };
-function statusLabel(s) { return STATUS_LABELS[s] || s || ''; }
 function openHealth(opts) {
   opts = opts || {};
   openModal('健康自检', '<div id="hbody" class="muted">检查中…</div>', { root: true });
@@ -59,28 +54,4 @@ function openHealth(opts) {
       };
     }).catch(function (e) { $('hbody').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
 }
-function openVersions(opts) {
-  opts = opts || {};
-  openModal('版本管理', '<div id="vbody" class="muted">读取中…</div>', { root: true });
-  if (!opts.fromRoute) overlayRoute('#/versions', 'versions');
-  api('/api/ops/versions').then(function (v) {
-    var g = v.git || {};
-    if (!g.available) { $('vbody').innerHTML = '<div class="muted">部署目录不是 git 仓库。</div>'; return; }
-    $('vbody').innerHTML = '<div class="muted small">当前 ' + esc(v.version || '') + ' · HEAD ' + esc(g.head || '') +
-      (g.dirty ? ' · 工作区有改动' : '') + '</div><div class="commitlist">' +
-      (g.commits || []).map(function (c) {
-        return '<div class="commit ' + (c.current ? 'cur' : '') + '"><div class="grow"><div><code>' + esc(c.short) + '</code> ' + esc(c.subject || '') +
-          '</div><div class="muted small">' + esc(c.date || '') + (c.current ? ' · 当前运行' : '') + '</div></div>' +
-          (c.current ? '' : '<button class="mini" data-t="' + esc(c.short) + '">回退</button>') + '</div>';
-      }).join('') + '</div>';
-    $('vbody').querySelectorAll('button[data-t]').forEach(function (b) { b.onclick = function () { rollback(b.dataset.t); }; });
-  }).catch(function (e) { $('vbody').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
-}
-function rollback(t) {
-  if (!confirm('回退到 ' + t + '？\nwatchdog 会先建 autosave 分支保住当前代码，再切过去重启。')) return;
-  api('/api/ops/rollback', { method: 'POST', body: { target: t } }).then(function () { toast('已下发回退指令'); })
-    .catch(function (e) { toast('回退失败：' + e.message, 'err'); });
-}
-
-
-HiveUI.on('panel:open', function (p) { if (p && p.name === 'health') openHealth(); });
+HiveUI.on('panel:open', function (p) { if (p && p.name === 'health') openHealth(p.opts); });

@@ -1,9 +1,3 @@
-function overlayRoute(hash, tab) {
-  setTab(tab);
-  if (isOverlayHash()) replaceHash(hash); else pushHash(hash);
-  updateBackBtn();
-}
-
 function openLibrary(kind, opts) {
   opts = opts || {};
   kind = kind || 'roles';
@@ -121,4 +115,4 @@ function decomposeSkill(id) {
 }
 
 
-HiveUI.on('panel:open', function (p) { if (p && p.name === 'library') openLibrary('roles'); });
+HiveUI.on('panel:open', function (p) { if (p && p.name === 'library') openLibrary(p.kind || 'roles', p.opts); });

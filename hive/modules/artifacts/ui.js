@@ -169,9 +169,21 @@ function browseSource(path) {
 
 // ---------------- 交付件/文件模块自己的侧栏入口 ----------------
 HiveUI.on('side:open', function (payload) {
-  var kind = (payload || {}).kind || '';
+  payload = payload || {};
+  var kind = payload.kind || '';
+  if (payload.project) state.project = payload.project;
   if (kind === 'project-files') return openProjectFiles();
-  if (kind === 'project-source') return openProjectSource();
+  if (kind === 'project-source') return openProjectSource(payload.path || '');
   if (kind === 'project-artifacts') { state.sideLayer = 'project'; show('side'); loadFiles(); updateBackBtn(); return; }
+  if (kind === 'artifacts') {
+    state.view = 'chat'; state.group = payload.group || state.group;
+    openSide(); return;
+  }
+  if (kind === 'artifact') {
+    state.view = 'chat'; state.group = payload.group || state.group;
+    var g = findGroup(state.group) || {};
+    return openArtifact(payload.path || '', g.project || state.project,
+      (state.group || '').indexOf('T-') === 0, payload.layer || 'ticket');
+  }
   openSide();
 });

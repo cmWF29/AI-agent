@@ -1,13 +1,13 @@
 # 架构静态扫描报告
 
-生成时间：2026-11-14T08:40:18Z
+生成时间：2026-11-14T11:22:02Z
 
 ## 结论
 
 - 门禁：**通过**
-- 模块数：20；API 调用边：24；API 环：0；import 环：0
+- 模块数：21；API 调用边：0；API 环：0；import 环：0
 - 流程数：50；流程 DAG 环：0
-- 网页状态：一致（状态 11 / 事件 14 / DOM id 103 / 按钮 53 / 控件 27）
+- 网页状态：一致（状态 12 / 事件 15 / DOM id 107 / 按钮 56 / 控件 27）
 
 ## 模块唯一出口与对外 API
 
@@ -27,6 +27,7 @@
 | observability | `hive/modules/observability/__init__.py` | 5 | 0 | 无 |
 | ops | `hive/modules/ops/__init__.py` | 11 | 0 | 无 |
 | projects | `hive/modules/projects/__init__.py` | 14 | 2 | 无 |
+| rules | `hive/modules/rules/__init__.py` | 4 | 0 | 无 |
 | sessions | `hive/modules/sessions/__init__.py` | 12 | 0 | 无 |
 | skills | `hive/modules/skills/__init__.py` | 6 | 0 | 无 |
 | testrunner | `hive/modules/testrunner/__init__.py` | 2 | 0 | 无 |
@@ -36,19 +37,31 @@
 
 ## 模块 API 依赖（同步调用）
 
-- `health` -> `artifacts`
-- `idle` -> `sessions`
-- `lifecycle` -> `projects`, `tickets`
-- `ops` -> `knowledge`, `sessions`, `tickets`
-- `projects` -> `artifacts`, `gitflow`, `knowledge`
-- `sessions` -> `knowledge`, `projects`
-- `skills` -> `library`
-- `tickets` -> `artifacts`, `gitflow`, `idle`, `knowledge`, `library`, `projects`, `sessions`
-- `webchat` -> `idle`, `projects`, `sessions`, `tickets`
 
 ### API 环
 
 - 无
+
+## 规则层（模块关系的唯一来源）
+
+- 关系规则：58；业务流程：9；活跃：58；需求覆盖：18/33；冲突：无
+- 业务模块直接跨模块 API：0；模块直接 UI 函数跨调：0
+
+### 规则层 -> 能力模块
+
+- `rules` -> `artifacts`, `gitflow`, `idle`, `knowledge`, `library`, `projects`, `sessions`, `tickets`
+
+### 模块 -> 规则
+
+- `health`: `health.artifact_stats`, `health.probe_artifacts`, `health.probe_knowledge`, `health.probe_library`, `health.probe_projects`, `health.probe_sessions`, `health.probe_tickets`
+- `idle`: `idle.send_message`
+- `lifecycle`: `lifecycle.default_project`, `lifecycle.delete_project`, `lifecycle.delete_ticket`, `lifecycle.list_tickets`, `lifecycle.preview_delete`, `lifecycle.project_snapshot`
+- `ops`: `ops.knowledge_snapshot`, `ops.session_snapshot`, `ops.ticket_snapshot`
+- `projects`: `project.init_workspace`, `project.purge_artifacts`, `project.purge_knowledge`
+- `sessions`: `session.load_context`, `session.project_directory`
+- `skills`: `skill.design_role`, `skill.store`
+- `tickets`: `ticket.apply_tag`, `ticket.archive_outputs`, `ticket.bind_project`, `ticket.check_outputs`, `ticket.dequeue`, `ticket.judge_capacity`, `ticket.list_changes`, `ticket.list_sessions`, `ticket.load_card`, `ticket.load_context`, `ticket.merge_workspace`, `ticket.open_workspace`, `ticket.queue`, `ticket.release_session`, `ticket.remove_workspace`, `ticket.send_instruction`, `ticket.session_messages`, `ticket.session_status`, `ticket.spawn_session`, `ticket.sync_workspace`, `ticket.wait_session`, `ticket.write_learning`
+- `webchat`: `chat.ensure_secretary`, `chat.judge_capacity`, `chat.project_directory`, `chat.queue_message`, `chat.route_ticket_message`, `chat.send_message`, `chat.session_context`, `chat.session_directory`, `chat.session_messages`, `chat.session_state`, `chat.ticket_context`, `chat.ticket_directory`
 
 ## 流程 DAG
 

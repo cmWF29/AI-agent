@@ -900,6 +900,9 @@ def test_security_and_ui_contract(mock):
                     {"role": "user", "content": "继续", "ts": 1},
                     {"role": "tool", "content": "tool-output"},
                 ]}
+
+            def rule(self, name, **kw):
+                return self.api(name, **kw)
         old_ctx = wc.ctx
         try:
             wc.ctx = FakeCtx()
@@ -1100,6 +1103,19 @@ def test_architecture_gate():
     check("流程 DAG 无环", not any(f.get("cycles") for f in r["flows"]), r["flows"])
     req_flows = [f for f in r["flows"] if f.get("id", "").startswith("req-")]
     check("历史需求逐条入流程库", len(req_flows) == 33, [f.get("id") for f in req_flows])
+    rules = r.get("rules") or {}
+    check("规则目录可加载", rules.get("ok") and not rules.get("errors"), rules.get("errors"))
+    check("规则统计为 58 关系 / 9 流程",
+          (rules.get("stats") or {}).get("relations") == 58 and
+          (rules.get("stats") or {}).get("processes") == 9, rules.get("stats"))
+    check("业务模块没有直接跨模块 API 调用", not rules.get("direct_cross_calls"), rules.get("direct_cross_calls"))
+    check("规则调用都归属声明模块", not any("from 是" in e or "不存在" in e for e in rules.get("errors") or []),
+          rules.get("errors"))
+    check("规则图有工单归属项目边",
+          any(e.get("from") == "rule:ticket.bind_project" and e.get("to") == "module:projects"
+              for e in (rules.get("graph") or {}).get("edges", [])),
+          "rules.graph")
+    check("前端模块没有跨模块 UI 函数直调", not r.get("ui", {}).get("errors"), r.get("ui", {}).get("errors"))
 
 
 def test_v45_lifecycle_idle_system(mock):
@@ -1151,6 +1167,57 @@ def test_v45_lifecycle_idle_system(mock):
             env.close()
 
 
+def test_rules_execution(mock):
+    """规则层：模块只调规则 id，由规则层翻译成 peer API。"""
+    print("[规则层] 目录 / 静态校验 / 执行 / 图")
+    env = None
+    try:
+        env = Env(mock)
+        cat = env.api("rules.catalog")
+        check("规则目录 API 可读", cat.get("stats", {}).get("relations") == 58, cat.get("stats"))
+        val = env.api("rules.validate")
+        check("规则冲突静态校验通过", val.get("ok") is True, val.get("errors"))
+        run = env.api("rules.run", rule="ticket.bind_project", payload={"name": "ruleproj"})
+        check("规则可执行业务关系", (run.get("project") or {}).get("id") == "ruleproj", run)
+        try:
+            env.api("rules.run", rule="ticket.bind_project", payload={"name": "bad"}, source="projects")
+            forbidden = False
+        except Exception as exc:
+            forbidden = getattr(exc, "code", "") == "rule_forbidden" or "不能执行规则" in str(exc)
+        check("规则来源模块被强校验", forbidden)
+        graph = env.api("rules.graph")
+        check("规则图含流程组合边", any(e.get("kind") == "composes" for e in graph.get("edges") or []),
+              (graph.get("edges") or [])[:3])
+        check("规则图含需求节点", any(n.get("type") == "requirement" for n in graph.get("nodes") or []),
+              (graph.get("nodes") or [])[:2])
+        check("规则目录无执行错误", not cat.get("errors"), cat.get("errors"))
+        # 静态冲突：同一 subject/predicate/object 出现两种基数时必须拒绝。
+        from hive.modules.rules.module import RuleBook
+        tmp_rules = tempfile.mkdtemp(prefix="hive-rules-")
+        try:
+            for fn in ("ontology.json", "catalog.json"):
+                shutil.copy(os.path.join(REPO, "data", "rules", fn), tmp_rules)
+            with open(os.path.join(tmp_rules, "catalog.json"), encoding="utf-8") as f:
+                data = json.load(f)
+            data["relations"].append({
+                "id": "bad.cardinality", "cn": "冲突测试", "kind": "relation",
+                "from": "projects", "to": "projects", "subject": "project",
+                "predicate": "reads", "object": "project", "cardinality": "1:1",
+                "intent": "测试", "steps": [{"call": "projects.list"}], "requirements": [],
+            })
+            with open(os.path.join(tmp_rules, "catalog.json"), "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            book = RuleBook(tmp_rules, available_modules=["projects"], known_routes=["projects.list"])
+            check("规则基数冲突可被静态发现", any("基数不一致" in e for e in book.errors), book.errors[:4])
+        finally:
+            shutil.rmtree(tmp_rules, ignore_errors=True)
+    except Exception as exc:
+        check("规则层未崩溃", False, repr(exc))
+    finally:
+        if env:
+            env.close()
+
+
 def main():
     mock = MockLLM().start()
     print("mock llm:", mock.base_url)
@@ -1161,7 +1228,7 @@ def main():
              test_close_readonly_artifacts, test_gitflow, test_three_by_three, test_https,
              test_v4_features, test_security_and_ui_contract, test_flow_content_and_reverify,
              test_agent_backends_and_skills, test_v44_features, test_web_state_machine,
-             test_architecture_gate, test_v45_lifecycle_idle_system]
+             test_architecture_gate, test_rules_execution, test_v45_lifecycle_idle_system]
     t0 = time.time()
     for t in tests:
         try:

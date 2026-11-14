@@ -37,7 +37,7 @@ class Knowledge(Module):
         self.api.route("GET", "/api/knowledge/list", name="list")(self.list_docs)
         self.api.route("GET", "/api/knowledge/search")(self.search)
         self.api.route("POST", "/api/knowledge/compose")(self.compose)
-        self.api.route("POST", "/api/knowledge/remove-project")(self.remove_project_api)
+        self.api.route("POST", "/api/knowledge/remove-project", name="remove_project")(self.remove_project_api)
 
         self._register_tools()
 

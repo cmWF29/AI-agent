@@ -14,7 +14,7 @@ from ...kernel.store import ensure_dir
 from ...version import __version__
 
 REQUIRED_MODULES = ["obs", "knowledge", "memory", "library", "artifacts", "projects",
-                    "toolpack", "sessions", "gitflow", "tickets", "webchat"]
+                    "toolpack", "sessions", "gitflow", "tickets", "webchat", "rules"]
 
 
 def _human(n):
@@ -68,14 +68,20 @@ class Health(Module):
         missing = [m for m in REQUIRED_MODULES if m not in self.ctx.modules]
         add("modules_loaded", not missing, True, "missing=" + ",".join(missing) if missing else "all")
 
-        # 3) 三个核心 API 可响应
-        for route in ("sessions.list", "tickets.list", "knowledge.overview",
-                      "library.summary", "artifacts.stats", "projects.list"):
+        # 3) 核心 API 通过规则层探活：health 不认识具体模块，只认识规则 id
+        def probe(label, fn):
             try:
-                self.ctx.api(route)
-                add("api_" + route.replace(".", "_"), True, True, route)
+                fn()
+                add(label, True, True, "")
             except Exception as exc:
-                add("api_" + route.replace(".", "_"), False, True, repr(exc))
+                add(label, False, True, repr(exc))
+
+        probe("api_sessions_list", lambda: self.ctx.rule("health.probe_sessions"))
+        probe("api_tickets_list", lambda: self.ctx.rule("health.probe_tickets"))
+        probe("api_knowledge_overview", lambda: self.ctx.rule("health.probe_knowledge"))
+        probe("api_library_summary", lambda: self.ctx.rule("health.probe_library"))
+        probe("api_artifacts_stats", lambda: self.ctx.rule("health.probe_artifacts"))
+        probe("api_projects_list", lambda: self.ctx.rule("health.probe_projects"))
 
         # 4) 总线可用
         try:
@@ -93,7 +99,7 @@ class Health(Module):
 
         # 6) 交付件体积 + 压缩情况（需求 20）
         try:
-            art = self.ctx.api("artifacts.stats")
+            art = self.ctx.rule("health.artifact_stats")
             total = art.get("total_bytes", 0)
             add("artifacts_size", True, False, "%s（压缩 %d 个工单）" % (art.get("total_human"), art.get("compressed", 0)))
             add("artifacts_disk_headroom", total < 200 * 1024 * 1024, False,

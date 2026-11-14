@@ -478,7 +478,7 @@ class Sessions(Module):
         if project:
             return "sec-" + project
         try:
-            items = self.ctx.api("projects.list").get("items") or []
+            items = self.ctx.rule("session.project_directory").get("items") or []
             if items:
                 return "sec-" + items[0]["id"]
         except ApiError:
@@ -535,7 +535,7 @@ class Sessions(Module):
 
     def _secretary_prompt(self, project=""):
         try:
-            compose = self.ctx.api("knowledge.compose", scopes=[{"layer": "public"}])
+            compose = self.ctx.rule("session.load_context", scopes=[{"layer": "public"}])
             base = compose.get("text") or ""
         except ApiError:
             base = ""

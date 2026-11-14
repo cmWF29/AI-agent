@@ -64,7 +64,7 @@ class GitFlow(Module):
         self.api.route("POST", "/api/gitflow/ticket/init", name="ticket_init")(self.ticket_init_api)
         self.api.route("POST", "/api/gitflow/ticket/sync", name="ticket_sync")(self.ticket_sync_api)
         self.api.route("GET", "/api/gitflow/ticket/status", name="ticket_status")(self.ticket_status_api)
-        self.api.route("GET", "/api/gitflow/ticket/changed", name="ticket_changed")(self.ticket_changed_api)
+        self.api.route("GET", "/api/gitflow/ticket/changed", name="changed_files")(self.ticket_changed_api)
         self.api.route("POST", "/api/gitflow/ticket/merge", name="ticket_merge")(self.ticket_merge_api)
         self.api.route("POST", "/api/gitflow/ticket/remove", name="ticket_remove")(self.ticket_remove_api)
         self.api.route("GET", "/api/gitflow/list", name="list")(self.list_api)

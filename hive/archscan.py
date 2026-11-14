@@ -2,7 +2,8 @@
 
 三层对象：
 1. 后端模块：每个 hive/modules/<name>.py 是唯一出口；对外 API = 路由 + 工具。
-   扫描跨模块 import（应当为零）与 ctx.api("module.method") 调用图。
+   扫描跨模块 import（应当为零）、业务模块直接 ctx.api 跨调（应当为零）、
+   ctx.rule 到规则目录的归属，以及前端模块之间的直接函数调用。
 2. 流程库：data/library/flows/*.json；有 nodes/edges 就按 DAG 检查环。
 3. 网页：web/state-machine.json 的状态/事件/DOM 契约 + app.js 的 DOM 引用。
 
@@ -92,13 +93,18 @@ def scan_modules():
         files = sorted(fn for fn in os.listdir(d) if fn.endswith(".py"))
         text = "".join(_read(os.path.join(d, fn)) + "\n" for fn in files)
         routes, tools = [], []
+        route_ids = []
         for m in re.finditer(r'\.route\("(?:GET|POST|PUT|DELETE)",\s*"([^"]+)"(?:,\s*name="([^"]+)")?', text):
             routes.append({"path": m.group(1), "name": m.group(2) or m.group(1)})
+        for m in re.finditer(r'\.route\(\s*"(?:GET|POST|PUT|DELETE)"\s*,\s*"[^"]+"(?:\s*,\s*name="([^"]+)")?\s*\)\s*\(\s*(?:self\.)?([A-Za-z_][A-Za-z0-9_]*)', text):
+            route_ids.append("%s.%s" % (ent, m.group(1) or m.group(2)))
         for m in re.finditer(r'Tool\("([a-zA-Z_][a-zA-Z0-9_]*)"', text):
             tools.append(m.group(1))
         imports = sorted(set(re.findall(r'from\s+hive\.modules\.([a-zA-Z_][a-zA-Z0-9_]*)', text)))
         imports += sorted(set(re.findall(r'from\s+\.\.([a-zA-Z_][a-zA-Z0-9_]*)', text)))
         calls = sorted(set(re.findall(r'(?:self\.ctx|ctx)\.api\("([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)"', text)))
+        dynamic_calls = sorted(set(re.findall(r'(?:self\.ctx|ctx)\.api\(\s*([A-Za-z_][A-Za-z0-9_]*)', text)))
+        rule_calls = sorted(set(re.findall(r'\.rule\(\s*"([^"]+)"', text)))
         topics = []
         for raw in sorted(set(re.findall(r'(?:emit|publish|subscribe)\("([^"]+)"', text))):
             if "%" in raw or "{" in raw:
@@ -110,11 +116,13 @@ def scan_modules():
             "name": ent, "entry": "hive/modules/%s/__init__.py" % ent,
             "internal_files": files, "event_topics": topics, "bad_event_topics": bad_topics,
             "transport": "hub.request",
-            "routes": routes, "tools": tools,
+            "routes": routes, "route_ids": sorted(set(route_ids)), "tools": tools,
             "public_api": ["route:%s %s" % (r["path"], r["name"]) for r in routes] +
                           ["tool:%s" % t for t in tools],
             "cross_imports": imports,
             "api_calls": ["%s.%s" % (a, b) for a, b in calls],
+            "dynamic_api_calls": dynamic_calls,
+            "rule_calls": rule_calls,
             "private_tests": bool(re.search(r'if\s+__name__\s*==\s*"__main__"', text)),
         })
     return mods
@@ -184,6 +192,117 @@ def scan_flows():
     except Exception as exc:
         flows.append({"id": "__builtin__", "error": "内置流程读取失败: %r" % exc, "cycles": []})
     return flows
+
+
+def scan_ui_calls(mods):
+    """前端门禁：业务模块的 ui.js 不得直接调用另一个业务模块的全局函数。"""
+    ui_files = {}
+    defs = {}
+    for m in mods:
+        path = os.path.join(ROOT, "hive", "modules", m["name"], "ui.js")
+        if not os.path.isfile(path):
+            continue
+        text = _read(path)
+        ui_files[m["name"]] = text
+        defs[m["name"]] = set(re.findall(r'function\s+(\w+)\s*\(', text))
+        defs[m["name"]].update(re.findall(r'var\s+(\w+)\s*=\s*function\s*\(', text))
+    core = set()
+    core_dir = os.path.join(ROOT, "web", "core")
+    if os.path.isdir(core_dir):
+        for fn in os.listdir(core_dir):
+            if fn.endswith(".js"):
+                text = _read(os.path.join(core_dir, fn))
+                core.update(re.findall(r'function\s+(\w+)\s*\(', text))
+                core.update(re.findall(r'var\s+(\w+)\s*=\s*function\s*\(', text))
+    allowed = set(["require", "define", "HiveUI", "console"])
+    errors = []
+    rows = []
+    for mod, text in ui_files.items():
+        own = defs.get(mod, set())
+        for other, other_defs in defs.items():
+            if other == mod:
+                continue
+            for name in sorted(other_defs - own - core - allowed):
+                # 只看真正的调用，不把函数声明本身当调用。
+                for mt in re.finditer(r'\b' + re.escape(name) + r'\s*\(', text):
+                    start = mt.start()
+                    if start >= 9 and text[start - 9:start] == "function ":
+                        continue
+                    if start > 0 and text[start - 1] == ".":
+                        continue
+                    line = text.count("\n", 0, start) + 1
+                    errors.append("%s/ui.js:%d 直接调用其他模块函数 %s（应由 HiveUI 事件或本模块函数完成）" % (
+                        mod, line, name))
+                    rows.append({"module": mod, "line": line, "call": name, "owner": other})
+    return {"errors": errors, "calls": rows, "defs": {k: sorted(v) for k, v in defs.items()}}
+
+
+def scan_rules(mods):
+    """扫描规则层：模块代码只能引用规则 id；规则目录负责落到具体模块 API。"""
+    from hive.modules.rules.module import RuleBook
+    repo = ROOT
+    reqs = {}
+    try:
+        reqs = json.loads(_read(os.path.join(repo, "docs", "requirement-flows.json")))
+    except Exception:
+        pass
+    known_routes = set()
+    for m in mods:
+        known_routes.update(m.get("route_ids") or [])
+    try:
+        book = RuleBook(os.path.join(repo, "data", "rules"),
+                        available_modules=[m["name"] for m in mods],
+                        known_routes=known_routes,
+                        requirements=reqs)
+    except Exception as exc:
+        return {"ok": False, "errors": ["规则目录读取失败: %r" % exc], "warnings": [],
+                "relations": [], "processes": [], "direct_cross_calls": [],
+                "rule_calls": [], "orchestration_graph": {}, "stats": {}}
+    errors, warnings = list(book.errors), list(book.warnings)
+    direct_cross = []
+    call_rows = []
+    for m in mods:
+        if m["name"] != "rules":
+            for call in m.get("api_calls") or []:
+                target = call.split(".", 1)[0]
+                if target != m["name"]:
+                    direct_cross.append({"module": m["name"], "call": call})
+            for call in m.get("dynamic_api_calls") or []:
+                direct_cross.append({"module": m["name"], "call": call, "dynamic": True})
+        for rid in m.get("rule_calls") or []:
+            rule = book.rule(rid)
+            if not rule:
+                errors.append("%s: 引用了不存在的规则 %s" % (m["name"], rid))
+                continue
+            if rule.get("from") != m["name"]:
+                errors.append("%s: 规则 %s 的 from 是 %s，不能由本模块调用" % (
+                    m["name"], rid, rule.get("from")))
+            call_rows.append({"module": m["name"], "rule": rid,
+                              "active": book.active(rule)})
+    if direct_cross:
+        for row in direct_cross:
+            errors.append("模块 %s 直接跨模块调用 %s；必须改为 ctx.rule(...)" % (
+                row["module"], row["call"]))
+    used = {r["rule"] for r in call_rows}
+    for rule in book.relations:
+        if rule["id"] not in used:
+            warnings.append("规则 %s 没有被任何模块调用（可能只被流程组合）" % rule["id"])
+    orch = {}
+    for rule in book.relations:
+        if rule.get("to"):
+            orch.setdefault("rules", set()).add(rule["to"])
+    return {
+        "ok": not errors,
+        "errors": errors,
+        "warnings": warnings,
+        "relations": [dict(r, active=book.active(r)) for r in book.relations],
+        "processes": list(book.processes),
+        "direct_cross_calls": direct_cross,
+        "rule_calls": call_rows,
+        "orchestration_graph": {k: sorted(v) for k, v in orch.items()},
+        "graph": book.graph(),
+        "stats": book.status(),
+    }
 
 
 def scan_web():
@@ -279,7 +398,9 @@ def scan(strict_api=False):
     api_cycles = _cycles({k: v for k, v in graph.items()})
     import_cycles = _cycles({m["name"]: m["cross_imports"] for m in mods})
     flows = scan_flows()
+    rules = scan_rules(mods)
     web = scan_web()
+    ui = scan_ui_calls(mods)
     errors, warnings = [], []
     for m in mods:
         if m["cross_imports"]:
@@ -297,6 +418,9 @@ def scan(strict_api=False):
             warnings.append(msg + "（已登记债务）")
         else:
             errors.append(msg + "（新增环，未登记；请拆边或显式登记到基线并说明理由）")
+    for e in rules["errors"]:
+        errors.append("规则层: %s" % e)
+    warnings.extend(rules["warnings"])
     for f in flows:
         if f.get("error"):
             errors.append("流程 %s: %s" % (f["id"], f["error"]))
@@ -304,6 +428,8 @@ def scan(strict_api=False):
             errors.append("流程 %s 的 DAG 环: %s" % (f["id"], " -> ".join(c)))
     for e in web["errors"]:
         errors.append("网页契约: %s" % e)
+    for e in ui["errors"]:
+        errors.append("前端模块边界: %s" % e)
     result = {
         "root": ROOT,
         "modules": mods,
@@ -311,7 +437,10 @@ def scan(strict_api=False):
         "api_cycles": api_cycles,
         "import_cycles": import_cycles,
         "flows": flows,
+        "rules": rules,
+        "orchestration_graph": rules["orchestration_graph"],
         "web": web,
+        "ui": ui,
         "errors": errors,
         "warnings": warnings,
         "ok": not errors,
@@ -324,7 +453,7 @@ def write_report(result, out_dir=None):
     out_dir = out_dir or os.path.join(ROOT, "docs", "architecture")
     os.makedirs(out_dir, exist_ok=True)
     jpath = os.path.join(out_dir, "arch-report.json")
-    with open(jpath, "w", encoding="utf-8") as f:
+    with open(jpath, "w", encoding="utf-8", newline="\n") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     lines = [
         "# 架构静态扫描报告", "",
@@ -357,6 +486,24 @@ def write_report(result, out_dir=None):
             lines.append("- %s" % " -> ".join(c))
     else:
         lines.append("- 无")
+    rules = result.get("rules") or {}
+    stats = rules.get("stats") or {}
+    lines += ["", "## 规则层（模块关系的唯一来源）", ""]
+    lines.append("- 关系规则：%d；业务流程：%d；活跃：%d；需求覆盖：%d/%d；冲突：%s" % (
+        stats.get("relations", 0), stats.get("processes", 0), stats.get("active", 0),
+        stats.get("requirements", 0), stats.get("requirement_total", 0),
+        "有" if rules.get("errors") else "无"))
+    lines.append("- 业务模块直接跨模块 API：%d；模块直接 UI 函数跨调：%d" % (
+        len(rules.get("direct_cross_calls") or []), len((result.get("ui") or {}).get("calls") or [])))
+    lines += ["", "### 规则层 -> 能力模块", ""]
+    for k in sorted(rules.get("orchestration_graph") or {}):
+        lines.append("- `%s` -> %s" % (k, ", ".join("`%s`" % x for x in rules["orchestration_graph"][k])))
+    lines += ["", "### 模块 -> 规则", ""]
+    by_mod = {}
+    for row in rules.get("rule_calls") or []:
+        by_mod.setdefault(row["module"], []).append(row["rule"])
+    for mod in sorted(by_mod):
+        lines.append("- `%s`: %s" % (mod, ", ".join("`%s`" % x for x in sorted(by_mod[mod]))))
     lines += ["", "## 流程 DAG", "", "| 流程 | 节点 | 边 | DAG 字段 | 环 |", "| --- | --- | --- | --- | --- |"]
     for f in sorted(result["flows"], key=lambda x: x["id"]):
         lines.append("| %s | %d | %d | %s | %s |" % (
@@ -373,7 +520,7 @@ def write_report(result, out_dir=None):
     lines += ["- %s" % e for e in result["errors"]] or ["- 无"]
     lines += ["", "## 已知债务（不阻塞当前门禁）", ""]
     lines += ["- %s" % w for w in result["warnings"]] or ["- 无"]
-    with open(os.path.join(out_dir, "arch-report.md"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "arch-report.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
     return jpath, os.path.join(out_dir, "arch-report.md")
 

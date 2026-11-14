@@ -47,7 +47,7 @@ class WebChat(Module):
 
     def _default_secretary(self):
         try:
-            projects = self.ctx.api("projects.list").get("items", [])
+            projects = self.ctx.rule("chat.project_directory").get("items", [])
         except ApiError:
             projects = []
         return ("sec-" + projects[0]["id"]) if projects else ""
@@ -59,7 +59,7 @@ class WebChat(Module):
         if g.startswith("ticket:"):
             g = g.split(":", 1)[-1]
         if g.startswith("T-"):
-            t = self.ctx.api("tickets.get", ticket_id=g)["ticket"]
+            t = self.ctx.rule("chat.ticket_context", ticket_id=g)["ticket"]
             if t.get("status") in ("closed", "closing"):
                 raise ApiError(
                     "工单 %s 已结单或正在结单，群聊只读。要改结果请新开工单，并在目标里写“基于 %s”。" % (g, g),
@@ -93,12 +93,12 @@ class WebChat(Module):
         force = payload.get("force") in (True, 1, "1")
         if not force:
             try:
-                idle = self.ctx.api("idle.judge")["idle"]
+                idle = self.ctx.rule("chat.judge_capacity")["idle"]
             except ApiError:
                 idle = {"peak": False}
             if idle.get("peak"):
                 project = session[4:] if session.startswith("sec-") else ""
-                self.ctx.api("idle.enqueue", kind="message",
+                self.ctx.rule("chat.queue_message", kind="message",
                              payload={"session": session, "text": text, "project": project},
                              note=idle.get("reason") or "", project=project)
                 job.update({"status": "queued", "reply": "高峰排队中，空闲时自动发送", "idle": idle,
@@ -111,7 +111,7 @@ class WebChat(Module):
         if kind == "ticket":
             if not session:
                 raise ApiError("该工单当前没有 PM（可能已结单）", status=410, code="ticket_closed")
-            res = self.ctx.api("tickets.message", ticket_id=group.split(":", 1)[-1], text=text)
+            res = self.ctx.rule("chat.route_ticket_message", ticket_id=group.split(":", 1)[-1], text=text)
             job.update({"status": "done", "session": session, "injected": res.get("injected"),
                         "reply": "已投递"})
         else:
@@ -119,8 +119,8 @@ class WebChat(Module):
                 project = session[4:] if session.startswith("sec-") else ""
                 if not project:
                     raise ApiError("全局秘书已移除，请使用项目秘书", code="no_project")
-                self.ctx.api("sessions.ensure", project=project)
-            res = self.ctx.api("sessions.send", session=session, text=text)
+                self.ctx.rule("chat.ensure_secretary", project=project)
+            res = self.ctx.rule("chat.send_message", session=session, text=text)
             job.update({"status": "done", "session": session, "injected": res.get("injected"),
                         "job": res.get("job_id"), "reply": "已投递"})
         job["ms"] = int((time.time() - job["t0"]) * 1000)
@@ -139,12 +139,12 @@ class WebChat(Module):
         # 全局秘书已移除：只保留项目秘书与工单群。
         items = []
         try:
-            projects = self.ctx.api("projects.list").get("items", [])
+            projects = self.ctx.rule("chat.project_directory").get("items", [])
         except ApiError:
             projects = []
         tickets = []
         try:
-            tickets = self.ctx.api("tickets.list").get("items", [])
+            tickets = self.ctx.rule("chat.ticket_directory").get("items", [])
         except ApiError:
             tickets = []
 
@@ -152,7 +152,7 @@ class WebChat(Module):
             pid = p["id"]
             mine = [t for t in tickets if t["project"] == pid]
             try:
-                sec = self.ctx.api("sessions.get", session_id="sec-" + pid)["session"]
+                sec = self.ctx.rule("chat.session_context", session_id="sec-" + pid)["session"]
                 sec_state = sec.get("state") or sec.get("status")
                 sec_msgs = sec.get("messages", 0)
             except ApiError:
@@ -187,7 +187,7 @@ class WebChat(Module):
         if group.startswith("T-"):
             items = self._ticket_timeline(group, limit)
             try:
-                trace_on = bool(self.ctx.api("tickets.get", ticket_id=group)["ticket"].get("trace_enabled"))
+                trace_on = bool(self.ctx.rule("chat.ticket_context", ticket_id=group)["ticket"].get("trace_enabled"))
             except ApiError:
                 trace_on = False
             # 生命周期/系统事件始终进群聊；模块报文只有 trace=true 才合并。
@@ -235,7 +235,7 @@ class WebChat(Module):
             "note": "系统备注",
         }
         try:
-            t = self.ctx.api("tickets.get", ticket_id=ticket_id)["ticket"]
+            t = self.ctx.rule("chat.ticket_context", ticket_id=ticket_id)["ticket"]
         except ApiError:
             return []
         out = []
@@ -255,7 +255,7 @@ class WebChat(Module):
 
     def _session_timeline(self, session_id, limit, user_label="我", bot_label="秘书"):
         try:
-            res = self.ctx.api("sessions.messages", session_id=session_id, limit=limit)
+            res = self.ctx.rule("chat.session_messages", session_id=session_id, limit=limit)
         except ApiError:
             return []
         out = []
@@ -282,12 +282,12 @@ class WebChat(Module):
 
     def _ticket_timeline(self, ticket_id, limit):
         try:
-            t = self.ctx.api("tickets.get", ticket_id=ticket_id)["ticket"]
+            t = self.ctx.rule("chat.ticket_context", ticket_id=ticket_id)["ticket"]
         except ApiError:
             return []
         sessions = []
         try:
-            sessions = self.ctx.api("sessions.list", ticket=ticket_id).get("items", [])
+            sessions = self.ctx.rule("chat.session_directory", ticket=ticket_id).get("items", [])
         except ApiError:
             pass
         out = []
@@ -297,7 +297,7 @@ class WebChat(Module):
         per = max(15, limit // max(1, len(sessions) or 1))
         for s in sessions:
             try:
-                items = self.ctx.api("sessions.messages", session_id=s["id"], limit=per).get("items", [])
+                items = self.ctx.rule("chat.session_messages", session_id=s["id"], limit=per).get("items", [])
             except ApiError:
                 continue
             out.extend(self._session_chat(s["id"], s.get("display") or s.get("title") or s.get("role") or s["id"],
@@ -373,7 +373,7 @@ class WebChat(Module):
         import json, os
         from ...kernel.config import path_of
         try:
-            t = self.ctx.api("tickets.get", ticket_id=ticket_id)["ticket"]
+            t = self.ctx.rule("chat.ticket_context", ticket_id=ticket_id)["ticket"]
         except ApiError:
             return []
         ids = []
@@ -484,7 +484,7 @@ class WebChat(Module):
                 q = {"kind": "secretary", "project": group[4:]}
             else:
                 q = {"kind": "secretary", "project": ""}
-            items = self.ctx.api("sessions.list", **q)
+            items = self.ctx.rule("chat.session_directory", **q)
             sessions = items.get("items", [])
         except ApiError:
             sessions = []
@@ -511,7 +511,7 @@ class WebChat(Module):
                            "source": ev.get("source"), "session": sid,
                            "summary": self._ev_summary(ev.get("topic"), payload_)})
         return {"group": group, "running": running, "events": events,
-                "cursor": time.time(), "state": self.ctx.api("sessions.state")}
+                "cursor": time.time(), "state": self.ctx.rule("chat.session_state")}
 
     def events(self, payload):
         limit = min(int(payload.get("limit") or 60), 300)

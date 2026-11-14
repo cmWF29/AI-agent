@@ -1,4 +1,4 @@
-# Hive Agent 架构与门禁说明（v4.5 重构起点）
+# Hive Agent 架构与门禁说明（v4.6 规则层重构）
 
 > 这份文档不是事后说明，而是门禁的一部分：`python -m hive.archscan --report` 会生成
 > `docs/architecture/arch-report.json` 与 `arch-report.md`，记录模块出口、API 依赖、
@@ -10,8 +10,10 @@
   `module.py`，不对外导出；模块之间没有 Python `import`。
 - 对外能力只有两类：`self.api.route(...)` 注册的 HTTP/内部 API，以及
   `Tool(...)` 注册的 Agent 工具；其余函数按内部实现处理。
-- 跨模块调用统一走 `ctx.api("module.method", ...)`；`ctx.api` 实际寻址
-  `Hub.request(路由 ID)`，调用方只认服务名，不持有对方模块对象。
+- 跨模块调用统一走 `ctx.rule("规则 id", ...)`，由 `rules` 模块按
+  `data/rules/catalog.json` 的 `steps[].call` 落到具体模块 API；业务模块不能
+  直接 `ctx.api("projects.xxx")` 调另一个模块。`ctx.api` 只允许模块调用自己的
+  路由（模块内工具），跨模块一律走规则层。
 - 运行期高频事件走实例通道 `domain:<instanceId>:<action>`；发现期只有
   `domain:mounted` 广播（项目域带 `projectId` 与 `mountContainerId`）。
 - 事件名统一 `领域:动作`；历史点号名在总线边界自动归一化。门禁会拒绝静态
@@ -26,6 +28,49 @@
   - `idle -> tickets` 改为 `idle.ticket.dispatch` + `idle.dispatch.ack` 事件，失败保留队列项。
 - 新代码如果引入未登记环，默认门禁直接失败；`--strict-api` 则把所有环升级为阻塞。
   拆掉一条边后必须同步删除基线项，不能把基线当永久豁免。
+
+### 1.0 规则层：模块只提供能力，关系由规则决定
+
+- 业务模块（`tickets`、`projects`、`sessions`、`gitflow`、`knowledge` 等）只暴露
+  自己的能力 API/工具，不 import 对方，也不知道谁在“上层”。例如 `tickets` 不知道
+  `projects` 存在，只会在创建工单时调用规则 `ticket.bind_project`。
+- `hive/modules/rules/` 是唯一关系执行者：
+  - `rules.run` 接收 `{rule, payload, source}`；
+  - `RuleBook` 从 `data/rules/ontology.json` 读实体/谓词，从
+    `data/rules/catalog.json` 读 58 条关系规则和 9 条业务流程；
+  - 每条关系写清 `from`（发起模块）、`to`（目标模块）、`subject/predicate/object`、
+    `cardinality`、`steps[].call`；
+  - 一个规则也可以只被流程 `composes` 引用，表示“流程中的一个业务动作”。
+- `Context.rule(rule_id, **payload)` 只做两件事：通过 `Hub.request("rules.run")`
+  执行规则，并把 `rule.call` 写进 trace。调用方不持有目标模块对象。
+- 典型例子：工单必须归属项目。
+  ```text
+  tickets.create
+    -> ctx.rule("ticket.bind_project", name=...)
+    -> rules.run
+    -> steps[0].call = "projects.ensure"
+    -> projects 模块只执行 ensure，不反向感知 tickets
+  ```
+  如果业务改成“工单必须归属客户”，只改规则目录/流程，不改 `tickets` 和
+  `projects` 的能力代码。
+- 规则目录静态校验（`rules.validate` / `archscan` 同时跑）：
+  - 实体/谓词存在；
+  - `from/to` 模块存在（可插拔时缺失只对 optional 规则告警）；
+  - `steps[].call` 路由存在，且目标模块与 `to` 一致；
+  - 基数合法；
+  - 排他谓词（`belongs_to`）不能同时指向两个对象；
+  - 流程 `composes` 只能引用关系规则，不能嵌套流程；
+  - 需求 id 必须存在于 `docs/requirement-flows.json`；
+  - 规则 id 不重复。
+- 业务模块出现非自身 `ctx.api(...)`、动态变量绕过、调用不存在的规则 id、
+  或规则的 `from` 不是当前模块，`archscan --strict-api` 直接失败；规则面板和
+  `GET /api/rules/graph` 用同一份目录渲染。
+- 连 `health` 自检也不是例外：6 个核心探活分别走
+  `health.probe_sessions/tickets/knowledge/library/artifacts/projects` 规则，
+  不在健康模块里硬编码目标模块 API。
+- 当前目录覆盖 18/33 条历史需求；其余 15 条主要是 UI、HTTPS、
+  流式展示和基础设施需求，不经过“模块间业务关系”，仍由
+  `docs/requirement-flows.json` 的流程记录，不伪造规则关系。规则面板会显示这个覆盖数。
 
 ### 1.1 非业务能力也是模块
 
@@ -47,10 +92,13 @@
 - 宿主通过 `/module-ui/<模块名>.js` 加载 UI 文件；文件由各模块目录提供，不在 `web/` 复制。
 - 业务按钮绑定也回到模块 UI：项目页按钮在 `projects/ui.js`，群聊 `send/刷新/标签/派生`
   在 `webchat/ui.js`，运维按钮在 `ops/ui.js`。宿主只绑登录、导航、返回、弹窗关闭等壳层控件。
-- 模块之间不直接调用 UI 函数；项目页用 `chat:open`、`side:open`、`idle:open`、
-  `idle:save`、`ticket:fork` 等事实事件，由目标模块自己订阅并处理。
+- 模块之间不直接调用 UI 函数；项目页/群聊/侧栏/弹窗之间用事实事件：
+  `project:open`、`chat:open`、`side:open`、`panel:open`、`idle:open`、
+  `idle:save`、`idle:refresh`、`idle:project`、`projects:refresh`、
+  `projects:render`、`ticket:fork`。目标模块自己订阅并处理。
 - 静态门禁会拼接 `web/core/*.js` + `hive/modules/*/ui.js` 校验状态机、DOM 引用、
-  按钮/控件绑定，并拒绝重新出现 `web/modules`。
+  按钮/控件绑定，并拒绝重新出现 `web/modules`；`scan_ui_calls` 还会拒绝业务
+  模块 `ui.js` 直接调用另一个业务模块的函数。
 
 
 
@@ -115,3 +163,5 @@
 - 生产远端：VPS 的 `/opt/hive/repo.git/hooks/pre-receive` 已改为 `--strict-api` 并实测通过。
   生产部署版本 `0.4.7`，HEAD `a613939`（本轮收尾提交会继续前移）。
 - `--strict-api` 已是默认门禁：API 环基线为空，任何新环都会直接阻塞推送/部署。
+- 规则门禁额外拒绝：业务模块直接跨模块 `ctx.api`、规则 id 不存在、规则 `from`
+  与调用模块不一致、规则目录静态冲突、前端模块 UI 函数跨调。

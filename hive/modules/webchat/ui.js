@@ -45,7 +45,7 @@ function selectGroup(id, silent, opts) {
   opts = opts || {};
   if (!id || id === 'secretary' || (!findGroup(id) && !(id.indexOf('sec-') === 0 && findProject(id.slice(4))))) {
     toast('会话不存在：' + id, 'warn');
-    var pd = state.projects[0]; if (pd) openProject(pd.id, true, { replace: true });
+    var pd = state.projects[0]; if (pd) HiveUI.emit('project:open', { id: pd.id, silent: true, opts: { replace: true } });
     return;
   }
   var prevGroup = state.group;
@@ -57,7 +57,7 @@ function selectGroup(id, silent, opts) {
   closeModal({ silent: true });
   $('messages').innerHTML = '';
   $('rail').classList.remove('open'); $('rail-mask').classList.remove('show');
-  renderProjects(); renderRailGroups(); setTab('');
+  HiveUI.emit('projects:render', {}); setTab('');
   if (!opts.fromRoute) {
     var h = '#/chat/' + enc(id);
     if (opts.replace) replaceHash(h); else pushHash(h);
@@ -132,7 +132,7 @@ function renderMsg(m) {
       var a = {}; try { a = JSON.parse(b.dataset.art || '{}'); } catch (e) { a = {}; }
       var g = findGroup(state.group) || {};
       state.sideLayer = a.layer || 'ticket';
-      openArtifact(a.path || '', g.project || state.project, true, a.layer || 'ticket');
+      HiveUI.emit('side:open', { kind: 'artifact', group: state.group, path: a.path || '', layer: a.layer || 'ticket' });
     };
   });
   return el;
@@ -249,7 +249,7 @@ function send() {
   api('/api/chat/send', { method: 'POST', body: { text: text, group: state.group, force: $('force-now').checked } })
     .then(function (r) {
       if (r.status === 'queued') toast('高峰排队中，空闲时自动发送', 'warn');
-      loadTimeline(true); setTimeout(function () { loadTimeline(true); loadLive(); loadIdle(); }, 900);
+      loadTimeline(true); setTimeout(function () { loadTimeline(true); loadLive(); HiveUI.emit('idle:refresh', {}); }, 900);
     })
     .catch(function (e) {
       if (e.status === 410) { show('readonly-tip'); toast('工单已结单，只读；请基于此单新开', 'warn'); }
@@ -273,7 +273,7 @@ function send() {
     else prompt('复制工单号', id);
   };
 })();
-HiveUI.on('chat:open', function (payload) { if (payload && payload.id) selectGroup(payload.id); });
+HiveUI.on('chat:open', function (payload) { if (payload && payload.id) selectGroup(payload.id, payload.silent, payload.opts); });
 
 HiveUI.on('app:tick', function (p) { if (p && p.visible && state.view === 'chat') loadTimeline(true); });
 HiveUI.on('app:live', function (p) { if (p && p.visible && state.view === 'chat') loadLive(); });

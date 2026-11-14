@@ -30,7 +30,7 @@ class Lifecycle(Module):
     def _register_tools(self):
         def status_tool(args, tctx):
             pid = (args.get("project") or tctx.session.get("project")
-                   or self.ctx.api("projects.list")["default"])
+                   or self.ctx.rule("lifecycle.default_project")["default"])
             p = self.get_project_api({"project_id": pid})["project"]
             lines = ["%s (%s) 工单 %d 个，未结单 %d 个" % (
                 p["id"], p.get("title") or "-", p["ticket_count"], p["open_tickets"])]
@@ -44,13 +44,13 @@ class Lifecycle(Module):
 
     def _tickets_of(self, pid):
         try:
-            return self.ctx.api("tickets.list", project=pid).get("items", [])
+            return self.ctx.rule("lifecycle.list_tickets", project=pid).get("items", [])
         except ApiError:
             return []
 
     def get_project_api(self, payload):
         """项目详情 + 工单统计；网页/CLI 都走这个公开入口。"""
-        out = self.ctx.api("projects.get", project_id=payload["project_id"])["project"]
+        out = self.ctx.rule("lifecycle.project_snapshot", project_id=payload["project_id"])["project"]
         tickets = self._tickets_of(out["id"])
         out["tickets"] = [{"id": t["id"], "title": t["title"], "status": t["status"],
                            "tags": t.get("tags") or []} for t in tickets]
@@ -60,7 +60,7 @@ class Lifecycle(Module):
 
     def delete_preview_api(self, payload):
         """删除预览 = 项目存储统计 + 工单统计。"""
-        base = self.ctx.api("projects.delete_preview", project_id=payload["project_id"])
+        base = self.ctx.rule("lifecycle.preview_delete", project_id=payload["project_id"])
         tickets = self._tickets_of(base["project"]["id"])
         open_tickets = [t["id"] for t in tickets if t.get("status") != "closed"]
         base["tickets"] = len(tickets)
@@ -75,10 +75,10 @@ class Lifecycle(Module):
         再让 projects 清理项目记录/交付件/知识/main 树/源码绑定。
         """
         if (payload.get("mode") or "delete") == "archive":
-            return self.ctx.api("projects.delete", project_id=payload["project_id"],
+            return self.ctx.rule("lifecycle.delete_project", project_id=payload["project_id"],
                                 mode="archive", archived=payload.get("archived", True))
 
-        project = self.ctx.api("projects.get", project_id=payload["project_id"])["project"]
+        project = self.ctx.rule("lifecycle.project_snapshot", project_id=payload["project_id"])["project"]
         pid = project["id"]
         cascade = payload.get("cascade") if isinstance(payload.get("cascade"), dict) else {}
         tickets = self._tickets_of(pid)
@@ -94,13 +94,13 @@ class Lifecycle(Module):
                 if t.get("status") != "closed":
                     continue
                 try:
-                    self.ctx.api("tickets.delete", ticket_id=t["id"])
+                    self.ctx.rule("lifecycle.delete_ticket", ticket_id=t["id"])
                     deleted_tickets.append(t["id"])
                 except ApiError as exc:
                     self.log.warn("lifecycle.delete.ticket_failed", project=pid,
                                   ticket=t["id"], error=exc.message)
 
-        result = self.ctx.api("projects.delete", project_id=pid, mode="delete",
+        result = self.ctx.rule("lifecycle.delete_project", project_id=pid, mode="delete",
                               cascade=cascade, force=payload.get("force"))
         result["deleted_tickets"] = deleted_tickets
         return result

@@ -38,7 +38,7 @@ function openIdle() {
       '<div class="filelist">' + items + '</div><div class="row-btns"><button class="primary" id="idle-flush">立即执行本项目队列</button></div>');
     $('idle-flush').onclick = function () {
       api('/api/idle/flush', { method: 'POST', body: { force: true, project: pid } }).then(function (x) {
-        toast('已执行 ' + ((x.done || []).length) + ' 条'); closeModal(); loadIdle(); loadProjectIdle(pid); loadGroups();
+        toast('已执行 ' + ((x.done || []).length) + ' 条'); closeModal(); loadIdle(); loadProjectIdle(pid); HiveUI.emit('projects:refresh', {});
       }).catch(function (e) { toast(e.message, 'err'); });
     };
   }).catch(function (e) { toast(e.message, 'err'); });
@@ -49,6 +49,10 @@ function openIdle() {
 HiveUI.on('idle:open', function () { openIdle(); });
 
 HiveUI.on('idle:save', function () { saveProjectIdle(); });
+
+HiveUI.on('idle:refresh', function () { loadIdle(); });
+
+HiveUI.on('idle:project', function (p) { if (p && p.project) loadProjectIdle(p.project); });
 
 HiveUI.on('app:tick', function (p) { if (p && p.visible) loadIdle(); });
 

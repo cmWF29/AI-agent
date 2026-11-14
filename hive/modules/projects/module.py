@@ -130,7 +130,7 @@ class Projects(Module):
             self.log.info("project.created", project=pid)
         # 每个项目一份 git 仓库（工单各自从它拉分支，收口合回 main）
         try:
-            self.ctx.api("gitflow.project_init", project=pid)
+            self.ctx.rule("project.init_workspace", project=pid)
         except ApiError as exc:
             self.log.warn("project.git.init_failed", project=pid, error=exc.message)
         return rec
@@ -342,12 +342,12 @@ class Projects(Module):
         destroyed.append("sec-" + pid)
         if cascade.get("artifacts"):
             try:
-                self.ctx.api("artifacts.remove_project", project=pid)
+                self.ctx.rule("project.purge_artifacts", project=pid)
             except ApiError as exc:
                 self.log.warn("project.delete.artifacts_failed", project=pid, error=exc.message)
         if cascade.get("knowledge"):
             try:
-                self.ctx.api("knowledge.remove_project", project=pid)
+                self.ctx.rule("project.purge_knowledge", project=pid)
             except ApiError as exc:
                 self.log.warn("project.delete.knowledge_failed", project=pid, error=exc.message)
         if cascade.get("main_tree"):
