@@ -200,8 +200,13 @@ def scan_flows():
     return flows
 
 
-def scan_ui_calls(mods):
-    """前端门禁：业务模块的 ui.js 不得直接调用另一个业务模块的全局函数。"""
+def scan_ui_calls(mods, surfaces=None):
+    """前端门禁：业务模块的 ui.js 不得直接调用另一个业务模块的全局函数。
+
+    同时检查模块 UI 的 API 前缀：浏览器是外部客户端，跨模块公开 API 不是服务端
+    规则关系，但必须有 data/rules/surfaces.json 中显式登记的对外契约，否则就是
+    绕过规则层的暗关系。
+    """
     ui_files = {}
     defs = {}
     for m in mods:
@@ -240,7 +245,43 @@ def scan_ui_calls(mods):
                     errors.append("%s/ui.js:%d 直接调用其他模块函数 %s（应由 HiveUI 事件或本模块函数完成）" % (
                         mod, line, name))
                     rows.append({"module": mod, "line": line, "call": name, "owner": other})
-    return {"errors": errors, "calls": rows, "defs": {k: sorted(v) for k, v in defs.items()}}
+
+    # 模块 UI 的跨模块 API 前缀必须命中 surfaces.json；否则就是未登记的暗关系。
+    surface_errors = []
+    api_rows = []
+    used_surfaces = set()
+    surface_list = list(surfaces or [])
+    own_prefixes = {}
+    for mod in ui_files:
+        for route in (next((m for m in mods if m["name"] == mod), {}).get("routes") or []):
+            path = route.get("path") or ""
+            parts = path.strip("/").split("/")
+            if len(parts) >= 2 and parts[0] == "api":
+                own_prefixes.setdefault(mod, set()).add("/api/" + parts[1])
+    for mod, text in ui_files.items():
+        for prefix in sorted(set(re.findall(r"[\"'](/api/[A-Za-z0-9_-]+)", text))):
+            target = prefix.split("/")[2]
+            if target == mod or prefix in own_prefixes.get(mod, set()):
+                continue
+            contract = None
+            for surface in surface_list:
+                if surface.get("ui") == mod and surface.get("prefix") == prefix:
+                    contract = surface
+                    break
+            if not contract:
+                surface_errors.append(
+                    "%s/ui.js 调用 %s，但没有在 data/rules/surfaces.json 登记对外契约" % (mod, prefix))
+                api_rows.append({"module": mod, "prefix": prefix, "target": target, "surface": ""})
+                continue
+            used_surfaces.add(contract.get("id"))
+            api_rows.append({
+                "module": mod, "prefix": prefix, "target": contract.get("target"),
+                "surface": contract.get("id"), "methods": contract.get("methods") or [],
+            })
+    unused_surfaces = [s.get("id") for s in surface_list if s.get("id") not in used_surfaces]
+    return {"errors": errors, "surface_errors": surface_errors,
+            "api_calls": api_rows, "unused_surfaces": unused_surfaces,
+            "calls": rows, "defs": {k: sorted(v) for k, v in defs.items()}}
 
 
 def scan_rules(mods):
@@ -262,7 +303,7 @@ def scan_rules(mods):
                         requirements=reqs)
     except Exception as exc:
         return {"ok": False, "errors": ["规则目录读取失败: %r" % exc], "warnings": [],
-                "relations": [], "processes": [], "events": [],
+                "relations": [], "processes": [], "events": [], "surfaces": [],
                 "direct_cross_calls": [], "direct_bus_subscribes": [],
                 "rule_calls": [], "event_calls": [], "orchestration_graph": {}, "stats": {}}
     errors, warnings = list(book.errors), list(book.warnings)
@@ -339,6 +380,7 @@ def scan_rules(mods):
         "direct_bus_subscribes": direct_bus,
         "rule_calls": call_rows,
         "event_calls": event_rows,
+        "surfaces": list(book.surfaces),
         "orchestration_graph": {k: sorted(v) for k, v in orch.items()},
         "graph": book.graph(),
         "stats": book.status(),
@@ -440,7 +482,7 @@ def scan(strict_api=False):
     flows = scan_flows()
     rules = scan_rules(mods)
     web = scan_web()
-    ui = scan_ui_calls(mods)
+    ui = scan_ui_calls(mods, rules.get("surfaces") or [])
     errors, warnings = [], []
     for m in mods:
         if m["cross_imports"]:
@@ -470,6 +512,10 @@ def scan(strict_api=False):
         errors.append("网页契约: %s" % e)
     for e in ui["errors"]:
         errors.append("前端模块边界: %s" % e)
+    for e in ui.get("surface_errors") or []:
+        errors.append("前端 API 契约: %s" % e)
+    for sid in ui.get("unused_surfaces") or []:
+        warnings.append("对外契约 %s 没有被任何 UI 使用" % sid)
     result = {
         "root": ROOT,
         "modules": mods,
@@ -529,14 +575,16 @@ def write_report(result, out_dir=None):
     rules = result.get("rules") or {}
     stats = rules.get("stats") or {}
     lines += ["", "## 规则层（模块关系的唯一来源）", ""]
-    lines.append("- 关系规则：%d；业务流程：%d；事件订阅：%d；活跃：%d/%d；需求覆盖：%d/%d；冲突：%s" % (
+    lines.append("- 关系规则：%d；业务流程：%d；事件订阅：%d；活跃：%d/%d；跨模块规则覆盖：%d/%d；对外入口：%d/%d；对外契约：%d；冲突：%s" % (
         stats.get("relations", 0), stats.get("processes", 0), stats.get("events", 0),
         stats.get("active", 0), stats.get("active_events", 0),
         stats.get("requirements", 0), stats.get("requirement_total", 0),
-        "有" if rules.get("errors") else "无"))
-    lines.append("- 业务模块直接跨模块 API：%d；直接 bus.subscribe：%d；模块直接 UI 函数跨调：%d" % (
+        stats.get("entry_covered", 0), stats.get("entry_total", 0),
+        stats.get("surfaces", 0), "有" if rules.get("errors") else "无"))
+    lines.append("- 业务模块直接跨模块 API：%d；直接 bus.subscribe：%d；模块直接 UI 函数跨调：%d；未登记 UI API 契约：%d" % (
         len(rules.get("direct_cross_calls") or []), len(rules.get("direct_bus_subscribes") or []),
-        len((result.get("ui") or {}).get("calls") or [])))
+        len((result.get("ui") or {}).get("calls") or []),
+        len((result.get("ui") or {}).get("surface_errors") or [])))
     lines += ["", "### 规则层 -> 能力模块", ""]
     for k in sorted(rules.get("orchestration_graph") or {}):
         lines.append("- `%s` -> %s" % (k, ", ".join("`%s`" % x for x in rules["orchestration_graph"][k])))

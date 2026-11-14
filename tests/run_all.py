@@ -1109,6 +1109,14 @@ def test_architecture_gate():
           (rules.get("stats") or {}).get("relations") == 58 and
           (rules.get("stats") or {}).get("processes") == 9 and
           (rules.get("stats") or {}).get("events") == 9, rules.get("stats"))
+    check("跨模块规则覆盖 18/33、对外入口 33/33",
+          (rules.get("stats") or {}).get("requirements") == 18 and
+          (rules.get("stats") or {}).get("requirement_total") == 33 and
+          (rules.get("stats") or {}).get("entry_total") == 33 and
+          (rules.get("stats") or {}).get("entry_covered") == 33, rules.get("stats"))
+    check("模块 UI 的跨模块 API 都有对外契约",
+          not r.get("ui", {}).get("surface_errors") and
+          len(r.get("ui", {}).get("api_calls") or []) >= 10, r.get("ui", {}))
     check("业务模块没有直接跨模块 API 调用", not rules.get("direct_cross_calls"), rules.get("direct_cross_calls"))
     check("业务模块没有直接 bus.subscribe", not rules.get("direct_bus_subscribes"),
           rules.get("direct_bus_subscribes"))
@@ -1123,6 +1131,9 @@ def test_architecture_gate():
     check("规则图有事件订阅边",
           any(e.get("from") == "event:event.session.result.tickets" and e.get("to") == "module:tickets"
               for e in (rules.get("graph") or {}).get("edges", [])),
+          "rules.graph")
+    check("规则图有模块 UI 对外契约边",
+          any(e.get("kind") == "public-api" for e in (rules.get("graph") or {}).get("edges", [])),
           "rules.graph")
     check("前端模块没有跨模块 UI 函数直调", not r.get("ui", {}).get("errors"), r.get("ui", {}).get("errors"))
 
@@ -1226,6 +1237,48 @@ def test_rules_execution(mock):
             check("规则基数冲突可被静态发现", any("基数不一致" in e for e in book.errors), book.errors[:4])
         finally:
             shutil.rmtree(tmp_rules, ignore_errors=True)
+
+        # 流程条件 / 并行 / 跳过：用临时目录追加一个 test.flow，不改生产目录。
+        tmp_flow = tempfile.mkdtemp(prefix="hive-flow-")
+        old_book = env.kernel.ctx.modules["rules"].book
+        try:
+            for fn in ("ontology.json", "catalog.json", "surfaces.json"):
+                src = os.path.join(REPO, "data", "rules", fn)
+                if os.path.isfile(src):
+                    shutil.copy(src, tmp_flow)
+            with open(os.path.join(tmp_flow, "catalog.json"), encoding="utf-8") as f:
+                flow_catalog = json.load(f)
+            flow_catalog["processes"].append({
+                "id": "test.flow", "cn": "流程条件/并行测试", "kind": "process",
+                "subject": "project", "predicate": "reads", "object": "project",
+                "requirements": [],
+                "steps": [
+                    {"rule": "health.probe_projects", "when": {"field": "run_first", "op": "truthy"}},
+                    {"parallel": [{"rule": "health.probe_projects"},
+                                  {"rule": "health.probe_projects"}],
+                     "when": {"field": "run_parallel", "op": "truthy"}},
+                    {"rule": "health.probe_projects", "when": {"field": "run_last", "op": "truthy"}},
+                ],
+            })
+            with open(os.path.join(tmp_flow, "catalog.json"), "w", encoding="utf-8") as f:
+                json.dump(flow_catalog, f, ensure_ascii=False, indent=2)
+            flow_book = RuleBook(
+                tmp_flow,
+                available_modules=list(env.kernel.ctx.modules),
+                known_routes=[r["id"] for r in env.kernel.ctx.router.list()],
+            )
+            env.kernel.ctx.modules["rules"].book = flow_book
+            flow = env.api("rules.process", process="test.flow",
+                           payload={"run_first": True, "run_parallel": True, "run_last": False})
+            check("流程条件命中/跳过与并行执行",
+                  flow.get("ok") and len(flow.get("completed") or []) == 3 and
+                  flow.get("skipped") == [2], flow)
+            check("流程条件求值支持 truthy/falsy",
+                  RuleBook._when_matches({"field": "go", "op": "truthy"}, {"go": True}) and
+                  not RuleBook._when_matches({"field": "go", "op": "truthy"}, {"go": False}), "")
+        finally:
+            env.kernel.ctx.modules["rules"].book = old_book
+            shutil.rmtree(tmp_flow, ignore_errors=True)
     except Exception as exc:
         check("规则层未崩溃", False, repr(exc))
     finally:

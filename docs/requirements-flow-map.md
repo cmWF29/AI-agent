@@ -1,9 +1,12 @@
 # 需求到流程库映射
 
+> 2026-11-14 已按当前物理布局更新关键旧路径（重构前的前端/模块文件）。
+> 规则目录、模块 UI 对外契约和门禁结果以 `docs/architecture/` 下最新文档为准。
+
 | # | 需求 | 流程 id | 状态 | 证据 |
 |---|---|---|---|---|
-| 1 | PC 侧边栏可收起，与安卓统一 | `req-01` | 已实现 | `web/app.js` `toggleRail`、`body.rail-collapsed`；收起状态写入 `localStorage` |
-| 2 | 空闲/高峰判断 + 排队 + 强制立即执行 | `req-02` | 已实现 | `hive/modules/idle.py`；工单/消息两条队列；`force` 绕过 |
+| 1 | PC 侧边栏可收起，与安卓统一 | `req-01` | 已实现 | `web/core/shell.js` `toggleRail`、`web/core/core.js` `applyRailPref`、`body.rail-collapsed`；收起状态写入 `localStorage` |
+| 2 | 空闲/高峰判断 + 排队 + 强制立即执行 | `req-02` | 已实现 | `hive/modules/idle/module.py`；工单/消息两条队列；`force` 绕过 |
 | 3 | 去掉“本地节点/本地层”展示与代码 | `req-03` | 已实现 | `webchat.groups` 不再返回 instance；前端无 layer pill |
 | 4 | 工单 tag，角色/用户可增删，双层沉淀 | `req-04` | 已实现 | `tickets.tags`、`ticket_tag` 工具、`library.tag_add` |
 | 5 | 历史工单不动，只做增量 | `req-05` | 已实现 | 无迁移逻辑；旧单 `tags=[]` |
@@ -14,7 +17,7 @@
 | 10 | 复核流程是否真可插拔并给示例 | `req-10` | 已实现 | 角色卡 + 流程插件 + 技能；`library.design`；文档示例 |
 | 11 | 项目/agent 文件系统只读浏览；git 取舍 | `req-11` | 已实现 | `/api/projects/{p}/files`、`/api/ops/files`；只读 |
 | 12 | 本机仓库移到 `E:\AI` | `req-12` | 已实现 | Windows `E:\AI\hive-agent` |
-| 13 | 推送 GitHub 远端并验证 | `req-13` | 已实现 | `git@github.com:cmWF29/AI-agent.git`，main `b268899` |
+| 13 | 推送 GitHub 远端并验证 | `req-13` | 已实现 | `git@github.com:cmWF29/AI-agent.git`，main `9d69955` |
 | 14 | 工单分支 push/pull；冲突由 git 解决，冲突后必须重验 | `req-14` | 已实现 | `gitflow.sync/merge`；冲突置 `conflict`；`ticket_verify` 硬门禁 |
 | 15 | PM 先了解项目，简单活自己干 | `req-15` | 已实现 | `PM_TOOLS` 含 shell/read/write；PM 提示词 |
 | 16 | 3 项目 × 3 工单并发 + 冲突演练 | `req-16` | 已实现 | v3 实测数据；`test_three_by_three` |
@@ -27,7 +30,7 @@
 | 23 | 群聊发言人：用户=“我”，角色=角色名，头像 | `req-23` | 已实现（v4.1 修正） | `user_messages` 标记；`_session_chat` 区分我/秘书/PM→角色；首字母头像 |
 | 24 | 群聊顶层“系统”消息是什么，应 agent→PM→角色 | `req-24` | 已实现（v4.1 修正） | 系统注入消息以“（系统）”开头，群聊过滤；kickoff 显示秘书→PM |
 | 25 | 工单生命周期流程图与群聊分离 | `req-25` | 已实现 | `flow` 独立条；节点含冲突/复验/归档/合并 |
-| 26 | Markdown 渲染 | `req-26` | 已实现 | `web/app.js md()`：标题/列表/表格/代码/引用/链接 |
+| 26 | Markdown 渲染 | `req-26` | 已实现 | `web/core/core.js md()`：标题/列表/表格/代码/引用/链接 |
 | 27 | “流程专家”角色拆提示词/技能/流程插件 | `req-27` | 已实现 | `process` 内置角色；`flow_design`；`library.design` |
 | 28 | 流式显示，可判断卡住/死循环并打断；不要超时 | `req-28` | 已实现 | `live` 轮询 partial；`interrupt`；LLM 无总超时 |
 | 29 | 项目/公共交付件、角色库/流程库/技能库 | `req-29` | 已实现 | 交付件侧栏三层；库页面三个 tab + 标签库 |

@@ -11,7 +11,8 @@
       "to": "obs",
       "intent": "只读统计所有模块事件，不参与业务决策",
       "requirements": [],
-      "optional": true
+      "optional": true,
+      "infra": true
     },
     {
       "id": "event.health.heartbeat",
@@ -22,7 +23,8 @@
       "to": "health",
       "intent": "保持健康模块的事件心跳，不改业务状态",
       "requirements": [],
-      "optional": true
+      "optional": true,
+      "infra": true
     },
     {
       "id": "event.idle.dispatch_ack",

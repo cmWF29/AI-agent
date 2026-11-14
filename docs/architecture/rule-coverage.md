@@ -2,7 +2,8 @@
 
 规则目录只记录“模块之间的业务关系”，不把 UI、HTTPS、流式渲染等基础设施需求伪装成跨模块调用。
 本表由 `data/rules/catalog.json` 的 `requirements` 字段生成，规则面板的
-`需求覆盖 18/33` 与此一致。
+“跨模块规则覆盖 18/33”与此一致；“对外入口 33/33”是另一个口径，表示 33 条需求都有
+UI/API/宿主/设施承载位置，不等于 33 条都有跨模块规则。
 
 ## 有显式规则覆盖（18 条）
 
@@ -47,6 +48,28 @@
 | req-29 项目/公共交付件与三库页面 | UI 聚合页面，底层由 artifacts/library 提供 | `library/ui.js`、`artifacts/ui.js` |
 | req-33 返回键/刷新恢复/状态机 | 前端宿主状态机 | `web/state-machine.json`、`web/core/core.js` |
 
+## 模块 UI 对外契约（12 条）
+
+浏览器是外部客户端，不是服务端模块。模块 UI 调公开 API 属于“对外入口”，不伪造成
+服务端 A→B 规则；但每个跨模块 API 前缀必须在 `data/rules/surfaces.json` 显式登记，
+`archscan` 会拒绝未登记的暗调用。当前 12 条契约覆盖 `projects`、`webchat`、
+`artifacts`、`health`、`library` 五个模块 UI。
+
+| UI 模块 | 公开 API 前缀 | 目标模块 | 说明 |
+| --- | --- | --- | --- |
+| `projects` | `/api/tickets` | `tickets` | 项目页读取/创建/删除工单 |
+| `projects` | `/api/sessions` | `sessions` | 项目页读取会话、压缩秘书上下文 |
+| `projects` | `/api/agents` | `agents` | 项目页读取 Agent 配置 |
+| `projects` | `/api/ops` | `ops` | 项目页读取文件/配置 |
+| `projects` | `/api/web` | `webchat` | 项目页读取群组/时间线 |
+| `webchat` | `/api/tickets` | `tickets` | 群聊读取工单流、标签、投递消息 |
+| `webchat` | `/api/sessions` | `sessions` | 群聊读取会话、打断当前发言 |
+| `artifacts` | `/api/projects` | `projects` | 交付件页浏览项目源码/文件 |
+| `artifacts` | `/api/ops` | `ops` | 交付件页浏览运行时文件 |
+| `health` | `/api/artifacts` | `artifacts` | 健康页读取交付件统计 |
+| `health` | `/api/ops` | `ops` | 健康页读取运行时状态 |
+| `library` | `/api/skills` | `skills` | 技能库读取/安装/拆解/移除 |
+
 ## 维护规则
 
 - 新增“模块 A 需要模块 B 的能力”时，先加 `data/rules/catalog.json` 关系规则，再在 A 中调
@@ -54,5 +77,7 @@
 - 新增事件订阅时，先加 `kind:"event"` 规则（`from/to/topic`），再在订阅模块写
   `self.event(...)`；不得直接 `bus.subscribe`。
 - 新增业务流程时，用 `kind:"process"` + `composes` 组合已有关系规则；流程执行
-  `rules.process` 按顺序跑子规则，跨步骤不做事务回滚。
+  `rules.process` 支持 `when` 条件、`parallel` 并行和 `compensate` 显式补偿，但不做隐式事务回滚。
+- 新增模块 UI 的跨模块公开 API 调用时，先在 `data/rules/surfaces.json` 登记 `ui/target/prefix/methods`，
+  再在 UI 中使用；它是对外契约，不是服务端规则关系。
 - 纯 UI/基础设施需求继续记录在 `docs/requirement-flows.json`，不要为了凑覆盖率伪造关系。

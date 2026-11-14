@@ -10,6 +10,7 @@ import json
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ...kernel.api import ApiError, Module
 from ...kernel.config import path_of
@@ -25,6 +26,7 @@ class RuleBook:
         self.relations = []
         self.processes = []
         self.events = []
+        self.surfaces = []
         self.by_id = {}
         self.errors = []
         self.warnings = []
@@ -46,6 +48,14 @@ class RuleBook:
         except Exception as exc:
             self.errors.append("catalog.json 读取失败: %r" % exc)
             catalog = {}
+        try:
+            surface_doc = self._read("surfaces.json")
+            self.surfaces = list(surface_doc.get("surfaces") or [])
+        except FileNotFoundError:
+            self.surfaces = []
+        except Exception as exc:
+            self.errors.append("surfaces.json 读取失败: %r" % exc)
+            self.surfaces = []
         self.relations = list(catalog.get("relations") or [])
         self.processes = list(catalog.get("processes") or [])
         self.events = list(catalog.get("events") or [])
@@ -65,6 +75,129 @@ class RuleBook:
 
     def _predicates(self):
         return set((self.ontology.get("predicates") or {}).keys())
+
+    @staticmethod
+    def _field_value(data, field):
+        """读取 payload 的 dotted 路径；不存在时返回 None。"""
+        value = data
+        for part in (field or "").split("."):
+            if not part:
+                continue
+            if not isinstance(value, dict):
+                return None
+            value = value.get(part)
+        return value
+
+    @classmethod
+    def _when_matches(cls, expr, data):
+        """结构化条件：bool / dotted path / {field, op, value}。"""
+        if expr is None:
+            return True
+        if isinstance(expr, bool):
+            return expr
+        if isinstance(expr, str):
+            return bool(cls._field_value(data, expr))
+        if not isinstance(expr, dict):
+            raise ValueError("when 必须是 bool、字符串路径或对象")
+        field = expr.get("field") or ""
+        op = expr.get("op") or "truthy"
+        actual = cls._field_value(data, field)
+        expected = expr.get("value")
+        if op == "truthy":
+            return bool(actual)
+        if op == "falsy":
+            return not actual
+        if op == "eq":
+            return actual == expected
+        if op == "ne":
+            return actual != expected
+        if op == "contains":
+            return actual is not None and expected in actual
+        if op == "not_contains":
+            return actual is None or expected not in actual
+        if op == "in":
+            return actual in (expected or [])
+        if op == "not_in":
+            return actual not in (expected or [])
+        raise ValueError("不支持的 when.op: %s" % op)
+
+    @staticmethod
+    def _validate_when(expr):
+        if expr is None or isinstance(expr, (bool, str)):
+            return ""
+        if not isinstance(expr, dict):
+            return "when 必须是 bool、字符串路径或对象"
+        if not expr.get("field"):
+            return "when 缺少 field"
+        if expr.get("op", "truthy") not in (
+                "truthy", "falsy", "eq", "ne", "contains", "not_contains", "in", "not_in"):
+            return "when.op 不支持: %r" % expr.get("op")
+        return ""
+
+    def _executable(self, rid, errors=None):
+        rule = self.by_id.get(rid)
+        if not rule:
+            if errors is not None:
+                errors.append("引用不存在的规则: %s" % rid)
+            return None
+        if rule.get("kind") != "relation" or not rule.get("steps"):
+            if errors is not None:
+                errors.append("规则不可执行: %s" % rid)
+            return None
+        return rule
+
+    def _validate_step(self, pid, step, errors):
+        if isinstance(step, str):
+            step = {"rule": step}
+        if not isinstance(step, dict):
+            errors.append("%s: step 必须是对象或规则 id" % pid)
+            return
+        err = self._validate_when(step.get("when"))
+        if err:
+            errors.append("%s: %s" % (pid, err))
+        comp = step.get("compensate")
+        if comp:
+            self._executable(comp, errors)
+        parallel = step.get("parallel")
+        if parallel:
+            if not isinstance(parallel, list) or not parallel:
+                errors.append("%s: parallel 必须是非空列表" % pid)
+            else:
+                for child in parallel:
+                    self._validate_step(pid, child, errors)
+        elif step.get("rule"):
+            self._executable(step.get("rule"), errors)
+        else:
+            errors.append("%s: step 缺少 rule 或 parallel" % pid)
+
+    def _relation_cycles(self):
+        """模块级关系图的环检测（不含事件/流程）；规则关系应保持有向可分层。"""
+        graph = {}
+        for rule in self.relations:
+            src, dst = rule.get("from"), rule.get("to")
+            if src and dst and src != "*" and dst != "*":
+                graph.setdefault(src, set()).add(dst)
+        state, stack, found = {}, [], []
+
+        def dfs(node):
+            state[node] = 1
+            stack.append(node)
+            for nxt in sorted(graph.get(node, [])):
+                if state.get(nxt) == 1:
+                    start = stack.index(nxt)
+                    cyc = stack[start:] + [nxt]
+                    key = tuple(sorted(cyc))
+                    if key not in [tuple(sorted(c)) for c in found]:
+                        found.append(cyc)
+                elif not state.get(nxt):
+                    dfs(nxt)
+            stack.pop()
+            state[node] = 2
+
+        for node in sorted(graph):
+            if not state.get(node):
+                dfs(node)
+        return found
 
     def _validate(self):
         errors, warnings = self.errors, self.warnings
@@ -134,6 +267,10 @@ class RuleBook:
                     errors.append("%s: process 不能直接嵌套 process %s" % (pid, child))
                 elif ids[child].get("kind") == "event":
                     errors.append("%s: process 不能把事件订阅当步骤 %s" % (pid, child))
+            if proc.get("composes") and proc.get("steps"):
+                errors.append("%s: composes 与 steps 不能同时使用" % pid)
+            for step in proc.get("steps") or []:
+                self._validate_step(pid, step, errors)
             for req in proc.get("requirements") or []:
                 if self.requirements and req not in self.requirements:
                     warnings.append("%s: 引用了未知需求 %s" % (pid, req))
@@ -160,6 +297,9 @@ class RuleBook:
                     errors.append("关系冲突: %s %s -> %s 的基数不一致: %s" % (
                         key[0], key[1], obj, ", ".join(sorted(str(x) for x in cards))))
 
+        for cycle in self._relation_cycles():
+            errors.append("关系图存在环: %s" % " -> ".join(cycle))
+
         for ev in self.events:
             eid = ev.get("id")
             if not eid:
@@ -171,10 +311,14 @@ class RuleBook:
                 errors.append("%s: event 缺少 topic" % eid)
             elif topic != "*" and not re.match(r"^[a-z][a-z0-9_-]*:[a-z0-9_.:*-]+$", topic):
                 errors.append("%s: 非法 topic %r" % (eid, topic))
+            elif topic == "*" and not ev.get("infra"):
+                errors.append("%s: 通配 topic 只允许基础设施事件（infra: true）" % eid)
             from_mod, to_mod = ev.get("from"), ev.get("to")
             optional = bool(ev.get("optional"))
             if not from_mod:
                 errors.append("%s: event 缺少 from" % eid)
+            elif from_mod == "*" and not ev.get("infra"):
+                errors.append("%s: 通配 from 只允许基础设施事件（infra: true）" % eid)
             if not to_mod:
                 errors.append("%s: event 缺少 to" % eid)
             if from_mod and from_mod != "*" and not self._module_present(from_mod):
@@ -182,7 +326,28 @@ class RuleBook:
             if to_mod and not self._module_present(to_mod):
                 (warnings if optional else errors).append("%s: to 模块 %s 不存在" % (eid, to_mod))
 
-        for req in self.relations + self.processes + self.events:
+        # 模块 UI 的对外 API 契约：浏览器是外部客户端，不是服务端模块调用。
+        for surface in self.surfaces:
+            sid = surface.get("id")
+            if not sid:
+                errors.append("对外契约缺少 id: %r" % surface.get("prefix"))
+                continue
+            if sid in ids:
+                errors.append("对外契约 id 重复: %s" % sid)
+            ids[sid] = surface
+            ui_mod, target = surface.get("ui"), surface.get("target")
+            if ui_mod and not self._module_present(ui_mod):
+                errors.append("%s: ui 模块 %s 不存在" % (sid, ui_mod))
+            if target and not self._module_present(target):
+                errors.append("%s: target 模块 %s 不存在" % (sid, target))
+            prefix = surface.get("prefix") or ""
+            if not prefix.startswith("/api/") or len(prefix.strip("/").split("/")) > 3:
+                errors.append("%s: 非法 API 前缀 %r" % (sid, prefix))
+            methods = surface.get("methods") or []
+            if not methods or any(m not in ("GET", "POST", "PUT", "DELETE") for m in methods):
+                errors.append("%s: methods 非法 %r" % (sid, methods))
+
+        for req in self.relations + self.processes + self.events + self.surfaces:
             for req_id in req.get("requirements") or []:
                 if self.requirements and req_id not in self.requirements:
                     warnings.append("%s: 引用未知需求 %s" % (req.get("id"), req_id))
@@ -207,6 +372,12 @@ class RuleBook:
             reqs.update(item.get("requirements") or [])
         counts["requirements"] = len(reqs)
         counts["requirement_total"] = len(self.requirements)
+        counts["entry_total"] = len(self.requirements)
+        counts["entry_covered"] = sum(
+            1 for req in self.requirements.values()
+            if isinstance(req, dict) and req.get("status") and req.get("evidence")
+        )
+        counts["surfaces"] = len(self.surfaces)
         return counts
 
     def catalog(self):
@@ -220,6 +391,7 @@ class RuleBook:
             ],
             "processes": list(self.processes),
             "events": [dict(e, active=self.active(e)) for e in self.events],
+            "surfaces": list(self.surfaces),
             "errors": list(self.errors),
             "warnings": list(self.warnings),
         }
@@ -256,6 +428,20 @@ class RuleBook:
                 edges.append({"from": "event:" + eid, "to": "module:" + ev["to"], "kind": "subscribes"})
             for req in ev.get("requirements") or []:
                 edges.append({"from": "event:" + eid, "to": "requirement:" + req, "kind": "requirement"})
+        for surface in self.surfaces:
+            sid = surface["id"]
+            nodes.append({"id": "surface:" + sid, "type": "surface",
+                          "label": surface.get("intent") or sid,
+                          "prefix": surface.get("prefix") or ""})
+            if surface.get("ui"):
+                edges.append({"from": "surface:" + sid, "to": "module:" + surface["ui"],
+                              "kind": "external-ui"})
+            if surface.get("target"):
+                edges.append({"from": "surface:" + sid, "to": "module:" + surface["target"],
+                              "kind": "public-api"})
+            for req in surface.get("requirements") or []:
+                edges.append({"from": "surface:" + sid, "to": "requirement:" + req,
+                              "kind": "requirement"})
         for proc in self.processes:
             pid = proc["id"]
             nodes.append({"id": "process:" + pid, "type": "process", "label": proc.get("cn") or pid})
@@ -357,7 +543,14 @@ class Rules(Module):
             raise ApiError("规则执行失败: %s (%r)" % (rule_id, exc), status=500, code="rule_failed")
 
     def process_api(self, payload):
-        """按流程组合顺序执行子规则；不做跨模块事务回滚（模块 API 只保证单步原子）。"""
+        """按流程计划执行关系规则。
+
+        支持三类步骤：
+          * {"rule": "..."}                顺序执行
+          * {"parallel": [{"rule": ...}]} 并行执行（线程池 gather）
+          * {"when": {...}, "compensate": "..."}  条件执行 + 失败补偿
+        composes 仍作为向后兼容的顺序计划；不做隐式事务回滚。
+        """
         pid = payload.get("process") or payload.get("id")
         data = payload.get("payload") or {}
         if not pid:
@@ -367,21 +560,81 @@ class Rules(Module):
             raise ApiError("流程不存在: %s" % pid, status=404, code="process_not_found")
         if not self.book.active(proc):
             raise ApiError("流程依赖的模块未装配: %s" % pid, status=409, code="process_inactive")
-        completed, results = [], []
-        for child in proc.get("composes") or []:
-            rule = self.book.rule(child)
-            if not rule or rule.get("kind") != "relation":
-                raise ApiError("流程引用了不可执行规则: %s" % child, status=409, code="process_bad_child")
-            if not self.book.active(rule):
-                raise ApiError("流程子规则依赖的模块未装配: %s" % child, status=409, code="process_inactive")
-            try:
-                results.append({"rule": child, "result": self._execute(rule, data)})
-                completed.append(child)
-            except Exception as exc:
-                raise ApiError("流程 %s 在 %s 失败，已完成 %s (%r)" % (
-                    pid, child, ", ".join(completed) or "无", exc), status=500, code="process_failed")
-        self.log.info("process.run", process=pid, steps=len(completed))
-        return {"ok": True, "process": pid, "completed": completed, "results": results}
+
+        steps = proc.get("steps") or [{"rule": child} for child in (proc.get("composes") or [])]
+        completed, skipped, results, compensations = [], [], [], []
+        executed_steps = []
+        try:
+            for index, step in enumerate(steps):
+                if not self.book._when_matches(step.get("when"), data):
+                    skipped.append(index)
+                    continue
+                parallel = step.get("parallel")
+                if parallel:
+                    child_results = self._execute_parallel(parallel, data)
+                    for child, result in child_results:
+                        completed.append(child)
+                        results.append({"rule": child, "result": result, "parallel": True})
+                    executed_steps.append(index)
+                else:
+                    child = step.get("rule")
+                    rule = self.book._executable(child)
+                    if not rule:
+                        raise ApiError("流程引用了不可执行规则: %s" % child,
+                                      status=409, code="process_bad_child")
+                    if not self.book.active(rule):
+                        raise ApiError("流程子规则依赖的模块未装配: %s" % child,
+                                      status=409, code="process_inactive")
+                    results.append({"rule": child, "result": self._execute(rule, data)})
+                    completed.append(child)
+                    executed_steps.append(index)
+            self.log.info("process.run", process=pid, steps=len(completed), skipped=len(skipped))
+            return {"ok": True, "process": pid, "completed": completed,
+                    "skipped": skipped, "results": results,
+                    "compensations": compensations}
+        except Exception as exc:
+            for index in reversed(executed_steps):
+                step = steps[index]
+                comp = step.get("compensate") if isinstance(step, dict) else None
+                if not comp:
+                    continue
+                try:
+                    rule = self.book._executable(comp)
+                    if rule and self.book.active(rule):
+                        self._execute(rule, data)
+                        compensations.append({"rule": comp, "ok": True})
+                    else:
+                        compensations.append({"rule": comp, "ok": False,
+                                              "error": "not executable or inactive"})
+                except Exception as comp_exc:
+                    compensations.append({"rule": comp, "ok": False, "error": repr(comp_exc)})
+            detail = "；补偿 %s" % (compensations or "无")
+            raise ApiError("流程 %s 失败，已完成 %s，跳过 %s%s (%r)" % (
+                pid, ", ".join(completed) or "无", skipped or "无", detail, exc),
+                status=500, code="process_failed")
+
+    def _execute_parallel(self, specs, data):
+        """并行执行同一层子规则；每个子规则仍只走自己的关系声明。"""
+        normalized = [{"rule": item} if isinstance(item, str) else item for item in specs]
+        if not normalized:
+            raise ApiError("parallel 不能为空", status=409, code="process_bad_parallel")
+        results = []
+        with ThreadPoolExecutor(max_workers=min(4, len(normalized))) as pool:
+            futures = {}
+            for spec in normalized:
+                child = spec.get("rule")
+                rule = self.book._executable(child)
+                if not rule:
+                    raise ApiError("并行步骤引用了不可执行规则: %s" % child,
+                                  status=409, code="process_bad_child")
+                if not self.book.active(rule):
+                    raise ApiError("并行步骤依赖的模块未装配: %s" % child,
+                                  status=409, code="process_inactive")
+                futures[pool.submit(self._execute, rule, data)] = child
+            for future in as_completed(futures):
+                child = futures[future]
+                results.append((child, future.result()))
+        return results
 
     def _execute(self, rule, data):
         last = {}

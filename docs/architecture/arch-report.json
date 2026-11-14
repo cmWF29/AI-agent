@@ -4236,6 +4236,7 @@
         "intent": "只读统计所有模块事件，不参与业务决策",
         "requirements": [],
         "optional": true,
+        "infra": true,
         "active": true
       },
       {
@@ -4248,6 +4249,7 @@
         "intent": "保持健康模块的事件心跳，不改业务状态",
         "requirements": [],
         "optional": true,
+        "infra": true,
         "active": true
       },
       {
@@ -4696,6 +4698,176 @@
         "event": "event.session.result.tickets",
         "topic": "session:result",
         "active": true
+      }
+    ],
+    "surfaces": [
+      {
+        "id": "ui.projects.tickets",
+        "ui": "projects",
+        "target": "tickets",
+        "prefix": "/api/tickets",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "intent": "项目页读取、创建、删除工单",
+        "requirements": [
+          "req-09"
+        ]
+      },
+      {
+        "id": "ui.projects.sessions",
+        "ui": "projects",
+        "target": "sessions",
+        "prefix": "/api/sessions",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "intent": "项目页读取会话状态、压缩项目秘书上下文",
+        "requirements": [
+          "req-09",
+          "req-18"
+        ]
+      },
+      {
+        "id": "ui.projects.agents",
+        "ui": "projects",
+        "target": "agents",
+        "prefix": "/api/agents",
+        "methods": [
+          "GET"
+        ],
+        "intent": "项目页读取 Agent 后端配置",
+        "requirements": [
+          "req-08"
+        ]
+      },
+      {
+        "id": "ui.projects.ops",
+        "ui": "projects",
+        "target": "ops",
+        "prefix": "/api/ops",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "intent": "项目页读取文件/配置并打开配置面板",
+        "requirements": [
+          "req-11",
+          "req-13"
+        ]
+      },
+      {
+        "id": "ui.projects.web",
+        "ui": "projects",
+        "target": "webchat",
+        "prefix": "/api/web",
+        "methods": [
+          "GET"
+        ],
+        "intent": "项目页读取群组/时间线入口",
+        "requirements": [
+          "req-06",
+          "req-07"
+        ]
+      },
+      {
+        "id": "ui.webchat.tickets",
+        "ui": "webchat",
+        "target": "tickets",
+        "prefix": "/api/tickets",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "intent": "群聊读取工单流、标签并投递消息",
+        "requirements": [
+          "req-23",
+          "req-24",
+          "req-30"
+        ]
+      },
+      {
+        "id": "ui.webchat.sessions",
+        "ui": "webchat",
+        "target": "sessions",
+        "prefix": "/api/sessions",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "intent": "群聊读取会话消息、打断当前发言",
+        "requirements": [
+          "req-22",
+          "req-28"
+        ]
+      },
+      {
+        "id": "ui.artifacts.projects",
+        "ui": "artifacts",
+        "target": "projects",
+        "prefix": "/api/projects",
+        "methods": [
+          "GET"
+        ],
+        "intent": "交付件页浏览项目源码与文件",
+        "requirements": [
+          "req-29"
+        ]
+      },
+      {
+        "id": "ui.artifacts.ops",
+        "ui": "artifacts",
+        "target": "ops",
+        "prefix": "/api/ops",
+        "methods": [
+          "GET"
+        ],
+        "intent": "交付件页浏览运行时文件",
+        "requirements": [
+          "req-29"
+        ]
+      },
+      {
+        "id": "ui.health.artifacts",
+        "ui": "health",
+        "target": "artifacts",
+        "prefix": "/api/artifacts",
+        "methods": [
+          "GET"
+        ],
+        "intent": "健康页读取交付件体积统计",
+        "requirements": [
+          "req-32"
+        ]
+      },
+      {
+        "id": "ui.health.ops",
+        "ui": "health",
+        "target": "ops",
+        "prefix": "/api/ops",
+        "methods": [
+          "GET"
+        ],
+        "intent": "健康页读取运行时状态",
+        "requirements": [
+          "req-32"
+        ]
+      },
+      {
+        "id": "ui.library.skills",
+        "ui": "library",
+        "target": "skills",
+        "prefix": "/api/skills",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "intent": "技能库页面读取、安装、拆解、移除技能",
+        "requirements": [
+          "req-27"
+        ]
       }
     ],
     "orchestration_graph": {
@@ -5275,6 +5447,78 @@
           "label": "工单接收交付件写入",
           "active": true,
           "topic": "artifacts:written"
+        },
+        {
+          "id": "surface:ui.projects.tickets",
+          "type": "surface",
+          "label": "项目页读取、创建、删除工单",
+          "prefix": "/api/tickets"
+        },
+        {
+          "id": "surface:ui.projects.sessions",
+          "type": "surface",
+          "label": "项目页读取会话状态、压缩项目秘书上下文",
+          "prefix": "/api/sessions"
+        },
+        {
+          "id": "surface:ui.projects.agents",
+          "type": "surface",
+          "label": "项目页读取 Agent 后端配置",
+          "prefix": "/api/agents"
+        },
+        {
+          "id": "surface:ui.projects.ops",
+          "type": "surface",
+          "label": "项目页读取文件/配置并打开配置面板",
+          "prefix": "/api/ops"
+        },
+        {
+          "id": "surface:ui.projects.web",
+          "type": "surface",
+          "label": "项目页读取群组/时间线入口",
+          "prefix": "/api/web"
+        },
+        {
+          "id": "surface:ui.webchat.tickets",
+          "type": "surface",
+          "label": "群聊读取工单流、标签并投递消息",
+          "prefix": "/api/tickets"
+        },
+        {
+          "id": "surface:ui.webchat.sessions",
+          "type": "surface",
+          "label": "群聊读取会话消息、打断当前发言",
+          "prefix": "/api/sessions"
+        },
+        {
+          "id": "surface:ui.artifacts.projects",
+          "type": "surface",
+          "label": "交付件页浏览项目源码与文件",
+          "prefix": "/api/projects"
+        },
+        {
+          "id": "surface:ui.artifacts.ops",
+          "type": "surface",
+          "label": "交付件页浏览运行时文件",
+          "prefix": "/api/ops"
+        },
+        {
+          "id": "surface:ui.health.artifacts",
+          "type": "surface",
+          "label": "健康页读取交付件体积统计",
+          "prefix": "/api/artifacts"
+        },
+        {
+          "id": "surface:ui.health.ops",
+          "type": "surface",
+          "label": "健康页读取运行时状态",
+          "prefix": "/api/ops"
+        },
+        {
+          "id": "surface:ui.library.skills",
+          "type": "surface",
+          "label": "技能库页面读取、安装、拆解、移除技能",
+          "prefix": "/api/skills"
         },
         {
           "id": "process:ticket.create",
@@ -6797,6 +7041,216 @@
           "kind": "requirement"
         },
         {
+          "from": "surface:ui.projects.tickets",
+          "to": "module:projects",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.projects.tickets",
+          "to": "module:tickets",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.projects.tickets",
+          "to": "requirement:req-09",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.projects.sessions",
+          "to": "module:projects",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.projects.sessions",
+          "to": "module:sessions",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.projects.sessions",
+          "to": "requirement:req-09",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.projects.sessions",
+          "to": "requirement:req-18",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.projects.agents",
+          "to": "module:projects",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.projects.agents",
+          "to": "module:agents",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.projects.agents",
+          "to": "requirement:req-08",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.projects.ops",
+          "to": "module:projects",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.projects.ops",
+          "to": "module:ops",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.projects.ops",
+          "to": "requirement:req-11",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.projects.ops",
+          "to": "requirement:req-13",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.projects.web",
+          "to": "module:projects",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.projects.web",
+          "to": "module:webchat",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.projects.web",
+          "to": "requirement:req-06",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.projects.web",
+          "to": "requirement:req-07",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.webchat.tickets",
+          "to": "module:webchat",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.webchat.tickets",
+          "to": "module:tickets",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.webchat.tickets",
+          "to": "requirement:req-23",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.webchat.tickets",
+          "to": "requirement:req-24",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.webchat.tickets",
+          "to": "requirement:req-30",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.webchat.sessions",
+          "to": "module:webchat",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.webchat.sessions",
+          "to": "module:sessions",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.webchat.sessions",
+          "to": "requirement:req-22",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.webchat.sessions",
+          "to": "requirement:req-28",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.artifacts.projects",
+          "to": "module:artifacts",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.artifacts.projects",
+          "to": "module:projects",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.artifacts.projects",
+          "to": "requirement:req-29",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.artifacts.ops",
+          "to": "module:artifacts",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.artifacts.ops",
+          "to": "module:ops",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.artifacts.ops",
+          "to": "requirement:req-29",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.health.artifacts",
+          "to": "module:health",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.health.artifacts",
+          "to": "module:artifacts",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.health.artifacts",
+          "to": "requirement:req-32",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.health.ops",
+          "to": "module:health",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.health.ops",
+          "to": "module:ops",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.health.ops",
+          "to": "requirement:req-32",
+          "kind": "requirement"
+        },
+        {
+          "from": "surface:ui.library.skills",
+          "to": "module:library",
+          "kind": "external-ui"
+        },
+        {
+          "from": "surface:ui.library.skills",
+          "to": "module:skills",
+          "kind": "public-api"
+        },
+        {
+          "from": "surface:ui.library.skills",
+          "to": "requirement:req-27",
+          "kind": "requirement"
+        },
+        {
           "from": "process:ticket.create",
           "to": "rule:ticket.bind_project",
           "kind": "composes"
@@ -7159,7 +7613,10 @@
         "active": 58,
         "active_events": 9,
         "requirements": 18,
-        "requirement_total": 33
+        "requirement_total": 33,
+        "entry_total": 33,
+        "entry_covered": 33,
+        "surfaces": 12
       },
       "errors": [],
       "warnings": []
@@ -7171,7 +7628,10 @@
       "active": 58,
       "active_events": 9,
       "requirements": 18,
-      "requirement_total": 33
+      "requirement_total": 33,
+      "entry_total": 33,
+      "entry_covered": 33,
+      "surfaces": 12
     }
   },
   "orchestration_graph": {
@@ -7203,10 +7663,10 @@
     },
     "states": 12,
     "events": 15,
-    "dom_ids": 108,
-    "dom_refs": 103,
+    "dom_ids": 110,
+    "dom_refs": 105,
     "missing_refs": [],
-    "buttons": 56,
+    "buttons": 57,
     "unbound_buttons": [],
     "empty_buttons": [],
     "controls": 27,
@@ -7217,6 +7677,124 @@
   },
   "ui": {
     "errors": [],
+    "surface_errors": [],
+    "api_calls": [
+      {
+        "module": "artifacts",
+        "prefix": "/api/ops",
+        "target": "ops",
+        "surface": "ui.artifacts.ops",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "module": "artifacts",
+        "prefix": "/api/projects",
+        "target": "projects",
+        "surface": "ui.artifacts.projects",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "module": "health",
+        "prefix": "/api/artifacts",
+        "target": "artifacts",
+        "surface": "ui.health.artifacts",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "module": "health",
+        "prefix": "/api/ops",
+        "target": "ops",
+        "surface": "ui.health.ops",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "module": "library",
+        "prefix": "/api/skills",
+        "target": "skills",
+        "surface": "ui.library.skills",
+        "methods": [
+          "GET",
+          "POST"
+        ]
+      },
+      {
+        "module": "projects",
+        "prefix": "/api/agents",
+        "target": "agents",
+        "surface": "ui.projects.agents",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "module": "projects",
+        "prefix": "/api/ops",
+        "target": "ops",
+        "surface": "ui.projects.ops",
+        "methods": [
+          "GET",
+          "POST"
+        ]
+      },
+      {
+        "module": "projects",
+        "prefix": "/api/sessions",
+        "target": "sessions",
+        "surface": "ui.projects.sessions",
+        "methods": [
+          "GET",
+          "POST"
+        ]
+      },
+      {
+        "module": "projects",
+        "prefix": "/api/tickets",
+        "target": "tickets",
+        "surface": "ui.projects.tickets",
+        "methods": [
+          "GET",
+          "POST"
+        ]
+      },
+      {
+        "module": "projects",
+        "prefix": "/api/web",
+        "target": "webchat",
+        "surface": "ui.projects.web",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "module": "webchat",
+        "prefix": "/api/sessions",
+        "target": "sessions",
+        "surface": "ui.webchat.sessions",
+        "methods": [
+          "GET",
+          "POST"
+        ]
+      },
+      {
+        "module": "webchat",
+        "prefix": "/api/tickets",
+        "target": "tickets",
+        "surface": "ui.webchat.tickets",
+        "methods": [
+          "GET",
+          "POST"
+        ]
+      }
+    ],
+    "unused_surfaces": [],
     "calls": [],
     "defs": {
       "artifacts": [
@@ -7272,8 +7850,10 @@
         "saveProjectBackend"
       ],
       "rules": [
+        "loadGraph",
         "loadRules",
         "openRules",
+        "renderGraph",
         "renderRules",
         "validateRules"
       ],

@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "description": "模块 UI 对外部公开 API 的消费契约。浏览器是外部客户端；这些条目登记的是对外入口，不是服务端模块之间的规则关系。",
+  "surfaces": [
+    {
+      "id": "ui.projects.tickets",
+      "ui": "projects",
+      "target": "tickets",
+      "prefix": "/api/tickets",
+      "methods": ["GET", "POST"],
+      "intent": "项目页读取、创建、删除工单",
+      "requirements": ["req-09"]
+    },
+    {
+      "id": "ui.projects.sessions",
+      "ui": "projects",
+      "target": "sessions",
+      "prefix": "/api/sessions",
+      "methods": ["GET", "POST"],
+      "intent": "项目页读取会话状态、压缩项目秘书上下文",
+      "requirements": ["req-09", "req-18"]
+    },
+    {
+      "id": "ui.projects.agents",
+      "ui": "projects",
+      "target": "agents",
+      "prefix": "/api/agents",
+      "methods": ["GET"],
+      "intent": "项目页读取 Agent 后端配置",
+      "requirements": ["req-08"]
+    },
+    {
+      "id": "ui.projects.ops",
+      "ui": "projects",
+      "target": "ops",
+      "prefix": "/api/ops",
+      "methods": ["GET", "POST"],
+      "intent": "项目页读取文件/配置并打开配置面板",
+      "requirements": ["req-11", "req-13"]
+    },
+    {
+      "id": "ui.projects.web",
+      "ui": "projects",
+      "target": "webchat",
+      "prefix": "/api/web",
+      "methods": ["GET"],
+      "intent": "项目页读取群组/时间线入口",
+      "requirements": ["req-06", "req-07"]
+    },
+    {
+      "id": "ui.webchat.tickets",
+      "ui": "webchat",
+      "target": "tickets",
+      "prefix": "/api/tickets",
+      "methods": ["GET", "POST"],
+      "intent": "群聊读取工单流、标签并投递消息",
+      "requirements": ["req-23", "req-24", "req-30"]
+    },
+    {
+      "id": "ui.webchat.sessions",
+      "ui": "webchat",
+      "target": "sessions",
+      "prefix": "/api/sessions",
+      "methods": ["GET", "POST"],
+      "intent": "群聊读取会话消息、打断当前发言",
+      "requirements": ["req-22", "req-28"]
+    },
+    {
+      "id": "ui.artifacts.projects",
+      "ui": "artifacts",
+      "target": "projects",
+      "prefix": "/api/projects",
+      "methods": ["GET"],
+      "intent": "交付件页浏览项目源码与文件",
+      "requirements": ["req-29"]
+    },
+    {
+      "id": "ui.artifacts.ops",
+      "ui": "artifacts",
+      "target": "ops",
+      "prefix": "/api/ops",
+      "methods": ["GET"],
+      "intent": "交付件页浏览运行时文件",
+      "requirements": ["req-29"]
+    },
+    {
+      "id": "ui.health.artifacts",
+      "ui": "health",
+      "target": "artifacts",
+      "prefix": "/api/artifacts",
+      "methods": ["GET"],
+      "intent": "健康页读取交付件体积统计",
+      "requirements": ["req-32"]
+    },
+    {
+      "id": "ui.health.ops",
+      "ui": "health",
+      "target": "ops",
+      "prefix": "/api/ops",
+      "methods": ["GET"],
+      "intent": "健康页读取运行时状态",
+      "requirements": ["req-32"]
+    },
+    {
+      "id": "ui.library.skills",
+      "ui": "library",
+      "target": "skills",
+      "prefix": "/api/skills",
+      "methods": ["GET", "POST"],
+      "intent": "技能库页面读取、安装、拆解、移除技能",
+      "requirements": ["req-27"]
+    }
+  ]
+}
