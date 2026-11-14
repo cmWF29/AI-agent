@@ -137,7 +137,7 @@ Skill 来源：`skills.DEFAULT_SOURCES` 含 Anthropic、MiniMax、社区 `obra/s
 
 ## 11. 生产部署与真实验收（已完成）
 
-生产已从 `0737b06 / 0.4.3` 部署到 `49aa21e / 0.4.4`：
+生产已从 `0737b06 / 0.4.3` 部署到 `430c564 / 0.4.4`：
 
 - `systemctl is-active hive-watchdog` → `active`；`https://127.0.0.1:8787/api/health` → `{"ok":true,"version":"0.4.4"}`。
 - 网页已登录验收：顶部只剩“库 / 健康 / 版本”；项目页显示“P3A · 源码 /opt/hive/current · claude-code 不可用（本机未装 CLI）”；项目页含默认后端/源码/API 配置/本项目空闲队列/新建工单 trace。
@@ -152,9 +152,9 @@ VPS 无 Node/Claude，`claude-code` 在生产不可用，因此生产只验证 `
 
 ## 12. 未完成 / 已知限制
 
-- 生产 VPS 已部署 `49aa21e / 0.4.4`；生产删除/回退/彻底停止均已真实执行。外部 Agent 多角色并行在本机 `T-20261114-9b9909` 验证；VPS 无 Claude Code，不能在生产重复。
+- 生产 VPS 已部署 `430c564 / 0.4.4`；生产删除/回退/彻底停止均已真实执行。外部 Agent 多角色并行在本机 `T-20261114-9b9909` 验证；VPS 无 Claude Code，不能在生产重复。
 - 本机 `multitest` 的 4 个角色会话是测试“PM 自动拉 2 个 + API 补拉 2 个”叠加，不是代码重复；正常 PM 流程只有它自己拉起的角色。
-- 全局秘书已去掉：`sessions.ask/send/compact` 不传 session 时落到第一个项目秘书；CLI `ask/send` 默认也改为第一个项目秘书。仅保留 `secretary_id` 作为“一个项目都没有”时的兜底名。
+- 全局秘书已去掉：`sessions.ask/send/compact` 不传 session 时落到第一个项目秘书；CLI `ask/send` 默认也改为第一个项目秘书。仅保留 `secretary_id` 作为“一个项目都没有”时的兜底名。生产旧 `secretary` 会话已归档删除，`sec-default` 在首次进入默认项目时生成。
 - PPT 网页内预览未支持；仅下载。
 - “项目源码”深链按钮未 push hash；`#/project/<pid>/source/<path>` 可手输。
 - 旧工单角色显示“异常”是旧前端把已销毁会话映射成 error 的展示问题；新后端已返回 `destroyed`，但历史页面缓存可能仍显示旧值。
@@ -179,4 +179,5 @@ python -m hive.cli serve --config config/config.json
 ```
 
 配置密钥、证书私钥、`config/config.http.json` 不进 git；生产配置走 `config/config.json` 的 git 部署流程。
+
 
