@@ -4,18 +4,18 @@
 
 ## 已上线状态
 
-- GitHub `main`：`0342745`（含 `a1952f6`、`ac40b15`、`a69d7cb`、`8333a60`）。
-- 生产 `/opt/hive/current`：`0342745`，`VERSION=0.4.5`。
+- GitHub `main`：`056bd62`（含 `3c31d4d`、`0342745` 等）。
+- 生产 `/opt/hive/current`：`056bd62`，`VERSION=0.4.7`。
 - `hive-watchdog`：active。
-- 健康接口：`{"ok": true, "status": "ok", "version": "0.4.5"}`。
+- 健康接口：`{"ok": true, "status": "ok", "version": "0.4.7"}`。
 
 ## 同步链路
 
 1. 本机提交并跑本地 pre-push 门禁：`ARCH GATE PASS`。
-2. `git push github main`：GitHub 从 `c9c9126` 更新到 `0342745`。
+2. `git push github main`：GitHub 从 `c9c9126` 更新到 `056bd62`。
 3. VPS `git fetch https://github.com/cmWF29/AI-agent.git main` + `git merge --ff-only FETCH_HEAD`。
 4. VPS `git push origin HEAD:main` 触发 `post-receive`，检出到 `/opt/hive/current`、跑 `deploy/provision.sh --autostart`、重启 watchdog。
-5. 生产 `pre-receive` 已安装，并对 `430c564..8333a60` 的 tree 手工执行过扫描器，输出 `ARCH GATE PASS`。
+5. 生产 `pre-receive` 已更新为 `python3 -m hive.archscan --strict-api`，真实 push 输出 `ARCH GATE PASS`。
 
 ## 网页实测
 
