@@ -9,9 +9,9 @@ import os
 import shutil
 import time
 
-from ..kernel.api import Module
-from ..kernel.store import ensure_dir
-from ..version import __version__
+from ...kernel.api import Module
+from ...kernel.store import ensure_dir
+from ...version import __version__
 
 REQUIRED_MODULES = ["obs", "knowledge", "memory", "library", "artifacts", "projects",
                     "toolpack", "sessions", "gitflow", "tickets", "webchat", "ops"]

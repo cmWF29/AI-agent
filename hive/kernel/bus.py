@@ -15,12 +15,27 @@ from concurrent.futures import ThreadPoolExecutor
 from .store import AppendLog, ts
 
 
+def normalize_topic(topic):
+    """事件契约统一为 领域:动作；历史点号写法在总线边界归一化。"""
+    if not topic:
+        return topic
+    if ":" in topic:
+        return topic
+    if topic.endswith(".*"):
+        return topic[:-2] + ":*"
+    return topic.replace(".", ":", 1)
+
+
 def topic_matches(pattern, topic):
+    pattern = normalize_topic(pattern)
+    topic = normalize_topic(topic)
     if pattern == "*" or pattern == topic:
         return True
     if pattern.endswith(".*"):
-        prefix = pattern[:-1]           # 保留结尾的点
+        prefix = pattern[:-1]
         return topic.startswith(prefix) or topic == pattern[:-2]
+    if pattern.endswith(":*"):
+        return topic.startswith(pattern[:-1])
     return False
 
 
@@ -43,6 +58,7 @@ class Bus:
 
     # ---------------- 订阅 ----------------
     def subscribe(self, pattern, handler, name=""):
+        pattern = normalize_topic(pattern)
         with self._lock:
             self._sub_seq += 1
             sid = "sub-%d" % self._sub_seq
@@ -65,6 +81,7 @@ class Bus:
             yield sid, sub
 
     def publish(self, topic, payload=None, source="", sync=False):
+        topic = normalize_topic(topic)
         with self._lock:
             self._ev_seq += 1
             ev = {
@@ -104,7 +121,7 @@ class Bus:
             return
         try:
             payload = ev.get("payload") or {}
-            if ev["topic"] == "llm.delta":
+            if ev["topic"] == "llm:delta":
                 return
             trace.record("bus.event", {
                 "topic": ev["topic"], "source": ev.get("source"),

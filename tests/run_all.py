@@ -113,11 +113,33 @@ def test_bus():
     bus.publish("session.created", {"id": "s1"}, source="test")
     bus.publish("unrelated", {}, source="test")
     bus.wait_idle(2)
-    check("通配订阅命中", "ticket.created" in got)
-    check("精确订阅命中", "session.created" in got)
+    check("通配订阅命中", "ticket:created" in got)
+    check("精确订阅命中", "session:created" in got)
     check("无关事件不投递", "unrelated" not in got, got)
     check("事件计数", bus.stats()["events"] == 3, bus.stats())
     check("事件缓冲", len(bus.recent) == 3)
+
+    # 统一通信中枢：request/reply 只寻址，不持有对方模块对象
+    from hive.kernel.hub import Hub
+    hub = Hub(bus)
+    hub.register_route("demo.echo", lambda p: {"echo": p.get("v")}, module="demo")
+    check("Hub request/reply", hub.request("demo.echo", {"v": 7})["echo"] == 7)
+    try:
+        hub.request("demo.missing", {})
+        check("Hub 未知服务报错", False)
+    except Exception:
+        check("Hub 未知服务报错", True)
+    mounted = []
+    hub.subscribe("project:mounted", lambda ev: mounted.append(ev["payload"]))
+    hub.mount("project", "p1", "mount-1")
+    bus.wait_idle(2)
+    check("实例挂载广播带项目与容器", mounted and mounted[0]["projectId"] == "p1"
+          and mounted[0]["mountContainerId"] == "mount-1", mounted)
+    inst = []
+    hub.subscribe("project:p1:renamed", lambda ev: inst.append(ev["payload"]), name="p1")
+    hub.publish_instance("project", "p1", "renamed", {"title": "新名字"})
+    bus.wait_idle(2)
+    check("实例通道只投递本实例", inst and inst[0]["title"] == "新名字", inst)
     bus.shutdown()
 
 
@@ -161,7 +183,7 @@ def test_react_offload(mock):
         check("落盘文件存在", os.path.exists(path), path)
         check("上下文条数正确", len(session["messages"]) == 3, len(session["messages"]))
         events = [e["topic"] for e in env.kernel.bus.recent]
-        check("发出 tool.result 事件", "tool.result" in events)
+        check("发出 tool.result 事件", "tool:result" in events)
     finally:
         env.close()
 
@@ -264,8 +286,8 @@ def test_tickets(mock):
         live = env.api("sessions.list")["items"]
         check("临时会话已清空", all(i["kind"] != "role" for i in live), [i["id"] for i in live])
         topics = [e["topic"] for e in env.kernel.bus.recent]
-        check("发出 ticket.closed 事件", "ticket.closed" in topics)
-        check("发出 ticket.closing 事件", "ticket.closing" in topics)
+        check("发出 ticket.closed 事件", "ticket:closed" in topics)
+        check("发出 ticket.closing 事件", "ticket:closing" in topics)
     finally:
         env.close()
 
@@ -294,7 +316,7 @@ def test_http_auth(mock):
         check("维测指标可读", st == 200 and "topics" in body, st)
         st, body, _ = env.http("/api/bus/publish", method="POST",
                                body={"topic": "test.from.http", "payload": {"a": 1}}, token="test-token")
-        check("外部可向总线投事件", st == 200 and body.get("event", {}).get("topic") == "test.from.http", (st, body))
+        check("外部可向总线投事件", st == 200 and body.get("event", {}).get("topic") == "test:from.http", (st, body))
         req = urllib.request.Request("http://127.0.0.1:%d/" % env.port)
         with urllib.request.urlopen(req, timeout=10) as resp:
             html = resp.read().decode("utf-8", "ignore")
@@ -506,9 +528,9 @@ def test_stream_trace(mock):
         env.api("sessions.ensure", project="default")
         env.api("sessions.ask", session="sec-default", text="你好", timeout=60)
         topics = [e["topic"] for e in env.kernel.bus.recent]
-        check("有流式增量事件", "llm.delta" in topics, topics[-6:])
+        check("有流式增量事件", "llm:delta" in topics, topics[-6:])
         delta = "".join(e["payload"].get("text", "") for e in env.kernel.bus.recent
-                        if e["topic"] == "llm.delta")
+                        if e["topic"] == "llm:delta")
         check("增量拼回完整正文", "ABCDEFG" in delta, delta[:80])
         st, tr, _ = env.http("/api/trace/recent?session=sec-default&limit=50")
         kinds = {i["kind"] for i in tr.get("items", [])}
@@ -1060,6 +1082,9 @@ def test_architecture_gate():
     check("架构静态门禁通过", r["ok"], r["errors"][:4])
     entries = [m["entry"] for m in r["modules"]]
     check("每个模块只有一个出口文件", len(entries) == len(set(entries)), entries)
+    check("模块入口都是目录 __init__.py", all(m["entry"].endswith("/__init__.py") for m in r["modules"]), entries)
+    check("模块内部实现与入口同目录", all("module.py" in m.get("internal_files", []) for m in r["modules"]),
+          [(m["name"], m.get("internal_files")) for m in r["modules"]])
     check("模块之间没有 Python import 环", not r["import_cycles"], r["import_cycles"])
     check("每个模块都能报出对外 API", all(m["public_api"] for m in r["modules"]),
           [(m["name"], len(m["public_api"])) for m in r["modules"] if not m["public_api"]])

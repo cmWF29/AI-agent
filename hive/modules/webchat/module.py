@@ -25,7 +25,7 @@ from __future__ import annotations
 import time
 import uuid
 
-from ..kernel.api import ApiError, Module
+from ...kernel.api import ApiError, Module
 
 
 class WebChat(Module):
@@ -371,7 +371,7 @@ class WebChat(Module):
 
     def _module_timeline(self, ticket_id, limit, before_ts=None, full=False):
         import json, os
-        from ..kernel.config import path_of
+        from ...kernel.config import path_of
         try:
             t = self.ctx.api("tickets.get", ticket_id=ticket_id)["ticket"]
         except ApiError:

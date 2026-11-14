@@ -14,10 +14,10 @@ import re
 import shutil
 import time
 
-from ..kernel.api import ApiError, Module
-from ..kernel.config import path_of
-from ..kernel.store import Collection, inside, valid_id
-from ..kernel.tools import Tool
+from ...kernel.api import ApiError, Module
+from ...kernel.config import path_of
+from ...kernel.store import Collection, inside, valid_id
+from ...kernel.tools import Tool
 
 MAX_NAME = 48
 

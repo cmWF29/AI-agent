@@ -19,10 +19,10 @@ import subprocess
 import time
 import uuid
 
-from ..kernel.api import ApiError, Module
-from ..kernel.config import path_of
-from ..kernel.tools import Tool
-from ..kernel.store import ensure_dir, inside, valid_id
+from ...kernel.api import ApiError, Module
+from ...kernel.config import path_of
+from ...kernel.tools import Tool
+from ...kernel.store import ensure_dir, inside, valid_id
 
 
 DEFAULT_SOURCES = [

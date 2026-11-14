@@ -17,10 +17,10 @@ import threading
 import time
 import uuid
 
-from ..kernel.api import ApiError, Module
-from ..kernel.config import path_of
-from ..kernel.store import Collection, ensure_dir
-from ..kernel.tools import Tool
+from ...kernel.api import ApiError, Module
+from ...kernel.config import path_of
+from ...kernel.store import Collection, ensure_dir
+from ...kernel.tools import Tool
 
 ROLE_CN = {
     "pm": "项目经理", "architect": "架构师", "developer": "开发", "dev": "开发",
@@ -553,7 +553,7 @@ class Tickets(Module):
                 % ticket_id, status=409, code="reverify_required")
         if not force:
             # 结单门禁：架构静态扫描必须通过（模块唯一出口/DAG/网页状态机/流程 DAG）
-            from ..archscan import gate as arch_gate
+            from ...archscan import gate as arch_gate
             ok, errs, _warns = arch_gate()
             if not ok:
                 self.emit("ticket.arch.blocked", {"ticket": ticket_id, "errors": errs[:5]})

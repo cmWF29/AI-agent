@@ -82,20 +82,34 @@ def _cycles(graph):
 
 def scan_modules():
     mods = []
-    for fn in sorted(os.listdir(MODULES_DIR)):
-        if not fn.endswith(".py") or fn == "__init__.py":
+    for ent in sorted(os.listdir(MODULES_DIR)):
+        d = os.path.join(MODULES_DIR, ent)
+        if not os.path.isdir(d) or ent.startswith("__"):
             continue
-        name = fn[:-3]
-        text = _read(os.path.join(MODULES_DIR, fn))
+        entry = os.path.join(d, "__init__.py")
+        if not os.path.isfile(entry):
+            continue
+        files = sorted(fn for fn in os.listdir(d) if fn.endswith(".py"))
+        text = "".join(_read(os.path.join(d, fn)) + "\n" for fn in files)
         routes, tools = [], []
         for m in re.finditer(r'\.route\("(?:GET|POST|PUT|DELETE)",\s*"([^"]+)"(?:,\s*name="([^"]+)")?', text):
             routes.append({"path": m.group(1), "name": m.group(2) or m.group(1)})
         for m in re.finditer(r'Tool\("([a-zA-Z_][a-zA-Z0-9_]*)"', text):
             tools.append(m.group(1))
-        imports = sorted(set(re.findall(r'from\s+\.([a-zA-Z_][a-zA-Z0-9_]*)\s+import', text)))
+        imports = sorted(set(re.findall(r'from\s+hive\.modules\.([a-zA-Z_][a-zA-Z0-9_]*)', text)))
+        imports += sorted(set(re.findall(r'from\s+\.\.([a-zA-Z_][a-zA-Z0-9_]*)', text)))
         calls = sorted(set(re.findall(r'(?:self\.ctx|ctx)\.api\("([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)"', text)))
+        topics = []
+        for raw in sorted(set(re.findall(r'(?:emit|publish|subscribe)\("([^"]+)"', text))):
+            if "%" in raw or "{" in raw:
+                continue
+            from hive.kernel.bus import normalize_topic
+            topics.append(normalize_topic(raw))
+        bad_topics = [t for t in topics if t != "*" and not re.match(r'^[a-z][a-z0-9_-]*:[a-z0-9_.:*-]+$', t)]
         mods.append({
-            "name": name, "entry": "hive/modules/%s.py" % name,
+            "name": ent, "entry": "hive/modules/%s/__init__.py" % ent,
+            "internal_files": files, "event_topics": topics, "bad_event_topics": bad_topics,
+            "transport": "hub.request",
             "routes": routes, "tools": tools,
             "public_api": ["route:%s %s" % (r["path"], r["name"]) for r in routes] +
                           ["tool:%s" % t for t in tools],
@@ -251,6 +265,8 @@ def scan(strict_api=False):
     for m in mods:
         if m["cross_imports"]:
             errors.append("模块 %s 直接 import 其他模块: %s" % (m["name"], m["cross_imports"]))
+        if m.get("bad_event_topics"):
+            errors.append("模块 %s 事件名不符合 领域:动作: %s" % (m["name"], m["bad_event_topics"]))
     for c in import_cycles:
         errors.append("模块 import 环: %s" % " -> ".join(c))
     known_cycles = _known_api_cycles()

@@ -3,7 +3,14 @@
   "modules": [
     {
       "name": "agents",
-      "entry": "hive/modules/agents.py",
+      "entry": "hive/modules/agents/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/agents/backends",
@@ -25,7 +32,18 @@
     },
     {
       "name": "artifacts",
-      "entry": "hive/modules/artifacts.py",
+      "entry": "hive/modules/artifacts/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "artifacts:archived",
+        "artifacts:compressed",
+        "artifacts:written"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/artifacts/list",
@@ -72,7 +90,23 @@
     },
     {
       "name": "gitflow",
-      "entry": "hive/modules/gitflow.py",
+      "entry": "hive/modules/gitflow/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "gitflow:conflict",
+        "gitflow:merge.conflict",
+        "gitflow:merge.failed",
+        "gitflow:merged",
+        "gitflow:project.ready",
+        "gitflow:pushed",
+        "gitflow:ticket.ready",
+        "gitflow:ticket.removed"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/gitflow/project/init",
@@ -131,7 +165,16 @@
     },
     {
       "name": "health",
-      "entry": "hive/modules/health.py",
+      "entry": "hive/modules/health/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "*"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/health",
@@ -165,7 +208,20 @@
     },
     {
       "name": "idle",
-      "entry": "hive/modules/idle.py",
+      "entry": "hive/modules/idle/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "idle:config",
+        "idle:dispatch.ack",
+        "idle:flushed",
+        "idle:queued",
+        "idle:ticket.dispatch"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/idle/status",
@@ -214,7 +270,16 @@
     },
     {
       "name": "knowledge",
-      "entry": "hive/modules/knowledge.py",
+      "entry": "hive/modules/knowledge/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "knowledge:written"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/knowledge/overview",
@@ -265,7 +330,19 @@
     },
     {
       "name": "library",
-      "entry": "hive/modules/library.py",
+      "entry": "hive/modules/library/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "library:design",
+        "library:prompt.updated",
+        "library:tag",
+        "library:upsert"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/library/list",
@@ -334,7 +411,14 @@
     },
     {
       "name": "lifecycle",
-      "entry": "hive/modules/lifecycle.py",
+      "entry": "hive/modules/lifecycle/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/projects/{project_id}",
@@ -371,7 +455,16 @@
     },
     {
       "name": "memory",
-      "entry": "hive/modules/memory.py",
+      "entry": "hive/modules/memory/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "memory:added"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/memory/add",
@@ -406,7 +499,16 @@
     },
     {
       "name": "observability",
-      "entry": "hive/modules/observability.py",
+      "entry": "hive/modules/observability/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "*"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/obs/logs",
@@ -443,7 +545,16 @@
     },
     {
       "name": "ops",
-      "entry": "hive/modules/ops.py",
+      "entry": "hive/modules/ops/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "ops:control"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/ops/status",
@@ -514,7 +625,22 @@
     },
     {
       "name": "projects",
-      "entry": "hive/modules/projects.py",
+      "entry": "hive/modules/projects/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "project:archived",
+        "project:backend",
+        "project:created",
+        "project:delete.before",
+        "project:deleted",
+        "project:renamed",
+        "project:source"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/projects/list",
@@ -605,7 +731,27 @@
     },
     {
       "name": "sessions",
-      "entry": "hive/modules/sessions.py",
+      "entry": "hive/modules/sessions/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "project:delete.before",
+        "session:compacted",
+        "session:created",
+        "session:destroyed",
+        "session:hook",
+        "session:interrupt",
+        "session:result",
+        "session:run.error",
+        "session:run.finish",
+        "session:run.start",
+        "session:secretary.recreated",
+        "sessions:recovered"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/sessions/spawn",
@@ -680,7 +826,18 @@
     },
     {
       "name": "skills",
-      "entry": "hive/modules/skills.py",
+      "entry": "hive/modules/skills/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "skills:decomposed",
+        "skills:installed",
+        "skills:removed"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/skills/installed",
@@ -725,7 +882,35 @@
     },
     {
       "name": "tickets",
-      "entry": "hive/modules/tickets.py",
+      "entry": "hive/modules/tickets/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "artifacts:written",
+        "gitflow:conflict",
+        "idle:dispatch.ack",
+        "idle:ticket.dispatch",
+        "session:result",
+        "ticket:arch.blocked",
+        "ticket:closed",
+        "ticket:closing",
+        "ticket:conflict",
+        "ticket:created",
+        "ticket:deleted",
+        "ticket:flow.blocked",
+        "ticket:flow.missing",
+        "ticket:message",
+        "ticket:queued",
+        "ticket:resumed",
+        "ticket:retrospective.created",
+        "ticket:role.spawned",
+        "ticket:tags",
+        "ticket:verified"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/tickets/create",
@@ -834,7 +1019,14 @@
     },
     {
       "name": "toolpack",
-      "entry": "hive/modules/toolpack.py",
+      "entry": "hive/modules/toolpack/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [],
       "tools": [
         "shell",
@@ -856,7 +1048,17 @@
     },
     {
       "name": "webchat",
-      "entry": "hive/modules/webchat.py",
+      "entry": "hive/modules/webchat/__init__.py",
+      "internal_files": [
+        "__init__.py",
+        "module.py"
+      ],
+      "event_topics": [
+        "webchat:queued",
+        "webchat:send"
+      ],
+      "bad_event_topics": [],
+      "transport": "hub.request",
       "routes": [
         {
           "path": "/api/chat/send",

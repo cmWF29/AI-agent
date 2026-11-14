@@ -21,10 +21,10 @@ import json
 import os
 import time
 
-from ..kernel.api import ApiError, Module
-from ..kernel.config import path_of
-from ..kernel.store import Collection, ensure_dir, valid_id
-from ..kernel.tools import Tool
+from ...kernel.api import ApiError, Module
+from ...kernel.config import path_of
+from ...kernel.store import Collection, ensure_dir, valid_id
+from ...kernel.tools import Tool
 
 KINDS = ("roles", "flows", "skills")
 
@@ -136,7 +136,7 @@ BUILTIN_FLOWS = {
 
 def _load_requirement_flows():
     """历史需求逐条沉淀为可扫描流程；放在 docs/ 下随 git 部署，不依赖运行期 data。"""
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     path = os.path.join(root, "docs", "requirement-flows.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -458,12 +458,12 @@ class Library(Module):
     def tag_add_api(self, payload):
         name = (payload.get("name") or "").strip()
         if not name:
-            from ..kernel.api import ApiError
+            from ...kernel.api import ApiError
             raise ApiError("name 必填", code="missing_name")
         return self.tag_add(name[:24], payload.get("project") or "")
 
     def tags_api(self, payload):
-        from ..kernel.api import ApiError
+        from ...kernel.api import ApiError
         project = payload.get("project") or ""
         if project and not valid_id(project):
             raise ApiError("非法 project id", status=400, code="bad_project")

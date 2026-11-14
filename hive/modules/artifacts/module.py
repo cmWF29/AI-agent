@@ -26,10 +26,10 @@ import shutil
 import time
 import tarfile
 
-from ..kernel.api import ApiError, Module
-from ..kernel.config import path_of
-from ..kernel.store import ensure_dir, valid_id
-from ..kernel.tools import Tool
+from ...kernel.api import ApiError, Module
+from ...kernel.config import path_of
+from ...kernel.store import ensure_dir, valid_id
+from ...kernel.tools import Tool
 
 SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", "repo"}
 MAX_FILE = 512 * 1024

@@ -1,6 +1,6 @@
 # 架构静态扫描报告
 
-生成时间：2026-11-14T07:45:04Z
+生成时间：2026-11-14T08:24:29Z
 
 ## 结论
 
@@ -13,23 +13,23 @@
 
 | 模块 | 唯一出口 | 路由 | 工具 | 跨模块 import |
 | --- | --- | --- | --- | --- |
-| agents | `hive/modules/agents.py` | 2 | 0 | 无 |
-| artifacts | `hive/modules/artifacts.py` | 7 | 0 | 无 |
-| gitflow | `hive/modules/gitflow.py` | 8 | 3 | 无 |
-| health | `hive/modules/health.py` | 4 | 0 | 无 |
-| idle | `hive/modules/idle.py` | 7 | 0 | 无 |
-| knowledge | `hive/modules/knowledge.py` | 7 | 0 | 无 |
-| library | `hive/modules/library.py` | 10 | 3 | 无 |
-| lifecycle | `hive/modules/lifecycle.py` | 3 | 1 | 无 |
-| memory | `hive/modules/memory.py` | 4 | 0 | 无 |
-| observability | `hive/modules/observability.py` | 5 | 0 | 无 |
-| ops | `hive/modules/ops.py` | 11 | 0 | 无 |
-| projects | `hive/modules/projects.py` | 14 | 2 | 无 |
-| sessions | `hive/modules/sessions.py` | 12 | 0 | 无 |
-| skills | `hive/modules/skills.py` | 6 | 0 | 无 |
-| tickets | `hive/modules/tickets.py` | 15 | 0 | 无 |
-| toolpack | `hive/modules/toolpack.py` | 0 | 5 | 无 |
-| webchat | `hive/modules/webchat.py` | 9 | 0 | 无 |
+| agents | `hive/modules/agents/__init__.py` | 2 | 0 | 无 |
+| artifacts | `hive/modules/artifacts/__init__.py` | 7 | 0 | 无 |
+| gitflow | `hive/modules/gitflow/__init__.py` | 8 | 3 | 无 |
+| health | `hive/modules/health/__init__.py` | 4 | 0 | 无 |
+| idle | `hive/modules/idle/__init__.py` | 7 | 0 | 无 |
+| knowledge | `hive/modules/knowledge/__init__.py` | 7 | 0 | 无 |
+| library | `hive/modules/library/__init__.py` | 10 | 3 | 无 |
+| lifecycle | `hive/modules/lifecycle/__init__.py` | 3 | 1 | 无 |
+| memory | `hive/modules/memory/__init__.py` | 4 | 0 | 无 |
+| observability | `hive/modules/observability/__init__.py` | 5 | 0 | 无 |
+| ops | `hive/modules/ops/__init__.py` | 11 | 0 | 无 |
+| projects | `hive/modules/projects/__init__.py` | 14 | 2 | 无 |
+| sessions | `hive/modules/sessions/__init__.py` | 12 | 0 | 无 |
+| skills | `hive/modules/skills/__init__.py` | 6 | 0 | 无 |
+| tickets | `hive/modules/tickets/__init__.py` | 15 | 0 | 无 |
+| toolpack | `hive/modules/toolpack/__init__.py` | 0 | 5 | 无 |
+| webchat | `hive/modules/webchat/__init__.py` | 9 | 0 | 无 |
 
 ## 模块 API 依赖（同步调用）
 

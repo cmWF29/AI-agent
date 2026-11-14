@@ -137,6 +137,8 @@ class Context:
     def __init__(self, cfg, bus, log, router=None):
         self.cfg = cfg
         self.bus = bus
+        from .hub import Hub
+        self.hub = Hub(bus)
         self.log = log
         self.router = router or Router()
         self.modules = {}
@@ -150,6 +152,8 @@ class Context:
         self.modules[module.name] = module
         module.setup()
         self.router.mount(module, module.api)
+        for route in module.api.all():
+            self.hub.register_route(route.route_id, route.func, module.name)
         if self.log:
             self.log.debug("module.registered", module=module.name, routes=len(module.api.all()))
         return module
@@ -158,21 +162,18 @@ class Context:
         return self.modules.get(name)
 
     def api(self, route_id, **payload):
-        """模块间同步调用：直接走对外 API，不 import 对方的实现。
+        """跨模块同步查询：经统一通信中枢 request/reply，不认识对方模块对象。
 
         同时把“谁调了谁、入参出参”记进 trace（需求 19：模块间通信要可视化）。
         """
-        route = self.router.by_id(route_id)
-        if route is None:
+        if self.router.by_id(route_id) is None:
             raise ApiError("unknown route: %s" % route_id, status=404, code="no_route")
         t0 = time.time()
         try:
-            result = route.func(payload)
+            result = self.hub.request(route_id, payload)
         except ApiError as exc:
             self._trace_api(route_id, payload, None, int((time.time() - t0) * 1000), error=exc.message)
             raise
-        if result is None:
-            result = {}
         self._trace_api(route_id, payload, result, int((time.time() - t0) * 1000))
         return result
 

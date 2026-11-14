@@ -18,9 +18,9 @@ import queue
 import time
 import uuid
 
-from ..kernel.api import ApiError, Module
-from ..kernel.config import path_of
-from ..kernel.store import ensure_dir
+from ...kernel.api import ApiError, Module
+from ...kernel.config import path_of
+from ...kernel.store import ensure_dir
 
 
 class ClaudeCodeBackend:
