@@ -44,8 +44,8 @@ class Idle(Module):
         # 但只有收到 ack 才把队列项出队，避免派发失败被静默丢掉。
         self._acks = {}
         self._acks_lock = threading.Lock()
-        self.bus.subscribe("idle.dispatch.ack", self._on_dispatch_ack,
-                           name="idle.dispatch_ack")
+        self.event("event.idle.dispatch_ack", self._on_dispatch_ack,
+                   name="idle.dispatch_ack")
         if self.store.get("queue") is None:
             self.store.put("queue", {"items": []})
         self.log.info("idle.ready", windows=self.windows, discounts=self.offpeak_discount)

@@ -101,13 +101,13 @@ class Tickets(Module):
         self.api.route("POST", "/api/tickets/dispatch", name="dispatch")(self.dispatch_api)
 
         # 队列派发由 idle 发事件、tickets 执行并回 ack；tickets 不再被 idle 同步调用。
-        self.bus.subscribe("idle.ticket.dispatch", self._on_idle_ticket_dispatch,
-                           name="tickets.idle_dispatch")
+        self.event("event.idle.ticket_dispatch", self._on_idle_ticket_dispatch,
+                   name="tickets.idle_dispatch")
 
         self._register_tools()
-        self.bus.subscribe("session.result", self._on_session_result, name="tickets.result")
-        self.bus.subscribe("gitflow.conflict", self._on_git_conflict, name="tickets.git-conflict")
-        self.bus.subscribe("artifacts.written", self._on_artifact_written, name="tickets.artifact")
+        self.event("event.session.result.tickets", self._on_session_result, name="tickets.result")
+        self.event("event.gitflow.conflict", self._on_git_conflict, name="tickets.git-conflict")
+        self.event("event.artifacts.written", self._on_artifact_written, name="tickets.artifact")
 
     # ---------------- 工单存储 ----------------
     def _get(self, ticket_id):

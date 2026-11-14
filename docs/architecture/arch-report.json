@@ -3,6 +3,7 @@
   "modules": [
     {
       "name": "agents",
+      "dir": "agents",
       "entry": "hive/modules/agents/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -34,10 +35,13 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "archgate",
+      "dir": "archgate",
       "entry": "hive/modules/archgate/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -63,10 +67,13 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "artifacts",
+      "dir": "artifacts",
       "entry": "hive/modules/artifacts/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -132,10 +139,13 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "gitflow",
+      "dir": "gitflow",
       "entry": "hive/modules/gitflow/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -219,10 +229,13 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "gitsync",
+      "dir": "gitsync",
       "entry": "hive/modules/gitsync/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -254,18 +267,19 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "health",
+      "dir": "health",
       "entry": "hive/modules/health/__init__.py",
       "internal_files": [
         "__init__.py",
         "module.py"
       ],
-      "event_topics": [
-        "*"
-      ],
+      "event_topics": [],
       "bad_event_topics": [],
       "transport": "hub.request",
       "routes": [
@@ -309,10 +323,15 @@
         "health.probe_sessions",
         "health.probe_tickets"
       ],
+      "event_calls": [
+        "event.health.heartbeat"
+      ],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "idle",
+      "dir": "idle",
       "entry": "hive/modules/idle/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -320,7 +339,6 @@
       ],
       "event_topics": [
         "idle:config",
-        "idle:dispatch.ack",
         "idle:flushed",
         "idle:queued",
         "idle:ticket.dispatch"
@@ -382,10 +400,15 @@
       "rule_calls": [
         "idle.send_message"
       ],
+      "event_calls": [
+        "event.idle.dispatch_ack"
+      ],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "knowledge",
+      "dir": "knowledge",
       "entry": "hive/modules/knowledge/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -453,10 +476,13 @@
       ],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "library",
+      "dir": "library",
       "entry": "hive/modules/library/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -548,10 +574,13 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "lifecycle",
+      "dir": "lifecycle",
       "entry": "hive/modules/lifecycle/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -599,10 +628,13 @@
         "lifecycle.preview_delete",
         "lifecycle.project_snapshot"
       ],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "memory",
+      "dir": "memory",
       "entry": "hive/modules/memory/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -651,18 +683,19 @@
       ],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
-      "name": "observability",
+      "name": "obs",
+      "dir": "observability",
       "entry": "hive/modules/observability/__init__.py",
       "internal_files": [
         "__init__.py",
         "module.py"
       ],
-      "event_topics": [
-        "*"
-      ],
+      "event_topics": [],
       "bad_event_topics": [],
       "transport": "hub.request",
       "routes": [
@@ -688,11 +721,11 @@
         }
       ],
       "route_ids": [
-        "observability.events",
-        "observability.info",
-        "observability.logs",
-        "observability.metrics",
-        "observability.publish"
+        "obs.events",
+        "obs.info",
+        "obs.logs",
+        "obs.metrics",
+        "obs.publish"
       ],
       "tools": [],
       "public_api": [
@@ -706,10 +739,15 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [
+        "event.obs.stream"
+      ],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "ops",
+      "dir": "ops",
       "entry": "hive/modules/ops/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -801,10 +839,13 @@
         "ops.session_snapshot",
         "ops.ticket_snapshot"
       ],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "projects",
+      "dir": "projects",
       "entry": "hive/modules/projects/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -925,10 +966,13 @@
         "project.purge_artifacts",
         "project.purge_knowledge"
       ],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "rules",
+      "dir": "rules",
       "entry": "hive/modules/rules/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -953,11 +997,16 @@
         {
           "path": "/api/rules/run",
           "name": "run"
+        },
+        {
+          "path": "/api/rules/process",
+          "name": "process"
         }
       ],
       "route_ids": [
         "rules.catalog",
         "rules.graph",
+        "rules.process",
         "rules.run",
         "rules.validate"
       ],
@@ -966,7 +1015,8 @@
         "route:/api/rules/catalog catalog",
         "route:/api/rules/graph graph",
         "route:/api/rules/validate validate",
-        "route:/api/rules/run run"
+        "route:/api/rules/run run",
+        "route:/api/rules/process process"
       ],
       "cross_imports": [],
       "api_calls": [],
@@ -974,17 +1024,21 @@
         "call"
       ],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [
+        ".bus.subscribe("
+      ],
       "private_tests": false
     },
     {
       "name": "sessions",
+      "dir": "sessions",
       "entry": "hive/modules/sessions/__init__.py",
       "internal_files": [
         "__init__.py",
         "module.py"
       ],
       "event_topics": [
-        "project:delete.before",
         "session:compacted",
         "session:created",
         "session:destroyed",
@@ -1085,10 +1139,16 @@
         "session.load_context",
         "session.project_directory"
       ],
+      "event_calls": [
+        "event.project.delete_before",
+        "event.session.result.sessions"
+      ],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "skills",
+      "dir": "skills",
       "entry": "hive/modules/skills/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -1151,10 +1211,13 @@
         "skill.design_role",
         "skill.store"
       ],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "testrunner",
+      "dir": "testrunner",
       "entry": "hive/modules/testrunner/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -1186,21 +1249,20 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "tickets",
+      "dir": "tickets",
       "entry": "hive/modules/tickets/__init__.py",
       "internal_files": [
         "__init__.py",
         "module.py"
       ],
       "event_topics": [
-        "artifacts:written",
-        "gitflow:conflict",
         "idle:dispatch.ack",
-        "idle:ticket.dispatch",
-        "session:result",
         "ticket:arch.blocked",
         "ticket:closed",
         "ticket:closing",
@@ -1343,10 +1405,18 @@
         "ticket.wait_session",
         "ticket.write_learning"
       ],
+      "event_calls": [
+        "event.artifacts.written",
+        "event.gitflow.conflict",
+        "event.idle.ticket_dispatch",
+        "event.session.result.tickets"
+      ],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "toolpack",
+      "dir": "toolpack",
       "entry": "hive/modules/toolpack/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -1375,10 +1445,13 @@
       "api_calls": [],
       "dynamic_api_calls": [],
       "rule_calls": [],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     },
     {
       "name": "webchat",
+      "dir": "webchat",
       "entry": "hive/modules/webchat/__init__.py",
       "internal_files": [
         "__init__.py",
@@ -1468,6 +1541,8 @@
         "chat.ticket_context",
         "chat.ticket_directory"
       ],
+      "event_calls": [],
+      "direct_bus_subscribes": [],
       "private_tests": false
     }
   ],
@@ -4150,7 +4225,131 @@
         ]
       }
     ],
+    "events": [
+      {
+        "id": "event.obs.stream",
+        "cn": "观测模块订阅全域事件",
+        "kind": "event",
+        "topic": "*",
+        "from": "*",
+        "to": "obs",
+        "intent": "只读统计所有模块事件，不参与业务决策",
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.health.heartbeat",
+        "cn": "健康模块订阅全域心跳",
+        "kind": "event",
+        "topic": "*",
+        "from": "*",
+        "to": "health",
+        "intent": "保持健康模块的事件心跳，不改业务状态",
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.idle.dispatch_ack",
+        "cn": "调度器接收工单派发回执",
+        "kind": "event",
+        "topic": "idle:dispatch.ack",
+        "from": "tickets",
+        "to": "idle",
+        "intent": "收到 ack 才出队，失败保留队列项",
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.idle.ticket_dispatch",
+        "cn": "工单接收调度器派发",
+        "kind": "event",
+        "topic": "idle:ticket.dispatch",
+        "from": "idle",
+        "to": "tickets",
+        "intent": "高峰队列恢复后由事件触发工单执行",
+        "requirements": [
+          "req-02"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.project.delete_before",
+        "cn": "删除项目前通知会话清理",
+        "kind": "event",
+        "topic": "project:delete.before",
+        "from": "projects",
+        "to": "sessions",
+        "intent": "项目删除前同步事件，session 自己清理项目秘书",
+        "requirements": [
+          "req-06",
+          "req-20"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.session.result.tickets",
+        "cn": "工单接收会话结果",
+        "kind": "event",
+        "topic": "session:result",
+        "from": "sessions",
+        "to": "tickets",
+        "intent": "角色会话结束后把结果交给工单模块",
+        "requirements": [
+          "req-18"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.session.result.sessions",
+        "cn": "会话模块接收自身结果",
+        "kind": "event",
+        "topic": "session:result",
+        "from": "sessions",
+        "to": "sessions",
+        "intent": "会话结果落盘/状态恢复，属于会话自身能力",
+        "requirements": [],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.gitflow.conflict",
+        "cn": "工单接收 git 冲突",
+        "kind": "event",
+        "topic": "gitflow:conflict",
+        "from": "gitflow",
+        "to": "tickets",
+        "intent": "冲突事件把工单置为 conflict，要求复验",
+        "requirements": [
+          "req-14"
+        ],
+        "optional": true,
+        "active": true
+      },
+      {
+        "id": "event.artifacts.written",
+        "cn": "工单接收交付件写入",
+        "kind": "event",
+        "topic": "artifacts:written",
+        "from": "artifacts",
+        "to": "tickets",
+        "intent": "交付件写入事件用于工单流程校验",
+        "requirements": [
+          "req-21"
+        ],
+        "optional": true,
+        "active": true
+      }
+    ],
     "direct_cross_calls": [],
+    "direct_bus_subscribes": [],
     "rule_calls": [
       {
         "module": "health",
@@ -4443,13 +4642,71 @@
         "active": true
       }
     ],
+    "event_calls": [
+      {
+        "module": "health",
+        "event": "event.health.heartbeat",
+        "topic": "*",
+        "active": true
+      },
+      {
+        "module": "idle",
+        "event": "event.idle.dispatch_ack",
+        "topic": "idle:dispatch.ack",
+        "active": true
+      },
+      {
+        "module": "obs",
+        "event": "event.obs.stream",
+        "topic": "*",
+        "active": true
+      },
+      {
+        "module": "sessions",
+        "event": "event.project.delete_before",
+        "topic": "project:delete.before",
+        "active": true
+      },
+      {
+        "module": "sessions",
+        "event": "event.session.result.sessions",
+        "topic": "session:result",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "event": "event.artifacts.written",
+        "topic": "artifacts:written",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "event": "event.gitflow.conflict",
+        "topic": "gitflow:conflict",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "event": "event.idle.ticket_dispatch",
+        "topic": "idle:ticket.dispatch",
+        "active": true
+      },
+      {
+        "module": "tickets",
+        "event": "event.session.result.tickets",
+        "topic": "session:result",
+        "active": true
+      }
+    ],
     "orchestration_graph": {
       "rules": [
         "artifacts",
         "gitflow",
+        "health",
         "idle",
         "knowledge",
         "library",
+        "obs",
         "projects",
         "sessions",
         "tickets"
@@ -4564,6 +4821,12 @@
           "id": "module:lifecycle",
           "type": "module",
           "label": "lifecycle",
+          "active": true
+        },
+        {
+          "id": "module:obs",
+          "type": "module",
+          "label": "obs",
           "active": true
         },
         {
@@ -4949,6 +5212,69 @@
           "type": "rule",
           "label": "调度器投递消息",
           "active": true
+        },
+        {
+          "id": "event:event.obs.stream",
+          "type": "event",
+          "label": "观测模块订阅全域事件",
+          "active": true,
+          "topic": "*"
+        },
+        {
+          "id": "event:event.health.heartbeat",
+          "type": "event",
+          "label": "健康模块订阅全域心跳",
+          "active": true,
+          "topic": "*"
+        },
+        {
+          "id": "event:event.idle.dispatch_ack",
+          "type": "event",
+          "label": "调度器接收工单派发回执",
+          "active": true,
+          "topic": "idle:dispatch.ack"
+        },
+        {
+          "id": "event:event.idle.ticket_dispatch",
+          "type": "event",
+          "label": "工单接收调度器派发",
+          "active": true,
+          "topic": "idle:ticket.dispatch"
+        },
+        {
+          "id": "event:event.project.delete_before",
+          "type": "event",
+          "label": "删除项目前通知会话清理",
+          "active": true,
+          "topic": "project:delete.before"
+        },
+        {
+          "id": "event:event.session.result.tickets",
+          "type": "event",
+          "label": "工单接收会话结果",
+          "active": true,
+          "topic": "session:result"
+        },
+        {
+          "id": "event:event.session.result.sessions",
+          "type": "event",
+          "label": "会话模块接收自身结果",
+          "active": true,
+          "topic": "session:result"
+        },
+        {
+          "id": "event:event.gitflow.conflict",
+          "type": "event",
+          "label": "工单接收 git 冲突",
+          "active": true,
+          "topic": "gitflow:conflict"
+        },
+        {
+          "id": "event:event.artifacts.written",
+          "type": "event",
+          "label": "工单接收交付件写入",
+          "active": true,
+          "topic": "artifacts:written"
         },
         {
           "id": "process:ticket.create",
@@ -6356,6 +6682,121 @@
           "kind": "object"
         },
         {
+          "from": "event:event.obs.stream",
+          "to": "module:obs",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.health.heartbeat",
+          "to": "module:health",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.idle.dispatch_ack",
+          "to": "module:tickets",
+          "kind": "publishes"
+        },
+        {
+          "from": "event:event.idle.dispatch_ack",
+          "to": "module:idle",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.idle.dispatch_ack",
+          "to": "requirement:req-02",
+          "kind": "requirement"
+        },
+        {
+          "from": "event:event.idle.ticket_dispatch",
+          "to": "module:idle",
+          "kind": "publishes"
+        },
+        {
+          "from": "event:event.idle.ticket_dispatch",
+          "to": "module:tickets",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.idle.ticket_dispatch",
+          "to": "requirement:req-02",
+          "kind": "requirement"
+        },
+        {
+          "from": "event:event.project.delete_before",
+          "to": "module:projects",
+          "kind": "publishes"
+        },
+        {
+          "from": "event:event.project.delete_before",
+          "to": "module:sessions",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.project.delete_before",
+          "to": "requirement:req-06",
+          "kind": "requirement"
+        },
+        {
+          "from": "event:event.project.delete_before",
+          "to": "requirement:req-20",
+          "kind": "requirement"
+        },
+        {
+          "from": "event:event.session.result.tickets",
+          "to": "module:sessions",
+          "kind": "publishes"
+        },
+        {
+          "from": "event:event.session.result.tickets",
+          "to": "module:tickets",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.session.result.tickets",
+          "to": "requirement:req-18",
+          "kind": "requirement"
+        },
+        {
+          "from": "event:event.session.result.sessions",
+          "to": "module:sessions",
+          "kind": "publishes"
+        },
+        {
+          "from": "event:event.session.result.sessions",
+          "to": "module:sessions",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.gitflow.conflict",
+          "to": "module:gitflow",
+          "kind": "publishes"
+        },
+        {
+          "from": "event:event.gitflow.conflict",
+          "to": "module:tickets",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.gitflow.conflict",
+          "to": "requirement:req-14",
+          "kind": "requirement"
+        },
+        {
+          "from": "event:event.artifacts.written",
+          "to": "module:artifacts",
+          "kind": "publishes"
+        },
+        {
+          "from": "event:event.artifacts.written",
+          "to": "module:tickets",
+          "kind": "subscribes"
+        },
+        {
+          "from": "event:event.artifacts.written",
+          "to": "requirement:req-21",
+          "kind": "requirement"
+        },
+        {
           "from": "process:ticket.create",
           "to": "rule:ticket.bind_project",
           "kind": "composes"
@@ -6714,7 +7155,9 @@
       "stats": {
         "relations": 58,
         "processes": 9,
+        "events": 9,
         "active": 58,
+        "active_events": 9,
         "requirements": 18,
         "requirement_total": 33
       },
@@ -6724,7 +7167,9 @@
     "stats": {
       "relations": 58,
       "processes": 9,
+      "events": 9,
       "active": 58,
+      "active_events": 9,
       "requirements": 18,
       "requirement_total": 33
     }
@@ -6733,9 +7178,11 @@
     "rules": [
       "artifacts",
       "gitflow",
+      "health",
       "idle",
       "knowledge",
       "library",
+      "obs",
       "projects",
       "sessions",
       "tickets"
@@ -6756,8 +7203,8 @@
     },
     "states": 12,
     "events": 15,
-    "dom_ids": 107,
-    "dom_refs": 102,
+    "dom_ids": 108,
+    "dom_refs": 103,
     "missing_refs": [],
     "buttons": 56,
     "unbound_buttons": [],

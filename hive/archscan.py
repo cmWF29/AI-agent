@@ -92,12 +92,14 @@ def scan_modules():
             continue
         files = sorted(fn for fn in os.listdir(d) if fn.endswith(".py"))
         text = "".join(_read(os.path.join(d, fn)) + "\n" for fn in files)
+        name_match = re.search(r'^class\s+\w+\(Module\):\s*\n\s*name\s*=\s*"([^"]+)"', text, re.M)
+        runtime_name = name_match.group(1) if name_match else ent
         routes, tools = [], []
         route_ids = []
         for m in re.finditer(r'\.route\("(?:GET|POST|PUT|DELETE)",\s*"([^"]+)"(?:,\s*name="([^"]+)")?', text):
             routes.append({"path": m.group(1), "name": m.group(2) or m.group(1)})
         for m in re.finditer(r'\.route\(\s*"(?:GET|POST|PUT|DELETE)"\s*,\s*"[^"]+"(?:\s*,\s*name="([^"]+)")?\s*\)\s*\(\s*(?:self\.)?([A-Za-z_][A-Za-z0-9_]*)', text):
-            route_ids.append("%s.%s" % (ent, m.group(1) or m.group(2)))
+            route_ids.append("%s.%s" % (runtime_name, m.group(1) or m.group(2)))
         for m in re.finditer(r'Tool\("([a-zA-Z_][a-zA-Z0-9_]*)"', text):
             tools.append(m.group(1))
         imports = sorted(set(re.findall(r'from\s+hive\.modules\.([a-zA-Z_][a-zA-Z0-9_]*)', text)))
@@ -105,6 +107,8 @@ def scan_modules():
         calls = sorted(set(re.findall(r'(?:self\.ctx|ctx)\.api\("([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)"', text)))
         dynamic_calls = sorted(set(re.findall(r'(?:self\.ctx|ctx)\.api\(\s*([A-Za-z_][A-Za-z0-9_]*)', text)))
         rule_calls = sorted(set(re.findall(r'\.rule\(\s*"([^"]+)"', text)))
+        event_calls = sorted(set(re.findall(r'\.event\(\s*"([^"]+)"', text)))
+        direct_bus_subscribes = sorted(set(re.findall(r'\.bus\.subscribe\(', text)))
         topics = []
         for raw in sorted(set(re.findall(r'(?:emit|publish|subscribe)\("([^"]+)"', text))):
             if "%" in raw or "{" in raw:
@@ -113,7 +117,7 @@ def scan_modules():
             topics.append(normalize_topic(raw))
         bad_topics = [t for t in topics if t != "*" and not re.match(r'^[a-z][a-z0-9_-]*:[a-z0-9_.:*-]+$', t)]
         mods.append({
-            "name": ent, "entry": "hive/modules/%s/__init__.py" % ent,
+            "name": runtime_name, "dir": ent, "entry": "hive/modules/%s/__init__.py" % ent,
             "internal_files": files, "event_topics": topics, "bad_event_topics": bad_topics,
             "transport": "hub.request",
             "routes": routes, "route_ids": sorted(set(route_ids)), "tools": tools,
@@ -123,6 +127,8 @@ def scan_modules():
             "api_calls": ["%s.%s" % (a, b) for a, b in calls],
             "dynamic_api_calls": dynamic_calls,
             "rule_calls": rule_calls,
+            "event_calls": event_calls,
+            "direct_bus_subscribes": direct_bus_subscribes,
             "private_tests": bool(re.search(r'if\s+__name__\s*==\s*"__main__"', text)),
         })
     return mods
@@ -199,7 +205,7 @@ def scan_ui_calls(mods):
     ui_files = {}
     defs = {}
     for m in mods:
-        path = os.path.join(ROOT, "hive", "modules", m["name"], "ui.js")
+        path = os.path.join(ROOT, "hive", "modules", m.get("dir") or m["name"], "ui.js")
         if not os.path.isfile(path):
             continue
         text = _read(path)
@@ -256,11 +262,14 @@ def scan_rules(mods):
                         requirements=reqs)
     except Exception as exc:
         return {"ok": False, "errors": ["规则目录读取失败: %r" % exc], "warnings": [],
-                "relations": [], "processes": [], "direct_cross_calls": [],
-                "rule_calls": [], "orchestration_graph": {}, "stats": {}}
+                "relations": [], "processes": [], "events": [],
+                "direct_cross_calls": [], "direct_bus_subscribes": [],
+                "rule_calls": [], "event_calls": [], "orchestration_graph": {}, "stats": {}}
     errors, warnings = list(book.errors), list(book.warnings)
     direct_cross = []
+    direct_bus = []
     call_rows = []
+    event_rows = []
     for m in mods:
         if m["name"] != "rules":
             for call in m.get("api_calls") or []:
@@ -269,6 +278,8 @@ def scan_rules(mods):
                     direct_cross.append({"module": m["name"], "call": call})
             for call in m.get("dynamic_api_calls") or []:
                 direct_cross.append({"module": m["name"], "call": call, "dynamic": True})
+            for _ in m.get("direct_bus_subscribes") or []:
+                direct_bus.append({"module": m["name"]})
         for rid in m.get("rule_calls") or []:
             rule = book.rule(rid)
             if not rule:
@@ -279,16 +290,42 @@ def scan_rules(mods):
                     m["name"], rid, rule.get("from")))
             call_rows.append({"module": m["name"], "rule": rid,
                               "active": book.active(rule)})
+        for eid in m.get("event_calls") or []:
+            event = book.rule(eid)
+            if not event or event.get("kind") != "event":
+                errors.append("%s: 引用了不存在的事件规则 %s" % (m["name"], eid))
+                continue
+            if event.get("to") != m["name"]:
+                errors.append("%s: 事件 %s 的 to 是 %s，不能由本模块订阅" % (
+                    m["name"], eid, event.get("to")))
+            event_rows.append({"module": m["name"], "event": eid,
+                               "topic": event.get("topic"), "active": book.active(event)})
     if direct_cross:
         for row in direct_cross:
             errors.append("模块 %s 直接跨模块调用 %s；必须改为 ctx.rule(...)" % (
                 row["module"], row["call"]))
+    if direct_bus:
+        for row in direct_bus:
+            errors.append("模块 %s 直接 bus.subscribe；必须改为 self.event(规则 id, ...)" % (
+                row["module"]))
+    published = {m["name"]: set(m.get("event_topics") or []) for m in mods}
+    for event in book.events:
+        publisher = event.get("from")
+        topic = event.get("topic")
+        if publisher and publisher != "*" and topic and topic != "*":
+            if topic not in published.get(publisher, set()):
+                errors.append("事件 %s 的发布者 %s 没有声明 topic %s" % (
+                    event.get("id"), publisher, topic))
     used = {r["rule"] for r in call_rows}
+    used_events = {r["event"] for r in event_rows}
     for rule in book.relations:
         if rule["id"] not in used:
             warnings.append("规则 %s 没有被任何模块调用（可能只被流程组合）" % rule["id"])
+    for event in book.events:
+        if event["id"] not in used_events:
+            warnings.append("事件 %s 没有被任何模块订阅" % event["id"])
     orch = {}
-    for rule in book.relations:
+    for rule in book.relations + book.events:
         if rule.get("to"):
             orch.setdefault("rules", set()).add(rule["to"])
     return {
@@ -297,8 +334,11 @@ def scan_rules(mods):
         "warnings": warnings,
         "relations": [dict(r, active=book.active(r)) for r in book.relations],
         "processes": list(book.processes),
+        "events": [dict(e, active=book.active(e)) for e in book.events],
         "direct_cross_calls": direct_cross,
+        "direct_bus_subscribes": direct_bus,
         "rule_calls": call_rows,
+        "event_calls": event_rows,
         "orchestration_graph": {k: sorted(v) for k, v in orch.items()},
         "graph": book.graph(),
         "stats": book.status(),
@@ -489,12 +529,14 @@ def write_report(result, out_dir=None):
     rules = result.get("rules") or {}
     stats = rules.get("stats") or {}
     lines += ["", "## 规则层（模块关系的唯一来源）", ""]
-    lines.append("- 关系规则：%d；业务流程：%d；活跃：%d；需求覆盖：%d/%d；冲突：%s" % (
-        stats.get("relations", 0), stats.get("processes", 0), stats.get("active", 0),
+    lines.append("- 关系规则：%d；业务流程：%d；事件订阅：%d；活跃：%d/%d；需求覆盖：%d/%d；冲突：%s" % (
+        stats.get("relations", 0), stats.get("processes", 0), stats.get("events", 0),
+        stats.get("active", 0), stats.get("active_events", 0),
         stats.get("requirements", 0), stats.get("requirement_total", 0),
         "有" if rules.get("errors") else "无"))
-    lines.append("- 业务模块直接跨模块 API：%d；模块直接 UI 函数跨调：%d" % (
-        len(rules.get("direct_cross_calls") or []), len((result.get("ui") or {}).get("calls") or [])))
+    lines.append("- 业务模块直接跨模块 API：%d；直接 bus.subscribe：%d；模块直接 UI 函数跨调：%d" % (
+        len(rules.get("direct_cross_calls") or []), len(rules.get("direct_bus_subscribes") or []),
+        len((result.get("ui") or {}).get("calls") or [])))
     lines += ["", "### 规则层 -> 能力模块", ""]
     for k in sorted(rules.get("orchestration_graph") or {}):
         lines.append("- `%s` -> %s" % (k, ", ".join("`%s`" % x for x in rules["orchestration_graph"][k])))
@@ -504,6 +546,12 @@ def write_report(result, out_dir=None):
         by_mod.setdefault(row["module"], []).append(row["rule"])
     for mod in sorted(by_mod):
         lines.append("- `%s`: %s" % (mod, ", ".join("`%s`" % x for x in sorted(by_mod[mod]))))
+    lines += ["", "### 模块 -> 事件规则", ""]
+    by_event = {}
+    for row in rules.get("event_calls") or []:
+        by_event.setdefault(row["module"], []).append(row["event"])
+    for mod in sorted(by_event):
+        lines.append("- `%s`: %s" % (mod, ", ".join("`%s`" % x for x in sorted(by_event[mod]))))
     lines += ["", "## 流程 DAG", "", "| 流程 | 节点 | 边 | DAG 字段 | 环 |", "| --- | --- | --- | --- | --- |"]
     for f in sorted(result["flows"], key=lambda x: x["id"]):
         lines.append("| %s | %d | %d | %s | %s |" % (

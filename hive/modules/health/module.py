@@ -36,7 +36,7 @@ class Health(Module):
         self.api.route("GET", "/api/health/self", auth=False)(self.self_check)
         self.api.route("GET", "/api/health/traffic", name="traffic")(self.traffic_api)
         self.api.route("GET", "/api/health/logs", name="logs")(self.logs_api)
-        self.bus.subscribe("*", lambda ev: None, name="health.heartbeat")
+        self.event("event.health.heartbeat", lambda ev: None, name="health.heartbeat")
         self.log.info("health.ready")
 
     def health(self, payload):

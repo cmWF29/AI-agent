@@ -207,8 +207,8 @@ class Sessions(Module):
         self.secretary_id = self.cfg["secretary"].get("session_id") or "secretary"
         # 项目删除时由 projects 发同步事件，sessions 自己清理项目秘书；
         # 这样 projects 不再同步调用 sessions.destroy，两个模块的 API 依赖保持单向。
-        self.bus.subscribe("project.delete.before", self._on_project_delete_before,
-                           name="sessions.project_cleanup")
+        self.event("event.project.delete_before", self._on_project_delete_before,
+                   name="sessions.project_cleanup")
 
         self.api.route("POST", "/api/sessions/spawn", name="spawn")(self.spawn_api)
         self.api.route("POST", "/api/sessions/send", name="send")(self.send_api)
@@ -224,7 +224,7 @@ class Sessions(Module):
         self.api.route("POST", "/api/sessions/secretary/ensure", name="ensure")(self.ensure_api)
 
         self._register_tools()
-        self.bus.subscribe("session.result", self._on_result, name="sessions.result")
+        self.event("event.session.result.sessions", self._on_result, name="sessions.result")
 
     def shutdown(self):
         for sid, rt in list(self.runtimes.items()):

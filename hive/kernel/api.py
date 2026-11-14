@@ -106,10 +106,10 @@ class Module:
     """所有模块的基类。
 
     约定：
-      * setup()     只做自己的初始化、订阅事件、注册工具/路由；
+      * setup()     只做自己的初始化、注册事件订阅、注册工具/路由；
       * shutdown()  只清理自己的资源；
       * 不 import 其它模块；跨模块关系用 self.ctx.rule("规则 id", ...)，
-        不直接调用对方模块 API。
+        事件订阅用 self.event("事件规则 id", handler)，不直接调对方模块 API。
     """
 
     name = "module"
@@ -130,6 +130,10 @@ class Module:
     def emit(self, topic, payload=None):
         return self.bus.publish(topic, payload, source=self.name)
 
+    def event(self, event_id, handler, name=""):
+        """登记本模块对某条事件规则的订阅；由 rules 模块在装配末尾统一绑定。"""
+        return self.ctx.event(event_id, handler, source=self.name, name=name)
+
     def __repr__(self):
         return "<Module %s>" % self.name
 
@@ -147,6 +151,7 @@ class Context:
         self.state = {}
         self.trace = None                 # Trace，由 kernel 注入（记录模块间 API 通信）
         self.started_at = None
+        self.event_subscriptions = []       # setup 阶段登记，rules 模块最后统一绑定
 
     def register(self, module):
         """装配一个模块：先 setup（模块在此注册路由/工具/订阅），再挂路由。"""
@@ -192,6 +197,23 @@ class Context:
             raise
         self._trace_rule(rule_id, payload, result, int((time.time() - t0) * 1000), caller=caller)
         return result
+
+    def event(self, event_id, handler, source="", name=""):
+        """登记模块对事件关系的订阅，不在模块里写死 topic。
+
+        rules 模块装配完成后按 catalog.json 的 events 解析 topic 并调用
+        bus.subscribe；这样事件关系也能被规则面板和静态门禁看到。
+        """
+        if not event_id:
+            raise ApiError("事件订阅缺少 event id", status=400, code="event_required")
+        for sub in self.event_subscriptions:
+            if sub["event"] == event_id and sub["source"] == source:
+                raise ApiError("重复订阅事件规则: %s" % event_id, status=409, code="event_duplicate")
+        self.event_subscriptions.append({
+            "event": event_id, "source": source, "handler": handler,
+            "name": name or event_id,
+        })
+        return event_id
 
     def _trace_rule(self, rule_id, payload, result, ms, caller="", error=""):
         trace = self.trace

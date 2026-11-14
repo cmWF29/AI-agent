@@ -1,13 +1,13 @@
 # 架构静态扫描报告
 
-生成时间：2026-11-14T11:22:02Z
+生成时间：2026-11-14T11:55:52Z
 
 ## 结论
 
 - 门禁：**通过**
 - 模块数：21；API 调用边：0；API 环：0；import 环：0
 - 流程数：50；流程 DAG 环：0
-- 网页状态：一致（状态 12 / 事件 15 / DOM id 107 / 按钮 56 / 控件 27）
+- 网页状态：一致（状态 12 / 事件 15 / DOM id 108 / 按钮 56 / 控件 27）
 
 ## 模块唯一出口与对外 API
 
@@ -24,10 +24,10 @@
 | library | `hive/modules/library/__init__.py` | 10 | 3 | 无 |
 | lifecycle | `hive/modules/lifecycle/__init__.py` | 3 | 1 | 无 |
 | memory | `hive/modules/memory/__init__.py` | 4 | 0 | 无 |
-| observability | `hive/modules/observability/__init__.py` | 5 | 0 | 无 |
+| obs | `hive/modules/observability/__init__.py` | 5 | 0 | 无 |
 | ops | `hive/modules/ops/__init__.py` | 11 | 0 | 无 |
 | projects | `hive/modules/projects/__init__.py` | 14 | 2 | 无 |
-| rules | `hive/modules/rules/__init__.py` | 4 | 0 | 无 |
+| rules | `hive/modules/rules/__init__.py` | 5 | 0 | 无 |
 | sessions | `hive/modules/sessions/__init__.py` | 12 | 0 | 无 |
 | skills | `hive/modules/skills/__init__.py` | 6 | 0 | 无 |
 | testrunner | `hive/modules/testrunner/__init__.py` | 2 | 0 | 无 |
@@ -44,12 +44,12 @@
 
 ## 规则层（模块关系的唯一来源）
 
-- 关系规则：58；业务流程：9；活跃：58；需求覆盖：18/33；冲突：无
-- 业务模块直接跨模块 API：0；模块直接 UI 函数跨调：0
+- 关系规则：58；业务流程：9；事件订阅：9；活跃：58/9；需求覆盖：18/33；冲突：无
+- 业务模块直接跨模块 API：0；直接 bus.subscribe：0；模块直接 UI 函数跨调：0
 
 ### 规则层 -> 能力模块
 
-- `rules` -> `artifacts`, `gitflow`, `idle`, `knowledge`, `library`, `projects`, `sessions`, `tickets`
+- `rules` -> `artifacts`, `gitflow`, `health`, `idle`, `knowledge`, `library`, `obs`, `projects`, `sessions`, `tickets`
 
 ### 模块 -> 规则
 
@@ -62,6 +62,14 @@
 - `skills`: `skill.design_role`, `skill.store`
 - `tickets`: `ticket.apply_tag`, `ticket.archive_outputs`, `ticket.bind_project`, `ticket.check_outputs`, `ticket.dequeue`, `ticket.judge_capacity`, `ticket.list_changes`, `ticket.list_sessions`, `ticket.load_card`, `ticket.load_context`, `ticket.merge_workspace`, `ticket.open_workspace`, `ticket.queue`, `ticket.release_session`, `ticket.remove_workspace`, `ticket.send_instruction`, `ticket.session_messages`, `ticket.session_status`, `ticket.spawn_session`, `ticket.sync_workspace`, `ticket.wait_session`, `ticket.write_learning`
 - `webchat`: `chat.ensure_secretary`, `chat.judge_capacity`, `chat.project_directory`, `chat.queue_message`, `chat.route_ticket_message`, `chat.send_message`, `chat.session_context`, `chat.session_directory`, `chat.session_messages`, `chat.session_state`, `chat.ticket_context`, `chat.ticket_directory`
+
+### 模块 -> 事件规则
+
+- `health`: `event.health.heartbeat`
+- `idle`: `event.idle.dispatch_ack`
+- `obs`: `event.obs.stream`
+- `sessions`: `event.project.delete_before`, `event.session.result.sessions`
+- `tickets`: `event.artifacts.written`, `event.gitflow.conflict`, `event.idle.ticket_dispatch`, `event.session.result.tickets`
 
 ## 流程 DAG
 

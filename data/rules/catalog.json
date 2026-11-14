@@ -1,6 +1,120 @@
 {
   "version": 1,
   "description": "规则层是模块关系的唯一来源；模块只暴露能力，跨模块 sequencing 只在这里出现。",
+  "events": [
+    {
+      "id": "event.obs.stream",
+      "cn": "观测模块订阅全域事件",
+      "kind": "event",
+      "topic": "*",
+      "from": "*",
+      "to": "obs",
+      "intent": "只读统计所有模块事件，不参与业务决策",
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "event.health.heartbeat",
+      "cn": "健康模块订阅全域心跳",
+      "kind": "event",
+      "topic": "*",
+      "from": "*",
+      "to": "health",
+      "intent": "保持健康模块的事件心跳，不改业务状态",
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "event.idle.dispatch_ack",
+      "cn": "调度器接收工单派发回执",
+      "kind": "event",
+      "topic": "idle:dispatch.ack",
+      "from": "tickets",
+      "to": "idle",
+      "intent": "收到 ack 才出队，失败保留队列项",
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    },
+    {
+      "id": "event.idle.ticket_dispatch",
+      "cn": "工单接收调度器派发",
+      "kind": "event",
+      "topic": "idle:ticket.dispatch",
+      "from": "idle",
+      "to": "tickets",
+      "intent": "高峰队列恢复后由事件触发工单执行",
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    },
+    {
+      "id": "event.project.delete_before",
+      "cn": "删除项目前通知会话清理",
+      "kind": "event",
+      "topic": "project:delete.before",
+      "from": "projects",
+      "to": "sessions",
+      "intent": "项目删除前同步事件，session 自己清理项目秘书",
+      "requirements": [
+        "req-06",
+        "req-20"
+      ],
+      "optional": true
+    },
+    {
+      "id": "event.session.result.tickets",
+      "cn": "工单接收会话结果",
+      "kind": "event",
+      "topic": "session:result",
+      "from": "sessions",
+      "to": "tickets",
+      "intent": "角色会话结束后把结果交给工单模块",
+      "requirements": [
+        "req-18"
+      ],
+      "optional": true
+    },
+    {
+      "id": "event.session.result.sessions",
+      "cn": "会话模块接收自身结果",
+      "kind": "event",
+      "topic": "session:result",
+      "from": "sessions",
+      "to": "sessions",
+      "intent": "会话结果落盘/状态恢复，属于会话自身能力",
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "event.gitflow.conflict",
+      "cn": "工单接收 git 冲突",
+      "kind": "event",
+      "topic": "gitflow:conflict",
+      "from": "gitflow",
+      "to": "tickets",
+      "intent": "冲突事件把工单置为 conflict，要求复验",
+      "requirements": [
+        "req-14"
+      ],
+      "optional": true
+    },
+    {
+      "id": "event.artifacts.written",
+      "cn": "工单接收交付件写入",
+      "kind": "event",
+      "topic": "artifacts:written",
+      "from": "artifacts",
+      "to": "tickets",
+      "intent": "交付件写入事件用于工单流程校验",
+      "requirements": [
+        "req-21"
+      ],
+      "optional": true
+    }
+  ],
   "relations": [
     {
       "id": "ticket.bind_project",

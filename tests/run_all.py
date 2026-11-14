@@ -1105,14 +1105,23 @@ def test_architecture_gate():
     check("历史需求逐条入流程库", len(req_flows) == 33, [f.get("id") for f in req_flows])
     rules = r.get("rules") or {}
     check("规则目录可加载", rules.get("ok") and not rules.get("errors"), rules.get("errors"))
-    check("规则统计为 58 关系 / 9 流程",
+    check("规则统计为 58 关系 / 9 流程 / 9 事件",
           (rules.get("stats") or {}).get("relations") == 58 and
-          (rules.get("stats") or {}).get("processes") == 9, rules.get("stats"))
+          (rules.get("stats") or {}).get("processes") == 9 and
+          (rules.get("stats") or {}).get("events") == 9, rules.get("stats"))
     check("业务模块没有直接跨模块 API 调用", not rules.get("direct_cross_calls"), rules.get("direct_cross_calls"))
+    check("业务模块没有直接 bus.subscribe", not rules.get("direct_bus_subscribes"),
+          rules.get("direct_bus_subscribes"))
     check("规则调用都归属声明模块", not any("from 是" in e or "不存在" in e for e in rules.get("errors") or []),
+          rules.get("errors"))
+    check("事件调用都归属声明模块", not any("事件" in e for e in rules.get("errors") or []),
           rules.get("errors"))
     check("规则图有工单归属项目边",
           any(e.get("from") == "rule:ticket.bind_project" and e.get("to") == "module:projects"
+              for e in (rules.get("graph") or {}).get("edges", [])),
+          "rules.graph")
+    check("规则图有事件订阅边",
+          any(e.get("from") == "event:event.session.result.tickets" and e.get("to") == "module:tickets"
               for e in (rules.get("graph") or {}).get("edges", [])),
           "rules.graph")
     check("前端模块没有跨模块 UI 函数直调", not r.get("ui", {}).get("errors"), r.get("ui", {}).get("errors"))
@@ -1174,11 +1183,14 @@ def test_rules_execution(mock):
     try:
         env = Env(mock)
         cat = env.api("rules.catalog")
-        check("规则目录 API 可读", cat.get("stats", {}).get("relations") == 58, cat.get("stats"))
+        check("规则目录 API 可读", cat.get("stats", {}).get("relations") == 58 and
+              cat.get("stats", {}).get("events") == 9, cat.get("stats"))
         val = env.api("rules.validate")
         check("规则冲突静态校验通过", val.get("ok") is True, val.get("errors"))
         run = env.api("rules.run", rule="ticket.bind_project", payload={"name": "ruleproj"})
         check("规则可执行业务关系", (run.get("project") or {}).get("id") == "ruleproj", run)
+        proc = env.api("rules.process", process="project.create", payload={"project": "ruleflow"})
+        check("流程可按组合执行", proc.get("ok") and proc.get("completed") == ["project.init_workspace"], proc)
         try:
             env.api("rules.run", rule="ticket.bind_project", payload={"name": "bad"}, source="projects")
             forbidden = False
@@ -1190,6 +1202,9 @@ def test_rules_execution(mock):
               (graph.get("edges") or [])[:3])
         check("规则图含需求节点", any(n.get("type") == "requirement" for n in graph.get("nodes") or []),
               (graph.get("nodes") or [])[:2])
+        check("规则图含事件订阅边",
+              any(e.get("from") == "event:event.idle.ticket_dispatch" and e.get("to") == "module:tickets"
+                  for e in graph.get("edges") or []), (graph.get("edges") or [])[:3])
         check("规则目录无执行错误", not cat.get("errors"), cat.get("errors"))
         # 静态冲突：同一 subject/predicate/object 出现两种基数时必须拒绝。
         from hive.modules.rules.module import RuleBook

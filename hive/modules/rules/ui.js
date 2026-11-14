@@ -9,6 +9,7 @@ function openRules(opts) {
     '<span id="rules-status" class="muted small">加载中…</span></div></div>' +
     '<div id="rules-list" class="libbody"></div>' +
     '<h4>业务流程（需求 → 规则组合）</h4><div id="rules-process" class="muted small"></div>' +
+    '<h4>事件订阅（发布者 → 订阅者）</h4><div id="rules-events" class="muted small"></div>' +
     '<div id="rules-errors" class="err"></div>';
   openModal('业务规则层', html, { root: true });
   if (!opts.fromRoute) {
@@ -39,7 +40,9 @@ function openRules(opts) {
     if (!box) return;
     var stats = data.stats || {};
     $('rules-status').textContent = '关系 ' + (stats.relations || 0) +
-      ' · 流程 ' + (stats.processes || 0) + ' · 活跃 ' + (stats.active || 0) +
+      ' · 流程 ' + (stats.processes || 0) +
+      ' · 订阅 ' + (stats.events || 0) +
+      ' · 活跃 ' + (stats.active || 0) +
       ' · 需求覆盖 ' + (stats.requirements || 0) + '/' + (stats.requirement_total || 0);
     var groups = {};
     (data.relations || []).forEach(function (r) { (groups[r.from] = groups[r.from] || []).push(r); });
@@ -63,6 +66,15 @@ function openRules(opts) {
         '<div class="small">' + esc((p.composes || []).join(' → ') || '—') + '</div></div>';
     }).join('');
     $('rules-process').innerHTML = procs || '没有流程';
+    var events = (data.events || []).map(function (e) {
+      return '<div class="libcard"><div class="libtitle">' + esc(e.cn || e.id) +
+        '<span class="tag">' + esc(e.id) + '</span>' +
+        '<span class="tag">' + (e.active ? 'active' : 'off') + '</span></div>' +
+        '<div class="muted small">' + esc(e.topic || '') + ' · ' + esc(e.from || '') +
+        ' → ' + esc(e.to || '') + '</div>' +
+        '<div class="small">' + esc(e.intent || '') + '</div></div>';
+    }).join('');
+    $('rules-events').innerHTML = events || '没有事件订阅';
     $('rules-errors').textContent = (data.errors || []).join(' · ');
   }
 

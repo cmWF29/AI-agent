@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 
 def _read_version_file():

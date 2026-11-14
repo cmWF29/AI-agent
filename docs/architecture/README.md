@@ -1,4 +1,4 @@
-# Hive Agent 架构与门禁说明（v4.6 规则层重构）
+# Hive Agent 架构与门禁说明（v4.7 规则层 + 事件治理）
 
 > 这份文档不是事后说明，而是门禁的一部分：`python -m hive.archscan --report` 会生成
 > `docs/architecture/arch-report.json` 与 `arch-report.md`，记录模块出口、API 依赖、
@@ -18,8 +18,13 @@
   `domain:mounted` 广播（项目域带 `projectId` 与 `mountContainerId`）。
 - 事件名统一 `领域:动作`；历史点号名在总线边界自动归一化。门禁会拒绝静态
   字面量中不符合格式的事件名（`*` 通配除外）。
+- **跨模块事件订阅也由规则层定义**：业务模块只写 `self.event("事件规则 id", handler)`，
+  不写 topic、不直接 `bus.subscribe`；`rules` 模块的 `Rules._bind_events()` 按
+  `data/rules/catalog.json` 的 `kind:"event"` 规则统一绑定。当前 9 条事件规则：
+  `obs`/`health` 的两条基础设施通配订阅，以及 `idle`、`tickets`、`sessions`、
+  `projects`、`gitflow`、`artifacts` 之间的 7 条业务事件。
 - 门禁硬错误：跨模块 import、import 环、事件名不合规、网页契约错误、流程 DAG 环、
-  **基线之外的新 API 环**。
+  **基线之外的新 API 环**、**业务模块直接 `bus.subscribe`**、**事件发布者未声明 topic**。
 - API 环基线在 `docs/architecture/api-cycles-baseline.json`。当前 API 调用图为 **0 环**：
   - 项目详情/删除编排拆到 `lifecycle`（lifecycle -> projects / tickets，单向）；
   - `projects` 不再查工单，`tickets` 不再被 `projects` 反向依赖；
@@ -35,14 +40,17 @@
   自己的能力 API/工具，不 import 对方，也不知道谁在“上层”。例如 `tickets` 不知道
   `projects` 存在，只会在创建工单时调用规则 `ticket.bind_project`。
 - `hive/modules/rules/` 是唯一关系执行者：
-  - `rules.run` 接收 `{rule, payload, source}`；
+  - `rules.run` 接收 `{rule, payload, source}`；`rules.process` 按流程 `composes`
+    顺序执行子规则（单步原子，跨步骤不做事务回滚，失败会报告已完成步骤）；
   - `RuleBook` 从 `data/rules/ontology.json` 读实体/谓词，从
-    `data/rules/catalog.json` 读 58 条关系规则和 9 条业务流程；
+    `data/rules/catalog.json` 读 58 条关系规则、9 条业务流程、9 条事件订阅；
   - 每条关系写清 `from`（发起模块）、`to`（目标模块）、`subject/predicate/object`、
     `cardinality`、`steps[].call`；
   - 一个规则也可以只被流程 `composes` 引用，表示“流程中的一个业务动作”。
 - `Context.rule(rule_id, **payload)` 只做两件事：通过 `Hub.request("rules.run")`
   执行规则，并把 `rule.call` 写进 trace。调用方不持有目标模块对象。
+- `Context.event(event_id, handler, source, name)` 只登记订阅；`Module.event` 用
+  自身模块名登记。topic、发布者、订阅者都由规则目录决定，函数签名里不出现目标模块名。
 - 典型例子：工单必须归属项目。
   ```text
   tickets.create
@@ -59,18 +67,29 @@
   - `steps[].call` 路由存在，且目标模块与 `to` 一致；
   - 基数合法；
   - 排他谓词（`belongs_to`）不能同时指向两个对象；
-  - 流程 `composes` 只能引用关系规则，不能嵌套流程；
+  - 流程 `composes` 只能引用关系规则，不能嵌套流程，也不能把事件订阅当步骤；
   - 需求 id 必须存在于 `docs/requirement-flows.json`；
-  - 规则 id 不重复。
+  - 规则 id 不重复；
+  - 事件规则必须有 `from/to`、合法 topic，发布模块必须真的声明该 topic。
 - 业务模块出现非自身 `ctx.api(...)`、动态变量绕过、调用不存在的规则 id、
   或规则的 `from` 不是当前模块，`archscan --strict-api` 直接失败；规则面板和
   `GET /api/rules/graph` 用同一份目录渲染。
-- 连 `health` 自检也不是例外：6 个核心探活分别走
+- 当前 9 条事件：`event.obs.stream`（`*`→`obs`）、`event.health.heartbeat`
+  （`*`→`health`）、`event.idle.dispatch_ack`（`tickets`→`idle`）、
+  `event.idle.ticket_dispatch`（`idle`→`tickets`）、`event.project.delete_before`
+  （`projects`→`sessions`）、`event.session.result.{tickets,sessions}`
+  （`sessions`→`tickets/sessions`）、`event.gitflow.conflict`
+  （`gitflow`→`tickets`）、`event.artifacts.written`（`artifacts`→`tickets`）。
+- 6 个核心探活分别走
   `health.probe_sessions/tickets/knowledge/library/artifacts/projects` 规则，
   不在健康模块里硬编码目标模块 API。
+- 所有原有 `bus.subscribe` 已迁移为 `self.event("event.xxx", handler)`；业务模块中
+  只剩 `rules` 模块内部负责实际绑定。`archscan` 会同时检查事件规则归属、
+  `to` 模块、topic 发布者和直接 `bus.subscribe`。
 - 当前目录覆盖 18/33 条历史需求；其余 15 条主要是 UI、HTTPS、
   流式展示和基础设施需求，不经过“模块间业务关系”，仍由
-  `docs/requirement-flows.json` 的流程记录，不伪造规则关系。规则面板会显示这个覆盖数。
+  `docs/requirement-flows.json` 的流程记录，不伪造规则关系。规则面板会显示这个覆盖数；
+  逐条原因见 `docs/architecture/rule-coverage.md`。
 
 ### 1.1 非业务能力也是模块
 

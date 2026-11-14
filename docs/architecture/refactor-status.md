@@ -10,21 +10,31 @@
 
 - 新增 `hive/modules/rules/`：
   - `RuleBook` 读 `data/rules/ontology.json` 与 `data/rules/catalog.json`；
-  - `rules.catalog` / `rules.graph` / `rules.validate` / `rules.run` 四个 API；
-  - 58 条关系规则、9 条业务流程；静态校验实体、谓词、模块、路由、基数、
-    排他冲突、流程组合、需求引用；
-  - 规则执行只由 `rules` 模块完成；业务模块调用 `ctx.rule(rule_id, **payload)`。
+  - `rules.catalog` / `rules.graph` / `rules.validate` / `rules.run` / `rules.process`
+    五个 API；
+  - 58 条关系规则、9 条业务流程、9 条事件订阅；静态校验实体、谓词、模块、路由、基数、
+    排他冲突、流程组合、事件发布者/topic、需求引用和规则 id 重复；
+  - 规则执行只由 `rules` 模块完成；业务模块调用 `ctx.rule(rule_id, **payload)`；
+    `rules.process` 按 `composes` 顺序执行子规则，单步原子、跨步骤**不做事务回滚**。
 - `Context.rule()` 通过 `Hub.request("rules.run")` 执行规则并记录 `rule.call` trace；
   `Context._caller_module()` 从调用栈识别发起模块。
 - 原先 84 处跨模块 `ctx.api(...)` 全部按来源模块映射为规则 id；业务模块中已无
   字面量跨模块调用。`ticket.bind_project` 是典型例子：`tickets` 只调规则，
   规则再调 `projects.ensure`。
-- 规则面板：`hive/modules/rules/ui.js`，显示关系规则/流程组合/需求覆盖/校验结果；
-  顶部“规则”tab 与 `#/rules` 深链可用。
+- 跨模块事件订阅也收编到规则层：
+  - `Context.event(event_id, handler, source, name)` / `Module.event` 只登记订阅；
+  - `Rules._bind_events()` 在全部模块 setup 后按事件规则统一 `bus.subscribe`；
+  - 9 条事件规则覆盖 `obs`、`health` 两个通配基础设施订阅，以及 `idle`、
+    `tickets`、`sessions`、`projects`、`gitflow`、`artifacts` 之间的 7 条业务事件；
+  - 业务模块代码中已无直接 `bus.subscribe`，只剩 `rules` 模块内部负责实际绑定。
+- 规则面板：`hive/modules/rules/ui.js`，显示关系规则/流程组合/事件订阅/需求覆盖/
+  校验结果；顶部“规则”tab 与 `#/rules` 深链可用。
 - `archscan` 新增：
-  - `scan_rules()` 校验规则目录与模块调用，规则 `from` 不匹配或规则 id 不存在即失败；
+  - `scan_rules()` 校验规则目录与模块调用，规则 `from` 不匹配、规则 id 不存在、
+    事件 `to` 不匹配、发布者未声明 topic、模块直接 `bus.subscribe` 即失败；
   - `scan_ui_calls()` 拒绝业务模块 `ui.js` 直接调用另一个业务模块函数；
-  - `orchestration_graph` 输出规则层到能力模块的关系。
+  - `orchestration_graph` 输出规则层到能力模块的关系；报告增加事件统计和
+    “模块 → 事件规则”章节。
 
 ### 1. 统一通信中枢
 
@@ -89,15 +99,17 @@ hive/modules/<name>/
 
 ### 4. 验证
 
-- 全量回归：**267/267 通过，71.3s**（含规则目录、规则执行、来源强校验、基数冲突、规则图、前端边界测试）。
+- 全量回归：**272/272 通过，72.2s**（含规则目录、规则执行、流程组合执行、来源强校验、
+  基数冲突、事件图、直接 `bus.subscribe` 断言、前端边界测试）。
 - `python -m hive.archscan --strict-api`：**ARCH GATE PASS**。
-- 21 个模块、0 条直接跨模块 API 边、API 环 0、import 环 0、流程 50、流程环 0。
-- 规则统计：58 关系 / 9 流程 / 58 活跃 / 需求覆盖 18/33 / 0 冲突。
-- 本地 HTTPS 真机验收：规则面板、项目页、库页面、健康页、版本页、返回键、
-  模板注入均正常；控制台无脚本错误。
+- 21 个模块、0 条直接跨模块 API 边、0 条直接 `bus.subscribe`、API 环 0、import 环 0、
+  流程 50、流程环 0。
+- 规则统计：58 关系 / 9 流程 / 9 事件 / 58 活跃 / 9 活跃事件 / 需求覆盖 18/33 / 0 冲突。
+- 本地 HTTPS 真机验收（事件改造后待重启复测）：规则面板、项目页、库页面、健康页、
+  版本页、返回键、模板注入均正常；控制台无脚本错误。
 - 新模块 API 已实测：`/api/rules/catalog`、`/api/rules/graph`、
-  `/api/rules/validate`、`/api/rules/run` 正常；`/api/gate/arch`、`/api/test/catalog`、
-  `/api/gitsync/status` 正常。
+  `/api/rules/validate`、`/api/rules/run`、`/api/rules/process` 正常；
+  `/api/gate/arch`、`/api/test/catalog`、`/api/gitsync/status` 正常。
 
 ## 尚未完成
 
@@ -106,3 +118,9 @@ hive/modules/<name>/
    主分支与生产仍是 `0b62e0c / 0.4.7`。
 3. **可插拔验证目前覆盖内核启动与核心模块集合。**
    `ops` 移除后启动正常；完整“创建项目 → 新建工单 → 执行 → 关闭”在移除态下还未单独跑一遍。
+4. **流程执行是“顺序组合”，不是跨模块事务。**
+   `rules.process` 已能按 `composes` 顺序执行子规则，但子步骤失败时不会回滚已完成步骤；
+   需要事务语义的流程仍由各模块自己的补偿操作保证。
+5. **33 条需求中 18 条有显式规则覆盖。**
+   其余 15 条为 UI、HTTPS、流式展示、安全/基础设施类，已由
+   `docs/requirement-flows.json` 记录，不伪造跨模块规则关系。

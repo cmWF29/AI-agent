@@ -24,7 +24,7 @@ class Observability(Module):
             "log": path_of(self.cfg, "observability.log_dir", "data/logs"),
             "events": os.path.join(path_of(self.cfg, "observability.log_dir", "data/logs"), "events.jsonl"),
         }
-        self.bus.subscribe("*", self._on_event, name="obs.metrics")
+        self.event("event.obs.stream", self._on_event, name="obs.metrics")
         self.log.info("obs.ready", event_log=self.dirs["events"])
 
         self.api.route("GET", "/api/obs/logs")(self.logs)
