@@ -1,7 +1,7 @@
 ﻿# Hive Agent 设计哲学与落地评估（修复后）
 
 > 评估时间：2026-11-14  
-> 评估对象：`main` 工作树（基于生产 HEAD `9d69955`，架构实现提交 `b661972`，版本 `0.5.0`；本次修复尚未提交/部署）  
+> 评估对象：`main` 工作树（基于生产 HEAD `9d69955`，架构实现提交 `b661972`，版本 `0.5.0`；本次修复已提交本地 main，未推送/未部署）  
 > 评估方式：代码/规则目录/静态门禁/全量回归/浏览器实测/生产健康检查  
 > 相关证据：`docs/architecture/arch-report.md`、`docs/architecture/rule-coverage.md`、`data/rules/catalog.json`
 
@@ -314,6 +314,7 @@ tickets.create
 生产 HEAD：9d69955
 生产健康：ok，healthy true
 ```
+
 
 
 
