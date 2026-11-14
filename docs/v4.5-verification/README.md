@@ -1,11 +1,11 @@
-# v4.5 重构第一阶段验收记录
+# v4.5 重构收尾验收记录（0.4.7）
 
 日期：2026-11-14
 
 ## 已上线状态
 
-- GitHub `main`：`056bd62`（含 `3c31d4d`、`0342745` 等）。
-- 生产 `/opt/hive/current`：`056bd62`，`VERSION=0.4.7`。
+- GitHub `main`：`a613939`（本轮收尾提交会继续前移）。
+- 生产 `/opt/hive/current`：`a613939`，`VERSION=0.4.7`。
 - `hive-watchdog`：active。
 - 健康接口：`{"ok": true, "status": "ok", "version": "0.4.7"}`。
 
@@ -29,15 +29,23 @@
 
 ## 回归
 
-- `python tests/run_all.py`：239/239 通过，约 69s。
+- `python tests/run_all.py`：245/245 通过，约 66s；teardown 线程池异常已不再出现。
 - `node --check web/app.js`：通过。
-- `python -m hive.archscan`：`ARCH GATE PASS`，17 条流程 0 环；5 条 API 环作为已知债务警告。
+- `python -m hive.archscan`：`ARCH GATE PASS`，50 条流程 0 环、API 环 0、import 环 0。
+- `python -m hive.archscan --strict-api`：`ARCH GATE PASS`。
 
-## 尚未完成
+## 本轮收尾完成项
 
 - API 调用环已降到 0：项目详情/删除编排拆到 `lifecycle`，`projects` 不再查工单；
   `idle -> tickets` 改为事件 + ack；`artifacts -> tickets` 改读归档 index。
-  基线文件 `api-cycles-baseline.json` 为空，新环默认阻塞；`--strict-api` 可在需要时全量开启。
-- 网页 JS 组件扫描仍只覆盖关键 id / 路由 / 事件，不覆盖全部按钮和文本。
-- 原始 `role=system` 会话消息仍未进群聊；群聊里进的是生命周期系统事件。
-- 流程库只补了 6 条需求级流程，其余历史需求待逐条入库。
+  基线文件 `api-cycles-baseline.json` 为空，新环默认阻塞；本地 `pre-push` 与生产
+  `pre-receive` 均已改为 `--strict-api`。
+- 网页组件扫描已覆盖全部按钮和输入控件：32 个按钮、14 个控件全部有脚本绑定，
+  按钮还校验可读文本/title/aria-label；新增 `unbound_buttons`、`empty_buttons`、
+  `unbound_controls` 三类硬错误。
+- 系统消息口径已固化：`role=system` 默认 `visible=False`（含 system_prompt）不展示；
+  只有显式 `visible=True` 的系统通告以“系统”身份进入群聊；tool 消息始终不展示。
+- 历史审计的 33 条需求已逐条生成 `req-01`…`req-33` 流程，存入
+  `docs/requirement-flows.json` 并纳入 DAG 扫描；对照表见 `docs/requirements-flow-map.md`。
+- `hive/kernel/bus.py` 在 teardown 时线程池已关闭会回退并忽略异步投递，
+  不再从后台线程喷 `cannot schedule new futures after shutdown`。

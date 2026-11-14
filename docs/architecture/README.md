@@ -56,24 +56,28 @@
   旧工单 `trace=false` 时，这些报文**没有删除**，仍在 trace 文件/session transcript 里，
   只是不显示。群聊头部会明确显示 `trace off（只有系统事件）`。
 - 原始 `role=system` 的模型上下文/系统提示词不会原样展示到群聊：它们是模型输入，
-  可能包含内部约束和密钥风险；群聊展示的是“系统事件”，不是系统提示词全文。
+  可能包含内部约束和密钥风险。口径是：系统消息默认 `visible=False`（含 system_prompt），
+  只有模块显式写入 `visible=True` 的系统通告才以“系统”身份进入时间线。
+  群聊展示的主体是“系统事件”，不是系统提示词全文。
 
 ## 5. 流程库
 
 - `library` 启动时 seed 11 个角色插件（architect/developer/...）。
-- v4.5 新增 6 个需求级流程（`kind=process`，带 `nodes/edges`）：
+- 代码内置 6 个需求级流程（`kind=process`，带 `nodes/edges`）：
   `project-lifecycle`、`architecture-gate`、`system-timeline`、`project-idle`、
   `requirement-to-flow`、`web-state-contract`。
+- 历史审计的 33 条需求已逐条生成 `req-01` … `req-33`（`kind=requirement`），
+  存放于 `docs/requirement-flows.json`，随 git 部署；每条都带来源、状态、证据和 DAG。
+  需求与流程 id 的对照表见 `docs/requirements-flow-map.md`。
 - 旧流程插件只有 `role/checks`，没有 DAG 字段；扫描器把它们视为单节点无环。
 - 需求级流程必须写 `nodes/edges`，`python -m hive.archscan` 会检查环；新需求先入库再写代码。
 
 ## 6. 门禁
 
 - 本地：`deploy/hooks/pre-push`，安装到 `.git/hooks/pre-push` 后每次 `git push` 自动跑
-  `python -m hive.archscan`，失败则阻断推送。
+  `python -m hive.archscan --strict-api`，失败则阻断推送。
 - 工单：`tickets.close(force=False)` 先跑同一个架构门禁；失败返回
   `code=arch_gate_failed`，工单不能进入 closing。
-- 生产远端：VPS 的 `/opt/hive/repo.git/hooks/pre-receive` 已安装并实测通过（对
-  `430c564..8333a60` 的 tree 跑同一扫描器）。生产部署后版本为 `0.4.5`，HEAD `8333a60`。
-- `--strict-api` 是下一阶段的严格模式：解决 API 环后再打开，才能把“API 依赖也是 DAG”
-  变成真正的硬约束。
+- 生产远端：VPS 的 `/opt/hive/repo.git/hooks/pre-receive` 已改为 `--strict-api` 并实测通过。
+  生产部署版本 `0.4.7`，HEAD `a613939`（本轮收尾提交会继续前移）。
+- `--strict-api` 已是默认门禁：API 环基线为空，任何新环都会直接阻塞推送/部署。

@@ -261,14 +261,20 @@ class WebChat(Module):
         out = []
         for m in res.get("items", []):
             role = m.get("role")
-            if role not in ("user", "assistant"):
-                continue                     # system / tool 不进群聊（需求 12）
+            if role == "system":
+                # 系统性口径：system_prompt 与原始 system 消息默认不可见（visible=False），
+                # 只有模块显式标记 visible=True 的系统通告才进群聊，避免提示词泄漏。
+                if not m.get("visible"):
+                    continue
+            elif role not in ("user", "assistant"):
+                continue                     # tool 等内部消息不进群聊
             text = (m.get("content") or "").strip()
             if not text:
                 continue
             out.append({
-                "ts": self._ts(m.get("ts")), "type": "chat",
-                "speaker": user_label if role == "user" else bot_label,
+                "ts": self._ts(m.get("ts")),
+                "type": "system" if role == "system" else "chat",
+                "speaker": "系统" if role == "system" else (user_label if role == "user" else bot_label),
                 "role": role, "session": session_id,
                 "text": text, "tools": m.get("tool_names") or [],
             })

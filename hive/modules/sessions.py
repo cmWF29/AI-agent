@@ -288,7 +288,8 @@ class Sessions(Module):
             "parent": parent,
             "backend": backend or self.default_backend,
             "system_prompt": system_prompt,
-            "messages": ([{"role": "system", "content": system_prompt}] if system_prompt else []),
+            "messages": ([{"role": "system", "content": system_prompt, "visible": False}]
+                         if system_prompt else []),
             "status": "idle",
             "workspace": ws,
             "tools": tools,
@@ -639,6 +640,7 @@ class Sessions(Module):
                 "kind": rec.get("kind"),
                 "role_name": rec.get("role"),
                 "role": m.get("role"),
+                "visible": bool(m.get("visible")),
                 "ts": m.get("ts"),
                 "content": (m.get("content") or "")[:2000],
                 "tool_names": [(tc.get("function") or {}).get("name") for tc in (m.get("tool_calls") or [])],

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import os
 import time
 
 from ..kernel.api import ApiError, Module
@@ -133,6 +134,21 @@ BUILTIN_FLOWS = {
 }
 
 
+def _load_requirement_flows():
+    """历史需求逐条沉淀为可扫描流程；放在 docs/ 下随 git 部署，不依赖运行期 data。"""
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    path = os.path.join(root, "docs", "requirement-flows.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return {k: v for k, v in data.items() if isinstance(v, dict)}
+    except Exception:
+        return {}
+
+
+REQUIREMENT_FLOWS = _load_requirement_flows()
+
+
 def _now():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -176,14 +192,16 @@ class Library(Module):
                 "id": rid, "role": rid, "checks": [{"kind": "glob", "path": p} for p in spec["must_outputs"]],
                 "max_retry": 2, "builtin": True, "created": _now(),
             })
-        # 需求级流程：不是角色插件，而是对用户 15 点重构的可扫描 DAG 表达。
-        for fid, spec in BUILTIN_FLOWS.items():
+        # 需求级流程：不是角色插件，而是对用户历史需求的可扫描 DAG 表达。
+        for fid, spec in dict(BUILTIN_FLOWS, **REQUIREMENT_FLOWS).items():
             if self.stores["flows"].get(fid):
                 continue
             self.stores["flows"].put(fid, {
-                "id": fid, "role": "", "cn": spec["cn"], "kind": "process",
+                "id": fid, "role": "", "cn": spec["cn"], "kind": spec.get("kind") or "process",
                 "nodes": spec["nodes"], "edges": spec["edges"], "checks": spec["checks"],
-                "max_retry": 0, "builtin": True, "created": _now(),
+                "requirement_no": spec.get("requirement_no"), "status": spec.get("status"),
+                "evidence": spec.get("evidence"), "source": spec.get("source"),
+                "max_retry": spec.get("max_retry", 0), "builtin": True, "created": _now(),
             })
 
     # ---------------- 基础 ----------------

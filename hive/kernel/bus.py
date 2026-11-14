@@ -89,7 +89,12 @@ class Bus:
             else:
                 with self._lock:
                     self._pending += 1
-                self._pool.submit(self._run_handler_async, sub, ev, sid)
+                try:
+                    self._pool.submit(self._run_handler_async, sub, ev, sid)
+                except RuntimeError:
+                    # 进程/测试 teardown 时线程池已经关闭；事件已经记录，异步处理放弃即可。
+                    with self._lock:
+                        self._pending = max(0, self._pending - 1)
         return ev
 
     def _trace(self, ev):

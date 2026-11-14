@@ -1,0 +1,1025 @@
+{
+  "req-01": {
+    "cn": "需求 01 · PC 侧边栏可收起，与安卓统一",
+    "kind": "requirement",
+    "requirement_no": 1,
+    "status": "已实现",
+    "evidence": "`web/app.js` `toggleRail`、`body.rail-collapsed`；收起状态写入 `localStorage`",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#1",
+    "nodes": [
+      "req-01.intake",
+      "req-01.design",
+      "req-01.implement",
+      "req-01.verify"
+    ],
+    "edges": [
+      [
+        "req-01.intake",
+        "req-01.design"
+      ],
+      [
+        "req-01.design",
+        "req-01.implement"
+      ],
+      [
+        "req-01.implement",
+        "req-01.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-02": {
+    "cn": "需求 02 · 空闲/高峰判断 + 排队 + 强制立即执行",
+    "kind": "requirement",
+    "requirement_no": 2,
+    "status": "已实现",
+    "evidence": "`hive/modules/idle.py`；工单/消息两条队列；`force` 绕过",
+    "remaining": "日历未接，预留 `holidays` 配置",
+    "source": "docs/requirements-audit-v4.md#2",
+    "nodes": [
+      "req-02.intake",
+      "req-02.design",
+      "req-02.implement",
+      "req-02.verify"
+    ],
+    "edges": [
+      [
+        "req-02.intake",
+        "req-02.design"
+      ],
+      [
+        "req-02.design",
+        "req-02.implement"
+      ],
+      [
+        "req-02.implement",
+        "req-02.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-03": {
+    "cn": "需求 03 · 去掉“本地节点/本地层”展示与代码",
+    "kind": "requirement",
+    "requirement_no": 3,
+    "status": "已实现",
+    "evidence": "`webchat.groups` 不再返回 instance；前端无 layer pill",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#3",
+    "nodes": [
+      "req-03.intake",
+      "req-03.design",
+      "req-03.implement",
+      "req-03.verify"
+    ],
+    "edges": [
+      [
+        "req-03.intake",
+        "req-03.design"
+      ],
+      [
+        "req-03.design",
+        "req-03.implement"
+      ],
+      [
+        "req-03.implement",
+        "req-03.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-04": {
+    "cn": "需求 04 · 工单 tag，角色/用户可增删，双层沉淀",
+    "kind": "requirement",
+    "requirement_no": 4,
+    "status": "已实现",
+    "evidence": "`tickets.tags`、`ticket_tag` 工具、`library.tag_add`",
+    "remaining": "历史工单无 tag（按需求不动）",
+    "source": "docs/requirements-audit-v4.md#4",
+    "nodes": [
+      "req-04.intake",
+      "req-04.design",
+      "req-04.implement",
+      "req-04.verify"
+    ],
+    "edges": [
+      [
+        "req-04.intake",
+        "req-04.design"
+      ],
+      [
+        "req-04.design",
+        "req-04.implement"
+      ],
+      [
+        "req-04.implement",
+        "req-04.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-05": {
+    "cn": "需求 05 · 历史工单不动，只做增量",
+    "kind": "requirement",
+    "requirement_no": 5,
+    "status": "已实现",
+    "evidence": "无迁移逻辑；旧单 `tags=[]`",
+    "remaining": "旧单 transcript 缺失见缺口",
+    "source": "docs/requirements-audit-v4.md#5",
+    "nodes": [
+      "req-05.intake",
+      "req-05.design",
+      "req-05.implement",
+      "req-05.verify"
+    ],
+    "edges": [
+      [
+        "req-05.intake",
+        "req-05.design"
+      ],
+      [
+        "req-05.design",
+        "req-05.implement"
+      ],
+      [
+        "req-05.implement",
+        "req-05.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-06": {
+    "cn": "需求 06 · 侧栏按项目分层；工单可删且保留知识/交付件",
+    "kind": "requirement",
+    "requirement_no": 6,
+    "status": "已实现",
+    "evidence": "项目页、`tickets.delete` 仅 closed；`gitflow.ticket_remove`",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#6",
+    "nodes": [
+      "req-06.intake",
+      "req-06.design",
+      "req-06.implement",
+      "req-06.verify"
+    ],
+    "edges": [
+      [
+        "req-06.intake",
+        "req-06.design"
+      ],
+      [
+        "req-06.design",
+        "req-06.implement"
+      ],
+      [
+        "req-06.implement",
+        "req-06.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-07": {
+    "cn": "需求 07 · 工单群聊内联模块报文，删除“链路”页",
+    "kind": "requirement",
+    "requirement_no": 7,
+    "status": "已实现",
+    "evidence": "`webchat._module_timeline`；`details.modgroup` 折叠；无 trace tab",
+    "remaining": "只保留最近 60 条，无“更早”入口",
+    "source": "docs/requirements-audit-v4.md#7",
+    "nodes": [
+      "req-07.intake",
+      "req-07.design",
+      "req-07.implement",
+      "req-07.verify"
+    ],
+    "edges": [
+      [
+        "req-07.intake",
+        "req-07.design"
+      ],
+      [
+        "req-07.design",
+        "req-07.implement"
+      ],
+      [
+        "req-07.implement",
+        "req-07.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-08": {
+    "cn": "需求 08 · PM 编排支持并行；悬浮改点击",
+    "kind": "requirement",
+    "requirement_no": 8,
+    "status": "已实现",
+    "evidence": "`flow.parallel_stage.branches`；节点/分支点击弹详情",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#8",
+    "nodes": [
+      "req-08.intake",
+      "req-08.design",
+      "req-08.implement",
+      "req-08.verify"
+    ],
+    "edges": [
+      [
+        "req-08.intake",
+        "req-08.design"
+      ],
+      [
+        "req-08.design",
+        "req-08.implement"
+      ],
+      [
+        "req-08.implement",
+        "req-08.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-09": {
+    "cn": "需求 09 · 压缩秘书上下文移到项目面板并标明对象",
+    "kind": "requirement",
+    "requirement_no": 9,
+    "status": "已实现",
+    "evidence": "项目页“压缩本项目秘书上下文”；`sec-<p>`",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#9",
+    "nodes": [
+      "req-09.intake",
+      "req-09.design",
+      "req-09.implement",
+      "req-09.verify"
+    ],
+    "edges": [
+      [
+        "req-09.intake",
+        "req-09.design"
+      ],
+      [
+        "req-09.design",
+        "req-09.implement"
+      ],
+      [
+        "req-09.implement",
+        "req-09.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-10": {
+    "cn": "需求 10 · 复核流程是否真可插拔并给示例",
+    "kind": "requirement",
+    "requirement_no": 10,
+    "status": "已实现",
+    "evidence": "角色卡 + 流程插件 + 技能；`library.design`；文档示例",
+    "remaining": "校验规则已增强，仍以 glob/内容为主",
+    "source": "docs/requirements-audit-v4.md#10",
+    "nodes": [
+      "req-10.intake",
+      "req-10.design",
+      "req-10.implement",
+      "req-10.verify"
+    ],
+    "edges": [
+      [
+        "req-10.intake",
+        "req-10.design"
+      ],
+      [
+        "req-10.design",
+        "req-10.implement"
+      ],
+      [
+        "req-10.implement",
+        "req-10.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-11": {
+    "cn": "需求 11 · 项目/agent 文件系统只读浏览；git 取舍",
+    "kind": "requirement",
+    "requirement_no": 11,
+    "status": "已实现",
+    "evidence": "`/api/projects/{p}/files`、`/api/ops/files`；只读",
+    "remaining": "不做网页直接改配置",
+    "source": "docs/requirements-audit-v4.md#11",
+    "nodes": [
+      "req-11.intake",
+      "req-11.design",
+      "req-11.implement",
+      "req-11.verify"
+    ],
+    "edges": [
+      [
+        "req-11.intake",
+        "req-11.design"
+      ],
+      [
+        "req-11.design",
+        "req-11.implement"
+      ],
+      [
+        "req-11.implement",
+        "req-11.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-12": {
+    "cn": "需求 12 · 本机仓库移到 `E:\\AI`",
+    "kind": "requirement",
+    "requirement_no": 12,
+    "status": "已实现",
+    "evidence": "Windows `E:\\AI\\hive-agent`",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#12",
+    "nodes": [
+      "req-12.intake",
+      "req-12.design",
+      "req-12.implement",
+      "req-12.verify"
+    ],
+    "edges": [
+      [
+        "req-12.intake",
+        "req-12.design"
+      ],
+      [
+        "req-12.design",
+        "req-12.implement"
+      ],
+      [
+        "req-12.implement",
+        "req-12.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-13": {
+    "cn": "需求 13 · 推送 GitHub 远端并验证",
+    "kind": "requirement",
+    "requirement_no": 13,
+    "status": "已实现",
+    "evidence": "`git@github.com:cmWF29/AI-agent.git`，main `b268899`",
+    "remaining": "后续提交需再同步",
+    "source": "docs/requirements-audit-v4.md#13",
+    "nodes": [
+      "req-13.intake",
+      "req-13.design",
+      "req-13.implement",
+      "req-13.verify"
+    ],
+    "edges": [
+      [
+        "req-13.intake",
+        "req-13.design"
+      ],
+      [
+        "req-13.design",
+        "req-13.implement"
+      ],
+      [
+        "req-13.implement",
+        "req-13.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-14": {
+    "cn": "需求 14 · 工单分支 push/pull；冲突由 git 解决，冲突后必须重验",
+    "kind": "requirement",
+    "requirement_no": 14,
+    "status": "已实现",
+    "evidence": "`gitflow.sync/merge`；冲突置 `conflict`；`ticket_verify` 硬门禁",
+    "remaining": "复验命令由 PM 执行，非自动跑测试",
+    "source": "docs/requirements-audit-v4.md#14",
+    "nodes": [
+      "req-14.intake",
+      "req-14.design",
+      "req-14.implement",
+      "req-14.verify"
+    ],
+    "edges": [
+      [
+        "req-14.intake",
+        "req-14.design"
+      ],
+      [
+        "req-14.design",
+        "req-14.implement"
+      ],
+      [
+        "req-14.implement",
+        "req-14.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-15": {
+    "cn": "需求 15 · PM 先了解项目，简单活自己干",
+    "kind": "requirement",
+    "requirement_no": 15,
+    "status": "已实现",
+    "evidence": "`PM_TOOLS` 含 shell/read/write；PM 提示词",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#15",
+    "nodes": [
+      "req-15.intake",
+      "req-15.design",
+      "req-15.implement",
+      "req-15.verify"
+    ],
+    "edges": [
+      [
+        "req-15.intake",
+        "req-15.design"
+      ],
+      [
+        "req-15.design",
+        "req-15.implement"
+      ],
+      [
+        "req-15.implement",
+        "req-15.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-16": {
+    "cn": "需求 16 · 3 项目 × 3 工单并发 + 冲突演练",
+    "kind": "requirement",
+    "requirement_no": 16,
+    "status": "已实现",
+    "evidence": "v3 实测数据；`test_three_by_three`",
+    "remaining": "未做持续压测",
+    "source": "docs/requirements-audit-v4.md#16",
+    "nodes": [
+      "req-16.intake",
+      "req-16.design",
+      "req-16.implement",
+      "req-16.verify"
+    ],
+    "edges": [
+      [
+        "req-16.intake",
+        "req-16.design"
+      ],
+      [
+        "req-16.design",
+        "req-16.implement"
+      ],
+      [
+        "req-16.implement",
+        "req-16.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-17": {
+    "cn": "需求 17 · HTTPS 加强安全",
+    "kind": "requirement",
+    "requirement_no": 17,
+    "status": "已实现",
+    "evidence": "自签 TLS；CSP/HSTS/X-Frame-Options/nosniff；登录限流",
+    "remaining": "证书仍自签；单用户无 RBAC",
+    "source": "docs/requirements-audit-v4.md#17",
+    "nodes": [
+      "req-17.intake",
+      "req-17.design",
+      "req-17.implement",
+      "req-17.verify"
+    ],
+    "edges": [
+      [
+        "req-17.intake",
+        "req-17.design"
+      ],
+      [
+        "req-17.design",
+        "req-17.implement"
+      ],
+      [
+        "req-17.implement",
+        "req-17.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-18": {
+    "cn": "需求 18 · 秘书架构：一个项目一个秘书",
+    "kind": "requirement",
+    "requirement_no": 18,
+    "status": "已实现",
+    "evidence": "`sec-<project>`；全局 `secretary`",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#18",
+    "nodes": [
+      "req-18.intake",
+      "req-18.design",
+      "req-18.implement",
+      "req-18.verify"
+    ],
+    "edges": [
+      [
+        "req-18.intake",
+        "req-18.design"
+      ],
+      [
+        "req-18.design",
+        "req-18.implement"
+      ],
+      [
+        "req-18.implement",
+        "req-18.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-19": {
+    "cn": "需求 19 · 三层架构中“本地层”是否必要",
+    "kind": "requirement",
+    "requirement_no": 19,
+    "status": "已决策",
+    "evidence": "结论：单部署=单本地层，不展示；见架构审查",
+    "remaining": "多节点部署未做",
+    "source": "docs/requirements-audit-v4.md#19",
+    "nodes": [
+      "req-19.intake",
+      "req-19.design",
+      "req-19.implement",
+      "req-19.verify"
+    ],
+    "edges": [
+      [
+        "req-19.intake",
+        "req-19.design"
+      ],
+      [
+        "req-19.design",
+        "req-19.implement"
+      ],
+      [
+        "req-19.implement",
+        "req-19.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-20": {
+    "cn": "需求 20 · 项目可删除，后处理只清秘书会话",
+    "kind": "requirement",
+    "requirement_no": 20,
+    "status": "已实现",
+    "evidence": "`projects.delete`；保留工单/交付件/知识",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#20",
+    "nodes": [
+      "req-20.intake",
+      "req-20.design",
+      "req-20.implement",
+      "req-20.verify"
+    ],
+    "edges": [
+      [
+        "req-20.intake",
+        "req-20.design"
+      ],
+      [
+        "req-20.design",
+        "req-20.implement"
+      ],
+      [
+        "req-20.implement",
+        "req-20.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-21": {
+    "cn": "需求 21 · 交付件按三层归档且路径带工单号",
+    "kind": "requirement",
+    "requirement_no": 21,
+    "status": "已实现",
+    "evidence": "`artifacts/projects/<p>/tickets/<T>/...`",
+    "remaining": "归档会把工作树已有文件一起带入",
+    "source": "docs/requirements-audit-v4.md#21",
+    "nodes": [
+      "req-21.intake",
+      "req-21.design",
+      "req-21.implement",
+      "req-21.verify"
+    ],
+    "edges": [
+      [
+        "req-21.intake",
+        "req-21.design"
+      ],
+      [
+        "req-21.design",
+        "req-21.implement"
+      ],
+      [
+        "req-21.implement",
+        "req-21.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-22": {
+    "cn": "需求 22 · 结单后销毁 PM/角色会话，群聊只读",
+    "kind": "requirement",
+    "requirement_no": 22,
+    "status": "已实现",
+    "evidence": "`_do_close` destroy；`message` 410；`readonly`",
+    "remaining": "历史单会话早已销毁，只能回放 transcript",
+    "source": "docs/requirements-audit-v4.md#22",
+    "nodes": [
+      "req-22.intake",
+      "req-22.design",
+      "req-22.implement",
+      "req-22.verify"
+    ],
+    "edges": [
+      [
+        "req-22.intake",
+        "req-22.design"
+      ],
+      [
+        "req-22.design",
+        "req-22.implement"
+      ],
+      [
+        "req-22.implement",
+        "req-22.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-23": {
+    "cn": "需求 23 · 群聊发言人：用户=“我”，角色=角色名，头像",
+    "kind": "requirement",
+    "requirement_no": 23,
+    "status": "已实现（v4.1 修正）",
+    "evidence": "`user_messages` 标记；`_session_chat` 区分我/秘书/PM→角色；首字母头像",
+    "remaining": "头像是字母+稳定色，不是真人/随机图片",
+    "source": "docs/requirements-audit-v4.md#23",
+    "nodes": [
+      "req-23.intake",
+      "req-23.design",
+      "req-23.implement",
+      "req-23.verify"
+    ],
+    "edges": [
+      [
+        "req-23.intake",
+        "req-23.design"
+      ],
+      [
+        "req-23.design",
+        "req-23.implement"
+      ],
+      [
+        "req-23.implement",
+        "req-23.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-24": {
+    "cn": "需求 24 · 群聊顶层“系统”消息是什么，应 agent→PM→角色",
+    "kind": "requirement",
+    "requirement_no": 24,
+    "status": "已实现（v4.1 修正）",
+    "evidence": "系统注入消息以“（系统）”开头，群聊过滤；kickoff 显示秘书→PM",
+    "remaining": "历史 transcript 中旧系统消息无法追溯过滤",
+    "source": "docs/requirements-audit-v4.md#24",
+    "nodes": [
+      "req-24.intake",
+      "req-24.design",
+      "req-24.implement",
+      "req-24.verify"
+    ],
+    "edges": [
+      [
+        "req-24.intake",
+        "req-24.design"
+      ],
+      [
+        "req-24.design",
+        "req-24.implement"
+      ],
+      [
+        "req-24.implement",
+        "req-24.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-25": {
+    "cn": "需求 25 · 工单生命周期流程图与群聊分离",
+    "kind": "requirement",
+    "requirement_no": 25,
+    "status": "已实现",
+    "evidence": "`flow` 独立条；节点含冲突/复验/归档/合并",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#25",
+    "nodes": [
+      "req-25.intake",
+      "req-25.design",
+      "req-25.implement",
+      "req-25.verify"
+    ],
+    "edges": [
+      [
+        "req-25.intake",
+        "req-25.design"
+      ],
+      [
+        "req-25.design",
+        "req-25.implement"
+      ],
+      [
+        "req-25.implement",
+        "req-25.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-26": {
+    "cn": "需求 26 · Markdown 渲染",
+    "kind": "requirement",
+    "requirement_no": 26,
+    "status": "已实现",
+    "evidence": "`web/app.js md()`：标题/列表/表格/代码/引用/链接",
+    "remaining": "非完整 CommonMark（嵌套列表、HTML 不支持）",
+    "source": "docs/requirements-audit-v4.md#26",
+    "nodes": [
+      "req-26.intake",
+      "req-26.design",
+      "req-26.implement",
+      "req-26.verify"
+    ],
+    "edges": [
+      [
+        "req-26.intake",
+        "req-26.design"
+      ],
+      [
+        "req-26.design",
+        "req-26.implement"
+      ],
+      [
+        "req-26.implement",
+        "req-26.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-27": {
+    "cn": "需求 27 · “流程专家”角色拆提示词/技能/流程插件",
+    "kind": "requirement",
+    "requirement_no": 27,
+    "status": "已实现",
+    "evidence": "`process` 内置角色；`flow_design`；`library.design`",
+    "remaining": "无独立“流程专家”会话 UI，由 PM 调工具",
+    "source": "docs/requirements-audit-v4.md#27",
+    "nodes": [
+      "req-27.intake",
+      "req-27.design",
+      "req-27.implement",
+      "req-27.verify"
+    ],
+    "edges": [
+      [
+        "req-27.intake",
+        "req-27.design"
+      ],
+      [
+        "req-27.design",
+        "req-27.implement"
+      ],
+      [
+        "req-27.implement",
+        "req-27.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-28": {
+    "cn": "需求 28 · 流式显示，可判断卡住/死循环并打断；不要超时",
+    "kind": "requirement",
+    "requirement_no": 28,
+    "status": "已实现",
+    "evidence": "`live` 轮询 partial；`interrupt`；LLM 无总超时",
+    "remaining": "是轮询不是 SSE/WebSocket",
+    "source": "docs/requirements-audit-v4.md#28",
+    "nodes": [
+      "req-28.intake",
+      "req-28.design",
+      "req-28.implement",
+      "req-28.verify"
+    ],
+    "edges": [
+      [
+        "req-28.intake",
+        "req-28.design"
+      ],
+      [
+        "req-28.design",
+        "req-28.implement"
+      ],
+      [
+        "req-28.implement",
+        "req-28.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-29": {
+    "cn": "需求 29 · 项目/公共交付件、角色库/流程库/技能库",
+    "kind": "requirement",
+    "requirement_no": 29,
+    "status": "已实现",
+    "evidence": "交付件侧栏三层；库页面三个 tab + 标签库",
+    "remaining": "库是弹窗，不是独立页面",
+    "source": "docs/requirements-audit-v4.md#29",
+    "nodes": [
+      "req-29.intake",
+      "req-29.design",
+      "req-29.implement",
+      "req-29.verify"
+    ],
+    "edges": [
+      [
+        "req-29.intake",
+        "req-29.design"
+      ],
+      [
+        "req-29.design",
+        "req-29.implement"
+      ],
+      [
+        "req-29.implement",
+        "req-29.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-30": {
+    "cn": "需求 30 · 工单号可复制、可基于老单新开、知识沉淀因果",
+    "kind": "requirement",
+    "requirement_no": 30,
+    "status": "已实现",
+    "evidence": "`btn-copy-ticket`；`btn-fork-ticket`；`parent` 写知识摘要",
+    "remaining": "—",
+    "source": "docs/requirements-audit-v4.md#30",
+    "nodes": [
+      "req-30.intake",
+      "req-30.design",
+      "req-30.implement",
+      "req-30.verify"
+    ],
+    "edges": [
+      [
+        "req-30.intake",
+        "req-30.design"
+      ],
+      [
+        "req-30.design",
+        "req-30.implement"
+      ],
+      [
+        "req-30.implement",
+        "req-30.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-31": {
+    "cn": "需求 31 · 全链路透明：LLM 请求/响应、tool、模块 API、总线、角色通信",
+    "kind": "requirement",
+    "requirement_no": 31,
+    "status": "已实现",
+    "evidence": "trace → 模块报文；群聊可点完整 JSON",
+    "remaining": "60 条上限；完整 trace 需 SSH/文件",
+    "source": "docs/requirements-audit-v4.md#31",
+    "nodes": [
+      "req-31.intake",
+      "req-31.design",
+      "req-31.implement",
+      "req-31.verify"
+    ],
+    "edges": [
+      [
+        "req-31.intake",
+        "req-31.design"
+      ],
+      [
+        "req-31.design",
+        "req-31.implement"
+      ],
+      [
+        "req-31.implement",
+        "req-31.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-32": {
+    "cn": "需求 32 · 健康自检含交付件体积；压缩存储",
+    "kind": "requirement",
+    "requirement_no": 32,
+    "status": "已实现",
+    "evidence": "`/api/health/self`、`artifacts.stats/compress`",
+    "remaining": "压缩是归档压缩，不是在线去重",
+    "source": "docs/requirements-audit-v4.md#32",
+    "nodes": [
+      "req-32.intake",
+      "req-32.design",
+      "req-32.implement",
+      "req-32.verify"
+    ],
+    "edges": [
+      [
+        "req-32.intake",
+        "req-32.design"
+      ],
+      [
+        "req-32.design",
+        "req-32.implement"
+      ],
+      [
+        "req-32.implement",
+        "req-32.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  },
+  "req-33": {
+    "cn": "需求 33 · 前端返回键、刷新恢复、完整状态转移图",
+    "kind": "requirement",
+    "requirement_no": 33,
+    "status": "已实现（v4.1 新增）",
+    "evidence": "hash 路由 + `popstate` + `←` + Esc；`docs/ui-state-machine.md`",
+    "remaining": "侧栏/临时弹窗不占历史（有意）",
+    "source": "docs/requirements-audit-v4.md#33",
+    "nodes": [
+      "req-33.intake",
+      "req-33.design",
+      "req-33.implement",
+      "req-33.verify"
+    ],
+    "edges": [
+      [
+        "req-33.intake",
+        "req-33.design"
+      ],
+      [
+        "req-33.design",
+        "req-33.implement"
+      ],
+      [
+        "req-33.implement",
+        "req-33.verify"
+      ]
+    ],
+    "checks": [],
+    "max_retry": 2
+  }
+}

@@ -160,13 +160,13 @@ def scan_flows():
                                       data.get("checks") or [], bool(data.get("nodes") or data.get("edges"))))
     # 代码内置的需求级流程也要被扫描；它们不一定已落到 data/library。
     try:
-        from hive.modules.library import BUILTIN_FLOWS
+        from hive.modules.library import BUILTIN_FLOWS, REQUIREMENT_FLOWS
         have = {f["id"] for f in flows}
-        for fid, spec in BUILTIN_FLOWS.items():
+        for fid, spec in dict(BUILTIN_FLOWS, **REQUIREMENT_FLOWS).items():
             if fid in have:
                 continue
-            flows.append(_flow_record(fid, "", spec.get("nodes") or [], spec.get("edges") or [],
-                                      spec.get("checks") or [], True))
+            flows.append(_flow_record(fid, spec.get("role") or "", spec.get("nodes") or [],
+                                      spec.get("edges") or [], spec.get("checks") or [], True))
     except Exception as exc:
         flows.append({"id": "__builtin__", "error": "内置流程读取失败: %r" % exc, "cycles": []})
     return flows
@@ -180,7 +180,32 @@ def scan_web():
     ids |= set(re.findall(r'id="([A-Za-z0-9_-]+)"', app))
     ids |= set(re.findall(r"id='([A-Za-z0-9_-]+)'", app))
     refs = set(re.findall(r"\$\('([A-Za-z0-9_-]+)'\)", app))
-    missing_refs = sorted(refs - ids)
+    refs |= set(re.findall(r"getElementById\('([A-Za-z0-9_-]+)'\)", app))
+    missing_refs = sorted(set(re.findall(r"\$\('([A-Za-z0-9_-]+)'\)", app)) - ids)
+
+    # 组件扫描：所有带 id 的按钮/输入控件都必须被脚本显式绑定；
+    # 按钮还必须有可读文本或 title/aria-label，避免“空按钮”。
+    buttons, unbound_buttons, empty_buttons = 0, [], []
+    for m in re.finditer(r"<button([^>]*)>(.*?)</button>", html, re.S):
+        buttons += 1
+        attrs, inner = m.group(1), re.sub(r"<[^>]+>", "", m.group(2)).strip()
+        im = re.search(r'id="([^"]+)"', attrs)
+        if im and im.group(1) not in refs:
+            unbound_buttons.append(im.group(1))
+        name = re.search(r'(?:title|aria-label)="([^"]*)"', attrs)
+        if not inner and not (name and name.group(1).strip()):
+            empty_buttons.append(im.group(1) if im else (attrs[:40] or "(无 id)"))
+
+    controls, unbound_controls = 0, []
+    for tag in ("input", "select", "textarea"):
+        for m in re.finditer(r"<" + tag + r'([^>]*)>', html):
+            im = re.search(r'id="([^"]+)"', m.group(1))
+            if not im:
+                continue
+            controls += 1
+            if im.group(1) not in refs:
+                unbound_controls.append(im.group(1))
+
     states = spec.get("states") or []
     events = {}
     bad_targets = []
@@ -199,11 +224,17 @@ def scan_web():
         web_ok, web_errors = validate()
     except Exception as exc:
         web_ok, web_errors = False, ["webstate 校验异常: %r" % exc]
-    return {"ok": web_ok and not bad_targets and not component_missing,
+    return {"ok": web_ok and not bad_targets and not component_missing
+                  and not unbound_buttons and not empty_buttons and not unbound_controls,
             "errors": web_errors + (["事件目标不存在: %s" % x for x in bad_targets] if bad_targets else []) +
-                      (["状态机缺少组件 id: %s" % x for x in component_missing] if component_missing else []),
+                      (["状态机缺少组件 id: %s" % x for x in component_missing] if component_missing else []) +
+                      (["按钮未绑定脚本: %s" % x for x in unbound_buttons] if unbound_buttons else []) +
+                      (["按钮无文本: %s" % x for x in empty_buttons] if empty_buttons else []) +
+                      (["控件未绑定脚本: %s" % x for x in unbound_controls] if unbound_controls else []),
             "states": len(states), "events": len(events),
             "dom_ids": len(ids), "dom_refs": len(refs), "missing_refs": missing_refs,
+            "buttons": buttons, "unbound_buttons": unbound_buttons, "empty_buttons": empty_buttons,
+            "controls": controls, "unbound_controls": unbound_controls,
             "event_targets_bad": bad_targets,
             "component_ids": len(components.get("required_ids") or []),
             "component_missing": component_missing}
@@ -270,9 +301,10 @@ def write_report(result, out_dir=None):
             len(result["api_cycles"]), len(result["import_cycles"])),
         "- 流程数：%d；流程 DAG 环：%d" % (
             len(result["flows"]), sum(len(f.get("cycles") or []) for f in result["flows"])),
-        "- 网页状态：%s（状态 %d / 事件 %d / DOM id %d）" % (
+        "- 网页状态：%s（状态 %d / 事件 %d / DOM id %d / 按钮 %d / 控件 %d）" % (
             "一致" if result["web"]["ok"] else "不一致", result["web"]["states"],
-            result["web"]["events"], result["web"]["dom_ids"]),
+            result["web"]["events"], result["web"]["dom_ids"],
+            result["web"].get("buttons", 0), result["web"].get("controls", 0)),
         "", "## 模块唯一出口与对外 API", "",
         "| 模块 | 唯一出口 | 路由 | 工具 | 跨模块 import |",
         "| --- | --- | --- | --- | --- |",

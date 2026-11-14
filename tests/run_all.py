@@ -867,6 +867,25 @@ def test_security_and_ui_contract(mock):
             {"role": "user", "content": "实现登录接口", "ts": 4},
         ])
         check("PM 派活显示项目经理→角色", roles and roles[0]["speaker"] == "项目经理", roles)
+
+        # system_prompt 默认隐藏；只有显式 visible=True 的系统通告才进时间线
+        class FakeCtx:
+            def api(self, name, **kw):
+                return {"items": [
+                    {"role": "system", "content": "你是一个项目秘书，以下是内部提示词……", "visible": False},
+                    {"role": "system", "content": "（系统）服务已重启，继续执行", "visible": True},
+                    {"role": "user", "content": "继续", "ts": 1},
+                    {"role": "tool", "content": "tool-output"},
+                ]}
+        old_ctx = wc.ctx
+        try:
+            wc.ctx = FakeCtx()
+            srows = wc._session_timeline("sec-x", 20)
+        finally:
+            wc.ctx = old_ctx
+        check("系统提示词不进群聊", all("内部提示词" not in i["text"] for i in srows), srows)
+        check("显式可见系统通告进群聊", any(i["speaker"] == "系统" and "服务已重启" in i["text"] for i in srows), srows)
+        check("tool 消息不进群聊", all(i["role"] != "tool" for i in srows), srows)
     except Exception as exc:
         check("安全/UI 契约未崩溃", False, repr(exc))
     finally:
@@ -1045,8 +1064,13 @@ def test_architecture_gate():
     check("每个模块都能报出对外 API", all(m["public_api"] for m in r["modules"]),
           [(m["name"], len(m["public_api"])) for m in r["modules"] if not m["public_api"]])
     check("网页状态机无悬空 DOM 引用", not r["web"]["missing_refs"], r["web"]["missing_refs"])
+    check("网页全部按钮已绑定", not r["web"].get("unbound_buttons") and
+          not r["web"].get("empty_buttons"), r["web"])
+    check("网页全部控件已绑定", not r["web"].get("unbound_controls"), r["web"])
     check("流程库全部可扫描", all(not f.get("error") for f in r["flows"]), r["flows"])
     check("流程 DAG 无环", not any(f.get("cycles") for f in r["flows"]), r["flows"])
+    req_flows = [f for f in r["flows"] if f.get("id", "").startswith("req-")]
+    check("历史需求逐条入流程库", len(req_flows) == 33, [f.get("id") for f in req_flows])
 
 
 def test_v45_lifecycle_idle_system(mock):
