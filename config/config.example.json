@@ -54,7 +54,15 @@
     "close_reply_timeout": 120,
     "max_roles": 8,
     "default_project": "default",
-    "pm_max_steps": 0
+    "pm_max_steps": 0,
+    "auto_retrospective": false,
+    "stall_check": {
+      "enabled": false,
+      "interval_sec": 300,
+      "idle_minutes": 45,
+      "max_per_scan": 2,
+      "create_audit": true
+    }
   },
   "knowledge": {
     "root": "data/knowledge",

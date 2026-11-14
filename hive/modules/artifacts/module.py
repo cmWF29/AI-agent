@@ -416,6 +416,27 @@ class Artifacts(Module):
                 s["total_human"], ", ".join("%s/%s=%s" % (b["project"], b["ticket"], _human(b["bytes"]))
                                             for b in s["biggest"][:5]) or "-")
 
+        def read_tool(args, tctx):
+            res = self.file_api({
+                "layer": args.get("layer") or "ticket",
+                "project": args.get("project") or tctx.session.get("project") or "",
+                "ticket": args.get("ticket") or tctx.session.get("ticket") or "",
+                "path": args.get("path") or "",
+            })
+            if res.get("encoding") != "utf-8":
+                return "（二进制交付件，%d bytes，无法按文本读取）" % (res.get("size") or 0)
+            text = res.get("text") or ""
+            return text[:6000] + ("\n...(已截断)" if len(text) > 6000 else "")
+
+        tools.register(Tool(
+            "artifact_read", "读取已归档的交付件文本（只读；适合看交接文档/报告，不替代源码浏览）。",
+            {"type": "object", "properties": {
+                "layer": {"type": "string", "enum": ["ticket", "project", "public"]},
+                "path": {"type": "string"},
+                "project": {"type": "string"}, "ticket": {"type": "string"},
+            }, "required": ["path"]},
+            read_tool, origin=self.name))
+
         tools.register(Tool(
             "artifact_write", "把交付件写到指定层级（ticket/project/public），路径自带工单号。",
             {"type": "object", "properties": {

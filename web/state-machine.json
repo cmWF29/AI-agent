@@ -54,6 +54,14 @@
       "events": { "CLOSE": "project.home" }
     },
     {
+      "id": "overlay.knowledge",
+      "view": "overlay",
+      "route": "#/knowledge",
+      "render": "openKnowledge",
+      "visible": ["modal"],
+      "events": { "CLOSE": "project.home" }
+    },
+    {
       "id": "overlay.rules",
       "view": "overlay",
       "route": "#/rules",

@@ -128,6 +128,7 @@ function applyRoute(r, opts) {
   setTab(r.tab);
   if (r.tab === 'rules') HiveUI.emit('panel:open', { name: 'rules', opts: { fromRoute: true } });
   else if (r.tab === 'library') HiveUI.emit('panel:open', { name: 'library', kind: r.kind, opts: { fromRoute: true } });
+  else if (r.tab === 'knowledge') HiveUI.emit('panel:open', { name: 'knowledge', opts: { fromRoute: true } });
   else if (r.tab === 'health') HiveUI.emit('panel:open', { name: 'health', opts: { fromRoute: true } });
   else if (r.tab === 'versions') HiveUI.emit('panel:open', { name: 'versions', opts: { fromRoute: true } });
   else if (r.tab === 'source') {

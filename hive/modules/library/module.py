@@ -31,39 +31,45 @@ KINDS = ("roles", "flows", "skills")
 BUILTIN_ROLES = {
     "architect": {
         "cn": "架构师", "must_outputs": ["docs/**/*architect*", "docs/**/*架构*"],
-        "prompt": "你是架构师。先读清现有代码与约束，再给可落地的架构方案：模块边界、数据流、接口、失败与回滚。"
-                  "必须产出架构设计文档（Markdown），里面要有取舍理由。不要写业务实现代码。",
+        "prompt": "你是架构师。先读公共/项目知识库，再按需要读代码；只做结构层：模块边界、数据流、接口、"
+                  "新增/变更规则、失败与回滚，给出取舍理由。必须产出架构设计文档（Markdown），"
+                  "不要写业务实现代码，也不要把整段代码贴进方案。",
     },
     "developer": {
         "cn": "开发", "must_outputs": ["**/*.py", "**/*.js", "**/*.go", "**/*.sh"],
-        "prompt": "你是开发。按任务给出的接口与验收标准实现，改完必须自己跑一遍验证（测试或可复现命令），"
-                  "把改动点、验证命令、结果写清楚。",
+        "prompt": "你是开发。先读任务指定的知识与接口，再按验收标准实现；只改工单范围内的文件。"
+                  "按项目实际语言交至少一种代码产物（.py/.js/.go/.sh），不要为了凑清单创建项目里不存在的语言文件。"
+                  "改完必须自己跑一遍验证（测试或可复现命令），把改动点、验证命令、结果写清楚；"
+                  "最后写 docs/handoff/<角色名>.md 交接文档。",
     },
     "reviewer": {
         "cn": "核验者", "must_outputs": ["docs/**/*review*", "docs/**/*核对*"],
-        "prompt": "你是核验者。独立复核别人的产物：逐条对照验收标准，指出证据（文件/命令/输出），"
+        "prompt": "你是核验者。先读知识库和交付件，再独立复核：逐条对照验收标准，指出证据（文件/命令/输出），"
                   "给出 通过/不通过 结论与缺口清单。不要替人改代码。",
     },
     "ops": {
         "cn": "运维", "must_outputs": ["**/*.txt", "**/*.md"],
-        "prompt": "你是运维。只做只读采集与诊断，命令原文必须留档（raw/ 下），不要改系统状态。",
+        "prompt": "你是运维。先读知识库中的运行约束；只做只读采集与诊断，命令原文必须留档（raw/ 下），"
+                  "不要改系统状态；给出可回滚步骤与验证命令。",
     },
     "writer": {
         "cn": "撰写", "must_outputs": ["docs/**/*.md"],
-        "prompt": "你是撰写。把事实写成可读文档：结论先行、数据带来源、不编造。",
+        "prompt": "你是撰写。先读知识库与交付件，把事实写成可读文档：结论先行、数据带来源、不编造。",
     },
     "researcher": {
         "cn": "调研", "must_outputs": ["docs/**/*.md"],
-        "prompt": "你是调研。给出信息来源与对比，明确哪些是事实、哪些是推断。",
+        "prompt": "你是调研。先读知识库，再补外部来源；给出信息来源与对比，明确哪些是事实、哪些是推断。",
     },
     "tester": {
         "cn": "测试", "must_outputs": ["docs/**/*test*", "**/*test*.py"],
-        "prompt": "你是测试。设计可复现的用例并真实执行，记录命令与输出；不通过要说清复现步骤。",
+        "prompt": "你是测试。先读知识库里的验收口径，设计可复现的用例并真实执行，记录命令与输出；"
+                  "不通过要说清复现步骤，不要只看代码猜结论。",
     },
     "process": {
         "cn": "流程专家", "must_outputs": ["**/*.json"],
         "prompt": "你是流程专家。把模糊的角色需求拆成：角色定义（提示词）、技能（操作手册）、流程插件"
-                  "（必交产物与校验规则）。产出必须是结构化 JSON，可被系统直接加载。",
+                  "（必交产物与校验规则）。产出必须是结构化 JSON，可被系统直接加载；"
+                  "同时说明它和现有角色/流程的边界，避免重复造岗位。",
     },
     "skill-decomposer": {
         "cn": "Skill 拆解者", "must_outputs": ["**/*.json", "docs/**/*.md"],
@@ -73,6 +79,16 @@ BUILTIN_ROLES = {
                   "先用 skill_sources 看来源，再 skill_install 安装，最后 skill_decompose 固化；"
                   "拆完检查角色卡、流程校验项是否真的可执行，不要把 Skill 原文原样当角色提示词。",
     },
+}
+
+# 同一岗位常有两种命名习惯（英文/中文、文档/测试），它们不是“全部都要交”。
+# 这些角色用 match=any 的组，避免开发者只改 .js 却被要求补 .go/.sh。
+BUILTIN_ROLE_CHECKS = {
+    "architect": {"kind": "glob", "paths": ["docs/**/*architect*", "docs/**/*架构*"], "match": "any"},
+    "developer": {"kind": "glob", "paths": ["**/*.py", "**/*.js", "**/*.go", "**/*.sh"], "match": "any"},
+    "reviewer": {"kind": "glob", "paths": ["docs/**/*review*", "docs/**/*核对*"], "match": "any"},
+    "ops": {"kind": "glob", "paths": ["**/*.txt", "**/*.md"], "match": "any"},
+    "tester": {"kind": "glob", "paths": ["docs/**/*test*", "**/*test*.py"], "match": "any"},
 }
 
 
@@ -120,6 +136,33 @@ BUILTIN_FLOWS = {
         "edges": [["requirement.intake", "requirement.classify"],
                   ["requirement.classify", "flow.design"], ["flow.design", "flow.dag.check"],
                   ["flow.dag.check", "flow.library.upsert"]],
+        "checks": [],
+    },
+    "requirement-owner": {
+        "cn": "总需求负责流程",
+        "kind": "process",
+        "nodes": ["requirement.owner", "requirement.structure", "plan.document",
+                  "ticket.split", "child.run", "child.report", "requirement.verify",
+                  "requirement.close"],
+        "edges": [["requirement.owner", "requirement.structure"],
+                  ["requirement.structure", "plan.document"],
+                  ["plan.document", "ticket.split"],
+                  ["ticket.split", "child.run"],
+                  ["child.run", "child.report"],
+                  ["child.report", "requirement.verify"],
+                  ["requirement.verify", "requirement.close"]],
+        "checks": [],
+    },
+    "ticket-health": {
+        "cn": "停滞工单健康检查",
+        "kind": "process",
+        "nodes": ["ticket.scan", "stall.judge", "audit.ticket", "ops.diagnose",
+                  "resume.or.close", "ticket.health.report"],
+        "edges": [["ticket.scan", "stall.judge"],
+                  ["stall.judge", "audit.ticket"],
+                  ["audit.ticket", "ops.diagnose"],
+                  ["ops.diagnose", "resume.or.close"],
+                  ["resume.or.close", "ticket.health.report"]],
         "checks": [],
     },
     "web-state-contract": {
@@ -181,28 +224,54 @@ class Library(Module):
         self._register_tools()
 
     def _seed(self):
+        """内置库随代码版本同步。
+
+        内置角色/流程是公共基线，不允许在线改写；旧版本已经落盘的 builtin 记录
+        必须在新版本启动时同步，否则修复永远进不到已有环境。自定义角色/流程不动。
+        """
         for rid, spec in BUILTIN_ROLES.items():
-            if self.stores["roles"].get(rid):
-                continue
-            self.stores["roles"].put(rid, {
+            old = self.stores["roles"].get(rid)
+            rec = {
                 "id": rid, "name": rid, "cn": spec["cn"], "prompt": spec["prompt"],
-                "must_outputs": spec["must_outputs"], "builtin": True, "created": _now(),
-            })
-            self.stores["flows"].put(rid, {
-                "id": rid, "role": rid, "checks": [{"kind": "glob", "path": p} for p in spec["must_outputs"]],
-                "max_retry": 2, "builtin": True, "created": _now(),
-            })
+                "must_outputs": list(spec["must_outputs"]), "builtin": True,
+                "created": (old or {}).get("created") or _now(),
+                "updated": _now(),
+            }
+            if old and not old.get("builtin"):
+                continue
+            if old and all(old.get(k) == rec.get(k) for k in ("cn", "prompt", "must_outputs")):
+                continue
+            self.stores["roles"].put(rid, rec)
+
+            flow = self.stores["flows"].get(rid)
+            checks = [dict(BUILTIN_ROLE_CHECKS[rid])] if rid in BUILTIN_ROLE_CHECKS else \
+                [{"kind": "glob", "path": p} for p in spec["must_outputs"]]
+            flow_rec = {
+                "id": rid, "role": rid, "checks": checks, "max_retry": 2,
+                "builtin": True, "created": (flow or {}).get("created") or _now(),
+                "updated": _now(),
+            }
+            if flow and not flow.get("builtin"):
+                continue
+            if flow and flow.get("checks") == checks:
+                continue
+            self.stores["flows"].put(rid, flow_rec)
         # 需求级流程：不是角色插件，而是对用户历史需求的可扫描 DAG 表达。
         for fid, spec in dict(BUILTIN_FLOWS, **REQUIREMENT_FLOWS).items():
-            if self.stores["flows"].get(fid):
+            old = self.stores["flows"].get(fid)
+            if old and not old.get("builtin"):
                 continue
-            self.stores["flows"].put(fid, {
+            rec = {
                 "id": fid, "role": "", "cn": spec["cn"], "kind": spec.get("kind") or "process",
                 "nodes": spec["nodes"], "edges": spec["edges"], "checks": spec["checks"],
                 "requirement_no": spec.get("requirement_no"), "status": spec.get("status"),
                 "evidence": spec.get("evidence"), "source": spec.get("source"),
-                "max_retry": spec.get("max_retry", 0), "builtin": True, "created": _now(),
-            })
+                "max_retry": spec.get("max_retry", 0), "builtin": True,
+                "created": (old or {}).get("created") or _now(), "updated": _now(),
+            }
+            if old and all(old.get(k) == rec.get(k) for k in ("cn", "kind", "nodes", "edges", "checks")):
+                continue
+            self.stores["flows"].put(fid, rec)
 
     # ---------------- 基础 ----------------
     def _store(self, kind):
@@ -236,10 +305,11 @@ class Library(Module):
 
         检查项（可组合）：
           {"kind":"glob","path":"docs/**/*architect*.md"}
+          {"kind":"glob","paths":["**/*.py","**/*.js"],"match":"any"}   # 任一语言即可
           {"kind":"glob","path":"docs/**/*.md","min_bytes":120}
           {"kind":"glob","path":"docs/**/*.md","contains":["取舍","回滚"]}
         只给 glob 时是“文件存在”；加了 min_bytes / contains 就是“文件真的写了东西”，
-        防止交一个空文件骗过流程校验。
+        防止交一个空文件骗过流程校验。paths+match=any 用于“同一类产物有多个可接受写法”的岗位。
         """
         import os
         flow = self._store("flows").get(flow_id)
@@ -251,17 +321,33 @@ class Library(Module):
             kind = check.get("kind") or "glob"
             if kind not in ("glob", "contains"):
                 continue
-            pattern = (check.get("path") or "").replace("\\", "/")
-            if not pattern:
+            patterns = [p for p in (check.get("paths") or [check.get("path") or ""]) if p]
+            patterns = [p.replace("\\", "/") for p in patterns]
+            if not patterns:
                 continue
-            matched = [f for f in files if self._glob_match(f, pattern)]
+            match_mode = (check.get("match") or "all").lower()
+            matched_map = {p: [f for f in files if self._glob_match(f, p)] for p in patterns}
+            if match_mode == "any":
+                matched = []
+                for p in patterns:
+                    matched.extend(matched_map[p])
+                label = " 或 ".join(patterns)
+            else:
+                matched = []
+                for p in patterns:
+                    matched.extend(matched_map[p])
+                label = " + ".join(patterns)
+                absent = [p for p in patterns if not matched_map[p]]
+                if absent:
+                    missing.append(label)
+                    continue
             if not matched:
-                missing.append(pattern)
+                missing.append(label)
                 continue
             min_bytes = int(check.get("min_bytes") or 0)
             needles = check.get("contains") or []
             if (min_bytes or needles) and not root:
-                missing.append("%s（校验内容需要工作树 root）" % pattern)
+                missing.append("%s（校验内容需要工作树 root）" % label)
                 continue
             if min_bytes and root:
                 ok = False
@@ -271,7 +357,7 @@ class Library(Module):
                     except OSError:
                         continue
                 if not ok:
-                    missing.append("%s（至少 %d bytes）" % (pattern, min_bytes))
+                    missing.append("%s（至少 %d bytes）" % (label, min_bytes))
                     continue
             if needles and root:
                 # 必须是“同一份文件”里同时包含这些要点；把所有文件拼起来会放过分散敷衍
@@ -285,7 +371,7 @@ class Library(Module):
                         ok = True
                         break
                 if not ok:
-                    missing.append("%s（包含：%s）" % (pattern, "、".join(map(str, needles))))
+                    missing.append("%s（包含：%s）" % (label, "、".join(map(str, needles))))
         return {"flow": flow_id, "role": flow.get("role"), "missing": missing,
                 "checked": len(flow.get("checks") or []), "known": True,
                 "max_retry": flow.get("max_retry", 2)}

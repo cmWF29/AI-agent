@@ -102,6 +102,15 @@
       "requirements": ["req-32"]
     },
     {
+      "id": "ui.health.tickets",
+      "ui": "health",
+      "target": "tickets",
+      "prefix": "/api/tickets",
+      "methods": ["GET"],
+      "intent": "健康页读取停滞工单健康检查结果",
+      "requirements": ["req-32"]
+    },
+    {
       "id": "ui.library.skills",
       "ui": "library",
       "target": "skills",
@@ -109,6 +118,15 @@
       "methods": ["GET", "POST"],
       "intent": "技能库页面读取、安装、拆解、移除技能",
       "requirements": ["req-27"]
+    },
+    {
+      "id": "ui.knowledge.knowledge",
+      "ui": "knowledge",
+      "target": "knowledge",
+      "prefix": "/api/knowledge",
+      "methods": ["GET"],
+      "intent": "知识库页面读取 public/project/ticket 三层的总结",
+      "requirements": ["req-15"]
     }
   ]
 }

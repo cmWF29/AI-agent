@@ -1,12 +1,13 @@
-"""工单模块 —— 秘书发作业，PM 编排（也能自己干小活），角色干活，PM 收官。
+"""工单模块 —— 秘书发作业，PM 只做结构/分单/验收，角色干活。
 
 一个工单 = 一个临时 PM 会话 + 若干临时角色会话 + 一个 git 分支。
-* 秘书只负责“发”：ticket_create。
-* PM 负责“排”和“收”：role_spawn / role_task / role_wait，最后 ticket_close；
-  简单活（看一眼、改一行、跑个命令）PM 自己用 shell/read/write 做（需求 3）。
-* 角色完成后，按“流程插件”校验必交产物，缺件自动追补（需求 15）。
-* 关闭工单：校验 → 归档交付件 → 合并 git 分支 → 通知角色沉淀知识 → 销毁临时会话（需求 10）。
-* 结单后的工单群只读，想改就新开工单并引用旧工单号（需求 10、18）。
+* 秘书只负责“发”：ticket_create；原始需求原样转，不拆不改。
+* PM 负责“结构化 + 分单 + 验收”：先读知识库、写 docs/pm/plan.md，能用子工单就 ticket_split；
+  角色/子工单完成后系统发**短通知**，PM 不 role_wait、不监工，最后 ticket_close。
+* 角色完成后，按“流程插件”校验必交产物；交接细节写 docs/handoff/<role>.md，PM 按需读文档。
+* 关闭工单：校验 → 归档交付件 → 合并 git 分支 → 通知角色沉淀知识 → 销毁临时会话。
+* 结单后的工单群只读，想改就开工单并引用旧工单号。
+* 自动回顾工单默认关闭（配置可开启）；停滞工单由 worker 定期扫描并拉运维审计单。
 
 本模块不直接读别的模块的存储：一律走 sessions.* / projects.* / artifacts.* / library.* / gitflow.* 的 API。
 """
@@ -16,6 +17,7 @@ import os
 import threading
 import time
 import uuid
+import calendar
 
 from ...kernel.api import ApiError, Module
 from ...kernel.config import path_of
@@ -34,24 +36,23 @@ ROLE_TOOLS = [
     "shell", "read_file", "write_file", "grep", "http_get",
     "knowledge_read", "knowledge_write", "knowledge_list", "knowledge_search",
     "memory_add", "memory_search", "session_result",
-    "artifact_write", "artifact_list",
+    "artifact_write", "artifact_read", "artifact_list",
     "git_sync", "git_status",
     "library_get", "library_update_prompt", "flow_check", "ticket_tag",
 ]
 
 PM_TOOLS = [
-    # 编排
-    "agent_spawn", "agent_send", "agent_wait", "agent_list", "agent_status",
+    # 编排（不包含 role_wait / role_report：角色交作业由系统通知，禁止监工）
+    "agent_spawn", "agent_send", "agent_list", "agent_status",
     "agent_interrupt", "agent_destroy", "agent_compact",
-    "role_spawn", "role_task", "role_wait", "role_report",
-    "ticket_list", "ticket_status", "ticket_verify", "ticket_close",
-    # 自己动手（需求 3：PM 得先能“了解项目”，小活自己干）
-    "shell", "read_file", "write_file", "grep",
+    "role_spawn", "role_task",
+    "ticket_create", "ticket_split", "ticket_list", "ticket_status", "ticket_verify", "ticket_close",
+    "ticket_read_doc",
     # 库与流程（需求 15/17）
-    "library_list", "library_get", "library_update_prompt", "flow_design", "flow_check",
+    "library_list", "library_get", "flow_design", "flow_check",
     "skill_sources", "skill_install", "skill_decompose",
-    # 交付件与 git
-    "artifact_write", "artifact_list", "artifact_stats",
+    # 交付件与 git（PM 只看文档，不读源码）
+    "artifact_read", "artifact_write", "artifact_list", "artifact_stats",
     "git_status", "git_sync", "git_merge", "ticket_tag",
     "knowledge_read", "knowledge_write", "knowledge_list", "knowledge_search",
     "memory_add", "memory_search",
@@ -81,8 +82,11 @@ class Tickets(Module):
         self.max_roles = int(self.cfg["tickets"].get("max_roles", 8))
         self.default_project = self.cfg["tickets"].get("default_project") or "default"
         self._closing = set()
+        self.stall_cfg = self.cfg["tickets"].get("stall_check") if isinstance(
+            self.cfg["tickets"].get("stall_check"), dict) else {}
         self.log.info("tickets.ready", root=self.root)
         self._resume_after_boot()
+        self._start_stall_worker()
 
         self.api.route("POST", "/api/tickets/create", name="create")(self.create_api)
         self.api.route("GET", "/api/tickets/list", name="list")(self.list_api)
@@ -99,6 +103,8 @@ class Tickets(Module):
         self.api.route("POST", "/api/tickets/{ticket_id}/verify", name="verify")(self.verify_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/delete", name="delete")(self.delete_api)
         self.api.route("POST", "/api/tickets/dispatch", name="dispatch")(self.dispatch_api)
+        self.api.route("GET", "/api/tickets/stalled", name="stalled")(self.stalled_api)
+        self.api.route("POST", "/api/tickets/stalled/scan", name="stalled_scan")(self.stalled_scan_api)
 
         # 队列派发由 idle 发事件、tickets 执行并回 ack；tickets 不再被 idle 同步调用。
         self.event("event.idle.ticket_dispatch", self._on_idle_ticket_dispatch,
@@ -121,6 +127,17 @@ class Tickets(Module):
         self.store.put(ticket["id"], ticket)
         return ticket
 
+    def _link_child(self, parent_id, child_id):
+        parent = self.store.get(parent_id)
+        if not parent:
+            return
+        kids = parent.setdefault("children", [])
+        if child_id not in kids:
+            kids.append(child_id)
+            parent["updated"] = _now()
+            self.store.put(parent_id, parent)
+            self.emit("ticket.child.linked", {"parent": parent_id, "child": child_id})
+
     def _history(self, ticket, event, detail=""):
         ticket.setdefault("history", []).append({"ts": _now(), "event": event, "detail": str(detail)[:500]})
 
@@ -134,7 +151,7 @@ class Tickets(Module):
     # ---------------- 创建 ----------------
     def create(self, title, goal, project=None, roles_hint=None, parent="", when="auto",
                force=False, tags=None, backend="", trace_enabled=False, kind="normal",
-               auto_retrospective=True):
+               auto_retrospective=None):
         project = project or self.default_project
         project_backend = ""
         try:
@@ -145,6 +162,9 @@ class Tickets(Module):
             project = project
         tid = "T-%s-%s" % (time.strftime("%Y%m%d"), uuid.uuid4().hex[:6])
         workdir = ensure_dir(os.path.join(self.root, tid, "workspace"))
+        if auto_retrospective is None:
+            cfg = self.cfg.get("tickets") if isinstance(self.cfg.get("tickets"), dict) else {}
+            auto_retrospective = bool(cfg.get("auto_retrospective", False))
         ticket = {
             "id": tid,
             "title": title or goal[:60],
@@ -157,6 +177,7 @@ class Tickets(Module):
             "workdir": workdir,
             "repo": "",
             "parent": parent or "",
+            "children": [],
             "backend": backend or project_backend,
             "kind": kind or "normal",
             "trace_enabled": bool(trace_enabled),
@@ -170,6 +191,8 @@ class Tickets(Module):
         self._stage(ticket, "created", goal[:200])
         ticket["tags"] = list(tags or [])
         self._save(ticket)
+        if parent:
+            self._link_child(parent, tid)
 
         # 空闲/高峰：高峰时先排队，等便宜时段再真启动（用户可选“直接执行”覆盖）
         if not force and when not in ("now", "direct"):
@@ -266,48 +289,58 @@ class Tickets(Module):
                                 {"layer": "project", "project": ticket["project"]},
                                 {"layer": "ticket", "ticket": ticket["id"]}])]
         parts.append(
-            "\n\n## 你的身份：本工单的项目经理（PM）\n"
-            "你负责把这个工单做完：拆解 -> 定角色 -> 分发 -> 收作业 -> 验收 -> 结单。\n"
-            "\n### 权限（需求 3）\n"
-            "你有 shell/read_file/write_file/grep，可以自己读代码、看目录、跑命令——**先了解项目再动手**。\n"
-            "小活（看一眼现状、改一行配置、跑一条命令、写个短说明）你自己做，别为它拉角色；\n"
-            "大活（写代码、长文档、独立核验、调研）才拉角色。不许编造结果，做了就贴命令/输出。\n"
-            "\n### 派角色（需求 15）\n"
-            "1. 先 library_list(kind=roles) 看公共角色库有什么；\n"
-            "2. 需要的角色库里没有（比如架构师），先 flow_design(role, responsibility, must_outputs, ...) 把它固化成\n"
-            "   角色卡+提示词+流程插件，再 role_spawn；\n"
-            "3. 流程插件会在角色交作业后自动校验必交产物，缺件系统会替你催，你也可以 role_task 让它补。\n"
-            "4. 一个角色一个会话，任务写清验收标准、产出路径、边界。\n"
-            "5. 开工后按涉及模块用 ticket_tag 给工单打 tag（frontend/backend/comm/docs...），\n"
-            "   标签会自动沉淀到公共库与项目库。\n"
-            "\n### git（需求 2）\n"
-            "工单有自己的分支工作树（见 kickoff 里的 repo 路径）。代码改动必须在工作树里做；\n"
-            "收尾前 git_sync 提交并推送；合并冲突时先解决冲突、**重跑测试**，再 sync/merge。\n"
-            "\n### 结单\n"
-            "全部达标后调用 ticket_close(ticket, summary)；结单会自动归档交付件、合并分支、\n"
-            "通知角色沉淀知识并销毁临时会话。卡住/需要用户拍板时，直接说清卡点。\n"
+            "\n\n## 你的身份：本工单的 PM / 架构负责人\n"
+            "你只做结构层：读知识、拆需求、定模块/规则、写计划、分单/派角色、验收、结单。\n"
+            "你不写业务代码、不跑命令、不读源码；没有 shell/read_file/write_file/grep。\n"
+            "\n### 1) 先读知识\n"
+            "先看上面的 public/project/ticket 知识，再 `knowledge_search` 查项目地图与历史经验；\n"
+            "需要代码事实就派 researcher/ops/architect 去查，让他们带回证据和路径，不要贴回整段代码。\n"
+            "\n### 2) 结构化计划\n"
+            "`artifact_write(layer=\"ticket\", path=\"docs/pm/plan.md\")` 写：目标/验收标准、影响模块、"
+            "新增或变更的运行规则、边界、子任务（输入/产出路径/验收/依赖）、风险与回滚。\n"
+            "计划是后续角色和子工单的共同输入，不要只放在聊天里。\n"
+            "\n### 3) 分单与编排\n"
+            "- 大需求先开“总需求负责”父工单；能独立验收的子任务用 `ticket_split` 建子工单（parent 自动指向本单）。\n"
+            "- 不需要拆单才 `role_spawn`；任务只给目标、知识/文档路径、产出路径、验收标准、边界。\n"
+            "- 不要把长上下文、整段代码或别人的完整回复塞给角色；他们自己读文档、按需查代码。\n"
+            "- 返工用 `role_task`，只发缺口和验收标准。\n"
+            "\n### 4) 通知式收作业（禁止监工）\n"
+            "- `role_spawn` / `ticket_split` 后结束本轮；不要 role_wait、不要反复 role_report、不要盯会话。\n"
+            "- 角色/子工单完成后系统发短通知（摘要 + 交接文档路径 + 知识文档名）；按需 `ticket_read_doc` / "
+            "`artifact_read` / `knowledge_read`，不要让角色全文回传。\n"
+            "- 全部有结论后逐条验收；齐了 `ticket_close(summary=...)`，不齐就补缺口。\n"
+            "\n### 5) 留痕\n"
+            "重要取舍写 `knowledge_write(name=\"pm-decisions\")`；开工后用 ticket_tag 标模块。\n"
         )
         if ticket.get("kind") == "retrospective":
             parts.append(
-                "\n\n## 这是一个“提示词自迭代”回顾工单\n"
-                "你的目标不是重复旧活，而是判断旧工单的协作过程是否值得改进角色/技能/流程提示词。\n"
-                "1. 先用 knowledge_read/knowledge_search 读旧工单 %s 的知识，用 artifact_list 看旧工单交付件；\n"
-                "2. 判断：是否有角色缺输入、流程校验缺项、提示词导致返工/漏项？没有就 ticket_close(summary='NO_RETROSPECTIVE: 原因')；\n"
-                "3. 有就 role_spawn(role='process', task='...') 拉起临时流程专家，讨论出最小改动；\n"
-                "4. 让流程专家用 library_update_prompt 或 flow_design 落地改动，并写 docs/retrospective.md 记录前后差异；\n"
-                "5. 结单时写清改了什么、证据、对下一次工单的影响。不要为了迭代而迭代。\n"
-                % (ticket.get("parent") or "(无)"))
+                "\n\n## 这是一个“提示词自迭代”回顾工单（历史遗留）\n"
+                "自动回顾流程默认已关闭；若手工创建此单，只做最小判断，不要为了迭代而迭代：\n"
+                "1. 先读旧工单知识与交付件，判断是否有角色缺输入、流程校验缺项、提示词导致返工；\n"
+                "2. 没有明确改进点就 `ticket_close(summary='NO_RETROSPECTIVE: 原因')`；\n"
+                "3. 有改进点才拉 process 角色，用 library_update_prompt/flow_design 落地最小改动，"
+                "并写 docs/retrospective.md 记录前后差异。\n"
+            )
+        elif ticket.get("kind") == "stall-audit":
+            parts.append(
+                "\n\n## 这是一个停滞工单健康检查单（只读）\n"
+                "你的目标不是改原工单，而是只读诊断：看 PM/角色会话状态、工单 stages/history、"
+                "最近日志和资源；判断是等待通知、角色卡死、git/流程门禁、还是资源问题。\n"
+                "只拉 ops/reviewer 做只读检查；不要改原工单、不启动 claude-code；"
+                "结论写 docs/health-report.md，给出恢复/重派/关闭三种建议之一，然后结单。\n"
+            )
         elif ticket.get("parent"):
-            parts.append("\n\n## 前序工单\n本工单基于 %s；先读它的知识与交付件，不要重复造轮子。\n"
+            parts.append("\n\n## 前序/父工单\n本工单基于 %s；先读它的知识与交付件，不要重复造轮子。\n"
                          % ticket["parent"])
         return "".join(parts)
 
     def _pm_kickoff(self, ticket):
         repo = ticket.get("repo") or "(未启用 git)"
-        parent = ("\n前序工单：%s（先读旧单知识与交付件，再决定怎么做）" % ticket["parent"]) if ticket.get("parent") else ""
+        parent = ("\n父工单：%s（先读父单知识与交付件，再决定拆分）" % ticket["parent"]) if ticket.get("parent") else ""
         return (
             "工单 %s\n标题：%s\n目标：%s\n项目：%s\n工作目录：%s\n代码工作树：%s%s\n\n"
-            "请开始：先给拆解与角色安排（简短），然后立即 role_spawn 分发；能自己干的小活直接干。"
+            "请按 PM 职责开始：先读知识库，不要读源码；把需求结构化写进 docs/pm/plan.md，"
+            "再判断是 ticket_split 子工单还是 role_spawn 角色。派完后结束本轮，等系统通知，不要监工。"
             % (ticket["id"], ticket["title"], ticket["goal"], ticket["project"],
                ticket["workdir"], repo, parent)
         )
@@ -337,12 +370,14 @@ class Tickets(Module):
                          % "\n".join("- " + p for p in card["must_outputs"]))
         parts.append(
             "\n### 规则\n"
-            "1. 交付文档/数据写到工作目录 %s；代码改动在 git 工作树 %s 里做（cd 过去改，改完 git_status 看一眼）。\n"
-            "2. 结论必须可验证：给出命令/文件/证据，别只给形容。\n"
-            "3. 完成后调用 session_result(summary) 上报，再用 knowledge_write 沉淀（ticket 层），\n"
-            "   并按你负责的模块用 ticket_tag 给工单补 tag。\n"
-            "4. 遇到阻塞就明确写出来，不要编造完成。\n"
-            % (ticket["workdir"], repo or "(未启用)")
+            "1. **先读上面的知识库**；知识没覆盖的代码事实，再按任务边界读对应代码，不要一上来全库扫描。\n"
+            "2. 交付文档/数据写到工作目录 %s；代码改动在 git 工作树 %s 里做。\n"
+            "3. 完整过程写 `docs/handoff/%s.md`（做了什么、证据/命令、风险、下一步）；"
+            "`session_result(summary)` 只写 5 行以内，不把全文/整段代码回传。\n"
+            "4. 可复用结论 `knowledge_write` 到 ticket 层；交付件 `artifact_write` 落盘。"
+            "知识是总结，交付件是文件，不要混。\n"
+            "5. 遇到阻塞就明确写出来，不要编造完成。\n"
+            % (ticket["workdir"], repo or "(未启用)", (display or role).replace("/", "-"))
         )
         return "".join(parts)
 
@@ -539,10 +574,62 @@ class Tickets(Module):
 
         def _run():
             try:
-                self._enforce_flows(t, only=payload.get("session"))
+                fixed = self._enforce_flows(t, only=payload.get("session"))
+                # 流程已通过才通知 PM；缺件时由流程插件继续催补，避免 PM 收到半成品
+                role_missing = []
+                for r in t.get("roles") or []:
+                    if r.get("session") != payload.get("session"):
+                        continue
+                    chk = self._check_role_flow(t, r)
+                    if chk.get("known") and chk.get("missing"):
+                        role_missing = chk["missing"]
+                if not fixed and not role_missing:
+                    self._notify_role_result(t, payload)
             except Exception as exc:
                 self.log.warn("ticket.flow.check.failed", ticket=ticket_id, error=repr(exc))
         threading.Thread(target=_run, name="flow-" + ticket_id[-6:], daemon=True).start()
+
+    def _notify_role_result(self, ticket, payload):
+        """把角色结果压缩成一条短通知，不把全文/上下文塞进 PM。"""
+        if ticket.get("status") in ("closed", "closing") or not ticket.get("pm"):
+            return
+        sid = payload.get("session") or ""
+        entry = None
+        for r in ticket.get("roles") or []:
+            if r.get("session") == sid:
+                entry = r
+                break
+        if not entry:
+            return
+        summary = (payload.get("summary") or "").strip()
+        if not summary or entry.get("result_summary") == summary:
+            return
+        entry["result_summary"] = summary[:500]
+        entry["result_at"] = _now()
+        entry["status"] = "done"
+        # 交接文档按角色显示名定路径；角色卡要求写 docs/handoff/<display>.md
+        display = (entry.get("display") or entry.get("role") or "role").replace("/", "-")
+        handoff = "docs/handoff/%s.md" % display
+        if not os.path.isfile(os.path.join(ticket.get("workdir") or "", handoff)):
+            handoff = "docs/handoff/（角色未按约定落盘，请读交付件）"
+        note = (
+            "（系统通知）角色 %s 已交作业。\n"
+            "摘要：%s\n"
+            "交接文档：%s\n"
+            "知识：knowledge/tickets/%s\n"
+            "请按需读文档/知识，不要要求角色把全文或整段代码回传；需要返工只发缺口和验收标准。"
+            % (entry.get("display") or entry.get("role"), summary[:500], handoff, ticket["id"])
+        )
+        try:
+            self.ctx.rule("ticket.send_instruction", session=ticket["pm"], text=note, max_steps=0)
+            entry["result_notified"] = True
+            self._history(ticket, "role.result.notified", "%s %s" % (entry.get("display"), sid))
+            self._save(ticket)
+            self.emit("ticket.role.result", {"ticket": ticket["id"], "session": sid,
+                                             "display": entry.get("display"), "summary": summary[:300],
+                                             "handoff": handoff})
+        except ApiError as exc:
+            self.log.warn("ticket.role.notify.failed", ticket=ticket["id"], error=exc.message)
 
     def _require_reverify(self, ticket, reason):
         ticket["reverify"] = {"required": True, "passed": False, "since": _now(),
@@ -799,14 +886,41 @@ class Tickets(Module):
         self._save(ticket)
         self.emit("ticket.closed", {"ticket": ticket_id, "roles": len(ticket.get("roles") or [])})
         self.log.info("ticket.closed", ticket=ticket_id)
+        self._notify_parent(ticket)
         self._maybe_spawn_retrospective(ticket)
+
+    def _notify_parent(self, ticket):
+        """子工单结单后，通知父工单 PM 一条短结果；父 PM 不轮询子单。"""
+        parent_id = ticket.get("parent")
+        if not parent_id:
+            return
+        parent = self.store.get(parent_id)
+        if not parent or parent.get("status") in ("closed", "closing") or not parent.get("pm"):
+            return
+        text = (
+            "（系统通知）子工单 %s 已结单。\n标题：%s\n结论：%s\n"
+            "交付件：artifacts/projects/%s/tickets/%s\n知识：knowledge/tickets/%s\n"
+            "请判断本子任务是否满足父工单验收；父工单可继续分单/派角色，全部齐了再结单。"
+            % (ticket["id"], ticket.get("title") or "", (ticket.get("summary") or "(无)")[:500],
+               ticket.get("project") or "", ticket["id"], ticket["id"])
+        )
+        try:
+            self.ctx.rule("ticket.send_instruction", session=parent["pm"], text=text, max_steps=0)
+            self._history(parent, "child.closed", ticket["id"])
+            parent.setdefault("child_results", []).append({
+                "ticket": ticket["id"], "summary": (ticket.get("summary") or "")[:500],
+                "at": _now()})
+            self._save(parent)
+            self.emit("ticket.child.closed", {"parent": parent_id, "child": ticket["id"]})
+        except ApiError as exc:
+            self.log.warn("ticket.parent.notify.failed", ticket=ticket["id"], parent=parent_id, error=exc.message)
 
     def _maybe_spawn_retrospective(self, ticket):
         """结单后由项目秘书拉起回顾工单；新 PM 自己判断要不要改提示词。"""
         if not ticket.get("auto_retrospective") or ticket.get("kind") == "retrospective":
             return
         cfg = self.cfg.get("tickets") if isinstance(self.cfg.get("tickets"), dict) else {}
-        if not bool(cfg.get("auto_retrospective", True)):
+        if not bool(cfg.get("auto_retrospective", False)):
             return
         old = ticket["id"]
         project = ticket["project"]
@@ -832,6 +946,150 @@ class Tickets(Module):
                 self.log.warn("ticket.retrospective.failed", parent=old, error=repr(exc))
         threading.Thread(target=_run, name="retro-" + old[-6:], daemon=True).start()
         return ticket
+
+    # ---------------- 停滞工单健康检查 ----------------
+    def _start_stall_worker(self):
+        cfg = self.stall_cfg or {}
+        if not bool(cfg.get("enabled", True)):
+            self.log.info("tickets.stall.disabled")
+            return
+        interval = max(30, int(cfg.get("interval_sec", 300)))
+
+        def _loop():
+            time.sleep(min(20, interval))
+            while True:
+                try:
+                    self.scan_stalled()
+                except Exception as exc:
+                    self.log.warn("tickets.stall.scan.failed", error=repr(exc))
+                time.sleep(interval)
+
+        threading.Thread(target=_loop, name="ticket-stall", daemon=True).start()
+        self.log.info("tickets.stall.worker", interval=interval,
+                      idle_minutes=cfg.get("idle_minutes", 45))
+
+    @staticmethod
+    def _ts_epoch(ts):
+        if not ts:
+            return 0
+        try:
+            return calendar.timegm(time.strptime(str(ts)[:19], "%Y-%m-%dT%H:%M:%S"))
+        except (ValueError, TypeError):
+            return 0
+
+    def _ticket_last_activity(self, t):
+        ts = [self._ts_epoch(t.get("updated")), self._ts_epoch(t.get("created"))]
+        for s in t.get("stages") or []:
+            ts.append(self._ts_epoch(s.get("ts")))
+        for r in t.get("roles") or []:
+            ts.append(self._ts_epoch(r.get("result_at")))
+        return max(ts) if ts else 0
+
+    def _ticket_live_sessions(self, t):
+        """返回 (pm_state, running_roles, pm_present)。只读会话状态，不改任何东西。"""
+        pm_state, pm_present = "gone", False
+        running = 0
+        pm = t.get("pm")
+        if pm:
+            try:
+                st = self.ctx.rule("ticket.session_status", session_id=pm).get("session") or {}
+                pm_state = st.get("state") or "gone"
+                pm_present = pm_state not in ("gone", "destroyed", "error")
+            except ApiError:
+                pm_state, pm_present = "gone", False
+        for r in t.get("roles") or []:
+            try:
+                st = self.ctx.rule("ticket.session_status", session_id=r.get("session") or "").get("session") or {}
+                if st.get("state") == "running":
+                    running += 1
+            except ApiError:
+                pass
+        return pm_state, running, pm_present
+
+    def _open_audit(self, t):
+        for cid in t.get("children") or []:
+            c = self.store.get(cid)
+            if c and c.get("kind") == "stall-audit" and c.get("status") != "closed":
+                return cid
+        return ""
+
+    def scan_stalled(self, create_audit=None, limit=None):
+        """扫描“有 PM 但长时间没动静”的工单；默认拉一张只读运维审计单。
+
+        - PM 正在跑 -> 正常，不算停滞；
+        - 有角色正在跑 -> 正常（可能任务长），不算停滞；
+        - PM idle/destroyed 且最近活动超过 idle_minutes -> 停滞；
+        - 同一工单已有未结的 stall-audit -> 不重复拉单。
+        """
+        cfg = self.stall_cfg or {}
+        if create_audit is None:
+            create_audit = bool(cfg.get("create_audit", True))
+        idle_minutes = int(cfg.get("idle_minutes", 45))
+        max_per_scan = int(limit or cfg.get("max_per_scan", 2))
+        cutoff = time.time() - idle_minutes * 60
+        found, created = [], []
+        for t in self.store.list():
+            if t.get("status") in ("closed", "queued"):
+                continue
+            if t.get("kind") in ("stall-audit", "retrospective"):
+                continue
+            if len(t.get("roles") or []) == 0 and t.get("status") == "planning" and not t.get("pm"):
+                continue
+            pm_state, running, pm_present = self._ticket_live_sessions(t)
+            if pm_state == "running" or running:
+                continue
+            last = self._ticket_last_activity(t)
+            if last and last >= cutoff:
+                continue
+            reason = "PM %s，%.0f 分钟无活动" % (pm_state, (time.time() - last) / 60 if last else -1)
+            existing = self._open_audit(t)
+            item = {"ticket": t["id"], "title": t.get("title") or "", "status": t.get("status"),
+                    "project": t.get("project") or "", "pm": t.get("pm") or "",
+                    "pm_state": pm_state, "last_activity": t.get("updated") or "",
+                    "reason": reason, "audit": existing}
+            found.append(item)
+            if t.get("stall_audit"):
+                item["audit"] = t["stall_audit"] if not existing else existing
+                continue
+            if existing:
+                item["audit"] = existing
+                continue
+            if not create_audit or len(created) >= max_per_scan:
+                continue
+            goal = (
+                "健康检查：工单 %s 已停滞。\n"
+                "原工单：%s [%s]，项目 %s，PM %s（%s），最后活动 %s。\n"
+                "已知：%s。\n"
+                "你是只读审计单：只拉 ops/reviewer 检查 PM/角色会话、stages/history、日志、资源与 git 状态；"
+                "不要修改原工单、不要启动 claude-code。判断卡点，写 docs/health-report.md，"
+                "给出“恢复（发续跑指令）/重派角色/建议关闭”三种建议之一，然后结单。"
+                % (t["id"], t.get("title") or "", t.get("status"), t.get("project") or "",
+                   t.get("pm") or "-", pm_state, t.get("updated") or "", reason)
+            )
+            try:
+                audit = self.create(
+                    title="停滞审计：" + (t.get("title") or t["id"])[:40],
+                    goal=goal, project=t.get("project"), parent=t["id"],
+                    when="now", force=True, backend="api", kind="stall-audit",
+                    auto_retrospective=False, roles_hint=["ops"])
+                t = self.store.get(t["id"]) or t
+                t["stall_audit"] = audit["id"]
+                self._history(t, "stall.audit.created", audit["id"])
+                self._save(t)
+                item["audit"] = audit["id"]
+                created.append(audit["id"])
+                self.emit("ticket.stall.audit.created", {"ticket": t["id"], "audit": audit["id"]})
+                self.log.info("ticket.stall.audit.created", ticket=t["id"], audit=audit["id"])
+            except Exception as exc:
+                self.log.warn("ticket.stall.audit.failed", ticket=t["id"], error=repr(exc))
+        return {"items": found, "created": created, "checked_at": _now(),
+                "idle_minutes": idle_minutes}
+
+    def stalled_api(self, payload=None):
+        return self.scan_stalled(create_audit=False)
+
+    def stalled_scan_api(self, payload=None):
+        return self.scan_stalled(create_audit=True)
 
     def _resume_after_boot(self):
         """重启后把“跑到一半”的工单接回来：给它的 PM 发一条续跑指令（限 3 个，避免齐刷）。"""
@@ -860,7 +1118,7 @@ class Tickets(Module):
                     self._save(t)
                 try:
                     self.ctx.rule("ticket.send_instruction", session=t["pm"], text=(
-                        "（系统）服务重启，你这单被打断了。先用 role_list 看角色和产物是否齐全，"
+                        "（系统）服务重启，你这单被打断了。先用 ticket_status 看角色和产物是否齐全，"
                         "缺什么就重派，齐了就直接收尾（写总结并 ticket_close）。"
                     ))
                     resumed += 1
@@ -875,12 +1133,16 @@ class Tickets(Module):
         goal = (payload.get("goal") or "").strip()
         if not goal:
             raise ApiError("goal 必填", code="missing_goal")
+        ar = payload.get("auto_retrospective", None)
+        if isinstance(ar, str):
+            ar = ar.lower() in ("1", "true", "yes", "on")
         t = self.create(payload.get("title") or "", goal, payload.get("project"),
                         payload.get("roles_hint"), payload.get("parent") or "",
                         when=payload.get("when") or "auto", force=bool(payload.get("force")),
                         tags=payload.get("tags") or [], backend=payload.get("backend") or "",
                         trace_enabled=bool(payload.get("trace") or payload.get("trace_enabled")),
-                        auto_retrospective=bool(payload.get("auto_retrospective", True)))
+                        kind=payload.get("kind") or "normal",
+                        auto_retrospective=ar)
         return {"ticket": self._public(t)}
 
     def _on_idle_ticket_dispatch(self, ev):
@@ -1081,7 +1343,8 @@ class Tickets(Module):
         target = payload.get("session") or t.get("pm")
         if not target:
             raise ApiError("该工单已经没有在跑的 PM（可能已结单），新需求请另开工单", code="no_pm")
-        res = self.ctx.rule("ticket.send_instruction", session=target, text=text)
+        res = self.ctx.rule("ticket.send_instruction", session=target, text=text,
+                            max_steps=0 if target == t.get("pm") else None)
         # 记录“这是用户本人在群里说的”，网页据此把发言人显示成“我”，而不是“秘书/PM”
         t.setdefault("user_messages", []).append({"ts": time.time(), "session": target, "text": text})
         t["user_messages"] = t["user_messages"][-30:]
@@ -1153,6 +1416,8 @@ class Tickets(Module):
             "id": t["id"], "title": t["title"], "goal": t["goal"], "project": t["project"],
             "status": t["status"], "pm": t.get("pm"), "summary": t.get("summary"),
             "parent": t.get("parent") or "", "repo": t.get("repo") or "",
+            "children": t.get("children") or [],
+            "stall_audit": t.get("stall_audit") or "",
             "backend": t.get("backend") or "api", "kind": t.get("kind") or "normal",
             "trace_enabled": bool(t.get("trace_enabled")),
             "auto_retrospective": bool(t.get("auto_retrospective")),
@@ -1191,8 +1456,52 @@ class Tickets(Module):
                             tags=args.get("tags") or [],
                             backend=args.get("backend") or "",
                             trace_enabled=bool(args.get("trace_enabled")),
-                            auto_retrospective=bool(args.get("auto_retrospective", True)))
+                            kind=args.get("kind") or "normal",
+                            auto_retrospective=args.get("auto_retrospective"))
             return "工单已创建：%s（PM 会话 %s 已开工）。后续你可以用 ticket_status 查看进度。" % (t["id"], t["pm"])
+
+        def split_tool(args, tctx):
+            tid = args.get("ticket") or tctx.session.get("ticket")
+            if not tid:
+                return "缺少 ticket 上下文"
+            parent = self._get(tid)
+            items = args.get("items") or []
+            if not items:
+                return "没有子任务；请传 items=[{title, goal, roles_hint, tags}]"
+            made = []
+            for item in items[:8]:
+                goal = (item.get("goal") or "").strip()
+                if not goal:
+                    continue
+                try:
+                    child = self.create(
+                        title=item.get("title") or ("子任务：" + goal[:36]),
+                        goal=goal, project=item.get("project") or parent["project"],
+                        roles_hint=item.get("roles_hint") or parent.get("roles_hint") or [],
+                        parent=tid, when=item.get("when") or "now", force=True,
+                        tags=item.get("tags") or parent.get("tags") or [],
+                        backend=item.get("backend") or parent.get("backend") or "api",
+                        trace_enabled=bool(item.get("trace_enabled", parent.get("trace_enabled"))),
+                        kind="sub", auto_retrospective=False)
+                    made.append(child["id"])
+                except Exception as exc:
+                    made.append("FAILED:" + getattr(exc, "message", repr(exc)))
+            return "子工单已创建（父单 %s）：%s。子单结单会自动通知你，不要轮询。" % (
+                tid, ", ".join(made) if made else "无")
+
+        def read_doc_tool(args, tctx):
+            tid = args.get("ticket") or tctx.session.get("ticket")
+            if not tid:
+                return "缺少 ticket 上下文"
+            path = (args.get("path") or "").strip().lstrip("/")
+            ext = os.path.splitext(path)[1].lower()
+            if ext not in (".md", ".txt", ".json", ".csv", ".yaml", ".yml", ".log"):
+                return "PM 只读文档；源码/二进制请让角色用 read_file 并交文档摘要。"
+            res = self.file_api({"ticket_id": tid, "path": path, "max_bytes": args.get("max_bytes") or 262144})
+            if res.get("encoding") != "utf-8":
+                return "（二进制/非 UTF-8 文档，%d bytes）" % (res.get("size") or 0)
+            text = res.get("text") or ""
+            return text[:8000] + ("\n...(已截断)" if len(text) > 8000 else "")
 
         def list_tool(args, tctx):
             items = self.store.list()
@@ -1235,10 +1544,22 @@ class Tickets(Module):
             if not sid:
                 return "缺少 session"
             res = self.ctx.rule("ticket.send_instruction", session=sid, text=args.get("text") or "")
+            # 返工后允许新的结果通知；不要因为上一次已通知就不再叫 PM。
+            tid = tctx.session.get("ticket")
+            if tid:
+                t = self.store.get(tid)
+                if t:
+                    for r in t.get("roles") or []:
+                        if r.get("session") == sid:
+                            r["result_notified"] = False
+                            r["result_summary"] = ""
+                            r["status"] = "running"
+                            self._save(t)
+                            break
             if args.get("wait"):
                 w = self.ctx.rule("ticket.wait_session", session=sid, timeout=int(args.get("timeout") or 300))
                 return "角色 %s 回复：\n%s" % (sid, (w.get("reply") or w.get("status"))[:2000])
-            return "已投递（injected=%s）" % res.get("injected")
+            return "已投递（injected=%s）。返工结果会由系统短通知你，不要轮询。" % res.get("injected")
 
         def role_wait_tool(args, tctx):
             tid = args.get("ticket") or tctx.session.get("ticket")
@@ -1256,22 +1577,43 @@ class Tickets(Module):
             return "\n".join(out)
 
         tools.register(Tool(
-            "ticket_create", "把一件事开成工单：自动拉起临时 PM 去编排。"
-            "任何需要动手/查证/出结论的需求都直接调用它，不要先问用户“要不要开工单”。"
-            "改老工单的结果时，用 parent 传老工单号，把前因后果沉淀下来。",
+            "ticket_create", "开一张工单：自动拉起临时 PM 去编排。秘书把原始需求原样转进来；"
+            "PM 也可以用它建子工单（parent 指向本单）。",
             {"type": "object", "properties": {
                 "title": {"type": "string"},
                 "goal": {"type": "string", "description": "目标、验收标准、边界"},
                 "project": {"type": "string"},
-                "parent": {"type": "string", "description": "可选：前序工单号，如 T-20261113-57fd20"},
+                "parent": {"type": "string", "description": "可选：前序/父工单号"},
+                "kind": {"type": "string", "enum": ["normal", "sub", "stall-audit", "retrospective"],
+                         "description": "默认 normal；子单用 sub；健康审计用 stall-audit"},
                 "tags": {"type": "array", "items": {"type": "string"}, "description": "模块标签，如 frontend/backend/docs"},
                 "when": {"type": "string", "description": "auto=按空闲时段排队；now=立即执行"},
                 "backend": {"type": "string", "enum": ["", "api", "claude-code"],
                             "description": "空=项目默认；claude-code=交给已有 Agent CLI"},
                 "trace_enabled": {"type": "boolean", "description": "是否把模块报文并入群聊；默认关闭"},
-                "auto_retrospective": {"type": "boolean", "description": "结单后是否自动起回顾工单；默认是"},
+                "auto_retrospective": {"type": "boolean", "description": "结单后是否自动起回顾工单；默认 false（迭代流程已拔掉）"},
             }, "required": ["goal"]},
             create_tool, origin=self.name))
+
+        tools.register(Tool(
+            "ticket_split", "PM 分单：把一个父需求拆成若干子工单（parent 自动指向当前工单）。"
+            "子单独立跑、结单后自动短通知父 PM；不要用 role_wait 监工。",
+            {"type": "object", "properties": {
+                "ticket": {"type": "string", "description": "父工单号；默认当前工单"},
+                "items": {"type": "array", "items": {"type": "object"}, "description":
+                          "[{title, goal, roles_hint?, tags?, backend?}]，最多 8 个"},
+            }, "required": ["items"]},
+            split_tool, origin=self.name))
+
+        tools.register(Tool(
+            "ticket_read_doc", "PM 读工单工作树里的文档（只允许 .md/.txt/.json/.csv/.yaml/.log），"
+            "用于看角色交接文档、计划、健康报告；不能读源码。",
+            {"type": "object", "properties": {
+                "ticket": {"type": "string"},
+                "path": {"type": "string"},
+                "max_bytes": {"type": "integer"},
+            }, "required": ["path"]},
+            read_doc_tool, origin=self.name))
 
         tools.register(Tool(
             "ticket_list", "列出所有工单及状态。",

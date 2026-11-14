@@ -14,9 +14,10 @@ function openHealth(opts) {
   if (!opts.fromRoute) overlayRoute('#/health', 'health');
   Promise.all([api('/api/health/self'), api('/api/artifacts/stats'), api('/api/ops/status').catch(function () { return {}; }),
     api('/api/health/logs?limit=80').catch(function () { return {}; }),
+    api('/api/tickets/stalled').catch(function () { return {}; }),
     api('/api/health/traffic').catch(function () { return {}; })])
     .then(function (rs) {
-      var h = rs[0] || {}, a = rs[1] || {}, s = rs[2] || {}, lg = rs[3] || {}, tr = rs[4] || {};
+      var h = rs[0] || {}, a = rs[1] || {}, s = rs[2] || {}, lg = rs[3] || {}, stall = rs[4] || {}, tr = rs[5] || {};
       var traffic = tr.traffic || h.traffic || {};
       var allLogs = (lg.items || []).concat(lg.bus_items || []).sort(function (a, b) {
         return (a.t || 0) - (b.t || 0);
@@ -34,10 +35,17 @@ function openHealth(opts) {
         return '<div class="file-row"><span>' + esc(b.project + '/' + b.ticket) + (b.compressed ? ' (已压缩)' : '') +
           '</span><span class="muted small">' + fmtBytes(b.bytes) + '</span></div>';
       }).join('');
+      var stalled = (stall.items || []).map(function (x) {
+        return '<div class="file-row"><span>' + esc(x.ticket) + ' · ' + esc(x.title || '') +
+          '</span><span class="muted small">' + esc(x.reason || '') + (x.audit ? ' · 审计单 ' + esc(x.audit) : '') + '</span></div>';
+      }).join('');
       $('hbody').innerHTML =
         '<div class="health-top"><span class="pill ' + (h.healthy ? 'good' : 'bad') + '">' + (h.healthy ? '健康' : '有异常') + '</span>' +
         '<span class="muted small">v' + esc(h.version || '') + ' · TLS ' + (h.tls ? 'on' : 'off') + ' · uptime ' + (h.uptime_sec || 0) + 's</span></div>' +
         '<div class="checks">' + checks + '</div>' +
+        '<h4>停滞工单（定期健康检查）</h4><div class="muted small">检查阈值 ' + (stall.idle_minutes || '-') +
+        ' 分钟；无动静会自动拉只读运维审计单</div><div class="filelist">' +
+        (stalled || '<div class="empty">当前没有停滞工单</div>') + '</div>' +
         '<h4>网页流量</h4><div class="traffic">' +
         '<span>请求 <b>' + (traffic.requests || 0) + '</b></span><span>API <b>' + (traffic.api_requests || 0) + '</b></span>' +
         '<span>静态 <b>' + (traffic.static_requests || 0) + '</b></span><span>收 <b>' + fmtBytes(traffic.bytes_in || 0) + '</b></span>' +

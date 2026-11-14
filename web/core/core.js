@@ -58,6 +58,7 @@ function routeOfHash() {
     return { type: 'chat', id: dec(parts[1] || '') };
   }
   if (type === 'library') return { type: 'overlay', tab: 'library', kind: parts[1] || 'roles' };
+  if (type === 'knowledge') return { type: 'overlay', tab: 'knowledge' };
   if (type === 'health' || type === 'versions') return { type: 'overlay', tab: type };
   if (type === 'rules') return { type: 'overlay', tab: 'rules' };
   return { type: 'project', id: dec(parts[1] || '') };

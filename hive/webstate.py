@@ -47,7 +47,8 @@ def validate(web_dir=None):
             if ('id="%s"' % v) not in rendered:
                 errors.append("状态 %s 需要 DOM #%s，但页面与模块模板都没有" % (s["id"], v))
     # 路由契约：hash 解析必须认识 project/chat/library/health/versions，且不再有 source 顶层
-    for token in ('type === \'project\'', 'type === \'chat\'', 'type === \'library\'', 'type === \'health\''):
+    for token in ('type === \'project\'', 'type === \'chat\'', 'type === \'library\'',
+                  'type === \'knowledge\'', 'type === \'health\''):
         if token not in app:
             errors.append("routeOfHash 缺少路由分支 %s" % token)
     if "type === 'source'" in app:

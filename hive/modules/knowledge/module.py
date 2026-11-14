@@ -78,23 +78,42 @@ class Knowledge(Module):
 
     # ---------------- 默认知识 ----------------
     def _seed_defaults(self):
-        """首次启动把仓库内 prompts/ 里的公共知识灌进 public 层（只灌一次）。"""
+        """把仓库内 prompts/ 里的公共知识同步进 public 层。
+
+        这些文件名是系统基线（00-conventions、20-pm、30-roles...），随代码版本更新；
+        其它用户自己写的 public 文档不覆盖。旧环境没有 marker 也能补齐新增文件。
+        """
         target = os.path.join(self.root, "public")
-        marker = os.path.join(target, ".seeded")
-        if os.path.exists(marker):
-            return
         src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "prompts")
-        copied = []
+        copied, updated, failed = [], [], []
         if os.path.isdir(src):
             for name in sorted(os.listdir(src)):
                 if not name.endswith(".md"):
                     continue
-                shutil.copyfile(os.path.join(src, name), os.path.join(target, name))
-                copied.append(name)
-        with open(marker, "w", encoding="utf-8") as f:
-            f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
-        if copied:
-            self.log.info("knowledge.seeded", files=copied)
+                s = os.path.join(src, name)
+                d = os.path.join(target, name)
+                try:
+                    with open(s, "r", encoding="utf-8") as f:
+                        new = f.read()
+                    old = ""
+                    if os.path.exists(d):
+                        with open(d, "r", encoding="utf-8") as f:
+                            old = f.read()
+                    if old == new:
+                        continue
+                    with open(d, "w", encoding="utf-8") as f:
+                        f.write(new)
+                    (updated if old else copied).append(name)
+                except OSError as exc:
+                    failed.append("%s:%s" % (name, exc))
+        marker = os.path.join(target, ".seeded")
+        try:
+            with open(marker, "w", encoding="utf-8") as f:
+                f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+        except OSError:
+            pass
+        if copied or updated:
+            self.log.info("knowledge.seeded", copied=copied, updated=updated, failed=failed)
 
     # ---------------- API ----------------
     def overview(self, payload):
