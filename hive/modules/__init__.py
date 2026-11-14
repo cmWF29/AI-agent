@@ -12,6 +12,7 @@ from .idle import Idle
 from .gitflow import GitFlow
 from .knowledge import Knowledge
 from .library import Library
+from .lifecycle import Lifecycle
 from .memory import Memory
 from .observability import Observability
 from .ops import Ops
@@ -34,7 +35,8 @@ ORDER = [
     Agents,          # 已有 agent 后端（Claude Code 等），注册到 kernel BackendRegistry
     Sessions,        # 会话/agent 管理（按记录选择后端）
     GitFlow,         # 工单级 git（依赖 projects/tickets 的目录约定）
-    Tickets,         # 工单（依赖 sessions / projects / library / artifacts / gitflow 的 API）
+    Tickets,          # 工单（依赖 sessions / projects / library / artifacts / gitflow 的 API）
+    Lifecycle,        # 项目生命周期编排：唯一把 projects 与 tickets 拼起来的层
     WebChat,         # 网页对话桥（群聊时间线 + 流式 + 透明化）
     Ops,             # 固定命令 / 版本管理
     Idle,            # 空闲/高峰判断 + 需求排队（工单/消息都往这里问）

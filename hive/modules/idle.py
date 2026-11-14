@@ -40,6 +40,12 @@ class Idle(Module):
         # 项目级忙闲配置：项目页“本项目空闲队列”保存到这里，不覆盖全局默认
         self.project_store = JsonDoc(os.path.join(self.root, "projects.json"), {"projects": {}})
         self.q_lock = threading.RLock()
+        # 工单派发改成事件 + ack：idle 不再同步调 tickets.dispatch，
+        # 但只有收到 ack 才把队列项出队，避免派发失败被静默丢掉。
+        self._acks = {}
+        self._acks_lock = threading.Lock()
+        self.bus.subscribe("idle.dispatch.ack", self._on_dispatch_ack,
+                           name="idle.dispatch_ack")
         if self.store.get("queue") is None:
             self.store.put("queue", {"items": []})
         self.log.info("idle.ready", windows=self.windows, discounts=self.offpeak_discount)
@@ -161,10 +167,40 @@ class Idle(Module):
                     it["last_try"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             self._save_q(q)
 
+    def _on_dispatch_ack(self, ev):
+        p = ev.get("payload") or {}
+        qid = p.get("queue_id")
+        with self._acks_lock:
+            slot = self._acks.get(qid)
+        if not slot:
+            return
+        slot["ok"] = bool(p.get("ok"))
+        slot["error"] = p.get("error") or ""
+        slot["done"].set()
+
+    def _dispatch_ticket(self, item):
+        """发事件给 tickets，并等它回 ack；超时/失败都保留队列项。"""
+        qid = item["id"]
+        slot = {"done": threading.Event(), "ok": False, "error": ""}
+        with self._acks_lock:
+            self._acks[qid] = slot
+        try:
+            self.bus.publish("idle.ticket.dispatch",
+                             {"queue_id": qid,
+                              "ticket_id": (item.get("payload") or {}).get("ticket_id")},
+                             source=self.name)
+            if not slot["done"].wait(30):
+                raise ApiError("工单派发等待 ack 超时", code="dispatch_timeout")
+            if not slot["ok"]:
+                raise ApiError(slot.get("error") or "工单派发失败", code="dispatch_failed")
+        finally:
+            with self._acks_lock:
+                self._acks.pop(qid, None)
+
     def _dispatch(self, item):
         p = item.get("payload") or {}
         if item["kind"] == "ticket":
-            return self.ctx.api("tickets.dispatch", ticket_id=p["ticket_id"], force=True)
+            return self._dispatch_ticket(item)
         if item["kind"] == "message":
             return self.ctx.api("sessions.send", session=p["session"], text=p["text"], force=True)
         raise ApiError("未知队列类型: %s" % item["kind"], code="bad_queue_kind")

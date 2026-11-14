@@ -100,6 +100,10 @@ class Tickets(Module):
         self.api.route("POST", "/api/tickets/{ticket_id}/delete", name="delete")(self.delete_api)
         self.api.route("POST", "/api/tickets/dispatch", name="dispatch")(self.dispatch_api)
 
+        # 队列派发由 idle 发事件、tickets 执行并回 ack；tickets 不再被 idle 同步调用。
+        self.bus.subscribe("idle.ticket.dispatch", self._on_idle_ticket_dispatch,
+                           name="tickets.idle_dispatch")
+
         self._register_tools()
         self.bus.subscribe("session.result", self._on_session_result, name="tickets.result")
         self.bus.subscribe("gitflow.conflict", self._on_git_conflict, name="tickets.git-conflict")
@@ -869,6 +873,20 @@ class Tickets(Module):
                         trace_enabled=bool(payload.get("trace") or payload.get("trace_enabled")),
                         auto_retrospective=bool(payload.get("auto_retrospective", True)))
         return {"ticket": self._public(t)}
+
+    def _on_idle_ticket_dispatch(self, ev):
+        p = ev.get("payload") or {}
+        qid, tid = p.get("queue_id"), p.get("ticket_id")
+        ok, error = False, ""
+        try:
+            ticket = self._get(tid)
+            if ticket.get("status") == "queued":
+                self._dispatch(ticket)
+            ok = True
+        except Exception as exc:
+            error = getattr(exc, "message", None) or repr(exc)
+            self.log.warn("ticket.idle_dispatch.failed", ticket=tid, error=error)
+        self.emit("idle.dispatch.ack", {"queue_id": qid, "ticket": tid, "ok": ok, "error": error})
 
     def dispatch_api(self, payload):
         t = self._get(payload["ticket_id"])

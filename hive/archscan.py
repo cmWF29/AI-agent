@@ -95,7 +95,7 @@ def scan_modules():
         imports = sorted(set(re.findall(r'from\s+\.([a-zA-Z_][a-zA-Z0-9_]*)\s+import', text)))
         calls = sorted(set(re.findall(r'(?:self\.ctx|ctx)\.api\("([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)"', text)))
         mods.append({
-            "name": name, "entry": "hive/modules/%s.py" % fn,
+            "name": name, "entry": "hive/modules/%s.py" % name,
             "routes": routes, "tools": tools,
             "public_api": ["route:%s %s" % (r["path"], r["name"]) for r in routes] +
                           ["tool:%s" % t for t in tools],

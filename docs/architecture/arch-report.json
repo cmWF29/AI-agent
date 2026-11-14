@@ -3,7 +3,7 @@
   "modules": [
     {
       "name": "agents",
-      "entry": "hive/modules/agents.py.py",
+      "entry": "hive/modules/agents.py",
       "routes": [
         {
           "path": "/api/agents/backends",
@@ -25,7 +25,7 @@
     },
     {
       "name": "artifacts",
-      "entry": "hive/modules/artifacts.py.py",
+      "entry": "hive/modules/artifacts.py",
       "routes": [
         {
           "path": "/api/artifacts/list",
@@ -72,7 +72,7 @@
     },
     {
       "name": "gitflow",
-      "entry": "hive/modules/gitflow.py.py",
+      "entry": "hive/modules/gitflow.py",
       "routes": [
         {
           "path": "/api/gitflow/project/init",
@@ -131,7 +131,7 @@
     },
     {
       "name": "health",
-      "entry": "hive/modules/health.py.py",
+      "entry": "hive/modules/health.py",
       "routes": [
         {
           "path": "/api/health",
@@ -165,7 +165,7 @@
     },
     {
       "name": "idle",
-      "entry": "hive/modules/idle.py.py",
+      "entry": "hive/modules/idle.py",
       "routes": [
         {
           "path": "/api/idle/status",
@@ -208,14 +208,13 @@
       ],
       "cross_imports": [],
       "api_calls": [
-        "sessions.send",
-        "tickets.dispatch"
+        "sessions.send"
       ],
       "private_tests": false
     },
     {
       "name": "knowledge",
-      "entry": "hive/modules/knowledge.py.py",
+      "entry": "hive/modules/knowledge.py",
       "routes": [
         {
           "path": "/api/knowledge/overview",
@@ -266,7 +265,7 @@
     },
     {
       "name": "library",
-      "entry": "hive/modules/library.py.py",
+      "entry": "hive/modules/library.py",
       "routes": [
         {
           "path": "/api/library/list",
@@ -334,8 +333,45 @@
       "private_tests": false
     },
     {
+      "name": "lifecycle",
+      "entry": "hive/modules/lifecycle.py",
+      "routes": [
+        {
+          "path": "/api/projects/{project_id}",
+          "name": "get_project"
+        },
+        {
+          "path": "/api/projects/{project_id}/delete-preview",
+          "name": "delete_preview"
+        },
+        {
+          "path": "/api/projects/{project_id}/delete",
+          "name": "delete_project"
+        }
+      ],
+      "tools": [
+        "project_status"
+      ],
+      "public_api": [
+        "route:/api/projects/{project_id} get_project",
+        "route:/api/projects/{project_id}/delete-preview delete_preview",
+        "route:/api/projects/{project_id}/delete delete_project",
+        "tool:project_status"
+      ],
+      "cross_imports": [],
+      "api_calls": [
+        "projects.delete",
+        "projects.delete_preview",
+        "projects.get",
+        "projects.list",
+        "tickets.delete",
+        "tickets.list"
+      ],
+      "private_tests": false
+    },
+    {
       "name": "memory",
-      "entry": "hive/modules/memory.py.py",
+      "entry": "hive/modules/memory.py",
       "routes": [
         {
           "path": "/api/memory/add",
@@ -370,7 +406,7 @@
     },
     {
       "name": "observability",
-      "entry": "hive/modules/observability.py.py",
+      "entry": "hive/modules/observability.py",
       "routes": [
         {
           "path": "/api/obs/logs",
@@ -407,7 +443,7 @@
     },
     {
       "name": "ops",
-      "entry": "hive/modules/ops.py.py",
+      "entry": "hive/modules/ops.py",
       "routes": [
         {
           "path": "/api/ops/status",
@@ -478,7 +514,7 @@
     },
     {
       "name": "projects",
-      "entry": "hive/modules/projects.py.py",
+      "entry": "hive/modules/projects.py",
       "routes": [
         {
           "path": "/api/projects/list",
@@ -489,7 +525,7 @@
           "name": "create"
         },
         {
-          "path": "/api/projects/{project_id}",
+          "path": "/api/projects/{project_id}/core",
           "name": "get"
         },
         {
@@ -497,11 +533,11 @@
           "name": "archive"
         },
         {
-          "path": "/api/projects/{project_id}/delete",
+          "path": "/api/projects/{project_id}/core/delete",
           "name": "delete"
         },
         {
-          "path": "/api/projects/{project_id}/delete-preview",
+          "path": "/api/projects/{project_id}/core/delete-preview",
           "name": "delete_preview"
         },
         {
@@ -539,16 +575,15 @@
       ],
       "tools": [
         "project_list",
-        "project_create",
-        "project_status"
+        "project_create"
       ],
       "public_api": [
         "route:/api/projects/list list",
         "route:/api/projects/create create",
-        "route:/api/projects/{project_id} get",
+        "route:/api/projects/{project_id}/core get",
         "route:/api/projects/{project_id}/archive archive",
-        "route:/api/projects/{project_id}/delete delete",
-        "route:/api/projects/{project_id}/delete-preview delete_preview",
+        "route:/api/projects/{project_id}/core/delete delete",
+        "route:/api/projects/{project_id}/core/delete-preview delete_preview",
         "route:/api/projects/ensure ensure",
         "route:/api/projects/{project_id}/rename rename",
         "route:/api/projects/{project_id}/files files",
@@ -558,22 +593,19 @@
         "route:/api/projects/{project_id}/source/files source_files",
         "route:/api/projects/{project_id}/source/file source_file",
         "tool:project_list",
-        "tool:project_create",
-        "tool:project_status"
+        "tool:project_create"
       ],
       "cross_imports": [],
       "api_calls": [
         "artifacts.remove_project",
         "gitflow.project_init",
-        "knowledge.remove_project",
-        "tickets.delete",
-        "tickets.list"
+        "knowledge.remove_project"
       ],
       "private_tests": false
     },
     {
       "name": "sessions",
-      "entry": "hive/modules/sessions.py.py",
+      "entry": "hive/modules/sessions.py",
       "routes": [
         {
           "path": "/api/sessions/spawn",
@@ -648,7 +680,7 @@
     },
     {
       "name": "skills",
-      "entry": "hive/modules/skills.py.py",
+      "entry": "hive/modules/skills.py",
       "routes": [
         {
           "path": "/api/skills/installed",
@@ -693,7 +725,7 @@
     },
     {
       "name": "tickets",
-      "entry": "hive/modules/tickets.py.py",
+      "entry": "hive/modules/tickets.py",
       "routes": [
         {
           "path": "/api/tickets/create",
@@ -802,7 +834,7 @@
     },
     {
       "name": "toolpack",
-      "entry": "hive/modules/toolpack.py.py",
+      "entry": "hive/modules/toolpack.py",
       "routes": [],
       "tools": [
         "shell",
@@ -824,7 +856,7 @@
     },
     {
       "name": "webchat",
-      "entry": "hive/modules/webchat.py.py",
+      "entry": "hive/modules/webchat.py",
       "routes": [
         {
           "path": "/api/chat/send",
@@ -898,7 +930,10 @@
       "artifacts"
     ],
     "idle": [
-      "sessions",
+      "sessions"
+    ],
+    "lifecycle": [
+      "projects",
       "tickets"
     ],
     "ops": [
@@ -909,8 +944,7 @@
     "projects": [
       "artifacts",
       "gitflow",
-      "knowledge",
-      "tickets"
+      "knowledge"
     ],
     "sessions": [
       "knowledge",
@@ -935,26 +969,7 @@
       "tickets"
     ]
   },
-  "api_cycles": [
-    [
-      "idle",
-      "sessions",
-      "projects",
-      "tickets",
-      "idle"
-    ],
-    [
-      "projects",
-      "tickets",
-      "projects"
-    ],
-    [
-      "sessions",
-      "projects",
-      "tickets",
-      "sessions"
-    ]
-  ],
+  "api_cycles": [],
   "import_cycles": [],
   "flows": [
     {
@@ -1324,11 +1339,7 @@
     "component_missing": []
   },
   "errors": [],
-  "warnings": [
-    "模块 API 调用环: idle -> sessions -> projects -> tickets -> idle（已登记债务）",
-    "模块 API 调用环: projects -> tickets -> projects（已登记债务）",
-    "模块 API 调用环: sessions -> projects -> tickets -> sessions（已登记债务）"
-  ],
+  "warnings": [],
   "ok": true,
   "strict_api": false
 }

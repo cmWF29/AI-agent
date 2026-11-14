@@ -383,11 +383,11 @@ def test_projects_and_concurrency(mock):
         check("两个工单同时存在", t1["id"] != t2["id"] and t1["status"] == "running" and t2["status"] == "running")
         check("工单挂在项目上", t1["project"] == "alpha" and t2["project"] == "beta", (t1["project"], t2["project"]))
         check("未登记的项目被自动创建",
-              env.api("projects.get", project_id="beta")["project"]["id"] == "beta")
+              env.api("lifecycle.get_project", project_id="beta")["project"]["id"] == "beta")
 
         env.api("sessions.wait", session=t1["pm"], timeout=30)
         env.api("sessions.wait", session=t2["pm"], timeout=30)
-        a = env.api("projects.get", project_id="alpha")["project"]
+        a = env.api("lifecycle.get_project", project_id="alpha")["project"]
         check("项目统计工单数", a["ticket_count"] == 1 and a["open_tickets"] == 1, a.get("ticket_count"))
         listing = env.api("tickets.list", project="alpha")["items"]
         check("工单按项目过滤", len(listing) == 1 and listing[0]["id"] == t1["id"], listing)
@@ -562,7 +562,7 @@ def test_project_secretary_delete(mock):
               [g["id"] for g in groups["items"]])
         check("不再暴露本地层", "instance" not in groups, groups.get("instance"))
 
-        d = env.api("projects.delete", project_id="gamma")
+        d = env.api("lifecycle.delete_project", project_id="gamma")
         check("项目删除成功", d.get("deleted") == "gamma", d)
         gone = None
         try:
@@ -1077,9 +1077,9 @@ def test_v45_lifecycle_idle_system(mock):
         apath = os.path.join(env.tmp, "data", "artifacts", "projects", "life", "tickets", t["id"])
         check("删除前交付件已归档", os.path.isdir(apath), apath)
         kpath = os.path.join(env.tmp, "data", "knowledge", "projects", "life")
-        prev = env.api("projects.delete_preview", project_id="life")
+        prev = env.api("lifecycle.delete_preview", project_id="life")
         check("删除预览统计完整", prev["tickets"] == 1 and prev["closed_tickets"] == 1, prev)
-        d = env.api("projects.delete", project_id="life", cascade={
+        d = env.api("lifecycle.delete_project", project_id="life", cascade={
             "tickets": True, "artifacts": True, "knowledge": True, "main_tree": True})
         check("项目级联删除执行", d.get("deleted") == "life" and t["id"] in d["deleted_tickets"], d)
         check("交付件已级联清理", not os.path.exists(apath), apath)

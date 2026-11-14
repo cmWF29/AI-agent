@@ -12,7 +12,7 @@ while read old new ref; do
   trap 'rm -rf "$tmp"' EXIT
   git archive "$new" | tar -x -C "$tmp"
   if [ -f "$tmp/hive/archscan.py" ]; then
-    if ! (cd "$tmp" && PYTHONPATH="$tmp" python3 -m hive.archscan); then
+    if ! (cd "$tmp" && PYTHONPATH="$tmp" python3 -m hive.archscan --strict-api); then
       echo "[arch-gate] rejected $ref ($new): architecture scan failed" >&2
       fail=1
     fi

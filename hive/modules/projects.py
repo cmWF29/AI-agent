@@ -1,11 +1,10 @@
-"""项目模块 —— 多项目并行。
+"""项目模块 —— 项目记录与项目自有数据。
 
 层级：项目(project) 内包含若干工单(ticket)，工单内包含若干角色(role)。
-知识三层的 project 层就是以项目名为键，所以项目在这里是**一等公民**：
-  * 建项目、列项目、看项目（含工单统计）；
-  * 工单创建前会 ensure 项目存在，避免出现“孤儿工单”。
+本模块只负责项目记录、项目 main 树、源码绑定、项目自有数据清理；
+工单统计、未结单拦截、级联删工单由 lifecycle 编排层负责。
 
-对外只暴露 API：projects.list / create / get / ensure / archive。
+对外只暴露 API：projects.list / create / get / ensure / delete / delete_preview / archive。
 别的模块（tickets / knowledge）一律通过 ctx.api 调它，不 import 本文件。
 """
 from __future__ import annotations
@@ -92,10 +91,11 @@ class Projects(Module):
 
         self.api.route("GET", "/api/projects/list", name="list")(self.list_api)
         self.api.route("POST", "/api/projects/create", name="create")(self.create_api)
-        self.api.route("GET", "/api/projects/{project_id}", name="get")(self.get_api)
+        # 公开的项目详情/删除路由由 lifecycle 编排层注册；这里保留内部核心路由。
+        self.api.route("GET", "/api/projects/{project_id}/core", name="get")(self.get_api)
         self.api.route("POST", "/api/projects/{project_id}/archive", name="archive")(self.archive_api)
-        self.api.route("POST", "/api/projects/{project_id}/delete", name="delete")(self.delete_api)
-        self.api.route("GET", "/api/projects/{project_id}/delete-preview", name="delete_preview")(self.delete_preview_api)
+        self.api.route("POST", "/api/projects/{project_id}/core/delete", name="delete")(self.delete_api)
+        self.api.route("GET", "/api/projects/{project_id}/core/delete-preview", name="delete_preview")(self.delete_preview_api)
         self.api.route("POST", "/api/projects/ensure", name="ensure")(self.ensure_api)
         self.api.route("POST", "/api/projects/{project_id}/rename", name="rename")(self.rename_api)
         self.api.route("GET", "/api/projects/{project_id}/files", name="files")(self.files_api)
@@ -169,16 +169,9 @@ class Projects(Module):
         return {"project": self._public(rec)}
 
     def get_api(self, payload):
+        """项目核心记录：不在这里查工单，工单统计由 lifecycle 编排层合并。"""
         rec = self._get(payload["project_id"])
         out = self._public(rec)
-        try:
-            tickets = self.ctx.api("tickets.list", project=rec["id"]).get("items", [])
-        except ApiError:
-            tickets = []
-        out["tickets"] = [{"id": t["id"], "title": t["title"], "status": t["status"],
-                           "tags": t.get("tags") or []} for t in tickets]
-        out["ticket_count"] = len(tickets)
-        out["open_tickets"] = len([t for t in tickets if t["status"] not in ("closed",)])
         out["secretary"] = "sec-" + rec["id"]
         out["artifacts_root"] = "artifacts/projects/" + rec["id"]
         return {"project": out}
@@ -306,25 +299,15 @@ class Projects(Module):
             text, enc = "", "binary"
         return {"path": rel, "text": text, "encoding": enc, "bytes": os.path.getsize(target)}
 
-    def _tickets_of(self, pid):
-        try:
-            return self.ctx.api("tickets.list", project=pid).get("items", [])
-        except ApiError:
-            return []
-
     def delete_preview_api(self, payload):
-        """删除前预览：有多少工单/未结单、哪些数据会被清掉。"""
+        """删除前存储预览：只统计项目自有数据，工单统计由 lifecycle 合并。"""
         rec = self._get(payload["project_id"])
         pid = rec["id"]
-        tickets = self._tickets_of(pid)
-        open_tickets = [t["id"] for t in tickets if t.get("status") != "closed"]
         art = os.path.join(path_of(self.cfg, "artifacts.root", "data/artifacts"), "projects", pid)
         know = os.path.join(path_of(self.cfg, "knowledge.root", "data/knowledge"), "projects", pid)
         main = os.path.join(self.root, pid)
         return {
             "project": self._public(rec),
-            "tickets": len(tickets), "closed_tickets": len(tickets) - len(open_tickets),
-            "open_tickets": open_tickets,
             "artifacts": {"path": art, "exists": os.path.isdir(art),
                           "bytes": _dir_size(art)},
             "knowledge": {"path": know, "exists": os.path.isdir(know),
@@ -334,13 +317,15 @@ class Projects(Module):
         }
 
     def delete_api(self, payload):
-        """项目生命周期：归档，或删除（删除可选级联清理）。
+        """项目核心删除：只处理项目记录与自有数据，不查/不删工单。
+
+        真正的生命周期编排（未结单拦截、级联删已结单工单）在 lifecycle 模块；
+        它先做校验和 tickets.delete，再调用这里完成项目自有数据的清理。
 
         * mode=archive：只打 archived 标记，不删除任何数据。
-        * mode=delete：默认保持旧行为（只删项目记录 + 秘书会话，工单/交付件/知识/工作树保留）。
-        * cascade 为对象：tickets / artifacts / knowledge / main_tree / source。
-          - tickets=true 只删除已结单工单（调用 tickets.delete，按约定保留其交付件/知识）；
-          - 未结单工单存在且 force!=true 时拒绝，避免删掉正在跑的工作。
+        * mode=delete：默认只删项目记录 + 秘书会话，工单/交付件/知识/工作树保留。
+        * cascade 为对象：artifacts / knowledge / main_tree / source。
+          - 未结单工单的拦截由 lifecycle 负责，这里不碰 tickets。
           - source=true 只解绑源码路径，绝不删除外部源码目录。
         """
         if (payload.get("mode") or "delete") == "archive":
@@ -350,26 +335,11 @@ class Projects(Module):
         if rec is None:
             raise ApiError("项目不存在: %s" % pid, status=404, code="no_project")
         cascade = payload.get("cascade") if isinstance(payload.get("cascade"), dict) else {}
-        tickets = self._tickets_of(pid)
-        open_tickets = [t["id"] for t in tickets if t.get("status") != "closed"]
-        if open_tickets and not bool(payload.get("force")):
-            raise ApiError("还有未结单工单，不能删除项目；先结单或显式 force",
-                           status=409, code="open_tickets",
-                           extra={"open_tickets": open_tickets})
         destroyed, deleted_tickets = [], []
         # 项目秘书由 sessions 订阅 project.delete.before 自行清理；
         # 这里只发同步事件，不同步调用 sessions.destroy，保持模块 API 单向依赖。
         self.bus.publish("project.delete.before", {"project": pid}, source=self.name, sync=True)
         destroyed.append("sec-" + pid)
-        if cascade.get("tickets"):
-            for t in tickets:
-                if t.get("status") != "closed":
-                    continue
-                try:
-                    self.ctx.api("tickets.delete", ticket_id=t["id"])
-                    deleted_tickets.append(t["id"])
-                except ApiError as exc:
-                    self.log.warn("project.delete.ticket_failed", project=pid, ticket=t["id"], error=exc.message)
         if cascade.get("artifacts"):
             try:
                 self.ctx.api("artifacts.remove_project", project=pid)
@@ -430,24 +400,9 @@ class Projects(Module):
             rec = self.ensure(name, title=args.get("title") or "")
             return "项目 %s 已就绪（%s）" % (rec["id"], rec.get("title") or "-")
 
-        def status_tool(args, tctx):
-            pid = args.get("project") or tctx.session.get("project") or self.default
-            rec = self._get(pid)
-            try:
-                tickets = self.ctx.api("tickets.list", project=rec["id"]).get("items", [])
-            except ApiError:
-                tickets = []
-            lines = ["%s (%s) 工单 %d 个" % (rec["id"], rec.get("title"), len(tickets))]
-            for t in tickets:
-                lines.append("- %s [%s] %s" % (t["id"], t["status"], t["title"]))
-            return "\n".join(lines)
-
         tools.register(Tool("project_list", "列出所有项目。",
                             {"type": "object", "properties": {}}, list_tool, origin=self.name))
         tools.register(Tool("project_create", "新建项目（项目内可以开多个工单）。",
                             {"type": "object", "properties": {
                                 "name": {"type": "string"}, "title": {"type": "string"}},
                              "required": ["name"]}, create_tool, origin=self.name))
-        tools.register(Tool("project_status", "查看某项目下的工单。",
-                            {"type": "object", "properties": {"project": {"type": "string"}}},
-                            status_tool, origin=self.name))

@@ -35,10 +35,9 @@
 
 ## 尚未完成
 
-- API 调用环从 5 条降到 3 条：已拆 `sessions<->projects`、`artifacts<->tickets`；剩余
-  `projects<->tickets`、`sessions->projects->tickets->sessions`、
-  `idle->sessions->projects->tickets->idle`，已登记在 `api-cycles-baseline.json`。
-  新环默认阻塞，`--strict-api` 仍未开启。
+- API 调用环已降到 0：项目详情/删除编排拆到 `lifecycle`，`projects` 不再查工单；
+  `idle -> tickets` 改为事件 + ack；`artifacts -> tickets` 改读归档 index。
+  基线文件 `api-cycles-baseline.json` 为空，新环默认阻塞；`--strict-api` 可在需要时全量开启。
 - 网页 JS 组件扫描仍只覆盖关键 id / 路由 / 事件，不覆盖全部按钮和文本。
 - 原始 `role=system` 会话消息仍未进群聊；群聊里进的是生命周期系统事件。
 - 流程库只补了 6 条需求级流程，其余历史需求待逐条入库。

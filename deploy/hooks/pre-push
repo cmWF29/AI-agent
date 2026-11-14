@@ -9,8 +9,9 @@ if ! command -v "$PY" >/dev/null 2>&1; then
   PY=python3
 fi
 echo "[arch-gate] scanning modules / flows / web state machine ..."
-"$PY" -m hive.archscan || {
+"$PY" -m hive.archscan --strict-api || {
   echo "[arch-gate] FAILED: push blocked. Run 'python -m hive.archscan --report' for details." >&2
   exit 1
 }
 echo "[arch-gate] PASS"
+
