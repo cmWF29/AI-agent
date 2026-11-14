@@ -11,6 +11,8 @@
 > v4.4（0.4.4）新增：外部 Claude Code 逐 token 流式角色、PM 强制 api + 角色可 claude-code、回顾工单与提示词自迭代、项目级秘书/源码/后端、trace 创建后不可改、健康日志与网页流量、消息级交付件、Skill API/Agent 双模式、网页状态机一致性测试。
 > 验收证据见 [docs/v4.4-verification/README.md](docs/v4.4-verification/README.md)。
 
+> v4.5（0.4.5）重构第一刀：群聊系统生命周期事件、项目级空闲队列与独立卡片、项目归档/删除二级与级联、静态架构扫描与 push/结单门禁、6 条需求级流程入库；claude-code 不可用时后端选项置灰。架构说明见 [docs/architecture/README.md](docs/architecture/README.md)。
+
 ## 一、这套东西解决什么
 
 | # | 需求 | 在代码里的落点 |
