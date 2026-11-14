@@ -126,9 +126,20 @@ Skill 来源：`skills.DEFAULT_SOURCES` 含 Anthropic、MiniMax、社区 `obra/s
 - GitHub 安装 `https://github.com/anthropics/skills/tree/main/skills/canvas-design` → `source_type=github`，已出现在 `/api/skills/installed`；
 - `/api/skills/sources` 返回 4 个来源与 pptx/canvas-design/pptx-generator 示例。
 
-## 11. 生产部署（待完成）
+## 11. 生产部署与真实验收（已完成）
 
-生产仍为 `0737b06` / `0.4.3`。v4.4 尚未部署；VPS 无 Node/Claude，`claude-code` 不可用，因此生产只能验证 `api` 模式、Skill API 模式、HTTPS、页面、破坏性删除/停止/回退。外部 Agent 逐 token 与 Agent 角色工作流只能在具备 Claude Code 的本机验证。
+生产已从 `0737b06 / 0.4.3` 部署到 `a7a13ac / 0.4.4`：
+
+- `systemctl is-active hive-watchdog` → `active`；`https://127.0.0.1:8787/api/health` → `{"ok":true,"version":"0.4.4"}`。
+- 网页已登录验收：顶部只剩“库 / 健康 / 版本”；项目页显示“P3A · 源码 /opt/hive/current · claude-code 不可用（本机未装 CLI）”；项目页含默认后端/源码/API 配置/本项目空闲队列/新建工单 trace。
+- `POST /api/projects/default/source` 把 `default` 项目绑定到 `/opt/hive/current`，即“Hive Agent 自身”进入项目源码视图；`/api/projects/p3a/source` 也绑定 `/opt/hive/current`。
+- 生产健康页：`v0.4.4 · TLS on`，显示自检、交付件体积、网页流量、消息链路/系统日志。
+- 生产 TLS：Python + OpenSSL 读取到 `TLSv1.3 TLS_AES_256_GCM_SHA384`，证书 `subject=CN=104.168.148.112, O=Hive Agent`，`notBefore=Nov 13 17:51:22 2026 GMT`。
+- 生产删除：创建 `proddel` + `T-20261114-f20de9`，结单后删除工单、删除项目；`kept.artifacts`、`kept.knowledge` 均保留，`destroyed_sessions=["sec-proddel"]`。
+- 生产版本回退：`POST /api/ops/rollback {"target":"0737b06"}` 真实生效，健康返回 `0.4.3 / pid 133376`；watchdog 生成 `autosave/*` 分支；随后 `git reset --hard a7a13ac` + 重启恢复 `0.4.4`。
+- 生产彻底停止：`POST /api/ops/stop` 后 `systemctl is-active hive-watchdog` → `inactive`，`pgrep` 无 watchdog/agent，8787 无监听；`systemctl start hive-watchdog` 后恢复 `0.4.4`。
+
+VPS 无 Node/Claude，`claude-code` 在生产不可用，因此生产只验证 `api` 模式、Skill API 模式、HTTPS、页面、破坏性删除/停止/回退；外部 Agent 逐 token 与 Agent 角色工作流在本机验证。
 
 ## 12. 未完成 / 已知限制
 
