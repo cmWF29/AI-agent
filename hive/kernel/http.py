@@ -252,9 +252,18 @@ class HttpService:
                 rel = "index.html" if path in ("/", "/index.html") else path.lstrip("/")
                 if rel.startswith("static/"):
                     rel = rel[len("static/"):]
-                full = os.path.normpath(os.path.join(service.web_dir, rel))
-                if not inside(service.web_dir, full) or not os.path.isfile(full):
-                    return self._json(404, {"ok": False, "error": "not found"})
+                if rel.startswith("module-ui/"):
+                    name = rel[len("module-ui/"):]
+                    if not re.match(r"^[a-z][a-z0-9_-]*\.js$", name):
+                        return self._json(404, {"ok": False, "error": "not found"})
+                    mod = os.path.join(service.cfg["root"], "hive", "modules", name[:-3])
+                    full = os.path.normpath(os.path.join(mod, "ui.js"))
+                    if not inside(mod, full) or not os.path.isfile(full):
+                        return self._json(404, {"ok": False, "error": "not found"})
+                else:
+                    full = os.path.normpath(os.path.join(service.web_dir, rel))
+                    if not inside(service.web_dir, full) or not os.path.isfile(full):
+                        return self._json(404, {"ok": False, "error": "not found"})
                 ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
                 if ctype.startswith("text/") or ctype in ("application/javascript",):
                     ctype += "; charset=utf-8"

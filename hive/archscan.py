@@ -243,10 +243,11 @@ def scan_web():
     # 渲染闭环门禁：主容器只留挂载点，模块模板和脚本都必须在模块目录内。
     mount_ok = ('id="mount-project"' in html and 'id="mount-chat"' in html
                 and 'id="pv-title"' not in html and 'id="messages"' not in html
-                and not os.path.exists(os.path.join(WEB_DIR, "app.js")))
+                and not os.path.exists(os.path.join(WEB_DIR, "app.js"))
+                and not os.path.isdir(os.path.join(WEB_DIR, "modules")))
     module_render = {}
-    for name in ("project", "chat", "files", "library", "health", "idle", "ops"):
-        rel = os.path.join(WEB_DIR, "modules", name, "render.js")
+    for name in ("projects", "webchat", "artifacts", "library", "health", "idle", "ops"):
+        rel = os.path.join(ROOT, "hive", "modules", name, "ui.js")
         module_render[name] = os.path.exists(rel)
     render_errors = []
     if not mount_ok:

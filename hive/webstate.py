@@ -17,11 +17,12 @@ def load_spec(web_dir=None):
 
 
 def frontend_source(web_dir=None):
-    """拼接全部前端脚本。渲染已按模块目录拆分，不再读单一 app.js。"""
+    """拼接全部前端脚本：web 宿主 + 各业务模块自己的 ui.js。"""
     import glob
     web_dir = web_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+    root = os.path.dirname(os.path.abspath(web_dir))
     paths = sorted(glob.glob(os.path.join(web_dir, "core", "*.js")))
-    paths += sorted(glob.glob(os.path.join(web_dir, "modules", "**", "*.js"), recursive=True))
+    paths += sorted(glob.glob(os.path.join(root, "hive", "modules", "*", "ui.js")))
     return "\n".join(open(p, encoding="utf-8").read() for p in paths)
 
 

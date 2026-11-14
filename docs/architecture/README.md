@@ -34,18 +34,24 @@
 - `gitsync`：`GET /api/gitsync/status`、`POST /api/gitsync/fetch`，不自动 merge/push。
 - 模块装配表是动态导入；删除一个非核心模块目录后装配器跳过，其他模块不改代码。
 
-### 1.2 前端：容器只留挂载点
+### 1.2 前端：web 只做宿主，UI 回到业务模块
 
-- `web/index.html` 的 `#projectview` 与 `#chatview` 内只有 `#mount-project` /
-  `#mount-chat`，不预设项目卡片、工单列表、聊天输入框等业务 DOM。
-- 每个页面模块在 `web/modules/<name>/` 内自带模板、渲染、事件绑定和销毁逻辑：
-  - `web/modules/project/render.js` 注入项目页并渲染工单/秘书/空闲/交付件；
-  - `web/modules/chat/render.js` 注入群聊页并渲染时间线、标签、编排、输入区；
-  - `web/modules/files|library|health|idle|ops/render.js` 各自渲染侧栏或弹窗内容。
-- `web/core/hive-ui.js` 只做领域事件、实例通道与挂载注册；不包含任何业务渲染。
-- `web/core/core.js` 只保留全局状态、API、路由、登录与通用工具。
-- 静态门禁会拼接 `web/core/*.js` 与 `web/modules/**/*.js` 校验状态机、DOM 引用、
-  按钮/控件绑定；不再读取单一 `app.js`。
+- `web/` 只保留一个宿主：`index.html`、`web/core/core.js`（全局状态/API/路由）、
+  `web/core/ui.js`（弹窗壳）、`web/core/hive-ui.js`（前端事件与挂载注册）。
+- `web/` 下不再有 `web/modules/project`、`web/modules/chat` 这类“第二套业务模块目录”。
+- 每个业务模块自己的 UI 放在自己的目录：
+  - `hive/modules/projects/ui.js`：项目页模板、工单列表、秘书卡片、新建工单、空闲/交付件；
+  - `hive/modules/webchat/ui.js`：群聊模板、时间线、标签、流程、直播、输入区；
+  - `hive/modules/artifacts/ui.js`：交付件/文件/源码侧栏；
+  - `hive/modules/library|health|idle|ops/ui.js`：各自弹窗或操作。
+- 宿主通过 `/module-ui/<模块名>.js` 加载 UI 文件；文件由各模块目录提供，不在 `web/` 复制。
+- 业务按钮绑定也回到模块 UI：项目页按钮在 `projects/ui.js`，群聊 `send/刷新/标签/派生`
+  在 `webchat/ui.js`，运维按钮在 `ops/ui.js`。宿主只绑登录、导航、返回、弹窗关闭等壳层控件。
+- 模块之间不直接调用 UI 函数；项目页用 `chat:open`、`side:open`、`idle:open`、
+  `idle:save`、`ticket:fork` 等事实事件，由目标模块自己订阅并处理。
+- 静态门禁会拼接 `web/core/*.js` + `hive/modules/*/ui.js` 校验状态机、DOM 引用、
+  按钮/控件绑定，并拒绝重新出现 `web/modules`。
+
 
 
 ## 2. 项目生命周期（归档 / 删除 / 级联）

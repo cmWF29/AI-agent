@@ -44,22 +44,24 @@ hive/modules/<name>/
 - 新增门禁：入口必须是目录 `__init__.py`、内部实现必须同目录、
   任意模块不得 import 其他模块、静态事件名合规。
 
-### 3. 前端全量模块自渲染
+### 3. 前端：web 只做宿主，UI 回到业务模块
 
-- 删除集中式 `web/app.js`（约 75KB）。
-- `web/index.html` 的项目页/聊天页改为空挂载容器：
-  - `#projectview > #mount-project`
-  - `#chatview > #mount-chat`
-- 新增前端通信中枢 `web/core/hive-ui.js`：领域事件、实例通道、挂载注册。
-- 项目模块 `web/modules/project/render.js`：
-  - 自带项目页模板；
-  - 自己渲染工单、运行模式、秘书、新建工单、空闲/队列、交付件；
-  - 自己完成改名、删除、创建工单、派生、源码绑定等交互。
-- 群聊模块 `web/modules/chat/render.js`：
-  - 自带群聊模板；
-  - 自己渲染时间线、标签、生命周期流程、直播、输入区、只读提示。
-- 文件、库、健康、空闲、运维分别落在 `web/modules/*/render.js`。
-- 静态门禁改为拼接 `web/core/*.js` + `web/modules/**/*.js` 校验，不再读 `app.js`。
+- 删除集中式 `web/app.js`（约 75KB）和 `web/modules/` 这套“假模块目录”。
+- `web/` 只保留宿主：
+  - `web/core/core.js`：全局状态、API、路由、登录、通用工具。
+  - `web/core/hive-ui.js`：领域事件、实例通道、挂载注册。
+  - `web/core/ui.js`：弹窗壳。
+  - `web/core/shell.js`：登录、导航、返回、弹窗关闭等壳层绑定。
+- 项目页/聊天页容器只留 `#mount-project` / `#mount-chat`。
+- UI 回到业务模块目录，由宿主通过 `/module-ui/<模块名>.js` 加载：
+  - `hive/modules/projects/ui.js`：项目页模板、工单、秘书、新建工单、空闲、交付件。
+  - `hive/modules/webchat/ui.js`：群聊模板、时间线、标签、流程、直播、输入区。
+  - `hive/modules/artifacts/ui.js`：交付件/文件/源码侧栏。
+  - `hive/modules/library|health|idle|ops/ui.js`：各自弹窗与操作。
+- 业务按钮绑定回到模块 UI；项目页跨模块动作改成事件：
+  - `chat:open`、`side:open`、`idle:open`、`idle:save`、`ticket:fork`。
+  - 目标模块订阅自己的事件并处理，宿主不直接渲染业务内容。
+
 
 ### 4. 验证
 

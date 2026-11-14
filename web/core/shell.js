@@ -1,21 +1,17 @@
-// ---------------- 轮询 ----------------
+// ---------------- 轮询：宿主只发心跳，各模块自己决定是否刷新 ----------------
 function startPolling() {
   clearInterval(state.pollTimer); clearInterval(state.liveTimer);
   state.pollTimer = setInterval(function () {
-    if (state.view === 'chat') loadTimeline(true);
-    if (document.visibilityState === 'visible') { loadGroups(false); loadIdle(); }
+    HiveUI.emit('app:tick', { visible: document.visibilityState === 'visible' });
   }, 5000);
   state.liveTimer = setInterval(function () {
-    if (document.visibilityState === 'visible' && state.view === 'chat') loadLive();
+    HiveUI.emit('app:live', { visible: document.visibilityState === 'visible' });
   }, 900);
 }
 
 // ---------------- 事件 ----------------
 $('login-btn').onclick = doLogin;
 $('password').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
-$('send').onclick = send;
-$('input').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
-$('input').addEventListener('input', function () { this.style.height = 'auto'; this.style.height = Math.min(140, this.scrollHeight) + 'px'; });
 function toggleRail(force) {
   if (window.innerWidth > 900) {
     var hide = force === undefined ? !document.body.classList.contains('rail-collapsed') : !force;
@@ -32,43 +28,16 @@ function toggleRail(force) {
 $('btn-rail').onclick = function () { toggleRail(); };
 $('btn-back').onclick = goBack;
 $('rail-mask').onclick = function () { toggleRail(false); };
-$('btn-files').onclick = openSide;
 $('side-close').onclick = function () { hide('side'); updateBackBtn(); };
 $('modal-close').onclick = function () { closeModal(); };
-$('btn-addtag').onclick = addTag;
-$('btn-fork-ticket').onclick = function () { openFork('基于 ' + state.group + ' 的后续修改：', state.group); };
-$('btn-copy-ticket').onclick = function () {
-  var id = state.group, done = function () { toast('已复制 ' + id); };
-  if (navigator.clipboard) navigator.clipboard.writeText(id).then(done).catch(function () { prompt('复制工单号', id); });
-  else prompt('复制工单号', id);
-};
-$('btn-refresh').onclick = function () { state.seen = {}; $('messages').innerHTML = ''; loadTimeline(); loadLive(); if (state.group.indexOf('T-') === 0) loadFlow(); };
-$('btn-restart').onclick = restartAgent;
-$('btn-stop').onclick = stopAll;
-$('btn-newproject').onclick = createProject;
-$('pv-rename').onclick = renameProject;
-$('pv-files').onclick = function () { openProjectFiles(); };
-$('pv-source').onclick = function () { openProjectSource(); };
-$('pv-bindsource').onclick = bindProjectSource;
-$('pv-savebackend').onclick = saveProjectBackend;
-$('pv-apiconfig').onclick = openApiConfig;
-$('pv-idle').onclick = openIdle;
-$('pv-saveidle').onclick = saveProjectIdle;
-$('pv-delete').onclick = deleteProject;
-$('pv-secretary').onclick = function () { selectGroup('sec-' + state.project); };
-$('pv-compact').onclick = compactProjectSecretary;
-$('pv-create').onclick = createTicket;
-$('pv-artifacts').onclick = function () { state.sideLayer = 'project'; show('side'); loadFiles(); updateBackBtn(); };
 document.querySelectorAll('.tab').forEach(function (b) {
   b.onclick = function () {
     var tab = b.dataset.tab;
     setTab(tab);
-    if (tab === 'library') openLibrary('roles');
-    else if (tab === 'health') openHealth();
-    else if (tab === 'versions') openVersions();
+    HiveUI.emit('panel:open', { name: tab });
   };
 });
-document.querySelectorAll('#side .stab').forEach(function (b) { b.onclick = function () { openSide(); }; });
+document.querySelectorAll('#side .stab').forEach(function (b) { b.onclick = function () { HiveUI.emit('side:open', {}); }; });
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') { goBack(); }
 });

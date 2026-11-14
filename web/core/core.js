@@ -204,7 +204,7 @@ function doLogin() {
   }).catch(function (e) { $('login-err').textContent = e.status === 401 ? '密码不对' : (e.message || '登录失败'); });
 }
 function enterApp() {
-  hide('login'); show('app'); applyRailPref(); loadGroups(true); loadIdle(); startPolling();
+  hide('login'); show('app'); applyRailPref(); HiveUI.emit('app:ready', {}); startPolling();
 }
 function applyRailPref() {
   var collapsed = localStorage.getItem('hive_rail_collapsed') === '1';
