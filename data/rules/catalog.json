@@ -1,0 +1,1339 @@
+{
+  "version": 1,
+  "description": "规则层是模块关系的唯一来源；模块只暴露能力，跨模块 sequencing 只在这里出现。",
+  "relations": [
+    {
+      "id": "ticket.bind_project",
+      "cn": "工单必须归属项目",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "projects",
+      "subject": "ticket",
+      "predicate": "belongs_to",
+      "object": "project",
+      "cardinality": "N:1",
+      "intent": "创建工单时先确保项目存在，工单只保存 project id",
+      "steps": [
+        {
+          "call": "projects.ensure"
+        }
+      ],
+      "requirements": [
+        "req-02",
+        "req-18"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.judge_capacity",
+      "cn": "工单受理前判断忙闲",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "idle",
+      "subject": "ticket",
+      "predicate": "queues_in",
+      "object": "queue",
+      "cardinality": "N:1",
+      "intent": "高峰时先进入队列，否则直接执行",
+      "steps": [
+        {
+          "call": "idle.judge"
+        }
+      ],
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.queue",
+      "cn": "工单进入空闲队列",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "idle",
+      "subject": "ticket",
+      "predicate": "queues_in",
+      "object": "queue",
+      "cardinality": "N:1",
+      "intent": "排队是工单与调度能力的规则关系，不是工单直接驱动 idle",
+      "steps": [
+        {
+          "call": "idle.enqueue"
+        }
+      ],
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.apply_tag",
+      "cn": "工单标签沉淀到库",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "library",
+      "subject": "ticket",
+      "predicate": "writes",
+      "object": "library",
+      "cardinality": "N:1",
+      "intent": "标签由库模块沉淀，工单只提供标签文本",
+      "steps": [
+        {
+          "call": "library.tag_add"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ticket.open_workspace",
+      "cn": "工单打开独立工作树",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "gitflow",
+      "subject": "ticket",
+      "predicate": "uses",
+      "object": "git_workspace",
+      "cardinality": "N:1",
+      "intent": "一个工单一个分支工作树",
+      "steps": [
+        {
+          "call": "gitflow.ticket_init"
+        }
+      ],
+      "requirements": [
+        "req-14"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.spawn_session",
+      "cn": "工单按角色派生会话",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "sessions",
+      "subject": "ticket",
+      "predicate": "uses",
+      "object": "session",
+      "cardinality": "1:N",
+      "intent": "PM/角色会话由会话模块创建，工单只持有 session id",
+      "steps": [
+        {
+          "call": "sessions.spawn"
+        }
+      ],
+      "requirements": [
+        "req-18",
+        "req-22"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.send_instruction",
+      "cn": "工单向会话投递作业",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "sessions",
+      "subject": "ticket",
+      "predicate": "delegates_to",
+      "object": "session",
+      "cardinality": "1:N",
+      "intent": "工单只表达“要做的事”，不驱动会话内部",
+      "steps": [
+        {
+          "call": "sessions.send"
+        }
+      ],
+      "requirements": [
+        "req-22"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.wait_session",
+      "cn": "工单等待会话回报",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "sessions",
+      "subject": "ticket",
+      "predicate": "observes",
+      "object": "session",
+      "cardinality": "1:N",
+      "intent": "等待是规则层的编排动作",
+      "steps": [
+        {
+          "call": "sessions.wait"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ticket.session_status",
+      "cn": "工单读取会话状态",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "sessions",
+      "subject": "ticket",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "1:N",
+      "intent": "只读状态，不反向修改会话",
+      "steps": [
+        {
+          "call": "sessions.get"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ticket.list_sessions",
+      "cn": "工单列出自己的会话",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "sessions",
+      "subject": "ticket",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "1:N",
+      "intent": "按 ticket id 过滤",
+      "steps": [
+        {
+          "call": "sessions.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ticket.session_messages",
+      "cn": "工单读取会话消息",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "sessions",
+      "subject": "ticket",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "1:N",
+      "intent": "回看角色/PM 的发言",
+      "steps": [
+        {
+          "call": "sessions.messages"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ticket.load_context",
+      "cn": "工单装载知识上下文",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "knowledge",
+      "subject": "ticket",
+      "predicate": "reads",
+      "object": "knowledge",
+      "cardinality": "N:1",
+      "intent": "公共/项目/工单三层知识合成",
+      "steps": [
+        {
+          "call": "knowledge.compose"
+        }
+      ],
+      "requirements": [
+        "req-31"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.write_learning",
+      "cn": "工单沉淀知识",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "knowledge",
+      "subject": "ticket",
+      "predicate": "writes",
+      "object": "knowledge",
+      "cardinality": "N:1",
+      "intent": "结单摘要写回知识层",
+      "steps": [
+        {
+          "call": "knowledge.write"
+        }
+      ],
+      "requirements": [
+        "req-30"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.load_card",
+      "cn": "工单读取角色/流程卡",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "library",
+      "subject": "ticket",
+      "predicate": "reads",
+      "object": "library",
+      "cardinality": "N:1",
+      "intent": "角色库/流程库查询",
+      "steps": [
+        {
+          "call": "library.get"
+        }
+      ],
+      "requirements": [
+        "req-27"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.check_outputs",
+      "cn": "工单按流程插件校验必交产物",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "library",
+      "subject": "ticket",
+      "predicate": "validates",
+      "object": "library",
+      "cardinality": "N:1",
+      "intent": "缺件时禁止结单",
+      "steps": [
+        {
+          "call": "library.check"
+        }
+      ],
+      "requirements": [
+        "req-15"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.sync_workspace",
+      "cn": "工单同步分支",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "gitflow",
+      "subject": "ticket",
+      "predicate": "uses",
+      "object": "git_workspace",
+      "cardinality": "N:1",
+      "intent": "提交并推送工单分支",
+      "steps": [
+        {
+          "call": "gitflow.ticket_sync"
+        }
+      ],
+      "requirements": [
+        "req-14"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.merge_workspace",
+      "cn": "工单合并回项目主干",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "gitflow",
+      "subject": "ticket",
+      "predicate": "uses",
+      "object": "git_workspace",
+      "cardinality": "N:1",
+      "intent": "合并冲突由 gitflow 报告，工单置 conflict",
+      "steps": [
+        {
+          "call": "gitflow.ticket_merge"
+        }
+      ],
+      "requirements": [
+        "req-14"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.list_changes",
+      "cn": "工单列出分支改动",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "gitflow",
+      "subject": "ticket",
+      "predicate": "reads",
+      "object": "git_workspace",
+      "cardinality": "N:1",
+      "intent": "结单归档前确认实际改动",
+      "steps": [
+        {
+          "call": "gitflow.changed_files"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ticket.archive_outputs",
+      "cn": "工单归档交付件",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "artifacts",
+      "subject": "ticket",
+      "predicate": "produces",
+      "object": "artifact",
+      "cardinality": "1:N",
+      "intent": "三层交付件归档，路径带工单号",
+      "steps": [
+        {
+          "call": "artifacts.archive"
+        }
+      ],
+      "requirements": [
+        "req-21"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.release_session",
+      "cn": "工单释放临时会话",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "sessions",
+      "subject": "ticket",
+      "predicate": "uses",
+      "object": "session",
+      "cardinality": "1:N",
+      "intent": "结单后销毁 PM/角色会话，群聊只读",
+      "steps": [
+        {
+          "call": "sessions.destroy"
+        }
+      ],
+      "requirements": [
+        "req-22"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.dequeue",
+      "cn": "工单出队",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "idle",
+      "subject": "ticket",
+      "predicate": "queues_in",
+      "object": "queue",
+      "cardinality": "N:1",
+      "intent": "队列项在真正启动时移除",
+      "steps": [
+        {
+          "call": "idle.dequeue"
+        }
+      ],
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    },
+    {
+      "id": "ticket.remove_workspace",
+      "cn": "工单清理工作树",
+      "kind": "relation",
+      "from": "tickets",
+      "to": "gitflow",
+      "subject": "ticket",
+      "predicate": "uses",
+      "object": "git_workspace",
+      "cardinality": "N:1",
+      "intent": "删除工单后的 git 清理",
+      "steps": [
+        {
+          "call": "gitflow.ticket_remove"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.project_directory",
+      "cn": "群聊读取项目目录",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "projects",
+      "subject": "chat",
+      "predicate": "reads",
+      "object": "project",
+      "cardinality": "N:1",
+      "intent": "群列表需要项目范围",
+      "steps": [
+        {
+          "call": "projects.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.ticket_context",
+      "cn": "群聊读取工单上下文",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "tickets",
+      "subject": "chat",
+      "predicate": "reads",
+      "object": "ticket",
+      "cardinality": "N:1",
+      "intent": "群聊只展示工单状态/标题",
+      "steps": [
+        {
+          "call": "tickets.get"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.ticket_directory",
+      "cn": "群聊读取工单目录",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "tickets",
+      "subject": "chat",
+      "predicate": "reads",
+      "object": "ticket",
+      "cardinality": "N:1",
+      "intent": "群列表与过滤",
+      "steps": [
+        {
+          "call": "tickets.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.judge_capacity",
+      "cn": "群聊发言前判断忙闲",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "idle",
+      "subject": "chat",
+      "predicate": "uses",
+      "object": "queue",
+      "cardinality": "N:1",
+      "intent": "高峰消息排队",
+      "steps": [
+        {
+          "call": "idle.judge"
+        }
+      ],
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    },
+    {
+      "id": "chat.queue_message",
+      "cn": "群聊消息进入队列",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "idle",
+      "subject": "chat",
+      "predicate": "queues_in",
+      "object": "queue",
+      "cardinality": "N:1",
+      "intent": "消息排队不阻塞网页",
+      "steps": [
+        {
+          "call": "idle.enqueue"
+        }
+      ],
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    },
+    {
+      "id": "chat.route_ticket_message",
+      "cn": "群聊把消息投给工单",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "tickets",
+      "subject": "chat",
+      "predicate": "delegates_to",
+      "object": "ticket",
+      "cardinality": "N:1",
+      "intent": "工单群发言由工单模块接收",
+      "steps": [
+        {
+          "call": "tickets.message"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.ensure_secretary",
+      "cn": "群聊确保项目秘书存在",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "sessions",
+      "subject": "chat",
+      "predicate": "uses",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "一个项目一个秘书",
+      "steps": [
+        {
+          "call": "sessions.ensure"
+        }
+      ],
+      "requirements": [
+        "req-18"
+      ],
+      "optional": true
+    },
+    {
+      "id": "chat.send_message",
+      "cn": "群聊把消息投给会话",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "sessions",
+      "subject": "chat",
+      "predicate": "delegates_to",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "秘书/PM 会话是消息的接收者",
+      "steps": [
+        {
+          "call": "sessions.send"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.session_context",
+      "cn": "群聊读取会话上下文",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "sessions",
+      "subject": "chat",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "群聊头部展示会话状态",
+      "steps": [
+        {
+          "call": "sessions.get"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.session_messages",
+      "cn": "群聊读取会话消息",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "sessions",
+      "subject": "chat",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "时间线渲染",
+      "steps": [
+        {
+          "call": "sessions.messages"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.session_directory",
+      "cn": "群聊读取会话目录",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "sessions",
+      "subject": "chat",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "群列表",
+      "steps": [
+        {
+          "call": "sessions.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "chat.session_state",
+      "cn": "群聊读取运行时状态",
+      "kind": "relation",
+      "from": "webchat",
+      "to": "sessions",
+      "subject": "chat",
+      "predicate": "observes",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "并发/运行态指标",
+      "steps": [
+        {
+          "call": "sessions.state"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "lifecycle.default_project",
+      "cn": "生命周期默认项目",
+      "kind": "relation",
+      "from": "lifecycle",
+      "to": "projects",
+      "subject": "project",
+      "predicate": "reads",
+      "object": "project",
+      "cardinality": "1:N",
+      "intent": "删除/归档编排的默认项目入口",
+      "steps": [
+        {
+          "call": "projects.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "lifecycle.project_snapshot",
+      "cn": "生命周期读取项目快照",
+      "kind": "relation",
+      "from": "lifecycle",
+      "to": "projects",
+      "subject": "project",
+      "predicate": "observes",
+      "object": "project",
+      "cardinality": "N:1",
+      "intent": "删除/归档前读取项目",
+      "steps": [
+        {
+          "call": "projects.get"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "lifecycle.list_tickets",
+      "cn": "生命周期列出项目工单",
+      "kind": "relation",
+      "from": "lifecycle",
+      "to": "tickets",
+      "subject": "ticket",
+      "predicate": "reads",
+      "object": "project",
+      "cardinality": "1:N",
+      "intent": "级联删除前统计未结单",
+      "steps": [
+        {
+          "call": "tickets.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "lifecycle.preview_delete",
+      "cn": "生命周期预览删除",
+      "kind": "relation",
+      "from": "lifecycle",
+      "to": "projects",
+      "subject": "project",
+      "predicate": "observes",
+      "object": "project",
+      "cardinality": "N:1",
+      "intent": "删除前展示影响面",
+      "steps": [
+        {
+          "call": "projects.delete_preview"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "lifecycle.delete_ticket",
+      "cn": "生命周期删除已结单工单",
+      "kind": "relation",
+      "from": "lifecycle",
+      "to": "tickets",
+      "subject": "ticket",
+      "predicate": "writes",
+      "object": "project",
+      "cardinality": "1:N",
+      "intent": "只删除已结单工单",
+      "steps": [
+        {
+          "call": "tickets.delete"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "lifecycle.delete_project",
+      "cn": "生命周期删除项目",
+      "kind": "relation",
+      "from": "lifecycle",
+      "to": "projects",
+      "subject": "project",
+      "predicate": "writes",
+      "object": "project",
+      "cardinality": "N:1",
+      "intent": "级联删除由生命周期规则编排",
+      "steps": [
+        {
+          "call": "projects.delete"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ops.session_snapshot",
+      "cn": "运维读取会话快照",
+      "kind": "relation",
+      "from": "ops",
+      "to": "sessions",
+      "subject": "ops",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "健康/运维页展示会话",
+      "steps": [
+        {
+          "call": "sessions.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ops.ticket_snapshot",
+      "cn": "运维读取工单快照",
+      "kind": "relation",
+      "from": "ops",
+      "to": "tickets",
+      "subject": "ops",
+      "predicate": "reads",
+      "object": "ticket",
+      "cardinality": "N:1",
+      "intent": "健康/运维页展示工单",
+      "steps": [
+        {
+          "call": "tickets.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "ops.knowledge_snapshot",
+      "cn": "运维读取知识概览",
+      "kind": "relation",
+      "from": "ops",
+      "to": "knowledge",
+      "subject": "ops",
+      "predicate": "reads",
+      "object": "knowledge",
+      "cardinality": "N:1",
+      "intent": "知识体积/条数",
+      "steps": [
+        {
+          "call": "knowledge.overview"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "project.init_workspace",
+      "cn": "项目初始化主干工作树",
+      "kind": "relation",
+      "from": "projects",
+      "to": "gitflow",
+      "subject": "project",
+      "predicate": "uses",
+      "object": "git_workspace",
+      "cardinality": "1:1",
+      "intent": "项目 main 工作树由 gitflow 创建",
+      "steps": [
+        {
+          "call": "gitflow.project_init"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "project.purge_artifacts",
+      "cn": "项目删除时清理交付件",
+      "kind": "relation",
+      "from": "projects",
+      "to": "artifacts",
+      "subject": "project",
+      "predicate": "produces",
+      "object": "artifact",
+      "cardinality": "1:N",
+      "intent": "级联开关控制",
+      "steps": [
+        {
+          "call": "artifacts.remove_project"
+        }
+      ],
+      "requirements": [
+        "req-21"
+      ],
+      "optional": true
+    },
+    {
+      "id": "project.purge_knowledge",
+      "cn": "项目删除时清理知识",
+      "kind": "relation",
+      "from": "projects",
+      "to": "knowledge",
+      "subject": "project",
+      "predicate": "reads",
+      "object": "knowledge",
+      "cardinality": "N:1",
+      "intent": "级联开关控制",
+      "steps": [
+        {
+          "call": "knowledge.remove_project"
+        }
+      ],
+      "requirements": [
+        "req-30"
+      ],
+      "optional": true
+    },
+    {
+      "id": "session.project_directory",
+      "cn": "会话读取项目目录",
+      "kind": "relation",
+      "from": "sessions",
+      "to": "projects",
+      "subject": "session",
+      "predicate": "reads",
+      "object": "project",
+      "cardinality": "N:1",
+      "intent": "秘书上下文需要项目范围",
+      "steps": [
+        {
+          "call": "projects.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "session.load_context",
+      "cn": "会话装载知识上下文",
+      "kind": "relation",
+      "from": "sessions",
+      "to": "knowledge",
+      "subject": "session",
+      "predicate": "reads",
+      "object": "knowledge",
+      "cardinality": "N:1",
+      "intent": "秘书提示词的知识层",
+      "steps": [
+        {
+          "call": "knowledge.compose"
+        }
+      ],
+      "requirements": [
+        "req-31"
+      ],
+      "optional": true
+    },
+    {
+      "id": "skill.store",
+      "cn": "技能写入能力库",
+      "kind": "relation",
+      "from": "skills",
+      "to": "library",
+      "subject": "library",
+      "predicate": "writes",
+      "object": "library",
+      "cardinality": "N:1",
+      "intent": "技能卡片入库",
+      "steps": [
+        {
+          "call": "library.upsert"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "skill.design_role",
+      "cn": "技能拆解为角色/流程",
+      "kind": "relation",
+      "from": "skills",
+      "to": "library",
+      "subject": "library",
+      "predicate": "produces",
+      "object": "library",
+      "cardinality": "1:N",
+      "intent": "拆解出的角色卡和流程插件",
+      "steps": [
+        {
+          "call": "library.design"
+        }
+      ],
+      "requirements": [
+        "req-27"
+      ],
+      "optional": true
+    },
+    {
+      "id": "health.artifact_stats",
+      "cn": "健康检查读取交付件统计",
+      "kind": "relation",
+      "from": "health",
+      "to": "artifacts",
+      "subject": "health",
+      "predicate": "reads",
+      "object": "artifact",
+      "cardinality": "N:1",
+      "intent": "体积/条数",
+      "steps": [
+        {
+          "call": "artifacts.stats"
+        }
+      ],
+      "requirements": [
+        "req-32"
+      ],
+      "optional": true
+    },
+    {
+      "id": "health.probe_sessions",
+      "cn": "自检探活会话 API",
+      "kind": "relation",
+      "from": "health",
+      "to": "sessions",
+      "subject": "health",
+      "predicate": "reads",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "深度自检确认 sessions.list 可响应",
+      "steps": [
+        {
+          "call": "sessions.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "health.probe_tickets",
+      "cn": "自检探活工单 API",
+      "kind": "relation",
+      "from": "health",
+      "to": "tickets",
+      "subject": "health",
+      "predicate": "reads",
+      "object": "ticket",
+      "cardinality": "N:1",
+      "intent": "深度自检确认 tickets.list 可响应",
+      "steps": [
+        {
+          "call": "tickets.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "health.probe_knowledge",
+      "cn": "自检探活知识 API",
+      "kind": "relation",
+      "from": "health",
+      "to": "knowledge",
+      "subject": "health",
+      "predicate": "reads",
+      "object": "knowledge",
+      "cardinality": "N:1",
+      "intent": "深度自检确认 knowledge.overview 可响应",
+      "steps": [
+        {
+          "call": "knowledge.overview"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "health.probe_library",
+      "cn": "自检探活能力库 API",
+      "kind": "relation",
+      "from": "health",
+      "to": "library",
+      "subject": "health",
+      "predicate": "reads",
+      "object": "library",
+      "cardinality": "N:1",
+      "intent": "深度自检确认 library.summary 可响应",
+      "steps": [
+        {
+          "call": "library.summary"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "health.probe_artifacts",
+      "cn": "自检探活交付件 API",
+      "kind": "relation",
+      "from": "health",
+      "to": "artifacts",
+      "subject": "health",
+      "predicate": "reads",
+      "object": "artifact",
+      "cardinality": "N:1",
+      "intent": "深度自检确认 artifacts.stats 可响应",
+      "steps": [
+        {
+          "call": "artifacts.stats"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "health.probe_projects",
+      "cn": "自检探活项目 API",
+      "kind": "relation",
+      "from": "health",
+      "to": "projects",
+      "subject": "health",
+      "predicate": "reads",
+      "object": "project",
+      "cardinality": "N:1",
+      "intent": "深度自检确认 projects.list 可响应",
+      "steps": [
+        {
+          "call": "projects.list"
+        }
+      ],
+      "requirements": [],
+      "optional": true
+    },
+    {
+      "id": "idle.send_message",
+      "cn": "调度器投递消息",
+      "kind": "relation",
+      "from": "idle",
+      "to": "sessions",
+      "subject": "queue",
+      "predicate": "delegates_to",
+      "object": "session",
+      "cardinality": "N:1",
+      "intent": "高峰队列恢复时发消息",
+      "steps": [
+        {
+          "call": "sessions.send"
+        }
+      ],
+      "requirements": [
+        "req-02"
+      ],
+      "optional": true
+    }
+  ],
+  "processes": [
+    {
+      "id": "ticket.create",
+      "cn": "工单创建流程",
+      "kind": "process",
+      "subject": "ticket",
+      "predicate": "uses",
+      "object": "project",
+      "requirements": [
+        "req-02",
+        "req-04",
+        "req-14",
+        "req-18",
+        "req-22",
+        "req-24",
+        "req-27",
+        "req-30"
+      ],
+      "composes": [
+        "ticket.bind_project",
+        "ticket.judge_capacity",
+        "ticket.queue",
+        "ticket.open_workspace",
+        "ticket.load_context",
+        "ticket.load_card",
+        "ticket.spawn_session",
+        "ticket.send_instruction"
+      ]
+    },
+    {
+      "id": "ticket.close",
+      "cn": "工单结单流程",
+      "kind": "process",
+      "subject": "ticket",
+      "predicate": "produces",
+      "object": "artifact",
+      "requirements": [
+        "req-14",
+        "req-15",
+        "req-21",
+        "req-22",
+        "req-25",
+        "req-30"
+      ],
+      "composes": [
+        "ticket.check_outputs",
+        "ticket.sync_workspace",
+        "ticket.merge_workspace",
+        "ticket.list_changes",
+        "ticket.archive_outputs",
+        "ticket.release_session",
+        "ticket.write_learning"
+      ]
+    },
+    {
+      "id": "project.create",
+      "cn": "项目创建流程",
+      "kind": "process",
+      "subject": "project",
+      "predicate": "uses",
+      "object": "git_workspace",
+      "requirements": [
+        "req-11",
+        "req-18",
+        "req-20"
+      ],
+      "composes": [
+        "project.init_workspace"
+      ]
+    },
+    {
+      "id": "project.delete",
+      "cn": "项目删除流程",
+      "kind": "process",
+      "subject": "project",
+      "predicate": "produces",
+      "object": "artifact",
+      "requirements": [
+        "req-06",
+        "req-20",
+        "req-21"
+      ],
+      "composes": [
+        "lifecycle.preview_delete",
+        "lifecycle.delete_ticket",
+        "project.purge_artifacts",
+        "project.purge_knowledge",
+        "lifecycle.delete_project"
+      ]
+    },
+    {
+      "id": "chat.thread",
+      "cn": "群聊线程流程",
+      "kind": "process",
+      "subject": "chat",
+      "predicate": "reads",
+      "object": "session",
+      "requirements": [
+        "req-07",
+        "req-18",
+        "req-23",
+        "req-24"
+      ],
+      "composes": [
+        "chat.project_directory",
+        "chat.ticket_directory",
+        "chat.session_context",
+        "chat.session_messages"
+      ]
+    },
+    {
+      "id": "chat.dispatch",
+      "cn": "群聊投递流程",
+      "kind": "process",
+      "subject": "chat",
+      "predicate": "delegates_to",
+      "object": "ticket",
+      "requirements": [
+        "req-02",
+        "req-18"
+      ],
+      "composes": [
+        "chat.judge_capacity",
+        "chat.queue_message",
+        "chat.ensure_secretary",
+        "chat.send_message",
+        "chat.route_ticket_message"
+      ]
+    },
+    {
+      "id": "lifecycle.delete",
+      "cn": "项目级联删除流程",
+      "kind": "process",
+      "subject": "project",
+      "predicate": "writes",
+      "object": "project",
+      "requirements": [
+        "req-06",
+        "req-20",
+        "req-21"
+      ],
+      "composes": [
+        "lifecycle.preview_delete",
+        "lifecycle.list_tickets",
+        "lifecycle.delete_ticket",
+        "lifecycle.delete_project"
+      ]
+    },
+    {
+      "id": "session.context",
+      "cn": "会话上下文流程",
+      "kind": "process",
+      "subject": "session",
+      "predicate": "reads",
+      "object": "knowledge",
+      "requirements": [
+        "req-18",
+        "req-31"
+      ],
+      "composes": [
+        "session.project_directory",
+        "session.load_context"
+      ]
+    },
+    {
+      "id": "ops.snapshot",
+      "cn": "运维快照流程",
+      "kind": "process",
+      "subject": "ops",
+      "predicate": "observes",
+      "object": "session",
+      "requirements": [
+        "req-32"
+      ],
+      "composes": [
+        "ops.session_snapshot",
+        "ops.ticket_snapshot",
+        "ops.knowledge_snapshot"
+      ]
+    }
+  ]
+}

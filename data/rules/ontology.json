@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "description": "业务实体词表：规则只使用这里的实体、谓词和基数，不在模块代码里写对方模块名。",
+  "entities": {
+    "project": "项目，工单的归属单位",
+    "ticket": "工单，一次可验收的作业",
+    "session": "会话，承载秘书/PM/角色的上下文",
+    "artifact": "交付件，结单后保留的证据",
+    "knowledge": "知识条目，跨会话沉淀的文字",
+    "git_workspace": "工单分支工作树，代码版本边界",
+    "queue": "空闲/高峰队列，延迟执行的调度项",
+    "chat": "群聊/时间线，面向人的消息视图",
+    "library": "角色库/流程库/技能库",
+    "health": "运行时健康与观测",
+    "ops": "运维命令与版本视图"
+  },
+  "predicates": {
+    "belongs_to": {
+      "cn": "归属",
+      "cardinality": "N:1",
+      "exclusive": true
+    },
+    "uses": {
+      "cn": "使用",
+      "cardinality": "N:1"
+    },
+    "reads": {
+      "cn": "读取",
+      "cardinality": "N:1"
+    },
+    "writes": {
+      "cn": "写入",
+      "cardinality": "N:1"
+    },
+    "produces": {
+      "cn": "产出",
+      "cardinality": "1:N"
+    },
+    "validates": {
+      "cn": "校验",
+      "cardinality": "N:1"
+    },
+    "queues_in": {
+      "cn": "排队于",
+      "cardinality": "N:1"
+    },
+    "delegates_to": {
+      "cn": "委托给",
+      "cardinality": "N:1"
+    },
+    "observes": {
+      "cn": "观测",
+      "cardinality": "N:1"
+    }
+  }
+}
