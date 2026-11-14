@@ -90,6 +90,9 @@ class Tickets(Module):
 
         self.api.route("POST", "/api/tickets/create", name="create")(self.create_api)
         self.api.route("GET", "/api/tickets/list", name="list")(self.list_api)
+        # 静态路径必须注册在 /{ticket_id} 之前，否则 “stalled” 会被当工单号
+        self.api.route("GET", "/api/tickets/stalled", name="stalled")(self.stalled_api)
+        self.api.route("POST", "/api/tickets/stalled/scan", name="stalled_scan")(self.stalled_scan_api)
         self.api.route("GET", "/api/tickets/{ticket_id}", name="get")(self.get_api)
         self.api.route("GET", "/api/tickets/{ticket_id}/flow", name="flow")(self.flow_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/close", name="close")(self.close_api)
@@ -103,8 +106,6 @@ class Tickets(Module):
         self.api.route("POST", "/api/tickets/{ticket_id}/verify", name="verify")(self.verify_api)
         self.api.route("POST", "/api/tickets/{ticket_id}/delete", name="delete")(self.delete_api)
         self.api.route("POST", "/api/tickets/dispatch", name="dispatch")(self.dispatch_api)
-        self.api.route("GET", "/api/tickets/stalled", name="stalled")(self.stalled_api)
-        self.api.route("POST", "/api/tickets/stalled/scan", name="stalled_scan")(self.stalled_scan_api)
 
         # 队列派发由 idle 发事件、tickets 执行并回 ack；tickets 不再被 idle 同步调用。
         self.event("event.idle.ticket_dispatch", self._on_idle_ticket_dispatch,
