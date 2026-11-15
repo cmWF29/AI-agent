@@ -20,6 +20,7 @@ textarea{min-height:64px;resize:vertical}
 button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:8px;padding:6px 12px}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button.danger{color:#f53f3f;border-color:#f53f3f}
+button:disabled{opacity:.4;cursor:not-allowed}
 main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 20px}
 section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
 section h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin:0 0 10px}
@@ -30,13 +31,17 @@ td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertic
 th{opacity:.6;font-weight:500}
 .muted{opacity:.6;font-size:12px}
 .badge{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:12px}
-.badge.closed{color:#00b42a;border-color:#00b42a}
+.badge.closed,.badge.gone{color:#00b42a;border-color:#00b42a}
 .badge.archived{color:#ff7d00;border-color:#ff7d00}
+.badge.running{color:#1664ff;border-color:#1664ff}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
 .actions button{padding:3px 8px;font-size:12px}
 #detail{margin-top:12px;max-height:260px;overflow:auto}
 pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,monospace;font-size:12px;margin:0}
 #status{margin-top:8px;font-size:12px;opacity:.7}
+#banner{margin:12px 20px 0;padding:10px 14px;border-radius:10px;font-size:13px;display:none}
+#banner.err{display:block;background:#ffece8;color:#f53f3f;border:1px solid #f53f3f}
+#banner.ok{display:block;background:#e8ffea;color:#00b42a;border:1px solid #00b42a}
 @media (max-width:900px){main{grid-template-columns:1fr}}
 </style>
 </head>
@@ -52,6 +57,7 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
   <input id="token" placeholder="令牌（本地可留空）" style="width:200px">
   <button id="save">保存令牌</button>
 </header>
+<div id="banner"></div>
 <main>
   <section>
     <h2>项目管理</h2>
@@ -120,6 +126,22 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
     <pre id="detail">未选择工单</pre>
     <div id="status"></div>
   </section>
+
+  <section style="grid-column:1/-1">
+    <h2>会话管理</h2>
+    <div class="row" style="margin-bottom:10px">
+      <div><label class="muted">按状态筛选</label><select id="s-filter-status">
+        <option value="">全部</option><option value="idle">idle</option>
+        <option value="queued">queued</option><option value="running">running</option>
+        <option value="gone">gone</option>
+      </select></div>
+      <div><label class="muted">刷新</label><button id="s-refresh">刷新会话</button></div>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>名称</th><th>角色</th><th>所属工单</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="session-rows"></tbody>
+    </table>
+  </section>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -135,18 +157,60 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
+
+// 工单 / 会话缓存：前端只用来按后端状态前置禁用按钮，业务事实以后端为准
+const ticketMap = {};
+const sessionMap = {};
+
 async function run(demand, input) {
-  const resp = await fetch("/api/rpc/demand_engine/run", {
-    method: "POST", headers: headers(),
-    body: JSON.stringify({ id: demand, input: input || {} })
-  });
-  const body = await resp.json().catch(() => ({ ok: false, error: "响应不是 JSON" }));
-  if (!body.ok) throw new Error(body.error || ("HTTP " + resp.status));
+  let resp, body;
+  try {
+    resp = await fetch("/api/rpc/demand_engine/run", {
+      method: "POST", headers: headers(),
+      body: JSON.stringify({ id: demand, input: input || {} })
+    });
+    body = await resp.json().catch(() => ({ ok: false, error: "响应不是 JSON", code: "bad_json" }));
+  } catch (e) {
+    throw Object.assign(new Error("网络请求失败：" + e.message), { status: 0, code: "network" });
+  }
+  if (!body.ok) {
+    throw Object.assign(new Error(body.error || ("HTTP " + resp.status)),
+      { status: resp.status, code: body.code });
+  }
   const inner = (body.result && body.result.result) || {};
-  if (inner && inner.ok === false) throw new Error(inner.error || inner.code || "需求失败");
+  if (inner && inner.ok === false) {
+    throw Object.assign(new Error(inner.error || inner.code || "需求失败"),
+      { status: resp.status, code: inner.code });
+  }
   return inner;
 }
+
+function banner(msg, kind) {
+  const el = $("banner");
+  if (!msg) { el.style.display = "none"; el.textContent = ""; return; }
+  el.className = kind === "ok" ? "ok" : "err";
+  el.textContent = msg;
+}
 function status(text) { $("status").textContent = text; }
+
+function gateMessage(err) {
+  if (err && (err.status === 401 || err.code === "unauthorized")) {
+    return "未授权（401）：请在顶部填入令牌后点「保存令牌」，再重试。";
+  }
+  return (err && err.message) || "操作失败";
+}
+
+async function withBusy(btn, fn) {
+  if (btn) { btn.disabled = true; }
+  try { return await fn(); }
+  finally { if (btn) btn.disabled = false; }
+}
+
+function actBtn(act, id, label, disabled, cls, tip) {
+  const attrs = disabled ? 'disabled title="' + esc(tip || "当前状态不可用") + '"' : "";
+  const clsAttr = cls ? 'class="' + cls + '"' : "";
+  return `<button ${clsAttr} data-act="${act}" data-id="${esc(id)}" ${attrs}>${label}</button>`;
+}
 
 // ---- 项目 ----
 async function loadProjects() {
@@ -156,17 +220,20 @@ async function loadProjects() {
     .concat(items.map((p) => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`));
   $("t-project").innerHTML = opts.join("");
   $("t-filter-project").innerHTML = opts.join("");
-  $("proj-rows").innerHTML = items.map((p) => `
+  $("proj-rows").innerHTML = items.map((p) => {
+    const archived = !!p.archived;
+    return `
     <tr>
       <td>${esc(p.id)}</td>
       <td>${esc(p.name)}</td>
       <td class="muted">${esc(p.default_backend || "")}</td>
-      <td>${p.archived ? '<span class="badge archived">已归档</span>' : '<span class="badge">活跃</span>'}</td>
+      <td>${archived ? '<span class="badge archived">已归档</span>' : '<span class="badge">活跃</span>'}</td>
       <td class="actions">
-        <button data-act="archive" data-id="${esc(p.id)}">归档</button>
-        <button class="danger" data-act="del" data-id="${esc(p.id)}">删除</button>
+        ${actBtn("archive", p.id, "归档", archived, "", "项目已归档")}
+        ${actBtn("del", p.id, "删除", false, "danger")}
       </td>
-    </tr>`).join("") || '<tr><td colspan="5" class="muted">暂无项目</td></tr>';
+    </tr>`;
+  }).join("") || '<tr><td colspan="5" class="muted">暂无项目</td></tr>';
 }
 
 $("proj-form").onsubmit = async (e) => {
@@ -176,27 +243,27 @@ $("proj-form").onsubmit = async (e) => {
       name: $("p-name").value.trim(),
       default_backend: $("p-backend").value.trim()
     });
-    status("已建项目：" + (rec.id || ""));
+    banner(""); status("已建项目：" + (rec.id || ""));
     $("p-name").value = ""; $("p-backend").value = "";
     await loadProjects(); await loadTickets();
-  } catch (err) { status("项目创建失败：" + err.message); }
+  } catch (err) { banner(gateMessage(err), "err"); status("项目创建失败：" + err.message); }
 };
-$("p-refresh").onclick = () => loadProjects().catch((e) => status(e.message));
+$("p-refresh").onclick = () => loadProjects().catch((e) => banner(gateMessage(e), "err"));
 
 $("proj-rows").onclick = async (e) => {
-  const btn = e.target.closest("button"); if (!btn) return;
+  const btn = e.target.closest("button"); if (!btn || btn.disabled) return;
   const id = btn.dataset.id;
   try {
     if (btn.dataset.act === "archive") {
-      await run("projects-archive", { id });
+      await withBusy(btn, () => run("projects-archive", { id }));
       status("已归档：" + id);
     } else if (btn.dataset.act === "del") {
       if (!confirm("彻底删除项目 " + id + "？")) return;
-      await run("projects-delete", { id, purge: true });
+      await withBusy(btn, () => run("projects-delete", { id, purge: true }));
       status("已删除：" + id);
     }
     await loadProjects(); await loadTickets();
-  } catch (err) { status("操作失败：" + err.message); }
+  } catch (err) { banner(gateMessage(err), "err"); status("操作失败：" + err.message); }
 };
 
 // ---- 工单 ----
@@ -206,20 +273,28 @@ async function loadTickets() {
     project: $("t-filter-project").value
   });
   const items = list.items || [];
-  $("ticket-rows").innerHTML = items.map((t) => `
+  Object.keys(ticketMap).forEach((k) => delete ticketMap[k]);
+  items.forEach((t) => { ticketMap[t.id] = t; });
+  $("ticket-rows").innerHTML = items.map((t) => {
+    const closed = t.status === "closed";
+    const badge = closed ? '<span class="badge closed">closed</span>'
+      : `<span class="badge ${esc(t.status)}">${esc(t.status)}</span>`;
+    return `
     <tr>
       <td>${esc(t.id)}</td>
       <td>${esc(t.title)}</td>
       <td class="muted">${esc(t.project || "")}</td>
       <td class="muted">${esc(t.kind || "")}</td>
-      <td>${t.status === "closed" ? '<span class="badge closed">closed</span>' : `<span class="badge">${esc(t.status)}</span>`}</td>
+      <td>${badge}</td>
       <td class="actions">
-        <button data-act="detail" data-id="${esc(t.id)}">详情</button>
-        <button data-act="note" data-id="${esc(t.id)}">备注</button>
-        <button data-act="message" data-id="${esc(t.id)}">发 PM</button>
-        <button data-act="close" data-id="${esc(t.id)}">结单</button>
+        ${actBtn("detail", t.id, "详情", false)}
+        ${actBtn("note", t.id, "备注", closed, "", "工单已结单")}
+        ${actBtn("message", t.id, "发 PM", closed, "", "工单已结单")}
+        ${actBtn("close", t.id, "结单", closed, "danger", "工单已结单")}
       </td>
-    </tr>`).join("") || '<tr><td colspan="6" class="muted">暂无工单</td></tr>';
+    </tr>`;
+  }).join("") || '<tr><td colspan="6" class="muted">暂无工单</td></tr>';
+  syncTicketOps();
 }
 
 $("ticket-form").onsubmit = async (e) => {
@@ -232,67 +307,77 @@ $("ticket-form").onsubmit = async (e) => {
       kind: $("t-kind").value,
       parent: $("t-parent").value.trim()
     });
-    status("已建工单：" + (rec.id || ""));
+    banner(""); status("已建工单：" + (rec.id || ""));
     $("t-title").value = ""; $("t-goal").value = ""; $("t-parent").value = "";
     await loadTickets();
-  } catch (err) { status("工单创建失败：" + err.message); }
+  } catch (err) { banner(gateMessage(err), "err"); status("工单创建失败：" + err.message); }
 };
-$("t-refresh").onclick = () => loadTickets().catch((e) => status(e.message));
-$("t-filter-status").onchange = () => loadTickets().catch((e) => status(e.message));
-$("t-filter-project").onchange = () => loadTickets().catch((e) => status(e.message));
+$("t-refresh").onclick = () => loadTickets().catch((e) => banner(gateMessage(e), "err"));
+$("t-filter-status").onchange = () => loadTickets().catch((e) => banner(gateMessage(e), "err"));
+$("t-filter-project").onchange = () => loadTickets().catch((e) => banner(gateMessage(e), "err"));
 
 function showDetail(rec) {
   $("detail").textContent = JSON.stringify(rec, null, 2);
 }
 
 $("ticket-rows").onclick = async (e) => {
-  const btn = e.target.closest("button"); if (!btn) return;
-  const id = btn.dataset.id; $("op-id").value = id;
+  const btn = e.target.closest("button"); if (!btn || btn.disabled) return;
+  const id = btn.dataset.id; $("op-id").value = id; syncTicketOps();
   try {
     if (btn.dataset.act === "detail") {
       showDetail(await run("ticket-get", { id }));
     } else if (btn.dataset.act === "note") {
       const text = prompt("追加备注内容：");
       if (text == null) return;
-      await run("ticket-note", { id, text });
+      await withBusy(btn, () => run("ticket-note", { id, text }));
       status("备注已追加：" + id); await loadTickets();
     } else if (btn.dataset.act === "message") {
       const text = prompt("发给 PM 的消息：");
       if (text == null) return;
-      await run("ticket-message", { id, text, target: "pm" });
+      await withBusy(btn, () => run("ticket-message", { id, text, target: "pm" }));
       status("已通知 PM：" + id); await loadTickets();
     } else if (btn.dataset.act === "close") {
-      await closeTicket(id);
+      await closeTicket(id, btn);
     }
-  } catch (err) { status("操作失败：" + err.message); }
+  } catch (err) { banner(gateMessage(err), "err"); status("操作失败：" + err.message); }
 };
 
-async function closeTicket(id) {
+async function closeTicket(id, btn) {
   const summary = prompt("结单摘要：");
   if (summary == null) return;
   const verdict = prompt("验收结论（可选，通过/驳回）：") || "";
   try {
-    const rec = await run("ticket-close", { id, summary, verdict });
+    const rec = await withBusy(btn, () => run("ticket-close", { id, summary, verdict }));
     showDetail(rec); status("已结单：" + id); await loadTickets();
-  } catch (err) { status("结单失败：" + err.message); }
+  } catch (err) { banner(gateMessage(err), "err"); status("结单失败：" + err.message); }
 }
 
-// 底部操作栏
+function syncTicketOps() {
+  const id = $("op-id").value.trim();
+  const t = ticketMap[id];
+  const closed = !!(t && t.status === "closed");
+  $("op-note").disabled = closed;
+  $("op-message").disabled = closed;
+  $("op-close").disabled = closed;
+}
+$("op-id").oninput = syncTicketOps;
+
+// 底部工单操作栏
 $("op-detail").onclick = async () => {
   try { showDetail(await run("ticket-get", { id: $("op-id").value.trim() })); }
-  catch (e) { status(e.message); }
+  catch (e) { banner(gateMessage(e), "err"); status(e.message); }
 };
 $("op-note").onclick = async () => {
   try {
     await run("ticket-note", { id: $("op-id").value.trim(), text: $("op-text").value.trim() });
     status("备注已追加"); $("op-text").value = ""; await loadTickets();
-  } catch (e) { status(e.message); }
+  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
 };
 $("op-message").onclick = async () => {
   try {
     await run("ticket-message", { id: $("op-id").value.trim(), text: $("op-text").value.trim(), target: "pm" });
     status("已通知 PM"); $("op-text").value = ""; await loadTickets();
-  } catch (e) { status(e.message); }
+  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
 };
 $("op-close").onclick = async () => {
   try {
@@ -302,18 +387,76 @@ $("op-close").onclick = async () => {
       verdict: $("op-verdict").value.trim()
     });
     showDetail(rec); status("已结单"); await loadTickets();
-  } catch (e) { status(e.message); }
+  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
+};
+
+// ---- 会话 ----
+async function loadSessions() {
+  const list = await run("session-list", { status: $("s-filter-status").value });
+  const items = list.items || [];
+  Object.keys(sessionMap).forEach((k) => delete sessionMap[k]);
+  items.forEach((s) => { sessionMap[s.id] = s; });
+  $("session-rows").innerHTML = items.map((s) => {
+    const st = s.status || "unknown";
+    const gone = st === "gone";
+    const running = st === "running";
+    return `
+    <tr>
+      <td>${esc(s.id)}</td>
+      <td>${esc(s.name || "")}</td>
+      <td class="muted">${esc(s.role || "")}</td>
+      <td class="muted">${esc(s.ticket || "")}</td>
+      <td class="muted">${esc(s.kind || "")}</td>
+      <td><span class="badge ${esc(st)}">${esc(st)}</span></td>
+      <td class="actions">
+        ${actBtn("s-detail", s.id, "详情", false)}
+        ${actBtn("s-send", s.id, "发消息", gone, "", "会话已销毁")}
+        ${actBtn("s-run", s.id, "运行", gone || running, "", running ? "会话运行中" : "会话已销毁")}
+        ${actBtn("s-wait", s.id, "取回复", gone, "", "会话已销毁")}
+      </td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="7" class="muted">暂无可会话</td></tr>';
+}
+
+$("s-refresh").onclick = () => loadSessions().catch((e) => banner(gateMessage(e), "err"));
+$("s-filter-status").onchange = () => loadSessions().catch((e) => banner(gateMessage(e), "err"));
+
+$("session-rows").onclick = async (e) => {
+  const btn = e.target.closest("button"); if (!btn || btn.disabled) return;
+  const id = btn.dataset.id;
+  try {
+    if (btn.dataset.act === "s-detail") {
+      showDetail(await run("session-get", { id }));
+    } else if (btn.dataset.act === "s-send") {
+      const text = prompt("发给会话 " + id + " 的消息：");
+      if (text == null) return;
+      await withBusy(btn, () => run("session-send", { id, text }));
+      status("已发送：" + id); await loadSessions();
+    } else if (btn.dataset.act === "s-run") {
+      await withBusy(btn, () => run("session-run", { id }));
+      status("本轮运行结束：" + id); await loadSessions();
+    } else if (btn.dataset.act === "s-wait") {
+      const reply = await withBusy(btn, () => run("session-wait", { id }));
+      showDetail(reply); status("已取回复：" + id);
+    }
+  } catch (err) { banner(gateMessage(err), "err"); status("会话操作失败：" + err.message); }
 };
 
 $("save").onclick = () => {
   localStorage.setItem("ai_new_token", $("token").value.trim());
   sessionStorage.setItem("hive.token", $("token").value.trim());
-  boot();
+  banner(""); boot();
 };
 
 async function boot() {
-  try { await loadProjects(); await loadTickets(); }
-  catch (e) { status("加载失败：" + e.message); }
+  const errors = [];
+  const steps = [loadProjects, loadTickets, loadSessions];
+  for (const step of steps) {
+    try { await step(); }
+    catch (e) { errors.push(gateMessage(e)); }
+  }
+  if (errors.length) { banner(errors[0], "err"); }
+  else { banner(""); }
 }
 boot();
 </script>
