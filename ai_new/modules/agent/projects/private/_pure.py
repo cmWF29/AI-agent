@@ -14,7 +14,8 @@ def build(rec):
     }
 
 
-def view(rec):
+def view(p):
+    rec = p.get("rec") or p
     return {"id": rec.get("id"), "name": rec.get("name"),
             "archived": rec.get("archived", False),
             "created": rec.get("created"),
@@ -24,14 +25,15 @@ def view(rec):
 def screen(p):
     """列表：rows 是档案记录列表，这里只挑要露出的字段。"""
     rows = p.get("rows") or []
-    items = [view(rec) for rec in rows if rec]
+    items = [view({"rec": rec}) for rec in rows if rec]
     return {"items": items}
 
 
-def archive(rec, now=""):
-    out = dict(rec or {})
+def archive(p):
+    rec = p.get("rec") or {}
+    out = dict(rec)
     out["archived"] = True
-    out["updated"] = now
+    out["updated"] = p.get("now") or ""
     return out
 
 

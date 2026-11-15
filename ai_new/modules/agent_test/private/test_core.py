@@ -149,6 +149,28 @@ class CoreTest(unittest.TestCase):
                                 {"base": "projects/p1/tickets/T-1", "path": "../../escape.md"})
         self.assertFalse(esc.get("ok", True))
 
+    def test_project_lifecycle(self):
+        """项目：建 → 列表露出字段 → 归档 → 彻底删除（纯形状解包不能漏层）。"""
+        created = self._run("projects-create", {"name": "proj-test",
+                                                "default_backend": "deepseek-chat"})["result"]
+        self.assertTrue(created["id"])
+        self.assertEqual(created["name"], "proj-test")
+        self.assertFalse(created["archived"])
+        self.assertTrue(created["created"])
+        self.assertEqual(created["default_backend"], "deepseek-chat")
+
+        listed = self._run("projects-list", {})["result"]["items"]
+        mine = [p for p in listed if p["id"] == created["id"]]
+        self.assertEqual(len(mine), 1)
+
+        archived = self._run("projects-archive", {"id": created["id"]})["result"]
+        self.assertTrue(archived["archived"])
+
+        gone = self._run("projects-delete", {"id": created["id"], "purge": True})["result"]
+        self.assertTrue(gone["deleted"])
+        after = self._run("projects-list", {})["result"]["items"]
+        self.assertFalse(any(p["id"] == created["id"] for p in after))
+
     def test_ticket_lifecycle_and_role_tool(self):
         c = self._run("ticket-create", {"title": "冒烟任务", "goal": "验证工单流程",
                                         "project": "p1"})

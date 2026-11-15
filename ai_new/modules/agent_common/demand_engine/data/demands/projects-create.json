@@ -1,6 +1,6 @@
 {
   "id": "projects-create",
-  "title": "新建项目：id 归一 → 查重 → 取时间造档案 → 落盘 → 露出字段",
+  "title": "新建项目：id 归一 → 取时间造档案 → 查重 → 落盘 → 露出字段",
   "enabled": true,
   "callable": true,
   "on": [],
@@ -13,6 +13,10 @@
         }
       },
       "as": "id"
+    },
+    {
+      "call": "clock.now",
+      "as": "now"
     },
     {
       "call": "projects.build",
@@ -101,10 +105,6 @@
           "as": "out"
         }
       ]
-    },
-    {
-      "call": "clock.now",
-      "as": "now_ignored"
     }
   ],
   "expect": {
@@ -113,11 +113,11 @@
     },
     "calls": [
       "store.id",
+      "clock.now",
       "projects.build",
       "store.exists",
       "store.write",
-      "projects.view",
-      "clock.now"
+      "projects.view"
     ],
     "payload": {},
     "promise": "查重与落盘都在需求里，模块只负责造形状"

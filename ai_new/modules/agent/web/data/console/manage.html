@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hive AI · 项目与工单</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2129;--bg:#f7f8fa;--card:#fff;--line:#e5e6eb;--accent:#1664ff}
+@media (prefers-color-scheme:dark){:root{--fg:#e5e6eb;--bg:#17171a;--card:#1f1f24;--line:#2f2f36;--accent:#6aa1ff}}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,Segoe UI,Roboto,"Microsoft YaHei",Arial,"PingFang SC",sans-serif;color:var(--fg);background:var(--bg)}
+header{display:flex;gap:12px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{font-size:16px;margin:0}
+header nav{display:flex;gap:8px}
+header nav a{color:var(--fg);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px}
+header nav a.active{border-color:var(--accent);color:var(--accent)}
+header .spacer{margin-left:auto}
+input,select,textarea{width:100%;font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px}
+textarea{min-height:64px;resize:vertical}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:8px;padding:6px 12px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger{color:#f53f3f;border-color:#f53f3f}
+main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 20px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+section h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin:0 0 10px}
+form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+form .full{margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{opacity:.6;font-weight:500}
+.muted{opacity:.6;font-size:12px}
+.badge{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:12px}
+.badge.closed{color:#00b42a;border-color:#00b42a}
+.badge.archived{color:#ff7d00;border-color:#ff7d00}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.actions button{padding:3px 8px;font-size:12px}
+#detail{margin-top:12px;max-height:260px;overflow:auto}
+pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,monospace;font-size:12px;margin:0}
+#status{margin-top:8px;font-size:12px;opacity:.7}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>项目与工单</h1>
+  <nav>
+    <a href="/index.html">装配控制台</a>
+    <a href="/panel.html">消息面板</a>
+    <a href="/manage.html" class="active">项目与工单</a>
+  </nav>
+  <div class="spacer"></div>
+  <input id="token" placeholder="令牌（本地可留空）" style="width:200px">
+  <button id="save">保存令牌</button>
+</header>
+<main>
+  <section>
+    <h2>项目管理</h2>
+    <form id="proj-form">
+      <div class="row">
+        <div><label class="muted">项目名称</label><input id="p-name" placeholder="例如：官网重构" required></div>
+        <div><label class="muted">默认后端（可选）</label><input id="p-backend" placeholder="如 deepseek-chat"></div>
+      </div>
+      <div class="actions"><button class="primary" type="submit">新建项目</button>
+        <button type="button" id="p-refresh">刷新</button></div>
+    </form>
+    <table>
+      <thead><tr><th>ID</th><th>名称</th><th>后端</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="proj-rows"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>工单管理</h2>
+    <form id="ticket-form">
+      <div class="row">
+        <div><label class="muted">标题</label><input id="t-title" placeholder="工单标题" required></div>
+        <div><label class="muted">所属项目</label><select id="t-project"></select></div>
+      </div>
+      <div class="full"><label class="muted">需求目标</label><textarea id="t-goal" placeholder="要做什么、验收标准是什么"></textarea></div>
+      <div class="row">
+        <div><label class="muted">类型</label><select id="t-kind">
+          <option value="normal">普通</option>
+          <option value="stall-audit">停滞审计</option>
+        </select></div>
+        <div><label class="muted">父工单（可选）</label><input id="t-parent" placeholder="父工单 ID"></div>
+      </div>
+      <div class="actions"><button class="primary" type="submit">建工单</button>
+        <button type="button" id="t-refresh">刷新</button></div>
+    </form>
+    <div class="row" style="margin:10px 0">
+      <div><label class="muted">按状态筛选</label><select id="t-filter-status">
+        <option value="">全部</option><option value="queued">queued</option>
+        <option value="running">running</option><option value="idle">idle</option>
+        <option value="closed">closed</option>
+      </select></div>
+      <div><label class="muted">按项目筛选</label><select id="t-filter-project"></select></div>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>标题</th><th>项目</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="ticket-rows"></tbody>
+    </table>
+  </section>
+
+  <section style="grid-column:1/-1">
+    <h2>工单操作与详情</h2>
+    <div class="row">
+      <div><label class="muted">选中工单</label><input id="op-id" placeholder="工单 ID"></div>
+      <div><label class="muted">备注 / 消息内容</label><input id="op-text" placeholder="写给 PM 或追加备注的文字"></div>
+    </div>
+    <div class="row">
+      <div><label class="muted">结单结论 summary</label><input id="op-summary" placeholder="结单摘要"></div>
+      <div><label class="muted">验收 verdict（可选）</label><input id="op-verdict" placeholder="通过 / 驳回"></div>
+    </div>
+    <div class="actions" style="margin-bottom:10px">
+      <button id="op-detail">查看详情</button>
+      <button id="op-note">追加备注</button>
+      <button id="op-message">发消息给 PM</button>
+      <button id="op-close" class="danger">结单</button>
+    </div>
+    <pre id="detail">未选择工单</pre>
+    <div id="status"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const token = () => localStorage.getItem("ai_new_token") || sessionStorage.getItem("hive.token") || "";
+$("token").value = token();
+
+function headers() {
+  const h = { "Content-Type": "application/json" };
+  if (token()) h["X-Auth-Token"] = token();
+  return h;
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+async function run(demand, input) {
+  const resp = await fetch("/api/rpc/demand_engine/run", {
+    method: "POST", headers: headers(),
+    body: JSON.stringify({ id: demand, input: input || {} })
+  });
+  const body = await resp.json().catch(() => ({ ok: false, error: "响应不是 JSON" }));
+  if (!body.ok) throw new Error(body.error || ("HTTP " + resp.status));
+  const inner = (body.result && body.result.result) || {};
+  if (inner && inner.ok === false) throw new Error(inner.error || inner.code || "需求失败");
+  return inner;
+}
+function status(text) { $("status").textContent = text; }
+
+// ---- 项目 ----
+async function loadProjects() {
+  const list = await run("projects-list", {});
+  const items = list.items || [];
+  const opts = ['<option value="">（未指定）</option>']
+    .concat(items.map((p) => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`));
+  $("t-project").innerHTML = opts.join("");
+  $("t-filter-project").innerHTML = opts.join("");
+  $("proj-rows").innerHTML = items.map((p) => `
+    <tr>
+      <td>${esc(p.id)}</td>
+      <td>${esc(p.name)}</td>
+      <td class="muted">${esc(p.default_backend || "")}</td>
+      <td>${p.archived ? '<span class="badge archived">已归档</span>' : '<span class="badge">活跃</span>'}</td>
+      <td class="actions">
+        <button data-act="archive" data-id="${esc(p.id)}">归档</button>
+        <button class="danger" data-act="del" data-id="${esc(p.id)}">删除</button>
+      </td>
+    </tr>`).join("") || '<tr><td colspan="5" class="muted">暂无项目</td></tr>';
+}
+
+$("proj-form").onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const rec = await run("projects-create", {
+      name: $("p-name").value.trim(),
+      default_backend: $("p-backend").value.trim()
+    });
+    status("已建项目：" + (rec.id || ""));
+    $("p-name").value = ""; $("p-backend").value = "";
+    await loadProjects(); await loadTickets();
+  } catch (err) { status("项目创建失败：" + err.message); }
+};
+$("p-refresh").onclick = () => loadProjects().catch((e) => status(e.message));
+
+$("proj-rows").onclick = async (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  const id = btn.dataset.id;
+  try {
+    if (btn.dataset.act === "archive") {
+      await run("projects-archive", { id });
+      status("已归档：" + id);
+    } else if (btn.dataset.act === "del") {
+      if (!confirm("彻底删除项目 " + id + "？")) return;
+      await run("projects-delete", { id, purge: true });
+      status("已删除：" + id);
+    }
+    await loadProjects(); await loadTickets();
+  } catch (err) { status("操作失败：" + err.message); }
+};
+
+// ---- 工单 ----
+async function loadTickets() {
+  const list = await run("ticket-list", {
+    status: $("t-filter-status").value,
+    project: $("t-filter-project").value
+  });
+  const items = list.items || [];
+  $("ticket-rows").innerHTML = items.map((t) => `
+    <tr>
+      <td>${esc(t.id)}</td>
+      <td>${esc(t.title)}</td>
+      <td class="muted">${esc(t.project || "")}</td>
+      <td class="muted">${esc(t.kind || "")}</td>
+      <td>${t.status === "closed" ? '<span class="badge closed">closed</span>' : `<span class="badge">${esc(t.status)}</span>`}</td>
+      <td class="actions">
+        <button data-act="detail" data-id="${esc(t.id)}">详情</button>
+        <button data-act="note" data-id="${esc(t.id)}">备注</button>
+        <button data-act="message" data-id="${esc(t.id)}">发 PM</button>
+        <button data-act="close" data-id="${esc(t.id)}">结单</button>
+      </td>
+    </tr>`).join("") || '<tr><td colspan="6" class="muted">暂无工单</td></tr>';
+}
+
+$("ticket-form").onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const rec = await run("ticket-create", {
+      title: $("t-title").value.trim(),
+      goal: $("t-goal").value.trim(),
+      project: $("t-project").value,
+      kind: $("t-kind").value,
+      parent: $("t-parent").value.trim()
+    });
+    status("已建工单：" + (rec.id || ""));
+    $("t-title").value = ""; $("t-goal").value = ""; $("t-parent").value = "";
+    await loadTickets();
+  } catch (err) { status("工单创建失败：" + err.message); }
+};
+$("t-refresh").onclick = () => loadTickets().catch((e) => status(e.message));
+$("t-filter-status").onchange = () => loadTickets().catch((e) => status(e.message));
+$("t-filter-project").onchange = () => loadTickets().catch((e) => status(e.message));
+
+function showDetail(rec) {
+  $("detail").textContent = JSON.stringify(rec, null, 2);
+}
+
+$("ticket-rows").onclick = async (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  const id = btn.dataset.id; $("op-id").value = id;
+  try {
+    if (btn.dataset.act === "detail") {
+      showDetail(await run("ticket-get", { id }));
+    } else if (btn.dataset.act === "note") {
+      const text = prompt("追加备注内容：");
+      if (text == null) return;
+      await run("ticket-note", { id, text });
+      status("备注已追加：" + id); await loadTickets();
+    } else if (btn.dataset.act === "message") {
+      const text = prompt("发给 PM 的消息：");
+      if (text == null) return;
+      await run("ticket-message", { id, text, target: "pm" });
+      status("已通知 PM：" + id); await loadTickets();
+    } else if (btn.dataset.act === "close") {
+      await closeTicket(id);
+    }
+  } catch (err) { status("操作失败：" + err.message); }
+};
+
+async function closeTicket(id) {
+  const summary = prompt("结单摘要：");
+  if (summary == null) return;
+  const verdict = prompt("验收结论（可选，通过/驳回）：") || "";
+  try {
+    const rec = await run("ticket-close", { id, summary, verdict });
+    showDetail(rec); status("已结单：" + id); await loadTickets();
+  } catch (err) { status("结单失败：" + err.message); }
+}
+
+// 底部操作栏
+$("op-detail").onclick = async () => {
+  try { showDetail(await run("ticket-get", { id: $("op-id").value.trim() })); }
+  catch (e) { status(e.message); }
+};
+$("op-note").onclick = async () => {
+  try {
+    await run("ticket-note", { id: $("op-id").value.trim(), text: $("op-text").value.trim() });
+    status("备注已追加"); $("op-text").value = ""; await loadTickets();
+  } catch (e) { status(e.message); }
+};
+$("op-message").onclick = async () => {
+  try {
+    await run("ticket-message", { id: $("op-id").value.trim(), text: $("op-text").value.trim(), target: "pm" });
+    status("已通知 PM"); $("op-text").value = ""; await loadTickets();
+  } catch (e) { status(e.message); }
+};
+$("op-close").onclick = async () => {
+  try {
+    const rec = await run("ticket-close", {
+      id: $("op-id").value.trim(),
+      summary: $("op-summary").value.trim(),
+      verdict: $("op-verdict").value.trim()
+    });
+    showDetail(rec); status("已结单"); await loadTickets();
+  } catch (e) { status(e.message); }
+};
+
+$("save").onclick = () => {
+  localStorage.setItem("ai_new_token", $("token").value.trim());
+  sessionStorage.setItem("hive.token", $("token").value.trim());
+  boot();
+};
+
+async function boot() {
+  try { await loadProjects(); await loadTickets(); }
+  catch (e) { status("加载失败：" + e.message); }
+}
+boot();
+</script>
+</body>
+</html>
