@@ -58,11 +58,12 @@ def build(p):
 
 def view(p):
     rec = p.get("rec") or {}
-    return {k: rec.get(k) for k in ("id", "title", "goal", "project", "kind", "parent",
-                                     "status", "pm", "created", "updated", "closed",
-                                     "summary", "verdict", "auto_retrospective")} | {
-        "children": rec.get("children") or [], "roles": rec.get("roles") or [],
-        "history": rec.get("history") or []}
+    base = {k: rec.get(k) for k in ("id", "title", "goal", "project", "kind", "parent",
+                                    "status", "pm", "created", "updated", "closed",
+                                    "summary", "verdict", "auto_retrospective")}
+    base.update({"children": rec.get("children") or [], "roles": rec.get("roles") or [],
+                 "history": rec.get("history") or []})
+    return base
 
 
 def screen(p):
