@@ -84,10 +84,12 @@ function esc(s) {
 let state = { info: null, modules: null, hooks: null, demands: null, view: "modules" };
 
 async function load() {
-  const [info, modules, hooks, demands, logs] = await Promise.all([
+  const [info, modules, hooks, demands] = await Promise.all([
     get("/api/web/info"), get("/api/modules"), get("/api/hooks/points"),
-    get("/api/demand_engine/list"), get("/api/ops/logs?lines=40"),
+    get("/api/demand_engine/list"),
   ]);
+  const logsRes = await post("/api/rpc/demand_engine/run", { id: "ops-logs", input: {} });
+  const logs = (logsRes.result && logsRes.result.result) || {};
   state.info = info.ok ? info : null;
   state.modules = modules;
   state.hooks = hooks;
