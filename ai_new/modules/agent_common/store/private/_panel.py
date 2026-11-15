@@ -422,11 +422,17 @@ class Storage:
 
 # ---------------------------------------------------------------- 按模块定位的数据路由
 def _dir_of(module):
-    """`agent/knowledge` 这种模块名 → 它的数据目录（部署搬根时跟着走）。"""
+    """`agent/knowledge` 这种模块名 → 它的数据目录（部署搬根时跟着走）。
+
+    源码树里数据在 `<module>/data/`；外部镜像根（AI_NEW_DATA）按
+    `<root>/<group>/<module>/...` 平铺，不再多一层 data。
+    """
     module = (module or "").strip("/").replace("\\", "/")
     external = os.environ.get("AI_NEW_DATA")
-    base = Path(external) if external else _files.modules_root()
-    return base / Path(*module.split("/")) / "data"
+    rel = Path(*module.split("/")) if module else Path()
+    if external:
+        return Path(external) / rel
+    return _files.modules_root() / rel / "data"
 
 
 def _p(module, path):

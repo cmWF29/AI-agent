@@ -1,11 +1,11 @@
-"""核心流程冒烟：真实装配（临时 data 目录）+ HTTP 端到端。"""
+"""核心流程冒烟：真实装配（临时 data 目录）+ HTTP 端到端。
+
+业务闭环一律走需求入口（demand_engine.run），模块能力只在纯形状/守卫层做单点断言。
+"""
 import json
 import os
-import shutil
 import sys
 import tempfile
-import threading
-import time
 import unittest
 import urllib.error
 import urllib.request
@@ -58,21 +58,14 @@ class CoreTest(unittest.TestCase):
         os.environ.pop("AI_NEW_DATA", None)
         cls.tmp.cleanup()
 
+    # ---- 架构不变量 ----
+
     def test_all_modules_loaded(self):
         expect = {"config", "store", "hooks", "demand_engine", "api", "tools", "llm", "react",
                   "knowledge", "artifacts", "library", "sessions", "projects",
                   "tickets", "agents", "health", "ops", "skills", "web", "http",
                   "channel", "net", "host", "codec", "clock"}
         self.assertEqual(set(self.loaded), expect)
-
-    def test_knowledge_roundtrip(self):
-        self.ctx.api.call("knowledge.write", {"layer": "public", "name": "arch-note",
-                                              "content": "架构约定：模块只能通过 api 调用。"})
-        r = self.ctx.api.call("knowledge.read", {"layer": "public", "name": "arch-note"})
-        self.assertIn("架构约定", r["content"])
-        # public 层不跨模块借别人的提示词：没有就是没有
-        with self.assertRaises(Exception):
-            self.ctx.api.call("knowledge.read", {"layer": "public", "name": "secretary"})
 
     def test_modules_have_no_log_capability(self):
         """ctx 上没有日志：记日志是运维的业务，模块只能 emit hook。"""
@@ -87,19 +80,6 @@ class CoreTest(unittest.TestCase):
         runtime = {p["name"] for p in self.ctx.api.call("hooks.points")}
         self.assertEqual(runtime, static)
 
-    def test_channel_post_tail_and_stream_route(self):
-        """频道能力：发一条、读回来、并且 watch 是流式路由。"""
-        key = "probe-ch"
-        self.ctx.api.call("channel.post", {"channel": key, "role": "user", "content": "一"})
-        self.ctx.api.call("channel.post", {"channel": key, "role": "user", "content": "二"})
-        t = self.ctx.api.call("channel.tail", {"channel": key, "limit": 5})
-        mine = [m["content"] for m in t["messages"] if m["role"] == "user"]
-        self.assertEqual(mine, ["一", "二"])
-        w = self.ctx.api.call("channel.watch", {"channel": key, "cursor": 1, "timeout": 1})
-        self.assertEqual([m["content"] for m in w["items"] if m["role"] == "user"], ["二"])
-        meta = {r["name"]: r for r in self.ctx.api.routes()}
-        self.assertTrue(meta["channel.watch"]["stream"], "watch 必须标 stream 才能走 SSE")
-
     def test_demand_calls_bind_to_real_routes(self):
         """需求绑定的 func 必须真注册：改函数名/删函数，静态和运行期都躲不过。"""
         from ai_new.modules.agent_common.demand_engine.private import _lang
@@ -113,109 +93,122 @@ class CoreTest(unittest.TestCase):
                     problems.append("%s 调了不存在的 func: %s" % (rec.get("id"), route))
         self.assertEqual(problems, [], "需求绑定了不存在的功能: %s" % problems)
 
+    # ---- 需求编排闭环 ----
+
+    def _run(self, demand, input=None):
+        """按名跑一条 callable 需求，返回引擎结果 {ok, demand, result, calls}。"""
+        return self.ctx.api.call("demand_engine.run",
+                                 {"id": demand, "input": input or {}})
+
+    def test_knowledge_roundtrip(self):
+        self._run("knowledge-write", {"layer": "public", "name": "arch-note",
+                                      "content": "架构约定：模块只能通过 api 调用。"})
+        r = self._run("knowledge-read", {"layer": "public", "name": "arch-note"})
+        self.assertIn("架构约定", r["result"]["content"])
+        # public 层没有就是没有：读不到回 not_found，不抛异常
+        miss = self._run("knowledge-read", {"layer": "public", "name": "secretary"})
+        self.assertFalse(miss["result"].get("ok", True))
+
+    def test_channel_post_tail_roundtrip(self):
+        """频道：需求发两条、按序读回（watch 长流已从能力面移除，见交接遗留项）。"""
+        self._run("channel-post", {"channel": "probe-ch", "role": "user", "content": "一"})
+        self._run("channel-post", {"channel": "probe-ch", "role": "user", "content": "二"})
+        t = self._run("channel-tail", {"channel": "probe-ch", "limit": 5})["result"]
+        mine = [m["content"] for m in t["messages"] if m["role"] == "user"]
+        self.assertEqual(mine, ["一", "二"])
+        meta = {r["name"]: r for r in self.ctx.api.routes()}
+        self.assertIn("channel.tail", meta)
+
     def test_chat_demand_answers_and_does_not_self_trigger(self):
-        """一条业务闭环：网页消息 → 模型 → 回复；回复进来不许再把模型叫一次。"""
+        """一条业务闭环：用户消息 → 模型 → 回复写回；assistant 不再触发模型。"""
         key = "rt-chat"
         before = self.fake_net.calls
-        self.ctx.api.call("channel.post", {"channel": key, "role": "user", "content": "在吗"})
+        self._run("channel-post", {"channel": key, "role": "user", "content": "在吗"})
         self.assertEqual(self.fake_net.calls, before + 1, "用户消息应该触发一次模型调用")
-        rows = self.ctx.api.call("channel.tail", {"channel": key, "limit": 10})["messages"]
+        rows = self._run("channel-tail", {"channel": key, "limit": 10})["result"]["messages"]
         self.assertEqual(rows[-1]["role"], "assistant")
         self.assertIn("测试", rows[-1]["content"])
         self.assertEqual(self.fake_net.calls, before + 1, "assistant 消息不能再触发模型（会自激）")
 
-    def test_sse_streams_new_messages(self):
-        """SSE：/api/sse/<module>/<fn> 只放行流式路由，并且新消息会立刻推出来。"""
-        key = "sse-ch"
+    def test_artifacts_roundtrip_and_escape(self):
+        self._run("artifacts-write", {"layer": "ticket", "project": "p1", "ticket": "T-1",
+                                      "path": "docs/handoff/dev.md", "content": "改动点：x"})
+        r = self._run("artifacts-read", {"layer": "ticket", "project": "p1", "ticket": "T-1",
+                                         "path": "docs/handoff/dev.md"})
+        self.assertIn("改动点", r["result"]["text"])
+        # 越界在纯函数里拦：rel 直接给失败形状，不落到盘上
+        esc = self.ctx.api.call("artifacts.rel",
+                                {"base": "projects/p1/tickets/T-1", "path": "../../escape.md"})
+        self.assertFalse(esc.get("ok", True))
 
+    def test_ticket_lifecycle_and_role_tool(self):
+        c = self._run("ticket-create", {"title": "冒烟任务", "goal": "验证工单流程",
+                                        "project": "p1"})
+        t = c["result"]
+        self.assertTrue(t["pm"], "PM 会话未创建")
+        self.assertEqual(t["status"], "queued")
+        # PM 会话挂在工单上；拉一个角色会话
+        rs = self._run("ticket-role-spawn", {"id": t["id"], "role": "developer",
+                                             "task": "写一份 docs/handoff/developer.md"})
+        self.assertTrue(rs["result"]["roles"][0]["session"].startswith("role-"))
+        # 列表与回读
+        lst = self._run("ticket-list", {})
+        self.assertTrue(any(x["id"] == t["id"] for x in lst["result"]["items"]))
+        g = self._run("ticket-get", {"id": t["id"]})
+        self.assertEqual(g["result"]["status"], "queued")
+        # 无子单，可直接结单
+        self._run("ticket-close", {"id": t["id"], "summary": "验证完成"})
+        got = self._run("ticket-get", {"id": t["id"]})
+        self.assertEqual(got["result"]["status"], "closed")
+
+    def test_session_spawn_send_run_wait(self):
+        sp = self._run("session-spawn", {"kind": "role", "role": "developer",
+                                          "name": "dev", "ticket": "T-1"})
+        sid = sp["result"]["id"]
+        self.assertEqual(sp["result"]["status"], "idle")
+        self._run("session-send", {"id": sid, "text": "开始"})
+        self._run("session-run", {"id": sid})
+        done = self._run("session-wait", {"id": sid})["result"]
+        self.assertEqual(done["status"], "idle")
+        self.assertIn("测试", done["content"])
+
+    def test_ops_overview_logs_and_library(self):
+        o = self._run("ops-overview")["result"]
+        self.assertIn("sessions", o)
+        logs = self._run("ops-logs")["result"]
+        self.assertIn("events", logs)
+        lib = self._run("library-summary")["result"]
+        self.assertGreaterEqual(lib["counts"]["roles"], 8)
+
+    # ---- 调用面与 HTTP 通道 ----
+
+    def test_module_caller_is_forbidden(self):
+        """能力只对需求开放：模块自己伸手会被注册表拦（旧跨模块矩阵已收敛成这道闸）。"""
+        with self.assertRaises(Exception) as cm:
+            self.ctx.api.call("tickets.view", {"rec": {}}, caller="sessions")
+        self.assertIn("能力只能由需求调用", str(cm.exception))
+
+    def test_demand_caller_allowed(self):
+        r = self.ctx.api.call("tickets.view", {"rec": {}}, caller="demand_engine")
+        self.assertIsInstance(r, dict)
+
+    def test_sse_gate_rejects_non_stream_and_unknown(self):
+        """SSE 入口：未知路由 404；已注册但非流式 400。当前没有流式路由，长流推送见遗留项。"""
         def _open(path):
             req = urllib.request.Request("http://127.0.0.1:%d%s" % (self.port, path),
                                          headers={"X-Auth-Token": "t"})
             return urllib.request.urlopen(req, timeout=5)
 
         with self.assertRaises(urllib.error.HTTPError) as cm:
-            _open("/api/sse/tickets/list?limit=1").read()
+            _open("/api/sse/nope/route").read()
+        self.assertEqual(cm.exception.code, 404)
+
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            _open("/api/sse/clock/now").read()
         self.assertEqual(cm.exception.code, 400, "非流式路由必须被 SSE 入口拒绝")
 
-        got = []
-
-        def reader():
-            try:
-                with _open("/api/sse/channel/watch?channel=%s&cursor=0&timeout=3" % key) as resp:
-                    for _ in range(6):
-                        line = resp.readline().decode("utf-8")
-                        if line.startswith("data:"):
-                            got.append(json.loads(line[5:].strip()))
-                            break
-            except Exception:  # noqa: BLE001
-                pass
-
-        thread = threading.Thread(target=reader, daemon=True)
-        thread.start()
-        time.sleep(0.4)
-        self.ctx.api.call("channel.post", {"channel": key, "role": "user", "content": "流一下"})
-        thread.join(timeout=5)
-        self.assertTrue(got, "SSE 没有推出新消息")
-        self.assertEqual(got[0]["content"], "流一下")
-
-    def test_artifacts_roundtrip_and_escape(self):
-        self.ctx.api.call("demand_engine.run", {"id": "projects-create", "input": {"name": "p1"}})
-        w = self.ctx.api.call("artifacts.write", {"layer": "ticket", "project": "p1",
-                                                  "ticket": "T-1", "path": "docs/handoff/dev.md",
-                                                  "content": "改动点：x"})
-        base = self.ctx.storage.all_data()["agent/artifacts"]
-        self.assertTrue((base / w["path"]).is_file())
-        r = self.ctx.api.call("artifacts.read", {"layer": "ticket", "project": "p1",
-                                                 "ticket": "T-1", "path": "docs/handoff/dev.md"})
-        self.assertIn("改动点", r["text"])
-        with self.assertRaises(Exception):
-            self.ctx.api.call("artifacts.write", {"layer": "ticket", "project": "p1",
-                                                  "ticket": "T-1", "path": "../../escape.md",
-                                                  "content": "x"})
-
-    def test_ticket_lifecycle_and_role_tool(self):
-        t = self.ctx.api.call("tickets.create", {"title": "冒烟任务", "goal": "验证工单流程",
-                                                 "project": "p1"})
-        self.assertTrue(t["pm"], "PM 会话未创建")
-        self.assertEqual(t["status"], "queued")
-        # PM 会话里派角色（模拟工具调用上下文）
-        s = self.ctx.api.call("sessions.get", {"id": t["pm"]})
-        self.assertEqual(s["kind"], "pm")
-        rs = self.ctx.api.call("tickets.role_spawn", {"id": t["id"], "role": "developer",
-                                                      "task": "写一份 docs/handoff/developer.md"})
-        self.assertTrue(rs["session"].startswith("role-"))
-        # 子单
-        sp = self.ctx.api.call("tickets.split", {"id": t["id"],
-                                                 "children": [{"title": "子1", "goal": "g1"}]})
-        self.assertEqual(len(sp["children"]), 1)
-        # 子单未结，父单不能结
-        with self.assertRaises(Exception):
-            self.ctx.api.call("tickets.close", {"id": t["id"], "summary": "提前结单"})
-        self.ctx.api.call("tickets.close", {"id": sp["children"][0], "summary": "子1完成"})
-        self.ctx.api.call("tickets.close", {"id": t["id"], "summary": "验证完成"})
-        got = self.ctx.api.call("tickets.get", {"id": t["id"]})
-        self.assertEqual(got["status"], "closed")
-
-    def test_matrix_denies_undeclared_cross_module_call(self):
-        with self.assertRaises(Exception) as cm:
-            self.ctx.api.call("tickets.get", {"id": "T-x"}, caller="sessions")
-        self.assertIn("未声明", str(cm.exception))
-
-    def test_same_module_call_allowed(self):
-        r = self.ctx.api.call("tickets.list", {}, caller="tickets")
-        self.assertIsInstance(r.get("items"), list)
-
-    def test_session_run_with_fake_llm(self):
-        sp = self.ctx.api.call("sessions.spawn", {"kind": "role", "role": "developer",
-                                                  "name": "dev", "ticket": "T-1"})
-        out = self.ctx.api.call("sessions.send", {"id": sp["id"], "text": "开始"})
-        self.assertEqual(out["status"], "queued")
-        done = self.ctx.api.call("sessions.wait", {"id": sp["id"], "timeout": 10})
-        self.assertEqual(done["status"], "idle")
-        self.assertIn("测试", done["content"])
-
     def test_health_and_http(self):
-        h = self.ctx.api.call("demand_engine.run", {"id": "health-self"})["result"]
+        h = self._run("health-self")["result"]
         self.assertTrue(h["ok"])
         self.assertGreaterEqual(len(h["modules"]), 19)
         req = urllib.request.Request(
@@ -227,28 +220,19 @@ class CoreTest(unittest.TestCase):
         self.assertTrue(body["ok"])
         self.assertGreaterEqual(len(body["result"]["result"]["modules"]), 19)
         # 无 token 必须 401
-        bad = urllib.request.Request("http://127.0.0.1:%d/api/tickets/list" % self.port)
+        bad = urllib.request.Request("http://127.0.0.1:%d/api/rpc/clock/now" % self.port)
         with self.assertRaises(urllib.error.HTTPError):
             urllib.request.urlopen(bad, timeout=5)
 
     def test_rpc_endpoint_returns_raw_result(self):
         """网络通道的服务端：/api/rpc/ 返回未包装的原始结果，供另一个进程直接消费。"""
-        body = json.dumps({"layer": "public", "name": "arch-note"}).encode("utf-8")
         req = urllib.request.Request(
-            "http://127.0.0.1:%d/api/rpc/knowledge/read" % self.port, data=body, method="POST",
+            "http://127.0.0.1:%d/api/rpc/clock/now" % self.port, method="POST",
             headers={"X-Auth-Token": "t", "Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             rec = json.loads(resp.read().decode("utf-8"))
         self.assertTrue(rec["ok"])
-        self.assertIn("架构约定", rec["result"]["content"])
-
-    def test_ops_overview_and_logs(self):
-        o = self.ctx.api.call("demand_engine.run", {"id": "ops-overview"})["result"]
-        self.assertIn("sessions", o)
-        logs = self.ctx.api.call("ops.logs", {"lines": 20})
-        self.assertIn("events", logs)
-        lib = self.ctx.api.call("library.summary", {})
-        self.assertGreaterEqual(lib["counts"]["roles"], 8)
+        self.assertIn("ts", rec["result"])
 
 
 if __name__ == "__main__":

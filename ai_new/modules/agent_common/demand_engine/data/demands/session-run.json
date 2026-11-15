@@ -62,7 +62,7 @@
           "b": {
             "op": "+",
             "a": {
-              "get": "rec.id"
+              "get": "running.id"
             },
             "b": {
               "lit": ".json"
@@ -118,7 +118,7 @@
           "get": "running"
         },
         "out": {
-          "get": "out"
+          "get": "out.result"
         },
         "now": {
           "get": "done_at.ts"

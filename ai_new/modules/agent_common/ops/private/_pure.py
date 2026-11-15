@@ -3,10 +3,9 @@ from __future__ import annotations
 
 
 def assemble(p):
-    parts = p.get("parts") or {}
     keys = ("config", "sessions", "tickets", "knowledge", "artifacts",
             "library", "projects", "agents", "demands")
-    return {k: parts.get(k) or {} for k in keys}
+    return {k: p.get(k) or {} for k in keys}
 
 
 def record(p):

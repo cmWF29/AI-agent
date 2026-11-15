@@ -10,8 +10,12 @@ def setup(ctx):
     """装配入口：只收数据（起点先占位，模块清单在 start 期补齐）。"""
     _MOUNT["started"] = 0.0
     _MOUNT["modules"] = []
+
+    def _with_mount(fn, payload):
+        return fn({**mount(), **(payload or {})})
+
     for name, fn in [("health.live", _pure.live), ("health.assemble", _pure.assemble)]:
-        ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="health")
+        ctx.api.register(name, lambda c, p, fn=fn: _with_mount(fn, p), module="health")
     return True
 
 

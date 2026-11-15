@@ -5,7 +5,7 @@
 表达式：
     {"get": "event.data.layer"}                 从作用域取值（点号路径）
     {"lit": 任意 JSON}                          字面量
-    {"op": "==" | "!=" | "in" | "and" | "or" | "not" | "len" | "+" | ">" | "<",
+    {"op": "==" | "!=" | "in" | "and" | "or" | "not" | "len" | "+" | ">" | "<" | ">=" | "<=",
      "a": 表达式, "b": 表达式}                   运算（not/len 只用 a）
     裸字符串 / 数字 / 布尔 / 列表 / 普通字典       字面量
 
@@ -71,6 +71,10 @@ def eval_expr(expr, scope, depth=0):
         return a > b
     if op == "<":
         return a < b
+    if op == ">=":
+        return a >= b
+    if op == "<=":
+        return a <= b
     if op == "append":
         return list(a or []) + [b]
     raise ValueError("未知运算符: %r" % (op,))
