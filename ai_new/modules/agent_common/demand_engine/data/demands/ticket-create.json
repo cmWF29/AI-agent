@@ -1,0 +1,178 @@
+{
+  "id": "ticket-create",
+  "title": "建工单：算 id → 造记录 → 拉 PM 会话 → 落盘",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.id",
+      "with": {
+        "value": {
+          "get": "input.title"
+        }
+      },
+      "as": "slug"
+    },
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "tickets.newid",
+      "with": {
+        "today": {
+          "get": "now.iso"
+        },
+        "n": {
+          "get": "input.n"
+        }
+      },
+      "as": "fresh"
+    },
+    {
+      "call": "tickets.build",
+      "with": {
+        "id": {
+          "get": "fresh.id"
+        },
+        "title": {
+          "get": "input.title"
+        },
+        "goal": {
+          "get": "input.goal"
+        },
+        "project": {
+          "get": "input.project"
+        },
+        "kind": {
+          "get": "input.kind"
+        },
+        "parent": {
+          "get": "input.parent"
+        },
+        "meta": {
+          "get": "input.meta"
+        },
+        "auto_retrospective": {
+          "get": "input.auto_retrospective"
+        },
+        "now": {
+          "get": "now.ts"
+        }
+      },
+      "as": "rec"
+    },
+    {
+      "when": {
+        "op": "!=",
+        "a": {
+          "get": "input.kind"
+        },
+        "b": "stall-audit"
+      },
+      "then": [
+        {
+          "call": "demand_engine.run",
+          "with": {
+            "id": {
+              "lit": "session-spawn"
+            },
+            "input": {
+              "kind": {
+                "lit": "pm"
+              },
+              "name": {
+                "op": "+",
+                "a": {
+                  "lit": "PM-"
+                },
+                "b": {
+                  "get": "fresh.id"
+                }
+              },
+              "ticket": {
+                "get": "fresh.id"
+              },
+              "max_steps": {
+                "get": "input.pm_max_steps"
+              },
+              "task": {
+                "get": "input.task"
+              }
+            }
+          },
+          "as": "pm"
+        },
+        {
+          "call": "tickets.bindpm",
+          "with": {
+            "rec": {
+              "get": "rec"
+            },
+            "session": {
+              "get": "pm.result.id"
+            },
+            "now": {
+              "get": "now.ts"
+            }
+          },
+          "as": "rec"
+        }
+      ]
+    },
+    {
+      "call": "store.write",
+      "with": {
+        "module": {
+          "lit": "agent/tickets"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "tickets/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "rec.id"
+            },
+            "b": {
+              "lit": "/ticket.json"
+            }
+          }
+        },
+        "value": {
+          "get": "rec"
+        }
+      },
+      "as": "w"
+    },
+    {
+      "call": "tickets.view",
+      "with": {
+        "rec": {
+          "get": "rec"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.id",
+      "clock.now",
+      "tickets.newid",
+      "tickets.build",
+      "demand_engine.run",
+      "tickets.bindpm",
+      "store.write",
+      "tickets.view"
+    ],
+    "payload": {},
+    "promise": "PM 会话也是需求拉的，模块只造记录"
+  }
+}

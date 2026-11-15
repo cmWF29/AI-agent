@@ -1,0 +1,148 @@
+{
+  "id": "ticket-role-spawn",
+  "title": "拉角色会话：spawn 需求 → 挂到 roles → 落盘",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/tickets"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "tickets/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "input.id"
+            },
+            "b": {
+              "lit": "/ticket.json"
+            }
+          }
+        }
+      },
+      "as": "row"
+    },
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "demand_engine.run",
+      "with": {
+        "id": {
+          "lit": "session-spawn"
+        },
+        "input": {
+          "kind": {
+            "lit": "role"
+          },
+          "role": {
+            "get": "input.role"
+          },
+          "name": {
+            "op": "+",
+            "a": {
+              "get": "input.role"
+            },
+            "b": {
+              "op": "+",
+              "a": {
+                "lit": "-"
+              },
+              "b": {
+                "get": "input.id"
+              }
+            }
+          },
+          "ticket": {
+            "get": "input.id"
+          },
+          "task": {
+            "get": "input.task"
+          }
+        }
+      },
+      "as": "sp"
+    },
+    {
+      "call": "tickets.bindrole",
+      "with": {
+        "rec": {
+          "get": "row.value"
+        },
+        "session": {
+          "get": "sp.result.id"
+        },
+        "role": {
+          "get": "input.role"
+        },
+        "display": {
+          "get": "input.display"
+        },
+        "task": {
+          "get": "input.task"
+        },
+        "now": {
+          "get": "now.ts"
+        }
+      },
+      "as": "rec"
+    },
+    {
+      "call": "store.write",
+      "with": {
+        "module": {
+          "lit": "agent/tickets"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "tickets/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "rec.id"
+            },
+            "b": {
+              "lit": "/ticket.json"
+            }
+          }
+        },
+        "value": {
+          "get": "rec"
+        }
+      },
+      "as": "w"
+    },
+    {
+      "call": "tickets.view",
+      "with": {
+        "rec": {
+          "get": "rec"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "clock.now",
+      "tickets.bindrole",
+      "store.write",
+      "tickets.view"
+    ],
+    "payload": {},
+    "promise": "会话由需求拉，工单只记账"
+  }
+}

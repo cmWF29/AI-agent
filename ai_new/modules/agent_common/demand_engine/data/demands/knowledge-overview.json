@@ -1,0 +1,41 @@
+{
+  "id": "knowledge-overview",
+  "title": "知识总览：整棵树取回来，交给 knowledge 数层级",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.walk",
+      "with": {
+        "module": {
+          "lit": "agent/knowledge"
+        },
+        "pattern": {
+          "lit": "*.md"
+        }
+      },
+      "as": "rows"
+    },
+    {
+      "call": "knowledge.overview",
+      "with": {
+        "rows": {
+          "get": "rows.rows"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.walk",
+      "knowledge.overview"
+    ],
+    "payload": {},
+    "promise": "谁的目录谁定义层级，需求只负责取回"
+  }
+}

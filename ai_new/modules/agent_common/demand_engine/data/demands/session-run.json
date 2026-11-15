@@ -1,0 +1,182 @@
+{
+  "id": "session-run",
+  "title": "驱动会话：标记 running → 跑一轮 react → 收尾落盘",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "input.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        }
+      },
+      "as": "row"
+    },
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "sessions.mark",
+      "with": {
+        "rec": {
+          "get": "row.value"
+        },
+        "status": {
+          "lit": "running"
+        },
+        "now": {
+          "get": "now.ts"
+        }
+      },
+      "as": "running"
+    },
+    {
+      "call": "store.write",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "rec.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        },
+        "value": {
+          "get": "running"
+        }
+      },
+      "as": "w"
+    },
+    {
+      "call": "demand_engine.run",
+      "with": {
+        "id": {
+          "lit": "react-run"
+        },
+        "input": {
+          "session": {
+            "get": "input.id"
+          },
+          "messages": {
+            "get": "row.value.messages"
+          },
+          "tools": {
+            "get": "input.tools"
+          },
+          "max_steps": {
+            "get": "input.max_steps"
+          },
+          "base_url": {
+            "get": "input.base_url"
+          },
+          "api_key": {
+            "get": "input.api_key"
+          },
+          "model": {
+            "get": "input.model"
+          }
+        }
+      },
+      "as": "out"
+    },
+    {
+      "call": "clock.now",
+      "as": "done_at"
+    },
+    {
+      "call": "sessions.finish",
+      "with": {
+        "rec": {
+          "get": "running"
+        },
+        "out": {
+          "get": "out"
+        },
+        "now": {
+          "get": "done_at.ts"
+        }
+      },
+      "as": "rec"
+    },
+    {
+      "call": "store.write",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "rec.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        },
+        "value": {
+          "get": "rec"
+        }
+      },
+      "as": "w"
+    },
+    {
+      "call": "sessions.view",
+      "with": {
+        "rec": {
+          "get": "rec"
+        }
+      },
+      "as": "out2"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "clock.now",
+      "sessions.mark",
+      "demand_engine.run",
+      "clock.now",
+      "sessions.finish",
+      "store.write",
+      "sessions.view"
+    ],
+    "payload": {},
+    "promise": "循环在 react 里，本需求只负责状态迁移"
+  }
+}

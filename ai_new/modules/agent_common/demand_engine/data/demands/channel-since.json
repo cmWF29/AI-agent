@@ -1,0 +1,125 @@
+{
+  "id": "channel-since",
+  "title": "按游标取新消息",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.id",
+      "with": {
+        "value": {
+          "get": "input.channel"
+        }
+      },
+      "as": "cid"
+    },
+    {
+      "call": "store.read_text",
+      "with": {
+        "module": {
+          "lit": "agent/channel"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "channels/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "cid.id"
+            },
+            "b": {
+              "lit": ".jsonl"
+            }
+          }
+        }
+      },
+      "as": "txt"
+    },
+    {
+      "call": "channel.split",
+      "with": {
+        "text": {
+          "get": "txt.value"
+        }
+      },
+      "as": "split"
+    },
+    {
+      "let": "rows",
+      "eq": {
+        "lit": []
+      }
+    },
+    {
+      "each": {
+        "get": "split.lines"
+      },
+      "as": "line",
+      "do": [
+        {
+          "call": "codec.json_decode",
+          "with": {
+            "text": {
+              "get": "line"
+            }
+          },
+          "as": "obj"
+        },
+        {
+          "when": {
+            "op": "!=",
+            "a": {
+              "get": "obj.ok"
+            },
+            "b": false
+          },
+          "then": [
+            {
+              "let": "rows",
+              "eq": {
+                "op": "append",
+                "a": {
+                  "get": "rows"
+                },
+                "b": {
+                  "get": "obj.value"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "call": "channel.since",
+      "with": {
+        "rows": {
+          "get": "rows"
+        },
+        "cursor": {
+          "get": "input.cursor"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {
+        "channel": "c1",
+        "limit": 5
+      }
+    },
+    "calls": [
+      "store.id",
+      "store.read_text",
+      "channel.split",
+      "channel.since"
+    ],
+    "payload": {},
+    "promise": "游标比较归模块"
+  }
+}

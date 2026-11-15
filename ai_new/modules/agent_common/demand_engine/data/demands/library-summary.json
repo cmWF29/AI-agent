@@ -1,0 +1,91 @@
+{
+  "id": "library-summary",
+  "title": "岗位库总览：种子 + 三类用户记录，交给 library 数数",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/library"
+        },
+        "path": {
+          "lit": "seed.json"
+        }
+      },
+      "as": "seed"
+    },
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/library"
+        },
+        "path": {
+          "lit": "roles.json"
+        }
+      },
+      "as": "roles"
+    },
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/library"
+        },
+        "path": {
+          "lit": "flows.json"
+        }
+      },
+      "as": "flows"
+    },
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/library"
+        },
+        "path": {
+          "lit": "skills.json"
+        }
+      },
+      "as": "skills"
+    },
+    {
+      "call": "library.summary",
+      "with": {
+        "seed": {
+          "get": "seed.value"
+        },
+        "user": {
+          "roles": {
+            "get": "roles.value"
+          },
+          "flows": {
+            "get": "flows.value"
+          },
+          "skills": {
+            "get": "skills.value"
+          }
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.read",
+      "store.read",
+      "store.read",
+      "store.read",
+      "library.summary"
+    ],
+    "payload": {},
+    "promise": "三张表一起数，规则归模块"
+  }
+}

@@ -1,0 +1,297 @@
+{
+  "roles": [
+    {
+      "id": "architect",
+      "cn": "架构",
+      "prompt_file": "roles/architect.md",
+      "must_outputs": [
+        "docs/**/*architect*",
+        "docs/**/*架构*"
+      ],
+      "backend": "",
+      "builtin": true
+    },
+    {
+      "id": "developer",
+      "cn": "开发",
+      "prompt_file": "roles/developer.md",
+      "must_outputs": [
+        "**/*.py",
+        "**/*.js",
+        "**/*.go",
+        "**/*.sh"
+      ],
+      "backend": "",
+      "builtin": true
+    },
+    {
+      "id": "reviewer",
+      "cn": "评审",
+      "prompt_file": "roles/reviewer.md",
+      "must_outputs": [
+        "docs/**/*review*",
+        "docs/**/*评审*"
+      ],
+      "backend": "",
+      "builtin": true
+    },
+    {
+      "id": "tester",
+      "cn": "测试",
+      "prompt_file": "roles/tester.md",
+      "must_outputs": [
+        "tests/**/*.py",
+        "tests/**/*.md"
+      ],
+      "backend": "",
+      "builtin": true
+    },
+    {
+      "id": "ops",
+      "cn": "运维",
+      "prompt_file": "roles/ops.md",
+      "must_outputs": [
+        "docs/**/*.md"
+      ],
+      "backend": "",
+      "builtin": true
+    },
+    {
+      "id": "researcher",
+      "cn": "调研",
+      "prompt_file": "roles/researcher.md",
+      "must_outputs": [
+        "docs/**/*.md"
+      ],
+      "backend": "",
+      "builtin": true
+    },
+    {
+      "id": "writer",
+      "cn": "文案",
+      "prompt_file": "roles/writer.md",
+      "must_outputs": [
+        "docs/**/*.md"
+      ],
+      "backend": "",
+      "builtin": true
+    },
+    {
+      "id": "process",
+      "cn": "流程专家",
+      "prompt_file": "roles/process.md",
+      "must_outputs": [
+        "docs/**/*.json",
+        "docs/**/*.md"
+      ],
+      "backend": "",
+      "builtin": true
+    }
+  ],
+  "flows": [
+    {
+      "id": "architect",
+      "role": "architect",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "docs/**/*architect*",
+            "docs/**/*架构*"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "developer",
+      "role": "developer",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "**/*.py",
+            "**/*.js",
+            "**/*.go",
+            "**/*.sh"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "reviewer",
+      "role": "reviewer",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "docs/**/*review*",
+            "docs/**/*评审*"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "tester",
+      "role": "tester",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "tests/**/*.py",
+            "tests/**/*.md"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "ops",
+      "role": "ops",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "docs/**/*.md"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "researcher",
+      "role": "researcher",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "docs/**/*.md"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "writer",
+      "role": "writer",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "docs/**/*.md"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "process",
+      "role": "process",
+      "checks": [
+        {
+          "kind": "glob",
+          "paths": [
+            "docs/**/*.json",
+            "docs/**/*.md"
+          ],
+          "match": "any",
+          "min_bytes": 80
+        }
+      ]
+    },
+    {
+      "id": "requirement-owner",
+      "kind": "process",
+      "nodes": [
+        "req.intake",
+        "req.structure",
+        "req.plan",
+        "req.split",
+        "req.execute",
+        "req.accept",
+        "req.close"
+      ],
+      "edges": [
+        [
+          "req.intake",
+          "req.structure"
+        ],
+        [
+          "req.structure",
+          "req.plan"
+        ],
+        [
+          "req.plan",
+          "req.split"
+        ],
+        [
+          "req.split",
+          "req.execute"
+        ],
+        [
+          "req.execute",
+          "req.accept"
+        ],
+        [
+          "req.accept",
+          "req.close"
+        ]
+      ]
+    },
+    {
+      "id": "ticket-health",
+      "kind": "process",
+      "nodes": [
+        "scan.run",
+        "scan.judge",
+        "scan.audit",
+        "ops.diagnose",
+        "ops.recover",
+        "audit.close"
+      ],
+      "edges": [
+        [
+          "scan.run",
+          "scan.judge"
+        ],
+        [
+          "scan.judge",
+          "scan.audit"
+        ],
+        [
+          "scan.audit",
+          "ops.diagnose"
+        ],
+        [
+          "ops.diagnose",
+          "ops.recover"
+        ],
+        [
+          "ops.recover",
+          "audit.close"
+        ]
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "handoff",
+      "cn": "交接文档写法",
+      "doc": "角色完成工作后写 docs/handoff/<角色>.md：改动点、验证命令、结果、坑。system_result 只回 5 行摘要。"
+    },
+    {
+      "id": "knowledge-vs-artifact",
+      "cn": "知识与交付件分离",
+      "doc": "知识=总结（结论/约定/坑），交付件=落盘文件。归档文件不等于知识，必须另写知识总结。"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "ops-export",
+  "title": "导出模块数据：打包走 store.archive",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "store.archive",
+      "with": {
+        "module": {
+          "lit": "agent_common/ops"
+        },
+        "name": {
+          "op": "+",
+          "a": {
+            "lit": "exports/"
+          },
+          "b": {
+            "get": "input.name"
+          }
+        },
+        "scripts": {
+          "get": "input.scripts"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "clock.now"
+    ],
+    "payload": {},
+    "promise": "压缩是能力，清单由装配给"
+  }
+}

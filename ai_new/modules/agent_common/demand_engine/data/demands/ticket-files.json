@@ -1,0 +1,79 @@
+{
+  "id": "ticket-files",
+  "title": "工单交付件清单：artifacts-list 需求 + 模式过滤",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/tickets"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "tickets/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "input.id"
+            },
+            "b": {
+              "lit": "/ticket.json"
+            }
+          }
+        }
+      },
+      "as": "row"
+    },
+    {
+      "call": "demand_engine.run",
+      "with": {
+        "id": {
+          "lit": "artifacts-list"
+        },
+        "input": {
+          "layer": {
+            "lit": "ticket"
+          },
+          "ticket": {
+            "get": "input.id"
+          },
+          "project": {
+            "get": "row.value.project"
+          }
+        }
+      },
+      "as": "listed"
+    },
+    {
+      "call": "tickets.files_filter",
+      "with": {
+        "ticket": {
+          "get": "input.id"
+        },
+        "items": {
+          "get": "listed.result.items"
+        },
+        "pattern": {
+          "get": "input.pattern"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "demand_engine.run",
+      "tickets.files_filter"
+    ],
+    "payload": {},
+    "promise": "过滤归模块"
+  }
+}

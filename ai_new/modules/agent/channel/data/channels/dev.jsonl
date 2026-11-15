@@ -1,0 +1,2 @@
+{"id": "dev-000001", "seq": 1, "channel": "dev", "role": "user", "content": "用一句话介绍你自己", "ts": 1794718510943, "meta": {}}
+{"id": "dev-000002", "seq": 2, "channel": "dev", "role": "assistant", "content": "我是DeepSeek，由深度求索公司创造的AI助手，随时为你提供热情、细腻的帮助！", "ts": 1794718511727, "meta": {}}

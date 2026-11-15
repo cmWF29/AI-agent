@@ -1,0 +1,109 @@
+{
+  "id": "session-destroy",
+  "title": "销毁会话：读记录 → 打 gone 标记 → 落盘",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.id",
+      "with": {
+        "value": {
+          "get": "input.id"
+        }
+      },
+      "as": "sid"
+    },
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "sid.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        }
+      },
+      "as": "row"
+    },
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "sessions.gone",
+      "with": {
+        "rec": {
+          "get": "row.value"
+        },
+        "now": {
+          "get": "now.ts"
+        }
+      },
+      "as": "rec"
+    },
+    {
+      "call": "store.write",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "sid.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        },
+        "value": {
+          "get": "rec"
+        }
+      },
+      "as": "w"
+    },
+    {
+      "call": "sessions.view",
+      "with": {
+        "rec": {
+          "get": "rec"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.id",
+      "store.read",
+      "clock.now",
+      "sessions.gone",
+      "store.write",
+      "sessions.view"
+    ],
+    "payload": {},
+    "promise": "状态迁移归模块，落盘归需求"
+  }
+}

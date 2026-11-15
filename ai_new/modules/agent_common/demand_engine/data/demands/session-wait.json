@@ -1,0 +1,55 @@
+{
+  "id": "session-wait",
+  "title": "取会话回复：读记录 → 摘最后一条 assistant",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "input.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        }
+      },
+      "as": "row"
+    },
+    {
+      "call": "sessions.reply",
+      "with": {
+        "id": {
+          "get": "input.id"
+        },
+        "rec": {
+          "get": "row.value"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "sessions.reply"
+    ],
+    "payload": {},
+    "promise": "等多久由调用方决定，这里只取一次"
+  }
+}

@@ -1,0 +1,4 @@
+{"id": "pure-000001", "seq": 1, "channel": "pure", "role": "user", "content": "纯计算收编后，这条链路是怎么走的？一句话", "ts": 1794722155651, "meta": {}}
+{"id": "pure-000002", "seq": 2, "channel": "pure", "role": "assistant", "content": "收编后链路为：输入 → 纯计算收编层 → 计算引擎 → 结果输出。", "ts": 1794722156573, "meta": {}}
+{"id": "pure-000003", "seq": 3, "channel": "pure", "role": "user", "content": "一句话说：你现在经过几层才拿到我的消息", "ts": 1794722211492, "meta": {}}
+{"id": "pure-000004", "seq": 4, "channel": "pure", "role": "assistant", "content": "你的消息经过 **1 层**（对话接口层）就到达我这里，没有中间收编/转发层。", "ts": 1794722212385, "meta": {}}

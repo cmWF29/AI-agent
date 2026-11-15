@@ -1,256 +1,209 @@
-# Hive Agent
+# AI_NEW
 
-一台 VPS 上自跑的、可自迭代的 ReAct Agent 服务：网页/CLI 对话 + 工单编排 + watchdog 保活 + 自动版本回退。
-**零第三方依赖**（纯 Python 3 标准库），`git push` 即部署。
+Hive Agent 的全量重写版本。能力在模块里，业务在数据里；模块不做有政策含义的事。
 
----
-
-> v3（0.3.0）新增：HTTPS、三层交付件归档、项目秘书/删除项目、工单生命周期与只读、git 冲突重测、流程专家与流程插件、链路全透明、交付件体积自检。
-> 细节见 [docs/v3-architecture.md](docs/v3-architecture.md)。
-
-> v4.4（0.4.4）新增：外部 Claude Code 逐 token 流式角色、PM 强制 api + 角色可 claude-code、回顾工单与提示词自迭代、项目级秘书/源码/后端、trace 创建后不可改、健康日志与网页流量、消息级交付件、Skill API/Agent 双模式、网页状态机一致性测试。
-> 验收证据见 [docs/v4.4-verification/README.md](docs/v4.4-verification/README.md)。
-
-> v4.5（0.4.5）重构第一刀：群聊系统生命周期事件、项目级空闲队列与独立卡片、项目归档/删除二级与级联、静态架构扫描与 push/结单门禁、6 条需求级流程入库；claude-code 不可用时后端选项置灰。架构说明见 [docs/architecture/README.md](docs/architecture/README.md)。
-
-## 一、这套东西解决什么
-
-| # | 需求 | 在代码里的落点 |
-|---|------|----------------|
-| 1 | 标准 ReAct：收消息 → 解析 tool_calls → 执行 → 迭代 | `hive/kernel/react.py` |
-| 1b | 工具输出**先落盘**，按字符数阈值决定“内联给模型”还是“只给路径让它自己 grep/read” | `hive/kernel/output.py`（`tool_output.inline_max_chars`） |
-| 2 | Agent CLI | `hive/cli.py`（`python -m hive.cli ask/send/spawn/...`） |
-| 3 | 保活 + 开机自启 + 连续失败自动回退（改动不丢） | `deploy/watchdog.py` + `deploy/hive-watchdog.service` |
-| 4 | 网页对话框，本质是“远程执行 agent CLI” | `hive/modules/webchat.py` + `web/` |
-| 5 | 网页固定命令：停止全部 / 重启 agent / 手动回退 / 压缩上下文 | `hive/modules/ops.py` |
-| 6 | 每个项目一个常驻“项目秘书”会话（不是一问一销毁）+ 自动/手动压缩；不再创建全局秘书 | `hive/modules/sessions.py`（`ensure_secretary` / `compact_session`） |
-| 7 | 工单模式：秘书只发作业，PM 编排，角色干活，PM 收作业 | `hive/modules/tickets.py` |
-| 8 | 极简 ReAct + 可插拔介入（串行/并发/插队/打断） | `react.parallel_tools` / `session.inbox` note|abort |
-| 9 | 模块完全解耦，只暴露 API + 事件总线 | `hive/kernel/api.py` / `hive/kernel/bus.py` |
-| 10 | 知识三层（public / project / ticket，分布式友好）+ 结单沉淀归档 | `hive/modules/knowledge.py` |
-
----
-
-## 二、架构
+## 目录就两个脚本
 
 ```
-                     ┌─────────────── systemd ───────────────┐
-                     │  hive-watchdog.service (Restart=always)│
-                     └───────────────┬───────────────────────┘
-                                     │ spawn / health / rollback
-                              deploy/watchdog.py
-                                     │ 子进程
-┌────────────────────────────────────▼─────────────────────────────────────┐
-│  hive.server (单进程, 一个 HTTP 端口)                                      │
-│                                                                          │
-│   HTTP 层 (kernel/http.py): 静态页 + JSON API + token/cookie 鉴权          │
-│        │                                                                 │
-│        ├── 模块路由表 (kernel/api.py)  ← 模块间同步调用也只走这里           │
-│        │      obs │ knowledge │ memory │ toolpack │ sessions │ tickets     │
-│        │      webchat │ ops │ health                                     │
-│        │                                                                 │
-│        └── 事件总线 (kernel/bus.py)  ticket.* / session.* / tool.* / llm.*  │
-│                                                                          │
-│   ReAct 内核 (kernel/react.py)  ── ToolRegistry ── OutputPolicy           │
-│                                   │                                      │
-│   LLM (kernel/llm.py, OpenAI 兼容 → DeepSeek)                            │
-└──────────────────────────────────────────────────────────────────────────┘
+agent_start.py      跑系统
+test_start.py       跑验收（加 --smoke 会真的执行 agent_start.py）
+ai_new/modules/     agent_common（公共能力）/ agent（业务能力）/ agent_test（评审者）
+                   每个模块自己带 data/ —— 配置归 config、日志归 ops、需求归 demand_engine、
+                   岗位库与角色提示词归 library、控制台页面归 web……
 ```
 
-**铁律**
+没有 `tests/`、没有 `tools/`、没有 `data/`、没有 `web/`、没有 kernel 包：
+**组只是装配单位**，`boot/data/profiles.json` 决定哪个入口装哪些组；
+**数据跟着模块走**，每个模块只用 `ctx.storage.own(__file__)` 拿自己的数据，
+不共享一个语义不明的桶（部署时把整棵树搬到 `AI_NEW_DATA`，布局镜像 modules/）。
 
-1. 模块之间**不 import**，同步调用一律 `ctx.api("sessions.spawn", ...)`，异步一律总线事件。
-2. 每个模块自带存储目录，不碰别人的数据。
-3. 加模块 = `hive/modules/` 下一个文件 + `hive/modules/__init__.py` 里加一行，内核零改动。
-4. 加工具 = 模块 `setup()` 里 `ctx.tools.register(Tool(...))`，React 循环自动可见。
+## 硬规则
 
----
+1. **模块 = 一个公开文件 + 一个 private 目录**：`modules/<组>/<模块>/__init__.py`
+   只有 `setup(ctx)` / 可选 `start(ctx)` / 少量公共函数；实现全在 `private/`。
+   **私有由目录表达**，文件名不再承担语义（不靠 `_` 前缀）。
+2. **模块之间不 import**：唯一通道是 `ctx.api.call("module.fn", payload, caller=...)`，
+   受 `data/rules/calls.json` 矩阵约束。审计者单向可见：`agent_test` 可以 import 运行时模块，反之不行。
+3. **模块不做有政策含义的事**：不写日志、不发通知、不直接订阅回调。它只在功能前后预留 hook 点。
+   **先有需求，才有扩展点**：需求写在 `data/demands/*.json`，没有需求订阅的点会被扫描器点名删掉；
+   需求整条上线/下线，点与调用跟着走。
+   **每条需求必须自带预期**（`expect`: given/calls/payload）并被一条验收用例点名 ——
+   没用例的需求不许上线，没需求的用例也不许留着。
+4. **通信是抽象**：模块只写 `ctx.api.call("module.fn", …)`；直连 / 内存队列 / 网络 RPC 由
+   `api.compile_transport` 生成的 `data/gen/bindings.json` 决定，模板代码不动。
+5. **代码与数据彻底分离**：任何 `.py` 里没有提示词、没有系统消息模板、没有角色种子、没有业务文案。
 
-## 三、目录
+详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
-```
-hive/
-├── kernel/        config bus api http llm tools output react logger store
-├── modules/       observability knowledge memory toolpack sessions tickets webchat ops health
-├── prompts/       公共级知识（首次启动灌入 data/knowledge/public）
-├── cli.py         命令行入口
-└── server.py      daemon 入口
-web/               单页控制台（对话 + 固定命令 + 工单/事件抽屉）
-deploy/
-├── watchdog.py            保活/健康/回退
-├── hive-watchdog.service  systemd 模板
-├── bootstrap.sh           VPS 首次初始化（建裸仓库 + push 即部署钩子）
-└── provision.sh           push 后自动装单元 + 启动（幂等）
-config/            config.example.json（真配置 gitignore）
-data/              运行期数据：sessions tickets knowledge logs toolout control（gitignore）
-tests/             mock LLM + 60 条 API 级端到端断言
-```
+## 启动
 
----
-
-## 四、本地跑
-
-```bash
-cp config/config.example.json config/config.json
-# 填 llm.api_key（DeepSeek Key），改 server.web_password
-python3 -m hive.server                 # 前台起服务
-python3 -m hive.cli ask --text "你好"   # 另开一个终端，走 CLI 找常驻秘书
-python3 -m hive.cli status
+```powershell
+cd E:\AI\AI_NEW
+python agent_start.py
 ```
 
-自测（不需要真 Key、不花钱）：
+- 控制台：<http://127.0.0.1:8787/>
+- 健康检查：`GET /api/health/self`（`/api/health/live` 免鉴权）
+- 路由清单：`GET /api/modules`
 
-```bash
-python3 tests/run_all.py     # 60/60
+重编通信绑定（改了 `data/deploy.json` 之后）：
+
+```powershell
+python agent_start.py --compile-transport
 ```
 
----
+默认 `server.token` 为空（本地开发免鉴权）。对外部署前在 `data/config.json` 覆盖：
 
-## 五、VPS 部署（三步）
-
-```bash
-# 1) 首次初始化：装 git/python3、建裸仓库、装 push 即部署钩子
-ssh root@104.168.148.112 'bash -s' < deploy/bootstrap.sh
-
-# 2) 本地推到 VPS（裸仓库 → 自动检出到 /opt/hive/current → 装 systemd → 启动）
-git remote add vps ssh://root@104.168.148.112/opt/hive/repo.git
-git push vps main
-
-# 3) 填密钥：编辑 VPS 上 /opt/hive/secrets.env（HIVE_LLM_API_KEY / HIVE_WEB_PASSWORD），再 push 一次
+```json
+{
+  "server": {"token": "换成你的令牌", "port": 8787},
+  "llm": {"base_url": "https://api.xxx/v1", "api_key": "sk-...", "model": "模型名"}
+}
 ```
 
-- 网页：`http://104.168.148.112:8787/`（密码 = `server.web_password`）
-- 服务：`systemctl status hive-watchdog`；开机自启已 `enable`
-- 配置：`/opt/hive/current/config/config.json`（push 不会覆盖它）
+`data/config.json` 与 `data/config.default.json` 深合并，只写要覆盖的字段；
+部署时也可以用环境变量 `AI_NEW_PORT` / `AI_NEW_DATA` 覆盖（优先级高于文件）。
 
----
+## 验收
 
-## 六、保活与回退
-
-- systemd 只盯 watchdog（`Restart=always`），watchdog 盯 agent 进程 + `/api/health/self`。
-- 连续 3 次健康失败（默认 `--threshold 3`）→ 自动回退一个版本：
-  1. 先 `git add -A && commit` 把当前改动存到 `autosave/<时间戳>` 分支（**不会丢**）；
-  2. 再 `git reset --hard HEAD^`；
-  3. 重启 agent，并把 `from/to/autosave` 记进 `data/logs/rollback.jsonl`；
-  4. 回退后跑 `compileall` 自检，坏代码不会反复拉起；
-  5. 一小时内最多回退 3 次，避免来回抖。
-- 网页“回退版本”走同一条路径（`data/control/cmd-*.json` 控制文件，进程间零耦合）。
-- 网页“彻底停止”= 控制文件 + `systemctl stop hive-watchdog`（两者都停）。
-- **重启即续跑**：进程起来时，上次状态还停在 `running/queued` 的会话会被标成 `interrupted`
-  （它们的线程早就没了，不清掉会永远假装在跑）；工单里挂着的 PM 会收到一条系统续跑指令
-  （“看角色产物齐不齐，齐了收尾关单”，每次最多 3 单），所以重启/回退后活不会凭空消失。
-
----
-
-## 七、工单模式（秘书 → PM → 角色）
-
-```
-用户 ──► 秘书(常驻 scenario) ──ticket_create──► PM(临时)
-                                                │ role_spawn × N
-                                                ▼
-                                         角色(临时) role_1..N
-                                                │ session_result 上报
-                                                ▼
-                                          PM 收作业 → ticket_close
-                                                │
-                        ┌───────────────────────┴────────────────────────┐
-                        │ 通知每个角色 knowledge_write 沉淀 → 销毁会话      │
-                        │ 写 ticket 层 00-summary.md                      │
-                        └─────────────────────────────────────────────────┘
+```powershell
+python test_start.py            # 六组：structure / assembly / language / transport / behaviour / demands
+python test_start.py --only structure
+python test_start.py --smoke    # 额外真的执行 agent_start.py，核对模块/需求/点/启动日志
 ```
 
-- 秘书**只发作业**，不写代码；工单进度用 `ticket_status` 查。
-- PM **可以自创角色**（architect/developer/reviewer/tester/research/ops…），角色数与分工由 PM 定。
-- 结单时每个角色收到的最后一条消息就是“沉淀知识”，写完才被销毁；会话归档留在 `data/sessions/archive/`。
+清单在 `data/checks.json`（验哪些、静态还是运行时），执行在 `agent_test` 模块里：
 
-### 知识三层（不是包含关系）
+- structure：模块根只有 `__init__.py`、实现在 `private/`、无跨模块 import、无 `ctx.log`、
+  平台模块无业务词、代码无提示词、矩阵路由存在、根目录只有两个脚本。
+- assembly：DAG 无环、覆盖全部模块、顺序满足每条边、可复现、监听只在 start 阶段、
+  hook 点与需求闭合。
+- language：需求语言求值、守卫、循环、插拔、失败不外溢。
+- transport：绑定编译可复现、三种通道、编译产物路径。
+- behaviour：临时 data 目录真实装配 25 个模块 + 真 HTTP，覆盖知识/交付件/工单/会话/矩阵/
+  鉴权/RPC；需求清空后额外断言"到点无动作、模块不自己写日志"。
+- demands：需求契约 —— 每条需求自带 `expect`（在哪个点、什么输入、调哪些服务、参数长什么样），
+  真投一次核对顺序与载荷；**需求必须被验收清单点名，清单也不许点名不存在的需求**（双向闭合）。
 
-| 层 | 位置 | 用途 | 分布式 |
-|----|------|------|--------|
-| public | `data/knowledge/public` | 本机通用守则/角色模板 | 每台机器一份 |
-| project | `data/knowledge/projects/<project>` | 跨工单的项目知识 | 可随项目迁移 |
-| ticket | `data/knowledge/tickets/<tid>` | 单工单经验 | 工单结束仍可查 |
+装配结果（顺序、第二段启动的模块、每条依赖边的原因 `ctx.xxx`、耗时、警告、需求图）
+可以随时查询：`GET /api/modules`、`GET /api/hooks/points`、`GET /api/demand_engine/list`。
+没有需求订阅时，启动不写任何日志 —— 记日志是业务决定，不是模块的自选动作。
 
-`knowledge.compose(scopes=[{layer:public},{layer:project,project:x},{layer:ticket:ticket:T-1}])` 显式指定要拼哪几层。
+## 模块一览
 
----
+**agent_common（公共能力）**：boot（组合根，唯一没有 setup）· config · store · api · hooks ·
+demand_engine · tools · llm · react · http · ops · net（出站网络） · host（主机资源） · codec（JSON/SSE/编码） · clock（时间）
 
-## 八、主要 API（测试就打这些）
+**agent（业务能力）**：knowledge · artifacts · library · sessions · projects · tickets ·
+agents · health · skills · web · channel
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/health` `/api/health/self` | 存活 / 深度自检（watchdog 用） |
-| POST | `/api/sessions/spawn` `/send` `/ask` `/wait` | 会话：建/发/同步问/等 |
-| GET | `/api/sessions/list` `/api/sessions/{id}` `/messages` | 列表/详情/消息 |
-| POST | `/api/sessions/{id}/compact` `/interrupt` `/destroy` | 压缩/插话打断/销毁 |
-| POST | `/api/tickets/create` `/api/tickets/{id}/close` `/roles` `/note` | 工单：开/结/加角色/备注 |
-| GET | `/api/tickets/list` `/api/tickets/{id}` | 工单查询 |
-| GET/POST | `/api/knowledge/*` | overview/write/read/list/search/compose |
-| GET/POST | `/api/memory/*` | add/search/list/delete |
-| POST | `/api/chat/send` + GET `/api/chat/job/{id}` | 网页对话（内部真的去跑 CLI） |
-| GET | `/api/ops/status` `/versions` `/config` `/obs/logs` `/obs/events` `/obs/metrics` | 状态/版本/日志/指标 |
-| POST | `/api/ops/restart` `/stop` `/rollback` `/selftest` `/llm/ping` | 固定命令 |
-| POST | `/api/bus/publish` | 外部注入总线事件（扩展点） |
+**agent_test（评审者）**：按 `data/checks.json` 跑验收（不在 `agent` 装配里，因为 profile 没写它）
 
-鉴权：`X-Auth-Token` 或 `Authorization: Bearer` 或登录后的 cookie。
+## 数据布局：跟着模块走
 
----
+```
+modules/agent_common/config/data/      config.default.json · config.json
+modules/agent_common/boot/data/        profiles.json（装配剖面）
+modules/agent_common/api/data/         calls.json（调用矩阵）· deploy.json · gen/bindings.json
+modules/agent_common/demand_engine/data/demands/*.json   需求（一段业务一个文件）
+modules/agent_common/ops/data/         logs/app.jsonl · exports/
+modules/agent/library/data/            seed.json · roles.json · prompts/（角色提示词）
+modules/agent/sessions/data/           sessions/ · prompts/（pm/秘书人设）· session-tools.json
+modules/agent/tickets/data/            tickets/<id>/ticket.json · messages.json
+modules/agent/knowledge/data/          public/ · projects/ · tickets/
+modules/agent/artifacts/data/          public/ · projects/
+modules/agent/projects/data/           <id>.json
+modules/agent/web/data/console/        index.html（通用控制台）
+modules/agent_test/data/               checks.json（验收清单）
+```
 
-## 九、扩展点（下一轮迭代直接改这里）
+模块数据语义由拥有它的模块定义，代码里也没有第二个"公共数据根"：
+`test_start.py` 的 structure 组会直接断言没人再用旧的全局存储接口。
 
-- **新模块**：`hive/modules/xxx.py` + `__init__.py` 加一行 → 自带 API/事件/工具/存储。
-- **新工具**：`ctx.tools.register(Tool(...))`，立刻对所有会话可见（可按会话白名单过滤）。
-- **新事件**：`bus.publish("your.topic", {...})`，任何模块 `subscribe("your.*")`。
-- **换模型/加模型**：`config.llm.base_url/model` 即可接任意 OpenAI 兼容端点。
-- **分布式**：知识三层已拆开；下一步把 `sessions`/`tickets` 的存储换成 HTTP 后端即可跨机。
+部署搬迁：`AI_NEW_DATA=E:\ai_new_data` 时，每个模块的数据变成
+`E:\ai_new_data\<组>\<模块>\…`（`agent_test` 这种"组即模块"的就是 `E:\ai_new_data\agent_test\…`）。
 
-## 十、网页 = 工作群聊
+改提示词只动对应模块的 `data/prompts/*.md`，不需要改任何 `.py`。
 
-- 左边是**群列表**：一个「秘书」群 + 每个工单一个群（含该工单的 PM 和全部角色）。历史工单在下方的折叠区，点进去能看到当时每个角色的发言。
-- 右边是**交付件**面板：列出该工单工作目录里的全部产物，点开直接看（文本 / 图片）。
-- 在秘书群说话 → 秘书接活、开单；在工单群说话 → 直接发给该工单的 PM（等于给 PM 加需求或给验收意见）。
-- 顶部三个面板：**健康**（`/api/health/self` 逐项检查 + watchdog 心跳）、**版本**（提交列表，可一键回退到任意一版）、**事件**（总线事件流）。
+## 消息面板与模型对话
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/web/groups` | 群列表（秘书 + 各工单 + 项目） |
-| GET | `/api/web/timeline?group=&limit=&since_ts=` | 群时间线（`since_ts` 做增量拉取） |
-| POST | `/api/chat/send` | `{text, group}`：`secretary` 走秘书，`T-xxx` 走该工单 PM |
-| POST | `/api/tickets/{id}/message` | 往工单群投递一句话（默认发给 PM） |
-| GET | `/api/tickets/{id}/files` | 交付件列表（相对路径） |
-| GET | `/api/tickets/{id}/file?path=` | 读单个交付件（文本给 text，二进制给 base64；越界路径直接拒） |
-| GET | `/api/ops/versions` | 版本列表：`commits[]`（短 hash / 全 hash / 时间 / 作者 / 标题 / 是否当前） |
-| POST | `/api/ops/rollback` | `{"target": "<commit>"}` 回退到任意版本 |
+- 面板：`GET /panel.html`（由 `web.asset` 直接发，页面只认"频道 + 消息"）。
+- 发消息：`POST /api/rpc/channel/post`，`{"channel":"web","role":"user","content":"..."}`。
+- 实时读：`GET /api/sse/channel/watch?channel=web&cursor=0&timeout=20`，帧是 `data: {...}`；
+  只有 `stream=True` 注册的路由能走这个入口（现在只有 `channel.watch`）。
+- 谁来回话？需求 `web-chat-reply`：`channel.posted` → `channel.tail` → `demand_engine.run(llm-chat)` → `channel.post`。
+  模块代码里没有"回话"这两个字，删掉需求文件就只剩收发。
+- 对话本身也是一条需求 `llm-chat`：`config.get` → `llm.encode` → `codec.json_encode` →
+  `net.request` → `codec.json_decode` → `llm.decode`。`llm` 里没有网络、没有 JSON、不读配置。
+- `config.get` 指名字段给的是**真值**（编排要拿 `api_key` 去授权）；不带 key 才返回脱敏视图。
+  共享同一 token 的调用方本来就能跑这条需求，脱敏只用于"看一眼配置"。
+- 也可以直接调：`POST /api/rpc/demand_engine/run`，`{"id":"llm-chat","input":{"messages":[...]}}`。
 
-回退语义：watchdog 先把当前改动提交到 `autosave/<时间戳>` 分支（不丢），再 `reset --hard <target>`，然后重启 agent，并把 `from/to/target` 记进 `data/logs/rollback.jsonl`。
+## 标准库能力也收编
 
-## 十一、多项目 / 多工单并发
+模块只提供能力，不自己跟外界打交道。四个能力各管一段，其余模块只能调它们：
 
-- 项目是一等公民（`projects` 模块）：`/api/projects/list|create|get|ensure|archive`；知识库的 project 层以项目名为键。
-- 建工单会自动 `projects.ensure`，不会出现孤儿工单。
-- 会话层有**并发闸门**：`sessions.max_concurrent`（默认 8）。每个会话一个线程、会话间并发，但同一时刻最多 8 个在跑 LLM，其余排队 —— 多工单同时跑不会把 VPS 打爆。`GET /api/sessions/state` 看 `active/max_concurrent/queued`。
+| 能力 | 谁在用 | 规则 |
+| --- | --- | --- |
+| `store` | 所有模块自己的数据 | 别的模块不 import pathlib/os/shutil，不开文件；JSON 交 `codec`、时间交 `clock` |
+| `net` | `llm` 发请求 | 只有 `net` import urllib/socket；`llm` 里一个网络符号都没有 |
+| `host` | `health`、`agents` 的守门 | 内存/磁盘/负载/环境变量只有它读 |
+| `clock` | 全系统的时间 | 没人再 `import time`/`datetime`；uptime、时间戳、停滞判定都问它 |
+| `http` | 入站：HTTP/SSE | 只有它 listen/accept、解析 query |
 
-## 十二、需求对照（自查）
+装配期例外只有三个：`boot`（组合根，装配前读 profiles 与源码）、`api`（绑定生成）、
+`config`（任何模块之前就要知道配置）。这三条由 `test_modules_touch_no_stdlib_io_directly`
+钉住：谁再 import pathlib/os/shutil/urllib/socket，验收直接红。
 
-| 需求 | 状态 |
-|------|------|
-| 1 ReAct + 工具输出落盘/阈值 | 完成 |
-| 1b 大输出只给路径、模型自己 grep/read | 完成 |
-| 2 agent CLI | 完成（20+ 子命令） |
-| 3 watchdog + systemd + 三次失败回退 | 完成（另加任意版本回退） |
-| 4 网页 = 远程跑 CLI | 完成（`/api/chat/send` 内部起 `hive.cli`） |
-| 5 网页固定命令 | 完成（压缩/重启/回退/停止/新建工单） |
-| 6 常驻秘书 + 自动/手动压缩 | 完成 |
-| 7 秘书只发作业、PM 收作业 | **修正过**：秘书工具白名单里已删除 shell/文件/网页类工具 |
-| 8 极简 ReAct + 可插拔（串行/并发/插队/打断） | 完成 |
-| 9 模块解耦、只暴露 API、测试打 API | 完成（94 条断言全是 API 级） |
-| 10 知识三层 + 结单沉淀 | 完成 |
-| 多项目 / 多工单并发 / 群聊 / 版本管理 / 健康页 | 本版新增 |
+为什么要这样：网络是"传输"，`llm` 只该管"对话语义"。换通道（代理、内网网关、本地桩）
+只改 `net` 的实现模板，`llm` 一行不动 —— 模块间调用可以是直接调用，也可以是网络/共享内存，
+这一层抽象现在有名字了。
 
-## 十三、已知边界
+## 部署（VPS）
 
-- 单进程单端口（模块靠路由表隔离），不是微服务；要横向拆把 router 换成 HTTP 转发即可。
-- 并发只有上限、没有优先级（后到的排队）。
-- 网页无多用户/权限分级，只有单一访问密码。
-- `shell` 工具以 root 运行（VPS 场景如此设计），仅靠 `tools.deny_patterns` + 内置危险命令正则兜底。
-- 角色写文件落在自己的 role 子目录（工单目录下的 `writer-1/`），交付件面板按相对路径展示。
+- 代码在 `/opt/ai_new`：本机打包后 `python3 -m zipfile -e deploy.zip .` 展开；
+  配置在 `ai_new/modules/agent_common/config/data/config.json`（`server.host=0.0.0.0`、`port=8788`）。
+- 端口用 **8788**：8787 上是另一套由 `hive-watchdog.service` 保活的服务，它每 10 秒探活、
+  连续 3 次失败就重启并自动回退版本 —— 占它的端口会被当成"进程挂了"然后 SIGKILL。
+- 启动：`cd /opt/ai_new && setsid nohup python3 agent_start.py > run.log 2>&1 < /dev/null &`
+- 面板：`http://104.168.148.112:8788/panel.html`，token 在配置里。
+
+## 纯计算能力与编排需求
+
+模块开放的权限只有"加减乘除"：
+
+| 模块 | 拿到什么 | 给出什么 |
+| --- | --- | --- |
+| `llm` | `messages` / `tools` / 连接参数 | 线上载荷 `{url, headers, payload}`，或解析好的 `{content, tool_calls, finish}` |
+| `codec` | 对象 / 文本 / 十六进制 | JSON 文本、对象、SSE 事件列表、base64、摘要 |
+| `net` | `url/method/headers/body(文本)` | `{status, headers, text}` |
+| `clock` | 无 / 秒数 / 文本 | 现在、ISO 文本、时间戳、睡多久 |
+| `config` | 键 | 值 |
+
+"发一次对话"不是任何一个模块的职责，而是一条**编排需求**（`data/demands/llm-chat.json`）：
+配置 → 载荷 → 序列化 → 传输 → 反序列化 → 语义。加缓存、换通道、加重试，都是改这条需求，
+不动任何模块；把它删掉，四个能力一个字节都不会少。
+
+编排需求有 `callable: true` 和空 `on`：它不挂在点上，被 `demand_engine.run` 按名调用。
+被动需求（挂点）与主动需求（按名）都受同一套规则约束：必须有 `expect`、必须被用例点名、
+`do` 里每个 `module.fn` 必须真注册。
+
+### 能力收编的边界
+
+收编的不是"所有库"，而是**与外界打交道的那部分**：
+
+| 归能力 | 谁 | 理由 |
+| --- | --- | --- |
+| 时间 | `clock` | 钟会自己走，模块管不了；各自持有一份"现在"必然对不上 |
+| 序列化/编码/摘要 | `codec` | 数据格式知识只该有一份 |
+| 文件、网络、主机读数、环境变量 | `store` / `net` / `host` | 同一个世界，只能有一处入口 |
+| 入站传输 | `http` | 端口、TLS、SSE 是它的事 |
+
+留在模块里的：纯内存计算（`re`、`fnmatch`、`math`、`bytes`、`dict`），以及进程内并发原语
+（`threading`）—— 它们不发请求、不读文件，只是"加减乘除 if else"的延长线。
+
+装配期例外只有三个：`boot`（组合根，装配前就要读源码/profiles）、`api`（通信绑定与调用矩阵）、
+`config`（任何模块之前就要知道配置）。它们不是运行时业务，读的是"装配输入"。
+
+**为什么线程不收编**：线程是进程内的调度，没有外部状态；一旦把线程也抽成能力，就会为了抽象
+而抽象。真正需要被编排的是"哪件事该发生"，那已经在需求里了。

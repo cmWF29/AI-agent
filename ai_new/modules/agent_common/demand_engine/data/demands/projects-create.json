@@ -1,0 +1,125 @@
+{
+  "id": "projects-create",
+  "title": "新建项目：id 归一 → 查重 → 取时间造档案 → 落盘 → 露出字段",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.id",
+      "with": {
+        "value": {
+          "get": "input.name"
+        }
+      },
+      "as": "id"
+    },
+    {
+      "call": "projects.build",
+      "with": {
+        "id": {
+          "get": "id.id"
+        },
+        "name": {
+          "get": "input.name"
+        },
+        "created": {
+          "get": "now.ts"
+        },
+        "default_backend": {
+          "get": "input.default_backend"
+        }
+      },
+      "as": "rec"
+    },
+    {
+      "call": "store.exists",
+      "with": {
+        "module": {
+          "lit": "agent/projects"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "get": "id.id"
+          },
+          "b": {
+            "lit": ".json"
+          }
+        }
+      },
+      "as": "ex"
+    },
+    {
+      "when": {
+        "op": "==",
+        "a": {
+          "get": "ex.exists"
+        },
+        "b": true
+      },
+      "then": [
+        {
+          "call": "projects.conflict",
+          "with": {
+            "id": {
+              "get": "id.id"
+            }
+          },
+          "as": "out"
+        }
+      ],
+      "else": [
+        {
+          "call": "store.write",
+          "with": {
+            "module": {
+              "lit": "agent/projects"
+            },
+            "path": {
+              "op": "+",
+              "a": {
+                "get": "id.id"
+              },
+              "b": {
+                "lit": ".json"
+              }
+            },
+            "value": {
+              "get": "rec"
+            }
+          },
+          "as": "w"
+        },
+        {
+          "call": "projects.view",
+          "with": {
+            "rec": {
+              "get": "rec"
+            }
+          },
+          "as": "out"
+        }
+      ]
+    },
+    {
+      "call": "clock.now",
+      "as": "now_ignored"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.id",
+      "projects.build",
+      "store.exists",
+      "store.write",
+      "projects.view",
+      "clock.now"
+    ],
+    "payload": {},
+    "promise": "查重与落盘都在需求里，模块只负责造形状"
+  }
+}

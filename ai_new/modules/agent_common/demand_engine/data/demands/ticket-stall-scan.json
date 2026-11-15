@@ -1,0 +1,161 @@
+{
+  "id": "ticket-stall-scan",
+  "title": "停滞扫描：遍历在途工单，超过阈值没更新就开审计单",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "store.walk",
+      "with": {
+        "module": {
+          "lit": "agent/tickets"
+        },
+        "root": {
+          "lit": "tickets"
+        },
+        "pattern": {
+          "lit": "*/ticket.json"
+        }
+      },
+      "as": "rows"
+    },
+    {
+      "let": "hot",
+      "eq": {
+        "lit": []
+      }
+    },
+    {
+      "each": {
+        "get": "rows.rows"
+      },
+      "as": "rec",
+      "do": [
+        {
+          "call": "clock.since",
+          "with": {
+            "iso": {
+              "get": "rec.updated"
+            }
+          },
+          "as": "idle"
+        },
+        {
+          "call": "tickets.stale",
+          "with": {
+            "rec": {
+              "get": "rec"
+            },
+            "idle_seconds": {
+              "get": "idle.seconds"
+            },
+            "limit_seconds": {
+              "get": "input.limit_seconds"
+            }
+          },
+          "as": "verdict"
+        },
+        {
+          "when": {
+            "op": "==",
+            "a": {
+              "get": "verdict.stale"
+            },
+            "b": {
+              "lit": true
+            }
+          },
+          "then": [
+            {
+              "let": "hot",
+              "eq": {
+                "op": "append",
+                "a": {
+                  "get": "hot"
+                },
+                "b": {
+                  "get": "rec.id"
+                }
+              }
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "each": {
+        "get": "hot"
+      },
+      "as": "tid",
+      "do": [
+        {
+          "call": "demand_engine.run",
+          "with": {
+            "id": {
+              "lit": "ticket-create"
+            },
+            "input": {
+              "title": {
+                "op": "+",
+                "a": {
+                  "lit": "停滞审计: "
+                },
+                "b": {
+                  "get": "tid"
+                }
+              },
+              "goal": {
+                "op": "+",
+                "a": {
+                  "lit": "工单久未推进: "
+                },
+                "b": {
+                  "get": "tid"
+                }
+              },
+              "kind": {
+                "lit": "stall-audit"
+              },
+              "auto_retrospective": {
+                "lit": false
+              }
+            }
+          },
+          "as": "audit"
+        }
+      ]
+    },
+    {
+      "call": "ops.assemble",
+      "with": {
+        "parts": {
+          "scan": {
+            "get": "hot"
+          },
+          "at": {
+            "get": "now.ts"
+          }
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "clock.now",
+      "store.walk",
+      "ops.assemble"
+    ],
+    "payload": {},
+    "promise": "扫描是需求，判定归模块，建单还是 ticket-create 需求"
+  }
+}

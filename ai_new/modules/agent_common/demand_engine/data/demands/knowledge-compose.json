@@ -1,0 +1,47 @@
+{
+  "id": "knowledge-compose",
+  "title": "注入知识：整树取文本 → 按层前缀拼接并截断",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.walk",
+      "with": {
+        "module": {
+          "lit": "agent/knowledge"
+        },
+        "pattern": {
+          "lit": "*.md"
+        }
+      },
+      "as": "rows"
+    },
+    {
+      "call": "knowledge.compose",
+      "with": {
+        "rows": {
+          "get": "rows.rows"
+        },
+        "prefixes": {
+          "get": "input.prefixes"
+        },
+        "max_chars": {
+          "get": "input.max_chars"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.walk",
+      "knowledge.compose"
+    ],
+    "payload": {},
+    "promise": "拼哪些层、截多少，都写在需求里"
+  }
+}

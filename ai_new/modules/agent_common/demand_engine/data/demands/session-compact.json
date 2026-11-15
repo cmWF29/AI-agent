@@ -1,0 +1,74 @@
+{
+  "id": "session-compact",
+  "title": "裁剪上下文：保留系统消息 + 最近 N 条",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.id",
+      "with": {
+        "value": {
+          "get": "input.id"
+        }
+      },
+      "as": "sid"
+    },
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "sid.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        }
+      },
+      "as": "row"
+    },
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "sessions.compact",
+      "with": {
+        "rec": {
+          "get": "row.value"
+        },
+        "keep": {
+          "get": "input.keep"
+        },
+        "now": {
+          "get": "now.ts"
+        }
+      },
+      "as": "rec"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.id",
+      "store.read",
+      "clock.now",
+      "sessions.compact"
+    ],
+    "payload": {},
+    "promise": "裁剪规则归模块"
+  }
+}

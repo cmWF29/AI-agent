@@ -1,0 +1,69 @@
+{
+  "id": "session-ask",
+  "title": "一问一答：send → run → wait 三步编排",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "demand_engine.run",
+      "with": {
+        "id": {
+          "lit": "session-send"
+        },
+        "input": {
+          "id": {
+            "get": "input.id"
+          },
+          "text": {
+            "get": "input.text"
+          }
+        }
+      },
+      "as": "sent"
+    },
+    {
+      "call": "demand_engine.run",
+      "with": {
+        "id": {
+          "lit": "session-run"
+        },
+        "input": {
+          "id": {
+            "get": "input.id"
+          },
+          "max_steps": {
+            "get": "input.max_steps"
+          }
+        }
+      },
+      "as": "ran"
+    },
+    {
+      "call": "demand_engine.run",
+      "with": {
+        "id": {
+          "lit": "session-wait"
+        },
+        "input": {
+          "id": {
+            "get": "input.id"
+          }
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "demand_engine.run",
+      "demand_engine.run",
+      "demand_engine.run"
+    ],
+    "payload": {},
+    "promise": "编排就是三行调用，没有隐式线程"
+  }
+}

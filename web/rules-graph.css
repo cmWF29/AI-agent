@@ -1,5 +1,0 @@
-
-/* 规则层模块关系图 */
-.rules-graph { margin: 8px 0 12px; border: 1px solid var(--line); border-radius: 10px;
-  background: #0b1728; overflow: auto; padding: 8px; }
-.rules-svg { min-width: 620px; width: 100%; height: auto; display: block; }

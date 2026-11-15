@@ -1,0 +1,101 @@
+{
+  "id": "session-send",
+  "title": "发消息给会话：读记录 → 追加 user 消息 → 落盘",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "input.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        }
+      },
+      "as": "row"
+    },
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "sessions.appendmsg",
+      "with": {
+        "rec": {
+          "get": "row.value"
+        },
+        "text": {
+          "get": "input.text"
+        },
+        "now": {
+          "get": "now.ts"
+        }
+      },
+      "as": "rec"
+    },
+    {
+      "call": "store.write",
+      "with": {
+        "module": {
+          "lit": "agent/sessions"
+        },
+        "path": {
+          "op": "+",
+          "a": {
+            "lit": "sessions/"
+          },
+          "b": {
+            "op": "+",
+            "a": {
+              "get": "rec.id"
+            },
+            "b": {
+              "lit": ".json"
+            }
+          }
+        },
+        "value": {
+          "get": "rec"
+        }
+      },
+      "as": "w"
+    },
+    {
+      "call": "sessions.view",
+      "with": {
+        "rec": {
+          "get": "rec"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "clock.now",
+      "sessions.appendmsg",
+      "store.write",
+      "sessions.view"
+    ],
+    "payload": {},
+    "promise": "追加与状态迁移归模块，落盘归需求"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "session-state",
+  "title": "会话状态：列表需求 + 纯函数数状态",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "demand_engine.run",
+      "with": {
+        "id": {
+          "lit": "session-list"
+        }
+      },
+      "as": "listed"
+    },
+    {
+      "call": "sessions.statsp",
+      "with": {
+        "items": {
+          "get": "listed.result.items"
+        },
+        "max": {
+          "get": "input.max"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "demand_engine.run",
+      "sessions.statsp"
+    ],
+    "payload": {},
+    "promise": "数状态是纯计算"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "architect": {
+    "id": "architect",
+    "cn": "架构",
+    "prompt_file": "roles/architect.md",
+    "must_outputs": [
+      "docs/**/*architect*",
+      "docs/**/*架构*"
+    ],
+    "backend": "",
+    "builtin": true
+  },
+  "developer": {
+    "id": "developer",
+    "cn": "开发",
+    "prompt_file": "roles/developer.md",
+    "must_outputs": [
+      "**/*.py",
+      "**/*.js",
+      "**/*.go",
+      "**/*.sh"
+    ],
+    "backend": "",
+    "builtin": true
+  },
+  "reviewer": {
+    "id": "reviewer",
+    "cn": "评审",
+    "prompt_file": "roles/reviewer.md",
+    "must_outputs": [
+      "docs/**/*review*",
+      "docs/**/*评审*"
+    ],
+    "backend": "",
+    "builtin": true
+  },
+  "tester": {
+    "id": "tester",
+    "cn": "测试",
+    "prompt_file": "roles/tester.md",
+    "must_outputs": [
+      "tests/**/*.py",
+      "tests/**/*.md"
+    ],
+    "backend": "",
+    "builtin": true
+  },
+  "ops": {
+    "id": "ops",
+    "cn": "运维",
+    "prompt_file": "roles/ops.md",
+    "must_outputs": [
+      "docs/**/*.md"
+    ],
+    "backend": "",
+    "builtin": true
+  },
+  "researcher": {
+    "id": "researcher",
+    "cn": "调研",
+    "prompt_file": "roles/researcher.md",
+    "must_outputs": [
+      "docs/**/*.md"
+    ],
+    "backend": "",
+    "builtin": true
+  },
+  "writer": {
+    "id": "writer",
+    "cn": "文案",
+    "prompt_file": "roles/writer.md",
+    "must_outputs": [
+      "docs/**/*.md"
+    ],
+    "backend": "",
+    "builtin": true
+  },
+  "process": {
+    "id": "process",
+    "cn": "流程专家",
+    "prompt_file": "roles/process.md",
+    "must_outputs": [
+      "docs/**/*.json",
+      "docs/**/*.md"
+    ],
+    "backend": "",
+    "builtin": true
+  }
+}

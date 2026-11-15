@@ -1,0 +1,93 @@
+{
+  "id": "ops-record",
+  "title": "记一条事件：成形 → 追加到 logs/app.jsonl",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "clock.now",
+      "as": "now"
+    },
+    {
+      "call": "ops.record",
+      "with": {
+        "hook": {
+          "get": "input.hook"
+        },
+        "level": {
+          "get": "input.level"
+        },
+        "data": {
+          "get": "input.data"
+        },
+        "now": {
+          "get": "now.iso"
+        }
+      },
+      "as": "rec"
+    },
+    {
+      "call": "codec.json_encode",
+      "with": {
+        "value": {
+          "get": "rec"
+        }
+      },
+      "as": "enc"
+    },
+    {
+      "call": "store.append_text",
+      "with": {
+        "module": {
+          "lit": "agent_common/ops"
+        },
+        "path": {
+          "lit": "logs/app.jsonl"
+        },
+        "text": {
+          "op": "+",
+          "a": {
+            "get": "enc.text"
+          },
+          "b": {
+            "lit": "\n"
+          }
+        }
+      },
+      "as": "w"
+    },
+    {
+      "call": "ops.record",
+      "with": {
+        "hook": {
+          "get": "input.hook"
+        },
+        "level": {
+          "get": "input.level"
+        },
+        "data": {
+          "get": "input.data"
+        },
+        "now": {
+          "get": "now.iso"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "clock.now",
+      "ops.record",
+      "codec.json_encode",
+      "store.append_text",
+      "ops.record"
+    ],
+    "payload": {},
+    "promise": "日志是运维的业务，写盘是能力"
+  }
+}
