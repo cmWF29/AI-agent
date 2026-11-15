@@ -174,6 +174,9 @@ class CoreTest(unittest.TestCase):
                                           "name": "dev", "ticket": "T-1"})
         sid = sp["result"]["id"]
         self.assertEqual(sp["result"]["status"], "idle")
+        # 角色人设必须进 system 消息（嵌套需求结果要解到 .result.prompt）
+        sysmsg = next(m for m in sp["result"]["messages"] if m["role"] == "system")
+        self.assertIn("开发角色", sysmsg["content"])
         self._run("session-send", {"id": sid, "text": "开始"})
         self._run("session-run", {"id": sid})
         done = self._run("session-wait", {"id": sid})["result"]

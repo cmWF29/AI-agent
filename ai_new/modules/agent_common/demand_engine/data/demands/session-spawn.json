@@ -45,6 +45,12 @@
             }
           },
           "as": "scn"
+        },
+        {
+          "let": "prompt_text",
+          "eq": {
+            "get": "scn.result.prompt"
+          }
         }
       ],
       "else": [
@@ -71,6 +77,12 @@
             }
           },
           "as": "scn"
+        },
+        {
+          "let": "prompt_text",
+          "eq": {
+            "get": "scn.value"
+          }
         }
       ]
     },
@@ -140,10 +152,10 @@
           "get": "input.meta"
         },
         "prompt": {
-          "get": "scn.value"
+          "get": "prompt_text"
         },
         "injected": {
-          "get": "know.text"
+          "get": "know.result.text"
         },
         "prefix": {
           "lit": ""
