@@ -110,7 +110,7 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(miss["result"].get("ok", True))
 
     def test_channel_post_tail_roundtrip(self):
-        """频道：需求发两条、按序读回（watch 长流已从能力面移除，见交接遗留项）。"""
+        """频道：需求发两条、按序读回；watch 门面按游标回 {items, cursor}。"""
         self._run("channel-post", {"channel": "probe-ch", "role": "user", "content": "一"})
         self._run("channel-post", {"channel": "probe-ch", "role": "user", "content": "二"})
         t = self._run("channel-tail", {"channel": "probe-ch", "limit": 5})["result"]
@@ -118,6 +118,14 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(mine, ["一", "二"])
         meta = {r["name"]: r for r in self.ctx.api.routes()}
         self.assertIn("channel.tail", meta)
+        # watch 是流式门面：委托 channel-since，按游标取增量
+        self.assertTrue(meta["channel.watch"]["stream"])
+        w = self.ctx.api.call("channel.watch", {"channel": "probe-ch", "cursor": 0})
+        self.assertGreaterEqual(w["cursor"], 2)
+        self.assertTrue(any(i["content"] == "二" for i in w["items"]))
+        # 游标之后不再重复推
+        w2 = self.ctx.api.call("channel.watch", {"channel": "probe-ch", "cursor": w["cursor"]})
+        self.assertEqual(w2["items"], [])
 
     def test_chat_demand_answers_and_does_not_self_trigger(self):
         """一条业务闭环：用户消息 → 模型 → 回复写回；assistant 不再触发模型。"""
@@ -193,7 +201,7 @@ class CoreTest(unittest.TestCase):
         self.assertIsInstance(r, dict)
 
     def test_sse_gate_rejects_non_stream_and_unknown(self):
-        """SSE 入口：未知路由 404；已注册但非流式 400。当前没有流式路由，长流推送见遗留项。"""
+        """SSE 入口：未知路由 404；已注册但非流式 400。流式路由仅 channel.watch。"""
         def _open(path):
             req = urllib.request.Request("http://127.0.0.1:%d%s" % (self.port, path),
                                          headers={"X-Auth-Token": "t"})

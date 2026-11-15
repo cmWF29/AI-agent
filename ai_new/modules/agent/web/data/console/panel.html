@@ -136,11 +136,12 @@ async function send() {
   const tk = $("token").value.trim();
   input.value = "";
   try {
-    const resp = await fetch("/api/rpc/channel/post", {
+    const resp = await fetch("/api/rpc/demand_engine/run", {
       method: "POST",
       headers: Object.assign({"Content-Type": "application/json"},
                              tk ? {"X-Auth-Token": tk} : {}),
-      body: JSON.stringify({channel: ch, role: "user", content: text})
+      body: JSON.stringify({ id: "channel-post",
+                             input: { channel: ch, role: "user", content: text } })
     });
     if (!resp.ok) setState("发送失败 HTTP " + resp.status);
   } catch (e) {

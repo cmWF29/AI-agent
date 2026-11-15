@@ -142,6 +142,7 @@ def _make_handler(ctx):
                         payload["cursor"] = result["cursor"]
                     self.wfile.write(b": keep-alive\n\n")
                     self.wfile.flush()
+                    ctx.api.call("clock.sleep", {"seconds": 1}, caller=None)
             except (BrokenPipeError, ConnectionResetError, OSError):
                 return
 

@@ -15,4 +15,15 @@ def setup(ctx):
         ("channel.bad", _pure.bad),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="channel")
+
+    def _watch(ctx, payload):
+        """SSE 轮询门面：不自己读盘，按游标委托 channel-since 需求回 {items, cursor}。"""
+        cursor = payload.get("cursor") or 0
+        res = ctx.demand_engine.run_callable("channel-since", {
+            "channel": payload.get("channel") or "default",
+            "cursor": cursor,
+        })
+        return res.get("result") or {"items": [], "cursor": cursor}
+
+    ctx.api.register("channel.watch", _watch, module="channel", stream=True)
     return True
