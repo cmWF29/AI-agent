@@ -301,6 +301,21 @@ class CoreTest(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError):
             urllib.request.urlopen(bad, timeout=5)
 
+    def test_health_live_public_and_assemble_gated(self):
+        """存活探头免鉴权且 uptime 非负；业务概览自检无令牌必须 401。"""
+        live = urllib.request.Request(
+            "http://127.0.0.1:%d/api/health/live" % self.port)
+        with urllib.request.urlopen(live, timeout=5) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        self.assertTrue(body["ok"])
+        self.assertGreaterEqual(body["uptime"], 0)
+
+        assemble = urllib.request.Request(
+            "http://127.0.0.1:%d/api/health/assemble" % self.port)
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            urllib.request.urlopen(assemble, timeout=5)
+        self.assertEqual(cm.exception.code, 401)
+
     def test_rpc_endpoint_returns_raw_result(self):
         """网络通道的服务端：/api/rpc/ 返回未包装的原始结果，供另一个进程直接消费。"""
         req = urllib.request.Request(
