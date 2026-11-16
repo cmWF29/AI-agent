@@ -307,22 +307,22 @@ def _demand_emit_points(node, out):
             _demand_emit_points(value, out)
 
 
-_STMT_KEYS = ({"call"}, {"when"}, {"let"}, {"each"},
-              {"until"}, {"wait"}, {"fail"})
+_STMT_KEYS = ({"call"}, {"let"}, {"fail"})
 
 
 def _check_stmt(stmt, demand_id):
-    """需求语言的语法检查：语句必须是 call / when / let / each 之一。"""
+    """需求语言的语法检查：语句只能是 call / let / fail —— 需求树只允许顺序执行。"""
     warnings = []
     if not isinstance(stmt, dict):
         return ["需求 %s 里有非对象语句: %r" % (demand_id, stmt)]
     keys = set(stmt.keys())
+    control = keys & {"when", "each", "until", "wait"}
+    if control:
+        warnings.append("需求 %s 出现控制流语句 %s（分支/遍历/循环必须下沉到模块）"
+                        % (demand_id, sorted(control)))
     if not any(keys & form for form in _STMT_KEYS):
-        warnings.append("需求 %s 有未知语句（只支持 call/when/let/each）: %s"
+        warnings.append("需求 %s 有未知语句（只支持 call/let/fail）: %s"
                         % (demand_id, sorted(keys)))
-    for key in ("then", "else", "do"):
-        for child in stmt.get(key) or []:
-            warnings.extend(_check_stmt(child, demand_id))
     return warnings
 
 

@@ -47,8 +47,7 @@ class Engine:
             {"id": r["id"], "title": r.get("title", ""),
              "enabled": bool(r.get("enabled", True)),
              "on": list(r["on"]),
-             "do": _lang.routes_of(r.get("do")),
-             "when": bool(r.get("when"))}
+             "do": _lang.routes_of(r.get("do"))}
             for r in self._load()
         ]
 
@@ -75,8 +74,6 @@ class Engine:
                 raise self.ctx.ApiError("需求不按名调用: %s" % demand_id,
                                         code="not_callable", status=400)
             scope = {"input": inputs or {}, "caller": None}
-            if "when" in rec:
-                return {"ok": False, "error": "按名调用的需求不能带 when", "demand": demand_id}
             results = _lang.run(rec.get("do"), scope, self.ctx.api, self.ctx, demand_id)
             last = next((r for r in reversed(results) if r.get("call")), None)
             if last is None:
@@ -93,9 +90,6 @@ class Engine:
             if not rec.get("enabled", True) or hook not in rec["on"]:
                 continue
             scope = {"event": envelope or {}, "hook": hook, "caller": None}
-            guard = rec.get("when")
-            if guard is not None and not _lang.eval_expr(guard, scope):
-                continue
             results.extend(_lang.run(rec.get("do"), scope, self.ctx.api, self.ctx, rec["id"]))
         return results
 

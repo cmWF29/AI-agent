@@ -173,6 +173,34 @@ class DemandContractTest(unittest.TestCase):
                 problems.append("%s 没有 expect.calls（预期要调哪些服务）" % rec.get("id"))
         self.assertEqual(problems, [], "需求预期不完整: %s" % problems)
 
+    def test_demand_trees_are_sequential_only(self):
+        """需求树只允许顺序语句：call / let / fail。
+
+        分支、遍历、循环、等待都必须下沉到模块功能函数内部；
+        需求层再出现这些键，就等于把控制流又搬回了编排里。
+        """
+        control = {"when", "each", "until", "wait"}
+        problems = []
+        for rec in load_all():
+            for stmt in rec.get("do") or []:
+                if not isinstance(stmt, dict):
+                    problems.append("%s 有非对象语句: %r" % (rec.get("id"), stmt))
+                    continue
+                hit = control & set(stmt.keys())
+                if hit:
+                    problems.append("%s 出现控制流语句 %s" % (rec.get("id"), sorted(hit)))
+                if not ({"call", "let", "fail"} & set(stmt.keys())):
+                    problems.append("%s 有未知语句: %s" % (rec.get("id"), sorted(stmt.keys())))
+        self.assertEqual(problems, [], "需求树仍有控制流: %s" % problems)
+
+    def test_engine_no_longer_understands_control_flow(self):
+        """语法收紧要落到解释器上：引擎不能再认识 when/each/until/wait。"""
+        src = (ROOT / "ai_new/modules/agent_common/demand_engine/private/_lang.py").read_text(
+            encoding="utf-8")
+        for token in ('if "when" in stmt', 'if "each" in stmt',
+                      'if "until" in stmt', 'if "wait" in stmt'):
+            self.assertNotIn(token, src, "引擎仍保留控制流解释: %s" % token)
+
     def test_expect_calls_exist_in_do(self):
         """预期里写的服务调用必须真在语句树里 —— 预期不能凭空写。"""
         problems = []

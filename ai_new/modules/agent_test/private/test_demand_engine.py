@@ -82,27 +82,25 @@ class LanguageTest(unittest.TestCase):
         self.assertEqual(api.calls[0][0], "ops.record")
         self.assertEqual(api.calls[0][1]["hook"], "x.happened")
 
-    def test_when_guards_a_branch(self):
-        api = FakeApi()
-        stmt = [{"when": {"op": "==", "a": {"get": "event.data.kind"}, "b": "pm"},
-                 "then": [{"call": "a.b"}], "else": [{"call": "a.c"}]}]
-        _lang.run(stmt, {"event": {"data": {"kind": "pm"}}}, api, None)
-        self.assertEqual([c[0] for c in api.calls], ["a.b"])
-        api.calls.clear()
-        _lang.run(stmt, {"event": {"data": {"kind": "user"}}}, api, None)
-        self.assertEqual([c[0] for c in api.calls], ["a.c"])
-
-    def test_let_and_each_compose_services(self):
+    def test_let_can_feed_a_later_call(self):
         api = FakeApi()
         stmt = [
-            {"let": "members", "eq": {"get": "event.data.members"}},
-            {"each": {"get": "members"}, "as": "m",
-             "do": [{"call": "notify.send", "with": {"to": {"get": "m"}, "n": {"op": "len", "a": {"get": "members"}}}}]},
+            {"let": "n", "eq": {"op": "len", "a": {"get": "event.data.members"}}},
+            {"call": "notify.send", "with": {"n": {"get": "n"}}},
         ]
         _lang.run(stmt, {"event": {"data": {"members": ["a", "b"]}}}, api, None)
-        self.assertEqual([c[0] for c in api.calls], ["notify.send", "notify.send"])
-        self.assertEqual([c[1]["to"] for c in api.calls], ["a", "b"])
+        self.assertEqual([c[0] for c in api.calls], ["notify.send"])
         self.assertEqual(api.calls[0][1]["n"], 2)
+
+    def test_control_flow_statement_is_recorded_not_interpreted(self):
+        """控制流语句已经不在语法里：引擎记一条失败，然后照常跑后续顺序语句。"""
+        api = FakeApi()
+        stmt = [{"when": {"get": "event.x"}, "then": [{"call": "a.b"}]},
+                {"call": "good.route"}]
+        results = _lang.run(stmt, {"event": {}}, api, None)
+        self.assertFalse(results[0]["ok"])
+        self.assertTrue(results[1]["ok"])
+        self.assertEqual([c[0] for c in api.calls], ["good.route"])
 
     def test_failure_is_recorded_not_raised(self):
         api = FakeApi()
@@ -111,9 +109,8 @@ class LanguageTest(unittest.TestCase):
         self.assertFalse(results[0]["ok"])
         self.assertTrue(results[1]["ok"])
 
-    def test_routes_of_finds_nested_calls(self):
-        stmt = [{"when": {"get": "event.x"}, "then": [{"call": "a.b"}]},
-                {"each": {"get": "event.list"}, "do": [{"call": "c.d"}]}]
+    def test_routes_of_lists_sequential_calls(self):
+        stmt = [{"call": "a.b"}, {"let": "x", "eq": {"lit": 1}}, {"call": "c.d"}]
         self.assertEqual(sorted(_lang.routes_of(stmt)), ["a.b", "c.d"])
 
 
@@ -130,12 +127,10 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(engine.items()[0]["on"], ["x.happened"])
         self.assertEqual(len(engine.dispatch("x.happened", {"hook": "x.happened"})), 1)
 
-    def test_when_guard_can_skip_whole_demand(self):
-        ctx = FakeCtx({"probe": _demand(
-            when={"op": "==", "a": {"get": "event.hook"}, "b": "other"},
-            do=[{"call": "ops.record"}])})
-        engine = _engine.Engine(ctx)
-        self.assertEqual(engine.dispatch("x.happened", {"hook": "x.happened"}), [])
+    def test_items_do_not_carry_a_demand_level_guard(self):
+        ctx = FakeCtx({"probe": _demand(do=[{"call": "ops.record"}])})
+        item = _engine.Engine(ctx).items()[0]
+        self.assertNotIn("when", item, "需求级 when 已随控制流一起移除")
 
     def test_disable_takes_effect_immediately(self):
         ctx = FakeCtx({"probe": _demand(do=[{"call": "ops.record"}])})
@@ -146,11 +141,9 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(len(engine.dispatch("x.happened", {"hook": "x.happened"})), 1)
 
     def test_items_expose_routes_for_static_reading(self):
-        ctx = FakeCtx({"probe": _demand(
-            do=[{"when": {"get": "event.x"}, "then": [{"call": "a.b"}]}])})
+        ctx = FakeCtx({"probe": _demand(do=[{"call": "a.b"}])})
         item = _engine.Engine(ctx).items()[0]
         self.assertEqual(item["do"], ["a.b"])
-        self.assertTrue(item["when"] is False)
 
 
 if __name__ == "__main__":

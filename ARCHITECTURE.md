@@ -126,7 +126,9 @@ modules/<组>/<模块>/
 ```
 
 - 语法（`demand_engine/private/_lang.py`）：表达式 `get / lit / op(==,!=,in,and,or,not,len,+,>,<)`；
-  语句 `call`（可带 `with` 映射参数、`as` 存结果）、`when`（守卫）、`let`（绑定）、`each`（遍历）。
+  语句只有 `call`（可带 `with` 映射参数、`as` 存结果）、`let`（绑定）、`fail`（显式中止）。
+- **需求树只允许顺序执行**：分支、遍历、循环、等待都在模块功能函数内部完成。
+  需求里出现 `when / each / until / wait` 由静态禁令闸直接判失败（`test_demands`）。
 - 引擎 `demand_engine` 只做装载、路由、解释执行，不认识任何业务名词。
 - **先有需求，才有扩展点**：没有需求订阅的 hook 点会被扫描器点名"可以连同 emit 一起删掉"。
 - 可插拔：加需求 = 加文件；停需求 = 引擎面板 `set_enabled(id, false)` 或挪走文件；
