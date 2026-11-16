@@ -22,6 +22,7 @@ def setup(ctx):
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="knowledge")
+    ctx.api.register("knowledge.save", _route_save, "写知识：归一→算路径→append/覆盖→回执", module="knowledge")
     for name, desc, demand in [
         ("knowledge_read", "读一层知识文档", "knowledge-read"),
         ("knowledge_write", "写知识总结（不是交付件）", "knowledge-write"),
@@ -36,6 +37,31 @@ def setup(ctx):
             {"name": "query", "type": "string", "desc": "检索词", "required": False},
         ], demand=demand, module="knowledge")
     return True
+
+
+def _route_save(ctx, payload):
+    pid = ctx.api.call("store.id", {"value": payload.get("project")}, caller=None)
+    tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
+    scope = ctx.api.call("knowledge.scope", {
+        "layer": payload.get("layer"),
+        "project": pid.get("id"),
+        "ticket": tid.get("id")}, caller=None)
+    if not scope.get("ok"):
+        return scope
+    nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
+    doc = ctx.api.call("knowledge.doc", {"prefix": scope.get("prefix"),
+        "name": nid.get("id")}, caller=None)
+    if not doc.get("ok"):
+        return doc
+    content = payload.get("content") or ""
+    if payload.get("mode") == "append":
+        ctx.api.call("store.append_text", {"module": "agent/knowledge",
+            "path": doc.get("path"), "text": "\n\n" + content}, caller=None)
+    else:
+        ctx.api.call("store.write_text", {"module": "agent/knowledge",
+            "path": doc.get("path"), "text": content}, caller=None)
+    return ctx.api.call("knowledge.view", {"path": doc.get("path"),
+        "content": content}, caller=None)
 
 
 def _as_handler(fn):

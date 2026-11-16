@@ -15,6 +15,8 @@ def setup(ctx):
         ("artifacts.stats", _pure.statsp),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="artifacts")
+    ctx.api.register("artifacts.save", _route_save, "写交付件：分层→算路径→文本/二进制落盘→回执",
+                     module="artifacts")
     for name, desc, demand in [
         ("artifact_write", "把交付件写到指定层（ticket/project/public）", "artifacts-write"),
         ("artifact_read", "读取交付件（只读）", "artifacts-read"),
@@ -27,3 +29,27 @@ def setup(ctx):
             {"name": "ticket", "type": "string", "desc": "ticket 层必填", "required": False},
         ], demand=demand, module="artifacts")
     return True
+
+
+def _route_save(ctx, payload):
+    pid = ctx.api.call("store.id", {"value": payload.get("project")}, caller=None)
+    tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
+    base = ctx.api.call("artifacts.base", {
+        "layer": payload.get("layer"),
+        "project": pid.get("id"), "ticket": tid.get("id")}, caller=None)
+    if not base.get("ok"):
+        return base
+    rel = ctx.api.call("artifacts.rel", {"base": base.get("base"),
+        "path": payload.get("path")}, caller=None)
+    if not rel.get("ok"):
+        return rel
+    content = payload.get("content") or ""
+    if payload.get("encoding") == "base64":
+        hx = ctx.api.call("codec.hex_from_base64", {"text": content}, caller=None)
+        w = ctx.api.call("store.write_bytes", {"module": "agent/artifacts",
+            "path": rel.get("path"), "hex": hx.get("hex")}, caller=None)
+    else:
+        w = ctx.api.call("store.write_text", {"module": "agent/artifacts",
+            "path": rel.get("path"), "text": content}, caller=None)
+    return ctx.api.call("artifacts.written", {"path": rel.get("path"),
+        "size": w.get("size"), "layer": payload.get("layer")}, caller=None)

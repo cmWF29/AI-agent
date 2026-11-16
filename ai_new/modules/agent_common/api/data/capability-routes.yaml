@@ -18,3 +18,20 @@ capabilities:
     - net.request
     - codec.sse_decode
     - llm.decode_sse
+  knowledge.save:
+    calls:
+    - store.id
+    - knowledge.scope
+    - knowledge.doc
+    - store.append_text
+    - store.write_text
+    - knowledge.view
+  artifacts.save:
+    calls:
+    - store.id
+    - artifacts.base
+    - artifacts.rel
+    - codec.hex_from_base64
+    - store.write_bytes
+    - store.write_text
+    - artifacts.written
