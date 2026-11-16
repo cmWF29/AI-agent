@@ -34,6 +34,13 @@ def setup(ctx):
     return True
 
 
+def _msg_tpl(ctx):
+    """消息模板表：工单模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent/tickets", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def _route_create(ctx, payload):
     """建单闭环：项目守卫、查档、造记录、拉 PM、落盘。分岔与派发都在能力内部。"""
     skip_pm = payload.get("kind") == "stall-audit"
@@ -71,12 +78,17 @@ def _route_create(ctx, payload):
             "code": "ticket_id_conflict", "status": 409,
             "message": "工单号已存在：%s，拒绝覆盖" % (rec.get("id") or "")}, caller=None)
     if not skip_pm:
+        intro = _pure.msg({
+            "tpl": (_msg_tpl(ctx).get("pm_intro") or ""),
+            "vars": {"ticket": fresh.get("id") or "", "title": rec.get("title") or "",
+                     "goal": rec.get("goal") or ""}}).get("text") or ""
         pm = ctx.api.call("demand_engine.run", {
             "id": "session-spawn",
             "input": {"kind": "pm", "name": "PM-%s" % (fresh.get("id") or ""),
                       "ticket": fresh.get("id"),
                       "max_steps": payload.get("pm_max_steps"),
-                      "task": payload.get("task")}}, caller=None)
+                      "task": payload.get("task"),
+                      "intro": intro}}, caller=None)
         rec = ctx.api.call("tickets.bindpm", {
             "rec": rec,
             "session": ((pm.get("result") or {}).get("id")) or "",

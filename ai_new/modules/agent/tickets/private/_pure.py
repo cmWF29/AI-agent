@@ -142,8 +142,11 @@ def roles(p):
 
 def note(p):
     rec = dict(p.get("rec") or {})
+    text = (p.get("text") or "").strip()
+    if not text:
+        return rec  # 空备注不落盘：少一条记录，好过多一条脏记录
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "note",
-                                          "text": p.get("text") or ""})
+                                          "text": text})
     rec["updated"] = p.get("now") or ""
     return rec
 

@@ -23,7 +23,7 @@ async function execute(binding, fields) {
       const next = resolveView(act.after, { ...c, result: res });
       return go(next, true);
     }
-    await render();
+    await render({ keepBanner: true });
   } catch (err) {
     banner(gateMessage(err), "err");
   }
@@ -81,7 +81,7 @@ function openForm(form, ctx) {
       const next = resolveView(form.submit.then, { ...c, result: res });
       return go(next, true);
     }
-    await render();
+    await render({ keepBanner: true });
   };
 }
 function closeModal() { $("modal").hidden = true; modalSubmit = null; MODAL_CTX = null; }

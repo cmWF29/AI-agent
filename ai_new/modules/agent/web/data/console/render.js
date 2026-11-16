@@ -7,10 +7,15 @@ function actIndex(act, ctx) {
 }
 function buttonHtml(act, ctx, opts) {
   opts = opts || {};
-  const disabled = act.disabled_when != null && condOf(act.disabled_when, ctx);
-  const title = disabled && act.disabled_hint ? ` title="${esc(act.disabled_hint)}"` : "";
+  const binding = { act, ctx };
+  if (opts.composer) binding.composer = true;
+  ACTS.push(binding);
+  const disabled = opts.disabled === true
+    || (act.disabled_when != null && condOf(act.disabled_when, ctx));
+  const hint = act.disabled_hint || opts.hint || "";
+  const title = disabled && hint ? ` title="${esc(hint)}"` : "";
   const cls = act.tone === "primary" ? "primary" : (act.tone === "danger" ? "danger" : "");
-  return `<button class="${cls}" data-act="${actIndex(act, ctx)}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
+  return `<button class="${cls}" data-act="${ACTS.length - 1}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
 }
 function badgeHtml(value, ctx) {
   const s = String(value == null ? "" : value);
@@ -178,11 +183,15 @@ function composerHtml(sec, ctx) {
   const submit = sec.submit || {};
   ACTS.push({ act: submit, ctx, composer: true });
   const submitIdx = ACTS.length - 1;
-  const acts = (sec.actions || []).map((a) => buttonHtml({ ...a, composer: true }, ctx)).join("");
-  return `<div class="composer">
-    <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}" ${disabled ? "disabled" : ""}></textarea>
+  const hint = disabled ? (sec.disabled_hint || "") : "";
+  const gate = disabled ? ` disabled${hint ? ` title="${esc(hint)}"` : ""}` : "";
+  const acts = (sec.actions || []).map((a) =>
+    buttonHtml(a, ctx, { disabled, hint, composer: true })).join("");
+  return `<div class="composer${disabled ? " off" : ""}">
+    <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
     ${acts}
-    <button class="primary" data-act="${submitIdx}" ${disabled ? "disabled" : ""}>${esc(fill(submit.label || "发送", ctx))}</button>
+    <button class="primary" data-act="${submitIdx}"${gate}>${esc(fill(submit.label || "发送", ctx))}</button>
+    ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
   </div>`;
 }
 

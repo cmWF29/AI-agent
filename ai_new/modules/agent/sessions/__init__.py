@@ -24,6 +24,21 @@ def setup(ctx):
     return True
 
 
+def _next_seq(ctx, kind):
+    """同一 kind 的会话序号自增：拿当日已有最大值 + 1，绝不复用已有会话 id。"""
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+    best = 0
+    for rel in listed.get("items") or []:
+        name = str(rel).rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        if not name.startswith((kind or "role") + "-"):
+            continue
+        tail = name[len(kind) + 1:]
+        if tail.isdigit():
+            best = max(best, int(tail))
+    return best + 1
+
+
 def _route_spawn(ctx, payload):
     """造会话闭环：取人设与知识、拼消息、落盘。人设来源的分岔在能力内部。"""
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
@@ -41,14 +56,17 @@ def _route_spawn(ctx, payload):
     know = ctx.api.call("demand_engine.run", {
         "id": "knowledge-compose", "input": {"prefixes": prefixes}}, caller=None)
     now = ctx.api.call("clock.now", {}, caller=None)
+    kind = payload.get("kind") or "role"
+    seq = payload.get("seq") or _next_seq(ctx, kind)
     rec = ctx.api.call("sessions.build", {
-        "kind": payload.get("kind"), "seq": payload.get("seq"),
+        "kind": kind, "seq": seq,
         "name": nid.get("id"), "ticket": payload.get("ticket"),
         "role": payload.get("role"), "backend": payload.get("backend"),
         "max_steps": payload.get("max_steps"), "meta": payload.get("meta"),
         "prompt": prompt_text,
         "injected": ((know.get("result") or {}).get("text")) or "",
-        "prefix": "", "task": payload.get("task"), "now": now.get("ts")}, caller=None)
+        "prefix": "", "task": payload.get("task"), "intro": payload.get("intro"),
+        "now": now.get("ts")}, caller=None)
     ctx.api.call("store.write", {
         "module": "agent/sessions",
         "path": "sessions/%s.yaml" % (rec.get("id") or ""),

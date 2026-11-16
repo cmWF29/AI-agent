@@ -110,7 +110,7 @@ async function boot() {
   await render();
 }
 
-async function render() {
+async function render(opts) {
   const spec = VIEWS[state.view] || VIEWS.projects;
   const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
   for (const src of spec.data || []) {
@@ -119,7 +119,7 @@ async function render() {
     ctx.data[src.as] = res;
     if (src.cache) ctx.cache[src.cache] = res;
   }
-  banner("");
+  if (!(opts && opts.keepBanner)) banner("");
   renderCrumb(spec, ctx);
   renderView(spec, ctx);
 }

@@ -39,11 +39,13 @@ view:
              flash: 已通知 PM}
     actions:
     - {label: 追加备注, demand: ticket-note, params: {id: "{thread.ticket.id}", text: "$text"},
-       flash: 备注已追加, clear: true}
+       flash: 备注已追加, clear: true, empty_hint: 请先输入备注内容}
     - {label: 结单, demand: ticket-close,
        params: {id: "{thread.ticket.id}", summary: "$text", verdict: done},
-       confirm: 确认结单？结单后不能再发消息。, tone: danger, stay: true}
+       confirm: 确认结单？结单后不能再发消息。, tone: danger, stay: true,
+       empty_hint: 请先输入结单结论}
     disabled_when: "{thread.ticket.status=closed}"
+    disabled_hint: 工单已结单：不能再发消息或追加备注
 expect:
   given:
     input: {}

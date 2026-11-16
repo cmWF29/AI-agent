@@ -2,11 +2,23 @@
 from __future__ import annotations
 
 
+def _seed(system, intro):
+    """会话开局消息：system 人设在前；原始需求作为第一条 user 消息在后。
+
+    PM 一句话没说时，会话里也必须看得见"用户到底要什么"，否则工单是个空壳。
+    """
+    msgs = [{"role": "system", "content": system}]
+    if intro:
+        msgs.append({"role": "user", "content": intro})
+    return msgs
+
+
 def build(p):
     prefix = p.get("prefix") or ""
     prompt = p.get("prompt") or ""
     injected = p.get("injected") or ""
     task = p.get("task") or ""
+    intro = p.get("intro") or ""
     system = (prefix + "\n" + prompt + "\n" + injected).strip()
     if task:
         system = system + "\n\n## 任务\n" + task
@@ -18,7 +30,7 @@ def build(p):
         "status": "idle", "created": p.get("now") or "", "updated": p.get("now") or "",
         "max_steps": p.get("max_steps"),
         "meta": p.get("meta") or {},
-        "messages": [{"role": "system", "content": system}],
+        "messages": _seed(system, intro),
     }
 
 

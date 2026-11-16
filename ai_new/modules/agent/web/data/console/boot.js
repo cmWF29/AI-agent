@@ -9,7 +9,10 @@ document.addEventListener("click", (e) => {
     if (binding.composer) {
       const box = $("view-body").querySelector(".composer textarea");
       const text = (box && box.value || "").trim();
-      if (!text) return;
+      if (!text) {
+        banner(binding.act.empty_hint || "请先输入内容，再点这个按钮", "err");
+        return;
+      }
       return execute(binding, { text });
     }
     return execute(binding, {});

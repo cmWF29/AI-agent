@@ -25,6 +25,8 @@ do:
       get: input.meta
     task:
       get: input.task
+    intro:
+      get: input.intro
   as: out
 expect:
   given:
