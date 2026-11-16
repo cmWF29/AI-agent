@@ -147,6 +147,24 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(ungoverned, [], "存在未被需求或平台授权的写路由: %s" % ungoverned)
 
 
+    def test_console_carries_no_business_demand_ids(self):
+        """控制台外壳只认规格，不许自带第二份需求清单。
+
+        HTML/JS 里出现需求 id 字面量，就等于页面又存了一份需求：改需求会漏改页面。
+        允许的只有清单登记的平台入口（views-list / auth-logout）。
+        """
+        html = (ROOT / "ai_new/modules/agent/web/data/console/manage.html").read_text(encoding="utf-8")
+        entries = yaml.safe_load((ROOT / "ai_new/modules/agent_common/demand_engine/data"
+                                 / "console-entries.yaml").read_text(encoding="utf-8"))
+        allowed = set(entries.get("entries") or [])
+        demands_dir = ROOT / "ai_new/modules/agent_common/demand_engine/data/demands"
+        ids = {p.stem for p in demands_dir.glob("*.yaml")}
+        hits = sorted(d for d in ids
+                      if ('"%s"' % d) in html or ("'%s'" % d) in html)
+        stray = [h for h in hits if h not in allowed]
+        self.assertEqual(stray, [],
+                         "控制台硬编码了业务需求 id，页面又存了一份需求清单: %s" % stray)
+
     # ---- 需求编排闭环 ----
 
     def _run(self, demand, input=None):

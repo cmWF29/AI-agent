@@ -1,0 +1,5 @@
+comment: 控制台外壳允许直接引用的需求入口。只收平台级、与业务无关的两个；
+  业务需求一律由 views-list 下发，前端不得出现任何业务需求 id 字面量。
+entries:
+- views-list
+- auth-logout

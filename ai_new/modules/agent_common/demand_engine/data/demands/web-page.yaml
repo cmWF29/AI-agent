@@ -28,6 +28,9 @@ do:
     path:
       get: p.path
   as: type
+- call: demand_engine.list
+  with: {}
+  as: listing
 - call: web.info
   with:
     console:
@@ -35,7 +38,7 @@ do:
     routes:
       get: input.routes
     demands:
-      get: input.demands
+      get: listing
   as: out
 expect:
   given:
@@ -43,6 +46,7 @@ expect:
   calls:
   - web.rel
   - web.mime
+  - demand_engine.list
   - web.info
   payload: {}
-  promise: 页面是数据，路径与 MIME 是纯计算
+  promise: 页面是数据，路径与 MIME 是纯计算；清单一并下发，页面与需求不再各存一份
