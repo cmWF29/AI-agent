@@ -8,7 +8,7 @@ _TYPES = {"html": "text/html; charset=utf-8", "css": "text/css; charset=utf-8",
 
 
 def rel(p):
-    path = (p.get("path") or "index.html").strip("/")
+    path = (p.get("path") or "manage.html").strip("/")
     return {"path": path}
 
 

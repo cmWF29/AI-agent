@@ -164,7 +164,7 @@ def _make_handler(ctx):
         def _static(self, path):
             """静态资源归 web 模块：http 只搬字节，不认识页面内容。"""
             try:
-                asset = ctx.web.asset(ctx, path.lstrip("/") or "index.html")
+                asset = ctx.web.asset(ctx, path.lstrip("/") or "manage.html")
             except ctx.ApiError as e:
                 self._json_error(e)
                 return
