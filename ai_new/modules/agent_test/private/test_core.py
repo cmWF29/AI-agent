@@ -234,6 +234,29 @@ class CoreTest(unittest.TestCase):
         self.assertNotIn("exec.run", [r["name"] for r in self.ctx.api.routes()],
                          "内部路由不该出现在对外路由清单里")
 
+    def test_agent_process_is_killed_on_cancel(self):
+        """打断要真停：外部 agent 进程被 kill，能在秒级收尾，不拖到自然跑完。"""
+        cfg = self.ctx.cfg.setdefault("llm", {})
+        keep = dict(cfg)
+        cfg["mode"] = "agent"
+        cfg["agent"] = {"command": ["python3", "-c", "import time; time.sleep(30)"],
+                        "timeout": 40}
+        now = self.ctx.api.call("clock.now", {})["ts"]
+        gate = {"id": "cancel-probe", "since": now}
+        # 模拟"有人按了打断"：打断位比本轮开始时间更晚
+        self.ctx.runtime._cancel["cancel-probe"] = now + 5
+        try:
+            started = __import__("time").time()
+            r = self._run("llm-chat", {"messages": [{"role": "user", "content": "跑个长任务"}],
+                                       "cancel": gate})["result"]
+            spent = __import__("time").time() - started
+            self.assertEqual(r.get("killed"), "cancelled", "被打断的进程要报 cancelled: %s" % r)
+            self.assertLess(spent, 5, "打断应在秒级生效，实际 %.1fs" % spent)
+        finally:
+            self.ctx.runtime._cancel.pop("cancel-probe", None)
+            cfg.clear()
+            cfg.update(keep)
+
     def test_agent_backend_runs_external_command(self):
         """agent 模式：对话拼成一段话交给外部进程，收回 stdout 当答复。
 

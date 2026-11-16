@@ -1,6 +1,7 @@
 id: react-run
 title: ReAct 一轮会话：闭环在 react.run 能力内，需求只做顺序编排
-tags: [write]
+tags:
+- write
 enabled: true
 callable: true
 'on': []
@@ -23,6 +24,8 @@ do:
       get: input.session
     cancel:
       get: input.cancel
+    mode:
+      get: input.mode
   as: out
 expect:
   given:

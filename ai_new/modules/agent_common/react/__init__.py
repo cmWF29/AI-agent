@@ -29,6 +29,7 @@ def _route_run(ctx, payload):
     schemas = ctx.api.call("react.schemas", {"tools": payload.get("tools")}, caller=None)
     gate = payload.get("cancel") or {}
     cancelled = False
+    failed = None
     while not (steps >= cap or done):
         if gate and ctx.runtime.cancelled(gate.get("id"), gate.get("since")):
             cancelled = True
@@ -42,6 +43,12 @@ def _route_run(ctx, payload):
                       "messages": messages,
                       "tools": [] if (payload.get("mode") == "agent") else schemas})
         answer = resp or {}
+        if answer.get("ok") is False:
+            # 后端没交答复（报错或被打断）：这一轮没有可交付的内容，不写半截消息
+            failed = answer
+            cancelled = (answer.get("killed") == "cancelled"
+                         or (bool(gate) and ctx.runtime.cancelled(gate.get("id"), gate.get("since"))))
+            break
         amsg = ctx.api.call("react.assistant", {
             "content": answer.get("content"),
             "tool_calls": answer.get("tool_calls")}, caller=None)
@@ -71,5 +78,6 @@ def _route_run(ctx, payload):
                 "content": enc.get("text")}, caller=None)
             messages = messages + [tmsg]
     return ctx.api.call("react.result", {"messages": messages, "steps": steps,
-                                          "cancelled": cancelled}, caller=None)
+                                          "cancelled": cancelled,
+                                          "failed": failed}, caller=None)
 

@@ -34,7 +34,10 @@ def finish(p):
     rec["steps"] = out.get("steps") or 0
     rec["updated"] = p.get("now") or ""
     last = out.get("last") or {}
-    rec["result"] = {"summary": (last.get("content") or "")[:500], "at": p.get("now") or ""}
+    if out.get("cancelled"):
+        rec["result"] = {"summary": "（已打断）", "at": p.get("now") or "", "cancelled": True}
+    else:
+        rec["result"] = {"summary": (last.get("content") or "")[:500], "at": p.get("now") or ""}
     return rec
 
 

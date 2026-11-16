@@ -1,6 +1,7 @@
 id: llm-chat
 title: 对话（非流式）：闭环在 llm.chat 能力内，需求只做顺序编排
-tags: [llm]
+tags:
+- llm
 enabled: true
 callable: true
 'on': []
@@ -17,6 +18,16 @@ do:
       get: input.temperature
     timeout:
       get: input.timeout
+    base_url:
+      get: input.base_url
+    api_key:
+      get: input.api_key
+    model:
+      get: input.model
+    mode:
+      get: input.mode
+    cancel:
+      get: input.cancel
   as: out
 expect:
   given:
