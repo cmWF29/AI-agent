@@ -35,3 +35,22 @@ capabilities:
     - store.write_bytes
     - store.write_text
     - artifacts.written
+  projects.create:
+    calls:
+    - store.id
+    - clock.now
+    - projects.build
+    - store.exists
+    - projects.conflict
+    - store.write
+    - projects.view
+  projects.remove:
+    calls:
+    - store.id
+    - store.read
+    - store.remove
+    - projects.deleted
+    - clock.now
+    - projects.archive
+    - store.write
+    - projects.view
