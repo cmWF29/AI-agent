@@ -1,5 +1,6 @@
 id: llm-chat
 title: 对话（非流式）：闭环在 llm.chat 能力内，需求只做顺序编排
+tags: [llm]
 enabled: true
 callable: true
 'on': []

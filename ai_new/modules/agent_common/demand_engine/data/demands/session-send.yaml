@@ -1,5 +1,6 @@
 id: session-send
 title: 发消息给会话：读记录 → 追加 user 消息 → 落盘
+tags: [session, write]
 enabled: true
 callable: true
 'on': []

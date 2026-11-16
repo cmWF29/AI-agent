@@ -1,5 +1,6 @@
 id: web-page
 title: 取控制台页面：纯路径 → store 读文本 → MIME
+tags: [web, read]
 enabled: true
 callable: true
 'on': []

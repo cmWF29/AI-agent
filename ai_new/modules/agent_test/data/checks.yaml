@@ -43,6 +43,7 @@ checks:
   - channel-tail
   - health-live
   - health-self
+  - demands-list
   - knowledge-compose
   - knowledge-list
   - knowledge-overview

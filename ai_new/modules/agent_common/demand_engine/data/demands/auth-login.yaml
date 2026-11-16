@@ -1,5 +1,6 @@
 id: auth-login
 title: 登录：闭环在 auth.login 能力内，需求只做顺序编排
+tags: [auth]
 enabled: true
 callable: true
 'on': []

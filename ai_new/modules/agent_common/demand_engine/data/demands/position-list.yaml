@@ -1,5 +1,6 @@
 id: position-list
 title: 岗位列表：岗位记录关联各自流程规范，合并种子与用户记录
+tags: [position, library, read]
 enabled: true
 callable: true
 'on': []

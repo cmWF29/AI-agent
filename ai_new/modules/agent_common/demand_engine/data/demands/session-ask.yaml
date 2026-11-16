@@ -1,5 +1,6 @@
 id: session-ask
 title: 一问一答：send → run → wait 三步编排
+tags: [session, write]
 enabled: true
 callable: true
 'on': []

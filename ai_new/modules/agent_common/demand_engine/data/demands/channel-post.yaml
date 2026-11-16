@@ -1,5 +1,6 @@
 id: channel-post
 title: 发消息：闭环在 channel.post 能力内，需求只做顺序编排
+tags: [channel, write]
 enabled: true
 callable: true
 'on': []

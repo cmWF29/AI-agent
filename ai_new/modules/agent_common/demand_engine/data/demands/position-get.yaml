@@ -1,5 +1,6 @@
 id: position-get
 title: 岗位详情：岗位记录 + 关联流程规范 + 提示词引用
+tags: [position, library, read]
 enabled: true
 callable: true
 'on': []

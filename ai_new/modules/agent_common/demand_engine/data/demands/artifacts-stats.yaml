@@ -1,5 +1,6 @@
 id: artifacts-stats
 title: 交付件统计：整树遍历后算数量与字节
+tags: [artifact, read]
 enabled: true
 callable: true
 'on': []

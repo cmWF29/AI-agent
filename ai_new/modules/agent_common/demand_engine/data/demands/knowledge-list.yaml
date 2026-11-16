@@ -1,5 +1,6 @@
 id: knowledge-list
 title: 列知识：归一 scope → 列目录 → 交给 knowledge 成形
+tags: [knowledge, read]
 enabled: true
 callable: true
 'on': []

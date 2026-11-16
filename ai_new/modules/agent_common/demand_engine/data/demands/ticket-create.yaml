@@ -1,5 +1,6 @@
 id: ticket-create
 title: 建工单：闭环在 tickets.create 能力内，需求只做顺序编排
+tags: [ticket, write]
 enabled: true
 callable: true
 'on': []

@@ -1,5 +1,6 @@
 id: session-destroy
 title: 销毁会话：读记录 → 打 gone 标记 → 落盘
+tags: [session, write]
 enabled: true
 callable: true
 'on': []

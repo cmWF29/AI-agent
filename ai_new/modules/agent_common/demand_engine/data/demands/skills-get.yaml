@@ -1,5 +1,6 @@
 id: skills-get
 title: 技能详情：取回技能卡后挑一张
+tags: [skill, read]
 enabled: true
 callable: true
 'on': []

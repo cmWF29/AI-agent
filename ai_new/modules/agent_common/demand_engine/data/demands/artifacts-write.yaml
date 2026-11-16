@@ -1,5 +1,6 @@
 id: artifacts-write
 title: 写交付件：闭环在 artifacts.save 能力内，需求只做顺序编排
+tags: [artifact]
 enabled: true
 callable: true
 'on': []

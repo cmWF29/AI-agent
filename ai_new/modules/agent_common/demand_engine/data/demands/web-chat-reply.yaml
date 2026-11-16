@@ -1,5 +1,6 @@
 id: web-chat-reply
 title: 网页发消息→对话→回复写回频道：闭环在 channel.reply 能力内
+tags: [channel, web]
 enabled: true
 'on':
 - channel.posted

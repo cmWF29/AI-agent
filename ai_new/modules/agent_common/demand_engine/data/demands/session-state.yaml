@@ -1,5 +1,6 @@
 id: session-state
 title: 会话状态：列表需求 + 纯函数数状态
+tags: [session, write]
 enabled: true
 callable: true
 'on': []

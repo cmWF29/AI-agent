@@ -1,5 +1,6 @@
 id: ticket-note
 title: 写备注：追加一条 history 并落盘
+tags: [ticket, write]
 enabled: true
 callable: true
 'on': []

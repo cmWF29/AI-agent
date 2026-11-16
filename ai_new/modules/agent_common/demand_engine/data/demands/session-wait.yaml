@@ -1,5 +1,6 @@
 id: session-wait
 title: 取会话回复：读记录 → 摘最后一条 assistant
+tags: [session, read]
 enabled: true
 callable: true
 'on': []

@@ -1,5 +1,6 @@
 id: session-run
 title: 驱动会话：标记 running → 跑一轮 react → 收尾落盘
+tags: [session, write]
 enabled: true
 callable: true
 'on': []

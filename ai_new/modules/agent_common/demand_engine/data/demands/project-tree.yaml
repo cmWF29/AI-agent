@@ -1,5 +1,6 @@
 id: project-tree
 title: 项目-工单分级树：取项目行与工单行，按项目归组
+tags: [project, ticket, read]
 enabled: true
 callable: true
 'on': []

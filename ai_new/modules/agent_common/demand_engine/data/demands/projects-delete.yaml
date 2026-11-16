@@ -1,5 +1,6 @@
 id: projects-delete
 title: 删除项目：闭环在 projects.remove 能力内，需求只做顺序编排
+tags: [project, write]
 enabled: true
 callable: true
 'on': []

@@ -1,5 +1,6 @@
 id: channel-list
 title: 频道清单：遍历频道文件后算条数
+tags: [channel, read]
 enabled: true
 callable: true
 'on': []

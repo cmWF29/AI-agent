@@ -1,5 +1,6 @@
 id: skills-list
 title: 技能列表：取回技能卡交给 skills 筛
+tags: [skill, read]
 enabled: true
 callable: true
 'on': []

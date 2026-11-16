@@ -1,5 +1,6 @@
 id: health-self
 title: 自检聚合：取回各模块快照，交给 health 组装（不跨模块调业务）
+tags: [write]
 enabled: true
 callable: true
 'on': []

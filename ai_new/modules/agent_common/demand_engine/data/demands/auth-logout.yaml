@@ -1,5 +1,6 @@
 id: auth-logout
 title: 注销：删除自己的会话记录
+tags: [auth, write]
 enabled: true
 callable: true
 'on': []

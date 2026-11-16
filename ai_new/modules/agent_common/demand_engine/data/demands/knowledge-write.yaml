@@ -1,5 +1,6 @@
 id: knowledge-write
 title: 写知识：闭环在 knowledge.save 能力内，需求只做顺序编排
+tags: [knowledge]
 enabled: true
 callable: true
 'on': []

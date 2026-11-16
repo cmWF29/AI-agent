@@ -1,5 +1,6 @@
 id: ticket-list
 title: 列工单：遍历 tickets/*/ticket.yaml 后成形
+tags: [ticket, read]
 enabled: true
 callable: true
 'on': []

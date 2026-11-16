@@ -1,5 +1,6 @@
 id: session-spawn
 title: 造会话：闭环在 sessions.spawn 能力内，需求只做顺序编排
+tags: [session, write]
 enabled: true
 callable: true
 'on': []

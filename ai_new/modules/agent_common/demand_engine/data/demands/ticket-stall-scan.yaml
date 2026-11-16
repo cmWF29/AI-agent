@@ -1,5 +1,6 @@
 id: ticket-stall-scan
 title: 停滞扫描：闭环在 tickets.stall_scan 能力内，需求只做顺序编排
+tags: [ticket]
 enabled: true
 callable: true
 'on': []

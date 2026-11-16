@@ -1,5 +1,6 @@
 id: projects-create
 title: 新建项目：闭环在 projects.create 能力内，需求只做顺序编排
+tags: [project, write]
 enabled: true
 callable: true
 'on': []

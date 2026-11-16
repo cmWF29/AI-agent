@@ -1,5 +1,6 @@
 id: ticket-split
 title: 拆子单：闭环在 tickets.split 能力内，需求只做顺序编排
+tags: [ticket, write]
 enabled: true
 callable: true
 'on': []

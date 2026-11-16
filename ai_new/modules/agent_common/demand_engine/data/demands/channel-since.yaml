@@ -1,5 +1,6 @@
 id: channel-since
 title: 按游标取新消息：闭环在 channel.read_since 能力内
+tags: [channel]
 enabled: true
 callable: true
 'on': []

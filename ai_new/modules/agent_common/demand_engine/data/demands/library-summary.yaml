@@ -1,5 +1,6 @@
 id: library-summary
 title: 岗位库总览：种子 + 三类用户记录，交给 library 数数
+tags: [library, skill, read]
 enabled: true
 callable: true
 'on': []

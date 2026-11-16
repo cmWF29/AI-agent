@@ -1,5 +1,6 @@
 id: ticket-role-spawn
 title: 拉角色会话：spawn 需求 → 挂到 roles → 落盘
+tags: [ticket, write]
 enabled: true
 callable: true
 'on': []

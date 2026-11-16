@@ -1,0 +1,21 @@
+comment: 需求标签清单：标签只能从这里取，避免各写各的。新增维度过这一处，需求侧只引用 id。
+tags:
+- {id: project, name: 项目, group: 业务域, color: indigo}
+- {id: ticket, name: 工单, group: 业务域, color: indigo}
+- {id: session, name: 会话, group: 业务域, color: indigo}
+- {id: channel, name: 频道, group: 业务域, color: indigo}
+- {id: knowledge, name: 知识, group: 业务域, color: indigo}
+- {id: position, name: 岗位, group: 业务域, color: indigo}
+- {id: artifact, name: 产物, group: 业务域, color: indigo}
+- {id: library, name: 库, group: 业务域, color: indigo}
+- {id: skill, name: 技能, group: 业务域, color: indigo}
+- {id: web, name: 界面, group: 面, color: teal}
+- {id: view, name: 视图, group: 面, color: teal}
+- {id: auth, name: 认证, group: 面, color: teal}
+- {id: read, name: 只读, group: 性质, color: gray}
+- {id: write, name: 写盘, group: 性质, color: amber}
+- {id: async, name: 异步, group: 性质, color: purple}
+- {id: llm, name: 模型, group: 性质, color: purple}
+- {id: ops, name: 运维, group: 性质, color: gray}
+- {id: contract, name: 契约, group: 性质, color: gray}
+- {id: core, name: 基础, group: 性质, color: gray}

@@ -1,5 +1,6 @@
 id: ops-export
 title: 导出模块数据：打包走 store.archive
+tags: [ops, write]
 enabled: true
 callable: true
 'on': []

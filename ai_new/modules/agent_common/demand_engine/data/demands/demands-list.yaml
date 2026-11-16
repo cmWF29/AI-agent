@@ -1,0 +1,16 @@
+id: demands-list
+title: 需求清单：一次交出当前全部需求与它们的标签
+tags: [contract, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.list
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.list
+  payload: {}
+  promise: 清单只读，不分岔，标签随需求一起露出

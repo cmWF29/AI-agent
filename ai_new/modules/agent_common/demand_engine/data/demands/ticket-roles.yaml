@@ -1,5 +1,6 @@
 id: ticket-roles
 title: 工单角色清单：读记录后取 roles
+tags: [ticket, read]
 enabled: true
 callable: true
 'on': []

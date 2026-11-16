@@ -217,6 +217,22 @@ class DemandContractTest(unittest.TestCase):
                    if rec.get("id") not in claimed()]
         self.assertEqual(orphans, [], "这些需求没有被任何验收清单点名: %s" % orphans)
 
+    def test_every_demand_declares_tags(self):
+        """标签是管理手段：每条需求至少一个标签，否则清单里它就无处归类。"""
+        bare = [rec.get("id") for rec in load_all()
+                if not isinstance(rec.get("tags"), list) or not rec.get("tags")]
+        self.assertEqual(bare, [], "这些需求没有标签: %s" % bare)
+
+    def test_tags_are_registered(self):
+        """标签只能从清单取：清单外的标签名会让管理视图出现孤儿分类。"""
+        registry = ROOT / "ai_new/modules/agent_common/demand_engine/data/tags.yaml"
+        known = {t.get("id") for t in (yaml.safe_load(registry.read_text(encoding="utf-8"))
+                                       or {}).get("tags", [])}
+        stray = sorted({t for rec in load_all() for t in (rec.get("tags") or [])} - known)
+        self.assertEqual(stray, [], "这些标签没有在 tags.yaml 登记: %s" % stray)
+        dup = [t for t in known if list(known).count(t) > 1]
+        self.assertEqual(len(known), len(set(known)), "tags.yaml 里标签 id 重复: %s" % dup)
+
     def test_checks_claim_only_existing_demands(self):
         """反过来：清单不许点名不存在的需求（需求下线后清单必须跟着改）。"""
         ids = {rec.get("id") for rec in load_all()}

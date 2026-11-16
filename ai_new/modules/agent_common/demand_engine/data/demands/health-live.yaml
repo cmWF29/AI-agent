@@ -1,5 +1,6 @@
 id: health-live
 title: 存活探针：取时间 + 注入的起点，交给 health 成形
+tags: [core]
 enabled: true
 callable: true
 'on': []

@@ -1,5 +1,6 @@
 id: ops-overview
 title: 运维总览：取回各模块只读状态，交给 ops 组装
+tags: [ops, write]
 enabled: true
 callable: true
 'on': []

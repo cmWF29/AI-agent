@@ -1,5 +1,6 @@
 id: ticket-file
 title: 读工单交付件：artifacts-read 需求
+tags: [ticket, write]
 enabled: true
 callable: true
 'on': []

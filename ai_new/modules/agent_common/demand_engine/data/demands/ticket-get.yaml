@@ -1,5 +1,6 @@
 id: ticket-get
 title: 取工单：读一次，缺就报缺
+tags: [ticket, read]
 enabled: true
 callable: true
 'on': []

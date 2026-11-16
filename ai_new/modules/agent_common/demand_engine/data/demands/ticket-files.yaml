@@ -1,5 +1,6 @@
 id: ticket-files
 title: 工单交付件清单：artifacts-list 需求 + 模式过滤
+tags: [ticket, write]
 enabled: true
 callable: true
 'on': []

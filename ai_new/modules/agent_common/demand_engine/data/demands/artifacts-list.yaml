@@ -1,5 +1,6 @@
 id: artifacts-list
 title: 列交付件：分层 → 遍历该层 → 成形
+tags: [artifact, read]
 enabled: true
 callable: true
 'on': []

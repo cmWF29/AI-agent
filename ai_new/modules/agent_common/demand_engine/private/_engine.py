@@ -46,6 +46,7 @@ class Engine:
         return [
             {"id": r["id"], "title": r.get("title", ""),
              "enabled": bool(r.get("enabled", True)),
+             "tags": list(r.get("tags") or []),
              "on": list(r["on"]),
              "do": _lang.routes_of(r.get("do"))}
             for r in self._load()
@@ -79,7 +80,9 @@ class Engine:
             if last is None:
                 return {"ok": False, "error": "没有任何调用", "code": "empty", "demand": demand_id}
             out = last.get("result")
-            ok = bool((out or {}).get("ok", True)) and all(r.get("ok") for r in results)
+            # 能力结果可以是任意形状（清单类返回列表），只有 dict 才看 ok 字段。
+            ok = (bool(out.get("ok", True)) if isinstance(out, dict) else True) \
+                and all(r.get("ok") for r in results)
             return {"ok": ok, "demand": demand_id, "result": out,
                     "calls": [r.get("call") for r in results]}
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)

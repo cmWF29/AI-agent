@@ -1,5 +1,6 @@
 id: ops-record
 title: 记一条事件：成形 → 追加到 logs/app.jsonl
+tags: [ops, write]
 enabled: true
 callable: true
 'on': []

@@ -1,5 +1,6 @@
 id: ticket-role-task
 title: 给角色派活：找会话 → send 需求
+tags: [ticket, write]
 enabled: true
 callable: true
 'on': []

@@ -1,5 +1,6 @@
 id: projects-list
 title: 项目列表：取回档案行，交给 projects 筛选成列表
+tags: [project, read]
 enabled: true
 callable: true
 'on': []

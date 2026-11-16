@@ -1,5 +1,6 @@
 id: ops-logs
 title: 读日志：读文本 → 切成行 → 解析成事件
+tags: [ops, read]
 enabled: true
 callable: true
 'on': []
