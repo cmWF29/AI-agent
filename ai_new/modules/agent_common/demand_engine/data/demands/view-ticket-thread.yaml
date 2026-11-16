@@ -14,22 +14,25 @@ view:
   - {as: tree, demand: project-tree, cache: projects}
   sections:
   - kind: chat
+    lane: left
     source: thread.thread
-    as: main
+    heading: "{thread.ticket.title} · {thread.ticket.id} · {thread.ticket.status}"
     hide_roles: [system]
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.roles
   - kind: kv
+    lane: right
     source: thread.ticket
     heading: 工单
     rows:
-    - {label: 状态, badge: status}
-    - {label: 类型, value: kind, fallback: normal}
-    - {label: 所属项目, value: project, format: project_name}
-    - {label: 创建, value: created, format: when}
-    - {label: 更新, value: updated, format: when}
-    - {label: 父工单, value: parent, fallback: "—"}
+    - {label: 状态, badge: row.status}
+    - {label: 类型, value: row.kind, fallback: normal}
+    - {label: 所属项目, value: row.project, format: project_name}
+    - {label: 创建, value: row.created, format: when}
+    - {label: 更新, value: row.updated, format: when}
+    - {label: 父工单, value: row.parent, fallback: "—"}
   - kind: composer
+    lane: left
     placeholder: 发给 PM 的消息，Enter 发送
     submit: {label: 发送, demand: ticket-message,
              params: {id: "{thread.ticket.id}", text: "$text", target: pm},

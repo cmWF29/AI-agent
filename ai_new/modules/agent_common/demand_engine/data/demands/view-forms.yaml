@@ -30,7 +30,7 @@ view:
       params: {id: "{project.id}", name: "$name", default_backend: "$default_backend"}
       ok: 保存
       flash: 已改名：{name}
-      then: {view: project, params: {project: "$name"}, reload: true}
+      then: {view: project, params: {project: "{result.id}"}, reload: true}
   - id: ticket.new
     title: 新建工单
     hint: 工单自动挂在当前项目下，不需要再选一遍。

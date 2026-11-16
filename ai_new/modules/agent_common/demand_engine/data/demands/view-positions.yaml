@@ -17,7 +17,7 @@ view:
     source: list.items
     columns:
     - {label: 名称, value: row.cn, fallback: row.id}
-    - {label: 流程检查, value: "row.flow.checks|count", suffix: 项流程检查, muted: true}
+    - {label: 流程检查, value: "row.flow.checks|count", suffix: 项, muted: true}
     empty: {text: 暂无岗位}
 expect:
   given:

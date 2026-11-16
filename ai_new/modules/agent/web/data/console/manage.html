@@ -40,13 +40,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* ---- 视图容器 ---- */
 main{padding:18px 22px 40px;max-width:1180px;margin:0 auto}
-.view{display:block}
-.view[hidden]{display:none}
 .view-head{display:flex;align-items:flex-end;gap:12px;margin-bottom:14px}
 .view-head h2{font-size:18px;margin:0;font-weight:600}
 .view-head .desc{color:var(--muted);font-size:12.5px}
 .view-head .spacer{margin-left:auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.vsec{margin-bottom:16px}
 
 /* ---- 项目卡片 ---- */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px}
@@ -127,7 +126,13 @@ textarea{min-height:72px;resize:vertical}
 .modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 
 /* ---- 会话视图 ---- */
-.ticket-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+.ticket-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.lane{display:flex;flex-direction:column;min-width:0}
+.lane>.vsec{margin-bottom:0}
+.lane-left>.vsec[data-kind="chat"] .chat-card{min-height:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent;box-shadow:none}
+.lane-left>.vsec[data-kind="composer"] .composer{background:var(--card);border:1px solid var(--line);border-top:1px solid var(--line);border-radius:0 0 var(--radius) var(--radius);box-shadow:var(--shadow);padding:12px 16px}
+.lane-left>.vsec[data-kind="composer"] .composer textarea{min-height:56px;resize:none}
+.chat{height:auto;min-height:380px}
 .chat-card{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:520px}
 .chat-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .chat-title{font-size:13px;color:var(--fg-2);display:flex;align-items:center;gap:8px;min-width:0}
@@ -173,100 +178,7 @@ textarea{min-height:72px;resize:vertical}
 </header>
 <div id="banner"></div>
 
-<main>
-  <!-- 视图 A：项目列表 -->
-  <section class="view" id="view-projects">
-    <div class="view-head">
-      <div><h2>项目</h2><div class="desc">选一个项目进去看它的工单</div></div>
-      <div class="spacer"></div>
-      <button class="primary" id="new-project">＋ 新建项目</button>
-    </div>
-    <div class="cards" id="project-cards"></div>
-    <div class="orphans" id="orphans-box" hidden>
-      <details>
-        <summary id="orphans-sum">未归属工单</summary>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>标题</th><th>状态</th><th>更新</th></tr></thead>
-          <tbody id="orphan-rows"></tbody>
-        </table></div>
-      </details>
-    </div>
-  </section>
-
-  <!-- 视图 B：项目详情 -->
-  <section class="view" id="view-project" hidden>
-    <div class="view-head">
-      <div style="min-width:0">
-        <h2 id="proj-title">项目</h2>
-        <div class="desc" id="proj-desc"></div>
-      </div>
-      <div class="spacer"></div>
-      <div class="actions">
-        <button id="proj-rename">重命名</button>
-        <button id="proj-archive">归档</button>
-        <button id="proj-del" class="danger">删除</button>
-        <button class="primary" id="new-ticket">＋ 新建工单</button>
-      </div>
-    </div>
-    <div class="tbl-wrap">
-      <div class="tbl-head">
-        <strong style="font-size:13px">工单</strong>
-        <span class="muted" id="ticket-count"></span>
-        <div class="spacer" style="margin-left:auto"></div>
-        <span class="seg" id="ticket-filter">
-          <button data-f="all" class="on">全部</button>
-          <button data-f="open">进行中</button>
-          <button data-f="closed">已结单</button>
-        </span>
-      </div>
-      <table>
-        <thead><tr><th>标题</th><th>状态</th><th>类型</th><th>更新</th><th>PM</th></tr></thead>
-        <tbody id="ticket-rows"></tbody>
-      </table>
-    </div>
-    <div id="ticket-empty" class="empty" hidden>
-      <strong>这个项目还没有工单</strong>新建一个工单，PM 会接手拆解。
-    </div>
-  </section>
-
-  <!-- 视图 C：工单会话 -->
-  <section class="view" id="view-ticket" hidden>
-    <div class="ticket-grid">
-      <section class="chat-card card">
-        <div class="chat-head">
-          <div class="chat-title" id="thread-meta"></div>
-          <div class="spacer" style="margin-left:auto"></div>
-          <div class="chips" id="thread-roles"></div>
-        </div>
-        <div class="chat" id="chat"><div class="chat-empty">还没有消息</div></div>
-        <div class="composer">
-          <textarea id="op-text" placeholder="发给 PM 的消息，Enter 发送"></textarea>
-          <button class="primary" id="op-message">发送</button>
-        </div>
-        <div id="status"></div>
-      </section>
-      <aside class="side-card">
-        <h3>工单</h3>
-        <div id="ticket-kv"></div>
-        <div class="actions" style="margin-top:12px">
-          <button id="op-note">追加备注</button>
-          <button id="op-close" class="danger">结单</button>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <!-- 视图 P：岗位库 -->
-  <section class="view" id="view-positions" hidden>
-    <div class="view-head">
-      <div><h2>岗位库</h2><div class="desc">岗位 = 系统提示词 + 流程规范；角色是岗位在某工单上的实例</div></div>
-    </div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>名称</th><th>流程检查</th></tr></thead>
-      <tbody id="position-rows"></tbody>
-    </table></div>
-  </section>
-</main>
+<main><div id="view-body"></div></main>
 
 <!-- 通用弹窗 -->
 <div class="modal" id="modal" hidden>
@@ -284,6 +196,12 @@ textarea{min-height:72px;resize:vertical}
 
 <script src="/assets/js-yaml.min.js"></script>
 <script>
+/* ============================================================ 基础设施
+   这一层只认传输与渲染，不认识任何业务名词：
+   - run()：按名跑一条需求
+   - fill()/ref()：把规格里的取值表达式解析成实际数据
+   - execute()：唯一的动作出口，动作 = 规格里写着的 demand / view / modal
+*/
 async function readYaml(resp){return jsyaml.load(await resp.text())||{};}
 function yamlBody(o){return jsyaml.dump(o,{flowLevel:Infinity,noRefs:true,sortKeys:false});}
 const $ = (id) => document.getElementById(id);
@@ -331,8 +249,6 @@ async function run(demand, input) {
   }
   return inner;
 }
-let flash = null;
-function flashLater(msg, kind) { flash = { msg, kind }; }
 
 function banner(msg, kind) {
   const el = $("banner");
@@ -340,7 +256,6 @@ function banner(msg, kind) {
   el.className = kind === "ok" ? "ok" : "err";
   el.textContent = msg;
 }
-function status(text) { const el = $("status"); if (el) el.textContent = text || ""; }
 function gateMessage(err) {
   if (err && (err.status === 401 || err.code === "unauthorized")) return "登录已失效（401），请重新登录。";
   return (err && err.message) || "操作失败";
@@ -352,10 +267,136 @@ function when(ts) {
   return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-// ---------------------------------------------------------------- 状态与缓存
-const store = { projects: [], tickets: {}, orphans: [] };
-let state = { view: "projects" };
-let filter = "all";
+/* ============================================================ 取值表达式
+   规格里出现的取值写法（只这三种，不含业务知识）：
+   - {route.x}       路由参数
+   - {row.x.y}       当前数据行
+   - {data.<as>.x}   本次取数的结果（也允许省略 data.，直接写 <as>.x）
+   - {cache.<name>.x} 缓存数据（如项目名解析）
+   - $x              表单字段
+   - {result.x}      上一次提交的返回
+   后缀变换： |when  时间格式化   |count  计数   |count(a!=b) 条件计数
+             |project_name  id 转项目名
+*/
+function dig(obj, path) {
+  if (!path) return obj;
+  let cur = obj;
+  for (const part of String(path).split(".")) {
+    if (cur == null) return undefined;
+    if (part === "length") { cur = Array.isArray(cur) ? cur.length : (cur && cur.length); continue; }
+    if (/^\d+$/.test(part)) { cur = cur[Number(part)]; continue; }
+    cur = cur[part];
+  }
+  return cur;
+}
+function ref(path, ctx) {
+  if (path.startsWith("$")) return (ctx.fields || {})[path.slice(1)];
+  if (path.startsWith("result.")) return dig(ctx.result, path.slice(7));
+  if (path.startsWith("row.")) return dig(ctx.row, path.slice(4));
+  if (path.startsWith("route.")) return (ctx.route || {})[path.slice(6)];
+  if (path.startsWith("data.")) {
+    const rest = path.slice(5), head = rest.split(".")[0];
+    return dig((ctx.data || {})[head], rest.slice(head.length + 1));
+  }
+  if (path.startsWith("cache.")) {
+    const rest = path.slice(6), head = rest.split(".")[0];
+    return dig((ctx.cache || {})[head], rest.slice(head.length + 1));
+  }
+  const head = path.split(".")[0];
+  if (ctx.data && head in ctx.data) return dig(ctx.data[head], path.slice(head.length + 1));
+  if (ctx.cache && head in ctx.cache) return dig(ctx.cache[head], path.slice(head.length + 1));
+  return undefined;
+}
+function projectName(id, ctx) {
+  const tree = (ctx.cache || {}).projects || (ctx.data || {}).tree || {};
+  const hit = ((tree.items || []).find((n) => (n.project || {}).id === id) || {}).project;
+  return hit ? (hit.name || hit.id) : (id || "—");
+}
+function arr(v) { return Array.isArray(v) ? v : (v == null ? [] : [v]); }
+function applyChain(val, chain, ctx) {
+  for (const raw of chain) {
+    const t = String(raw).trim();
+    if (t === "when") val = when(val);
+    else if (t === "count") val = arr(val).length;
+    else if (t === "project_name") val = projectName(val, ctx);
+    else if (t.startsWith("count(") && t.endsWith(")")) {
+      const cond = t.slice(6, -1);
+      val = arr(val).filter((x) => matchCond(x, cond)).length;
+    }
+  }
+  return val;
+}
+function matchCond(item, cond) {
+  const m = String(cond).match(/^(\S+?)(!=|==|=|>=|<=|>|<)(\S+)$/);
+  if (!m) return false;
+  const [, field, op, raw] = m;
+  const left = dig(item, field);
+  const right = /^\d+$/.test(raw) ? Number(raw) : raw;
+  if (op === "!=") return String(left) !== String(right);
+  if (op === "==" || op === "=") return String(left) === String(right);
+  const ln = Number(left);
+  if (op === ">") return ln > Number(right);
+  if (op === "<") return ln < Number(right);
+  if (op === ">=") return ln >= Number(right);
+  return ln <= Number(right);
+}
+function fill(tpl, ctx) {
+  if (tpl == null || typeof tpl === "number" || typeof tpl === "boolean") return tpl;
+  if (Array.isArray(tpl)) return tpl.map((x) => fill(x, ctx));
+  if (typeof tpl === "object") {
+    const out = {};
+    for (const k of Object.keys(tpl)) out[k] = fill(tpl[k], ctx);
+    return out;
+  }
+  const s = String(tpl);
+  if (s.includes("{")) {
+    return s.replace(/\{([^{}]+)\}/g, (_, expr) => {
+      const [path, ...chain] = expr.split("|").map((x) => x.trim());
+      const v = applyChain(ref(path, ctx), chain, ctx);
+      return v == null ? "" : String(v);
+    });
+  }
+  if (s.includes("|")) {
+    const [path, ...chain] = s.split("|").map((x) => x.trim());
+    return applyChain(ref(path, ctx), chain, ctx);
+  }
+  if (s.startsWith("$") || s.includes(".")) {
+    const v = ref(s, ctx);
+    return v == null ? "" : v;
+  }
+  return s;
+}
+function fmtVal(item, ctx) {
+  let v = fill(item.value, ctx);
+  if (item.format === "when") v = when(v);
+  else if (item.format === "project_name") v = projectName(v, ctx);
+  return v;
+}
+function truthy(v) {
+  if (typeof v === "string") {
+    if (v === "" || v === "false" || v === "0") return false;
+    if (/\{/.test(v)) return true;
+    return true;
+  }
+  return !!v;
+}
+function condBase(ctx) {
+  return { ...(ctx.data || {}), ...(ctx.cache || {}), row: ctx.row || {}, fields: ctx.fields || {} };
+}
+function condOf(expr, ctx) {
+  if (expr == null) return true;
+  if (typeof expr === "boolean") return expr;
+  let s = String(expr).trim();
+  const wrapped = s.match(/^\{(.+)\}$/);
+  if (wrapped) s = wrapped[1];
+  if (/[!<>=]=?/.test(s)) return matchCond(condBase(ctx), s);
+  return truthy(fill(s, ctx));
+}
+
+/* ============================================================ 路由与视图
+*/
+let VIEWS = {}, FORMS = {}, state = { view: "projects" };
+let ACTS = [], FILTER = null, modalSubmit = null, MODAL_CTX = null;
 
 function qsOf(s) {
   const q = new URLSearchParams();
@@ -374,142 +415,149 @@ function parseURL() {
   if (p) return { view: "project", project: p };
   return { view: "projects" };
 }
-
-async function loadAll() {
-  const tree = await run("project-tree", {});
-  store.projects = tree.items || [];
-  store.orphans = tree.orphans || [];
-  store.tickets = {};
-  store.projects.forEach((n) => (n.tickets || []).forEach((t) => { store.tickets[t.id] = t; }));
-  store.orphans.forEach((t) => { store.tickets[t.id] = t; });
-}
-function projectOf(id) {
-  return (store.projects.find((n) => (n.project || {}).id === id) || {}).project || null;
-}
-
-// ---------------------------------------------------------------- 路由
 async function go(next, push) {
   state = next;
   if (push) history.pushState(next, "", qsOf(next));
-  await render().catch((e) => banner(gateMessage(e), "err"));
-}
-window.addEventListener("popstate", () => { go(parseURL(), false); });
-
-function show(view) {
-  ["view-projects", "view-project", "view-ticket", "view-positions"].forEach((id) => {
-    $(id).hidden = id !== view;
-  });
+  await render().catch((err) => banner(gateMessage(err), "err"));
 }
 
-function renderCrumb() {
-  const parts = [];
-  const cur = state.view;
-  if (cur === "positions") {
-    parts.push(`<button data-go="projects">项目</button>`);
-    parts.push(`<span class="sep">/</span><span class="now">岗位库</span>`);
-  } else {
-    parts.push(`<button data-go="projects">项目</button>`);
-    if (cur === "project" || cur === "ticket") {
-      const p = projectOf(state.project);
-      const name = (p && p.name) || state.project || "项目";
-      if (cur === "ticket") {
-        parts.push(`<span class="sep">/</span><button data-go="project">${esc(name)}</button>`);
-      } else {
-        parts.push(`<span class="sep">/</span><span class="now">${esc(name)}</span>`);
-      }
-    }
-    if (cur === "ticket") {
-      const t = store.tickets[state.ticket] || {};
-      parts.push(`<span class="sep">/</span><span class="now">${esc(t.title || state.ticket)}</span>`);
-    }
+async function boot() {
+  const items = arr(await run("views-list", {}));
+  for (const it of items) {
+    const v = it && it.view;
+    if (!v) continue;
+    if (v.key) VIEWS[v.key] = v;
+    for (const f of v.forms || []) FORMS[f.id] = f;
   }
-  $("crumb").innerHTML = parts.join("");
+  if (!VIEWS.projects) throw new Error("没有 projects 视图规格，页面无法启动");
+  state = parseURL();
+  await render();
 }
 
 async function render() {
-  if (!store.projects.length) await loadAll();
-  show("view-" + state.view);
-  renderCrumb();
-  if (state.view === "projects") renderProjects();
-  else if (state.view === "project") await renderProject();
-  else if (state.view === "ticket") await renderTicket();
-  else if (state.view === "positions") await renderPositions();
+  const spec = VIEWS[state.view] || VIEWS.projects;
+  const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
+  for (const src of spec.data || []) {
+    const params = fill(src.params || {}, ctx);
+    const res = await run(src.demand, params);
+    ctx.data[src.as] = res;
+    if (src.cache) ctx.cache[src.cache] = res;
+  }
+  banner("");
+  renderCrumb(spec, ctx);
+  renderView(spec, ctx);
 }
 
-// ---------------------------------------------------------------- 视图 A
-function renderProjects() {
-  const cards = store.projects.filter((n) => !(n.project || {}).archived);
-  const arch = store.projects.filter((n) => (n.project || {}).archived);
-  const all = cards.concat(arch);
-  $("project-cards").innerHTML = all.length ? all.map((n) => {
-    const p = n.project || {};
-    const ts = n.tickets || [];
-    const open = ts.filter((t) => t.status !== "closed").length;
-    const closed = ts.length - open;
-    const archived = !!p.archived;
-    return `<article class="pcard${archived ? " archived" : ""}" data-project="${esc(p.id)}" role="button" tabindex="0" aria-label="进入项目 ${esc(p.name || p.id)}">
-      <div class="acts">
-        <button data-act="rename" data-id="${esc(p.id)}" title="重命名这个项目">改名</button>
-        <button data-act="archive" data-id="${esc(p.id)}" ${archived ? "disabled" : ""}
-          title="${archived ? "已归档" : "归档这个项目"}">归档</button>
-        <button data-act="del" data-id="${esc(p.id)}" class="danger" title="彻底删除">删除</button>
-      </div>
-      <h3 class="pname">${esc(p.name || p.id)}</h3>
-      ${archived ? '<span class="badge archived">已归档</span>' : ""}
-      <div class="stat"><b>${ts.length}</b> 工单 <span class="muted">· ${open} 进行中 · ${closed} 已结单</span></div>
-      <div class="meta"><span>建 ${when(p.created)}</span>${p.default_backend ? `<span>后端 ${esc(p.default_backend)}</span>` : ""}</div>
+function crumbUp() {
+  if (state.view === "ticket") return { view: "project", project: state.project || "" };
+  return { view: "projects" };
+}
+function renderCrumb(spec, ctx) {
+  const parts = (spec.crumb || []).map((x) => fill(x, ctx)).filter(Boolean);
+  if (!parts.length) { $("crumb").innerHTML = ""; return; }
+  $("crumb").innerHTML = parts.map((text, i) => {
+    const last = i === parts.length - 1;
+    if (last) return `<span class="now">${esc(text)}</span>`;
+    return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
+  }).join("");
+}
+
+/* ============================================================ 渲染：规格 -> DOM
+   只认识原语（cards / table / chat / kv / composer / empty），不认识业务。
+*/
+function actIndex(act, ctx) {
+  ACTS.push({ act, ctx });
+  return ACTS.length - 1;
+}
+function buttonHtml(act, ctx, opts) {
+  opts = opts || {};
+  const disabled = act.disabled_when != null && condOf(act.disabled_when, ctx);
+  const title = disabled && act.disabled_hint ? ` title="${esc(act.disabled_hint)}"` : "";
+  const cls = act.tone === "primary" ? "primary" : (act.tone === "danger" ? "danger" : "");
+  return `<button class="${cls}" data-act="${actIndex(act, ctx)}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
+}
+function badgeHtml(value, ctx) {
+  const s = String(value == null ? "" : value);
+  const cls = s === "closed" || s === "gone" || s === "done" ? "closed"
+    : (s === "open" || s === "running" || s === "queued" || s === "doing" ? "open" : "");
+  return `<span class="badge ${cls}">${esc(s || "open")}</span>`;
+}
+function emptyHtml(block) {
+  block = block || {};
+  return `<div class="empty">${block.title ? `<strong>${esc(fill(block.title, {}))}</strong>` : ""}${esc(fill(block.text || "", {}))}</div>`;
+}
+
+function cardsHtml(sec, ctx) {
+  const rows = arr(ref(sec.source, ctx));
+  if (!rows.length) return emptyHtml(sec.empty);
+  const cards = rows.map((row) => {
+    const c = { ...ctx, row };
+    const archived = sec.archived_when != null && condOf(sec.archived_when, c);
+    const acts = (sec.actions || []).map((a) => buttonHtml(a, c)).join("");
+    const badge = (sec.badge && condOf(sec.badge.when, c))
+      ? `<span class="badge archived">${esc(fill(sec.badge.text, c))}</span>` : "";
+    const stat = sec.stat ? `<div class="stat"><b>${esc(fill(sec.stat.count, c))}</b> ${esc(fill(sec.stat.label, c))}<span class="muted">· ${esc(fill(sec.stat.note || "", c))}</span></div>` : "";
+    const meta = (sec.meta || []).filter((m) => m.hide_if_empty ? !!fmtVal(m, c) : true)
+      .map((m) => `<span>${esc(fill(m.label, c))} ${esc(fmtVal(m, c))}</span>`).join("");
+    const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
+    return `<article class="pcard${archived ? " archived" : ""}" ${click >= 0 ? `data-go="${click}"` : ""} role="button" tabindex="0" aria-label="进入 ${esc(fill(sec.title, c))}">
+      <div class="acts">${acts}</div>
+      <h3 class="pname">${esc(fill(sec.title, c))}</h3>
+      ${badge}${stat}
+      <div class="meta">${meta}</div>
       <span class="ar">›</span>
     </article>`;
-  }).join("") : `<div class="empty"><strong>还没有项目</strong>先建一个项目，工单都挂在项目里。</div>`;
+  }).join("");
+  return `<div class="cards">${cards}</div>`;
+}
 
-  const orph = store.orphans || [];
-  $("orphans-box").hidden = !orph.length;
-  if (orph.length) {
-    $("orphans-sum").textContent = `未归属工单（${orph.length}）`;
-    $("orphan-rows").innerHTML = orph.map((t) =>
-      `<tr data-ticket="${esc(t.id)}"><td>${esc(t.title || t.id)}</td>
-       <td>${badgeOf(t.status)}</td><td class="muted">${when(t.updated)}</td></tr>`).join("");
+function tableHtml(sec, ctx) {
+  const rows0 = arr(ref(sec.source, ctx));
+  let rows = rows0.slice();
+  if (sec.sort) {
+    const by = sec.sort.by, dir = sec.sort.order === "asc" ? 1 : -1;
+    rows.sort((a, b) => dir * String(dig(a, by) || "").localeCompare(String(dig(b, by) || "")));
   }
-}
-function badgeOf(s) {
-  const k = s === "closed" ? "closed" : "open";
-  return `<span class="badge ${k}">${esc(s || "open")}</span>`;
-}
-
-// ---------------------------------------------------------------- 视图 B
-async function renderProject() {
-  const p = projectOf(state.project);
-  if (!p) {
-    banner("项目不存在或已被删除：" + state.project, "err");
-    go({ view: "projects" }, true);
-    return;
+  const filters = sec.filters || [];
+  if (filters.length) {
+    const active = filters.find((f) => f.key === FILTER) || filters[0];
+    if (active && active.keep) rows = rows.filter((r) => matchCond(r, active.keep));
+    sec._active = active ? active.key : null;
   }
-  if (flash) { banner(flash.msg, flash.kind); flash = null; } else banner("");
-  $("proj-title").textContent = p.name || p.id;
-  $("proj-desc").innerHTML = `建 ${when(p.created)}` +
-    (p.archived ? ' · <span class="badge archived">已归档</span>' : "") +
-    (p.default_backend ? ` · 默认后端 ${esc(p.default_backend)}` : "");
-  $("proj-archive").disabled = !!p.archived;
-  $("proj-archive").title = p.archived ? "已归档" : "";
-  $("new-ticket").disabled = !!p.archived;
-  $("new-ticket").title = p.archived ? "已归档项目不能再建工单" : "";
-
-  const node = store.projects.find((n) => (n.project || {}).id === state.project) || {};
-  const ts = (node.tickets || []).slice().sort((a, b) => String(b.updated || "").localeCompare(String(a.updated || "")));
-  const shown = ts.filter((t) => filter === "all" || (filter === "closed" ? t.status === "closed" : t.status !== "closed"));
-  $("ticket-count").textContent = `${ts.length} 条 / 进行中 ${ts.filter((t) => t.status !== "closed").length}`;
-  $("ticket-empty").hidden = shown.length > 0;
-  $("ticket-rows").innerHTML = shown.map((t) => `
-    <tr data-ticket="${esc(t.id)}">
-      <td>${esc(t.title || t.id)}<div class="muted">${esc(t.id)}</div></td>
-      <td>${badgeOf(t.status)}</td>
-      <td class="muted">${esc(t.kind || "normal")}</td>
-      <td class="muted">${when(t.updated)}</td>
-      <td class="muted">${t.pm ? esc(t.pm) : "—"}</td>
-    </tr>`).join("");
+  const head = `<div class="tbl-head">
+    ${sec.heading ? `<strong style="font-size:13px">${esc(fill(sec.heading, ctx))}</strong>` : ""}
+    ${sec.count_note ? `<span class="muted">${esc(fill(sec.count_note, ctx))}</span>` : ""}
+    <div class="spacer" style="margin-left:auto"></div>
+    ${filters.length ? `<span class="seg" id="seg">${filters.map((f) =>
+      `<button data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</button>`).join("")}</span>` : ""}
+  </div>`;
+  const cols = sec.columns || [];
+  const body = rows.length ? rows.map((row) => {
+    const c = { ...ctx, row };
+    const cells = cols.map((col) => {
+      let val;
+      if (col.badge) val = badgeHtml(fill(col.badge, c), c);
+      else {
+        val = esc(col.format ? fmtVal(col, c) : fill(col.value, c));
+        if (col.suffix) val += ` ${esc(fill(col.suffix, c))}`;
+        if (col.sub) val += `<div class="muted">${esc(fill(col.sub, c))}</div>`;
+      }
+      if (val === "" || val === "undefined") val = esc(col.fallback ? fill(col.fallback, c) : "—");
+      return `<td class="${col.muted ? "muted" : ""}">${val}</td>`;
+    }).join("");
+    const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
+    return `<tr ${click >= 0 ? `data-go="${click}"` : ""}>${cells}</tr>`;
+  }).join("") : `<tr><td colspan="${cols.length}" class="muted">${esc((sec.empty || {}).text || "暂无数据")}</td></tr>`;
+  if (sec.hide_when_empty && !rows0.length) return "";
+  const wrap = `<div class="tbl-wrap">${sec.heading || filters.length || sec.count_note ? head : ""}<table>
+    <thead><tr>${cols.map((c) => `<th>${esc(c.label || "")}</th>`).join("")}</tr></thead>
+    <tbody>${body}</tbody></table></div>`;
+  if (sec.summarize) {
+    return `<div class="orphans"><details><summary>${esc(fill(sec.title || "", ctx))}（${rows0.length}）</summary>${wrap}</details></div>`;
+  }
+  return wrap;
 }
 
-// ---------------------------------------------------------------- 视图 C
 const ROLE_CN = { pm: "PM", user: "用户", assistant: "助手", system: "系统" };
 const AVATAR_PALETTE = ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"];
 function speakerOf(msg, roles) {
@@ -536,123 +584,199 @@ function initial(name) {
   const s = String(name || "?").trim();
   return s ? esc(s[0]) : "?";
 }
-
-let threadInfo = { ticket: {}, roles: [] };
-
-async function renderTicket() {
-  banner("");
-  const id = state.ticket;
-  let th;
-  try { th = await run("ticket-thread", { id }); }
-  catch (err) {
-    banner("加载工单会话失败：" + gateMessage(err), "err");
-    go({ view: "project", project: state.project }, true);
-    return;
-  }
-  const t = th.ticket || {};
-  store.tickets[t.id || id] = store.tickets[t.id || id] || t;
-  threadInfo = { ticket: t, roles: th.roles || [] };
-
-  $("thread-meta").innerHTML =
-    `<strong>${esc(t.title || id)}</strong><span class="muted">${esc(t.id || id)}</span>${badgeOf(t.status)}`;
-  $("thread-roles").innerHTML = (th.roles || []).map((r) =>
-    `<span class="chip">${esc(r.display || r.role)} · ${esc(r.status || "")}</span>`).join("");
-
-  $("ticket-kv").innerHTML = [
-    ["状态", badgeOf(t.status)],
-    ["类型", esc(t.kind || "normal")],
-    ["所属项目", esc(projectNameOf(t.project || state.project))],
-    ["创建", when(t.created)],
-    ["更新", when(t.updated)],
-    ["父工单", t.parent ? esc(t.parent) : "—"],
-  ].map(([k, v]) => `<div class="kv"><span>${k}</span><div>${v}</div></div>`).join("");
-
-  // 主会话的第一条是 PM 的系统提示词，属于运行时上下文，不进对话展示
-  const thread = th.thread || {};
-  const visible = Object.assign({}, thread, {
-    messages: (thread.messages || []).filter((m) => (m.role || "") !== "system")
-  });
-  renderChat(visible, th.roles || []);
-  syncOps();
-  renderCrumb();
+function chatHtml(sec, ctx) {
+  const src = ref(sec.source, ctx) || {};
+  const roles = ref(sec.roles_source, ctx) || [];
+  const hidden = sec.hide_roles || [];
+  const msgs = arr(src.messages).filter((m) => !hidden.includes(m.role || ""));
+  const headTitle = sec.heading ? `<div class="chat-title">${esc(fill(sec.heading, ctx))}</div>` : "";
+  const body = msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`;
+  return `<section class="chat-card card">
+    ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip">${esc((r.display || r.role) + " · " + (r.status || ""))}</span>`).join("")}</div></div>` : ""}
+    <div class="chat">${body}</div>
+  </section>`;
 }
-function projectNameOf(id) {
-  const p = projectOf(id);
-  return (p && (p.name || p.id)) || id || "—";
-}
-
-function renderChat(thread, roles) {
-  const msgs = thread.messages || [];
-  const list = $("chat");
-  if (!msgs.length) { list.innerHTML = '<div class="chat-empty">还没有消息，PM 正在准备…</div>'; return; }
-
-  // 连续同发言人合并为一组：头像、昵称只在组首出现
+function renderBubbles(msgs, roles) {
   const groups = [];
-  msgs.forEach((m) => {
+  for (const m of msgs) {
     const cls = bubbleClass(m);
     const who = cls === "system" ? "" : speakerOf(m, roles);
     const key = cls + "|" + who;
     const last = groups[groups.length - 1];
     if (last && last.key === key) last.msgs.push(m);
     else groups.push({ key, cls, who, msgs: [m] });
-  });
-
-  list.innerHTML = groups.map((g) => {
+  }
+  return groups.map((g) => {
     if (g.cls === "system") {
-      return g.msgs.map((m) =>
-        `<div class="msg system"><div class="sys-body">${esc(m.content == null ? "" : m.content)}</div></div>`
-      ).join("");
+      return g.msgs.map((m) => `<div class="msg system"><div class="sys-body">${esc(m.content == null ? "" : m.content)}</div></div>`).join("");
     }
     const side = g.cls === "user" ? "right" : "left";
     const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
-    const bodies = g.msgs.map((m) =>
-      `<div class="bubble-body">${esc(m.content == null ? "" : m.content)}</div>`).join("");
+    const bodies = g.msgs.map((m) => `<div class="bubble-body">${esc(m.content == null ? "" : m.content)}</div>`).join("");
     const last = g.msgs[g.msgs.length - 1];
     const ts = last.ts ? `<div class="msg-ts">${when(last.ts)}</div>` : "";
     return `<div class="msg ${side}">${side === "left" ? av : ""}
       <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
       <div class="bubble-stack">${bodies}</div>${ts}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
-  list.scrollTop = list.scrollHeight;
 }
 
-function syncOps() {
-  const t = threadInfo.ticket || {};
-  const closed = t.status === "closed";
-  ["op-note", "op-message", "op-close"].forEach((id) => { const b = $(id); if (b) b.disabled = closed; });
+function kvHtml(sec, ctx) {
+  const src = ref(sec.source, ctx) || {};
+  const rows = (sec.rows || []).map((r) => {
+    const c = { ...ctx, row: src };
+    const val = r.badge ? badgeHtml(fill(r.badge, c), c)
+      : esc((fmtVal(r, c) === undefined || fmtVal(r, c) === "" ? (r.fallback || "—") : fmtVal(r, c)));
+    return `<div class="kv"><span>${esc(r.label)}</span><div>${val}</div></div>`;
+  }).join("");
+  const acts = (sec.actions || []).map((a) => buttonHtml(a, { ...ctx, row: src })).join("");
+  return `<aside class="side-card">
+    ${sec.heading ? `<h3>${esc(fill(sec.heading, ctx))}</h3>` : ""}
+    ${rows}
+    ${acts ? `<div class="actions" style="margin-top:12px">${acts}</div>` : ""}
+  </aside>`;
 }
 
-// ---------------------------------------------------------------- 视图 P
-async function renderPositions() {
-  banner("");
-  const list = await run("position-list", {});
-  const items = list.items || [];
-  $("position-rows").innerHTML = items.map((p) => {
-    const checks = (p.flow && p.flow.checks) || [];
-    return `<tr><td>${esc(p.cn || p.id)}</td><td class="muted">${checks.length} 项流程检查</td></tr>`;
-  }).join("") || '<tr><td colspan="2" class="muted">暂无岗位</td></tr>';
+function composerHtml(sec, ctx) {
+  const disabled = sec.disabled_when != null && condOf(sec.disabled_when, ctx);
+  const submit = sec.submit || {};
+  ACTS.push({ act: submit, ctx, composer: true });
+  const submitIdx = ACTS.length - 1;
+  const acts = (sec.actions || []).map((a) => buttonHtml({ ...a, composer: true }, ctx)).join("");
+  return `<div class="composer">
+    <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}" ${disabled ? "disabled" : ""}></textarea>
+    ${acts}
+    <button class="primary" data-act="${submitIdx}" ${disabled ? "disabled" : ""}>${esc(fill(submit.label || "发送", ctx))}</button>
+  </div>`;
 }
 
-// ---------------------------------------------------------------- 弹窗
-let modalSubmit = null;
-function openModal(title, hint, fieldsHtml, okText, onSubmit) {
-  $("modal-title").textContent = title;
-  $("modal-hint").textContent = hint || "";
+function sectionHtml(sec, ctx) {
+  const kind = sec.kind;
+  let html = "";
+  if (kind === "cards") html = cardsHtml(sec, ctx);
+  else if (kind === "table") html = tableHtml(sec, ctx);
+  else if (kind === "chat") html = chatHtml(sec, ctx);
+  else if (kind === "kv") html = kvHtml(sec, ctx);
+  else if (kind === "composer") html = composerHtml(sec, ctx);
+  else html = emptyHtml({ text: "未知区块: " + kind });
+  return `<div class="vsec" data-kind="${esc(kind)}">${html}</div>`;
+}
+
+function renderView(spec, ctx) {
+  ACTS = [];
+  const head = `<div class="view-head">
+      <div style="min-width:0"><h2>${esc(fill(spec.heading || spec.heading_from || "", ctx))}</h2>
+      <div class="desc">${esc(fill(spec.subheading || "", ctx))}</div></div>
+      <div class="spacer"></div>
+      <div class="actions">${(spec.actions || []).map((a) => buttonHtml(a, ctx)).join("")}</div>
+    </div>`;
+  const left = [], right = [], single = [];
+  for (const sec of spec.sections || []) {
+    const html = sectionHtml(sec, ctx);
+    if (sec.lane === "left") left.push(html);
+    else if (sec.lane === "right") right.push(html);
+    else single.push(html);
+  }
+  let body = single.join("");
+  if (left.length || right.length) {
+    body = `<div class="ticket-grid">
+      <div class="lane lane-left">${left.join("")}</div>
+      <div class="lane lane-right">${right.join("")}</div>
+    </div>`;
+  }
+  $("view-body").innerHTML = head + body;
+}
+
+/* ============================================================ 执行：动作 -> 需求
+*/
+async function execute(binding, fields) {
+  const { act, ctx, composer } = binding;
+  const c = { ...ctx, fields: fields || ctx.fields || {}, composer };
+  if (act.view) {
+    const next = resolveView(act, c);
+    return go(next, true);
+  }
+  if (act.modal) {
+    const fc = { ...c };
+    if (fc.row && fc.row.project) fc.project = fc.row.project;
+    return openForm(FORMS[act.modal], fc);
+  }
+  if (!act.demand) return;
+  const params = fill(act.params || {}, c);
+  if (act.confirm && !confirm(String(fill(act.confirm, c)))) return;
+  const flashText = act.flash ? String(fill(act.flash, c)) : "";
+  try {
+    const res = await run(act.demand, params);
+    if (flashText) banner(fill(act.flash, { ...c, result: res }), "ok");
+    if (act.after) {
+      const next = resolveView(act.after, { ...c, result: res });
+      return go(next, true);
+    }
+    await render();
+  } catch (err) {
+    banner(gateMessage(err), "err");
+  }
+}
+function resolveView(target, c) {
+  const params = fill(target.params || {}, c);
+  const view = target.view;
+  if (view === "projects") return { view: "projects" };
+  if (view === "project") return { view: "project", project: params.project || "" };
+  if (view === "ticket") return { view: "ticket", project: params.project || "", ticket: params.ticket || "" };
+  if (view === "positions") return { view: "positions" };
+  return { view: view };
+}
+
+/* ============================================================ 弹窗：表单规格
+*/
+function openForm(form, ctx) {
+  if (!form) return;
+  MODAL_CTX = { form, ctx };
+  $("modal-title").textContent = fill(form.title || "", ctx);
+  $("modal-hint").textContent = fill(form.hint || "", ctx);
   $("modal-err").className = "modal-err";
   $("modal-err").textContent = "";
-  $("modal-form").innerHTML = fieldsHtml;
-  $("modal-ok").textContent = okText || "确定";
+  $("modal-form").innerHTML = (form.fields || []).map((f) => {
+    const val = f.value != null ? fill(f.value, ctx) : "";
+    const req = f.required ? ' data-required="1"' : "";
+    const ro = f.readonly ? " readonly" : "";
+    const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "";
+    if (f.kind === "textarea") {
+      return `<div class="field"><label>${esc(f.label)}</label><textarea name="${esc(f.name)}"${ph}>${esc(val)}</textarea></div>`;
+    }
+    if (f.kind === "select") {
+      const opts = (f.options || []).map((o) =>
+        `<option value="${esc(o.value)}"${String(val) === String(o.value) ? " selected" : ""}>${esc(o.label)}</option>`).join("");
+      return `<div class="field"><label>${esc(f.label)}</label><select name="${esc(f.name)}">${opts}</select></div>`;
+    }
+    return `<div class="field"><label>${esc(f.label)}</label><input name="${esc(f.name)}" value="${esc(val)}"${ph}${req}${ro}></div>`;
+  }).join("");
+  $("modal-ok").textContent = fill((form.submit || {}).ok || "确定", ctx);
   $("modal-ok").disabled = false;
   $("modal").hidden = false;
-  const first = $("modal-form").querySelector("input,textarea,select");
+  const first = $("modal-form").querySelector("input:not([readonly]),textarea,select");
   if (first) first.focus();
-  modalSubmit = onSubmit;
+  modalSubmit = async (fd) => {
+    const fields = {};
+    for (const [k, v] of fd.entries()) fields[k] = typeof v === "string" ? v.trim() : v;
+    for (const f of form.fields || []) {
+      if (f.required && !fields[f.name]) throw new Error(f.label + "不能为空");
+    }
+    const c = { ...ctx, fields };
+    const res = await run(form.submit.demand, fill(form.submit.params || {}, c));
+    closeModal();
+    if (form.submit.flash) banner(fill(form.submit.flash, { ...c, result: res }), "ok");
+    if (form.submit.then) {
+      const next = resolveView(form.submit.then, { ...c, result: res });
+      return go(next, true);
+    }
+    await render();
+  };
 }
-function closeModal() { $("modal").hidden = true; modalSubmit = null; }
+function closeModal() { $("modal").hidden = true; modalSubmit = null; MODAL_CTX = null; }
 function modalError(msg) {
-  const el = $("modal-err");
-  el.className = "modal-err on";
-  el.textContent = msg;
+  $("modal-err").className = "modal-err on";
+  $("modal-err").textContent = msg;
 }
 $("modal-cancel").onclick = closeModal;
 $("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(); };
@@ -665,224 +789,56 @@ $("modal-form").onsubmit = async (e) => {
   finally { $("modal-ok").disabled = false; }
 };
 
-function projectModal() {
-  openModal("新建项目", "项目是工单的容器，建完在列表里点进去就能建工单。", `
-    <div class="field"><label>项目名称</label>
-      <input name="name" placeholder="例如：官网重构" required></div>
-    <div class="field"><label>默认后端（可选）</label>
-      <input name="default_backend" placeholder="留空即默认"></div>`, "创建项目", async (fd) => {
-    const name = String(fd.get("name") || "").trim();
-    if (!name) { modalError("项目名称不能为空"); return; }
-    const rec = await run("projects-create", {
-      name, default_backend: String(fd.get("default_backend") || "").trim()
-    });
-    closeModal();
-    banner("已建项目：" + (rec.name || rec.id || name), "ok");
-    store.projects = [];
-    await loadAll();
-    go({ view: "projects" }, true);
-  });
-}
+/* ============================================================ 事件总线
+   只有一条：点到的按钮 -> 动作表 -> 执行器。
+*/
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]");
+  if (btn && !btn.disabled) {
+    const binding = ACTS[Number(btn.dataset.act)];
+    if (!binding) return;
+    if (binding.composer) {
+      const box = $("view-body").querySelector(".composer textarea");
+      const text = (box && box.value || "").trim();
+      if (!text) return;
+      return execute(binding, { text });
+    }
+    return execute(binding, {});
+  }
+  const filterBtn = e.target.closest("[data-filter]");
+  if (filterBtn) { FILTER = filterBtn.dataset.filter; return render(); }
+  const goEl = e.target.closest("[data-go]");
+  if (goEl) {
+    const binding = ACTS[Number(goEl.dataset.go)];
+    if (binding) return execute(binding, {});
+  }
+  if (e.target.closest("[data-crumb]")) return go(crumbUp(), true);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target.closest && e.target.closest("[data-go][role=button]");
+  if (card) { e.preventDefault(); card.click(); }
+  const ta = e.target;
+  if (ta && ta.tagName === "TEXTAREA" && e.key === "Enter" && !e.shiftKey) {
+    const box = ta.closest(".composer");
+    if (box) {
+      const btn = box.querySelector("button.primary");
+      if (btn) { e.preventDefault(); btn.click(); }
+    }
+  }
+});
 
-function ticketModal() {
-  const p = projectOf(state.project) || { id: state.project, name: state.project };
-  openModal("新建工单", "工单自动挂在当前项目下，不需要再选一遍。", `
-    <div class="field"><label>所属项目</label>
-      <input value="${esc(p.name || p.id)}" readonly></div>
-    <div class="field"><label>标题</label>
-      <input name="title" placeholder="例如：登录页改版" required></div>
-    <div class="field"><label>需求目标</label>
-      <textarea name="goal" placeholder="要做什么、验收标准是什么"></textarea></div>
-    <div class="row2">
-      <div><label>类型</label><select name="kind">
-        <option value="normal">普通</option>
-        <option value="stall-audit">停滞审计</option>
-      </select></div>
-      <div><label>父工单（可选）</label><input name="parent" placeholder="父工单 ID"></div>
-    </div>`, "创建工单", async (fd) => {
-    const title = String(fd.get("title") || "").trim();
-    if (!title) { modalError("标题不能为空"); return; }
-    const rec = await run("ticket-create", {
-      title, goal: String(fd.get("goal") || "").trim(),
-      project: p.id || state.project,          // 自动绑定：只从当前上下文取
-      kind: String(fd.get("kind") || "normal"),
-      parent: String(fd.get("parent") || "").trim()
-    });
-    closeModal();
-    banner("已建工单：" + (rec.title || rec.id || title), "ok");
-    store.projects = [];
-    await loadAll();
-    go({ view: "ticket", project: state.project, ticket: rec.id }, true);
-  });
-}
-
-// ---------------------------------------------------------------- 事件
-$("new-project").onclick = projectModal;
-$("new-ticket").onclick = ticketModal;
 $("nav-points").onclick = () => go({ view: "positions" }, true);
 $("logout").onclick = async () => {
   try { await run("auth-logout", { token: token() }); } catch (e) {}
   clearToken(); location.href = "/login.html";
 };
-
-$("crumb").onclick = (e) => {
-  const b = e.target.closest("[data-go]");
-  if (!b) return;
-  const to = b.dataset.go;
-  if (to === "projects") go({ view: "projects" }, true);
-  else if (to === "project") go({ view: "project", project: state.project }, true);
-};
-
-$("project-cards").onkeydown = (e) => {
-  const card = e.target.closest("[data-project]");
-  if (!card) return;
-  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); card.click(); }
-};
-$("project-cards").onclick = async (e) => {
-  const btn = e.target.closest("button[data-act]");
-  if (btn && !btn.disabled) {
-    const id = btn.dataset.id;
-    try {
-      const node = store.projects.find((n) => (n.project || {}).id === id) || {};
-      const pr = node.project || {};
-      const label = pr.name || id;
-      if (btn.dataset.act === "rename") {
-        return renameModal(pr);
-      } else if (btn.dataset.act === "archive") {
-        await run("projects-archive", { id });
-        banner("已归档：" + label, "ok");
-      } else if (btn.dataset.act === "del") {
-        if (!confirm("彻底删除项目「" + label + "」？工单不会被删。")) return;
-        await run("projects-delete", { id, purge: true });
-        banner("已删除：" + label, "ok");
-      }
-      store.projects = [];
-      await loadAll();
-      go({ view: "projects" }, true);
-    } catch (err) { banner(gateMessage(err), "err"); }
-    return;
-  }
-  const card = e.target.closest("[data-project]");
-  if (card) go({ view: "project", project: card.dataset.project }, true);
-};
-
-$("orphan-rows").onclick = (e) => {
-  const row = e.target.closest("[data-ticket]");
-  if (row) go({ view: "ticket", project: "", ticket: row.dataset.ticket }, true);
-};
-
-$("ticket-rows").onclick = (e) => {
-  const row = e.target.closest("[data-ticket]");
-  if (row) go({ view: "ticket", project: state.project, ticket: row.dataset.ticket }, true);
-};
-
-$("ticket-filter").onclick = (e) => {
-  const b = e.target.closest("button[data-f]");
-  if (!b) return;
-  filter = b.dataset.f;
-  Array.from($("ticket-filter").children).forEach((x) => x.classList.toggle("on", x === b));
-  renderProject().catch((err) => banner(gateMessage(err), "err"));
-};
-
-function renameModal(p) {
-  p = p || {};
-  openModal("重命名项目", "改的是显示名；项目里的工单会跟着走，不会丢。", `
-    <div class="field"><label>项目名称</label>
-      <input name="name" value="${esc(p.name || p.id || "")}" required></div>
-    <div class="field"><label>默认后端（可选）</label>
-      <input name="default_backend" value="${esc(p.default_backend || "")}" placeholder="留空即默认"></div>`,
-    "保存", async (fd) => {
-      const name = String(fd.get("name") || "").trim();
-      if (!name) { modalError("项目名称不能为空"); return; }
-      const backend = String(fd.get("default_backend") || "").trim();
-      if (name === (p.name || p.id) && backend === (p.default_backend || "")) { closeModal(); return; }
-      const rec = await run("projects-rename", {
-        id: p.id, name, default_backend: backend
-      });
-      closeModal();
-      flashLater("已改名：" + (rec.name || name), "ok");
-      store.projects = [];
-      await loadAll();
-      go({ view: "project", project: rec.id }, true);
-    });
-}
-
-$("proj-rename").onclick = () => {
-  const p = projectOf(state.project);
-  if (p) renameModal(p);
-};
-
-$("proj-archive").onclick = async () => {
-  try {
-    await run("projects-archive", { id: state.project });
-    flashLater("已归档：" + ((projectOf(state.project) || {}).name || state.project), "ok");
-    store.projects = [];
-    await loadAll();
-    go({ view: "project", project: state.project }, true);
-  } catch (err) { banner(gateMessage(err), "err"); }
-};
-$("proj-del").onclick = async () => {
-  const label = (projectOf(state.project) || {}).name || state.project;
-  if (!confirm("彻底删除项目「" + label + "」？")) return;
-  try {
-    await run("projects-delete", { id: state.project, purge: true });
-    store.projects = [];
-    await loadAll();
-    banner("已删除：" + label, "ok");
-    go({ view: "projects" }, true);
-  } catch (err) { banner(gateMessage(err), "err"); }
-};
-
-$("op-note").onclick = async () => {
-  const id = state.ticket; if (!id) return;
-  const text = $("op-text").value.trim(); if (!text) return;
-  try {
-    await run("ticket-note", { id, text });
-    status("备注已追加"); $("op-text").value = "";
-    await go({ view: "ticket", project: state.project, ticket: id }, false);
-  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
-};
-$("op-message").onclick = async () => {
-  const id = state.ticket; if (!id) return;
-  const text = $("op-text").value.trim(); if (!text) return;
-  try {
-    await run("ticket-message", { id, text, target: "pm" });
-    status("已通知 PM"); $("op-text").value = "";
-    await go({ view: "ticket", project: state.project, ticket: id }, false);
-  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
-};
-$("op-close").onclick = async () => {
-  const id = state.ticket; if (!id) return;
-  const summary = prompt("结单摘要：");
-  if (summary == null) return;
-  const verdict = prompt("验收结论（可选，通过/驳回）：") || "";
-  try {
-    await run("ticket-close", { id, summary, verdict });
-    status("已结单");
-    await go({ view: "ticket", project: state.project, ticket: id }, false);
-  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
-};
-
-// Enter 发送
-$("op-text").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("op-message").click(); }
+window.addEventListener("popstate", () => {
+  state = parseURL();
+  render().catch((err) => banner(gateMessage(err), "err"));
 });
 
-// ---------------------------------------------------------------- 启动
-async function boot() {
-  let st = { enabled: false };
-  try {
-    const r = await fetch("/api/auth/status");
-    const j = await readYaml(r);
-    st = j.result || j || {};
-  } catch (e) {}
-  if (st.enabled && !token()) { location.href = "/login.html"; return; }
-  state = parseURL();
-  history.replaceState(state, "", qsOf(state));
-  try { await loadAll(); } catch (e) { banner(gateMessage(e), "err"); return; }
-  await render();
-}
-boot();
+boot().catch((err) => banner("控制台启动失败：" + gateMessage(err) + "（检查 views-list 与视图规格）", "err"));
 </script>
 </body>
 </html>

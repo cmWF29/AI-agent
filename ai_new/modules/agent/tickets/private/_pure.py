@@ -43,6 +43,23 @@ def newid(p):
                                  int(p.get("n") or 1))}
 
 
+def next_n(p):
+    """当日已有序号最大值 + 1。工单号全局唯一，不能按项目各自计数。"""
+    day = str(p.get("day") or "")
+    best = 0
+    for raw in p.get("ids") or []:
+        parts = str(raw or "").split("-")
+        if len(parts) < 3 or parts[1] != day:
+            continue
+        try:
+            k = int(parts[2])
+        except ValueError:
+            continue
+        if k > best:
+            best = k
+    return {"n": best + 1}
+
+
 def build(p):
     return {
         "id": p.get("id"), "title": p.get("title") or "未命名需求",

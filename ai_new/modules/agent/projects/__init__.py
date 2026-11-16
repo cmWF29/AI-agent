@@ -40,11 +40,28 @@ def _route_create(ctx, payload):
     return ctx.api.call("projects.view", {"rec": rec}, caller=None)
 
 
+def _purge_tickets(ctx, pid):
+    """真删项目时清掉它名下的工单：工单必属项目，不能留指向空项目的孤儿单。"""
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/tickets", "pattern": "tickets/T-*/ticket.yaml"}, caller=None)
+    for rel in listed.get("items") or []:
+        segs = str(rel).split("/")
+        if len(segs) != 3:
+            continue
+        row = ctx.api.call("store.read", {
+            "module": "agent/tickets", "path": rel}, caller=None)
+        if ((row.get("value") or {}).get("project")) != pid:
+            continue
+        ctx.api.call("store.remove_dir", {
+            "module": "agent/tickets", "path": "tickets/%s" % segs[1]}, caller=None)
+
+
 def _route_remove(ctx, payload):
     pid = ctx.api.call("store.id", {"value": payload.get("id")}, caller=None)
     row = ctx.api.call("store.read", {"module": "agent/projects",
         "path": pid.get("id") + ".yaml"}, caller=None)
     if payload.get("purge") is True:
+        _purge_tickets(ctx, pid.get("id"))
         ctx.api.call("store.remove", {"module": "agent/projects",
             "path": pid.get("id") + ".yaml"}, caller=None)
         return ctx.api.call("projects.deleted", {"id": pid.get("id")}, caller=None)

@@ -49,8 +49,14 @@ def _route_create(ctx, payload):
     if prow.get("value") is None:
         return ctx.api.call("projects.missing", {"id": payload.get("project")}, caller=None)
     now = ctx.api.call("clock.now", {}, caller=None)
+    day = str(now.get("iso") or "")[:10].replace("-", "")
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/tickets", "pattern": "tickets/T-*/ticket.yaml"}, caller=None)
+    ids = [str(i).split("/")[1] for i in (listed.get("items") or [])
+           if str(i).count("/") == 2]
+    n = payload.get("n") or _pure.next_n({"ids": ids, "day": day}).get("n")
     fresh = ctx.api.call("tickets.newid", {
-        "today": now.get("iso"), "n": payload.get("n")}, caller=None)
+        "today": now.get("iso"), "n": n}, caller=None)
     rec = ctx.api.call("tickets.build", {
         "id": fresh.get("id"), "title": payload.get("title"),
         "goal": payload.get("goal"), "project": payload.get("project"),
@@ -58,6 +64,12 @@ def _route_create(ctx, payload):
         "meta": payload.get("meta"),
         "auto_retrospective": payload.get("auto_retrospective"),
         "now": now.get("ts")}, caller=None)
+    if ctx.api.call("store.exists", {
+            "module": "agent/tickets",
+            "path": _ticket_path(rec.get("id"))}, caller=None).get("exists"):
+        return ctx.api.call("tickets.err", {
+            "code": "ticket_id_conflict", "status": 409,
+            "message": "工单号已存在：%s，拒绝覆盖" % (rec.get("id") or "")}, caller=None)
     if not skip_pm:
         pm = ctx.api.call("demand_engine.run", {
             "id": "session-spawn",
