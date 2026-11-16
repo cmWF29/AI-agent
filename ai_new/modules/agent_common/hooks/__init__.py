@@ -27,9 +27,12 @@ def setup(ctx):
     return ctx.hooks
 
 
-def point(ctx, name, params=()):
-    """声明本模块预留的 hook 点（名字必须带本模块前缀）。"""
-    return ctx.hooks.point(name, params)
+def point(ctx, name, params=(), defer=False):
+    """声明本模块预留的 hook 点（名字必须带本模块前缀）。
+
+    defer=True 表示这是通知型的点：emit 只入队，等当前请求的响应写完之后再派发。
+    """
+    return ctx.hooks.point(name, params, defer=defer)
 
 
 def emit(ctx, name, payload=None, level="info"):

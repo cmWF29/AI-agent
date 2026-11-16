@@ -180,16 +180,25 @@ class CoreTest(unittest.TestCase):
         # 游标之后不再重复推
         w2 = self.ctx.api.call("channel.watch", {"channel": "probe-ch", "cursor": w["cursor"]})
         self.assertEqual(w2["items"], [])
+        self.ctx.hooks.drain()   # 收尾：延迟点在这里跑掉，不留给下一条用例
 
     def test_chat_demand_answers_and_does_not_self_trigger(self):
-        """一条业务闭环：用户消息 → 模型 → 回复写回；assistant 不再触发模型。"""
+        """一条业务闭环：用户消息 → 模型 → 回复写回；assistant 不再触发模型。
+
+        channel.posted 是延迟点：发消息的请求只入队，响应写完（drain）之后才跑模型。
+        """
         key = "rt-chat"
+        self.ctx.hooks.clear()
         before = self.fake_net.calls
         self._run("channel-post", {"channel": key, "role": "user", "content": "在吗"})
-        self.assertEqual(self.fake_net.calls, before + 1, "用户消息应该触发一次模型调用")
+        self.assertEqual(self.fake_net.calls, before, "发消息的请求里不该等模型")
+        self.assertEqual(self.ctx.hooks.pending(), 1, "应该有一个延迟派发在排队")
+        self.ctx.hooks.drain()
+        self.assertEqual(self.fake_net.calls, before + 1, "响应写完后的延迟派发要跑一次模型")
         rows = self._run("channel-tail", {"channel": key, "limit": 10})["result"]["messages"]
         self.assertEqual(rows[-1]["role"], "assistant")
         self.assertIn("测试", rows[-1]["content"])
+        self.ctx.hooks.drain()   # assistant 落盘也会触发一次点，需求自己按 role 跳过
         self.assertEqual(self.fake_net.calls, before + 1, "assistant 消息不能再触发模型（会自激）")
 
     def test_artifacts_roundtrip_and_escape(self):

@@ -55,6 +55,18 @@ def _make_handler(ctx):
                     self._static(path)
             except Exception as e:  # noqa: BLE001
                 self._json_error(e)
+            finally:
+                self._drain_hooks()
+
+        def _drain_hooks(self):
+            """响应已经写出：把延迟 hook 点派发掉，用户不必等它跑完。"""
+            drain = getattr(getattr(ctx, "hooks", None), "drain", None)
+            if drain is None:
+                return
+            try:
+                drain()
+            except Exception:  # noqa: BLE001 — 收尾失败不能影响已写出的响应
+                pass
 
         def _api(self, method, path, parsed):
             payload = {}

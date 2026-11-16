@@ -5,7 +5,8 @@ from .private import _pure
 
 
 def setup(ctx):
-    ctx.hooks.point("channel.posted", ("channel", "role", "message"))
+    # 通知型：回复生成耗时才长，不能在发消息的请求里等它
+    ctx.hooks.point("channel.posted", ("channel", "role", "message"), defer=True)
     for name, fn in [
         ("channel.split", _pure.split),
         ("channel.make", _pure.make),
