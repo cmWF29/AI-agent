@@ -1,6 +1,7 @@
 id: ticket-stall-scan
 title: 停滞扫描：闭环在 tickets.stall_scan 能力内，需求只做顺序编排
-tags: [ticket]
+tags:
+- ticket
 enabled: true
 callable: true
 'on': []
@@ -10,10 +11,18 @@ do:
     limit_seconds:
       get: input.limit_seconds
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
   - tickets.stall_scan
+  - runtime.apply
   payload: {}
   promise: 遍历在途、逐条判定、按命中开审计单都在能力内部

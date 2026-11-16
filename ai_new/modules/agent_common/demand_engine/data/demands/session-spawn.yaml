@@ -1,10 +1,33 @@
 id: session-spawn
 title: 造会话：闭环在 sessions.spawn 能力内，需求只做顺序编排
-tags: [session, write]
+tags:
+- session
+- write
 enabled: true
 callable: true
 'on': []
 do:
+- call: demand_engine.run
+  with:
+    id:
+      lit: library-role-prompt
+    input:
+      role:
+        get: input.role
+  as: prompt
+- call: demand_engine.run
+  with:
+    id:
+      lit: knowledge-compose
+    input:
+      prefixes:
+      - public/
+      - op: +
+        a:
+          lit: projects/
+        b:
+          get: input.ticket
+  as: know
 - call: sessions.spawn
   with:
     kind:
@@ -27,11 +50,28 @@ do:
       get: input.task
     intro:
       get: input.intro
+    role_prompt:
+      get: prompt.result.prompt
+    injected:
+      get: know.result.text
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
-    input: {}
+    input:
+      ticket: T-1
+      role: developer
+      kind: role
   calls:
+  - demand_engine.run
+  - demand_engine.run
   - sessions.spawn
+  - runtime.apply
   payload: {}
-  promise: 人设来源的分岔与知识装配都在能力内部，需求树只有一次顺序调用
+  promise: 人设与知识各自一条需求取来，会话拼装归能力，落盘由 apply 执行

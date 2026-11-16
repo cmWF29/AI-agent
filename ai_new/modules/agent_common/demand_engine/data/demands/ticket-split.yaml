@@ -1,6 +1,8 @@
 id: ticket-split
 title: 拆子单：闭环在 tickets.split 能力内，需求只做顺序编排
-tags: [ticket, write]
+tags:
+- ticket
+- write
 enabled: true
 callable: true
 'on': []
@@ -14,10 +16,18 @@ do:
     force:
       get: input.force
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
   - tickets.split
+  - runtime.apply
   payload: {}
   promise: 上限守卫与逐个建单都在能力内部，每次建单仍是独立编排

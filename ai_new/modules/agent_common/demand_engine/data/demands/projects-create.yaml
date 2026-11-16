@@ -1,6 +1,8 @@
 id: projects-create
 title: 新建项目：闭环在 projects.create 能力内，需求只做顺序编排
-tags: [project, write]
+tags:
+- project
+- write
 enabled: true
 callable: true
 'on': []
@@ -12,10 +14,18 @@ do:
     default_backend:
       get: input.default_backend
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
   - projects.create
+  - runtime.apply
   payload: {}
   promise: 查重与落盘在能力内部闭环，需求树不分岔

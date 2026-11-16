@@ -1,6 +1,7 @@
 id: auth-login
 title: 登录：闭环在 auth.login 能力内，需求只做顺序编排
-tags: [auth]
+tags:
+- auth
 enabled: true
 callable: true
 'on': []
@@ -12,6 +13,13 @@ do:
     password:
       get: input.password
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input:
@@ -19,5 +27,6 @@ expect:
       password: secret
   calls:
   - auth.login
+  - runtime.apply
   payload: {}
   promise: 凭据比对与失败守卫在能力内部闭环，需求树不写 when/fail

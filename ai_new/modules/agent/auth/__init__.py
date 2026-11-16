@@ -76,6 +76,7 @@ def _route_login(ctx, payload):
     rec = ctx.api.call("auth.build_session", {
         "token": nonce.get("token"), "username": payload.get("username"),
         "issued": now.get("ts"), "ttl": cfgv.get("ttl")}, caller=None)
-    ctx.api.call("store.write", {"module": "agent/auth",
-        "path": "sessions/%s.yaml" % rec.get("token"), "value": rec}, caller=None)
-    return ctx.api.call("auth.session_view", {"record": rec}, caller=None)
+    view = ctx.api.call("auth.session_view", {"record": rec}, caller=None)
+    view["effects"] = [{"kind": "write", "module": "agent/auth",
+                        "path": "sessions/%s.yaml" % rec.get("token"), "value": rec}]
+    return view

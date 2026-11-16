@@ -1,6 +1,8 @@
 id: ticket-close
 title: 结单：闭环在 tickets.close 能力内，需求只做顺序编排
-tags: [ticket, write]
+tags:
+- ticket
+- write
 enabled: true
 callable: true
 'on': []
@@ -14,10 +16,18 @@ do:
     verdict:
       get: input.verdict
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
   - tickets.close
+  - runtime.apply
   payload: {}
   promise: 子单守卫、关闭落盘、通知父单都在能力内部

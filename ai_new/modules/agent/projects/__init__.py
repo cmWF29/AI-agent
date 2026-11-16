@@ -35,13 +35,15 @@ def _route_create(ctx, payload):
         "path": pid.get("id") + ".yaml"}, caller=None)
     if ex.get("exists"):
         return ctx.api.call("projects.conflict", {"id": pid.get("id")}, caller=None)
-    ctx.api.call("store.write", {"module": "agent/projects",
-        "path": pid.get("id") + ".yaml", "value": rec}, caller=None)
-    return ctx.api.call("projects.view", {"rec": rec}, caller=None)
+    view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
+    view["effects"] = [{"kind": "write", "module": "agent/projects",
+                        "path": pid.get("id") + ".yaml", "value": rec}]
+    return view
 
 
 def _purge_tickets(ctx, pid):
     """真删项目时清掉它名下的工单：工单必属项目，不能留指向空项目的孤儿单。"""
+    effects = []
     listed = ctx.api.call("store.glob", {
         "module": "agent/tickets", "pattern": "tickets/T-*/ticket.yaml"}, caller=None)
     for rel in listed.get("items") or []:
@@ -52,8 +54,9 @@ def _purge_tickets(ctx, pid):
             "module": "agent/tickets", "path": rel}, caller=None)
         if ((row.get("value") or {}).get("project")) != pid:
             continue
-        ctx.api.call("store.remove_dir", {
-            "module": "agent/tickets", "path": "tickets/%s" % segs[1]}, caller=None)
+        effects.append({"kind": "remove_dir", "module": "agent/tickets",
+                        "path": "tickets/%s" % segs[1]})
+    return effects
 
 
 def _route_remove(ctx, payload):
@@ -61,16 +64,19 @@ def _route_remove(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/projects",
         "path": pid.get("id") + ".yaml"}, caller=None)
     if payload.get("purge") is True:
-        _purge_tickets(ctx, pid.get("id"))
-        ctx.api.call("store.remove", {"module": "agent/projects",
-            "path": pid.get("id") + ".yaml"}, caller=None)
-        return ctx.api.call("projects.deleted", {"id": pid.get("id")}, caller=None)
+        effects = _purge_tickets(ctx, pid.get("id"))
+        effects.append({"kind": "remove", "module": "agent/projects",
+                        "path": pid.get("id") + ".yaml"})
+        out = ctx.api.call("projects.deleted", {"id": pid.get("id")}, caller=None)
+        out["effects"] = effects
+        return out
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.archive", {"rec": row.get("value"),
         "now": now.get("ts")}, caller=None)
-    ctx.api.call("store.write", {"module": "agent/projects",
-        "path": pid.get("id") + ".yaml", "value": rec}, caller=None)
-    return ctx.api.call("projects.view", {"rec": rec}, caller=None)
+    view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
+    view["effects"] = [{"kind": "write", "module": "agent/projects",
+                        "path": pid.get("id") + ".yaml", "value": rec}]
+    return view
 
 
 def _route_rename(ctx, payload):
@@ -91,14 +97,17 @@ def _route_rename(ctx, payload):
         "rec": row.get("value"), "id": new_id, "name": payload.get("name"),
         "default_backend": payload.get("default_backend"),
         "now": now.get("ts")}, caller=None)
-    ctx.api.call("store.write", {"module": "agent/projects",
-        "path": new_id + ".yaml", "value": rec}, caller=None)
+    effects = [{"kind": "write", "module": "agent/projects",
+                "path": new_id + ".yaml", "value": rec}]
     if new_id != old:
-        ctx.api.call("store.remove", {"module": "agent/projects",
-            "path": old + ".yaml"}, caller=None)
-        ctx.api.call("tickets.rebind", {"from": old, "to": new_id,
+        effects.append({"kind": "remove", "module": "agent/projects",
+                        "path": old + ".yaml"})
+        moved = ctx.api.call("tickets.rebind", {"from": old, "to": new_id,
             "now": now.get("ts")}, caller=None)
-    return ctx.api.call("projects.view", {"rec": rec}, caller=None)
+        effects.extend((moved or {}).get("effects") or [])
+    view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
+    view["effects"] = effects
+    return view
 
 
 def _as_handler(fn):

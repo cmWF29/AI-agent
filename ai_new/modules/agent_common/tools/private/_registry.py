@@ -46,9 +46,7 @@ class ToolRegistry:
                 # 组合一律写成需求：注册表只声明"该跑哪个需求"，伸手的是需求身份
                 return {"ok": True, "deferred": True, "demand": t["demand"],
                         "input": args or {}}
-            result = self.ctx.api.call("demand_engine.run",
-                                       {"id": t["demand"], "input": args or {}},
-                                       caller="tools")
+            result = self.ctx.runtime.call(t["demand"], args or {})
         else:
             result = t["fn"](self.ctx, args or {}, session=session)
         # 落盘是有副作用的业务动作：工具注册表不隐式写盘；

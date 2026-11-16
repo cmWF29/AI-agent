@@ -55,13 +55,15 @@ def _route_save(ctx, payload):
         return doc
     content = payload.get("content") or ""
     if payload.get("mode") == "append":
-        ctx.api.call("store.append_text", {"module": "agent/knowledge",
-            "path": doc.get("path"), "text": "\n\n" + content}, caller=None)
+        effects = [{"kind": "append_text", "module": "agent/knowledge",
+                    "path": doc.get("path"), "text": "\n\n" + content}]
     else:
-        ctx.api.call("store.write_text", {"module": "agent/knowledge",
-            "path": doc.get("path"), "text": content}, caller=None)
-    return ctx.api.call("knowledge.view", {"path": doc.get("path"),
+        effects = [{"kind": "write_text", "module": "agent/knowledge",
+                    "path": doc.get("path"), "text": content}]
+    view = ctx.api.call("knowledge.view", {"path": doc.get("path"),
         "content": content}, caller=None)
+    view["effects"] = effects
+    return view
 
 
 def _as_handler(fn):

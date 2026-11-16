@@ -30,21 +30,15 @@ def _route_run(ctx, payload):
     gate = payload.get("cancel") or {}
     cancelled = False
     while not (steps >= cap or done):
-        if gate:
-            st = ctx.api.call("demand_engine.run", {
-                "id": gate.get("probe"), "input": {
-                    "id": gate.get("id"), "since": gate.get("since")}}, caller=None) or {}
-            st = (st.get("result") if isinstance(st, dict) else None) or {}
-            if st.get("cancelled"):
-                cancelled = True
-                break
-        resp = ctx.api.call("demand_engine.run", {
-            "id": "llm-chat",
-            "input": {"base_url": payload.get("base_url"),
+        if gate and ctx.runtime.cancelled(gate.get("id"), gate.get("since")):
+            cancelled = True
+            break
+        resp = ctx.runtime.call("llm-chat", {
+                      "base_url": payload.get("base_url"),
                       "api_key": payload.get("api_key"),
                       "model": payload.get("model"),
-                      "messages": messages, "tools": schemas}}, caller=None)
-        answer = resp.get("result") or {}
+                      "messages": messages, "tools": schemas})
+        answer = resp or {}
         amsg = ctx.api.call("react.assistant", {
             "content": answer.get("content"),
             "tool_calls": answer.get("tool_calls")}, caller=None)
@@ -64,8 +58,7 @@ def _route_run(ctx, payload):
                     "name": fn.get("name"), "args": targs, "defer": True,
                     "session": payload.get("session")}, caller=None)
                 if isinstance(out, dict) and out.get("deferred"):
-                    out = ctx.api.call("demand_engine.run", {
-                        "id": out.get("demand"), "input": out.get("input") or {}}, caller=None)
+                    out = ctx.runtime.call(out.get("demand"), out.get("input") or {})
             except ctx.ApiError as exc:
                 # 工具报错要作为观察结果回给模型，让它自己纠错，不能掀翻整轮
                 out = {"ok": False, "error": exc.message, "code": exc.code}

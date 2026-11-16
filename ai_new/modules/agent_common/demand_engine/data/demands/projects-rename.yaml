@@ -1,6 +1,8 @@
 id: projects-rename
 title: 项目改名：闭环在 projects.rename 能力内，需求只做单条顺序调用
-tags: [project, write]
+tags:
+- project
+- write
 enabled: true
 callable: true
 'on': []
@@ -14,10 +16,18 @@ do:
     default_backend:
       get: input.default_backend
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
   - projects.rename
+  - runtime.apply
   payload: {}
   promise: 查重、迁档、工单引用改挂都在能力内部闭环，需求树不分岔

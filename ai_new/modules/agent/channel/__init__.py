@@ -55,14 +55,14 @@ def _route_post(ctx, payload):
         "channel": cid.get("id"), "role": payload.get("role"),
         "content": payload.get("content"), "rows": rows, "ts": now.get("ts")}, caller=None)
     enc = ctx.api.call("codec.json_encode", {"value": rec}, caller=None)
-    ctx.api.call("store.append_text", {
-        "module": "agent/channel",
-        "path": "channels/%s.jsonl" % (cid.get("id") or ""),
-        "text": (enc.get("text") or "") + "\n"}, caller=None)
+    effects = [{"kind": "append_text", "module": "agent/channel",
+                "path": "channels/%s.jsonl" % (cid.get("id") or ""),
+                "text": (enc.get("text") or "") + "\n"}]
     posted = {"channel": rec.get("channel"), "role": rec.get("role"),
               "content": rec.get("content")}
     if getattr(ctx, "hooks", None) is not None:
         ctx.hooks.emit("channel.posted", posted)
+    rec["effects"] = effects
     return rec
 
 
@@ -88,10 +88,9 @@ def _route_reply(ctx, payload):
         "channel": payload.get("channel"), "limit": 20}, caller=None)
     messages = list(history.get("messages") or [])
     messages.append({"role": "user", "content": payload.get("content")})
-    reply = ctx.api.call("demand_engine.run", {
-        "id": "llm-chat", "input": {"messages": messages}}, caller=None)
-    answer = reply.get("result") or {}
-    if reply.get("ok") is False:
+    reply = ctx.runtime.call("llm-chat", {"messages": messages})
+    answer = reply or {}
+    if answer.get("ok") is False:
         role, content = "system", "模型调用失败：%s" % (answer.get("error") or "")
     else:
         role, content = "assistant", answer.get("content") or ""

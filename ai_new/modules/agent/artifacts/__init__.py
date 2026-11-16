@@ -46,10 +46,14 @@ def _route_save(ctx, payload):
     content = payload.get("content") or ""
     if payload.get("encoding") == "base64":
         hx = ctx.api.call("codec.hex_from_base64", {"text": content}, caller=None)
-        w = ctx.api.call("store.write_bytes", {"module": "agent/artifacts",
-            "path": rel.get("path"), "hex": hx.get("hex")}, caller=None)
+        effect = {"kind": "write_bytes", "module": "agent/artifacts",
+                  "path": rel.get("path"), "hex": hx.get("hex")}
+        size = len(str(hx.get("hex") or "")) // 2
     else:
-        w = ctx.api.call("store.write_text", {"module": "agent/artifacts",
-            "path": rel.get("path"), "text": content}, caller=None)
-    return ctx.api.call("artifacts.written", {"path": rel.get("path"),
-        "size": w.get("size"), "layer": payload.get("layer")}, caller=None)
+        effect = {"kind": "write_text", "module": "agent/artifacts",
+                  "path": rel.get("path"), "text": content}
+        size = len(content.encode("utf-8"))
+    out = ctx.api.call("artifacts.written", {"path": rel.get("path"),
+        "size": size, "layer": payload.get("layer")}, caller=None)
+    out["effects"] = [effect]
+    return out

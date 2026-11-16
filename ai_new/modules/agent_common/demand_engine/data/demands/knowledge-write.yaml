@@ -1,6 +1,7 @@
 id: knowledge-write
 title: 写知识：闭环在 knowledge.save 能力内，需求只做顺序编排
-tags: [knowledge]
+tags:
+- knowledge
 enabled: true
 callable: true
 'on': []
@@ -20,10 +21,18 @@ do:
     mode:
       get: input.mode
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
   - knowledge.save
+  - runtime.apply
   payload: {}
   promise: append 与覆盖两条写路在能力内部选，需求树不分岔

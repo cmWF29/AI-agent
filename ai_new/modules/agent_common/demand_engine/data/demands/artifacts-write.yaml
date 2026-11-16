@@ -1,6 +1,7 @@
 id: artifacts-write
-title: 写交付件：闭环在 artifacts.save 能力内，需求只做顺序编排
-tags: [artifact]
+title: 写交付件：能力算路径与内容，落盘由 apply 执行
+tags:
+- artifact
 enabled: true
 callable: true
 'on': []
@@ -20,6 +21,13 @@ do:
     encoding:
       get: input.encoding
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input:
@@ -31,5 +39,6 @@ expect:
       encoding: base64
   calls:
   - artifacts.save
+  - runtime.apply
   payload: {}
   promise: 文本/二进制两条写路在能力内部选，需求树不分岔

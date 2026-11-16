@@ -1,6 +1,8 @@
 id: projects-delete
 title: 删除项目：闭环在 projects.remove 能力内，需求只做顺序编排
-tags: [project, write]
+tags:
+- project
+- write
 enabled: true
 callable: true
 'on': []
@@ -12,10 +14,18 @@ do:
     purge:
       get: input.purge
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
   - projects.remove
+  - runtime.apply
   payload: {}
   promise: purge 真删与归档两条路在能力内部选，需求树不分岔

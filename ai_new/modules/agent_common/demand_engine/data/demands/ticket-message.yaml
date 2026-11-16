@@ -1,6 +1,8 @@
 id: ticket-message
 title: 工单消息：pm 或指定角色 → send 需求
-tags: [ticket, write]
+tags:
+- ticket
+- write
 enabled: true
 callable: true
 'on': []
@@ -37,10 +39,15 @@ do:
       text:
         get: input.text
   as: sent
-- call: sessions.dispatch
+- call: runtime.dispatch
   with:
-    id:
+    demand:
+      lit: session-run
+    key:
       get: tgt.session
+    input:
+      id:
+        get: tgt.session
   as: run
 - call: tickets.view
   with:
@@ -53,7 +60,7 @@ expect:
   calls:
   - tickets.resolve_target
   - demand_engine.run
-  - sessions.dispatch
+  - runtime.dispatch
   - tickets.view
   payload: {}
   promise: 目标解析归模块

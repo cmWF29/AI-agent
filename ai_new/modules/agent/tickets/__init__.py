@@ -82,22 +82,20 @@ def _route_create(ctx, payload):
             "tpl": (_msg_tpl(ctx).get("pm_intro") or ""),
             "vars": {"ticket": fresh.get("id") or "", "title": rec.get("title") or "",
                      "goal": rec.get("goal") or ""}}).get("text") or ""
-        pm = ctx.api.call("demand_engine.run", {
-            "id": "session-spawn",
-            "input": {"kind": "pm", "name": "PM-%s" % (fresh.get("id") or ""),
-                      "ticket": fresh.get("id"),
-                      "max_steps": payload.get("pm_max_steps"),
-                      "task": payload.get("task"),
-                      "intro": intro}}, caller=None)
+        pm = ctx.runtime.call("session-spawn", {
+            "kind": "pm", "name": "PM-%s" % (fresh.get("id") or ""),
+            "ticket": fresh.get("id"),
+            "max_steps": payload.get("pm_max_steps"),
+            "task": payload.get("task"),
+            "intro": intro})
         rec = ctx.api.call("tickets.bindpm", {
             "rec": rec,
-            "session": ((pm.get("result") or {}).get("id")) or "",
+            "session": (pm.get("id")) or "",
             "now": now.get("ts")}, caller=None)
-    ctx.api.call("store.write", {
-        "module": "agent/tickets",
-        "path": "tickets/%s/ticket.yaml" % (rec.get("id") or ""),
-        "value": rec}, caller=None)
-    return ctx.api.call("tickets.view", {"rec": rec}, caller=None)
+    view = ctx.api.call("tickets.view", {"rec": rec}, caller=None)
+    view["effects"] = [{"kind": "write", "module": "agent/tickets",
+                        "path": "tickets/%s/ticket.yaml" % (rec.get("id") or ""), "value": rec}]
+    return view
 
 
 def _ticket_path(ticket_id):
@@ -120,16 +118,16 @@ def _route_close(ctx, payload):
     closed = ctx.api.call("tickets.closefin", {
         "rec": rec, "summary": payload.get("summary"),
         "verdict": payload.get("verdict"), "now": now.get("ts")}, caller=None)
-    ctx.api.call("store.write", {"module": "agent/tickets",
-                                 "path": _ticket_path(closed.get("id")), "value": closed},
-                 caller=None)
+    view = ctx.api.call("tickets.view", {"rec": closed}, caller=None)
+    effects = [{"kind": "write", "module": "agent/tickets",
+                "path": _ticket_path(closed.get("id")), "value": closed}]
     if closed.get("parent"):
-        ctx.api.call("demand_engine.run", {
-            "id": "ticket-message",
-            "input": {"id": closed.get("parent"),
-                      "text": "子工单已结单： %s" % (closed.get("id") or ""),
-                      "target": "pm"}}, caller=None)
-    return ctx.api.call("tickets.view", {"rec": closed}, caller=None)
+        effects.append({"kind": "demand", "id": "ticket-message",
+                        "input": {"id": closed.get("parent"),
+                                  "text": "子工单已结单： %s" % (closed.get("id") or ""),
+                                  "target": "pm"}})
+    view["effects"] = effects
+    return view
 
 
 def _route_split(ctx, payload):
@@ -140,22 +138,22 @@ def _route_split(ctx, payload):
     if len(cur.get("children") or []) >= 8 and payload.get("force") is False:
         return {"ok": False, "code": "too_many_children", "status": 409,
                 "error": "子工单最多 8 个"}
+    effects = []
     for child_spec in payload.get("children") or []:
         spec = child_spec or {}
-        child = ctx.api.call("demand_engine.run", {
-            "id": "ticket-create",
-            "input": {"title": spec.get("title"), "goal": spec.get("goal"),
-                      "project": cur.get("project"), "kind": "sub",
-                      "parent": payload.get("id"), "auto_retrospective": False}},
-            caller=None)
+        child = ctx.runtime.call("ticket-create", {
+            "title": spec.get("title"), "goal": spec.get("goal"),
+            "project": cur.get("project"), "kind": "sub",
+            "parent": payload.get("id"), "auto_retrospective": False})
         now = ctx.api.call("clock.now", {}, caller=None)
         cur = ctx.api.call("tickets.bindchild", {
-            "rec": cur, "child": ((child.get("result") or {}).get("id")) or "",
+            "rec": cur, "child": (child.get("id")) or "",
             "now": now.get("ts")}, caller=None)
-        ctx.api.call("store.write", {"module": "agent/tickets",
-                                     "path": _ticket_path(cur.get("id")), "value": cur},
-                     caller=None)
-    return ctx.api.call("tickets.view", {"rec": cur}, caller=None)
+        effects.append({"kind": "write", "module": "agent/tickets",
+                        "path": _ticket_path(cur.get("id")), "value": cur})
+    view = ctx.api.call("tickets.view", {"rec": cur}, caller=None)
+    view["effects"] = effects
+    return view
 
 
 def _route_rebind(ctx, payload):
@@ -163,6 +161,7 @@ def _route_rebind(ctx, payload):
     rows = ctx.api.call("store.walk", {"module": "agent/tickets", "root": "tickets",
                                        "pattern": "*/ticket.yaml"}, caller=None)
     moved = []
+    effects = []
     for rec in rows.get("rows") or []:
         rec = rec or {}
         if rec.get("project") != payload.get("from"):
@@ -170,10 +169,11 @@ def _route_rebind(ctx, payload):
         cur = dict(rec)
         cur["project"] = payload.get("to")
         cur["updated"] = payload.get("now") or cur.get("updated")
-        ctx.api.call("store.write", {"module": "agent/tickets",
-            "path": _ticket_path(cur.get("id")), "value": cur}, caller=None)
+        effects.append({"kind": "write", "module": "agent/tickets",
+                        "path": _ticket_path(cur.get("id")), "value": cur})
         moved.append(cur.get("id"))
-    return {"from": payload.get("from"), "to": payload.get("to"), "tickets": moved}
+    return {"from": payload.get("from"), "to": payload.get("to"),
+            "tickets": moved, "effects": effects}
 
 
 def _route_stall_scan(ctx, payload):
@@ -191,11 +191,9 @@ def _route_stall_scan(ctx, payload):
         if verdict.get("stale") is True:
             hot.append(rec.get("id"))
     for tid in hot:
-        ctx.api.call("demand_engine.run", {
-            "id": "ticket-create",
-            "input": {"title": "停滞审计: %s" % tid, "goal": "工单久未推进: %s" % tid,
-                      "kind": "stall-audit", "auto_retrospective": False}},
-            caller=None)
+        ctx.runtime.call("ticket-create", {
+            "title": "停滞审计: %s" % tid, "goal": "工单久未推进: %s" % tid,
+            "kind": "stall-audit", "auto_retrospective": False})
     return ctx.api.call("ops.assemble", {"parts": {"scan": hot, "at": now.get("ts")}},
                         caller=None)
 
