@@ -11,5 +11,6 @@ from .private import _runner
 
 
 def setup(ctx):
-    ctx.api.register("exec.run", _runner.run, "跑外部进程：argv+stdin → 退出码+输出", module="exec")
+    ctx.api.register("exec.run", _runner.run, "跑外部进程：argv+stdin → 退出码+输出",
+                     module="exec", internal=True)
     return True

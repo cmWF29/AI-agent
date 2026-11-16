@@ -221,6 +221,19 @@ class CoreTest(unittest.TestCase):
         self.ctx.hooks.drain()   # assistant 落盘也会触发一次点，需求自己按 role 跳过
         self.assertEqual(self.fake_net.calls, before + 1, "assistant 消息不能再触发模型（会自激）")
 
+    def test_internal_routes_are_not_reachable_over_http(self):
+        """起进程这类能力只给进程内用：HTTP 通道一律 403，不给远程执行留口子。"""
+        body = self.ctx.codec.yaml_encode({"argv": ["python3", "-c", "print(1)"]}).get("text") or ""
+        req = urllib.request.Request(
+            "http://127.0.0.1:%d/api/rpc/exec/run" % self.port,
+            data=str(body).encode("utf-8"),
+            headers={"X-Auth-Token": "t", "Content-Type": "application/yaml"})
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            urllib.request.urlopen(req, timeout=5)
+        self.assertEqual(cm.exception.code, 403)
+        self.assertNotIn("exec.run", [r["name"] for r in self.ctx.api.routes()],
+                         "内部路由不该出现在对外路由清单里")
+
     def test_agent_backend_runs_external_command(self):
         """agent 模式：对话拼成一段话交给外部进程，收回 stdout 当答复。
 

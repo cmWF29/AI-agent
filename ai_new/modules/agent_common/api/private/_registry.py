@@ -32,12 +32,16 @@ class Registry:
             return fn
         return lambda ctx, payload: fn(payload)
 
-    def register(self, name, fn, doc="", module=None, stream=False):
-        """注册路由。stream=True 表示"返回 {items, cursor}"，可以被 http 当 SSE 长流读。"""
+    def register(self, name, fn, doc="", module=None, stream=False, internal=False):
+        """注册路由。
+
+        stream=True 表示"返回 {items, cursor}"，可以被 http 当 SSE 长流读。
+        internal=True 表示只给进程内调用，HTTP 通道一律不放行（起进程这类能力不能远程可调）。
+        """
         if name in self._routes:
             raise ValueError("route already registered: " + name)
         self._routes[name] = {"fn": self._adapt(fn), "doc": doc, "module": module or name.split(".")[0],
-                              "stream": bool(stream)}
+                              "stream": bool(stream), "internal": bool(internal)}
         return name
 
     def substitute(self, name, fn):
@@ -51,6 +55,7 @@ class Registry:
         return [
             {"name": name, "doc": r["doc"], "module": r["module"], "stream": r["stream"]}
             for name, r in sorted(self._routes.items())
+            if not r.get("internal")
         ]
 
     def route(self, name):

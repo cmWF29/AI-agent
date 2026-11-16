@@ -115,6 +115,11 @@ def _make_handler(ctx):
             else:
                 rpc = False
                 name = parts[1] + "." + parts[2]
+            route = ctx.api.route(name)
+            if route is not None and route.get("internal"):
+                self._json_error(ctx.ApiError("该能力不对外: %s" % name,
+                                              code="internal_route", status=403))
+                return
             result = ctx.api.call(name, payload)
             if rpc:
                 self._json_ok({"result": result})
