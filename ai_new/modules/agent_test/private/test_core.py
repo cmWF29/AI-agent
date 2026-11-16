@@ -153,7 +153,9 @@ class CoreTest(unittest.TestCase):
         HTML/JS 里出现需求 id 字面量，就等于页面又存了一份需求：改需求会漏改页面。
         允许的只有清单登记的平台入口（views-list / auth-logout）。
         """
-        html = (ROOT / "ai_new/modules/agent/web/data/console/manage.html").read_text(encoding="utf-8")
+        console = ROOT / "ai_new/modules/agent/web/data/console"
+        html = "\n".join(f.read_text(encoding="utf-8") for f in sorted(
+            list(console.glob("*.html")) + list(console.glob("*.js"))))
         entries = yaml.safe_load((ROOT / "ai_new/modules/agent_common/demand_engine/data"
                                  / "console-entries.yaml").read_text(encoding="utf-8"))
         allowed = set(entries.get("entries") or [])
@@ -163,7 +165,7 @@ class CoreTest(unittest.TestCase):
                       if ('"%s"' % d) in html or ("'%s'" % d) in html)
         stray = [h for h in hits if h not in allowed]
         self.assertEqual(stray, [],
-                         "控制台硬编码了业务需求 id，页面又存了一份需求清单: %s" % stray)
+                         "控制台硬编码了业务需求 id，外壳又存了一份需求清单: %s" % stray)
 
     # ---- 需求编排闭环 ----
 

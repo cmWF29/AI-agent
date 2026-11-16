@@ -1,0 +1,139 @@
+/* app：基础设施 + 路由（不认识业务，只认传输与视图规格）
+   这一层只认传输与渲染，不认识任何业务名词：
+   - run()：按名跑一条需求
+   - fill()/ref()：把规格里的取值表达式解析成实际数据
+   - execute()：唯一的动作出口，动作 = 规格里写着的 demand / view / modal
+*/
+async function readYaml(resp){return jsyaml.load(await resp.text())||{};}
+function yamlBody(o){return jsyaml.dump(o,{flowLevel:Infinity,noRefs:true,sortKeys:false});}
+const $ = (id) => document.getElementById(id);
+function readCookie(name) {
+  const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : "";
+}
+const token = () => localStorage.getItem("ai_new_token") || readCookie("hive_token") || "";
+function clearToken() {
+  localStorage.removeItem("ai_new_token");
+  sessionStorage.removeItem("hive.token");
+  document.cookie = "hive_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+}
+function headers() {
+  const h = { "Content-Type": "application/yaml" };
+  if (token()) h["X-Auth-Token"] = token();
+  return h;
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+async function run(demand, input) {
+  let resp, body;
+  try {
+    resp = await fetch("/api/rpc/demand_engine/run", {
+      method: "POST", headers: headers(),
+      body: yamlBody({ id: demand, input: input || {} })
+    });
+    body = await readYaml(resp).catch(() => ({ ok: false, error: "响应不是 YAML", code: "bad_yaml" }));
+  } catch (e) {
+    throw Object.assign(new Error("网络请求失败：" + e.message), { status: 0, code: "network" });
+  }
+  if (!body.ok) {
+    if (resp.status === 401 || body.code === "unauthorized") { clearToken(); location.href = "/login.html"; return; }
+    throw Object.assign(new Error(body.error || ("HTTP " + resp.status)),
+      { status: resp.status, code: body.code });
+  }
+  const inner = (body.result && body.result.result) || {};
+  if (inner && inner.ok === false) {
+    if (resp.status === 401 || inner.code === "unauthorized") { clearToken(); location.href = "/login.html"; return; }
+    throw Object.assign(new Error(inner.error || inner.code || "需求失败"),
+      { status: resp.status, code: inner.code });
+  }
+  return inner;
+}
+
+function banner(msg, kind) {
+  const el = $("banner");
+  if (!msg) { el.style.display = "none"; el.textContent = ""; el.className = ""; return; }
+  el.className = kind === "ok" ? "ok" : "err";
+  el.textContent = msg;
+}
+function gateMessage(err) {
+  if (err && (err.status === 401 || err.code === "unauthorized")) return "登录已失效（401），请重新登录。";
+  return (err && err.message) || "操作失败";
+}
+function when(ts) {
+  if (!ts) return "—";
+  const d = typeof ts === "number" ? new Date(ts * 1000) : new Date(ts);
+  if (isNaN(d.getTime())) return String(ts);
+  return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+
+/* ---- 路由与视图 ---- */
+let VIEWS = {}, FORMS = {}, state = { view: "projects" };
+let ACTS = [], FILTER = null, modalSubmit = null, MODAL_CTX = null;
+
+function qsOf(s) {
+  const q = new URLSearchParams();
+  if (s.view === "positions") q.set("view", "positions");
+  else if (s.ticket) { q.set("project", s.project || ""); q.set("ticket", s.ticket); }
+  else if (s.project) q.set("project", s.project);
+  const str = q.toString();
+  return str ? "/manage.html?" + str : "/manage.html";
+}
+function parseURL() {
+  const q = new URLSearchParams(location.search);
+  if (q.get("view") === "positions") return { view: "positions" };
+  const p = q.get("project") || "";
+  const t = q.get("ticket") || "";
+  if (t) return { view: "ticket", project: p, ticket: t };
+  if (p) return { view: "project", project: p };
+  return { view: "projects" };
+}
+async function go(next, push) {
+  state = next;
+  if (push) history.pushState(next, "", qsOf(next));
+  await render().catch((err) => banner(gateMessage(err), "err"));
+}
+
+async function boot() {
+  const items = arr(await run("views-list", {}));
+  for (const it of items) {
+    const v = it && it.view;
+    if (!v) continue;
+    if (v.key) VIEWS[v.key] = v;
+    for (const f of v.forms || []) FORMS[f.id] = f;
+  }
+  if (!VIEWS.projects) throw new Error("没有 projects 视图规格，页面无法启动");
+  state = parseURL();
+  await render();
+}
+
+async function render() {
+  const spec = VIEWS[state.view] || VIEWS.projects;
+  const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
+  for (const src of spec.data || []) {
+    const params = fill(src.params || {}, ctx);
+    const res = await run(src.demand, params);
+    ctx.data[src.as] = res;
+    if (src.cache) ctx.cache[src.cache] = res;
+  }
+  banner("");
+  renderCrumb(spec, ctx);
+  renderView(spec, ctx);
+}
+
+function crumbUp() {
+  if (state.view === "ticket") return { view: "project", project: state.project || "" };
+  return { view: "projects" };
+}
+function renderCrumb(spec, ctx) {
+  const parts = (spec.crumb || []).map((x) => fill(x, ctx)).filter(Boolean);
+  if (!parts.length) { $("crumb").innerHTML = ""; return; }
+  $("crumb").innerHTML = parts.map((text, i) => {
+    const last = i === parts.length - 1;
+    if (last) return `<span class="now">${esc(text)}</span>`;
+    return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
+  }).join("");
+}

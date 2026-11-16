@@ -18,6 +18,22 @@ def mime(p):
     return {"type": _TYPES.get(ext, "application/octet-stream")}
 
 
+def gate(p):
+    """静态资源的登录门槛：页面要登录，登录页与壳资源放行。
+
+    壳资源（js/css/图标/字体）不含业务数据；页面里才有需求清单与数据入口，
+    所以未登录时在页面这一层就重定向，不等前端跑完再去 401。
+    """
+    path = (p.get("path") or "manage.html").strip("/")
+    name = path.rsplit("/", 1)[-1]
+    ext = name.rsplit(".", 1)[1].lower() if "." in name else ""
+    if name == "login.html":
+        return {"public": True, "to": "login.html"}
+    if ext != "html":
+        return {"public": True, "to": ""}
+    return {"public": False, "to": "login.html"}
+
+
 def info(p):
     return {"name": "ai_new", "console": p.get("console") or {},
             "routes": p.get("routes") or [], "demands": p.get("demands") or []}

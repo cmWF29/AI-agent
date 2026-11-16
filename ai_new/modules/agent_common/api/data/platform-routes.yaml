@@ -13,6 +13,9 @@ routes:
   clock.sleep:
     caller: engine
     reason: 需求语言 wait 语句与 SSE 轮询直接调用；平台计时等待，不是业务能力。
+  web.gate:
+    caller: http-gate
+    reason: 静态资源落到页面之前判定是否需要登录；未登录直接 302 到登录页，不让前端兜底跳转。
   hooks.points:
     caller: http-inspect
     reason: 前端与巡检读取已声明的 hook 点清单；只读可见性面。

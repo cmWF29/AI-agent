@@ -174,7 +174,22 @@ def _make_handler(ctx):
                 return
 
         def _static(self, path):
-            """静态资源归 web 模块：http 只搬字节，不认识页面内容。"""
+            """静态资源归 web 模块：http 只搬字节，不认识页面内容。
+
+            页面级资源在鉴权前先问 web.gate：未登录直接 302 到登录页，
+            不把控制台先发给浏览器再靠前端 401 跳转。
+            """
+            rel = path.lstrip("/") or "manage.html"
+            gate = ctx.api.call("web.gate", {"path": rel}, caller=None)
+            if not gate.get("public"):
+                verdict = ctx.api.call("auth.verify", {"token": _extract_token(self)},
+                                       caller=None)
+                if not verdict.get("allow"):
+                    self.send_response(302)
+                    self.send_header("Location", "/" + (gate.get("to") or "login.html"))
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
             try:
                 asset = ctx.web.asset(ctx, path.lstrip("/") or "manage.html")
             except ctx.ApiError as e:
