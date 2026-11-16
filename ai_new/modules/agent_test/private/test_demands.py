@@ -47,6 +47,13 @@ def all_expected():
         routes.update(exp.get("calls") or [])
         for case in exp.get("cases") or []:
             routes.update(case.get("calls") or [])
+    # B1 下沉：聚合能力内部编排的路由也属预期，桩要备 handler、无主动作校验要认得。
+    cap_path = ROOT / "ai_new/modules/agent_common/api/data/capability-routes.yaml"
+    if cap_path.is_file():
+        manifest = yaml.safe_load(cap_path.read_text(encoding="utf-8")) or {}
+        for name, spec in (manifest.get("capabilities") or {}).items():
+            if name in routes:
+                routes.update(spec.get("calls") or [])
     return sorted(routes)
 
 

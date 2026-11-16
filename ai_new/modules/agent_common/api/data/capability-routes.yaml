@@ -1,0 +1,20 @@
+comment: 聚合能力内部路由清单：B1 下沉后，业务能力在 handler 内部经 ctx.api.call(caller=None) 编排的其他模块路由。
+  这些路由不出现在需求 do 树里，但只要所属聚合能力被某条需求编排，即视为受管辖。静态闸据此把内部路由并入 demand_bound。
+  新增聚合能力时，必须在此登记它内部调用的全部路由；漏登记会被 stray/写管辖闸拦下。
+capabilities:
+  llm.chat:
+    calls:
+    - config.get
+    - llm.encode
+    - codec.json_encode
+    - net.request
+    - codec.json_decode
+    - llm.decode
+  llm.chat_stream:
+    calls:
+    - config.get
+    - llm.encode
+    - codec.json_encode
+    - net.request
+    - codec.sse_decode
+    - llm.decode_sse

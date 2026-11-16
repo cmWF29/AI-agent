@@ -16,6 +16,8 @@ def setup(ctx):
     ctx.api.register("llm.encode", _route_encode, "对话 → 线上载荷", module="llm")
     ctx.api.register("llm.decode", _route_decode, "响应对象 → 对话结果", module="llm")
     ctx.api.register("llm.decode_sse", _route_decode_sse, "SSE 事件列表 → 对话结果", module="llm")
+    ctx.api.register("llm.chat", _route_chat, "非流式对话闭环：配置→载荷→传输→解码", module="llm")
+    ctx.api.register("llm.chat_stream", _route_chat_stream, "流式对话闭环：配置→载荷→传输→SSE 解码", module="llm")
     return True
 
 
@@ -41,6 +43,55 @@ def _route_decode(ctx, payload):
 
 def _route_decode_sse(ctx, payload):
     return _client.decode_sse(payload.get("items") or [])
+
+
+def _encode_call(ctx, payload, stream):
+    cfg = ctx.api.call("config.get", {"key": "llm"}, caller=None) or {}
+    cfgv = cfg.get("value") or {}
+    return ctx.api.call("llm.encode", {
+        "base_url": cfgv.get("base_url"),
+        "api_key": cfgv.get("api_key"),
+        "model": cfgv.get("model"),
+        "messages": payload.get("messages") or [],
+        "tools": payload.get("tools"),
+        "tool_choice": payload.get("tool_choice"),
+        "temperature": payload.get("temperature"),
+        "stream": stream,
+    }, caller=None)
+
+
+def _route_chat(ctx, payload):
+    enc = _encode_call(ctx, payload, False)
+    if not enc.get("ok"):
+        return enc
+    body = ctx.api.call("codec.json_encode", {"value": enc.get("payload")}, caller=None)
+    resp = ctx.api.call("net.request", {
+        "url": enc.get("url"), "method": "POST",
+        "headers": enc.get("headers"), "body": body.get("text"),
+        "timeout": payload.get("timeout")}, caller=None)
+    if not resp.get("ok"):
+        return {"ok": False, "error": resp.get("error"), "code": "net_error"}
+    obj = ctx.api.call("codec.json_decode", {"text": resp.get("text")}, caller=None)
+    if not obj.get("ok"):
+        return obj
+    return ctx.api.call("llm.decode", {"payload": obj.get("value")}, caller=None)
+
+
+def _route_chat_stream(ctx, payload):
+    enc = _encode_call(ctx, payload, True)
+    if not enc.get("ok"):
+        return enc
+    body = ctx.api.call("codec.json_encode", {"value": enc.get("payload")}, caller=None)
+    resp = ctx.api.call("net.request", {
+        "url": enc.get("url"), "method": "POST",
+        "headers": enc.get("headers"), "body": body.get("text"),
+        "timeout": payload.get("timeout")}, caller=None)
+    if not resp.get("ok"):
+        return {"ok": False, "error": resp.get("error"), "code": "net_error"}
+    ev = ctx.api.call("codec.sse_decode", {"text": resp.get("text")}, caller=None)
+    if not ev.get("ok"):
+        return ev
+    return ctx.api.call("llm.decode_sse", {"items": ev.get("items")}, caller=None)
 
 
 # ---- 纯函数面（给不需要路由的内部调用，仍然不含任何 I/O） ----

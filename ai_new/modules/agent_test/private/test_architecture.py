@@ -202,10 +202,10 @@ class StructureTest(unittest.TestCase):
         self.assertEqual(hits, [], "模块自带时钟/编解码/摘要实现: %s" % hits)
 
     def test_llm_does_not_own_the_network(self):
-        """llm 只做对话语义；发请求是 net 的事。"""
+        """llm 不持有网络/序列化/配置实现；这些经 api 通道委托 net/codec/config 路由。"""
         path = MODULES / "agent_common" / "llm"
         text = "\n".join(p.read_text(encoding="utf-8") for p in src_files(path))
-        for token in ("import urllib", "urllib.request", "import socket", "http.client", "import yaml", "ctx.cfg", "net.request"):
+        for token in ("import urllib", "urllib.request", "import socket", "http.client", "import yaml", "ctx.cfg"):
             self.assertNotIn(token, text, "模块 llm 越界了（它不是纯语义）: %s" % token)
         self.assertIn("llm.encode", text, "llm 没有提供载荷构造")
 

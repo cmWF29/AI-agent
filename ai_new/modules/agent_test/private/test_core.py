@@ -34,6 +34,24 @@ class FakeNet:
                         '"finish_reason":"stop"}],"usage":null}'}
 
 
+def _demand_bound_routes():
+    """需求 do 树编排的路由 ∪ 已编排聚合能力的内部路由（B1 下沉，见 capability-routes.yaml）。"""
+    from ai_new.modules.agent_common.demand_engine.private import _lang
+    demand_bound = set()
+    demands = _fixtures.module_data("agent_common", "demand_engine") / "demands"
+    for path in sorted(demands.glob("*.yaml")):
+        rec = yaml.safe_load(path.read_text(encoding="utf-8"))
+        demand_bound.update(_lang.routes_of(rec.get("do")))
+    cap_path = ROOT / "ai_new/modules/agent_common/api/data/capability-routes.yaml"
+    internal = set()
+    if cap_path.is_file():
+        manifest = yaml.safe_load(cap_path.read_text(encoding="utf-8")) or {}
+        for name, spec in (manifest.get("capabilities") or {}).items():
+            if name in demand_bound:
+                internal.update(spec.get("calls") or [])
+    return demand_bound | internal
+
+
 class CoreTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -100,11 +118,7 @@ class CoreTest(unittest.TestCase):
         只在模块内部进程内直调、不被任何需求/外部调用的纯函数，不许挂成 API。
         """
         from ai_new.modules.agent_common.demand_engine.private import _lang
-        demand_bound = set()
-        for path in sorted(_fixtures.module_data("agent_common", "demand_engine")
-                           .joinpath("demands").glob("*.yaml")):
-            rec = yaml.safe_load(path.read_text(encoding="utf-8"))
-            demand_bound.update(_lang.routes_of(rec.get("do")))
+        demand_bound = _demand_bound_routes()
         manifest = yaml.safe_load((ROOT / "ai_new/modules/agent_common/api/data"
                                / "platform-routes.yaml").read_text(encoding="utf-8"))
         platform = set(manifest.get("routes") or {})
@@ -119,11 +133,7 @@ class CoreTest(unittest.TestCase):
         不允许模块/注册表隐式写盘：存什么、存哪、怎么存，都要能追溯到需求或平台授权。
         """
         from ai_new.modules.agent_common.demand_engine.private import _lang
-        demand_bound = set()
-        for path in sorted(_fixtures.module_data("agent_common", "demand_engine")
-                           .joinpath("demands").glob("*.yaml")):
-            rec = yaml.safe_load(path.read_text(encoding="utf-8"))
-            demand_bound.update(_lang.routes_of(rec.get("do")))
+        demand_bound = _demand_bound_routes()
         manifest = yaml.safe_load((ROOT / "ai_new/modules/agent_common/api/data"
                                / "platform-routes.yaml").read_text(encoding="utf-8"))
         platform = set(manifest.get("routes") or {})
