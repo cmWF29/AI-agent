@@ -44,6 +44,19 @@ capabilities:
     - projects.conflict
     - store.write
     - projects.view
+  projects.rename:
+    calls:
+    - store.id
+    - store.read
+    - projects.missing
+    - store.exists
+    - projects.conflict
+    - clock.now
+    - projects.renamed
+    - store.write
+    - store.remove
+    - tickets.rebind
+    - projects.view
   projects.remove:
     calls:
     - store.id
@@ -126,6 +139,10 @@ capabilities:
     - tickets.bindchild
     - store.write
     - tickets.view
+  tickets.rebind:
+    calls:
+    - store.walk
+    - store.write
   tickets.stall_scan:
     calls:
     - clock.now

@@ -75,6 +75,17 @@ def archive(p):
     return out
 
 
+def renamed(payload):
+    """改名后的档案：换 id/name（与 default_backend），created/archived 原样保留。"""
+    rec = dict(payload.get("rec") or {})
+    rec["id"] = payload.get("id") or rec.get("id")
+    rec["name"] = payload.get("name") or rec.get("name") or rec.get("id")
+    if payload.get("default_backend") not in (None, ""):
+        rec["default_backend"] = payload.get("default_backend")
+    rec["updated"] = payload.get("now") or rec.get("updated") or ""
+    return rec
+
+
 def missing(payload):
     return {"ok": False, "code": "not_found", "status": 404,
             "error": "项目不存在: %s" % (payload.get("id") or "")}

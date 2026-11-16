@@ -68,6 +68,7 @@ checks:
   - projects-delete
   - projects-get
   - projects-list
+  - projects-rename
   - react-run
   - session-ask
   - session-compact

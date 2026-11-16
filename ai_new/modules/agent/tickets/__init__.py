@@ -30,6 +30,7 @@ def setup(ctx):
     ctx.api.register("tickets.split", _route_split, "拆子单：守上限→逐个建单并挂链接", module="tickets")
     ctx.api.register("tickets.stall_scan", _route_stall_scan, "停滞扫描：遍历在途→判定→开审计单", module="tickets")
     ctx.api.register("tickets.create", _route_create, "建工单：校验项目→造记录→拉 PM→落盘", module="tickets")
+    ctx.api.register("tickets.rebind", _route_rebind, "项目改名后把工单改挂到新项目 id", module="tickets")
     return True
 
 
@@ -131,6 +132,24 @@ def _route_split(ctx, payload):
                                      "path": _ticket_path(cur.get("id")), "value": cur},
                      caller=None)
     return ctx.api.call("tickets.view", {"rec": cur}, caller=None)
+
+
+def _route_rebind(ctx, payload):
+    """引用改挂：遍历工单，把指向旧项目 id 的记录改写为新 id。"""
+    rows = ctx.api.call("store.walk", {"module": "agent/tickets", "root": "tickets",
+                                       "pattern": "*/ticket.yaml"}, caller=None)
+    moved = []
+    for rec in rows.get("rows") or []:
+        rec = rec or {}
+        if rec.get("project") != payload.get("from"):
+            continue
+        cur = dict(rec)
+        cur["project"] = payload.get("to")
+        cur["updated"] = payload.get("now") or cur.get("updated")
+        ctx.api.call("store.write", {"module": "agent/tickets",
+            "path": _ticket_path(cur.get("id")), "value": cur}, caller=None)
+        moved.append(cur.get("id"))
+    return {"from": payload.get("from"), "to": payload.get("to"), "tickets": moved}
 
 
 def _route_stall_scan(ctx, payload):

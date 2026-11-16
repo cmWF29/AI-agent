@@ -55,12 +55,14 @@ main{padding:18px 22px 40px;max-width:1180px;margin:0 auto}
 .pcard:active{transform:scale(.995)}
 .pcard:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
 .pcard.archived{cursor:default;opacity:.72}
-.pcard .pname{font-size:15px;font-weight:600;margin:0 0 2px;padding-right:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .pname{font-size:15px;font-weight:600;margin:0 0 2px;padding-right:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcard .meta{font-size:12.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
 .pcard .stat{font-size:12.5px;color:var(--fg-2);margin-top:10px;display:flex;gap:8px;align-items:center}
 .pcard .stat b{font-size:18px;color:var(--fg);font-weight:600}
 .pcard .acts{position:absolute;top:12px;right:12px;display:flex;gap:4px}
-.pcard .acts button{padding:3px 8px;font-size:12px;border-radius:8px;background:transparent}
+.pcard .acts button{padding:3px 7px;font-size:11.5px;line-height:1.5;border-radius:7px;background:var(--card);border:1px solid var(--line);color:var(--fg-2)}
+.pcard .acts button:hover{border-color:var(--accent);color:var(--accent)}
+.pcard .acts button.danger:hover{border-color:var(--danger);color:var(--danger)}
 .pcard .ar{position:absolute;right:14px;bottom:14px;color:var(--muted);font-size:16px}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);padding:44px 20px;text-align:center;color:var(--muted)}
 .empty strong{display:block;color:var(--fg);font-size:15px;margin-bottom:6px;font-weight:600}
@@ -200,6 +202,7 @@ textarea{min-height:72px;resize:vertical}
       </div>
       <div class="spacer"></div>
       <div class="actions">
+        <button id="proj-rename">重命名</button>
         <button id="proj-archive">归档</button>
         <button id="proj-del" class="danger">删除</button>
         <button class="primary" id="new-ticket">＋ 新建工单</button>
@@ -328,6 +331,9 @@ async function run(demand, input) {
   }
   return inner;
 }
+let flash = null;
+function flashLater(msg, kind) { flash = { msg, kind }; }
+
 function banner(msg, kind) {
   const el = $("banner");
   if (!msg) { el.style.display = "none"; el.textContent = ""; el.className = ""; return; }
@@ -443,6 +449,7 @@ function renderProjects() {
     const archived = !!p.archived;
     return `<article class="pcard${archived ? " archived" : ""}" data-project="${esc(p.id)}" role="button" tabindex="0" aria-label="进入项目 ${esc(p.name || p.id)}">
       <div class="acts">
+        <button data-act="rename" data-id="${esc(p.id)}" title="重命名这个项目">改名</button>
         <button data-act="archive" data-id="${esc(p.id)}" ${archived ? "disabled" : ""}
           title="${archived ? "已归档" : "归档这个项目"}">归档</button>
         <button data-act="del" data-id="${esc(p.id)}" class="danger" title="彻底删除">删除</button>
@@ -477,7 +484,7 @@ async function renderProject() {
     go({ view: "projects" }, true);
     return;
   }
-  banner("");
+  if (flash) { banner(flash.msg, flash.kind); flash = null; } else banner("");
   $("proj-title").textContent = p.name || p.id;
   $("proj-desc").innerHTML = `建 ${when(p.created)}` +
     (p.archived ? ' · <span class="badge archived">已归档</span>' : "") +
@@ -736,13 +743,18 @@ $("project-cards").onclick = async (e) => {
   if (btn && !btn.disabled) {
     const id = btn.dataset.id;
     try {
-      if (btn.dataset.act === "archive") {
+      const node = store.projects.find((n) => (n.project || {}).id === id) || {};
+      const pr = node.project || {};
+      const label = pr.name || id;
+      if (btn.dataset.act === "rename") {
+        return renameModal(pr);
+      } else if (btn.dataset.act === "archive") {
         await run("projects-archive", { id });
-        banner("已归档：" + id, "ok");
+        banner("已归档：" + label, "ok");
       } else if (btn.dataset.act === "del") {
-        if (!confirm("彻底删除项目 " + id + "？工单不会被删。")) return;
+        if (!confirm("彻底删除项目「" + label + "」？工单不会被删。")) return;
         await run("projects-delete", { id, purge: true });
-        banner("已删除：" + id, "ok");
+        banner("已删除：" + label, "ok");
       }
       store.projects = [];
       await loadAll();
@@ -772,22 +784,51 @@ $("ticket-filter").onclick = (e) => {
   renderProject().catch((err) => banner(gateMessage(err), "err"));
 };
 
+function renameModal(p) {
+  p = p || {};
+  openModal("重命名项目", "改的是显示名；项目里的工单会跟着走，不会丢。", `
+    <div class="field"><label>项目名称</label>
+      <input name="name" value="${esc(p.name || p.id || "")}" required></div>
+    <div class="field"><label>默认后端（可选）</label>
+      <input name="default_backend" value="${esc(p.default_backend || "")}" placeholder="留空即默认"></div>`,
+    "保存", async (fd) => {
+      const name = String(fd.get("name") || "").trim();
+      if (!name) { modalError("项目名称不能为空"); return; }
+      const backend = String(fd.get("default_backend") || "").trim();
+      if (name === (p.name || p.id) && backend === (p.default_backend || "")) { closeModal(); return; }
+      const rec = await run("projects-rename", {
+        id: p.id, name, default_backend: backend
+      });
+      closeModal();
+      flashLater("已改名：" + (rec.name || name), "ok");
+      store.projects = [];
+      await loadAll();
+      go({ view: "project", project: rec.id }, true);
+    });
+}
+
+$("proj-rename").onclick = () => {
+  const p = projectOf(state.project);
+  if (p) renameModal(p);
+};
+
 $("proj-archive").onclick = async () => {
   try {
     await run("projects-archive", { id: state.project });
-    banner("已归档：" + state.project, "ok");
+    flashLater("已归档：" + ((projectOf(state.project) || {}).name || state.project), "ok");
     store.projects = [];
     await loadAll();
     go({ view: "project", project: state.project }, true);
   } catch (err) { banner(gateMessage(err), "err"); }
 };
 $("proj-del").onclick = async () => {
-  if (!confirm("彻底删除项目 " + state.project + "？")) return;
+  const label = (projectOf(state.project) || {}).name || state.project;
+  if (!confirm("彻底删除项目「" + label + "」？")) return;
   try {
     await run("projects-delete", { id: state.project, purge: true });
     store.projects = [];
     await loadAll();
-    banner("已删除：" + state.project, "ok");
+    banner("已删除：" + label, "ok");
     go({ view: "projects" }, true);
   } catch (err) { banner(gateMessage(err), "err"); }
 };
