@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import secrets
 
 
 def json_encode(value):
@@ -68,6 +69,15 @@ def digest(text, algorithm="sha256"):
         return {"ok": True, "hex": algo(bytes(raw)).hexdigest()}
     except (AttributeError, TypeError, ValueError) as exc:
         return {"ok": False, "error": str(exc), "code": "bad_algorithm"}
+
+
+def nonce(length=32):
+    """安全随机令牌：URL 安全，给会话/一次性凭证用。随机数是能力，业务模块不自带。"""
+    try:
+        size = max(8, int(length or 32))
+        return {"ok": True, "token": secrets.token_urlsafe(size)}
+    except (TypeError, ValueError) as exc:
+        return {"ok": False, "error": str(exc), "code": "nonce_failed"}
 
 
 def base64_from_hex(text):

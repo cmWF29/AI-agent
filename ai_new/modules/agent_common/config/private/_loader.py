@@ -34,7 +34,6 @@ def setup(ctx):
         ctx.cfg["server"] = {}
     _apply_env(ctx.cfg)
     ctx.api.register("config.get", _route_get, "读取脱敏配置")
-    ctx.api.register("config.set", _route_set, "写配置")
 
 
 def _apply_env(cfg):
@@ -63,7 +62,7 @@ def redacted(ctx):
         if isinstance(node, dict):
             out = {}
             for k, v in node.items():
-                if any(s in k.lower() for s in ("token", "password", "secret", "api_key")):
+                if any(s in k.lower() for s in ("token", "password", "secret", "api_key", "salt")):
                     out[k] = "<redacted>"
                 else:
                     out[k] = _walk(v)
@@ -80,15 +79,6 @@ def _route_get(ctx, payload):
         value = _nested_get(ctx.cfg, key) if "." in key else ctx.cfg.get(key)
         return {"key": key, "value": value}
     return redacted(ctx)
-
-
-def _route_set(ctx, payload):
-    key = (payload or {}).get("key") or ""
-    value = (payload or {}).get("value")
-    if not key:
-        raise ctx.ApiError("key 必填", code="missing_key")
-    set_value(ctx, key, value)
-    return {"key": key, "ok": True}
 
 
 # ---------------------------------------------------------------- 文件读写

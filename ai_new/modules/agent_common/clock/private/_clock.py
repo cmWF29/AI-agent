@@ -34,14 +34,8 @@ def monotonic():
 
 def setup(ctx):
     ctx.api.register("clock.now", lambda c, p: now(), "现在（epoch 秒 + ISO）", module="clock")
-    ctx.api.register("clock.iso", lambda c, p: {"text": iso(p.get("ts"))},
-                     "时间戳 → ISO 文本", module="clock")
-    ctx.api.register("clock.parse", lambda c, p: parse(p.get("text")),
-                     "ISO 文本 → 时间戳", module="clock")
     ctx.api.register("clock.sleep", lambda c, p: sleep(p.get("seconds")),
                      "等一会儿（秒）", module="clock")
-    ctx.api.register("clock.monotonic", lambda c, p: monotonic(),
-                     "单调时钟（算间隔用，不受系统改时间影响）", module="clock")
     ctx.api.register("clock.since", lambda c, p: since(p),
                      "某条 ISO 时间距今多少秒", module="clock")
     return True

@@ -1,7 +1,0 @@
-{
-  "pm_intro": "工单 {ticket}\n标题：{title}\n需求原文：\n{goal}",
-  "role_result_notify": "（系统通知）角色 {role} 已交作业。\n摘要：{summary}\n交接文档：docs/handoff/{role}.md\n知识：{knowledge}\n需要细节再读文档；不要向角色要求全文回传。",
-  "child_closed_notify": "（系统通知）子工单 {ticket} 已结单。\n标题：{title}\n结论：{summary}\n交付件：artifacts/projects/{project}/tickets/{ticket}\n知识：knowledge/tickets/{ticket}\n请判断该子任务是否满足父工单验收；全部齐了再结单。",
-  "stall_audit_goal": "本单是对停滞工单 {ticket} 的只读运维审计：诊断为什么没有推进，给出恢复方案，写 docs/health-report.md。不得修改被审计工单的任何产物。",
-  "stall_audit_task": "工单 {ticket} 疑似停滞（最后活动 {updated}）。请检查其状态、会话、角色与卡点，写 docs/health-report.md，并在结单 summary 里给出：现象/根因/处理/恢复标准。"
-}

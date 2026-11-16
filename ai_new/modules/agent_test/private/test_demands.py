@@ -67,9 +67,13 @@ def _shape(route):
     """桩回一个通用形状：需求里常见的字段名都有值，避免 None 参与拼接。"""
     shape = {"ok": True, "route": route, "value": {}, "items": [], "id": "demo",
              "exists": False, "ts": 1000.0, "text": "", "prompt": "", "counts": {},
-             "modules": [], "messages": [], "content": "", "total": 0}
+             "modules": [], "messages": [], "content": "", "total": 0,
+             "token": "demo-token", "hex": "abc"}
     if route == "store.read_text":
         shape["value"] = ""  # 空文件：文本落在 value 上
+    if route == "config.get":
+        shape["value"] = {"username": "admin", "password_hash": "abc",
+                          "salt": "s", "ttl": 86400}
     return shape
 
 

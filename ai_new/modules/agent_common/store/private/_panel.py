@@ -467,14 +467,6 @@ def _route_write(payload):
                     encoding="utf-8")
     return {"written": True, "path": str(path)}
 
-
-def _route_list(payload):
-    path = _p(payload.get("module"), payload.get("path"))
-    if not path.is_dir():
-        return {"items": []}
-    return {"items": sorted(i.name for i in path.iterdir())}
-
-
 def _route_remove(payload):
     path = _p(payload.get("module"), payload.get("path"))
     if path.is_file():
@@ -506,15 +498,6 @@ def _route_walk(payload):
         except ValueError:
             continue
     return {"rows": rows}
-
-
-def _route_dirs(payload):
-    base = _p(payload.get("module"), payload.get("root"))
-    if not base.is_dir():
-        return {"items": []}
-    return {"items": sorted(str(i.relative_to(base).as_posix())
-                            for i in base.rglob("*") if i.is_dir())}
-
 
 def _route_read_text(payload):
     path = _p(payload.get("module"), payload.get("path"))
@@ -584,11 +567,9 @@ def setup(ctx):
         ("store.exists", _route_exists),
         ("store.read", _route_read),
         ("store.write", _route_write),
-        ("store.list", _route_list),
         ("store.remove", _route_remove),
         ("store.glob", _route_glob),
         ("store.walk", _route_walk),
-        ("store.dirs", _route_dirs),
         ("store.read_text", _route_read_text),
         ("store.write_text", _route_write_text),
         ("store.append_text", _route_append_text),

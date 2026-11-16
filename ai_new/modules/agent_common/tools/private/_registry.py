@@ -47,35 +47,6 @@ class ToolRegistry:
                                        caller="tools")
         else:
             result = t["fn"](self.ctx, args or {}, session=session)
-        return self._maybe_persist(result)
-
-    def _maybe_persist(self, result):
-        """统一输出策略：文本过大时先落盘，只给模型返回路径提示。"""
-        if not isinstance(result, dict):
-            return result
-        text = result.get("text") or result.get("content")
-        if not isinstance(text, str):
-            return result
-        limit = int(self.ctx.cfg.get("tools", {}).get("inline_max_chars", 4000))
-        if len(text) <= limit:
-            return result
-        name = self.ctx.storage.safe_id(str(result.get("name") or result.get("path") or "out"))
-        now = self.ctx.clock.now()["ts"]
-        rel = "toolout/%s-%s.txt" % (name[:40], int(now * 1000))
-        path = _md(self.ctx).path(rel)
-        ctx.storage.own(__file__).write_text(rel, text)
-        result = dict(result)
-        result.pop("text", None)
-        result.pop("content", None)
-        result["persisted"] = rel
-        result["note"] = (
-            "输出 %d 字符，已落盘到 %s；需要细节时用 ticket_read_doc 或对应的读文件工具按路径读取。"
-            % (len(text), rel))
-        result["head"] = text[:200]
+        # 落盘是有副作用的业务动作：工具注册表不隐式写盘；
+        # 大输出要不要留存、存到哪、怎么存，由需求显式调 store 能力决定。
         return result
-
-
-
-def _md(ctx):
-    """本模块自己的数据目录：数据跟着模块走，不是全系统一个筐。"""
-    return ctx.storage.own(__file__)

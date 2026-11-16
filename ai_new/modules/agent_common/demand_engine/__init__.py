@@ -19,10 +19,6 @@ def setup(ctx):
         p.get("id"), p.get("input") or {}), "按名跑一段编排需求", module="demand_engine")
     ctx.api.register("demand_engine.list", lambda c, p: ctx.demand_engine.items(),
                      "当前需求（on/do/enabled）", module="demand_engine")
-    ctx.api.register("demand_engine.enable", lambda c, p: ctx.demand_engine.set_enabled(p["id"], True),
-                     "上线一个需求", module="demand_engine")
-    ctx.api.register("demand_engine.disable", lambda c, p: ctx.demand_engine.set_enabled(p["id"], False),
-                     "下线一个需求", module="demand_engine")
     return ctx.demand_engine
 
 

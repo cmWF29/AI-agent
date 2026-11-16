@@ -13,7 +13,6 @@
            padding: 10px 14px; border-bottom: 1px solid #23262f; background: #14171d; }
   header input { background: #0f1115; border: 1px solid #2b3040; border-radius: 6px;
                  color: #e6e8ee; padding: 7px 9px; font-size: 13px; }
-  header input#token { width: 220px; }
   header input#channel { width: 140px; }
   header button { background: #2f6fed; border: 0; border-radius: 6px; color: #fff;
                   padding: 7px 12px; font-size: 13px; cursor: pointer; }
@@ -41,7 +40,6 @@
 </head>
 <body>
 <header>
-  <input id="token" placeholder="访问 token（可留空）" autocomplete="off">
   <input id="channel" value="web" aria-label="频道">
   <button id="connect">连接</button>
   <button id="clear" class="ghost">清屏</button>
@@ -49,6 +47,7 @@
     <a href="/index.html" style="color:#e6e8ee;text-decoration:none;font-size:13px">装配</a>
     <a href="/manage.html" style="color:#e6e8ee;text-decoration:none;font-size:13px">项目与工单</a>
   </nav>
+  <button id="logout" class="ghost">登出</button>
   <span class="state" id="state">未连接</span>
 </header>
 <main>
@@ -63,8 +62,21 @@ const $ = (id) => document.getElementById(id);
 const stateEl = $("state"), list = $("list"), input = $("text");
 let cursor = 0, abort = null, alive = false;
 
-const token = sessionStorage.getItem("hive.token") || "";
-if (token) $("token").value = token;
+function readCookie(name) {
+  const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : "";
+}
+const token = () => localStorage.getItem("ai_new_token") || readCookie("hive_token") || "";
+function clearToken() {
+  localStorage.removeItem("ai_new_token");
+  sessionStorage.removeItem("hive.token");
+  document.cookie = "hive_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+}
+function authHeaders() {
+  const h = {};
+  if (token()) h["X-Auth-Token"] = token();
+  return h;
+}
 if (sessionStorage.getItem("hive.channel")) $("channel").value = sessionStorage.getItem("hive.channel");
 
 function setState(text) { stateEl.textContent = text; }
@@ -84,9 +96,8 @@ function render(msg) {
 }
 
 async function connect() {
-  const tk = $("token").value.trim();
+  const tk = token();
   const ch = $("channel").value.trim() || "web";
-  sessionStorage.setItem("hive.token", tk);
   sessionStorage.setItem("hive.channel", ch);
   if (abort) abort.abort();
   abort = new AbortController();
@@ -97,7 +108,8 @@ async function connect() {
     try {
       const url = "/api/sse/channel/watch?channel=" + encodeURIComponent(ch) +
                   "&cursor=" + cursor + "&timeout=20";
-      const resp = await fetch(url, {headers: tk ? {"X-Auth-Token": tk} : {}, signal: abort.signal});
+      const resp = await fetch(url, {headers: authHeaders(), signal: abort.signal});
+      if (resp.status === 401) { clearToken(); location.href = "/login.html"; return; }
       if (!resp.ok || !resp.body) throw new Error("HTTP " + resp.status);
       setState("已连接");
       backoff = 500;
@@ -137,16 +149,15 @@ async function send() {
   const text = input.value.trim();
   if (!text) return;
   const ch = $("channel").value.trim() || "web";
-  const tk = $("token").value.trim();
   input.value = "";
   try {
     const resp = await fetch("/api/rpc/demand_engine/run", {
       method: "POST",
-      headers: Object.assign({"Content-Type": "application/json"},
-                             tk ? {"X-Auth-Token": tk} : {}),
+      headers: Object.assign({"Content-Type": "application/json"}, authHeaders()),
       body: JSON.stringify({ id: "channel-post",
                              input: { channel: ch, role: "user", content: text } })
     });
+    if (resp.status === 401) { clearToken(); location.href = "/login.html"; return; }
     if (!resp.ok) setState("发送失败 HTTP " + resp.status);
   } catch (e) {
     setState("发送失败：" + e.message);
@@ -156,10 +167,23 @@ async function send() {
 $("connect").onclick = connect;
 $("clear").onclick = () => { list.innerHTML = '<div class="empty">还没有消息</div>'; };
 $("send").onclick = send;
+$("logout").onclick = async () => {
+  try { await fetch("/api/rpc/demand_engine/run", {
+    method: "POST", headers: Object.assign({"Content-Type": "application/json"}, authHeaders()),
+    body: JSON.stringify({ id: "auth-logout", input: { token: token() } }) }); } catch (e) {}
+  clearToken(); location.href = "/login.html";
+};
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
 });
-if ($("token").value || true) connect();
+
+async function boot() {
+  let st = { enabled: false };
+  try { const r = await fetch("/api/auth/status"); const _j = await r.json(); st = _j.result || _j || {}; } catch (e) {}
+  if (st.enabled && !token()) { location.href = "/login.html"; return; }
+  connect();
+}
+boot();
 </script>
 </body>
 </html>

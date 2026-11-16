@@ -1,0 +1,82 @@
+{
+  "id": "auth-login",
+  "title": "登录：读配置 → 摘要比对 → 发随机会话 → 落盘 → 露出会话视图",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "config.get",
+      "with": {"key": {"lit": "server.auth"}},
+      "as": "cfg"
+    },
+    {
+      "call": "codec.digest",
+      "with": {
+        "text": {"op": "+", "a": {"op": "+", "a": {"get": "cfg.value.salt"}, "b": {"lit": ":"}}, "b": {"get": "input.password"}},
+        "algorithm": {"lit": "sha256"}
+      },
+      "as": "dg"
+    },
+    {
+      "call": "auth.credentials_ok",
+      "with": {
+        "username": {"get": "input.username"},
+        "expect_username": {"get": "cfg.value.username"},
+        "digest": {"get": "dg.hex"},
+        "expect_hash": {"get": "cfg.value.password_hash"}
+      },
+      "as": "ok"
+    },
+    {
+      "when": {"op": "==", "a": {"get": "ok.ok"}, "b": false},
+      "then": [
+        {
+          "fail": {
+            "code": {"lit": "bad_credentials"},
+            "status": {"lit": 401},
+            "message": {"lit": "用户名或密码错误"}
+          }
+        }
+      ],
+      "else": [
+        {"call": "clock.now", "as": "now"},
+        {"call": "codec.nonce", "with": {"length": {"lit": 32}}, "as": "nonce"},
+        {
+          "call": "auth.build_session",
+          "with": {
+            "token": {"get": "nonce.token"},
+            "username": {"get": "input.username"},
+            "issued": {"get": "now.ts"},
+            "ttl": {"get": "cfg.value.ttl"}
+          },
+          "as": "rec"
+        },
+        {
+          "call": "store.write",
+          "with": {
+            "module": {"lit": "agent/auth"},
+            "path": {"op": "+", "a": {"op": "+", "a": {"lit": "sessions/"}, "b": {"get": "rec.token"}}, "b": {"lit": ".json"}},
+            "value": {"get": "rec"}
+          },
+          "as": "w"
+        },
+        {
+          "call": "auth.session_view",
+          "with": {"record": {"get": "rec"}},
+          "as": "out"
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "given": {"input": {"username": "admin", "password": "secret"}},
+    "calls": ["config.get", "codec.digest", "auth.credentials_ok", "clock.now", "codec.nonce",
+              "auth.build_session", "store.write", "auth.session_view"],
+    "payload": {
+      "auth.credentials_ok": {"username": {"get": "input.username"}},
+      "store.write": {"module": {"lit": "agent/auth"}}
+    },
+    "promise": "凭据在需求里比对，模块只造会话形状；会话记录落在自己 data"
+  }
+}

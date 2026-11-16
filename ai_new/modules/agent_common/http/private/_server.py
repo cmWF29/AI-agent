@@ -57,10 +57,27 @@ def _make_handler(ctx):
                 self._json_error(e)
 
         def _api(self, method, path, parsed):
-            if not _authorized(ctx, self):
-                self._json_error(ctx.ApiError("未登录或 token 无效",
-                                              code="unauthorized", status=401))
-                return
+            payload = {}
+            if parsed.query:
+                for k, v in urllib.parse.parse_qsl(parsed.query):
+                    payload[k] = v
+            body = {}
+            if method == "POST":
+                body = self._read_json_body()
+                if body is None:
+                    return
+                if isinstance(body, dict):
+                    payload.update(body)
+
+            public = path == "/api/health" or path.startswith("/api/auth/") or (
+                path == "/api/rpc/demand_engine/run" and body.get("id") == "auth-login")
+            if not public:
+                verdict = ctx.api.call("auth.verify", {"token": _extract_token(self)})
+                if not verdict.get("allow"):
+                    self._json_error(ctx.ApiError("未登录或会话已失效",
+                                                  code="unauthorized", status=401))
+                    return
+
             if path == "/api/modules":
                 self._json_ok({"modules": sorted(ctx.loaded),
                                "routes": ctx.api.routes()})
@@ -85,27 +102,24 @@ def _make_handler(ctx):
             else:
                 rpc = False
                 name = parts[1] + "." + parts[2]
-            payload = {}
-            if parsed.query:
-                for k, v in urllib.parse.parse_qsl(parsed.query):
-                    payload[k] = v
-            if method == "POST":
-                length = int(self.headers.get("Content-Length") or 0)
-                if length > 0:
-                    raw = self.rfile.read(length)
-                    out = ctx.codec.json_decode(raw.decode("utf-8"))
-                    if not out.get("ok"):
-                        self._json_error(ctx.ApiError("请求体不是合法 JSON",
-                                                      code="bad_json", status=400))
-                        return
-                    body = out["value"]
-                    if isinstance(body, dict):
-                        payload.update(body)
             result = ctx.api.call(name, payload)
             if rpc:
                 self._json_ok({"result": result})
             else:
                 self._json_ok(result)
+
+        def _read_json_body(self):
+            length = int(self.headers.get("Content-Length") or 0)
+            if length <= 0:
+                return {}
+            raw = self.rfile.read(length)
+            out = ctx.codec.json_decode(raw.decode("utf-8"))
+            if not out.get("ok"):
+                self._json_error(ctx.ApiError("请求体不是合法 JSON",
+                                              code="bad_json", status=400))
+                return None
+            body = out["value"]
+            return body if isinstance(body, dict) else {}
 
         def _sse(self, path, parsed):
             """流式能力：只有标了 stream 的路由能进；返回值里的 items 逐条写成 data: 帧。"""
@@ -190,12 +204,7 @@ def _make_handler(ctx):
     return _Handler
 
 
-def _authorized(ctx, handler):
-    token = (ctx.cfg.get("server") or {}).get("token") or ""
-    if not token:
-        return True
-    if handler.path == "/api/health":
-        return True
+def _extract_token(handler):
     got = handler.headers.get("X-Auth-Token") or ""
     if not got:
         cookie = handler.headers.get("Cookie") or ""
@@ -203,7 +212,7 @@ def _authorized(ctx, handler):
             k, _, v = part.strip().partition("=")
             if k == "hive_token":
                 got = v
-    return got == token
+    return got
 
 
 def _content_type(suffix):

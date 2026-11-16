@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from ai_new.modules.agent_common.boot.private._boot import _build as build  # noqa: E402
 from ai_new.modules.agent_common.boot.private._context import Context  # noqa: E402
+from ai_new.modules.agent.auth.private import _pure as auth_pure  # noqa: E402
 from _fixtures import stage, write_config  # noqa: E402
 import _fixtures  # noqa: E402
 
@@ -64,7 +65,7 @@ class CoreTest(unittest.TestCase):
         expect = {"config", "store", "hooks", "demand_engine", "api", "tools", "llm", "react",
                   "knowledge", "artifacts", "library", "sessions", "projects",
                   "tickets", "agents", "health", "ops", "skills", "web", "http",
-                  "channel", "net", "host", "codec", "clock"}
+                  "channel", "net", "host", "codec", "clock", "auth"}
         self.assertEqual(set(self.loaded), expect)
 
     def test_modules_have_no_log_capability(self):
@@ -92,6 +93,49 @@ class CoreTest(unittest.TestCase):
                 if route not in meta:
                     problems.append("%s 调了不存在的 func: %s" % (rec.get("id"), route))
         self.assertEqual(problems, [], "需求绑定了不存在的功能: %s" % problems)
+
+    def test_registered_routes_are_demand_bound_or_platform(self):
+        """注册表只收两类路由：被需求 do 树编排的业务能力，或清单登记的平台入口。
+
+        只在模块内部进程内直调、不被任何需求/外部调用的纯函数，不许挂成 API。
+        """
+        from ai_new.modules.agent_common.demand_engine.private import _lang
+        demand_bound = set()
+        for path in sorted(_fixtures.module_data("agent_common", "demand_engine")
+                           .joinpath("demands").glob("*.json")):
+            rec = json.loads(path.read_text(encoding="utf-8"))
+            demand_bound.update(_lang.routes_of(rec.get("do")))
+        manifest = json.loads((ROOT / "ai_new/modules/agent_common/api/data"
+                               / "platform-routes.json").read_text(encoding="utf-8"))
+        platform = set(manifest.get("routes") or {})
+        registered = {r["name"] for r in self.ctx.api.routes()}
+        stray = sorted(registered - demand_bound - platform)
+        self.assertEqual(stray, [],
+                         "注册了既无需求编排、也未登记为平台入口的路由: %s" % stray)
+
+    def test_write_routes_are_governed(self):
+        """落盘是有副作用的业务动作：写能力要么被需求编排，要么是清单登记的平台件。
+
+        不允许模块/注册表隐式写盘：存什么、存哪、怎么存，都要能追溯到需求或平台授权。
+        """
+        from ai_new.modules.agent_common.demand_engine.private import _lang
+        demand_bound = set()
+        for path in sorted(_fixtures.module_data("agent_common", "demand_engine")
+                           .joinpath("demands").glob("*.json")):
+            rec = json.loads(path.read_text(encoding="utf-8"))
+            demand_bound.update(_lang.routes_of(rec.get("do")))
+        manifest = json.loads((ROOT / "ai_new/modules/agent_common/api/data"
+                               / "platform-routes.json").read_text(encoding="utf-8"))
+        platform = set(manifest.get("routes") or {})
+        write_routes = {
+            "store.write", "store.write_text", "store.write_bytes", "store.append_text",
+            "store.remove", "store.remove_dir", "store.archive", "config.set",
+            "demand_engine.enable", "demand_engine.disable",
+        }
+        registered = {r["name"] for r in self.ctx.api.routes()}
+        ungoverned = sorted((write_routes & registered) - demand_bound - platform)
+        self.assertEqual(ungoverned, [], "存在未被需求或平台授权的写路由: %s" % ungoverned)
+
 
     # ---- 需求编排闭环 ----
 
@@ -266,6 +310,54 @@ class CoreTest(unittest.TestCase):
             rec = json.loads(resp.read().decode("utf-8"))
         self.assertTrue(rec["ok"])
         self.assertIn("ts", rec["result"])
+
+    # ---- 鉴权（登录 / 会话 / 旧令牌兼容） ----
+
+    def test_auth_pure_functions(self):
+        self.assertTrue(auth_pure.credentials_ok(
+            {"username": "admin", "expect_username": "admin",
+             "digest": "h", "expect_hash": "h"})["ok"])
+        self.assertFalse(auth_pure.credentials_ok(
+            {"username": "admin", "expect_username": "root",
+             "digest": "h", "expect_hash": "h"})["ok"])
+        self.assertFalse(auth_pure.credentials_ok(
+            {"username": "admin", "expect_username": "admin",
+             "digest": "x", "expect_hash": "h"})["ok"])
+        rec = auth_pure.build_session({"token": "tok", "username": "admin",
+                                       "issued": 1000.0, "ttl": 60})
+        self.assertEqual(rec["expires"], 1060.0)
+        self.assertTrue(auth_pure.session_valid({"record": rec, "now": 1030.0})["valid"])
+        expired = auth_pure.session_valid({"record": rec, "now": 2000.0})
+        self.assertFalse(expired["valid"])
+        self.assertTrue(expired["expired"])
+        self.assertEqual(auth_pure.session_view({"record": rec}),
+                         {"token": "tok", "username": "admin", "expires": 1060.0})
+
+    def test_auth_verify_legacy_token(self):
+        """夹具配了旧令牌 t：命中放行，空/错令牌拒绝。"""
+        self.assertTrue(self.ctx.api.call("auth.verify", {"token": "t"})["allow"])
+        self.assertFalse(self.ctx.api.call("auth.verify", {"token": "nope"})["allow"])
+        self.assertFalse(self.ctx.api.call("auth.verify", {"token": ""})["allow"])
+
+    def test_auth_status_is_public(self):
+        """状态路由不鉴权：登录页要先问当前是否需要登录。"""
+        req = urllib.request.Request("http://127.0.0.1:%d/api/auth/status" % self.port)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        self.assertTrue(body["ok"])
+        self.assertTrue(body["legacy"])
+
+    def test_auth_login_demand_is_public(self):
+        """登录需求本身必须先可达：不带令牌也能过闸（凭据由需求内部判，失败返 401）。"""
+        req = urllib.request.Request(
+            "http://127.0.0.1:%d/api/rpc/demand_engine/run" % self.port,
+            data=json.dumps({"id": "auth-login",
+                             "input": {"username": "a", "password": "b"}}).encode("utf-8"),
+            method="POST", headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 200)
+        self.assertTrue(body["ok"])
 
 
 if __name__ == "__main__":

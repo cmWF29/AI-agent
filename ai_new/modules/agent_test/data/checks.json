@@ -47,6 +47,8 @@
         "artifacts-read",
         "artifacts-stats",
         "artifacts-write",
+        "auth-login",
+        "auth-logout",
         "channel-list",
         "channel-post",
         "channel-since",

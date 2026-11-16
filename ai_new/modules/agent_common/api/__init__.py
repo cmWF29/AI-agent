@@ -9,10 +9,6 @@ def setup(ctx):
     """装配入口：装填 ctx.ApiError 与 ctx.api（这两个面由赋值动作本身声明）。"""
     ctx.ApiError = ApiError
     ctx.api = _registry.Registry(ctx)
-    ctx.api.register("api.transport", lambda c, p: ctx.api.transport.describe(),
-                     "通信通道绑定（编译产物）", module="api")
-    ctx.api.register("api.transport_compile", lambda c, p: compile_transport(ctx),
-                     "重新编译通信通道绑定", module="api")
     return ctx.api
 
 

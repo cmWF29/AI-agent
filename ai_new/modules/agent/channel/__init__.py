@@ -12,7 +12,6 @@ def setup(ctx):
         ("channel.tail", _pure.tail),
         ("channel.since", _pure.since),
         ("channel.channels", _pure.channels),
-        ("channel.bad", _pure.bad),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="channel")
 

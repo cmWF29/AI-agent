@@ -16,11 +16,9 @@ def setup(ctx):
         ("tickets.bindpm", _pure.bindpm),
         ("tickets.bindchild", _pure.bindchild),
         ("tickets.closefin", _pure.closefin),
-        ("tickets.branch", _pure.branch),
         ("tickets.pick", _pure.pick),
         ("tickets.files_filter", _pure.files_filter),
         ("tickets.err", _pure.err),
-        ("tickets.msg", _pure.msg),
         ("tickets.stale", _pure.stale),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="tickets")

@@ -4,6 +4,13 @@
     "port": 8787,
     "token": "",
     "version": "0.1.0",
+    "auth": {
+      "enabled": false,
+      "username": "admin",
+      "password_hash": "",
+      "salt": "",
+      "ttl": 86400
+    },
     "tls": {
       "enabled": false,
       "cert": "",
@@ -16,10 +23,6 @@
     "model": "",
     "timeout": 120,
     "temperature": 0.3
-  },
-  "tools": {
-    "inline_max_chars": 4000,
-    "toolout_dir": "toolout"
   },
   "sessions": {
     "max_concurrent": 8,

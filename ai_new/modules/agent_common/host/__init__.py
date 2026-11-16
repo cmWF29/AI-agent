@@ -12,8 +12,6 @@ def setup(ctx):
     ctx.host = _probe
     ctx.api.register("host.info", lambda c, p: _probe.info(c),
                      "内存/磁盘/负载读数", module="host")
-    ctx.api.register("host.env", lambda c, p: _probe.env(p.get("name")),
-                     "读环境变量", module="host")
     return True
 
 

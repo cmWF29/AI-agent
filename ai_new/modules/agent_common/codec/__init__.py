@@ -16,16 +16,10 @@ def setup(ctx):
                      "JSON 文本 → 对象", module="codec")
     ctx.api.register("codec.sse_decode", lambda c, p: _codec.sse_decode(p.get("text")),
                      "SSE 文本 → 事件对象列表", module="codec")
-    ctx.api.register("codec.base64_encode", lambda c, p: _codec.base64_encode(p.get("value")),
-                     "文本/字节 → base64", module="codec")
-    ctx.api.register("codec.base64_decode", lambda c, p: _codec.base64_decode(p.get("text")),
-                     "base64 → 文本", module="codec")
-    ctx.api.register("codec.base64_decode_bytes", lambda c, p: _codec.base64_decode_bytes(p.get("text")),
-                     "base64 → 字节", module="codec")
     ctx.api.register("codec.digest", lambda c, p: _codec.digest(p.get("text"), p.get("algorithm") or "sha256"),
                      "内容摘要", module="codec")
-    ctx.api.register("codec.base64_from_hex", lambda c, p: _codec.base64_from_hex(p.get("hex")),
-                     "hex → base64", module="codec")
+    ctx.api.register("codec.nonce", lambda c, p: _codec.nonce(p.get("length")),
+                     "安全随机令牌", module="codec")
     ctx.api.register("codec.hex_from_base64", lambda c, p: _codec.hex_from_base64(p.get("text")),
                      "base64 → hex", module="codec")
     return True

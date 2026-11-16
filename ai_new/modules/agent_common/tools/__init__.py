@@ -1,4 +1,4 @@
-"""工具模块：注册、白名单、执行、输出落盘。无任何业务。"""
+"""工具模块：注册、白名单、执行。无任何业务；落盘由需求显式编排。"""
 from __future__ import annotations
 
 from .private import _registry
@@ -18,7 +18,7 @@ def register(ctx, name, desc, params, fn, module=None, kinds=None):
     return ctx.tools.register(name, desc, params, fn, module=module, kinds=kinds)
 
 def execute(ctx, name, args, session=None):
-    """执行工具，输出超阈值时落盘 data/toolout/。"""
+    """执行工具；注册表不隐式落盘，留存由需求编排。"""
     return ctx.tools.execute(name, args, session=session)
 
 def list_tools(ctx):

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hive AI · 登录</title>
+<style>
+:root{color-scheme:light dark;--fg:#1d2129;--bg:#f7f8fa;--card:#fff;--line:#e5e6eb;--accent:#1664ff}
+@media (prefers-color-scheme:dark){:root{--fg:#e5e6eb;--bg:#17171a;--card:#1f1f24;--line:#2f2f36;--accent:#6aa1ff}}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,Segoe UI,Roboto,"Microsoft YaHei",Arial,"PingFang SC",sans-serif;color:var(--fg);background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{width:340px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px}
+h1{font-size:16px;margin:0 0 4px}
+.muted{opacity:.6;font-size:12px}
+label{display:block;font-size:12px;opacity:.7;margin:12px 0 4px}
+input{width:100%;font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:8px;padding:8px 12px;width:100%;margin-top:16px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+#banner{margin-top:12px;font-size:13px;color:#f53f3f;display:none}
+#open{margin-top:12px;font-size:13px;display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Hive AI · 登录</h1>
+  <div class="muted">登录后使用本地同源 API，会话令牌保存在本机。</div>
+  <form id="login-form">
+    <label>用户名</label>
+    <input id="username" autocomplete="username" required>
+    <label>密码</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <button class="primary" type="submit">登录</button>
+  </form>
+  <div id="banner"></div>
+  <div id="open"></div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+
+function saveToken(t) {
+  localStorage.setItem("ai_new_token", t);
+  document.cookie = "hive_token=" + encodeURIComponent(t) + "; path=/; SameSite=Lax";
+}
+
+async function loadStatus() {
+  const r = await fetch("/api/auth/status");
+  const body = await r.json().catch(() => ({ ok: false }));
+  const st = body.result || body || {};
+  if (!st.enabled && !st.legacy) {
+    // 开放模式（本机开发）：无需登录，直接进控制台
+    $("login-form").style.display = "none";
+    const box = $("open");
+    box.style.display = "block";
+    box.innerHTML = "当前为开放模式，无需登录。<button class='primary' onclick=\"location.href='/manage.html'\">进入控制台</button>";
+  }
+}
+
+$("login-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const banner = $("banner");
+  banner.style.display = "none";
+  try {
+    const resp = await fetch("/api/rpc/demand_engine/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "auth-login", input: {
+        username: $("username").value.trim(),
+        password: $("password").value
+      } })
+    });
+    const body = await resp.json().catch(() => ({ ok: false, error: "响应不是 JSON" }));
+    const inner = (body.result && body.result.result) || {};
+    if (!body.ok || inner.ok === false) {
+      banner.textContent = (inner.error || body.error || "登录失败") + "（" + resp.status + "）";
+      banner.style.display = "block";
+      return;
+    }
+    if (!inner.token) {
+      banner.textContent = "登录返回缺少会话令牌";
+      banner.style.display = "block";
+      return;
+    }
+    saveToken(inner.token);
+    location.href = "/manage.html";
+  } catch (err) {
+    banner.textContent = "网络请求失败：" + err.message;
+    banner.style.display = "block";
+  }
+};
+
+loadStatus();
+</script>
+</body>
+</html>

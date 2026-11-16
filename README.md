@@ -32,6 +32,7 @@ ai_new/modules/     agent_common（公共能力）/ agent（业务能力）/ age
 4. **通信是抽象**：模块只写 `ctx.api.call("module.fn", …)`；直连 / 内存队列 / 网络 RPC 由
    `api.compile_transport` 生成的 `data/gen/bindings.json` 决定，模板代码不动。
 5. **代码与数据彻底分离**：任何 `.py` 里没有提示词、没有系统消息模板、没有角色种子、没有业务文案。
+6. **注册表三分类**：注册成 API 的只有两类——被需求 `do` 树编排的业务能力，或 `api/data/platform-routes.json` 登记的平台入口；只在模块内部直调的纯函数不注册。**落盘受管辖**：写盘是业务动作，业务写盘走 `store.*` 由需求编排，注册表/工具不隐式写盘。
 
 详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
@@ -104,7 +105,7 @@ agents · health · skills · web · channel
 ```
 modules/agent_common/config/data/      config.default.json · config.json
 modules/agent_common/boot/data/        profiles.json（装配剖面）
-modules/agent_common/api/data/         calls.json（调用矩阵）· deploy.json · gen/bindings.json
+modules/agent_common/api/data/         calls.json（调用矩阵）· deploy.json · platform-routes.json · gen/bindings.json
 modules/agent_common/demand_engine/data/demands/*.json   需求（一段业务一个文件）
 modules/agent_common/ops/data/         logs/app.jsonl · exports/
 modules/agent/library/data/            seed.json · roles.json · prompts/（角色提示词）

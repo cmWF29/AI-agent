@@ -8,7 +8,6 @@ def setup(ctx):
     for name, fn in [
         ("skills.screen", _pure.screen),
         ("skills.get", _pure.getp),
-        ("skills.noflow", _pure.noflow),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="skills")
     return True

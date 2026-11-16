@@ -7,7 +7,6 @@ from . import _guard
 def setup(ctx):
     for name, fn in [
         ("agents.backends", _route_backends),
-        ("agents.pick", _route_pick),
     ]:
         ctx.api.register(name, fn, module="agents")
     return True
@@ -35,6 +34,3 @@ def pick(ctx, backend=""):
 def _route_backends(ctx, payload):
     return backends(ctx)
 
-
-def _route_pick(ctx, payload):
-    return pick(ctx, payload.get("backend") or "")

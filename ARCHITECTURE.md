@@ -45,6 +45,38 @@ modules/<组>/<模块>/
 - **模块不做有政策含义的事**：不写日志、不发通知、不直接订阅回调。它只在功能前后预留
   hook 点；谁要在那个点做事，写在需求里。
 
+## 二·补、注册表三分类：需求编排 / 平台入口 / 模块私有
+
+`ctx.api.register(...)` 挂上去的名字就是对外 API。一个函数能不能进注册表，只看它被谁调，
+分三类，**不许有第四类**：
+
+| 分类 | 谁在调 | 登记方式 | 例子 |
+|---|---|---|---|
+| **需求编排的业务能力** | 某条需求 `do` 语句树里的 `call` | 出现在需求语句树中，由 `demands` 契约钉住 | `store.write`、`tickets.create`、`llm-chat` 各步 |
+| **平台入口** | HTTP 闸 / SSE / 需求引擎 / 装配期直接调用（`caller=None` 或引擎内部） | 必须在 `api/data/platform-routes.json` 登记 `caller` 与 `reason` | `auth.verify`、`auth.status`、`channel.watch`、`clock.sleep`、`hooks.points` |
+| **模块私有，不注册** | 只在模块内部进程内直调的纯函数/面板方法 | 留在 `private/` 或模块面板，**不进注册表** | 内部形状变换、纯计算助手、仅供测试直调的面板方法 |
+
+铁律：
+
+- **只被模块内部进程内直接调用的纯函数不是 API**，不得注册到注册表；保留为模块私有函数即可。
+- **任何对外暴露的已注册 API 都必须对应至少一条需求编排**；不属于需求编排的，只能是清单里
+  登记过的平台入口。运行时闸 `test_registered_routes_are_demand_bound_or_platform` 闭合：
+  注册路由 ∈ 需求 do 树 ∪ 平台清单，多出一条即红。
+- 新增平台路由必须先在 `platform-routes.json` 写明调用方与原因；想把一个内部能力重新挂成 API，
+  要么补一条需求编排，要么登记为平台件，不许直接 `register`。
+
+## 二·补二、落盘是业务动作，必须受需求或平台管辖
+
+运行期写盘（存什么、存哪里、怎么存）是有副作用的业务动作，**不允许模块/注册表隐式写盘**：
+
+- 业务写盘一律走 `store.*` 写路由，由需求 `do` 树显式编排；存到哪个模块自己的数据目录、
+  文件名、文本/字节/追加/归档，都由需求的参数决定。
+- 注册表、工具执行器、能力助手不得在“输出过大/触发某条件”时自动落盘；大输出要不要留存、
+  存到哪、怎么存，由需求显式调 `store` 能力决定。
+- 平台件的写盘（装配/编译产物、引擎内部状态回写）属于平台职责，登记在清单或能力层面板，
+  不经过业务注册表。
+- 运行时闸 `test_write_routes_are_governed` 闭合：写能力路由 ∈ 需求 do 树 ∪ 平台清单。
+
 ## 三、装配不是清单，是推导 + 剖面
 
 - 扫描器 `boot/private/_graph.py` 读每个模块 setup 阶段**真正执行的代码**：
@@ -66,8 +98,8 @@ modules/<组>/<模块>/
 | `http` | 网络同步 RPC：`POST <base>/api/rpc/<module>/<fn>`，返回未包装的原始结果 | 模块在别的进程/机器 |
 
 - 意图写在 `data/deploy.json`（可选），产物是 `data/gen/bindings.json`。
-- 编译是 **api 模块的能力**，不是根目录脚本：`POST /api/api/transport_compile`，
-  或装配之前 `python agent_start.py --compile-transport`。
+- 编译是 **api 模块的能力**，不是根目录脚本：装配之前 `python agent_start.py --compile-transport`
+  或调 `api.compile_transport` 模块函数；编译产物是装配/CLI 工具件，不挂业务注册表。
 - 没有 `deploy.json` 就是全直连，等于单进程跑，行为与以前完全一致。
 
 ## 五、业务是结构化语言，引擎负责让它跑
@@ -97,7 +129,7 @@ modules/<组>/<模块>/
   语句 `call`（可带 `with` 映射参数、`as` 存结果）、`when`（守卫）、`let`（绑定）、`each`（遍历）。
 - 引擎 `demand_engine` 只做装载、路由、解释执行，不认识任何业务名词。
 - **先有需求，才有扩展点**：没有需求订阅的 hook 点会被扫描器点名"可以连同 emit 一起删掉"。
-- 可插拔：加需求 = 加文件；停需求 = `demand_engine.disable(id)` 或挪走文件；
+- 可插拔：加需求 = 加文件；停需求 = 引擎面板 `set_enabled(id, false)` 或挪走文件；
   需求下线后它订阅的点失去消费者，扫描器立刻指出来 —— 点跟着需求下线。
 - 同一个点可以被多个需求各自订阅，互不影响。
 
@@ -162,7 +194,7 @@ modules/<组>/<模块>/
 | api | 路由注册、跨模块调用矩阵、通信通道编译（`ctx.api`） |
 | hooks | 扩展点：声明点、触发点；不装订阅者，派发给需求引擎 |
 | demand_engine | 需求装载与解释执行（`ctx.demand_engine`） |
-| tools | 工具注册/执行/大输出落盘 |
+| tools | 工具注册/执行；不隐式落盘，留存由需求编排 |
 | llm | **纯语义**：`encode`（对话→载荷）、`decode` / `decode_sse`（响应→对话结果）；无网络/无 JSON/不读配置 |
 | codec | **纯计算**：JSON 编解码、SSE 帧解析、base64/hex、摘要 |
 | net | 出站网络：`net.request`（运行时唯一 import urllib 的模块） |
@@ -200,7 +232,7 @@ modules/<组>/<模块>/
 ```
 modules/agent_common/config/data/        config.default.json · config.json
 modules/agent_common/boot/data/          profiles.json（装配剖面）
-modules/agent_common/api/data/           calls.json（调用矩阵）· deploy.json · gen/bindings.json
+modules/agent_common/api/data/           calls.json（调用矩阵）· deploy.json · platform-routes.json（平台入口清单）· gen/bindings.json
 modules/agent_common/demand_engine/data/ demands/*.json（一段业务一个文件）
 modules/agent_common/ops/data/           logs/app.jsonl · exports/
 modules/agent/library/data/              seed.json · roles.json · prompts/roles/*.md

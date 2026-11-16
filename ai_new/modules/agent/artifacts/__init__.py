@@ -13,7 +13,6 @@ def setup(ctx):
         ("artifacts.decode", _pure.decode),
         ("artifacts.screen", _pure.screen),
         ("artifacts.stats", _pure.statsp),
-        ("artifacts.missing", _pure.missing),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="artifacts")
     for name, desc, demand in [

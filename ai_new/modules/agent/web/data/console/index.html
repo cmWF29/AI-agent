@@ -38,8 +38,7 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
   </nav>
   <span class="meta" id="meta"></span>
   <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-    <input id="token" placeholder="令牌（本地可留空）" style="width:200px">
-    <button id="save">保存令牌</button>
+    <button id="logout">登出</button>
     <button id="refresh">刷新</button>
   </div>
 </header>
@@ -71,15 +70,29 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-const token = () => localStorage.getItem("ai_new_token") || "";
-const headers = () => ({ "Content-Type": "application/json", "X-Auth-Token": token() });
+function readCookie(name) {
+  const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : "";
+}
+const token = () => localStorage.getItem("ai_new_token") || readCookie("hive_token") || "";
+function clearToken() {
+  localStorage.removeItem("ai_new_token");
+  document.cookie = "hive_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+}
+function headers() {
+  const h = { "Content-Type": "application/json", "X-Auth-Token": token() };
+  return h;
+}
+function onUnauthorized() { clearToken(); location.href = "/login.html"; }
 
 async function get(path) {
   const r = await fetch(path, { headers: headers() });
+  if (r.status === 401) { onUnauthorized(); return { ok: false, code: "unauthorized" }; }
   return r.json();
 }
 async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: headers(), body: JSON.stringify(body || {}) });
+  if (r.status === 401) { onUnauthorized(); return { ok: false, code: "unauthorized" }; }
   return r.json();
 }
 function esc(s) {
@@ -130,7 +143,10 @@ async function fillRoutes() {
   }).join("");
 }
 
-$("save").onclick = () => { localStorage.setItem("ai_new_token", $("token").value.trim()); load(); };
+$("logout").onclick = async () => {
+  try { await post("/api/rpc/demand_engine/run", { id: "auth-logout", input: { token: token() } }); } catch (e) {}
+  clearToken(); location.href = "/login.html";
+};
 $("refresh").onclick = load;
 $("clear").onclick = () => { $("result").textContent = ""; };
 $("send").onclick = async () => {
@@ -147,8 +163,13 @@ document.querySelectorAll("[data-view]").forEach((b) => {
     render();
   };
 });
-$("token").value = token();
-load(); fillRoutes();
+async function boot() {
+  let st = { enabled: false };
+  try { const r = await fetch("/api/auth/status"); const _j = await r.json(); st = _j.result || _j || {}; } catch (e) {}
+  if (st.enabled && !token()) { location.href = "/login.html"; return; }
+  load(); fillRoutes();
+}
+boot();
 </script>
 </body>
 </html>

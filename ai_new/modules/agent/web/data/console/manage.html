@@ -54,8 +54,7 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
     <a href="/manage.html" class="active">项目与工单</a>
   </nav>
   <div class="spacer"></div>
-  <input id="token" placeholder="令牌（本地可留空）" style="width:200px">
-  <button id="save">保存令牌</button>
+  <button id="logout">登出</button>
 </header>
 <div id="banner"></div>
 <main>
@@ -145,8 +144,16 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-const token = () => localStorage.getItem("ai_new_token") || sessionStorage.getItem("hive.token") || "";
-$("token").value = token();
+function readCookie(name) {
+  const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : "";
+}
+const token = () => localStorage.getItem("ai_new_token") || readCookie("hive_token") || "";
+function clearToken() {
+  localStorage.removeItem("ai_new_token");
+  sessionStorage.removeItem("hive.token");
+  document.cookie = "hive_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+}
 
 function headers() {
   const h = { "Content-Type": "application/json" };
@@ -174,11 +181,13 @@ async function run(demand, input) {
     throw Object.assign(new Error("网络请求失败：" + e.message), { status: 0, code: "network" });
   }
   if (!body.ok) {
+    if (resp.status === 401 || body.code === "unauthorized") { clearToken(); location.href = "/login.html"; return; }
     throw Object.assign(new Error(body.error || ("HTTP " + resp.status)),
       { status: resp.status, code: body.code });
   }
   const inner = (body.result && body.result.result) || {};
   if (inner && inner.ok === false) {
+    if (resp.status === 401 || inner.code === "unauthorized") { clearToken(); location.href = "/login.html"; return; }
     throw Object.assign(new Error(inner.error || inner.code || "需求失败"),
       { status: resp.status, code: inner.code });
   }
@@ -195,7 +204,7 @@ function status(text) { $("status").textContent = text; }
 
 function gateMessage(err) {
   if (err && (err.status === 401 || err.code === "unauthorized")) {
-    return "未授权（401）：请在顶部填入令牌后点「保存令牌」，再重试。";
+    return "登录已失效（401），请重新登录。";
   }
   return (err && err.message) || "操作失败";
 }
@@ -442,13 +451,18 @@ $("session-rows").onclick = async (e) => {
   } catch (err) { banner(gateMessage(err), "err"); status("会话操作失败：" + err.message); }
 };
 
-$("save").onclick = () => {
-  localStorage.setItem("ai_new_token", $("token").value.trim());
-  sessionStorage.setItem("hive.token", $("token").value.trim());
-  banner(""); boot();
+$("logout").onclick = async () => {
+  try { await run("auth-logout", { token: token() }); } catch (e) {}
+  clearToken(); location.href = "/login.html";
 };
 
 async function boot() {
+  let st = { enabled: false };
+  try {
+    const r = await fetch("/api/auth/status");
+    const _j = await r.json(); st = _j.result || _j || {};
+  } catch (e) {}
+  if (st.enabled && !token()) { location.href = "/login.html"; return; }
   const errors = [];
   const steps = [loadProjects, loadTickets, loadSessions];
   for (const step of steps) {
