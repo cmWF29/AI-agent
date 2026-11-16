@@ -24,29 +24,19 @@ do:
         b:
           lit: .yaml
   as: row
-- when:
-    op: ==
-    a:
+- call: sessions.present
+  with:
+    id:
+      get: input.id
+    rec:
       get: row.value
-    b: null
-  then:
-  - call: sessions.missing
-    with:
-      id:
-        get: input.id
-    as: out
-  else:
-  - call: sessions.view
-    with:
-      rec:
-        get: row.value
-    as: out
+  as: out
 expect:
   given:
     input: {}
   calls:
   - store.id
   - store.read
-  - sessions.view
+  - sessions.present
   payload: {}
   promise: 读一次，缺就报缺

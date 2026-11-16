@@ -8,10 +8,10 @@ def setup(ctx):
     pairs = [
         ("sessions.build", _pure.build),
         ("sessions.view", _pure.view),
+        ("sessions.present", _pure.present),
         ("sessions.screen", _pure.screen),
         ("sessions.gone", _pure.gone),
         ("sessions.compact", _pure.compactp),
-        ("sessions.missing", _pure.missing),
         ("sessions.appendmsg", _run_pure.appendmsg),
         ("sessions.mark", _run_pure.mark),
         ("sessions.finish", _run_pure.finish),

@@ -19,37 +19,19 @@ do:
         b:
           lit: /ticket.yaml
   as: row
-- when:
-    op: ==
-    a:
+- call: tickets.present
+  with:
+    id:
+      get: input.id
+    rec:
       get: row.value
-    b: null
-  then:
-  - call: tickets.err
-    with:
-      code:
-        lit: not_found
-      status:
-        lit: 404
-      message:
-        op: +
-        a:
-          lit: '工单不存在: '
-        b:
-          get: input.id
-    as: out
-  else:
-  - call: tickets.view
-    with:
-      rec:
-        get: row.value
-    as: out
+  as: out
 expect:
   given:
     input:
       id: t1
   calls:
   - store.read
-  - tickets.view
+  - tickets.present
   payload: {}
   promise: 缺就报缺

@@ -22,6 +22,14 @@ def view(p):
             "default_backend": rec.get("default_backend", "")}
 
 
+def present(p):
+    """读档后定型：缺档案返 not_found 形状，否则返视图。分支在模块内部，需求不写 when。"""
+    rec = p.get("rec")
+    if rec is None:
+        return missing({"id": p.get("id")})
+    return view({"rec": rec})
+
+
 def tree(p):
     """项目 → 工单两级归组：项目行与工单行都由需求取来，这里只分组成形。"""
     projs = p.get("projects") or []

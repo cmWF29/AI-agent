@@ -75,6 +75,14 @@ def view(p):
             "text": p.get("content") or ""}
 
 
+def present(p):
+    """取文后定型：空文本返 not_found，否则返视图。分支在模块内部。"""
+    content = p.get("content") or ""
+    if content == "":
+        return missing({"name": p.get("name")})
+    return view({"path": p.get("path"), "content": content})
+
+
 def screen(p):
     """列表：rows 是相对路径列表，这里只挑文件名与长度。"""
     items = []

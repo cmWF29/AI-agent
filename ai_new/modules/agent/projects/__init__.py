@@ -9,6 +9,7 @@ def setup(ctx):
     for name, fn in [
         ("projects.build", _pure.build),
         ("projects.view", _pure.view),
+        ("projects.present", _pure.present),
         ("projects.screen", _pure.screen),
         ("projects.tree", _pure.tree),
         ("projects.archive", _pure.archive),

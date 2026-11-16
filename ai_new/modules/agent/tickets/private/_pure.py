@@ -78,6 +78,15 @@ def threadp(p):
     }
 
 
+def thread(p):
+    """线程定型：工单档案缺失返 not_found，否则交 threadp 拼视图。分支在模块内部。"""
+    ticket = p.get("ticket")
+    if ticket is None:
+        return err({"code": "not_found", "status": 404,
+                    "message": "工单不存在: %s" % (p.get("id") or "")})
+    return threadp(p)
+
+
 def view(p):
     rec = p.get("rec") or {}
     base = {k: rec.get(k) for k in ("id", "title", "goal", "project", "kind", "parent",
@@ -86,6 +95,15 @@ def view(p):
     base.update({"children": rec.get("children") or [], "roles": rec.get("roles") or [],
                  "history": rec.get("history") or []})
     return base
+
+
+def present(p):
+    """读档后定型：缺档案返 not_found，否则返视图。分支在模块内部。"""
+    rec = p.get("rec")
+    if rec is None:
+        return err({"code": "not_found", "status": 404,
+                    "message": "工单不存在: %s" % (p.get("id") or "")})
+    return view({"rec": rec})
 
 
 def screen(p):
@@ -162,6 +180,14 @@ def pick(p):
         if p.get("target") in (r.get("role"), r.get("display"), r.get("session")):
             return {"session": r.get("session"), "role": r.get("role")}
     return {"session": "", "role": ""}
+
+
+def resolve_target(p):
+    """归一消息目标：pm 走工单主会话，其余交 pick 找角色会话。分支在模块内部。"""
+    rec = p.get("rec") or {}
+    if p.get("target") == "pm":
+        return {"session": rec.get("pm") or "", "role": "pm"}
+    return pick(p)
 
 
 def files_filter(p):

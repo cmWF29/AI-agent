@@ -31,6 +31,14 @@ def view(p):
             "messages": rec.get("messages") or []}
 
 
+def present(p):
+    """读档后定型：缺记录返 not_found，否则返视图。分支在模块内部。"""
+    rec = p.get("rec")
+    if rec is None:
+        return missing({"id": p.get("id")})
+    return view({"rec": rec})
+
+
 def screen(p):
     items = []
     status = p.get("status")

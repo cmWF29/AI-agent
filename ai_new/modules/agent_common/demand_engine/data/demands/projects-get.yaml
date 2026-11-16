@@ -20,29 +20,19 @@ do:
       b:
         lit: .yaml
   as: row
-- when:
-    op: ==
-    a:
+- call: projects.present
+  with:
+    id:
+      get: id.id
+    rec:
       get: row.value
-    b: null
-  then:
-  - call: projects.missing
-    with:
-      id:
-        get: id.id
-    as: out
-  else:
-  - call: projects.view
-    with:
-      rec:
-        get: row.value
-    as: out
+  as: out
 expect:
   given:
     input: {}
   calls:
   - store.id
   - store.read
-  - projects.view
+  - projects.present
   payload: {}
   promise: 读一次，缺就报缺，不吞错

@@ -42,25 +42,15 @@ do:
     path:
       get: doc.path
   as: file
-- when:
-    op: ==
-    a:
+- call: knowledge.present
+  with:
+    name:
+      get: input.name
+    path:
+      get: doc.path
+    content:
       get: file.value
-    b: ''
-  then:
-  - call: knowledge.missing
-    with:
-      name:
-        get: input.name
-    as: out
-  else:
-  - call: knowledge.view
-    with:
-      path:
-        get: doc.path
-      content:
-        get: file.value
-    as: out
+  as: out
 expect:
   given:
     input: {}
@@ -71,6 +61,6 @@ expect:
   - store.id
   - knowledge.doc
   - store.read_text
-  - knowledge.missing
+  - knowledge.present
   payload: {}
   promise: 路径由模块算，内容由 store 给，读不到就报缺

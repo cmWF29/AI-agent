@@ -13,11 +13,11 @@ def setup(ctx):
         ("knowledge.scope", _pure.scope),
         ("knowledge.doc", _pure.doc),
         ("knowledge.view", _pure.view),
+        ("knowledge.present", _pure.present),
         ("knowledge.screen", _pure.screen),
         ("knowledge.overview", _pure.overview),
         ("knowledge.search", _pure.search),
         ("knowledge.compose", _pure.compose),
-        ("knowledge.missing", _pure.missing),
         ("knowledge.removed", _pure.removed),
     ]
     for name, fn in pairs:
