@@ -57,6 +57,7 @@ function banner(msg, kind) {
   if (!msg) { el.style.display = "none"; el.textContent = ""; el.className = ""; return; }
   el.className = kind === "ok" ? "ok" : "err";
   el.textContent = msg;
+  el.style.display = "block";  // 行内样式优先级最高，隐藏后必须显式改回来
 }
 function gateMessage(err) {
   if (err && (err.status === 401 || err.code === "unauthorized")) return "登录已失效（401），请重新登录。";
