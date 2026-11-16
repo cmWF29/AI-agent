@@ -16,7 +16,7 @@ def setup(ctx):
     ctx.api.register("llm.encode", _route_encode, "对话 → 线上载荷", module="llm")
     ctx.api.register("llm.decode", _route_decode, "响应对象 → 对话结果", module="llm")
     ctx.api.register("llm.decode_sse", _route_decode_sse, "SSE 事件列表 → 对话结果", module="llm")
-    ctx.api.register("llm.chat", _route_chat, "非流式对话闭环：配置→载荷→传输→解码", module="llm")
+    ctx.api.register("llm.chat", _route_chat, "对话闭环：按配置选 api / agent 后端", module="llm")
     ctx.api.register("llm.chat_stream", _route_chat_stream, "流式对话闭环：配置→载荷→传输→SSE 解码", module="llm")
     return True
 
@@ -63,7 +63,28 @@ def _encode_call(ctx, payload, stream):
     }, caller=None)
 
 
+def _promptize(payload):
+    """把标准对话拼成一段纯文本：外部 agent 只认一段话，不认角色数组。"""
+    lines = []
+    for msg in payload.get("messages") or []:
+        role = (msg or {}).get("role") or "user"
+        text = (msg or {}).get("content") or ""
+        if not str(text).strip():
+            continue
+        lines.append("## %s\n%s" % (role, text))
+    return {"text": "\n\n".join(lines), "chars": len("\n\n".join(lines))}
+
+
+def _mode(ctx, payload):
+    """后端选择：调用方显式给的优先，其次配置；只认 api / agent 两种。"""
+    cfgv = dict((getattr(ctx, "cfg", None) or {}).get("llm") or {})
+    want = str(payload.get("mode") or cfgv.get("mode") or "api").lower()
+    return "agent" if want == "agent" else "api"
+
+
 def _route_chat(ctx, payload):
+    if _mode(ctx, payload) == "agent":
+        return _chat_agent(ctx, payload)
     enc = _encode_call(ctx, payload, False)
     if not enc.get("ok"):
         return enc
@@ -78,6 +99,35 @@ def _route_chat(ctx, payload):
     if not obj.get("ok"):
         return obj
     return ctx.api.call("llm.decode", {"payload": obj.get("value")}, caller=None)
+
+
+def _chat_agent(ctx, payload):
+    """外部 agent 后端：拼一段话 → 起进程 → 收回文本。
+
+    agent 自己会调工具、自己跑完，所以这里只交一句最终答复；
+    没有 tool_calls，ReAct 循环据此自然收口。
+    """
+    cfgv = dict((getattr(ctx, "cfg", None) or {}).get("llm") or {})
+    agent = dict(cfgv.get("agent") or {})
+    argv = [str(a) for a in (agent.get("command") or [])]
+    if not argv:
+        return {"ok": False, "code": "no_agent_command",
+                "error": "agent 模式没有配置 llm.agent.command"}
+    text = _promptize({"messages": payload.get("messages") or []})["text"]
+    has_slot = any("{prompt}" in a for a in argv)
+    filled = [a.replace("{prompt}", text) for a in argv]
+    resp = ctx.api.call("exec.run", {
+        "argv": filled,
+        "stdin": "" if has_slot else text,
+        "cwd": agent.get("cwd") or "",
+        "timeout": agent.get("timeout") or cfgv.get("timeout") or 600,
+        "cancel": payload.get("cancel") or {},
+    }, caller=None)
+    if not resp.get("ok"):
+        return {"ok": False, "code": "agent_failed", "error": resp.get("error"),
+                "killed": resp.get("killed")}
+    return {"role": "assistant", "content": (resp.get("out") or "").strip(),
+            "tool_calls": [], "backend": "agent", "seconds": resp.get("seconds")}
 
 
 def _route_chat_stream(ctx, payload):

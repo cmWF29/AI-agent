@@ -83,7 +83,7 @@ class CoreTest(unittest.TestCase):
         expect = {"config", "store", "hooks", "demand_engine", "api", "tools", "llm", "react",
                   "knowledge", "artifacts", "library", "sessions", "projects",
                   "tickets", "agents", "health", "ops", "skills", "web", "http",
-                  "channel", "net", "host", "codec", "clock", "auth", "runtime"}
+                  "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec"}
         self.assertEqual(set(self.loaded), expect)
 
     def test_modules_have_no_log_capability(self):
@@ -220,6 +220,29 @@ class CoreTest(unittest.TestCase):
         self.assertIn("测试", rows[-1]["content"])
         self.ctx.hooks.drain()   # assistant 落盘也会触发一次点，需求自己按 role 跳过
         self.assertEqual(self.fake_net.calls, before + 1, "assistant 消息不能再触发模型（会自激）")
+
+    def test_agent_backend_runs_external_command(self):
+        """agent 模式：对话拼成一段话交给外部进程，收回 stdout 当答复。
+
+        外部 agent 自带工具闭环，所以返回里没有 tool_calls，ReAct 一轮即可收口。
+        """
+        cfg = self.ctx.cfg.setdefault("llm", {})
+        keep = dict(cfg)
+        cfg["mode"] = "agent"
+        cfg["agent"] = {"command": ["python3", "-c",
+                        "import sys; d=sys.stdin.read(); print('AGENT-ANSWER:' + str(len(d)))"],
+                        "timeout": 20}
+        try:
+            r = self._run("llm-chat", {"messages": [
+                {"role": "system", "content": "你是测试"}, {"role": "user", "content": "继续"}]})
+            out = r["result"]
+            self.assertTrue(out.get("ok", True), "agent 后端应成功返回: %s" % out)
+            self.assertIn("AGENT-ANSWER:", out.get("content") or "")
+            self.assertEqual(out.get("tool_calls") or [], [], "外部 agent 不该回工具调用")
+            self.assertEqual(out.get("backend"), "agent")
+        finally:
+            cfg.clear()
+            cfg.update(keep)
 
     def test_artifacts_roundtrip_and_escape(self):
         self._run("artifacts-write", {"layer": "ticket", "project": "p1", "ticket": "T-1",

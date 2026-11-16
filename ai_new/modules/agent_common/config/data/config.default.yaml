@@ -14,11 +14,16 @@ server:
     cert: ''
     key: ''
 llm:
+  mode: api              # api=走 HTTP 对话接口；agent=交给外部 agent 进程
   base_url: ''
   api_key: ''
   model: ''
   timeout: 120
   temperature: 0.3
+  agent:
+    command: []          # argv 数组；含 {prompt} 就替换进去，否则用 stdin 喂
+    cwd: ''
+    timeout: 600
 sessions:
   max_concurrent: 8
   max_steps: 60

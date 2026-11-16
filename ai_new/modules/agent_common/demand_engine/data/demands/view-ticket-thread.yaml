@@ -1,24 +1,37 @@
 id: view-ticket-thread
 title: 工单会话视图：主会话按群聊渲染，工单属性与操作在右栏
-tags: [view, web, read]
+tags:
+- view
+- web
+- read
 enabled: true
 callable: false
 'on': []
 do: []
 view:
   key: ticket
-  crumb: [项目, "{thread.ticket.project|project_name}", "{thread.ticket.title}"]
-  heading_from: "{thread.ticket.title}"
+  crumb:
+  - 项目
+  - '{thread.ticket.project|project_name}'
+  - '{thread.ticket.title}'
+  heading_from: '{thread.ticket.title}'
   poll: 1500
   data:
-  - {as: thread, demand: ticket-thread, params: {id: "{route.ticket}"}}
-  - {as: tree, demand: project-tree, cache: projects}
+  - as: thread
+    demand: ticket-thread
+    params:
+      id: '{route.ticket}'
+  - as: tree
+    demand: project-tree
+    cache: projects
   sections:
   - kind: chat
     lane: left
     source: thread.thread
-    heading: "{thread.ticket.title} · {thread.ticket.id} · {thread.ticket.status}"
-    hide_roles: [system, tool]
+    heading: '{thread.ticket.title} · {thread.ticket.id} · {thread.ticket.status}'
+    hide_roles:
+    - system
+    - tool
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.roles
   - kind: kv
@@ -26,29 +39,61 @@ view:
     source: thread.ticket
     heading: 工单
     rows:
-    - {label: 状态, badge: row.status}
-    - {label: 类型, value: row.kind, fallback: normal}
-    - {label: 所属项目, value: row.project, format: project_name}
-    - {label: 创建, value: row.created, format: when}
-    - {label: 更新, value: row.updated, format: when}
-    - {label: 父工单, value: row.parent, fallback: "—"}
+    - label: 状态
+      badge: row.status
+    - label: 类型
+      value: row.kind
+      fallback: normal
+    - label: 所属项目
+      value: row.project
+      format: project_name
+    - label: 创建
+      value: row.created
+      format: when
+    - label: 执行后端
+      value: row.backend
+      fallback: 跟随配置
+    - label: 更新
+      value: row.updated
+      format: when
+    - label: 父工单
+      value: row.parent
+      fallback: —
   - kind: composer
     lane: left
     placeholder: 发给 PM 的消息，Enter 发送
-    submit: {label: 发送, demand: ticket-message,
-             params: {id: "{thread.ticket.id}", text: "$text", target: pm},
-             flash: 已发送给 PM, clear: true}
-    busy_from: "{thread.thread.status}"
+    submit:
+      label: 发送
+      demand: ticket-message
+      params:
+        id: '{thread.ticket.id}'
+        text: $text
+        target: pm
+      flash: 已发送给 PM
+      clear: true
+    busy_from: '{thread.thread.status}'
     busy_when: running
     busy_text: PM 正在输出：现在发送会打断它当前这轮，工单内的角色不受影响
     actions:
-    - {label: 追加备注, demand: ticket-note, params: {id: "{thread.ticket.id}", text: "$text"},
-       flash: 备注已追加, clear: true, empty_hint: 请先输入备注内容}
-    - {label: 结单, demand: ticket-close,
-       params: {id: "{thread.ticket.id}", summary: "$text", verdict: done},
-       confirm: 确认结单？结单后不能再发消息。, tone: danger, stay: true,
-       empty_hint: 请先输入结单结论}
-    disabled_when: "{thread.ticket.status=closed}"
+    - label: 追加备注
+      demand: ticket-note
+      params:
+        id: '{thread.ticket.id}'
+        text: $text
+      flash: 备注已追加
+      clear: true
+      empty_hint: 请先输入备注内容
+    - label: 结单
+      demand: ticket-close
+      params:
+        id: '{thread.ticket.id}'
+        summary: $text
+        verdict: done
+      confirm: 确认结单？结单后不能再发消息。
+      tone: danger
+      stay: true
+      empty_hint: 请先输入结单结论
+    disabled_when: '{thread.ticket.status=closed}'
     disabled_hint: 工单已结单：不能再发消息或追加备注
 expect:
   given:

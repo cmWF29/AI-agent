@@ -1,6 +1,9 @@
 id: view-forms
 title: 表单集合：弹窗与提交动作都写在规格里，前端没有第二份
-tags: [view, web, write]
+tags:
+- view
+- web
+- write
 enabled: true
 callable: false
 'on': []
@@ -11,41 +14,104 @@ view:
     title: 新建项目
     hint: 项目是工单的容器，建完在列表里点进去就能建工单。
     fields:
-    - {name: name, label: 项目名称, placeholder: 例如：官网重构, required: true}
-    - {name: default_backend, label: 默认后端（可选）, placeholder: 留空即默认}
+    - name: name
+      label: 项目名称
+      placeholder: 例如：官网重构
+      required: true
+    - name: default_backend
+      label: 默认执行后端
+      kind: select
+      options: &id001
+      - value: api
+        label: API 模式（直连模型接口）
+      - value: agent
+        label: Agent 模式（交给外部 agent）
+      value: '{project.default_backend}'
     submit:
       demand: projects-create
-      params: {name: "$name", default_backend: "$default_backend"}
+      params:
+        name: $name
+        default_backend: $default_backend
       ok: 创建项目
       flash: 已建项目：{name}
-      then: {view: projects, reload: true}
+      then:
+        view: projects
+        reload: true
   - id: project.rename
     title: 重命名项目
     hint: 改的是显示名；项目里的工单会跟着走，不会丢。
     fields:
-    - {name: name, label: 项目名称, value: "{project.name}", required: true}
-    - {name: default_backend, label: 默认后端（可选）, value: "{project.default_backend}", placeholder: 留空即默认}
+    - name: name
+      label: 项目名称
+      value: '{project.name}'
+      required: true
+    - name: default_backend
+      label: 默认执行后端
+      kind: select
+      options: *id001
+      value: '{project.default_backend}'
     submit:
       demand: projects-rename
-      params: {id: "{project.id}", name: "$name", default_backend: "$default_backend"}
+      params:
+        id: '{project.id}'
+        name: $name
+        default_backend: $default_backend
       ok: 保存
       flash: 已改名：{name}
-      then: {view: project, params: {project: "{result.id}"}, reload: true}
+      then:
+        view: project
+        params:
+          project: '{result.id}'
+        reload: true
   - id: ticket.new
     title: 新建工单
     hint: 工单自动挂在当前项目下，不需要再选一遍。
     fields:
-    - {name: project_label, label: 所属项目, value: "{project.name}", readonly: true}
-    - {name: title, label: 标题, placeholder: 例如：登录页改版, required: true}
-    - {name: goal, label: 需求目标, placeholder: 要做什么、验收标准是什么, kind: textarea}
-    - {name: kind, label: 类型, kind: select, options: [{value: normal, label: 普通}, {value: stall-audit, label: 停滞审计}]}
-    - {name: parent, label: 父工单（可选）, placeholder: 父工单 ID}
+    - name: project_label
+      label: 所属项目
+      value: '{project.name}'
+      readonly: true
+    - name: title
+      label: 标题
+      placeholder: 例如：登录页改版
+      required: true
+    - name: goal
+      label: 需求目标
+      placeholder: 要做什么、验收标准是什么
+      kind: textarea
+    - name: kind
+      label: 类型
+      kind: select
+      options:
+      - value: normal
+        label: 普通
+      - value: stall-audit
+        label: 停滞审计
+    - name: parent
+      label: 父工单（可选）
+      placeholder: 父工单 ID
+    - name: backend
+      label: 执行后端（留空跟随项目）
+      kind: select
+      options: *id001
+      required: false
     submit:
       demand: ticket-create
-      params: {title: "$title", goal: "$goal", project: "{project.id}", kind: "$kind", parent: "$parent"}
+      params:
+        title: $title
+        goal: $goal
+        project: '{project.id}'
+        kind: $kind
+        parent: $parent
+        backend: $backend
       ok: 创建工单
       flash: 已建工单：$title
-      then: {view: ticket, params: {project: "{project.id}", ticket: "{result.id}"}, reload: true}
+      then:
+        view: ticket
+        params:
+          project: '{project.id}'
+          ticket: '{result.id}'
+        reload: true
 expect:
   given:
     input: {}

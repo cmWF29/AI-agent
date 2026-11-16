@@ -74,6 +74,8 @@ do:
           get: input.id
         since:
           get: now.ts
+      mode:
+        get: row.value.backend
   as: out
 - call: store.read
   with:

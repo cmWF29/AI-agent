@@ -69,6 +69,7 @@ def build(p):
         "auto_retrospective": bool(p.get("auto_retrospective")),
         "created": p.get("now") or "", "updated": p.get("now") or "",
         "closed": "", "summary": "", "verdict": "", "history": [],
+        "backend": p.get("backend") or "",
         "meta": p.get("meta") or {},
     }
 
@@ -108,7 +109,7 @@ def view(p):
     rec = p.get("rec") or {}
     base = {k: rec.get(k) for k in ("id", "title", "goal", "project", "kind", "parent",
                                     "status", "pm", "created", "updated", "closed",
-                                    "summary", "verdict", "auto_retrospective")}
+                                    "summary", "verdict", "auto_retrospective", "backend")}
     base.update({"children": rec.get("children") or [], "roles": rec.get("roles") or [],
                  "history": rec.get("history") or []})
     return base

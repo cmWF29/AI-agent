@@ -37,7 +37,10 @@ def _route_run(ctx, payload):
                       "base_url": payload.get("base_url"),
                       "api_key": payload.get("api_key"),
                       "model": payload.get("model"),
-                      "messages": messages, "tools": schemas})
+                      "mode": payload.get("mode"),
+                      "cancel": gate,
+                      "messages": messages,
+                      "tools": [] if (payload.get("mode") == "agent") else schemas})
         answer = resp or {}
         amsg = ctx.api.call("react.assistant", {
             "content": answer.get("content"),

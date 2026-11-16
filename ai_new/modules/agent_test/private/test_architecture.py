@@ -172,7 +172,7 @@ class StructureTest(unittest.TestCase):
         装配期例外：boot（组合根，装配前读 profiles/源码）、api（绑定生成）、
         config（任何模块之前就要知道配置）。
         """
-        capabilities = {"store", "net", "host", "http"}
+        capabilities = {"store", "net", "host", "http", "exec"}
         bootstrap = {"boot", "api", "config"}
         banned = ("import pathlib", "from pathlib import", "import os", "import shutil",
                   "import zipfile", "import tempfile", "import glob", "from glob import",
@@ -202,7 +202,7 @@ class StructureTest(unittest.TestCase):
         允许自带的一方是能力模块本身（clock/codec/store/host 的实现里必然要用），
         以及装配期的 boot/api/config/net/http。
         """
-        owners = {"clock", "codec", "store", "host", "net", "http",
+        owners = {"clock", "codec", "store", "host", "net", "http", "exec",
                   "boot", "api", "config"}
         banned = ("import time", "from time import", "import datetime",
                   "from datetime import", "import json", "from json import", "import yaml", "from yaml import",
