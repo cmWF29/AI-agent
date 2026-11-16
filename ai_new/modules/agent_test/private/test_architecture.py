@@ -130,6 +130,28 @@ class StructureTest(unittest.TestCase):
                                            "." * node.level + (node.module or ""), target))
         self.assertEqual(violations, [], "存在跨模块 import: %s" % violations)
 
+    def test_abilities_declare_effects_instead_of_touching_disk(self):
+        """能力不留副作用：写盘与驱动别的需求都是 effect，只能由需求经 runtime 执行。
+
+        平台设施（store 落盘、runtime 执行、demand_engine 引擎本身）不受此限。
+        """
+        write_routes = {"store.write", "store.remove", "store.remove_dir",
+                        "store.append_text", "store.archive", "store.write_text",
+                        "store.write_bytes", "store.rename"}
+        allowed_modules = {"store", "runtime", "demand_engine"}
+        hits = []
+        for group, name, path in all_modules():
+            if group == "agent_test" or name in allowed_modules:
+                continue
+            for p in src_files(path):
+                text = p.read_text(encoding="utf-8")
+                for route in sorted(write_routes):
+                    if '"%s"' % route in text:
+                        hits.append((str(p.relative_to(ROOT)), route))
+                if '"demand_engine.run"' in text:
+                    hits.append((str(p.relative_to(ROOT)), "demand_engine.run"))
+        self.assertEqual(hits, [], "能力自己伸手了（应改成效果，由需求执行）: %s" % hits)
+
     def test_modules_have_no_policy_powers(self):
         """运行时模块不许持有政策能力：没有 ctx.log、没有直接订阅。"""
         hits = []
