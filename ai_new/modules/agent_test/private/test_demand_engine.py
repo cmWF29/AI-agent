@@ -36,7 +36,7 @@ class FakeStorage:
         return self
 
     def list_dir(self, rel=""):
-        return sorted(name + ".json" for name in self.records)
+        return sorted(name + ".yaml" for name in self.records)
 
     def list_data_dir(self, rel):
         return self.list_dir(rel)
@@ -48,6 +48,12 @@ class FakeStorage:
     def json_write(self, rel, obj):
         key = rel.split("/")[-1][:-5]
         self.records[key] = obj
+
+    def yaml_read(self, rel, default=None):
+        return self.json_read(rel, default)
+
+    def yaml_write(self, rel, obj):
+        self.json_write(rel, obj)
 
 
 class FakeCtx:

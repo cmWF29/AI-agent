@@ -1,0 +1,74 @@
+id: health-self
+title: 自检聚合：取回各模块快照，交给 health 组装（不跨模块调业务）
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.run
+  as: sessions
+  with:
+    id:
+      lit: session-list
+    input:
+      status:
+        get: input.state
+- call: demand_engine.run
+  as: tickets
+  with:
+    id:
+      lit: ticket-list
+- call: demand_engine.run
+  as: knowledge
+  with:
+    id:
+      lit: knowledge-overview
+- call: demand_engine.run
+  as: artifacts
+  with:
+    id:
+      lit: artifacts-stats
+- call: demand_engine.run
+  as: library
+  with:
+    id:
+      lit: library-summary
+- call: agents.backends
+  as: agents
+- call: host.info
+  as: host
+- call: clock.now
+  as: clock
+- call: health.assemble
+  with:
+    sessions:
+      get: sessions
+    tickets:
+      get: tickets
+    knowledge:
+      get: knowledge
+    artifacts:
+      get: artifacts
+    library:
+      get: library
+    agents:
+      get: agents
+    host:
+      get: host
+    now:
+      get: clock.ts
+  as: health
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.run
+  - demand_engine.run
+  - demand_engine.run
+  - demand_engine.run
+  - demand_engine.run
+  - agents.backends
+  - host.info
+  - clock.now
+  - health.assemble
+  payload: {}
+  promise: 服务存活与否是运维口径：先取数，再组装；模块里只剩形状整理

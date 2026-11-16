@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import ast
 import heapq
-import json
+import yaml
 from collections import defaultdict
 from pathlib import Path
 
@@ -258,8 +258,8 @@ def _read_demands(data_dir):
     if not base.is_dir():
         return []
     items = []
-    for path in sorted(base.glob("*.json")):
-        rec = json.loads(path.read_text(encoding="utf-8"))
+    for path in sorted(base.glob("*.yaml")):
+        rec = yaml.safe_load(path.read_text(encoding="utf-8"))
         rec.setdefault("id", path.stem)
         rec.setdefault("enabled", True)
         rec.setdefault("do", [])

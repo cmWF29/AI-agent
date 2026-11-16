@@ -28,9 +28,9 @@ class Engine:
         names = _md(self.ctx).list_dir("demands")
         items = []
         for name in names:
-            if not name.endswith(".json"):
+            if not name.endswith(".yaml"):
                 continue
-            rec = _md(self.ctx).json_read("demands/%s" % name, {}) or {}
+            rec = _md(self.ctx).yaml_read("demands/%s" % name, {}) or {}
             rec.setdefault("id", name[:-5])
             rec.setdefault("enabled", True)
             rec["on"] = _as_hooks(rec.get("on"))
@@ -58,7 +58,7 @@ class Engine:
             if rec["id"] != demand_id:
                 continue
             rec["enabled"] = bool(enabled)
-            _md(self.ctx).json_write("demands/%s.json" % demand_id, rec)
+            _md(self.ctx).yaml_write("demands/%s.yaml" % demand_id, rec)
             self.reload()
             return {"id": demand_id, "enabled": bool(enabled)}
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)

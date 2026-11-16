@@ -13,7 +13,7 @@ ai_new/modules/     agent_common（公共能力）/ agent（业务能力）/ age
 ```
 
 没有 `tests/`、没有 `tools/`、没有 `data/`、没有 `web/`、没有 kernel 包：
-**组只是装配单位**，`boot/data/profiles.json` 决定哪个入口装哪些组；
+**组只是装配单位**，`boot/data/profiles.yaml` 决定哪个入口装哪些组；
 **数据跟着模块走**，每个模块只用 `ctx.storage.own(__file__)` 拿自己的数据，
 不共享一个语义不明的桶（部署时把整棵树搬到 `AI_NEW_DATA`，布局镜像 modules/）。
 
@@ -23,16 +23,16 @@ ai_new/modules/     agent_common（公共能力）/ agent（业务能力）/ age
    只有 `setup(ctx)` / 可选 `start(ctx)` / 少量公共函数；实现全在 `private/`。
    **私有由目录表达**，文件名不再承担语义（不靠 `_` 前缀）。
 2. **模块之间不 import**：唯一通道是 `ctx.api.call("module.fn", payload, caller=...)`，
-   受 `data/rules/calls.json` 矩阵约束。审计者单向可见：`agent_test` 可以 import 运行时模块，反之不行。
+   受 `data/rules/calls.yaml` 矩阵约束。审计者单向可见：`agent_test` 可以 import 运行时模块，反之不行。
 3. **模块不做有政策含义的事**：不写日志、不发通知、不直接订阅回调。它只在功能前后预留 hook 点。
-   **先有需求，才有扩展点**：需求写在 `data/demands/*.json`，没有需求订阅的点会被扫描器点名删掉；
+   **先有需求，才有扩展点**：需求写在 `data/demands/*.yaml`，没有需求订阅的点会被扫描器点名删掉；
    需求整条上线/下线，点与调用跟着走。
    **每条需求必须自带预期**（`expect`: given/calls/payload）并被一条验收用例点名 ——
    没用例的需求不许上线，没需求的用例也不许留着。
 4. **通信是抽象**：模块只写 `ctx.api.call("module.fn", …)`；直连 / 内存队列 / 网络 RPC 由
-   `api.compile_transport` 生成的 `data/gen/bindings.json` 决定，模板代码不动。
+   `api.compile_transport` 生成的 `data/gen/bindings.yaml` 决定，模板代码不动。
 5. **代码与数据彻底分离**：任何 `.py` 里没有提示词、没有系统消息模板、没有角色种子、没有业务文案。
-6. **注册表三分类**：注册成 API 的只有两类——被需求 `do` 树编排的业务能力，或 `api/data/platform-routes.json` 登记的平台入口；只在模块内部直调的纯函数不注册。**落盘受管辖**：写盘是业务动作，业务写盘走 `store.*` 由需求编排，注册表/工具不隐式写盘。
+6. **注册表三分类**：注册成 API 的只有两类——被需求 `do` 树编排的业务能力，或 `api/data/platform-routes.yaml` 登记的平台入口；只在模块内部直调的纯函数不注册。**落盘受管辖**：写盘是业务动作，业务写盘走 `store.*` 由需求编排，注册表/工具不隐式写盘。
 
 详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
@@ -47,13 +47,13 @@ python agent_start.py
 - 健康检查：`GET /api/health/self`（`/api/health/live` 免鉴权）
 - 路由清单：`GET /api/modules`
 
-重编通信绑定（改了 `data/deploy.json` 之后）：
+重编通信绑定（改了 `data/deploy.yaml` 之后）：
 
 ```powershell
 python agent_start.py --compile-transport
 ```
 
-默认 `server.token` 为空（本地开发免鉴权）。对外部署前在 `data/config.json` 覆盖：
+默认 `server.token` 为空（本地开发免鉴权）。对外部署前在 `data/config.yaml` 覆盖：
 
 ```json
 {
@@ -62,7 +62,7 @@ python agent_start.py --compile-transport
 }
 ```
 
-`data/config.json` 与 `data/config.default.json` 深合并，只写要覆盖的字段；
+`data/config.yaml` 与 `data/config.default.yaml` 深合并，只写要覆盖的字段；
 部署时也可以用环境变量 `AI_NEW_PORT` / `AI_NEW_DATA` 覆盖（优先级高于文件）。
 
 ## 验收
@@ -73,7 +73,7 @@ python test_start.py --only structure
 python test_start.py --smoke    # 额外真的执行 agent_start.py，核对模块/需求/点/启动日志
 ```
 
-清单在 `data/checks.json`（验哪些、静态还是运行时），执行在 `agent_test` 模块里：
+清单在 `data/checks.yaml`（验哪些、静态还是运行时），执行在 `agent_test` 模块里：
 
 - structure：模块根只有 `__init__.py`、实现在 `private/`、无跨模块 import、无 `ctx.log`、
   平台模块无业务词、代码无提示词、矩阵路由存在、根目录只有两个脚本。
@@ -98,24 +98,24 @@ demand_engine · tools · llm · react · http · ops · net（出站网络） �
 **agent（业务能力）**：knowledge · artifacts · library · sessions · projects · tickets ·
 agents · health · skills · web · channel
 
-**agent_test（评审者）**：按 `data/checks.json` 跑验收（不在 `agent` 装配里，因为 profile 没写它）
+**agent_test（评审者）**：按 `data/checks.yaml` 跑验收（不在 `agent` 装配里，因为 profile 没写它）
 
 ## 数据布局：跟着模块走
 
 ```
-modules/agent_common/config/data/      config.default.json · config.json
-modules/agent_common/boot/data/        profiles.json（装配剖面）
-modules/agent_common/api/data/         calls.json（调用矩阵）· deploy.json · platform-routes.json · gen/bindings.json
-modules/agent_common/demand_engine/data/demands/*.json   需求（一段业务一个文件）
+modules/agent_common/config/data/      config.default.yaml · config.yaml
+modules/agent_common/boot/data/        profiles.yaml（装配剖面）
+modules/agent_common/api/data/         calls.yaml（调用矩阵）· deploy.yaml · platform-routes.yaml · gen/bindings.yaml
+modules/agent_common/demand_engine/data/demands/*.yaml   需求（一段业务一个文件）
 modules/agent_common/ops/data/         logs/app.jsonl · exports/
-modules/agent/library/data/            seed.json · roles.json · prompts/（角色提示词）
-modules/agent/sessions/data/           sessions/ · prompts/（pm/秘书人设）· session-tools.json
-modules/agent/tickets/data/            tickets/<id>/ticket.json · messages.json
+modules/agent/library/data/            seed.yaml · roles.yaml · prompts/（角色提示词）
+modules/agent/sessions/data/           sessions/ · prompts/（pm/秘书人设）· session-tools.yaml
+modules/agent/tickets/data/            tickets/<id>/ticket.yaml · messages.yaml
 modules/agent/knowledge/data/          public/ · projects/ · tickets/
 modules/agent/artifacts/data/          public/ · projects/
-modules/agent/projects/data/           <id>.json
+modules/agent/projects/data/           <id>.yaml
 modules/agent/web/data/console/        index.html（通用控制台）
-modules/agent_test/data/               checks.json（验收清单）
+modules/agent_test/data/               checks.yaml（验收清单）
 ```
 
 模块数据语义由拥有它的模块定义，代码里也没有第二个"公共数据根"：
@@ -134,8 +134,8 @@ modules/agent_test/data/               checks.json（验收清单）
   只有 `stream=True` 注册的路由能走这个入口（现在只有 `channel.watch`）。
 - 谁来回话？需求 `web-chat-reply`：`channel.posted` → `channel.tail` → `demand_engine.run(llm-chat)` → `channel.post`。
   模块代码里没有"回话"这两个字，删掉需求文件就只剩收发。
-- 对话本身也是一条需求 `llm-chat`：`config.get` → `llm.encode` → `codec.json_encode` →
-  `net.request` → `codec.json_decode` → `llm.decode`。`llm` 里没有网络、没有 JSON、不读配置。
+- 对话本身也是一条需求 `llm-chat`：`config.get` → `llm.encode` → `codec.yaml_encode` →
+  `net.request` → `codec.yaml_decode` → `llm.decode`。`llm` 里没有网络、没有 JSON、不读配置。
 - `config.get` 指名字段给的是**真值**（编排要拿 `api_key` 去授权）；不带 key 才返回脱敏视图。
   共享同一 token 的调用方本来就能跑这条需求，脱敏只用于"看一眼配置"。
 - 也可以直接调：`POST /api/rpc/demand_engine/run`，`{"id":"llm-chat","input":{"messages":[...]}}`。
@@ -163,7 +163,7 @@ modules/agent_test/data/               checks.json（验收清单）
 ## 部署（VPS）
 
 - 代码在 `/opt/ai_new`：本机打包后 `python3 -m zipfile -e deploy.zip .` 展开；
-  配置在 `ai_new/modules/agent_common/config/data/config.json`（`server.host=0.0.0.0`、`port=8788`）。
+  配置在 `ai_new/modules/agent_common/config/data/config.yaml`（`server.host=0.0.0.0`、`port=8788`）。
 - 端口用 **8788**：8787 上是另一套由 `hive-watchdog.service` 保活的服务，它每 10 秒探活、
   连续 3 次失败就重启并自动回退版本 —— 占它的端口会被当成"进程挂了"然后 SIGKILL。
 - 启动：`cd /opt/ai_new && setsid nohup python3 agent_start.py > run.log 2>&1 < /dev/null &`
@@ -181,7 +181,7 @@ modules/agent_test/data/               checks.json（验收清单）
 | `clock` | 无 / 秒数 / 文本 | 现在、ISO 文本、时间戳、睡多久 |
 | `config` | 键 | 值 |
 
-"发一次对话"不是任何一个模块的职责，而是一条**编排需求**（`data/demands/llm-chat.json`）：
+"发一次对话"不是任何一个模块的职责，而是一条**编排需求**（`data/demands/llm-chat.yaml`）：
 配置 → 载荷 → 序列化 → 传输 → 反序列化 → 语义。加缓存、换通道、加重试，都是改这条需求，
 不动任何模块；把它删掉，四个能力一个字节都不会少。
 

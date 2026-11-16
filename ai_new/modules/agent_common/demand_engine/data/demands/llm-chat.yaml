@@ -1,0 +1,101 @@
+id: llm-chat
+title: 编排：messages → 载荷 → net → 解码 → 对话结果（不流式）
+enabled: true
+callable: true
+'on': []
+do:
+- call: config.get
+  with:
+    key:
+      lit: llm
+  as: cfg
+- call: llm.encode
+  with:
+    base_url:
+      get: cfg.value.base_url
+    api_key:
+      get: cfg.value.api_key
+    model:
+      get: cfg.value.model
+    messages:
+      get: input.messages
+    tools:
+      get: input.tools
+    tool_choice:
+      get: input.tool_choice
+    temperature:
+      get: input.temperature
+    stream:
+      lit: false
+  as: enc
+- when:
+    op: ==
+    a:
+      get: enc.ok
+    b: false
+  then: []
+  else:
+  - call: codec.json_encode
+    with:
+      value:
+        get: enc.payload
+    as: body
+  - call: net.request
+    with:
+      url:
+        get: enc.url
+      method:
+        lit: POST
+      headers:
+        get: enc.headers
+      body:
+        get: body.text
+      timeout:
+        get: input.timeout
+    as: resp
+  - when:
+      op: ==
+      a:
+        get: resp.ok
+      b: false
+    then: []
+    else:
+    - call: codec.json_decode
+      with:
+        text:
+          get: resp.text
+      as: obj
+    - when:
+        op: ==
+        a:
+          get: obj.ok
+        b: false
+      then: []
+      else:
+      - call: llm.decode
+        with:
+          payload:
+            get: obj.value
+        as: out
+expect:
+  given:
+    input:
+      messages:
+      - role: user
+        content: 你好
+      temperature: 0.3
+  calls:
+  - config.get
+  - llm.encode
+  - codec.json_encode
+  - net.request
+  - codec.json_decode
+  - llm.decode
+  payload:
+    llm.encode:
+      messages:
+        get: input.messages
+    net.request:
+      method:
+        lit: POST
+  promise: 四条纯能力按顺序拼一条对话：配置 → 载荷 → 序列化 → 传输 → 反序列化 → 语义

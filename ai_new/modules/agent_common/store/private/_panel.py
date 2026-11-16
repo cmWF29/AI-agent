@@ -153,6 +153,30 @@ class ModuleData:
         return _files.write_text_atomic(self.root / rel, out["text"] + "\n")
 
 
+    def yaml_read(self, rel, default=None):
+
+        """解析不是存储的事：读字节归我，认格式归 codec（YAML）。"""
+
+        if not (self.root / rel).is_file():
+
+            return default
+
+        out = self.ctx.codec.yaml_decode(self.read_text(rel))
+
+        return out["value"] if out.get("ok") else default
+
+
+    def yaml_write(self, rel, obj):
+
+        out = self.ctx.codec.yaml_encode(obj)
+
+        if not out.get("ok"):
+
+            raise ValueError("YAML 编码失败: %s" % out.get("error"))
+
+        return _files.write_text_atomic(self.root / rel, out["text"] + "\n")
+
+
 
     def read_text(self, rel):
 
@@ -448,23 +472,23 @@ def _route_exists(payload):
 
 
 def _route_read(payload):
-    import json
+    import yaml
     path = _p(payload.get("module"), payload.get("path"))
     fallback = payload.get("fallback")
     if not path.is_file():
         return {"value": fallback, "exists": False}
     try:
-        return {"value": json.loads(path.read_text(encoding="utf-8")), "exists": True}
-    except ValueError:
+        return {"value": yaml.safe_load(path.read_text(encoding="utf-8")), "exists": True}
+    except yaml.YAMLError:
         return {"value": fallback, "exists": True, "bad": True}
 
 
 def _route_write(payload):
-    import json
+    import yaml
     path = _p(payload.get("module"), payload.get("path"))
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload.get("value"), ensure_ascii=False, indent=2),
-                    encoding="utf-8")
+    path.write_text(yaml.safe_dump(payload.get("value"), allow_unicode=True,
+                    sort_keys=False, default_flow_style=False), encoding="utf-8")
     return {"written": True, "path": str(path)}
 
 def _route_remove(payload):
@@ -485,7 +509,7 @@ def _route_glob(payload):
 
 
 def _route_walk(payload):
-    import json
+    import yaml
     base = _p(payload.get("module"), payload.get("root"))
     if not base.is_dir():
         return {"rows": []}
@@ -494,8 +518,8 @@ def _route_walk(payload):
         if not item.is_file():
             continue
         try:
-            rows.append(json.loads(item.read_text(encoding="utf-8")))
-        except ValueError:
+            rows.append(yaml.safe_load(item.read_text(encoding="utf-8")))
+        except yaml.YAMLError:
             continue
     return {"rows": rows}
 

@@ -1,0 +1,28 @@
+id: skills-list
+title: 技能列表：取回技能卡交给 skills 筛
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+  as: rows
+- call: skills.screen
+  with:
+    items:
+      get: rows.value
+    query:
+      get: input.query
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - skills.screen
+  payload: {}
+  promise: 筛选归模块，取数归需求

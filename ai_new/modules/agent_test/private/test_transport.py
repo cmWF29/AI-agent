@@ -3,7 +3,7 @@
 代码里只有逻辑调用；走哪条通道由 api 模块编译出的绑定决定。
 网络通道的端到端在 test_core 里用真实 HTTP 服务验证，这里测生成器与直连/内存。
 """
-import json
+import yaml
 import sys
 import tempfile
 import threading
@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT))
 
 from ai_new.modules.agent_common.api.private import _gen, _transport  # noqa: E402
+from ai_new.modules.agent_common.codec.private import _codec  # noqa: E402
 
 
 class _Storage:
@@ -29,7 +30,7 @@ class _Storage:
         return self.record is not None
 
     def read_text(self, rel):
-        return json.dumps(self.record if self.record is not None else {})
+        return yaml.safe_dump(self.record if self.record is not None else {}, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
     def own(self, anchor):
         return self
@@ -46,36 +47,37 @@ class _Ctx:
         self.storage = _Storage(bindings)
         self.cfg = {"server": {"token": ""}}
         self.root = ROOT
+        self.codec = _codec
 
 
 class GeneratorTest(unittest.TestCase):
     def test_compile_transport_writes_binding_file(self):
         """编译是 api 模块的能力：给 ctx 就能产出绑定文件，不需要根目录脚本。"""
         with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / "bindings.json"
+            out = Path(tmp) / "bindings.yaml"
             record = _gen.compile_transport(_Ctx(), out=out)
             self.assertTrue(out.is_file())
             self.assertEqual(record["default"], "direct")
-            self.assertEqual(json.loads(out.read_text(encoding="utf-8"))["generated_by"],
+            self.assertEqual(yaml.safe_load(out.read_text(encoding="utf-8"))["generated_by"],
                              "ai_new/modules/agent_common/api/private/_gen.py")
 
     def test_is_deterministic(self):
         first = _gen.build(ROOT)
         second = _gen.build(ROOT)
-        self.assertEqual(json.dumps(first, sort_keys=True), json.dumps(second, sort_keys=True))
+        self.assertEqual(first, second)
 
     def test_default_is_direct_without_deploy_file(self):
         self.assertEqual(_gen.build(ROOT)["default"]["kind"], "direct")
 
     def test_deploy_binds_modules_to_channels(self):
         with tempfile.TemporaryDirectory() as tmp:
-            deploy = Path(tmp) / "deploy.json"
-            deploy.write_text(json.dumps({
+            deploy = Path(tmp) / "deploy.yaml"
+            deploy.write_text(yaml.safe_dump({
                 "default": "direct",
                 "nodes": {"worker": "http://127.0.0.1:8790"},
                 "modules": {"ops": {"kind": "http", "node": "worker"},
                             "tickets": {"kind": "memory"}},
-            }), encoding="utf-8")
+            }, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
             record = _gen.build(ROOT, deploy)
         self.assertEqual(record["routes"]["ops.*"],
                          {"kind": "http", "base": "http://127.0.0.1:8790"})
@@ -83,10 +85,10 @@ class GeneratorTest(unittest.TestCase):
 
     def test_rejects_unknown_module_and_bad_channel(self):
         with tempfile.TemporaryDirectory() as tmp:
-            deploy = Path(tmp) / "deploy.json"
+            deploy = Path(tmp) / "deploy.yaml"
             for payload in ({"modules": {"nope": {"kind": "direct"}}},
                             {"modules": {"ops": {"kind": "carrier-pigeon"}}}):
-                deploy.write_text(json.dumps(payload), encoding="utf-8")
+                deploy.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
                 with self.assertRaises(ValueError):
                     _gen.build(ROOT, deploy)
 
@@ -107,10 +109,10 @@ class TransportTest(unittest.TestCase):
                 seen["path"] = self.path
                 seen["token"] = self.headers.get("X-Auth-Token")
                 length = int(self.headers.get("Content-Length") or 0)
-                seen["body"] = json.loads(self.rfile.read(length).decode("utf-8"))
-                body = json.dumps({"ok": True, "result": {"content": "来自远端"}}).encode()
+                seen["body"] = yaml.safe_load(self.rfile.read(length).decode("utf-8"))
+                body = yaml.safe_dump({"ok": True, "result": {"content": "来自远端"}}, allow_unicode=True, sort_keys=False, default_flow_style=True).strip().encode()
                 self.send_response(200)
-                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Type", "application/yaml")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)

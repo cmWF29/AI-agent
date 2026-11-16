@@ -34,7 +34,10 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   <div id="banner"></div>
   <div id="open"></div>
 </div>
+<script src="/assets/js-yaml.min.js"></script>
 <script>
+async function readYaml(resp){return jsyaml.load(await resp.text())||{};}
+function yamlBody(o){return jsyaml.dump(o,{flowLevel:Infinity,noRefs:true,sortKeys:false});}
 const $ = (id) => document.getElementById(id);
 
 function saveToken(t) {
@@ -44,7 +47,7 @@ function saveToken(t) {
 
 async function loadStatus() {
   const r = await fetch("/api/auth/status");
-  const body = await r.json().catch(() => ({ ok: false }));
+  const body = await readYaml(r).catch(() => ({ ok: false }));
   const st = body.result || body || {};
   if (!st.enabled && !st.legacy) {
     // 开放模式（本机开发）：无需登录，直接进控制台
@@ -62,13 +65,13 @@ $("login-form").onsubmit = async (e) => {
   try {
     const resp = await fetch("/api/rpc/demand_engine/run", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: "auth-login", input: {
+      headers: { "Content-Type": "application/yaml" },
+      body: yamlBody({ id: "auth-login", input: {
         username: $("username").value.trim(),
         password: $("password").value
       } })
     });
-    const body = await resp.json().catch(() => ({ ok: false, error: "响应不是 JSON" }));
+    const body = await readYaml(resp).catch(() => ({ ok: false, error: "响应不是 YAML" }));
     const inner = (body.result && body.result.result) || {};
     if (!body.ok || inner.ok === false) {
       banner.textContent = (inner.error || body.error || "登录失败") + "（" + resp.status + "）";

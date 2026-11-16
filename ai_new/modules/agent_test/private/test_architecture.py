@@ -9,7 +9,7 @@
 同一个扫描器、同一套规则，`data/profiles.json` 决定哪个入口装哪些组。
 """
 import ast
-import json
+import yaml
 import re
 import unittest
 from pathlib import Path
@@ -87,7 +87,7 @@ def _resolve(package, level, module):
 class StructureTest(unittest.TestCase):
     def test_groups_are_declared(self):
         """装配清单只引用存在的组 —— 换组等于换一套装配。"""
-        profiles = json.loads((module_dir("agent_common", "boot") / "data" / "profiles.json")
+        profiles = yaml.safe_load((module_dir("agent_common", "boot") / "data" / "profiles.yaml")
                               .read_text(encoding="utf-8"))
         for name, groups in (profiles.get("profiles") or {}).items():
             for group in groups:
@@ -183,7 +183,7 @@ class StructureTest(unittest.TestCase):
         owners = {"clock", "codec", "store", "host", "net", "http",
                   "boot", "api", "config"}
         banned = ("import time", "from time import", "import datetime",
-                  "from datetime import", "import json", "from json import",
+                  "from datetime import", "import json", "from json import", "import yaml", "from yaml import",
                   "import base64", "import binascii", "import hashlib",
                   "import tempfile", "import uuid", "import random",
                   "import secrets")
@@ -205,8 +205,7 @@ class StructureTest(unittest.TestCase):
         """llm 只做对话语义；发请求是 net 的事。"""
         path = MODULES / "agent_common" / "llm"
         text = "\n".join(p.read_text(encoding="utf-8") for p in src_files(path))
-        for token in ("import urllib", "urllib.request", "import socket", "http.client",
-                       "import json", "ctx.cfg", "net.request"):
+        for token in ("import urllib", "urllib.request", "import socket", "http.client", "import yaml", "ctx.cfg", "net.request"):
             self.assertNotIn(token, text, "模块 llm 越界了（它不是纯语义）: %s" % token)
         self.assertIn("llm.encode", text, "llm 没有提供载荷构造")
 
@@ -240,13 +239,13 @@ class StructureTest(unittest.TestCase):
             ("agent", "library", "prompts/roles/developer.md"),
             ("agent", "sessions", "prompts/pm.md"),
             ("agent", "sessions", "prompts/secretary.md"),
-            ("agent", "tickets", "messages.json"),
-            ("agent", "sessions", "session-tools.json"),
-            ("agent", "library", "seed.json"),
+            ("agent", "tickets", "messages.yaml"),
+            ("agent", "sessions", "session-tools.yaml"),
+            ("agent", "library", "seed.yaml"),
             # calls.json 已下架：能力只对需求开放，矩阵不再需要
-            ("agent_common", "config", "config.default.json"),
-            ("agent_common", "boot", "profiles.json"),
-            ("agent_test", "agent_test", "checks.json"),
+            ("agent_common", "config", "config.default.yaml"),
+            ("agent_common", "boot", "profiles.yaml"),
+            ("agent_test", "agent_test", "checks.yaml"),
         ]:
             path = module_dir(group, name) / "data" / rel
             self.assertTrue(path.is_file(), "数据文件缺失: %s/%s/%s" % (group, name, rel))
@@ -285,8 +284,8 @@ class StructureTest(unittest.TestCase):
     def test_demands_and_checks_are_bound_both_ways(self):
         """需求 ↔ 用例双向闭合：没用例的需求不许上线，没需求的用例也不许留着。"""
         demands = {p.stem for p in (module_dir("agent_common", "demand_engine")
-                                    / "data" / "demands").glob("*.json")}
-        checks = json.loads((module_dir("agent_test", "agent_test") / "data" / "checks.json")
+                                    / "data" / "demands").glob("*.yaml")}
+        checks = yaml.safe_load((module_dir("agent_test", "agent_test") / "data" / "checks.yaml")
                             .read_text(encoding="utf-8"))
         claimed = set()
         for check in checks.get("checks") or []:
@@ -298,8 +297,8 @@ class StructureTest(unittest.TestCase):
 
     def test_no_shared_data_bucket(self):
         """数据跟着模块走：不许出现公共数据根，也不许用旧的全局存储接口。"""
-        banned = ("ctx.storage.data_dir(", "ctx.storage.data_path(", "ctx.storage.json_read(",
-                  "ctx.storage.json_write(", "ctx.storage.read_data_text(",
+        banned = ("ctx.storage.data_dir(", "ctx.storage.data_path(", "ctx.storage.json_read(", "ctx.storage.yaml_read(",
+                  "ctx.storage.json_write(", "ctx.storage.yaml_write(", "ctx.storage.read_data_text(",
                   "ctx.storage.list_data_dir(", 'paths.data', 'ctx.root / "data"')
         hits = []
         for path in src_files(ROOT / "ai_new"):

@@ -14,7 +14,7 @@
 """
 from __future__ import annotations
 
-import json
+import yaml
 import os
 import sys
 import unittest
@@ -26,13 +26,13 @@ HERE = Path(__file__).resolve().parent / "private"
 
 def checks():
     """验收清单：agent_test 自己的数据（<模块>/data/checks.json）。"""
-    path = Path(__file__).resolve().parent / "data" / "checks.json"
+    path = Path(__file__).resolve().parent / "data" / "checks.yaml"
     external = os.environ.get("AI_NEW_DATA")
     if external:
-        path = Path(external) / "agent_test" / "agent_test" / "checks.json"
+        path = Path(external) / "agent_test" / "agent_test" / "checks.yaml"
     if not path.is_file():
         return []
-    record = json.loads(path.read_text(encoding="utf-8"))
+    record = yaml.safe_load(path.read_text(encoding="utf-8"))
     return [c for c in record.get("checks") or [] if c.get("enabled", True)]
 
 

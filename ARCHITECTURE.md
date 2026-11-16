@@ -24,9 +24,9 @@ web 的 data 是控制台页面，agent_test 的 data 是验收清单 —— 语
 
 - 根目录**只有两个脚本**，没有第三个特殊目录：没有 kernel、没有 `tools/`、没有 `data/`、
   没有 `web/`、没有垃圾桶。
-- **组不是层级特权**：组只是"装配单位"，同一个扫描器、同一套规则；`data/profiles.json`
+- **组不是层级特权**：组只是"装配单位"，同一个扫描器、同一套规则；`data/profiles.yaml`
   决定哪个入口装哪些组（`agent` 只装 common + agent，`agent_test` 只在验收时跑）。
-- `agent_test` 是模块，不是"外部测试目录"：它有自己的清单（`data/checks.json`）、
+- `agent_test` 是模块，不是"外部测试目录"：它有自己的清单（`data/checks.yaml`）、
   自己的私有实现，和别的模块同构；它不在 `agent` 的装配里，只是因为 profile 里没写它。
 
 ## 二、一个模块 = 一个公开文件 + 一个 private 目录
@@ -38,7 +38,7 @@ modules/<组>/<模块>/
 ```
 
 - **模块之间不 import**：运行时唯一通道是 `ctx.api.call("module.fn", payload, caller=...)`，
-  并受 `data/rules/calls.json` 矩阵约束；资源面（`ctx.api / ctx.hooks / ctx.demand_engine /
+  并受 `data/rules/calls.yaml` 矩阵约束；资源面（`ctx.api / ctx.hooks / ctx.demand_engine /
   ctx.tools / ctx.cfg / ctx.storage / ctx.http / ctx.llm / ctx.react`）由装配器注入后直连。
 - **单向可见**：审计者可以看被审计对象，反过来不行。所以 `agent_test` 可以 import 运行时模块，
   运行时模块却连自己的兄弟都不许 import。
@@ -53,7 +53,7 @@ modules/<组>/<模块>/
 | 分类 | 谁在调 | 登记方式 | 例子 |
 |---|---|---|---|
 | **需求编排的业务能力** | 某条需求 `do` 语句树里的 `call` | 出现在需求语句树中，由 `demands` 契约钉住 | `store.write`、`tickets.create`、`llm-chat` 各步 |
-| **平台入口** | HTTP 闸 / SSE / 需求引擎 / 装配期直接调用（`caller=None` 或引擎内部） | 必须在 `api/data/platform-routes.json` 登记 `caller` 与 `reason` | `auth.verify`、`auth.status`、`channel.watch`、`clock.sleep`、`hooks.points` |
+| **平台入口** | HTTP 闸 / SSE / 需求引擎 / 装配期直接调用（`caller=None` 或引擎内部） | 必须在 `api/data/platform-routes.yaml` 登记 `caller` 与 `reason` | `auth.verify`、`auth.status`、`channel.watch`、`clock.sleep`、`hooks.points` |
 | **模块私有，不注册** | 只在模块内部进程内直调的纯函数/面板方法 | 留在 `private/` 或模块面板，**不进注册表** | 内部形状变换、纯计算助手、仅供测试直调的面板方法 |
 
 铁律：
@@ -62,7 +62,7 @@ modules/<组>/<模块>/
 - **任何对外暴露的已注册 API 都必须对应至少一条需求编排**；不属于需求编排的，只能是清单里
   登记过的平台入口。运行时闸 `test_registered_routes_are_demand_bound_or_platform` 闭合：
   注册路由 ∈ 需求 do 树 ∪ 平台清单，多出一条即红。
-- 新增平台路由必须先在 `platform-routes.json` 写明调用方与原因；想把一个内部能力重新挂成 API，
+- 新增平台路由必须先在 `platform-routes.yaml` 写明调用方与原因；想把一个内部能力重新挂成 API，
   要么补一条需求编排，要么登记为平台件，不许直接 `register`。
 
 ## 二·补二、落盘是业务动作，必须受需求或平台管辖
@@ -84,7 +84,7 @@ modules/<组>/<模块>/
 - 组合根 = 没有 `setup` 的模块（`boot`）；启动阶段 = 导出 `start(ctx)` 的模块（`http`、`tickets`）。
 - 两段生命周期：`setup` 只装填自己的面、注册路由、声明 hook 点；
   `start` 才产生外部效果（开始收请求、拉起线程）。
-- 装配哪些组由 `data/profiles.json` 决定，入口不写清单：
+- 装配哪些组由 `data/profiles.yaml` 决定，入口不写清单：
   `python agent_start.py`（agent）· `python test_start.py`（agent_test）。
 
 ## 四、通信是抽象，绑定是产物
@@ -97,15 +97,15 @@ modules/<组>/<模块>/
 | `memory` | 进程内队列异步投递，调用方只拿到"已入队" | 不关心结果的服务 |
 | `http` | 网络同步 RPC：`POST <base>/api/rpc/<module>/<fn>`，返回未包装的原始结果 | 模块在别的进程/机器 |
 
-- 意图写在 `data/deploy.json`（可选），产物是 `data/gen/bindings.json`。
+- 意图写在 `data/deploy.yaml`（可选），产物是 `data/gen/bindings.yaml`。
 - 编译是 **api 模块的能力**，不是根目录脚本：装配之前 `python agent_start.py --compile-transport`
   或调 `api.compile_transport` 模块函数；编译产物是装配/CLI 工具件，不挂业务注册表。
-- 没有 `deploy.json` 就是全直连，等于单进程跑，行为与以前完全一致。
+- 没有 `deploy.yaml` 就是全直连，等于单进程跑，行为与以前完全一致。
 
 ## 五、业务是结构化语言，引擎负责让它跑
 
 - 模块 = 能力（服务 + 预留扩展点）。**需求 = 一段可插拔的业务**，写在
-  `modules/agent_common/demand_engine/data/demands/*.json`（当前为空）：
+  `modules/agent_common/demand_engine/data/demands/*.yaml`（当前为空）：
 
 ```json
 {
@@ -157,7 +157,7 @@ modules/<组>/<模块>/
 规则是**双向闭合**的，由 `test_start.py` 强制：
 
 - 没有 `expect` 的需求 → `demands` 组失败；
-- 没有验收用例点名的需求 → `structure` 组失败（`data/checks.json` 里没有 `demands` 覆盖它）；
+- 没有验收用例点名的需求 → `structure` 组失败（`data/checks.yaml` 里没有 `demands` 覆盖它）；
 - 用例点名了不存在的需求 → `structure` 组失败（需求下线后清单必须跟着改）；
 - 预期里的调用不在语句树里、或者运行时多出没人预期的调用 → `demands` 组失败。
 
@@ -223,26 +223,26 @@ modules/<组>/<模块>/
 
 | 模块 | 只负责 |
 |---|---|
-| agent_test | 按 `data/checks.json` 跑验收：结构契约、装配图、需求语言、通信通道、运行时行为 |
+| agent_test | 按 `data/checks.yaml` 跑验收：结构契约、装配图、需求语言、通信通道、运行时行为 |
 
 ## 七、数据布局：跟着模块走
 
 没有公共 `data/`。每个模块的数据就在它自己旁边，谁的数据归谁，语义不会被一个筐搅浑：
 
 ```
-modules/agent_common/config/data/        config.default.json · config.json
-modules/agent_common/boot/data/          profiles.json（装配剖面）
-modules/agent_common/api/data/           calls.json（调用矩阵）· deploy.json · platform-routes.json（平台入口清单）· gen/bindings.json
-modules/agent_common/demand_engine/data/ demands/*.json（一段业务一个文件）
+modules/agent_common/config/data/        config.default.yaml · config.yaml
+modules/agent_common/boot/data/          profiles.yaml（装配剖面）
+modules/agent_common/api/data/           calls.yaml（调用矩阵）· deploy.yaml · platform-routes.yaml（平台入口清单）· gen/bindings.yaml
+modules/agent_common/demand_engine/data/ demands/*.yaml（一段业务一个文件）
 modules/agent_common/ops/data/           logs/app.jsonl · exports/
-modules/agent/library/data/              seed.json · roles.json · prompts/roles/*.md
-modules/agent/sessions/data/             sessions/ · prompts/{pm,secretary}.md · session-tools.json
-modules/agent/tickets/data/              tickets/<id>/ticket.json · messages.json
+modules/agent/library/data/              seed.yaml · roles.yaml · prompts/roles/*.md
+modules/agent/sessions/data/             sessions/ · prompts/{pm,secretary}.md · session-tools.yaml
+modules/agent/tickets/data/              tickets/<id>/ticket.yaml · messages.yaml
 modules/agent/knowledge/data/            public/ · projects/ · tickets/
 modules/agent/artifacts/data/            public/ · projects/
-modules/agent/projects/data/             <id>.json
+modules/agent/projects/data/             <id>.yaml
 modules/agent/web/data/console/          index.html
-modules/agent_test/data/                 checks.json
+modules/agent_test/data/                 checks.yaml
 ```
 
 - 模块只认 `ctx.storage.own(__file__)`：它拿到的就是**自己的**数据目录，碰不到别人的。
@@ -263,7 +263,7 @@ hook 点、需求清单、日志、健康检查，没有任何"工单/知识/会
 
 ## 八、验收
 
-`python test_start.py`（清单在 `data/checks.json`）：
+`python test_start.py`（清单在 `data/checks.yaml`）：
 
 1. structure —— 模块根只有 `__init__.py`、实现在 `private/`、运行时无跨模块 import、
    运行时无 `ctx.log`/`ctx.bus`、平台模块无业务词、代码无提示词、矩阵路由存在、

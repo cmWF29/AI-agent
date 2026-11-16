@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import copy
-import json
+import yaml
 import os
 from pathlib import Path
 
@@ -27,8 +27,8 @@ def _data_dir():
 
 
 def setup(ctx):
-    base = _read(ctx, "config.default.json")
-    overlay = _read(ctx, "config.json")
+    base = _read(ctx, "config.default.yaml")
+    overlay = _read(ctx, "config.yaml")
     ctx.cfg = _deep_merge(base, overlay)
     if "server" not in ctx.cfg:
         ctx.cfg["server"] = {}
@@ -53,7 +53,7 @@ def get(ctx, key, default=None):
 
 def set_value(ctx, key, value):
     _nested_set(ctx.cfg, key, value)
-    _write(ctx, "config.json", ctx.cfg)
+    _write(ctx, "config.yaml", ctx.cfg)
     return get(ctx, key)
 
 
@@ -92,15 +92,15 @@ def _read(ctx, name):
     if not path.is_file():
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
         return {}
 
 
 def _write(ctx, name, obj):
     path = _config_path(ctx, name)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(yaml.safe_dump(obj, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
     return path
 
 

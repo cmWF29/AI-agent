@@ -1,0 +1,139 @@
+id: session-spawn
+title: 造会话：取人设与知识 → 拼系统消息 → 落盘 → 露出字段
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.id
+  with:
+    value:
+      get: input.name
+  as: nid
+- call: store.id
+  with:
+    value:
+      get: input.ticket
+  as: tid
+- when:
+    op: ==
+    a:
+      get: input.kind
+    b: role
+  then:
+  - call: demand_engine.run
+    with:
+      id:
+        lit: library-role-prompt
+      input:
+        role:
+          get: input.role
+    as: scn
+  - let: prompt_text
+    eq:
+      get: scn.result.prompt
+  else:
+  - call: store.read_text
+    with:
+      module:
+        lit: agent/sessions
+      path:
+        op: +
+        a:
+          lit: prompts/
+        b:
+          op: +
+          a:
+            get: input.kind
+          b:
+            lit: .md
+    as: scn
+  - let: prompt_text
+    eq:
+      get: scn.value
+- call: demand_engine.run
+  with:
+    id:
+      lit: knowledge-compose
+    input:
+      prefixes:
+        op: append
+        a:
+          lit:
+          - public/
+        b:
+          op: +
+          a:
+            lit: projects/
+          b:
+            op: +
+            a:
+              get: tid.id
+            b:
+              lit: /
+  as: know
+- call: clock.now
+  as: now
+- call: sessions.build
+  with:
+    kind:
+      get: input.kind
+    seq:
+      get: input.seq
+    name:
+      get: nid.id
+    ticket:
+      get: input.ticket
+    role:
+      get: input.role
+    backend:
+      get: input.backend
+    max_steps:
+      get: input.max_steps
+    meta:
+      get: input.meta
+    prompt:
+      get: prompt_text
+    injected:
+      get: know.result.text
+    prefix:
+      lit: ''
+    task:
+      get: input.task
+    now:
+      get: now.ts
+  as: rec
+- call: store.write
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      op: +
+      a:
+        lit: sessions/
+      b:
+        op: +
+        a:
+          get: rec.id
+        b:
+          lit: .yaml
+    value:
+      get: rec
+  as: w
+- call: sessions.view
+  with:
+    rec:
+      get: rec
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.id
+  - store.id
+  - demand_engine.run
+  - clock.now
+  - sessions.build
+  - store.write
+  - sessions.view
+  payload: {}
+  promise: 人设与知识都是别人给的，会话只负责拼

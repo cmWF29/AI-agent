@@ -1,0 +1,84 @@
+id: projects-delete
+title: 删除项目：purge 才真删，否则走归档
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.id
+  with:
+    value:
+      get: input.id
+  as: id
+- call: store.read
+  with:
+    module:
+      lit: agent/projects
+    path:
+      op: +
+      a:
+        get: id.id
+      b:
+        lit: .yaml
+  as: row
+- when:
+    op: ==
+    a:
+      get: input.purge
+    b: true
+  then:
+  - call: store.remove
+    with:
+      module:
+        lit: agent/projects
+      path:
+        op: +
+        a:
+          get: id.id
+        b:
+          lit: .yaml
+    as: rm
+  - call: projects.deleted
+    with:
+      id:
+        get: id.id
+    as: out
+  else:
+  - call: clock.now
+    as: now
+  - call: projects.archive
+    with:
+      rec:
+        get: row.value
+      now:
+        get: now.ts
+    as: rec
+  - call: store.write
+    with:
+      module:
+        lit: agent/projects
+      path:
+        op: +
+        a:
+          get: id.id
+        b:
+          lit: .yaml
+      value:
+        get: rec
+    as: w
+  - call: projects.view
+    with:
+      rec:
+        get: rec
+    as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.id
+  - store.read
+  - clock.now
+  - projects.archive
+  - store.write
+  - projects.view
+  payload: {}
+  promise: 删与归档是两条路，都在需求里分岔

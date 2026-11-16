@@ -1,0 +1,52 @@
+id: artifacts-list
+title: 列交付件：分层 → 遍历该层 → 成形
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.id
+  with:
+    value:
+      get: input.project
+  as: pid
+- call: store.id
+  with:
+    value:
+      get: input.ticket
+  as: tid
+- call: artifacts.base
+  with:
+    layer:
+      get: input.layer
+    project:
+      get: pid.id
+    ticket:
+      get: tid.id
+  as: base
+- call: store.walk
+  with:
+    module:
+      lit: agent/artifacts
+    root:
+      get: base.base
+    pattern:
+      lit: '*'
+  as: rows
+- call: artifacts.screen
+  with:
+    layer:
+      get: input.layer
+    rows:
+      get: rows.rows
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.id
+  - store.id
+  - artifacts.base
+  - store.walk
+  - artifacts.screen
+  payload: {}
+  promise: 遍历归需求

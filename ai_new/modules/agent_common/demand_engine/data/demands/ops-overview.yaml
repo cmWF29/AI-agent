@@ -1,0 +1,79 @@
+id: ops-overview
+title: 运维总览：取回各模块只读状态，交给 ops 组装
+enabled: true
+callable: true
+'on': []
+do:
+- call: config.get
+  as: config
+- call: demand_engine.run
+  as: sessions
+  with:
+    id:
+      lit: session-list
+- call: demand_engine.run
+  as: tickets
+  with:
+    id:
+      lit: ticket-list
+- call: demand_engine.run
+  as: knowledge
+  with:
+    id:
+      lit: knowledge-overview
+- call: demand_engine.run
+  as: artifacts
+  with:
+    id:
+      lit: artifacts-stats
+- call: demand_engine.run
+  as: library
+  with:
+    id:
+      lit: library-summary
+- call: demand_engine.run
+  as: projects
+  with:
+    id:
+      lit: projects-list
+- call: agents.backends
+  as: agents
+- call: demand_engine.list
+  as: demands
+- call: ops.assemble
+  with:
+    config:
+      get: config
+    sessions:
+      get: sessions
+    tickets:
+      get: tickets
+    knowledge:
+      get: knowledge
+    artifacts:
+      get: artifacts
+    library:
+      get: library
+    projects:
+      get: projects
+    agents:
+      get: agents
+    demands:
+      get: demands
+  as: overview
+expect:
+  given:
+    input: {}
+  calls:
+  - config.get
+  - demand_engine.run
+  - demand_engine.run
+  - demand_engine.run
+  - demand_engine.run
+  - demand_engine.run
+  - demand_engine.run
+  - agents.backends
+  - demand_engine.list
+  - ops.assemble
+  payload: {}
+  promise: 总览的形状属于运维，取数属于编排；面板只读一次结果

@@ -1,0 +1,41 @@
+id: library-list
+title: 岗位库列表：种子 + 用户记录交给 library 合并
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      op: +
+      a:
+        get: input.kind
+      b:
+        lit: s.yaml
+  as: user
+- call: library.list
+  with:
+    kind:
+      get: input.kind
+    seed:
+      get: seed.value
+    user:
+      get: user.value
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - library.list
+  payload: {}
+  promise: 合并规则归模块，取数归需求

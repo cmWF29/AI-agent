@@ -1,0 +1,53 @@
+id: library-role-prompt
+title: 角色提示词：读角色表 → 找 prompt_file → 取数据文件
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: roles.yaml
+  as: roles
+- call: library.get
+  with:
+    kind:
+      lit: roles
+    id:
+      get: input.role
+    seed:
+      lit: {}
+    user:
+      get: roles.value
+  as: rec
+- call: store.read_text
+  with:
+    module:
+      lit: agent/library
+    path:
+      op: +
+      a:
+        lit: prompts/
+      b:
+        get: rec.item.prompt_file
+  as: file
+- call: library.role_prompt
+  with:
+    role:
+      get: input.role
+    rec:
+      get: rec.item
+    text:
+      get: file.value
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - library.get
+  - library.role_prompt
+  payload: {}
+  promise: 提示词是数据文件，模块只拼形状

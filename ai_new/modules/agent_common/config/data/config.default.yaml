@@ -1,0 +1,46 @@
+server:
+  host: 127.0.0.1
+  port: 8787
+  token: ''
+  version: 0.1.0
+  auth:
+    enabled: false
+    username: admin
+    password_hash: ''
+    salt: ''
+    ttl: 86400
+  tls:
+    enabled: false
+    cert: ''
+    key: ''
+llm:
+  base_url: ''
+  api_key: ''
+  model: ''
+  timeout: 120
+  temperature: 0.3
+sessions:
+  max_concurrent: 8
+  max_steps: 60
+  secretary_scenario: prompts/secretary.md
+  pm_scenario: prompts/pm.md
+  role_scenario: prompts/roles/{role}.md
+tickets:
+  max_roles: 8
+  pm_max_steps: 0
+  auto_retrospective: false
+  stall_check:
+    enabled: true
+    interval_sec: 300
+    idle_minutes: 45
+    max_per_scan: 2
+    create_audit: true
+agents:
+  default: api
+  guard:
+    min_free_mem_mb: 1024
+    max_load_ratio: 1.5
+    max_claude_procs: 3
+    on_insufficient: reject
+knowledge:
+  max_inject_chars: 20000

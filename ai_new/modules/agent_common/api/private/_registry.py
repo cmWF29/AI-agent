@@ -10,7 +10,7 @@
 """
 from __future__ import annotations
 
-import json
+import yaml
 
 from . import _transport
 
@@ -62,8 +62,8 @@ class Registry:
         那条链本身要靠矩阵放行，绕回去就是环。"""
         if self._matrix is None:
             md = self.ctx.storage.own(__file__)
-            text = md.read_text("calls.json") if md.exists("calls.json") else "{}"
-            self._matrix = json.loads(text or "{}")
+            text = md.read_text("calls.yaml") if md.exists("calls.yaml") else "{}"
+            self._matrix = yaml.safe_load(text or "{}")
         return self._matrix
 
     def matrix(self):

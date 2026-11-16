@@ -1,0 +1,71 @@
+id: position-get
+title: 岗位详情：岗位记录 + 关联流程规范 + 提示词引用
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: roles.yaml
+  as: uroles
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: flows.yaml
+  as: uflows
+- call: library.get
+  with:
+    kind:
+      lit: roles
+    id:
+      get: input.id
+    seed:
+      get: seed.value
+    user:
+      get: uroles.value
+  as: rec
+- call: library.get
+  with:
+    kind:
+      lit: flows
+    id:
+      get: input.id
+    seed:
+      get: seed.value
+    user:
+      get: uflows.value
+  as: flowrec
+- call: library.position
+  with:
+    id:
+      get: input.id
+    rec:
+      get: rec.item
+    flow:
+      get: flowrec.item
+  as: out
+expect:
+  given:
+    input:
+      id: architect
+  calls:
+  - store.read
+  - store.read
+  - store.read
+  - library.get
+  - library.get
+  - library.position
+  payload: {}
+  promise: 岗位是提示词加流程规范的模板，实例化不在此需求

@@ -1,0 +1,115 @@
+id: ticket-split
+title: 拆子单：先守上限 8，再逐个建单并挂链接
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: input.id
+        b:
+          lit: /ticket.yaml
+  as: row
+- when:
+    op: and
+    a:
+      op: '>='
+      a:
+        op: len
+        a:
+          get: row.value.children
+      b:
+        lit: 8
+    b:
+      op: ==
+      a:
+        get: input.force
+      b:
+        lit: false
+  then:
+  - fail:
+      code:
+        lit: too_many_children
+      status:
+        lit: 409
+      message:
+        lit: 子工单最多 8 个
+  else: []
+- each:
+    get: input.children
+  as: c
+  do:
+  - call: demand_engine.run
+    with:
+      id:
+        lit: ticket-create
+      input:
+        title:
+          get: c.title
+        goal:
+          get: c.goal
+        project:
+          get: row.value.project
+        kind:
+          lit: sub
+        parent:
+          get: input.id
+        auto_retrospective:
+          lit: false
+    as: child
+  - call: clock.now
+    as: now
+  - call: tickets.bindchild
+    with:
+      rec:
+        get: row.value
+      child:
+        get: child.result.id
+      now:
+        get: now.ts
+    as: rec
+  - call: store.write
+    with:
+      module:
+        lit: agent/tickets
+      path:
+        op: +
+        a:
+          lit: tickets/
+        b:
+          op: +
+          a:
+            get: rec.id
+          b:
+            lit: /ticket.yaml
+      value:
+        get: rec
+    as: w
+  - let: row
+    eq:
+      op: append
+      a:
+        lit: ''
+      b:
+        get: rec
+- call: tickets.view
+  with:
+    rec:
+      get: row.value
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - tickets.view
+  payload: {}
+  promise: 上限是守卫不是分支；每个子单都是一次建单需求

@@ -1,0 +1,85 @@
+id: ticket-thread
+title: 工单主会话线程：读工单 → 归一化主会话 id → 取 1:1 主会话消息流 → 露出角色实例
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: input.id
+        b:
+          lit: /ticket.yaml
+  as: row
+- when:
+    op: ==
+    a:
+      get: row.value
+    b: null
+  then:
+  - call: tickets.err
+    with:
+      code:
+        lit: not_found
+      status:
+        lit: 404
+      message:
+        op: +
+        a:
+          lit: '工单不存在: '
+        b:
+          get: input.id
+    as: out
+  else:
+  - call: store.id
+    with:
+      value:
+        get: row.value.pm
+    as: sid
+  - call: store.read
+    with:
+      module:
+        lit: agent/sessions
+      path:
+        op: +
+        a:
+          lit: sessions/
+        b:
+          op: +
+          a:
+            get: sid.id
+          b:
+            lit: .yaml
+    as: srow
+  - call: sessions.view
+    with:
+      rec:
+        get: srow.value
+    as: thread
+  - call: tickets.threadp
+    with:
+      ticket:
+        get: row.value
+      thread:
+        get: thread
+    as: out
+expect:
+  given:
+    input:
+      id: T-1
+  calls:
+  - store.read
+  - store.id
+  - store.read
+  - sessions.view
+  - tickets.threadp
+  payload: {}
+  promise: 工单与主会话 1:1，消息流由会话记录露出，模块只拼视图

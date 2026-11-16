@@ -22,12 +22,12 @@
 from __future__ import annotations
 
 import ast
-import json
+import yaml
 from pathlib import Path
 
 MODULES_DIR = Path("ai_new") / "modules"
-DEFAULT_OUT = Path("gen") / "bindings.json"
-DEFAULT_DEPLOY = Path("deploy.json")
+DEFAULT_OUT = Path("gen") / "bindings.yaml"
+DEFAULT_DEPLOY = Path("deploy.yaml")
 
 
 def data_dir():
@@ -74,14 +74,14 @@ def build(root, deploy_path=None):
     root = Path(root).resolve()
     modules = modules_of(root)
     deploy_file = Path(deploy_path) if deploy_path else data_dir() / DEFAULT_DEPLOY
-    deploy = json.loads(deploy_file.read_text(encoding="utf-8")) if deploy_file.is_file() else {}
+    deploy = yaml.safe_load(deploy_file.read_text(encoding="utf-8")) if deploy_file.is_file() else {}
 
     nodes = deploy.get("nodes") or {}
     routes = {}
     for module, spec in sorted((deploy.get("modules") or {}).items()):
         spec = spec or {}
         if module not in modules:
-            raise ValueError("deploy.json 里的模块不存在: %s" % module)
+            raise ValueError("deploy.yaml 里的模块不存在: %s" % module)
         kind = spec.get("kind") or "direct"
         if kind not in KINDS:
             raise ValueError("模块 %s 的通道非法: %s（可选 %s）" % (module, kind, KINDS))
@@ -109,7 +109,7 @@ def compile_transport(ctx, out=None, deploy=None):
     record = build(ctx.root, deploy)
     target = Path(out) if out else data_dir() / DEFAULT_OUT
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+    target.write_text(yaml.safe_dump(record, allow_unicode=True, sort_keys=True, default_flow_style=False) + "\n",
                       encoding="utf-8")
     return {"path": str(target), "default": record["default"]["kind"],
             "routes": record["routes"], "stats": record["stats"]}

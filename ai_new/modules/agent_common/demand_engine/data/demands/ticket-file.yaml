@@ -1,0 +1,44 @@
+id: ticket-file
+title: 读工单交付件：artifacts-read 需求
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: input.id
+        b:
+          lit: /ticket.yaml
+  as: row
+- call: demand_engine.run
+  with:
+    id:
+      lit: artifacts-read
+    input:
+      layer:
+        lit: ticket
+      ticket:
+        get: input.id
+      project:
+        get: row.value.project
+      path:
+        get: input.path
+      max_bytes:
+        get: input.max_bytes
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.run
+  payload: {}
+  promise: 读盘归需求

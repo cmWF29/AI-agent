@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import importlib
-import json
+import yaml
 import os
 import sys
 import time
@@ -29,17 +29,17 @@ ROOT_DIR = MODULES_ROOT.parents[1]                   # 项目根
 
 
 def _profile(name="agent"):
-    """装配用哪些模块组：读 data/profiles.json，不写在代码里。
+    """装配用哪些模块组：读 data/profiles.yaml，不写在代码里。
 
     组只是目录，不是层级：`agent` 跑系统，`agent_test` 跑验收，同一个扫描器。
     """
-    path = Path(__file__).resolve().parents[1] / "data" / "profiles.json"
+    path = Path(__file__).resolve().parents[1] / "data" / "profiles.yaml"
     external = os.environ.get("AI_NEW_DATA")
     if external:
-        path = Path(external) / "agent_common" / "boot" / "profiles.json"
+        path = Path(external) / "agent_common" / "boot" / "profiles.yaml"
     record = {}
     if path.is_file():
-        record = json.loads(path.read_text(encoding="utf-8")).get("profiles") or {}
+        record = yaml.safe_load(path.read_text(encoding="utf-8")).get("profiles") or {}
     return [MODULES_ROOT / group for group in (record.get(name) or ["agent_common", "agent"])]
 
 

@@ -1,0 +1,32 @@
+id: auth-logout
+title: 注销：删除自己的会话记录
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.remove
+  with:
+    module:
+      lit: agent/auth
+    path:
+      op: +
+      a:
+        op: +
+        a:
+          lit: sessions/
+        b:
+          get: input.token
+      b:
+        lit: .yaml
+  as: out
+expect:
+  given:
+    input:
+      token: abc123
+  calls:
+  - store.remove
+  payload:
+    store.remove:
+      module:
+        lit: agent/auth
+  promise: 注销只删自己的会话记录，不碰别的模块数据

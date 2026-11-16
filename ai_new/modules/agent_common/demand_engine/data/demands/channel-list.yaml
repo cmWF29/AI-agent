@@ -1,0 +1,30 @@
+id: channel-list
+title: 频道清单：遍历频道文件后算条数
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.walk
+  with:
+    module:
+      lit: agent/channel
+    root:
+      lit: channels
+    pattern:
+      lit: '*.jsonl'
+  as: rows
+- call: channel.channels
+  with:
+    rows:
+      get: rows.rows
+  as: out
+expect:
+  given:
+    input:
+      channel: c1
+      limit: 5
+  calls:
+  - store.walk
+  - channel.channels
+  payload: {}
+  promise: 条数归模块

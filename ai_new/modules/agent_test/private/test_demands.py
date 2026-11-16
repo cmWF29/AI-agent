@@ -7,7 +7,7 @@
   跑得起来（用 given 真投一次）、下线时留痕（需求没了，它的用例一起失效）。
 - 所以规则是双向闭合的：**没有用例的需求不许上线，没有需求可测的用例也不许存在**。
 """
-import json
+import yaml
 import sys
 import unittest
 from pathlib import Path
@@ -19,20 +19,20 @@ from ai_new.modules.agent_common.demand_engine.private import _engine, _lang  # 
 import _fixtures  # noqa: E402
 
 DEMANDS = _fixtures.module_data("agent_common", "demand_engine") / "demands"
-CHECKS = _fixtures.module_data("agent_test", "agent_test") / "checks.json"
+CHECKS = _fixtures.module_data("agent_test", "agent_test") / "checks.yaml"
 
 
 def demand_files():
-    return sorted(DEMANDS.glob("*.json"))
+    return sorted(DEMANDS.glob("*.yaml"))
 
 
 def load_all():
-    return [json.loads(p.read_text(encoding="utf-8")) for p in demand_files()]
+    return [yaml.safe_load(p.read_text(encoding="utf-8")) for p in demand_files()]
 
 
 def claimed():
     """验收清单里声明覆盖了哪些需求。"""
-    record = json.loads(CHECKS.read_text(encoding="utf-8"))
+    record = yaml.safe_load(CHECKS.read_text(encoding="utf-8"))
     out = set()
     for check in record.get("checks") or []:
         out.update(check.get("demands") or [])
@@ -122,10 +122,16 @@ class _Storage:
         if rel in self.written:
             return self.written[rel]
         path = _fixtures.module_data("agent_common", "demand_engine") / rel
-        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else default
+        return yaml.safe_load(path.read_text(encoding="utf-8")) if path.is_file() else default
+
+    def yaml_read(self, rel, default=None):
+        return self.json_read(rel, default)
 
     def json_write(self, rel, obj):
         self.written[rel] = obj
+
+    def yaml_write(self, rel, obj):
+        self.json_write(rel, obj)
 
 
 class _Ctx:

@@ -1,0 +1,6 @@
+profiles:
+  agent:
+  - agent_common
+  - agent
+  test:
+  - agent_test

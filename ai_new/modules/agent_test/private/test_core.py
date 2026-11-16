@@ -2,7 +2,7 @@
 
 业务闭环一律走需求入口（demand_engine.run），模块能力只在纯形状/守卫层做单点断言。
 """
-import json
+import yaml
 import os
 import sys
 import tempfile
@@ -87,8 +87,8 @@ class CoreTest(unittest.TestCase):
         meta = {r["name"] for r in self.ctx.api.routes()}
         problems = []
         for path in sorted(_fixtures.module_data("agent_common", "demand_engine")
-                           .joinpath("demands").glob("*.json")):
-            rec = json.loads(path.read_text(encoding="utf-8"))
+                           .joinpath("demands").glob("*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8"))
             for route in _lang.routes_of(rec.get("do")):
                 if route not in meta:
                     problems.append("%s 调了不存在的 func: %s" % (rec.get("id"), route))
@@ -102,11 +102,11 @@ class CoreTest(unittest.TestCase):
         from ai_new.modules.agent_common.demand_engine.private import _lang
         demand_bound = set()
         for path in sorted(_fixtures.module_data("agent_common", "demand_engine")
-                           .joinpath("demands").glob("*.json")):
-            rec = json.loads(path.read_text(encoding="utf-8"))
+                           .joinpath("demands").glob("*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8"))
             demand_bound.update(_lang.routes_of(rec.get("do")))
-        manifest = json.loads((ROOT / "ai_new/modules/agent_common/api/data"
-                               / "platform-routes.json").read_text(encoding="utf-8"))
+        manifest = yaml.safe_load((ROOT / "ai_new/modules/agent_common/api/data"
+                               / "platform-routes.yaml").read_text(encoding="utf-8"))
         platform = set(manifest.get("routes") or {})
         registered = {r["name"] for r in self.ctx.api.routes()}
         stray = sorted(registered - demand_bound - platform)
@@ -121,11 +121,11 @@ class CoreTest(unittest.TestCase):
         from ai_new.modules.agent_common.demand_engine.private import _lang
         demand_bound = set()
         for path in sorted(_fixtures.module_data("agent_common", "demand_engine")
-                           .joinpath("demands").glob("*.json")):
-            rec = json.loads(path.read_text(encoding="utf-8"))
+                           .joinpath("demands").glob("*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8"))
             demand_bound.update(_lang.routes_of(rec.get("do")))
-        manifest = json.loads((ROOT / "ai_new/modules/agent_common/api/data"
-                               / "platform-routes.json").read_text(encoding="utf-8"))
+        manifest = yaml.safe_load((ROOT / "ai_new/modules/agent_common/api/data"
+                               / "platform-routes.yaml").read_text(encoding="utf-8"))
         platform = set(manifest.get("routes") or {})
         write_routes = {
             "store.write", "store.write_text", "store.write_bytes", "store.append_text",
@@ -320,10 +320,10 @@ class CoreTest(unittest.TestCase):
         self.assertGreaterEqual(len(h["modules"]), 19)
         req = urllib.request.Request(
             "http://127.0.0.1:%d/api/rpc/demand_engine/run" % self.port,
-            data=json.dumps({"id": "health-self"}).encode("utf-8"), method="POST",
-            headers={"X-Auth-Token": "t", "Content-Type": "application/json"})
+            data=yaml.safe_dump({"id": "health-self"}, allow_unicode=True, sort_keys=False, default_flow_style=True).strip().encode("utf-8"), method="POST",
+            headers={"X-Auth-Token": "t", "Content-Type": "application/yaml"})
         with urllib.request.urlopen(req, timeout=5) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
+            body = yaml.safe_load(resp.read().decode("utf-8"))
         self.assertTrue(body["ok"])
         self.assertGreaterEqual(len(body["result"]["result"]["modules"]), 19)
         # 无 token 必须 401
@@ -336,7 +336,7 @@ class CoreTest(unittest.TestCase):
         live = urllib.request.Request(
             "http://127.0.0.1:%d/api/health/live" % self.port)
         with urllib.request.urlopen(live, timeout=5) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
+            body = yaml.safe_load(resp.read().decode("utf-8"))
         self.assertTrue(body["ok"])
         self.assertGreaterEqual(body["uptime"], 0)
 
@@ -350,9 +350,9 @@ class CoreTest(unittest.TestCase):
         """网络通道的服务端：/api/rpc/ 返回未包装的原始结果，供另一个进程直接消费。"""
         req = urllib.request.Request(
             "http://127.0.0.1:%d/api/rpc/clock/now" % self.port, method="POST",
-            headers={"X-Auth-Token": "t", "Content-Type": "application/json"})
+            headers={"X-Auth-Token": "t", "Content-Type": "application/yaml"})
         with urllib.request.urlopen(req, timeout=5) as resp:
-            rec = json.loads(resp.read().decode("utf-8"))
+            rec = yaml.safe_load(resp.read().decode("utf-8"))
         self.assertTrue(rec["ok"])
         self.assertIn("ts", rec["result"])
 
@@ -388,7 +388,7 @@ class CoreTest(unittest.TestCase):
         """状态路由不鉴权：登录页要先问当前是否需要登录。"""
         req = urllib.request.Request("http://127.0.0.1:%d/api/auth/status" % self.port)
         with urllib.request.urlopen(req, timeout=5) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
+            body = yaml.safe_load(resp.read().decode("utf-8"))
         self.assertTrue(body["ok"])
         self.assertTrue(body["legacy"])
 
@@ -396,11 +396,10 @@ class CoreTest(unittest.TestCase):
         """登录需求本身必须先可达：不带令牌也能过闸（凭据由需求内部判，失败返 401）。"""
         req = urllib.request.Request(
             "http://127.0.0.1:%d/api/rpc/demand_engine/run" % self.port,
-            data=json.dumps({"id": "auth-login",
-                             "input": {"username": "a", "password": "b"}}).encode("utf-8"),
-            method="POST", headers={"Content-Type": "application/json"})
+            data=yaml.safe_dump({"id": "auth-login", "input": {"username": "a", "password": "b"}}, allow_unicode=True, sort_keys=False, default_flow_style=True).strip().encode("utf-8"),
+            method="POST", headers={"Content-Type": "application/yaml"})
         with urllib.request.urlopen(req, timeout=5) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
+            body = yaml.safe_load(resp.read().decode("utf-8"))
         self.assertEqual(resp.status, 200)
         self.assertTrue(body["ok"])
 

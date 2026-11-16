@@ -134,7 +134,10 @@ details summary{font-size:12px;opacity:.6;cursor:pointer}
     </table>
   </section>
 </main>
+<script src="/assets/js-yaml.min.js"></script>
 <script>
+async function readYaml(resp){return jsyaml.load(await resp.text())||{};}
+function yamlBody(o){return jsyaml.dump(o,{flowLevel:Infinity,noRefs:true,sortKeys:false});}
 const $ = (id) => document.getElementById(id);
 function readCookie(name) {
   const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
@@ -147,7 +150,7 @@ function clearToken() {
   document.cookie = "hive_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 }
 function headers() {
-  const h = { "Content-Type": "application/json" };
+  const h = { "Content-Type": "application/yaml" };
   if (token()) h["X-Auth-Token"] = token();
   return h;
 }
@@ -164,9 +167,9 @@ async function run(demand, input) {
   try {
     resp = await fetch("/api/rpc/demand_engine/run", {
       method: "POST", headers: headers(),
-      body: JSON.stringify({ id: demand, input: input || {} })
+      body: yamlBody({ id: demand, input: input || {} })
     });
-    body = await resp.json().catch(() => ({ ok: false, error: "响应不是 JSON", code: "bad_json" }));
+    body = await readYaml(resp).catch(() => ({ ok: false, error: "响应不是 YAML", code: "bad_yaml" }));
   } catch (e) {
     throw Object.assign(new Error("网络请求失败：" + e.message), { status: 0, code: "network" });
   }
@@ -397,7 +400,7 @@ $("logout").onclick = async () => {
 
 async function boot() {
   let st = { enabled: false };
-  try { const r = await fetch("/api/auth/status"); const _j = await r.json(); st = _j.result || _j || {}; } catch (e) {}
+  try { const r = await fetch("/api/auth/status"); const _j = await readYaml(r); st = _j.result || _j || {}; } catch (e) {}
   if (st.enabled && !token()) { location.href = "/login.html"; return; }
   const errors = [];
   for (const step of [loadTree, loadPositions]) {

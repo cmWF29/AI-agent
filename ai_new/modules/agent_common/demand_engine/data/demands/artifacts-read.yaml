@@ -1,0 +1,74 @@
+id: artifacts-read
+title: 读交付件：分层 → 算路径 → 取字节 → 解码成形；越界在纯函数里拦
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.id
+  with:
+    value:
+      get: input.project
+  as: pid
+- call: store.id
+  with:
+    value:
+      get: input.ticket
+  as: tid
+- call: artifacts.base
+  with:
+    layer:
+      get: input.layer
+    project:
+      get: pid.id
+    ticket:
+      get: tid.id
+  as: base
+- call: artifacts.rel
+  with:
+    base:
+      get: base.base
+    path:
+      get: input.path
+  as: rel
+- call: store.read_bytes
+  with:
+    module:
+      lit: agent/artifacts
+    path:
+      get: rel.path
+  as: raw
+- call: artifacts.decode
+  with:
+    hex:
+      get: raw.hex
+    size:
+      get: raw.size
+    max_bytes:
+      get: input.max_bytes
+  as: d
+- call: artifacts.viewed
+  with:
+    path:
+      get: rel.path
+    size:
+      get: raw.size
+    truncated:
+      get: d.truncated
+    encoding:
+      get: d.encoding
+    text:
+      get: d.text
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.id
+  - store.id
+  - artifacts.base
+  - artifacts.rel
+  - store.read_bytes
+  - artifacts.decode
+  - artifacts.viewed
+  payload: {}
+  promise: 读盘归需求，解码是纯计算

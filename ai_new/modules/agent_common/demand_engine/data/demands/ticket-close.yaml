@@ -1,0 +1,136 @@
+id: ticket-close
+title: 结单：打关闭标记 → 落盘 → 通知父单 PM
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: input.id
+        b:
+          lit: /ticket.yaml
+  as: row
+- each:
+    get: row.value.children
+  as: cid
+  do:
+  - call: store.read
+    with:
+      module:
+        lit: agent/tickets
+      path:
+        op: +
+        a:
+          lit: tickets/
+        b:
+          op: +
+          a:
+            get: cid
+          b:
+            lit: /ticket.yaml
+    as: child
+  - when:
+      op: and
+      a:
+        op: '!='
+        a:
+          get: child.value
+        b: null
+      b:
+        op: '!='
+        a:
+          get: child.value.status
+        b:
+          lit: closed
+    then:
+    - fail:
+        code:
+          lit: children_open
+        status:
+          lit: 409
+        message:
+          op: +
+          a:
+            lit: '子工单尚未结单: '
+          b:
+            get: cid
+    else: []
+- call: clock.now
+  as: now
+- call: tickets.closefin
+  with:
+    rec:
+      get: row.value
+    summary:
+      get: input.summary
+    verdict:
+      get: input.verdict
+    now:
+      get: now.ts
+  as: rec
+- call: store.write
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: rec.id
+        b:
+          lit: /ticket.yaml
+    value:
+      get: rec
+  as: w
+- when:
+    op: '!='
+    a:
+      get: rec.parent
+    b:
+      lit: ''
+  then:
+  - call: demand_engine.run
+    with:
+      id:
+        lit: ticket-message
+      input:
+        id:
+          get: rec.parent
+        text:
+          op: +
+          a:
+            lit: '子工单已结单： '
+          b:
+            get: rec.id
+        target:
+          lit: pm
+    as: notify
+  else: []
+- call: tickets.view
+  with:
+    rec:
+      get: rec
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - clock.now
+  - tickets.closefin
+  - store.write
+  - demand_engine.run
+  - tickets.view
+  payload: {}
+  promise: 结单与通知是两件事，顺序写在需求里

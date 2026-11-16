@@ -6,6 +6,8 @@ import hashlib
 import json
 import secrets
 
+import yaml
+
 
 def json_encode(value):
     try:
@@ -18,6 +20,31 @@ def json_decode(text):
     try:
         return {"ok": True, "value": json.loads(text or "null")}
     except ValueError as exc:
+        return {"ok": False, "error": str(exc), "code": "decode_failed"}
+
+def yaml_encode(value):
+    try:
+        text = yaml.safe_dump(value, allow_unicode=True, sort_keys=False,
+                              default_flow_style=False)
+        return {"ok": True, "text": text}
+    except (TypeError, ValueError, yaml.YAMLError) as exc:
+        return {"ok": False, "error": str(exc), "code": "encode_failed"}
+
+
+def yaml_encode_flow(value):
+    """报文/SSE 用：YAML flow 单行，保持现有分帧与 Content-Length。"""
+    try:
+        text = yaml.safe_dump(value, allow_unicode=True, sort_keys=False,
+                              default_flow_style=True)
+        return {"ok": True, "text": text.strip()}
+    except (TypeError, ValueError, yaml.YAMLError) as exc:
+        return {"ok": False, "error": str(exc), "code": "encode_failed"}
+
+
+def yaml_decode(text):
+    try:
+        return {"ok": True, "value": yaml.safe_load(text or "null")}
+    except yaml.YAMLError as exc:
         return {"ok": False, "error": str(exc), "code": "decode_failed"}
 
 

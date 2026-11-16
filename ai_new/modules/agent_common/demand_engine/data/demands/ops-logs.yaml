@@ -1,0 +1,36 @@
+id: ops-logs
+title: 读日志：读文本 → 切成行 → 解析成事件
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read_text
+  with:
+    module:
+      lit: agent_common/ops
+    path:
+      lit: logs/app.jsonl
+    fallback:
+      lit: ''
+  as: text
+- call: ops.tail
+  with:
+    rows:
+      get: text.value
+    lines:
+      lit: 100
+  as: last
+- call: ops.events
+  with:
+    rows:
+      get: last.rows
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read_text
+  - ops.tail
+  - ops.events
+  payload: {}
+  promise: 解析归模块，读盘归能力

@@ -1,0 +1,27 @@
+secretary:
+- ticket_create
+- ticket_status
+- knowledge_read
+pm:
+- ticket_create
+- ticket_split
+- ticket_status
+- ticket_close
+- role_spawn
+- role_task
+- ticket_read_doc
+- knowledge_read
+- knowledge_write
+- knowledge_search
+- artifact_read
+- artifact_write
+- ticket_note
+role:
+- ticket_read_doc
+- ticket_note
+- ticket_status
+- knowledge_read
+- knowledge_write
+- knowledge_search
+- artifact_read
+- artifact_write

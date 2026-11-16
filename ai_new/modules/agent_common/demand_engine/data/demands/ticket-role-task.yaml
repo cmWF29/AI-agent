@@ -1,0 +1,52 @@
+id: ticket-role-task
+title: 给角色派活：找会话 → send 需求
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: input.id
+        b:
+          lit: /ticket.yaml
+  as: row
+- call: tickets.pick
+  with:
+    rec:
+      get: row.value
+    target:
+      get: input.role
+  as: tgt
+- call: demand_engine.run
+  with:
+    id:
+      lit: session-send
+    input:
+      id:
+        get: tgt.session
+      text:
+        get: input.text
+  as: sent
+- call: tickets.view
+  with:
+    rec:
+      get: row.value
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - tickets.pick
+  - demand_engine.run
+  - tickets.view
+  payload: {}
+  promise: 找人归模块，发消息归需求

@@ -4,7 +4,7 @@
 或者给模块加上一条没人认领的依赖。
 """
 import ast
-import json
+import yaml
 import os
 import shutil
 import sys
@@ -33,7 +33,7 @@ def module_path(name):
 
 def module_dirs():
     """运行时模块（按 data/profiles.json 的 agent 剖面读，不维护第二份名单）。"""
-    profiles = json.loads((module_dir("agent_common", "boot") / "data" / "profiles.json")
+    profiles = yaml.safe_load((module_dir("agent_common", "boot") / "data" / "profiles.yaml")
                           .read_text(encoding="utf-8"))
     groups = (profiles.get("profiles") or {}).get("agent") or ["agent_common", "agent"]
     names = []

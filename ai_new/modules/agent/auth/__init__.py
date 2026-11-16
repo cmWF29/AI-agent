@@ -27,7 +27,7 @@ def setup(ctx):
         if not enabled:
             return {"allow": False, "mode": "legacy", "reason": "unauthorized"}
 
-        record = md.json_read("sessions/%s.json" % token, None)
+        record = md.yaml_read("sessions/%s.yaml" % token, None)
         if not record or not record.get("token"):
             return {"allow": False, "mode": "session", "reason": "unauthorized"}
         now = ctx.clock.now()["ts"]

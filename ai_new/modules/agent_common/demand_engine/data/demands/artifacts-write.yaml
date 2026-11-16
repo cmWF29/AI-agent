@@ -1,0 +1,91 @@
+id: artifacts-write
+title: 写交付件：分层 → 算相对路径 → 文本或二进制落盘 → 回执
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.id
+  with:
+    value:
+      get: input.project
+  as: pid
+- call: store.id
+  with:
+    value:
+      get: input.ticket
+  as: tid
+- call: artifacts.base
+  with:
+    layer:
+      get: input.layer
+    project:
+      get: pid.id
+    ticket:
+      get: tid.id
+  as: base
+- call: artifacts.rel
+  with:
+    base:
+      get: base.base
+    path:
+      get: input.path
+  as: rel
+- when:
+    op: ==
+    a:
+      get: input.encoding
+    b:
+      lit: base64
+  then:
+  - call: codec.hex_from_base64
+    with:
+      text:
+        get: input.content
+    as: hx
+  - call: store.write_bytes
+    with:
+      module:
+        lit: agent/artifacts
+      path:
+        get: rel.path
+      hex:
+        get: hx.hex
+    as: w
+  else:
+  - call: store.write_text
+    with:
+      module:
+        lit: agent/artifacts
+      path:
+        get: rel.path
+      text:
+        get: input.content
+    as: w
+- call: artifacts.written
+  with:
+    path:
+      get: rel.path
+    size:
+      get: w.size
+    layer:
+      get: input.layer
+  as: out
+expect:
+  given:
+    input:
+      layer: ticket
+      project: p1
+      ticket: T-1
+      path: a.bin
+      content: AAEC
+      encoding: base64
+  calls:
+  - store.id
+  - store.id
+  - artifacts.base
+  - artifacts.rel
+  - codec.hex_from_base64
+  - store.write_bytes
+  - artifacts.written
+  payload: {}
+  promise: 落盘由需求做，模块只算路径与形状

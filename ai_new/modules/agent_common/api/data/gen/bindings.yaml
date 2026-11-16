@@ -1,0 +1,8 @@
+default:
+  kind: direct
+generated_by: ai_new/modules/agent_common/api/private/_gen.py
+routes: {}
+stats:
+  bound: 0
+  modules: 21
+  route_literals: 86

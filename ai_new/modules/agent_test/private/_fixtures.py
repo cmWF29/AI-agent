@@ -3,7 +3,7 @@
 数据布局：每个模块的数据在 <组>/<模块>/data/；部署时 AI_NEW_DATA 指向新根，
 布局镜像 modules/。所以测试要"暂存一份"时，按模块拷，而不是拷一个公共 data 桶。
 """
-import json
+import yaml
 import os
 import shutil
 from pathlib import Path
@@ -45,7 +45,7 @@ def stage(dest):
 
 
 def write_config(dest, config):
-    path = Path(dest) / "agent_common" / "config" / "config.json"
+    path = Path(dest) / "agent_common" / "config" / "config.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
     return path

@@ -114,9 +114,9 @@ def _make_handler(ctx):
             if length <= 0:
                 return {}
             raw = self.rfile.read(length)
-            out = ctx.codec.json_decode(raw.decode("utf-8"))
+            out = ctx.codec.yaml_decode(raw.decode("utf-8"))
             if not out.get("ok"):
-                self._json_error(ctx.ApiError("请求体不是合法 JSON",
+                self._json_error(ctx.ApiError("请求体不是合法 YAML",
                                               code="bad_json", status=400))
                 return None
             body = out["value"]
@@ -151,7 +151,7 @@ def _make_handler(ctx):
                 while True:
                     result = ctx.api.call(name, payload)
                     for item in (result.get("items") or []):
-                        chunk = ctx.codec.json_encode(item)
+                        chunk = ctx.codec.yaml_encode_flow(item)
                         self.wfile.write(("data: " + chunk["text"] + "\n\n").encode("utf-8"))
                     if result.get("cursor") is not None:
                         payload["cursor"] = result["cursor"]
@@ -176,10 +176,10 @@ def _make_handler(ctx):
             self.wfile.write(data)
 
         def _json_ok(self, obj):
-            out = ctx.codec.json_encode({"ok": True, **obj} if isinstance(obj, dict) else obj)
+            out = ctx.codec.yaml_encode_flow({"ok": True, **obj} if isinstance(obj, dict) else obj)
             data = out["text"].encode("utf-8")
             self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Type", "application/yaml; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -194,10 +194,10 @@ def _make_handler(ctx):
                 import traceback
                 traceback.print_exc()
                 status, code, message = 500, "internal", "internal error"
-            out = ctx.codec.json_encode({"ok": False, "error": message, "code": code})
+            out = ctx.codec.yaml_encode_flow({"ok": False, "error": message, "code": code})
             data = out["text"].encode("utf-8")
             self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Type", "application/yaml; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -222,6 +222,7 @@ def _content_type(suffix):
         ".js": "text/javascript; charset=utf-8",
         ".css": "text/css; charset=utf-8",
         ".json": "application/json; charset=utf-8",
+        ".yaml": "application/yaml; charset=utf-8",
         ".svg": "image/svg+xml",
         ".png": "image/png",
         ".ico": "image/x-icon",

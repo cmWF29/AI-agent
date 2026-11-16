@@ -10,7 +10,6 @@
 """
 from __future__ import annotations
 
-import json
 import queue
 import threading
 import urllib.error
@@ -28,8 +27,8 @@ class Transport:
     def bindings(self):
         if self._bindings is None:
             md = self.ctx.storage.own(__file__)
-            raw = md.read_text("gen/bindings.json") if md.exists("gen/bindings.json") else "{}"
-            self._bindings = json.loads(raw or "{}")
+            raw = md.read_text("gen/bindings.yaml") if md.exists("gen/bindings.yaml") else "{}"
+            self._bindings = (self.ctx.codec.yaml_decode(raw or "{}")["value"] or {})
         return self._bindings
 
     def reload(self):
@@ -46,7 +45,7 @@ class Transport:
         routes = self.bindings().get("routes") or {}
         return {"default": (self.bindings().get("default") or {}).get("kind") or "direct",
                 "routes": len(routes),
-                "source": "data/gen/bindings.json" if self.bindings() else "未生成，全直连"}
+                "source": "data/gen/bindings.yaml" if self.bindings() else "未生成，全直连"}
 
     # ---- 派发 ----
     def send(self, route, payload, handler, caller=None):
@@ -85,16 +84,16 @@ class Transport:
             raise self.ctx.ApiError("通道 http 缺少 base: %s" % route,
                                     code="bad_transport", status=500)
         url = base.rstrip("/") + "/api/rpc/" + route.replace(".", "/")
-        body = json.dumps(payload or {}, ensure_ascii=False, default=str).encode("utf-8")
+        body = self.ctx.codec.yaml_encode_flow(payload or {})["text"].encode("utf-8")
         req = urllib.request.Request(url, data=body, method="POST",
-                                     headers={"Content-Type": "application/json"})
+                                     headers={"Content-Type": "application/yaml"})
         token = (self.ctx.cfg.get("server") or {}).get("token") or ""
         if token:
             req.add_header("X-Auth-Token", token)
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
-                rec = json.loads(resp.read().decode("utf-8"))
-        except (urllib.error.URLError, ValueError) as exc:
+                rec = self.ctx.codec.yaml_decode(resp.read().decode("utf-8"))["value"]
+        except (urllib.error.URLError, Exception) as exc:
             raise self.ctx.ApiError("远程调用失败: %s (%s)" % (route, exc),
                                     code="remote_error", status=502)
         if not rec.get("ok"):

@@ -1,0 +1,23 @@
+id: health-live
+title: 存活探针：取时间 + 注入的起点，交给 health 成形
+enabled: true
+callable: true
+'on': []
+do:
+- call: clock.now
+  as: now
+- call: health.live
+  with:
+    now:
+      get: now.ts
+    started:
+      get: input.started
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - clock.now
+  - health.live
+  payload: {}
+  promise: 起点是装配数据，时间是能力，探针只是形状

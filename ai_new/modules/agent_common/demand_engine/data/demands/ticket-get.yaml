@@ -1,0 +1,55 @@
+id: ticket-get
+title: 取工单：读一次，缺就报缺
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: input.id
+        b:
+          lit: /ticket.yaml
+  as: row
+- when:
+    op: ==
+    a:
+      get: row.value
+    b: null
+  then:
+  - call: tickets.err
+    with:
+      code:
+        lit: not_found
+      status:
+        lit: 404
+      message:
+        op: +
+        a:
+          lit: '工单不存在: '
+        b:
+          get: input.id
+    as: out
+  else:
+  - call: tickets.view
+    with:
+      rec:
+        get: row.value
+    as: out
+expect:
+  given:
+    input:
+      id: t1
+  calls:
+  - store.read
+  - tickets.view
+  payload: {}
+  promise: 缺就报缺
