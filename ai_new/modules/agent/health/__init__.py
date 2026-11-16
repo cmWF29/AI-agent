@@ -12,7 +12,11 @@ def setup(ctx):
     _MOUNT["modules"] = []
 
     def _with_mount(fn, payload):
-        return fn({**mount(), **(payload or {})})
+        data = dict(mount())
+        data["now"] = ctx.clock.now()["ts"]
+        if payload:
+            data.update(payload)
+        return fn(data)
 
     for name, fn in [("health.live", _pure.live), ("health.assemble", _pure.assemble)]:
         ctx.api.register(name, lambda c, p, fn=fn: _with_mount(fn, p), module="health")
