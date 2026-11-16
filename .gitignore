@@ -17,3 +17,12 @@ ai_new/modules/agent_common/ops/data/exports/
 .DS_Store
 .idea/
 .vscode/
+
+# 运行期业务产物（由需求编排落盘，不进源码库）
+ai_new/modules/agent/auth/data/sessions/
+ai_new/modules/agent/sessions/data/sessions/
+ai_new/modules/agent/channel/data/channels/
+ai_new/modules/agent/tickets/data/tickets/
+ai_new/modules/agent/tickets/data/messages.json
+ai_new/modules/agent/projects/data/
+ai_new/modules/agent/artifacts/data/
