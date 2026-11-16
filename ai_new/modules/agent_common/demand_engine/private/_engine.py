@@ -47,6 +47,7 @@ class Engine:
             {"id": r["id"], "title": r.get("title", ""),
              "enabled": bool(r.get("enabled", True)),
              "tags": list(r.get("tags") or []),
+             "view": r.get("view") or None,
              "on": list(r["on"]),
              "do": _lang.routes_of(r.get("do"))}
             for r in self._load()

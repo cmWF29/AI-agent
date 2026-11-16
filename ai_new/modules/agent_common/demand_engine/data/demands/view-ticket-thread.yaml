@@ -1,0 +1,49 @@
+id: view-ticket-thread
+title: 工单会话视图：主会话按群聊渲染，工单属性与操作在右栏
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: ticket
+  crumb: [项目, "{thread.ticket.project|project_name}", "{thread.ticket.title}"]
+  heading_from: "{thread.ticket.title}"
+  data:
+  - {as: thread, demand: ticket-thread, params: {id: "{route.ticket}"}}
+  - {as: tree, demand: project-tree, cache: projects}
+  sections:
+  - kind: chat
+    source: thread.thread
+    as: main
+    hide_roles: [system]
+    empty: 还没有消息，PM 正在准备…
+    roles_source: thread.roles
+  - kind: kv
+    source: thread.ticket
+    heading: 工单
+    rows:
+    - {label: 状态, badge: status}
+    - {label: 类型, value: kind, fallback: normal}
+    - {label: 所属项目, value: project, format: project_name}
+    - {label: 创建, value: created, format: when}
+    - {label: 更新, value: updated, format: when}
+    - {label: 父工单, value: parent, fallback: "—"}
+  - kind: composer
+    placeholder: 发给 PM 的消息，Enter 发送
+    submit: {label: 发送, demand: ticket-message,
+             params: {id: "{thread.ticket.id}", text: "$text", target: pm},
+             flash: 已通知 PM}
+    actions:
+    - {label: 追加备注, demand: ticket-note, params: {id: "{thread.ticket.id}", text: "$text"},
+       flash: 备注已追加, clear: true}
+    - {label: 结单, demand: ticket-close,
+       params: {id: "{thread.ticket.id}", summary: "$text", verdict: done},
+       confirm: 确认结单？结单后不能再发消息。, tone: danger, stay: true}
+    disabled_when: "{thread.ticket.status=closed}"
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 会话视图只声明区块，数据源走需求

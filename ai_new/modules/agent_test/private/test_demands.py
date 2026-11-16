@@ -155,6 +155,15 @@ class DemandContractTest(unittest.TestCase):
         for rec in load_all():
             exp = rec.get("expect") or {}
             given = exp.get("given") or {}
+            if rec.get("view") and not rec.get("callable"):
+                # 页面声明类需求：只声明视图规格，不编排服务，预期就是"空输入 + 不调服务"
+                if rec.get("do"):
+                    problems.append("%s 是视图声明，do 必须为空（页面不许编排业务）" % rec.get("id"))
+                if not isinstance(given.get("input"), dict):
+                    problems.append("%s 是视图声明，必须有 expect.given.input" % rec.get("id"))
+                if not isinstance(exp.get("calls"), list):
+                    problems.append("%s 是视图声明，expect.calls 必须是列表" % rec.get("id"))
+                continue
             if rec.get("callable"):
                 # 编排需求不挂在点上，它被"按名调用"，所以预期的是 input
                 if not isinstance(given.get("input"), dict):
@@ -232,6 +241,67 @@ class DemandContractTest(unittest.TestCase):
         self.assertEqual(stray, [], "这些标签没有在 tags.yaml 登记: %s" % stray)
         dup = [t for t in known if list(known).count(t) > 1]
         self.assertEqual(len(known), len(set(known)), "tags.yaml 里标签 id 重复: %s" % dup)
+
+    def test_view_specs_are_bound(self):
+        """视图闸：key 唯一、数据源必须是真需求、弹窗与跳转必须落地。
+
+        页面声明不编排服务，但它引用的每一个名字都必须真实存在 ——
+        否则前端会拿到一个指向空气的按钮，而回归毫无察觉。
+        """
+        demands = load_all()
+        ids = {rec.get("id") for rec in demands}
+        keyed = self._view_keys(demands)
+        forms, problems = set(), []
+        for rec in demands:
+            spec = rec.get("view") or {}
+            for f in spec.get("forms") or []:
+                if not f.get("id"):
+                    problems.append("%s 有表单缺 id" % rec.get("id"))
+                if f.get("id") in forms:
+                    problems.append("表单 id 重复: %s" % f.get("id"))
+                submit = f.get("submit") or {}
+                if submit.get("demand") not in ids:
+                    problems.append("表单 %s 提交的需求不存在: %s" % (f.get("id"), submit.get("demand")))
+                forms.add(f.get("id"))
+            if not spec.get("key"):
+                continue
+            key = spec.get("key")
+            if not spec.get("sections"):
+                problems.append("视图 %s 没有区块" % key)
+            for src in spec.get("data") or []:
+                if src.get("demand") not in ids:
+                    problems.append("视图 %s 的数据源不是需求: %s" % (key, src.get("demand")))
+            for act in spec.get("actions") or []:
+                self._check_action(key, act, ids, forms, keyed, problems)
+            for sec in spec.get("sections") or []:
+                for act in sec.get("actions") or []:
+                    self._check_action(key, act, ids, forms, keyed, problems)
+                nav = sec.get("on_click") or {}
+                if nav.get("view") and nav["view"] not in keyed:
+                    problems.append("视图 %s 的区块跳转指向不存在的视图: %s" % (key, nav["view"]))
+                for act in (sec.get("filters") or []):
+                    if act.get("key") and act.get("demand") and act["demand"] not in ids:
+                        problems.append("视图 %s 的筛选动作需求不存在: %s" % (key, act["demand"]))
+        keys = [(rec.get("view") or {}).get("key") for rec in demands
+                if (rec.get("view") or {}).get("key")]
+        dup = sorted({k for k in keys if keys.count(k) > 1})
+        if dup:
+            problems.append("视图 key 重复: %s" % dup)
+        self.assertEqual(problems, [], "视图规格越界: %s" % problems)
+
+    @staticmethod
+    def _view_keys(demands):
+        return {(rec.get("view") or {}).get("key") for rec in demands
+                if (rec.get("view") or {}).get("key")}
+
+    def _check_action(self, key, act, ids, forms, keyed, problems):
+        if act.get("demand") and act["demand"] not in ids:
+            problems.append("视图 %s 的动作需求不存在: %s" % (key, act["demand"]))
+        if act.get("modal") and act["modal"] not in forms:
+            problems.append("视图 %s 引用了不存在的表单: %s" % (key, act["modal"]))
+        after = act.get("after") or {}
+        if after.get("view") and after["view"] not in keyed:
+            problems.append("视图 %s 的动作去向指向不存在的视图: %s" % (key, after["view"]))
 
     def test_checks_claim_only_existing_demands(self):
         """反过来：清单不许点名不存在的需求（需求下线后清单必须跟着改）。"""

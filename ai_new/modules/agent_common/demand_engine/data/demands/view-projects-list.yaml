@@ -1,0 +1,56 @@
+id: view-projects-list
+title: 项目列表视图：首屏只列项目，工单归项目内，未归属单折叠在底部
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: projects
+  crumb: [项目]
+  heading: 项目
+  subheading: 选一个项目进去看它的工单
+  actions:
+  - {label: ＋ 新建项目, tone: primary, modal: project.new}
+  data:
+  - {as: tree, demand: project-tree}
+  sections:
+  - kind: cards
+    source: tree.items
+    key: row.project.id
+    title: row.project.name
+    archived_when: row.project.archived
+    badge: {text: 已归档, when: row.project.archived}
+    stat:
+      count: row.counts.total
+      label: 工单
+      note: "{row.counts.open} 进行中 · {row.counts.closed} 已结单"
+    meta:
+    - {label: 建, value: row.project.created, format: when}
+    - {label: 后端, value: row.project.default_backend, hide_if_empty: true}
+    actions:
+    - {label: 改名, modal: project.rename}
+    - {label: 归档, demand: projects-archive, params: {id: row.project.id},
+       flash: "已归档：{row.project.name}", disabled_when: row.project.archived,
+       after: {view: projects, reload: true}}
+    - {label: 删除, demand: projects-delete, params: {id: row.project.id, purge: true},
+       confirm: "彻底删除项目「{row.project.name}」？工单不会被删。",
+       flash: "已删除：{row.project.name}", tone: danger,
+       after: {view: projects, reload: true}}
+    on_click: {view: project, params: {project: row.project.id}}
+    empty: {title: 还没有项目, text: 先建一个项目，工单都挂在项目里。}
+  - kind: table
+    source: tree.orphans
+    title: 未归属工单
+    summarize: true
+    columns:
+    - {label: 标题, value: row.title, sub: row.id}
+    - {label: 状态, badge: row.status}
+    - {label: 更新时间, value: row.updated, format: when, muted: true}
+    on_click: {view: ticket, params: {project: "", ticket: row.id}}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 首屏只列项目，动作与文案全在规格里

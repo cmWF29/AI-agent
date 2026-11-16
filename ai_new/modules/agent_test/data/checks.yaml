@@ -44,6 +44,12 @@ checks:
   - health-live
   - health-self
   - demands-list
+  - view-forms
+  - view-positions
+  - view-project-detail
+  - view-projects-list
+  - view-ticket-thread
+  - views-list
   - knowledge-compose
   - knowledge-list
   - knowledge-overview

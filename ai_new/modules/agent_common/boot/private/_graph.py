@@ -208,9 +208,10 @@ def _hook_graph(funcs_by_module, roots, data_dir):
         if rec.get("callable"):
             if rec.get("on"):
                 warnings.append("需求 %s 是 callable，不该再挂 hook 点" % rec["id"])
-        elif not rec.get("on"):
+        elif not rec.get("on") and not rec.get("view"):
+            # 视图声明类需求不订阅 hook 点：它只声明页面，由视图闸单独管
             warnings.append("需求 %s 没有声明任何 hook 点" % rec["id"])
-        if not rec.get("do"):
+        if not rec.get("do") and not rec.get("view"):
             warnings.append("需求 %s 没有声明任何服务调用" % rec["id"])
         routes = []
         for hook in rec.get("on") or []:
@@ -266,7 +267,9 @@ def _read_demands(data_dir):
         items.append({"id": rec["id"], "title": rec.get("title", ""),
                       "enabled": bool(rec.get("enabled", True)),
                       "on": _as_hooks(rec.get("on")), "do": list(rec["do"]),
-                      "callable": bool(rec.get("callable"))})
+                      "callable": bool(rec.get("callable")),
+                      "view": rec.get("view") or None,
+                      "tags": list(rec.get("tags") or [])})
     return items
 
 

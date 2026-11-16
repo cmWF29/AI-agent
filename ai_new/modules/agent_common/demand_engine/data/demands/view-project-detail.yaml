@@ -1,0 +1,48 @@
+id: view-project-detail
+title: 项目详情视图：一个项目下的全部工单，建单自动挂本项目
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: project
+  crumb: [项目, "{project.name}"]
+  heading: "{project.name}"
+  subheading: "建 {project.created|when}"
+  data:
+  - {as: project, demand: projects-get, params: {id: "{route.project}"}}
+  - {as: tickets, demand: ticket-list, params: {project: "{route.project}"}}
+  actions:
+  - {label: 重命名, modal: project.rename}
+  - {label: 归档, demand: projects-archive, params: {id: "{route.project}"},
+     flash: "已归档：{project.name}", disabled_when: "{project.archived}", stay: true}
+  - {label: 删除, demand: projects-delete, params: {id: "{route.project}", purge: true},
+     confirm: "彻底删除项目「{project.name}」？", flash: "已删除：{project.name}",
+     tone: danger, after: {view: projects}}
+  - {label: ＋ 新建工单, tone: primary, modal: ticket.new,
+     disabled_when: "{project.archived}", disabled_hint: 已归档项目不能再建工单}
+  sections:
+  - kind: table
+    source: tickets.items
+    heading: 工单
+    count_note: "{data.tickets.items.length} 条 / 进行中 {data.tickets.items|count(status!=closed)}"
+    filters:
+    - {key: all, label: 全部}
+    - {key: open, label: 进行中, keep: "status!=closed"}
+    - {key: closed, label: 已结单, keep: "status=closed"}
+    sort: {by: updated, order: desc}
+    columns:
+    - {label: 标题, value: row.title, sub: row.id}
+    - {label: 状态, badge: row.status}
+    - {label: 类型, value: row.kind, fallback: normal, muted: true}
+    - {label: 更新, value: row.updated, format: when, muted: true}
+    - {label: PM, value: row.pm, fallback: "—", muted: true}
+    on_click: {view: ticket, params: {project: "{route.project}", ticket: row.id}}
+    empty: {text: 这个项目还没有工单}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 项目详情只声明区块，数据源走需求

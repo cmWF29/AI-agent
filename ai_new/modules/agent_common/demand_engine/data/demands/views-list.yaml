@@ -1,0 +1,16 @@
+id: views-list
+title: 视图清单：把全部视图与表单规格一次交出去
+tags: [view, web, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.list
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.list
+  payload: {}
+  promise: 清单只读，规格随需求一起露出

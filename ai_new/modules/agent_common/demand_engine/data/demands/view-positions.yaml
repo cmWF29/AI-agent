@@ -1,0 +1,27 @@
+id: view-positions
+title: 岗位库视图：岗位是系统提示词与流程规范，不在主线
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: positions
+  crumb: [项目, 岗位库]
+  heading: 岗位库
+  subheading: 岗位 = 系统提示词 + 流程规范；角色是岗位在某工单上的实例
+  data:
+  - {as: list, demand: position-list}
+  sections:
+  - kind: table
+    source: list.items
+    columns:
+    - {label: 名称, value: row.cn, fallback: row.id}
+    - {label: 流程检查, value: "row.flow.checks|count", suffix: 项流程检查, muted: true}
+    empty: {text: 暂无岗位}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 岗位库只声明表格，数据源走需求

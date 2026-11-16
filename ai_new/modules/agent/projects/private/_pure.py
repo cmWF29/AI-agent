@@ -48,8 +48,12 @@ def tree(p):
     for pr in projs:
         if not pr:
             continue
+        rows = by.get(pr.get("id")) or []
+        open_n = len([t for t in rows if t.get("status") != "closed"])
         items.append({"project": view({"rec": pr}),
-                      "tickets": by.get(pr.get("id")) or []})
+                      "tickets": rows,
+                      "counts": {"total": len(rows), "open": open_n,
+                                 "closed": len(rows) - open_n}})
     return {"items": items, "orphans": orphans}
 
 
