@@ -234,6 +234,44 @@ class CoreTest(unittest.TestCase):
         self.assertNotIn("exec.run", [r["name"] for r in self.ctx.api.routes()],
                          "内部路由不该出现在对外路由清单里")
 
+    def test_agent_stream_draft_grows_and_clears(self):
+        """agent 边跑边吐：运行期草稿中途可见增长，一轮定稿后清空，不落盘。"""
+        import threading, time as _time, tempfile, os, pathlib
+        script = pathlib.Path(tempfile.mkdtemp()) / "stream_agent.py"
+        script.write_text("import time\nprint('L1', flush=True); time.sleep(0.8); "
+                          "print('L2', flush=True); time.sleep(0.8); print('L3')", encoding="utf-8")
+        cfg = self.ctx.cfg.setdefault("llm", {})
+        keep = dict(cfg)
+        cfg["mode"] = "agent"
+        cfg["agent"] = {"command": ["python3", str(script)], "timeout": 20}
+        key = "draft-probe"
+        seen, box = [], {}
+        def worker():
+            box["r"] = self._run("react-run", {
+                "messages": [{"role": "user", "content": "x"}],
+                "mode": "agent", "tools": [],
+                "cancel": {"id": key, "since": 0}})["result"]
+        th = threading.Thread(target=worker, daemon=True)
+        th.start()
+        for _ in range(40):
+            _time.sleep(0.2)
+            d = self.ctx.runtime.stream_get(key)
+            if d["text"]:
+                seen.append(d["text"])
+            if not th.is_alive():
+                break
+        th.join()
+        try:
+            self.assertGreaterEqual(len(seen), 2, "草稿应在中途多次被读到")
+            self.assertIn("L1", seen[0])
+            msgs = box["r"].get("messages") or []
+            self.assertIn("L3", msgs[-1].get("content") or "")
+            final = self.ctx.runtime.stream_get(key)
+            self.assertFalse(final["running"], "定稿后草稿必须清空")
+        finally:
+            cfg.clear(); cfg.update(keep)
+            script.unlink(missing_ok=True)
+
     def test_agent_process_is_killed_on_cancel(self):
         """打断要真停：外部 agent 进程被 kill，能在秒级收尾，不拖到自然跑完。"""
         cfg = self.ctx.cfg.setdefault("llm", {})

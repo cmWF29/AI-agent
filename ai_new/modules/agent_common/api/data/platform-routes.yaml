@@ -22,3 +22,6 @@ routes:
   hooks.points:
     caller: http-inspect
     reason: 前端与巡检读取已声明的 hook 点清单；只读可见性面。
+  runtime.stream:
+    caller: view
+    reason: 视图轮询读运行期草稿（内存面，不落盘）；外部 agent 逐行吐正文时给前端看增量。

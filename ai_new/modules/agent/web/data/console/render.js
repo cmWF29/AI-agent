@@ -135,7 +135,14 @@ function chatHtml(sec, ctx) {
     return !(m.role === "assistant" && !String(m.content || "").trim());
   });
   const headTitle = sec.heading ? `<div class="chat-title">${esc(fill(sec.heading, ctx))}</div>` : "";
-  const body = msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`;
+  const draft = (ctx.data && ctx.data.draft) || {};
+  const draftTxt = String(draft.text || "");
+  const draftHtml = (draft.running && draftTxt.trim())
+    ? `<div class="msg left"><div class="avatar" style="--av:${avatarColor(speakerOf({ role: "assistant" }, roles))}">${initial(speakerOf({ role: "assistant" }, roles))}</div>
+        <div class="msg-main"><div class="msg-name">${esc(speakerOf({ role: "assistant" }, roles))}</div>
+        <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`
+    : "";
+  const body = (msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
     ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip">${esc((r.display || r.role) + " · " + (r.status || ""))}</span>`).join("")}</div></div>` : ""}
     <div class="chat">${body}</div>

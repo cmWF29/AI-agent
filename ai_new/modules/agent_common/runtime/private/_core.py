@@ -24,11 +24,37 @@ class Runtime:
         self.ctx = ctx
         self._runs = {}
         self._cancel = {}
+        self._stream = {}
         self._lock = threading.Lock()
 
     def cancelled(self, key, since):
         """同一把钥匙上，since 之后有没有人置过打断位。"""
         return (self._cancel.get(str(key or "")) or 0) > (since or 0)
+
+    # ---- 运行期草稿：内存面，不落盘。进程边跑边吐的正文先攒在这里，定稿后清掉 ----
+
+    def stream_put(self, key, text):
+        if not key or text is None:
+            return
+        with self._lock:
+            slot = self._stream.setdefault(str(key), {"text": "", "at": self._now()})
+            slot["text"] += str(text)
+            slot["at"] = self._now()
+
+    def stream_get(self, key):
+        if not key:
+            return {"text": "", "running": False}
+        with self._lock:
+            slot = self._stream.get(str(key))
+            if not slot:
+                return {"text": "", "running": False}
+            return {"text": slot["text"], "running": True, "at": slot["at"]}
+
+    def stream_clear(self, key):
+        if not key:
+            return
+        with self._lock:
+            self._stream.pop(str(key), None)
 
     def call(self, demand, data=None):
         """同步跑一条需求并拿结果：能力的批量动作里，单次动作仍是一条需求。"""

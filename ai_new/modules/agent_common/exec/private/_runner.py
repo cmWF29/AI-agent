@@ -17,6 +17,7 @@ def run(ctx, payload):
 
     limit = float(payload.get("timeout") or 300)
     cancel = payload.get("cancel") or {}
+    stream_key = payload.get("stream_key") or ""
     runtime = getattr(ctx, "runtime", None)
     try:
         proc = subprocess.Popen(
@@ -37,8 +38,12 @@ def run(ctx, payload):
 
     def pump(stream, key):
         try:
-            for chunk in iter(lambda: stream.read(4096), ""):
-                buf[key].append(chunk)
+            # 逐行读：块读会在管道没填满、没到 EOF 时一直阻塞，流式增量就看不到
+            for line in iter(lambda: stream.readline(), ""):
+                buf[key].append(line)
+                # 正文逐行吐进运行期草稿；stderr 不算答复，不进缓冲
+                if key == "out" and stream_key and runtime is not None:
+                    runtime.stream_put(stream_key, line)
         except Exception:  # noqa: BLE001 — 进程被 kill 时读线程收尾即可
             pass
 

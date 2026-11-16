@@ -21,6 +21,10 @@ view:
     demand: ticket-thread
     params:
       id: '{route.ticket}'
+  - as: draft
+    demand: session-draft
+    params:
+      id: '{thread.thread.id}'
   - as: tree
     demand: project-tree
     cache: projects

@@ -122,6 +122,7 @@ def _chat_agent(ctx, payload):
         "cwd": agent.get("cwd") or "",
         "timeout": agent.get("timeout") or cfgv.get("timeout") or 600,
         "cancel": payload.get("cancel") or {},
+        "stream_key": (payload.get("cancel") or {}).get("id") or "",
     }, caller=None)
     if not resp.get("ok"):
         return {"ok": False, "code": "agent_failed", "error": resp.get("error"),

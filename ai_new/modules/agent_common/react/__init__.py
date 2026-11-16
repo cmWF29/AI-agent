@@ -77,6 +77,8 @@ def _route_run(ctx, payload):
                 "id": (call or {}).get("id"), "name": fn.get("name"),
                 "content": enc.get("text")}, caller=None)
             messages = messages + [tmsg]
+    if gate:
+        ctx.runtime.stream_clear(gate.get("id"))
     return ctx.api.call("react.result", {"messages": messages, "steps": steps,
                                           "cancelled": cancelled,
                                           "failed": failed}, caller=None)

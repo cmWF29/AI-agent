@@ -80,6 +80,7 @@ checks:
   - session-ask
   - session-compact
   - session-destroy
+  - session-draft
   - session-get
   - session-list
   - session-run

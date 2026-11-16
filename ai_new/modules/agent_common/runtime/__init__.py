@@ -15,4 +15,11 @@ def setup(ctx):
     ctx.api.register("runtime.dispatch", ctx.runtime.dispatch,
                      "后台跑一条需求：同一把钥匙已在跑，就先置打断、等它退出、再以新输入重跑",
                      module="runtime")
+    ctx.api.register("runtime.stream", _route_stream,
+                     "读运行期草稿（内存面，不落盘）：视图轮询看外部 agent 逐行吐出的正文",
+                     module="runtime")
     return True
+
+
+def _route_stream(ctx, payload):
+    return ctx.runtime.stream_get((payload or {}).get("key"))

@@ -8,3 +8,7 @@ ai_new/modules/agent/tickets/data/tickets/
 ai_new/modules/agent/tickets/data/messages.json
 ai_new/modules/agent/projects/data/
 ai_new/modules/agent/artifacts/data/
+
+# Python 缓存
+__pycache__/
+*.pyc
