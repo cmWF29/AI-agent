@@ -50,6 +50,32 @@ def setup(ctx):
     ]
     for name, fn in pairs:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="auth")
+    ctx.api.register("auth.login", _route_login, "登录闭环：配置→摘要比对→发会话→落盘→会话视图",
+                     module="auth")
     ctx.api.register("auth.verify", lambda c, p: _verify(p), module="auth")
     ctx.api.register("auth.status", lambda c, p: _status(p), module="auth")
     return True
+
+
+def _route_login(ctx, payload):
+    cfg = ctx.api.call("config.get", {"key": "server.auth"}, caller=None) or {}
+    cfgv = cfg.get("value") or {}
+    dg = ctx.api.call("codec.digest", {
+        "text": str(cfgv.get("salt") or "") + ":" + str(payload.get("password") or ""),
+        "algorithm": "sha256"}, caller=None)
+    ok = ctx.api.call("auth.credentials_ok", {
+        "username": payload.get("username"),
+        "expect_username": cfgv.get("username"),
+        "digest": dg.get("hex"),
+        "expect_hash": cfgv.get("password_hash")}, caller=None)
+    if not ok.get("ok"):
+        return {"ok": False, "code": "bad_credentials", "status": 401,
+                "message": "用户名或密码错误"}
+    now = ctx.api.call("clock.now", {}, caller=None)
+    nonce = ctx.api.call("codec.nonce", {"length": 32}, caller=None)
+    rec = ctx.api.call("auth.build_session", {
+        "token": nonce.get("token"), "username": payload.get("username"),
+        "issued": now.get("ts"), "ttl": cfgv.get("ttl")}, caller=None)
+    ctx.api.call("store.write", {"module": "agent/auth",
+        "path": "sessions/%s.yaml" % rec.get("token"), "value": rec}, caller=None)
+    return ctx.api.call("auth.session_view", {"record": rec}, caller=None)

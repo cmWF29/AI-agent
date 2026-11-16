@@ -54,3 +54,13 @@ capabilities:
     - projects.archive
     - store.write
     - projects.view
+  auth.login:
+    calls:
+    - config.get
+    - codec.digest
+    - auth.credentials_ok
+    - clock.now
+    - codec.nonce
+    - auth.build_session
+    - store.write
+    - auth.session_view
