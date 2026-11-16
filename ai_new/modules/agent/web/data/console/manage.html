@@ -26,28 +26,75 @@ body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"
 button,input,select,textarea{font:inherit;color:inherit}
 
 /* ---- 顶栏 ---- */
-.topbar{display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--card);border-bottom:1px solid var(--line)}
+.topbar{display:flex;align-items:center;gap:14px;padding:12px 22px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 .brand{display:flex;align-items:center;gap:10px}
 .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#2f6bff,#722ed1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
 .brand h1{font-size:15px;margin:0;line-height:1.2}
 .brand .sub{font-size:12px;color:var(--muted)}
-.topbar .spacer{margin-left:auto}
+.crumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-2);min-width:0}
+.crumb button{background:transparent;border:0;padding:2px 6px;border-radius:8px;color:var(--fg-2)}
+.crumb button:hover{background:var(--line-2);color:var(--fg)}
+.crumb .sep{color:var(--muted)}
+.crumb .now{font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:36vw}
+.spacer{margin-left:auto}
 
-/* ---- 布局 ---- */
-main{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px 22px;align-items:start}
-.side{display:flex;flex-direction:column;gap:16px}
+/* ---- 视图容器 ---- */
+main{padding:18px 22px 40px;max-width:1180px;margin:0 auto}
+.view{display:block}
+.view[hidden]{display:none}
+.view-head{display:flex;align-items:flex-end;gap:12px;margin-bottom:14px}
+.view-head h2{font-size:18px;margin:0;font-weight:600}
+.view-head .desc{color:var(--muted);font-size:12.5px}
+.view-head .spacer{margin-left:auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
-.card h2{font-size:13px;margin:0 0 12px;color:var(--fg-2);letter-spacing:.02em}
-.full{grid-column:1/-1}
 
-/* ---- 表单 ---- */
-label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
-input,select,textarea{width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;outline:none;transition:border-color .15s,box-shadow .15s}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
-textarea{min-height:64px;resize:vertical}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.full-field{margin-bottom:10px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* ---- 项目卡片 ---- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px}
+.pcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 16px 14px;cursor:pointer;transition:border-color .15s,transform .08s}
+.pcard:hover{border-color:var(--accent)}
+.pcard:active{transform:scale(.995)}
+.pcard:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+.pcard.archived{cursor:default;opacity:.72}
+.pcard .pname{font-size:15px;font-weight:600;margin:0 0 2px;padding-right:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .meta{font-size:12.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.pcard .stat{font-size:12.5px;color:var(--fg-2);margin-top:10px;display:flex;gap:8px;align-items:center}
+.pcard .stat b{font-size:18px;color:var(--fg);font-weight:600}
+.pcard .acts{position:absolute;top:12px;right:12px;display:flex;gap:4px}
+.pcard .acts button{padding:3px 8px;font-size:12px;border-radius:8px;background:transparent}
+.pcard .ar{position:absolute;right:14px;bottom:14px;color:var(--muted);font-size:16px}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);padding:44px 20px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--fg);font-size:15px;margin-bottom:6px;font-weight:600}
+.cards .empty{grid-column:1/-1}
+
+/* ---- 未归属工单 ---- */
+.orphans{margin-top:18px}
+.orphans summary{cursor:pointer;color:var(--muted);font-size:12.5px;list-style:none}
+.orphans summary::-webkit-details-marker{display:none}
+.orphans summary::before{content:"▸ ";color:var(--muted)}
+.orphans[open] summary::before{content:"▾ "}
+.orphans table{margin-top:10px}
+
+/* ---- 表格 ---- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-2)}
+th{color:var(--muted);font-weight:500;font-size:12.5px}
+tbody tr{cursor:pointer;transition:background .12s}
+tbody tr:hover{background:var(--line-2)}
+tbody tr:last-child td{border-bottom:0}
+.tbl-wrap{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.tbl-wrap .tbl-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12.5px;background:transparent}
+.seg button.on{background:var(--accent);color:#fff}
+
+/* ---- 徽章 / 标签 ---- */
+.muted{color:var(--muted);font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:12px}
+.badge.closed,.badge.gone{color:var(--ok);border-color:rgba(0,180,42,.4)}
+.badge.open,.badge.running{color:var(--accent);border-color:rgba(47,107,255,.4)}
+.badge.archived{color:var(--warn);border-color:rgba(255,125,0,.4)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--fg-2)}
 
 /* ---- 按钮 ---- */
 button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;transition:background .15s,border-color .15s,opacity .15s}
@@ -58,145 +105,180 @@ button.danger{color:var(--danger);border-color:rgba(245,63,63,.4)}
 button.danger:hover:not(:disabled){background:rgba(245,63,63,.08)}
 button.ghost{background:transparent}
 button:disabled{opacity:.4;cursor:not-allowed}
-.actions button{padding:5px 10px;font-size:12.5px;border-radius:8px}
 
-/* ---- 徽章 / 标签 ---- */
-.muted{color:var(--muted);font-size:12px}
-.badge{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:12px}
-.badge.closed,.badge.gone{color:var(--ok);border-color:rgba(0,180,42,.4)}
-.badge.archived{color:var(--warn);border-color:rgba(255,125,0,.4)}
-.badge.running{color:var(--accent);border-color:rgba(47,107,255,.4)}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--fg-2)}
+/* ---- 表单 / 弹窗 ---- */
+label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+input,select,textarea{width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+input[readonly]{background:var(--line-2);color:var(--fg-2)}
+textarea{min-height:72px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field{margin-bottom:10px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.modal{position:fixed;inset:0;background:rgba(16,24,40,.42);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
+.modal[hidden]{display:none}
+.modal-card{width:min(520px,100%);background:var(--card);border-radius:16px;box-shadow:0 12px 40px rgba(16,24,40,.22);padding:20px 22px}
+.modal-card h2{font-size:16px;margin:0 0 4px}
+.modal-card .hint{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+.modal-err{display:none;margin:0 0 12px;padding:9px 11px;border-radius:10px;background:rgba(245,63,63,.08);color:var(--danger);font-size:12.5px}
+.modal-err.on{display:block}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 
-/* ---- 分级树 ---- */
-.tree{margin-top:4px;display:flex;flex-direction:column;gap:10px}
-.proj{border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.proj-head{display:flex;align-items:center;gap:8px;padding:11px 12px;cursor:pointer}
-.proj-head .caret{width:14px;display:inline-block;transition:transform .15s;color:var(--muted)}
-.proj.open .caret{transform:rotate(90deg)}
-.proj-head .pname{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.proj-head .cnt{font-size:12px;color:var(--muted)}
-.proj-body{display:none;border-top:1px solid var(--line-2)}
-.proj.open .proj-body{display:block}
-.ticket-row{display:flex;align-items:center;gap:8px;padding:9px 12px 9px 34px;cursor:pointer;border-top:1px solid var(--line-2)}
-.ticket-row:hover{background:var(--line-2)}
-.ticket-row.active{background:var(--accent-weak)}
-.ticket-row .t-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.orphans{margin-top:10px;display:flex;flex-direction:column;gap:6px}
-
-/* ---- 群聊 ---- */
-.chat-card{display:flex;flex-direction:column;min-height:560px}
-.chat-head{padding-bottom:12px;border-bottom:1px solid var(--line-2)}
-.chat-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
-.chat-title .muted{font-weight:400}
-.chat-head .chips{margin-top:8px}
-.chat{display:flex;flex-direction:column;gap:16px;flex:1;min-height:320px;max-height:54vh;overflow-y:auto;padding:16px 4px}
-.msg{display:flex;gap:10px;max-width:74%}
-.msg.right{align-self:flex-end;flex-direction:row-reverse}
+/* ---- 会话视图 ---- */
+.ticket-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+.chat-card{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:520px}
+.chat-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chat-title{font-size:13px;color:var(--fg-2);display:flex;align-items:center;gap:8px;min-width:0}
+.chat-title strong{color:var(--fg);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat{flex:1;overflow:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+.chat-empty{margin:auto;color:var(--muted);font-size:13px}
+.msg{display:flex;gap:8px;align-items:flex-start;max-width:82%}
+.msg.right{align-self:flex-end;flex-direction:row}
 .msg.left{align-self:flex-start}
-.avatar{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px;background:var(--av,#86909c)}
-.msg-main{display:flex;flex-direction:column;gap:3px;min-width:0}
-.msg.right .msg-main{align-items:flex-end}
-.msg-name{font-size:12px;color:var(--muted);padding:0 4px}
-.bubble-stack{display:flex;flex-direction:column;gap:6px}
-.bubble-body{padding:9px 13px;border-radius:12px;background:var(--line-2);border:1px solid var(--line-2);white-space:pre-wrap;word-break:break-word;line-height:1.6}
-.msg.right .bubble-body{background:var(--accent);border-color:var(--accent);color:#fff;border-top-right-radius:4px}
+.msg.system{align-self:center;max-width:70%}
+.avatar{width:32px;height:32px;border-radius:9px;flex:none;background:var(--av);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px}
+.msg-main{min-width:0}
+.msg.right .msg-main{text-align:right}
+.msg-name{font-size:12px;color:var(--muted);margin-bottom:4px}
+.bubble-stack{display:flex;flex-direction:column;gap:3px}
+.msg.left .bubble-stack{align-items:flex-start}
+.msg.right .bubble-stack{align-items:flex-end}
+.bubble-body{padding:9px 13px;border-radius:12px;background:var(--card);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;max-width:100%}
 .msg.left .bubble-body{border-top-left-radius:4px}
-.msg-ts{font-size:11px;color:var(--muted);padding:0 4px}
-.msg.system{align-self:center;max-width:90%}
-.msg.system .sys-body{font-size:12px;color:var(--muted);text-align:center}
-.chat-empty{margin:auto;color:var(--muted)}
-.composer{display:flex;gap:8px;margin-top:12px}
-.composer textarea{flex:1;min-height:46px}
+.msg.right .bubble-body{background:var(--accent);border-color:var(--accent);color:#fff;border-top-right-radius:4px}
+.msg-ts{font-size:11px;color:var(--muted);margin-top:4px}
+.msg.system .sys-body{padding:7px 12px;border-radius:999px;background:var(--line-2);color:var(--fg-2);font-size:12.5px;text-align:center}
+.composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--card)}
+.composer textarea{min-height:44px;max-height:120px;flex:1}
 .composer button{flex:none}
-
-/* ---- 表格 ---- */
-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
-td,th{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line-2);vertical-align:top}
-th{color:var(--muted);font-weight:500}
-
-#status{margin-top:10px;font-size:12px;color:var(--muted)}
-#banner{margin:14px 22px 0;padding:10px 14px;border-radius:12px;font-size:13px;display:none}
-#banner.err{display:block;background:rgba(245,63,63,.08);color:var(--danger);border:1px solid rgba(245,63,63,.3)}
-#banner.ok{display:block;background:rgba(0,180,42,.08);color:var(--ok);border:1px solid rgba(0,180,42,.3)}
-details{margin-top:6px}
-details summary{font-size:12px;color:var(--muted);cursor:pointer}
-
-@media (max-width:960px){main{grid-template-columns:1fr}.msg{max-width:88%}}
+.side-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.side-card h3{font-size:13px;margin:0 0 10px;color:var(--fg-2)}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line-2)}
+.kv span{color:var(--muted)}
+#banner{display:none;margin:0 22px;padding:10px 14px;border-radius:10px;font-size:12.5px}
+#banner.err{display:block;background:rgba(245,63,63,.1);color:var(--danger)}
+#banner.ok{display:block;background:rgba(0,180,42,.1);color:var(--ok)}
+#status{font-size:12px;color:var(--muted);padding:10px 16px;border-top:1px solid var(--line-2)}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><span class="logo">H</span><div><h1>Hive AI</h1><div class="sub">项目 · 工单 · 会话</div></div></div>
+  <div class="crumb" id="crumb"></div>
   <div class="spacer"></div>
+  <button id="nav-points" class="ghost">岗位库</button>
   <button id="logout" class="ghost">登出</button>
 </header>
 <div id="banner"></div>
+
 <main>
-  <aside class="side">
-    <section class="card">
-      <h2>新建项目</h2>
-      <form id="proj-form">
-        <div class="full-field"><label>项目名称</label><input id="p-name" placeholder="例如：官网重构" required></div>
-        <div class="actions"><button class="primary" type="submit">新建项目</button>
-          <button type="button" id="p-refresh">刷新</button></div>
-      </form>
-    </section>
-
-    <section class="card">
-      <h2>新建工单</h2>
-      <form id="ticket-form">
-        <div class="row">
-          <div><label>标题</label><input id="t-title" placeholder="工单标题" required></div>
-          <div><label>所属项目</label><select id="t-project" required></select></div>
-        </div>
-        <div class="full-field"><label>需求目标</label><textarea id="t-goal" placeholder="要做什么、验收标准是什么"></textarea></div>
-        <details>
-          <summary>高级选项</summary>
-          <div class="row" style="margin-top:8px">
-            <div><label>类型</label><select id="t-kind">
-              <option value="normal">普通</option>
-              <option value="stall-audit">停滞审计</option>
-            </select></div>
-            <div><label>父工单（可选）</label><input id="t-parent" placeholder="父工单 ID"></div>
-          </div>
-        </details>
-        <div class="actions" style="margin-top:10px"><button class="primary" type="submit">建工单</button></div>
-      </form>
-    </section>
-
-    <section class="card">
-      <h2>项目 / 工单（分级）</h2>
-      <div class="tree" id="tree"></div>
-    </section>
-  </aside>
-
-  <section class="card chat-card">
-    <div class="chat-head">
-      <div class="chat-title" id="thread-meta"><span class="muted">从左侧项目展开后选择一个工单</span></div>
-      <div class="chips" id="thread-roles"></div>
+  <!-- 视图 A：项目列表 -->
+  <section class="view" id="view-projects">
+    <div class="view-head">
+      <div><h2>项目</h2><div class="desc">选一个项目进去看它的工单</div></div>
+      <div class="spacer"></div>
+      <button class="primary" id="new-project">＋ 新建项目</button>
     </div>
-    <div class="chat" id="chat"><div class="chat-empty">还没有消息</div></div>
-    <div class="composer">
-      <textarea id="op-text" placeholder="发给 PM 的消息，Enter 发送"></textarea>
-      <button class="primary" id="op-message">发送</button>
+    <div class="cards" id="project-cards"></div>
+    <div class="orphans" id="orphans-box" hidden>
+      <details>
+        <summary id="orphans-sum">未归属工单</summary>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>标题</th><th>状态</th><th>更新</th></tr></thead>
+          <tbody id="orphan-rows"></tbody>
+        </table></div>
+      </details>
     </div>
-    <div class="actions" style="margin-top:10px">
-      <button id="op-note">追加备注</button>
-      <button id="op-close" class="danger">结单</button>
-    </div>
-    <div id="status"></div>
   </section>
 
-  <section class="card full">
-    <h2>岗位库（岗位 = 系统提示词 + 流程规范；角色是岗位的实例）</h2>
-    <table>
+  <!-- 视图 B：项目详情 -->
+  <section class="view" id="view-project" hidden>
+    <div class="view-head">
+      <div style="min-width:0">
+        <h2 id="proj-title">项目</h2>
+        <div class="desc" id="proj-desc"></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="actions">
+        <button id="proj-archive">归档</button>
+        <button id="proj-del" class="danger">删除</button>
+        <button class="primary" id="new-ticket">＋ 新建工单</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-head">
+        <strong style="font-size:13px">工单</strong>
+        <span class="muted" id="ticket-count"></span>
+        <div class="spacer" style="margin-left:auto"></div>
+        <span class="seg" id="ticket-filter">
+          <button data-f="all" class="on">全部</button>
+          <button data-f="open">进行中</button>
+          <button data-f="closed">已结单</button>
+        </span>
+      </div>
+      <table>
+        <thead><tr><th>标题</th><th>状态</th><th>类型</th><th>更新</th><th>PM</th></tr></thead>
+        <tbody id="ticket-rows"></tbody>
+      </table>
+    </div>
+    <div id="ticket-empty" class="empty" hidden>
+      <strong>这个项目还没有工单</strong>新建一个工单，PM 会接手拆解。
+    </div>
+  </section>
+
+  <!-- 视图 C：工单会话 -->
+  <section class="view" id="view-ticket" hidden>
+    <div class="ticket-grid">
+      <section class="chat-card card">
+        <div class="chat-head">
+          <div class="chat-title" id="thread-meta"></div>
+          <div class="spacer" style="margin-left:auto"></div>
+          <div class="chips" id="thread-roles"></div>
+        </div>
+        <div class="chat" id="chat"><div class="chat-empty">还没有消息</div></div>
+        <div class="composer">
+          <textarea id="op-text" placeholder="发给 PM 的消息，Enter 发送"></textarea>
+          <button class="primary" id="op-message">发送</button>
+        </div>
+        <div id="status"></div>
+      </section>
+      <aside class="side-card">
+        <h3>工单</h3>
+        <div id="ticket-kv"></div>
+        <div class="actions" style="margin-top:12px">
+          <button id="op-note">追加备注</button>
+          <button id="op-close" class="danger">结单</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 视图 P：岗位库 -->
+  <section class="view" id="view-positions" hidden>
+    <div class="view-head">
+      <div><h2>岗位库</h2><div class="desc">岗位 = 系统提示词 + 流程规范；角色是岗位在某工单上的实例</div></div>
+    </div>
+    <div class="tbl-wrap"><table>
       <thead><tr><th>名称</th><th>流程检查</th></tr></thead>
       <tbody id="position-rows"></tbody>
-    </table>
+    </table></div>
   </section>
 </main>
+
+<!-- 通用弹窗 -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-card">
+    <h2 id="modal-title"></h2>
+    <p class="hint" id="modal-hint"></p>
+    <div class="modal-err" id="modal-err"></div>
+    <form id="modal-form"></form>
+    <div class="modal-foot">
+      <button type="button" id="modal-cancel">取消</button>
+      <button type="submit" form="modal-form" class="primary" id="modal-ok">确定</button>
+    </div>
+  </div>
+</div>
+
 <script src="/assets/js-yaml.min.js"></script>
 <script>
 async function readYaml(resp){return jsyaml.load(await resp.text())||{};}
@@ -221,9 +303,6 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
-
-const ticketMap = {};
-let selId = "";
 
 async function run(demand, input) {
   let resp, body;
@@ -251,26 +330,179 @@ async function run(demand, input) {
 }
 function banner(msg, kind) {
   const el = $("banner");
-  if (!msg) { el.style.display = "none"; el.textContent = ""; return; }
+  if (!msg) { el.style.display = "none"; el.textContent = ""; el.className = ""; return; }
   el.className = kind === "ok" ? "ok" : "err";
   el.textContent = msg;
 }
-function status(text) { $("status").textContent = text; }
+function status(text) { const el = $("status"); if (el) el.textContent = text || ""; }
 function gateMessage(err) {
   if (err && (err.status === 401 || err.code === "unauthorized")) return "登录已失效（401），请重新登录。";
   return (err && err.message) || "操作失败";
 }
-async function withBusy(btn, fn) {
-  if (btn) { btn.disabled = true; }
-  try { return await fn(); }
-  finally { if (btn) btn.disabled = false; }
-}
-function actBtn(act, id, label, disabled, cls, tip) {
-  const attrs = disabled ? 'disabled title="' + esc(tip || "当前状态不可用") + '"' : "";
-  const clsAttr = cls ? 'class="' + cls + '"' : "";
-  return `<button ${clsAttr} data-act="${act}" data-id="${esc(id)}" ${attrs}>${label}</button>`;
+function when(ts) {
+  if (!ts) return "—";
+  const d = typeof ts === "number" ? new Date(ts * 1000) : new Date(ts);
+  if (isNaN(d.getTime())) return String(ts);
+  return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+// ---------------------------------------------------------------- 状态与缓存
+const store = { projects: [], tickets: {}, orphans: [] };
+let state = { view: "projects" };
+let filter = "all";
+
+function qsOf(s) {
+  const q = new URLSearchParams();
+  if (s.view === "positions") q.set("view", "positions");
+  else if (s.ticket) { q.set("project", s.project || ""); q.set("ticket", s.ticket); }
+  else if (s.project) q.set("project", s.project);
+  const str = q.toString();
+  return str ? "/manage.html?" + str : "/manage.html";
+}
+function parseURL() {
+  const q = new URLSearchParams(location.search);
+  if (q.get("view") === "positions") return { view: "positions" };
+  const p = q.get("project") || "";
+  const t = q.get("ticket") || "";
+  if (t) return { view: "ticket", project: p, ticket: t };
+  if (p) return { view: "project", project: p };
+  return { view: "projects" };
+}
+
+async function loadAll() {
+  const tree = await run("project-tree", {});
+  store.projects = tree.items || [];
+  store.orphans = tree.orphans || [];
+  store.tickets = {};
+  store.projects.forEach((n) => (n.tickets || []).forEach((t) => { store.tickets[t.id] = t; }));
+  store.orphans.forEach((t) => { store.tickets[t.id] = t; });
+}
+function projectOf(id) {
+  return (store.projects.find((n) => (n.project || {}).id === id) || {}).project || null;
+}
+
+// ---------------------------------------------------------------- 路由
+async function go(next, push) {
+  state = next;
+  if (push) history.pushState(next, "", qsOf(next));
+  await render().catch((e) => banner(gateMessage(e), "err"));
+}
+window.addEventListener("popstate", () => { go(parseURL(), false); });
+
+function show(view) {
+  ["view-projects", "view-project", "view-ticket", "view-positions"].forEach((id) => {
+    $(id).hidden = id !== view;
+  });
+}
+
+function renderCrumb() {
+  const parts = [];
+  const cur = state.view;
+  if (cur === "positions") {
+    parts.push(`<button data-go="projects">项目</button>`);
+    parts.push(`<span class="sep">/</span><span class="now">岗位库</span>`);
+  } else {
+    parts.push(`<button data-go="projects">项目</button>`);
+    if (cur === "project" || cur === "ticket") {
+      const p = projectOf(state.project);
+      const name = (p && p.name) || state.project || "项目";
+      if (cur === "ticket") {
+        parts.push(`<span class="sep">/</span><button data-go="project">${esc(name)}</button>`);
+      } else {
+        parts.push(`<span class="sep">/</span><span class="now">${esc(name)}</span>`);
+      }
+    }
+    if (cur === "ticket") {
+      const t = store.tickets[state.ticket] || {};
+      parts.push(`<span class="sep">/</span><span class="now">${esc(t.title || state.ticket)}</span>`);
+    }
+  }
+  $("crumb").innerHTML = parts.join("");
+}
+
+async function render() {
+  if (!store.projects.length) await loadAll();
+  show("view-" + state.view);
+  renderCrumb();
+  if (state.view === "projects") renderProjects();
+  else if (state.view === "project") await renderProject();
+  else if (state.view === "ticket") await renderTicket();
+  else if (state.view === "positions") await renderPositions();
+}
+
+// ---------------------------------------------------------------- 视图 A
+function renderProjects() {
+  const cards = store.projects.filter((n) => !(n.project || {}).archived);
+  const arch = store.projects.filter((n) => (n.project || {}).archived);
+  const all = cards.concat(arch);
+  $("project-cards").innerHTML = all.length ? all.map((n) => {
+    const p = n.project || {};
+    const ts = n.tickets || [];
+    const open = ts.filter((t) => t.status !== "closed").length;
+    const closed = ts.length - open;
+    const archived = !!p.archived;
+    return `<article class="pcard${archived ? " archived" : ""}" data-project="${esc(p.id)}" role="button" tabindex="0" aria-label="进入项目 ${esc(p.name || p.id)}">
+      <div class="acts">
+        <button data-act="archive" data-id="${esc(p.id)}" ${archived ? "disabled" : ""}
+          title="${archived ? "已归档" : "归档这个项目"}">归档</button>
+        <button data-act="del" data-id="${esc(p.id)}" class="danger" title="彻底删除">删除</button>
+      </div>
+      <h3 class="pname">${esc(p.name || p.id)}</h3>
+      ${archived ? '<span class="badge archived">已归档</span>' : ""}
+      <div class="stat"><b>${ts.length}</b> 工单 <span class="muted">· ${open} 进行中 · ${closed} 已结单</span></div>
+      <div class="meta"><span>建 ${when(p.created)}</span>${p.default_backend ? `<span>后端 ${esc(p.default_backend)}</span>` : ""}</div>
+      <span class="ar">›</span>
+    </article>`;
+  }).join("") : `<div class="empty"><strong>还没有项目</strong>先建一个项目，工单都挂在项目里。</div>`;
+
+  const orph = store.orphans || [];
+  $("orphans-box").hidden = !orph.length;
+  if (orph.length) {
+    $("orphans-sum").textContent = `未归属工单（${orph.length}）`;
+    $("orphan-rows").innerHTML = orph.map((t) =>
+      `<tr data-ticket="${esc(t.id)}"><td>${esc(t.title || t.id)}</td>
+       <td>${badgeOf(t.status)}</td><td class="muted">${when(t.updated)}</td></tr>`).join("");
+  }
+}
+function badgeOf(s) {
+  const k = s === "closed" ? "closed" : "open";
+  return `<span class="badge ${k}">${esc(s || "open")}</span>`;
+}
+
+// ---------------------------------------------------------------- 视图 B
+async function renderProject() {
+  const p = projectOf(state.project);
+  if (!p) {
+    banner("项目不存在或已被删除：" + state.project, "err");
+    go({ view: "projects" }, true);
+    return;
+  }
+  banner("");
+  $("proj-title").textContent = p.name || p.id;
+  $("proj-desc").innerHTML = `建 ${when(p.created)}` +
+    (p.archived ? ' · <span class="badge archived">已归档</span>' : "") +
+    (p.default_backend ? ` · 默认后端 ${esc(p.default_backend)}` : "");
+  $("proj-archive").disabled = !!p.archived;
+  $("proj-archive").title = p.archived ? "已归档" : "";
+  $("new-ticket").disabled = !!p.archived;
+  $("new-ticket").title = p.archived ? "已归档项目不能再建工单" : "";
+
+  const node = store.projects.find((n) => (n.project || {}).id === state.project) || {};
+  const ts = (node.tickets || []).slice().sort((a, b) => String(b.updated || "").localeCompare(String(a.updated || "")));
+  const shown = ts.filter((t) => filter === "all" || (filter === "closed" ? t.status === "closed" : t.status !== "closed"));
+  $("ticket-count").textContent = `${ts.length} 条 / 进行中 ${ts.filter((t) => t.status !== "closed").length}`;
+  $("ticket-empty").hidden = shown.length > 0;
+  $("ticket-rows").innerHTML = shown.map((t) => `
+    <tr data-ticket="${esc(t.id)}">
+      <td>${esc(t.title || t.id)}<div class="muted">${esc(t.id)}</div></td>
+      <td>${badgeOf(t.status)}</td>
+      <td class="muted">${esc(t.kind || "normal")}</td>
+      <td class="muted">${when(t.updated)}</td>
+      <td class="muted">${t.pm ? esc(t.pm) : "—"}</td>
+    </tr>`).join("");
+}
+
+// ---------------------------------------------------------------- 视图 C
 const ROLE_CN = { pm: "PM", user: "用户", assistant: "助手", system: "系统" };
 const AVATAR_PALETTE = ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"];
 function speakerOf(msg, roles) {
@@ -298,121 +530,54 @@ function initial(name) {
   return s ? esc(s[0]) : "?";
 }
 
-// ---- 分级树：项目 → 工单 ----
-async function loadTree() {
-  const tree = await run("project-tree", {});
-  const items = tree.items || [];
-  const orphans = tree.orphans || [];
-  Object.keys(ticketMap).forEach((k) => delete ticketMap[k]);
-  items.forEach((n) => (n.tickets || []).forEach((t) => { ticketMap[t.id] = t; }));
-  orphans.forEach((t) => { ticketMap[t.id] = t; });
+let threadInfo = { ticket: {}, roles: [] };
 
-  const projOpts = ['<option value="">（选择项目）</option>']
-    .concat(items.map((n) => `<option value="${esc(n.project.id)}">${esc(n.project.name || n.project.id)}</option>`));
-  $("t-project").innerHTML = projOpts.join("");
-
-  const html = items.map((n) => {
-    const p = n.project;
-    const tickets = (n.tickets || []).map((t) => ticketRow(t)).join("")
-      || '<div class="ticket-row muted" style="cursor:default">暂无工单</div>';
-    return `
-    <div class="proj" data-proj="${esc(p.id)}">
-      <div class="proj-head" data-proj-head="${esc(p.id)}">
-        <span class="caret">▶</span>
-        <span class="pname">${esc(p.name || p.id)}</span>
-        <span class="cnt">${(n.tickets || []).length} 工单</span>
-        <span class="actions">
-          ${actBtn("archive", p.id, "归档", !!p.archived, "", "项目已归档")}
-          ${actBtn("del", p.id, "删除", false, "danger")}
-        </span>
-      </div>
-      <div class="proj-body">${tickets}</div>
-    </div>`;
-  }).join("");
-  const orphanHtml = orphans.length
-    ? `<div class="orphans"><div class="muted">未归属工单</div>` +
-      orphans.map((t) => ticketRow(t)).join("") + "</div>" : "";
-  $("tree").innerHTML = html + orphanHtml || '<div class="muted">暂无项目</div>';
-}
-
-function ticketRow(t) {
-  const closed = t.status === "closed";
-  const badge = closed ? '<span class="badge closed">closed</span>'
-    : `<span class="badge ${esc(t.status)}">${esc(t.status || "")}</span>`;
-  const active = t.id === selId ? " active" : "";
-  return `<div class="ticket-row${active}" data-ticket="${esc(t.id)}">
-    <span class="t-title">${esc(t.title || t.id)}</span>${badge}</div>`;
-}
-
-$("proj-form").onsubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const rec = await run("projects-create", {
-      name: $("p-name").value.trim(), default_backend: ""
-    });
-    banner(""); status("已建项目：" + (rec.id || ""));
-    $("p-name").value = "";
-    await loadTree();
-  } catch (err) { banner(gateMessage(err), "err"); status("项目创建失败：" + err.message); }
-};
-$("p-refresh").onclick = () => loadTree().catch((e) => banner(gateMessage(e), "err"));
-
-$("tree").onclick = async (e) => {
-  const head = e.target.closest("[data-proj-head]");
-  if (head) { head.closest(".proj").classList.toggle("open"); return; }
-  const btn = e.target.closest("button");
-  if (btn && !btn.disabled) {
-    const id = btn.dataset.id;
-    try {
-      if (btn.dataset.act === "archive") { await withBusy(btn, () => run("projects-archive", { id })); status("已归档：" + id); }
-      else if (btn.dataset.act === "del") {
-        if (!confirm("彻底删除项目 " + id + "？")) return;
-        await withBusy(btn, () => run("projects-delete", { id, purge: true })); status("已删除：" + id);
-      }
-      await loadTree();
-    } catch (err) { banner(gateMessage(err), "err"); status("操作失败：" + err.message); }
-    return;
-  }
-  const row = e.target.closest("[data-ticket]");
-  if (row) { await openTicket(row.dataset.ticket); }
-};
-
-$("ticket-form").onsubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const rec = await run("ticket-create", {
-      title: $("t-title").value.trim(), goal: $("t-goal").value.trim(),
-      project: $("t-project").value, kind: $("t-kind").value, parent: $("t-parent").value.trim()
-    });
-    banner(""); status("已建工单：" + (rec.id || ""));
-    $("t-title").value = ""; $("t-goal").value = ""; $("t-parent").value = "";
-    await loadTree();
-    if (rec.id) await openTicket(rec.id);
-  } catch (err) { banner(gateMessage(err), "err"); status("工单创建失败：" + err.message); }
-};
-
-// ---- 工单主会话（1:1 业务会话）----
-async function openTicket(id) {
-  selId = id;
+async function renderTicket() {
+  banner("");
+  const id = state.ticket;
   let th;
   try { th = await run("ticket-thread", { id }); }
-  catch (err) { banner(gateMessage(err), "err"); status("加载工单会话失败：" + err.message); return; }
+  catch (err) {
+    banner("加载工单会话失败：" + gateMessage(err), "err");
+    go({ view: "project", project: state.project }, true);
+    return;
+  }
   const t = th.ticket || {};
+  store.tickets[t.id || id] = store.tickets[t.id || id] || t;
+  threadInfo = { ticket: t, roles: th.roles || [] };
+
   $("thread-meta").innerHTML =
-    `<strong>${esc(t.title || id)}</strong><span class="muted">${esc(t.id || "")}</span>` +
-    `<span class="badge ${esc(t.status || "")}">${esc(t.status || "")}</span>`;
-  const roles = th.roles || [];
-  $("thread-roles").innerHTML = roles.map((r) =>
+    `<strong>${esc(t.title || id)}</strong><span class="muted">${esc(t.id || id)}</span>${badgeOf(t.status)}`;
+  $("thread-roles").innerHTML = (th.roles || []).map((r) =>
     `<span class="chip">${esc(r.display || r.role)} · ${esc(r.status || "")}</span>`).join("");
-  renderChat(th.thread || {}, roles);
+
+  $("ticket-kv").innerHTML = [
+    ["状态", badgeOf(t.status)],
+    ["类型", esc(t.kind || "normal")],
+    ["所属项目", esc(projectNameOf(t.project || state.project))],
+    ["创建", when(t.created)],
+    ["更新", when(t.updated)],
+    ["父工单", t.parent ? esc(t.parent) : "—"],
+  ].map(([k, v]) => `<div class="kv"><span>${k}</span><div>${v}</div></div>`).join("");
+
+  // 主会话的第一条是 PM 的系统提示词，属于运行时上下文，不进对话展示
+  const thread = th.thread || {};
+  const visible = Object.assign({}, thread, {
+    messages: (thread.messages || []).filter((m) => (m.role || "") !== "system")
+  });
+  renderChat(visible, th.roles || []);
   syncOps();
-  loadTree().catch(() => {});
+  renderCrumb();
+}
+function projectNameOf(id) {
+  const p = projectOf(id);
+  return (p && (p.name || p.id)) || id || "—";
 }
 
 function renderChat(thread, roles) {
   const msgs = thread.messages || [];
   const list = $("chat");
-  if (!msgs.length) { list.innerHTML = '<div class="chat-empty">还没有消息</div>'; return; }
+  if (!msgs.length) { list.innerHTML = '<div class="chat-empty">还没有消息，PM 正在准备…</div>'; return; }
 
   // 连续同发言人合并为一组：头像、昵称只在组首出现
   const groups = [];
@@ -436,7 +601,7 @@ function renderChat(thread, roles) {
     const bodies = g.msgs.map((m) =>
       `<div class="bubble-body">${esc(m.content == null ? "" : m.content)}</div>`).join("");
     const last = g.msgs[g.msgs.length - 1];
-    const ts = last.ts ? `<div class="msg-ts">${new Date(last.ts).toLocaleTimeString()}</div>` : "";
+    const ts = last.ts ? `<div class="msg-ts">${when(last.ts)}</div>` : "";
     return `<div class="msg ${side}">${side === "left" ? av : ""}
       <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
       <div class="bubble-stack">${bodies}</div>${ts}</div>${side === "right" ? av : ""}</div>`;
@@ -445,63 +610,236 @@ function renderChat(thread, roles) {
 }
 
 function syncOps() {
-  const t = ticketMap[selId];
-  const closed = !!(t && t.status === "closed");
-  $("op-note").disabled = closed;
-  $("op-message").disabled = closed;
-  $("op-close").disabled = closed;
+  const t = threadInfo.ticket || {};
+  const closed = t.status === "closed";
+  ["op-note", "op-message", "op-close"].forEach((id) => { const b = $(id); if (b) b.disabled = closed; });
 }
 
-$("op-note").onclick = async () => {
-  if (!selId) return;
-  const text = $("op-text").value.trim();
-  if (!text) return;
-  try { await run("ticket-note", { id: selId, text }); status("备注已追加"); $("op-text").value = ""; await openTicket(selId); }
-  catch (e) { banner(gateMessage(e), "err"); status(e.message); }
-};
-$("op-message").onclick = async () => {
-  if (!selId) return;
-  const text = $("op-text").value.trim();
-  if (!text) return;
-  try { await run("ticket-message", { id: selId, text, target: "pm" }); status("已通知 PM"); $("op-text").value = ""; await openTicket(selId); }
-  catch (e) { banner(gateMessage(e), "err"); status(e.message); }
-};
-$("op-close").onclick = async () => {
-  if (!selId) return;
-  const summary = prompt("结单摘要：");
-  if (summary == null) return;
-  const verdict = prompt("验收结论（可选，通过/驳回）：") || "";
-  try {
-    await run("ticket-close", { id: selId, summary, verdict });
-    status("已结单"); await openTicket(selId);
-  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
-};
-
-// ---- 岗位库 ----
-async function loadPositions() {
+// ---------------------------------------------------------------- 视图 P
+async function renderPositions() {
+  banner("");
   const list = await run("position-list", {});
   const items = list.items || [];
   $("position-rows").innerHTML = items.map((p) => {
     const checks = (p.flow && p.flow.checks) || [];
-    const name = p.cn || p.id;
-    return `<tr><td>${esc(name)}</td><td class="muted">${checks.length} 项流程检查</td></tr>`;
+    return `<tr><td>${esc(p.cn || p.id)}</td><td class="muted">${checks.length} 项流程检查</td></tr>`;
   }).join("") || '<tr><td colspan="2" class="muted">暂无岗位</td></tr>';
 }
 
+// ---------------------------------------------------------------- 弹窗
+let modalSubmit = null;
+function openModal(title, hint, fieldsHtml, okText, onSubmit) {
+  $("modal-title").textContent = title;
+  $("modal-hint").textContent = hint || "";
+  $("modal-err").className = "modal-err";
+  $("modal-err").textContent = "";
+  $("modal-form").innerHTML = fieldsHtml;
+  $("modal-ok").textContent = okText || "确定";
+  $("modal-ok").disabled = false;
+  $("modal").hidden = false;
+  const first = $("modal-form").querySelector("input,textarea,select");
+  if (first) first.focus();
+  modalSubmit = onSubmit;
+}
+function closeModal() { $("modal").hidden = true; modalSubmit = null; }
+function modalError(msg) {
+  const el = $("modal-err");
+  el.className = "modal-err on";
+  el.textContent = msg;
+}
+$("modal-cancel").onclick = closeModal;
+$("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(); };
+$("modal-form").onsubmit = async (e) => {
+  e.preventDefault();
+  if (!modalSubmit) return;
+  $("modal-ok").disabled = true;
+  try { await modalSubmit(new FormData(e.target)); }
+  catch (err) { modalError(gateMessage(err)); }
+  finally { $("modal-ok").disabled = false; }
+};
+
+function projectModal() {
+  openModal("新建项目", "项目是工单的容器，建完在列表里点进去就能建工单。", `
+    <div class="field"><label>项目名称</label>
+      <input name="name" placeholder="例如：官网重构" required></div>
+    <div class="field"><label>默认后端（可选）</label>
+      <input name="default_backend" placeholder="留空即默认"></div>`, "创建项目", async (fd) => {
+    const name = String(fd.get("name") || "").trim();
+    if (!name) { modalError("项目名称不能为空"); return; }
+    const rec = await run("projects-create", {
+      name, default_backend: String(fd.get("default_backend") || "").trim()
+    });
+    closeModal();
+    banner("已建项目：" + (rec.name || rec.id || name), "ok");
+    store.projects = [];
+    await loadAll();
+    go({ view: "projects" }, true);
+  });
+}
+
+function ticketModal() {
+  const p = projectOf(state.project) || { id: state.project, name: state.project };
+  openModal("新建工单", "工单自动挂在当前项目下，不需要再选一遍。", `
+    <div class="field"><label>所属项目</label>
+      <input value="${esc(p.name || p.id)}" readonly></div>
+    <div class="field"><label>标题</label>
+      <input name="title" placeholder="例如：登录页改版" required></div>
+    <div class="field"><label>需求目标</label>
+      <textarea name="goal" placeholder="要做什么、验收标准是什么"></textarea></div>
+    <div class="row2">
+      <div><label>类型</label><select name="kind">
+        <option value="normal">普通</option>
+        <option value="stall-audit">停滞审计</option>
+      </select></div>
+      <div><label>父工单（可选）</label><input name="parent" placeholder="父工单 ID"></div>
+    </div>`, "创建工单", async (fd) => {
+    const title = String(fd.get("title") || "").trim();
+    if (!title) { modalError("标题不能为空"); return; }
+    const rec = await run("ticket-create", {
+      title, goal: String(fd.get("goal") || "").trim(),
+      project: p.id || state.project,          // 自动绑定：只从当前上下文取
+      kind: String(fd.get("kind") || "normal"),
+      parent: String(fd.get("parent") || "").trim()
+    });
+    closeModal();
+    banner("已建工单：" + (rec.title || rec.id || title), "ok");
+    store.projects = [];
+    await loadAll();
+    go({ view: "ticket", project: state.project, ticket: rec.id }, true);
+  });
+}
+
+// ---------------------------------------------------------------- 事件
+$("new-project").onclick = projectModal;
+$("new-ticket").onclick = ticketModal;
+$("nav-points").onclick = () => go({ view: "positions" }, true);
 $("logout").onclick = async () => {
   try { await run("auth-logout", { token: token() }); } catch (e) {}
   clearToken(); location.href = "/login.html";
 };
 
+$("crumb").onclick = (e) => {
+  const b = e.target.closest("[data-go]");
+  if (!b) return;
+  const to = b.dataset.go;
+  if (to === "projects") go({ view: "projects" }, true);
+  else if (to === "project") go({ view: "project", project: state.project }, true);
+};
+
+$("project-cards").onkeydown = (e) => {
+  const card = e.target.closest("[data-project]");
+  if (!card) return;
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); card.click(); }
+};
+$("project-cards").onclick = async (e) => {
+  const btn = e.target.closest("button[data-act]");
+  if (btn && !btn.disabled) {
+    const id = btn.dataset.id;
+    try {
+      if (btn.dataset.act === "archive") {
+        await run("projects-archive", { id });
+        banner("已归档：" + id, "ok");
+      } else if (btn.dataset.act === "del") {
+        if (!confirm("彻底删除项目 " + id + "？工单不会被删。")) return;
+        await run("projects-delete", { id, purge: true });
+        banner("已删除：" + id, "ok");
+      }
+      store.projects = [];
+      await loadAll();
+      go({ view: "projects" }, true);
+    } catch (err) { banner(gateMessage(err), "err"); }
+    return;
+  }
+  const card = e.target.closest("[data-project]");
+  if (card) go({ view: "project", project: card.dataset.project }, true);
+};
+
+$("orphan-rows").onclick = (e) => {
+  const row = e.target.closest("[data-ticket]");
+  if (row) go({ view: "ticket", project: "", ticket: row.dataset.ticket }, true);
+};
+
+$("ticket-rows").onclick = (e) => {
+  const row = e.target.closest("[data-ticket]");
+  if (row) go({ view: "ticket", project: state.project, ticket: row.dataset.ticket }, true);
+};
+
+$("ticket-filter").onclick = (e) => {
+  const b = e.target.closest("button[data-f]");
+  if (!b) return;
+  filter = b.dataset.f;
+  Array.from($("ticket-filter").children).forEach((x) => x.classList.toggle("on", x === b));
+  renderProject().catch((err) => banner(gateMessage(err), "err"));
+};
+
+$("proj-archive").onclick = async () => {
+  try {
+    await run("projects-archive", { id: state.project });
+    banner("已归档：" + state.project, "ok");
+    store.projects = [];
+    await loadAll();
+    go({ view: "project", project: state.project }, true);
+  } catch (err) { banner(gateMessage(err), "err"); }
+};
+$("proj-del").onclick = async () => {
+  if (!confirm("彻底删除项目 " + state.project + "？")) return;
+  try {
+    await run("projects-delete", { id: state.project, purge: true });
+    store.projects = [];
+    await loadAll();
+    banner("已删除：" + state.project, "ok");
+    go({ view: "projects" }, true);
+  } catch (err) { banner(gateMessage(err), "err"); }
+};
+
+$("op-note").onclick = async () => {
+  const id = state.ticket; if (!id) return;
+  const text = $("op-text").value.trim(); if (!text) return;
+  try {
+    await run("ticket-note", { id, text });
+    status("备注已追加"); $("op-text").value = "";
+    await go({ view: "ticket", project: state.project, ticket: id }, false);
+  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
+};
+$("op-message").onclick = async () => {
+  const id = state.ticket; if (!id) return;
+  const text = $("op-text").value.trim(); if (!text) return;
+  try {
+    await run("ticket-message", { id, text, target: "pm" });
+    status("已通知 PM"); $("op-text").value = "";
+    await go({ view: "ticket", project: state.project, ticket: id }, false);
+  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
+};
+$("op-close").onclick = async () => {
+  const id = state.ticket; if (!id) return;
+  const summary = prompt("结单摘要：");
+  if (summary == null) return;
+  const verdict = prompt("验收结论（可选，通过/驳回）：") || "";
+  try {
+    await run("ticket-close", { id, summary, verdict });
+    status("已结单");
+    await go({ view: "ticket", project: state.project, ticket: id }, false);
+  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
+};
+
+// Enter 发送
+$("op-text").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("op-message").click(); }
+});
+
+// ---------------------------------------------------------------- 启动
 async function boot() {
   let st = { enabled: false };
-  try { const r = await fetch("/api/auth/status"); const _j = await readYaml(r); st = _j.result || _j || {}; } catch (e) {}
+  try {
+    const r = await fetch("/api/auth/status");
+    const j = await readYaml(r);
+    st = j.result || j || {};
+  } catch (e) {}
   if (st.enabled && !token()) { location.href = "/login.html"; return; }
-  const errors = [];
-  for (const step of [loadTree, loadPositions]) {
-    try { await step(); } catch (e) { errors.push(gateMessage(e)); }
-  }
-  if (errors.length) banner(errors[0], "err"); else banner("");
+  state = parseURL();
+  history.replaceState(state, "", qsOf(state));
+  try { await loadAll(); } catch (e) { banner(gateMessage(e), "err"); return; }
+  await render();
 }
 boot();
 </script>
