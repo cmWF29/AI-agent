@@ -64,3 +64,25 @@ capabilities:
     - auth.build_session
     - store.write
     - auth.session_view
+  sessions.spawn:
+    calls:
+    - store.id
+    - demand_engine.run
+    - store.read_text
+    - clock.now
+    - sessions.build
+    - store.write
+    - sessions.view
+  tickets.create:
+    calls:
+    - tickets.validate_project
+    - tickets.err
+    - store.read
+    - projects.missing
+    - clock.now
+    - tickets.newid
+    - tickets.build
+    - demand_engine.run
+    - tickets.bindpm
+    - store.write
+    - tickets.view
