@@ -46,8 +46,11 @@ def _route_decode_sse(ctx, payload):
 
 
 def _encode_call(ctx, payload, stream):
-    cfg = ctx.api.call("config.get", {"key": "llm"}, caller=None) or {}
-    cfgv = cfg.get("value") or {}
+    # 配置是缺省值，调用方显式给的优先；明文只在能力内部流转，不经 config.get 的脱敏面
+    cfgv = dict((getattr(ctx, "cfg", None) or {}).get("llm") or {})
+    for key in ("base_url", "api_key", "model"):
+        if payload.get(key):
+            cfgv[key] = payload.get(key)
     return ctx.api.call("llm.encode", {
         "base_url": cfgv.get("base_url"),
         "api_key": cfgv.get("api_key"),

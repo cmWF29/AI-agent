@@ -111,6 +111,22 @@ async function boot() {
   await render();
 }
 
+let POLL = null;   // 视图级轮询句柄：只有声明了 poll 的视图才自刷新
+
+function typing() {
+  const ta = document.querySelector("#view-body .composer textarea");
+  return !!(ta && ta === document.activeElement && (ta.value || "").trim());
+}
+
+function schedulePoll(spec) {
+  if (POLL) { clearTimeout(POLL); POLL = null; }
+  if (!spec || !spec.poll) return;
+  POLL = setTimeout(async () => {
+    if (typing()) { schedulePoll(spec); return; }  // 用户正在写，不抢输入
+    try { await render({ keepBanner: true }); } catch (e) {}
+  }, Number(spec.poll));
+}
+
 async function render(opts) {
   const spec = VIEWS[state.view] || VIEWS.projects;
   const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
@@ -121,8 +137,12 @@ async function render(opts) {
     if (src.cache) ctx.cache[src.cache] = res;
   }
   if (!(opts && opts.keepBanner)) banner("");
+  const draft = (document.querySelector("#view-body .composer textarea") || {}).value || "";
   renderCrumb(spec, ctx);
   renderView(spec, ctx);
+  const ta = document.querySelector("#view-body .composer textarea");
+  if (ta && draft) ta.value = draft;   // 轮询重建 DOM 时把用户草稿还回去
+  schedulePoll(spec);
 }
 
 function crumbUp() {

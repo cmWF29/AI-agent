@@ -9,6 +9,7 @@ view:
   key: ticket
   crumb: [项目, "{thread.ticket.project|project_name}", "{thread.ticket.title}"]
   heading_from: "{thread.ticket.title}"
+  poll: 1500
   data:
   - {as: thread, demand: ticket-thread, params: {id: "{route.ticket}"}}
   - {as: tree, demand: project-tree, cache: projects}
@@ -17,7 +18,7 @@ view:
     lane: left
     source: thread.thread
     heading: "{thread.ticket.title} · {thread.ticket.id} · {thread.ticket.status}"
-    hide_roles: [system]
+    hide_roles: [system, tool]
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.roles
   - kind: kv
@@ -36,7 +37,10 @@ view:
     placeholder: 发给 PM 的消息，Enter 发送
     submit: {label: 发送, demand: ticket-message,
              params: {id: "{thread.ticket.id}", text: "$text", target: pm},
-             flash: 已通知 PM}
+             flash: 已发送给 PM, clear: true}
+    busy_from: "{thread.thread.status}"
+    busy_when: running
+    busy_text: PM 正在输出：现在发送会打断它当前这轮，工单内的角色不受影响
     actions:
     - {label: 追加备注, demand: ticket-note, params: {id: "{thread.ticket.id}", text: "$text"},
        flash: 备注已追加, clear: true, empty_hint: 请先输入备注内容}

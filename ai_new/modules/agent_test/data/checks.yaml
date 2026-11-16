@@ -78,6 +78,7 @@ checks:
   - projects-rename
   - react-run
   - session-ask
+  - session-cancelled
   - session-compact
   - session-destroy
   - session-get

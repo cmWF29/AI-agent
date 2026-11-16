@@ -67,7 +67,29 @@ do:
         get: input.api_key
       model:
         get: input.model
+      cancel:
+        probe:
+          lit: session-cancelled
+        id:
+          get: input.id
+        since:
+          get: now.ts
   as: out
+- call: store.read
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      op: +
+      a:
+        lit: sessions/
+      b:
+        op: +
+        a:
+          get: input.id
+        b:
+          lit: .yaml
+  as: latest
 - call: clock.now
   as: done_at
 - call: sessions.finish
@@ -76,6 +98,8 @@ do:
       get: running
     out:
       get: out.result
+    latest:
+      get: latest.value
     now:
       get: done_at.ts
   as: rec

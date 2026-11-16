@@ -9,7 +9,8 @@ def setup(ctx):
     ctx.api.register("tools.execute",
                      lambda c, payload: ctx.tools.execute(payload.get("name"),
                                                        payload.get("args"),
-                                                       session=payload.get("session")),
+                                                       session=payload.get("session"),
+                                                       defer=bool(payload.get("defer"))),
                      module="tools")
     return ctx.tools
 

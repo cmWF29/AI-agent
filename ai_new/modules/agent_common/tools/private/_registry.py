@@ -34,14 +34,18 @@ class ToolRegistry:
             if not t["kinds"] or kind in t["kinds"]
         ]
 
-    def execute(self, name, args, session=None):
+    def execute(self, name, args, session=None, defer=False):
         if name not in self._tools:
             raise self.ctx.ApiError("工具不存在: %s" % name, code="no_tool", status=404)
         t = self._tools[name]
-        if t["kinds"] and session and session.get("kind") not in t["kinds"]:
+        if t["kinds"] and isinstance(session, dict) and session.get("kind") not in t["kinds"]:
             raise self.ctx.ApiError("该会话不可用此工具: %s" % name,
                                     code="tool_forbidden", status=403)
         if t.get("demand"):
+            if defer:
+                # 组合一律写成需求：注册表只声明"该跑哪个需求"，伸手的是需求身份
+                return {"ok": True, "deferred": True, "demand": t["demand"],
+                        "input": args or {}}
             result = self.ctx.api.call("demand_engine.run",
                                        {"id": t["demand"], "input": args or {}},
                                        caller="tools")

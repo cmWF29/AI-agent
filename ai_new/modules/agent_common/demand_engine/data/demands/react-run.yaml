@@ -21,6 +21,8 @@ do:
       get: input.max_steps
     session:
       get: input.session
+    cancel:
+      get: input.cancel
   as: out
 expect:
   given:

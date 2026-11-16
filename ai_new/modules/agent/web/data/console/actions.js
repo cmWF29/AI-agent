@@ -18,6 +18,10 @@ async function execute(binding, fields) {
   const flashText = act.flash ? String(fill(act.flash, c)) : "";
   try {
     const res = await run(act.demand, params);
+    if (act.clear) {
+      const ta = document.querySelector("#view-body .composer textarea");
+      if (ta) ta.value = "";   // 成功即清空，避免残留文本把轮询挡在门外
+    }
     if (flashText) banner(fill(act.flash, { ...c, result: res }), "ok");
     if (act.after) {
       const next = resolveView(act.after, { ...c, result: res });

@@ -25,7 +25,7 @@ do:
     rec:
       get: row.value
     target:
-      get: input.target
+      lit: pm
   as: tgt
 - call: demand_engine.run
   with:
@@ -37,6 +37,11 @@ do:
       text:
         get: input.text
   as: sent
+- call: sessions.dispatch
+  with:
+    id:
+      get: tgt.session
+  as: run
 - call: tickets.view
   with:
     rec:
@@ -48,6 +53,7 @@ expect:
   calls:
   - tickets.resolve_target
   - demand_engine.run
+  - sessions.dispatch
   - tickets.view
   payload: {}
   promise: 目标解析归模块

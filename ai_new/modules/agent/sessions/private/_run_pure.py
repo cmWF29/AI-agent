@@ -23,7 +23,13 @@ def mark(p):
 def finish(p):
     rec = dict(p.get("rec") or {})
     out = p.get("out") or {}
-    rec["messages"] = out.get("messages") or rec.get("messages") or []
+    base = list(rec.get("messages") or [])
+    msgs = list(out.get("messages") or base)
+    # 运行期间用户又发了消息：它们在 latest 里，不在本轮快照里，必须接在后面，否则被覆盖丢失
+    fresh = list((p.get("latest") or {}).get("messages") or [])
+    if len(fresh) > len(base):
+        msgs = msgs + fresh[len(base):]
+    rec["messages"] = msgs
     rec["status"] = "idle"
     rec["steps"] = out.get("steps") or 0
     rec["updated"] = p.get("now") or ""

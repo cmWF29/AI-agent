@@ -129,7 +129,11 @@ function chatHtml(sec, ctx) {
   const src = ref(sec.source, ctx) || {};
   const roles = ref(sec.roles_source, ctx) || [];
   const hidden = sec.hide_roles || [];
-  const msgs = arr(src.messages).filter((m) => !hidden.includes(m.role || ""));
+  const msgs = arr(src.messages).filter((m) => {
+    if (hidden.includes(m.role || "")) return false;
+    // 只调工具、没有说话内容的助手消息不占气泡（用户看不到工具细节）
+    return !(m.role === "assistant" && !String(m.content || "").trim());
+  });
   const headTitle = sec.heading ? `<div class="chat-title">${esc(fill(sec.heading, ctx))}</div>` : "";
   const body = msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`;
   return `<section class="chat-card card">
@@ -187,11 +191,16 @@ function composerHtml(sec, ctx) {
   const gate = disabled ? ` disabled${hint ? ` title="${esc(hint)}"` : ""}` : "";
   const acts = (sec.actions || []).map((a) =>
     buttonHtml(a, ctx, { disabled, hint, composer: true })).join("");
-  return `<div class="composer${disabled ? " off" : ""}">
-    <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
-    ${acts}
-    <button class="primary" data-act="${submitIdx}"${gate}>${esc(fill(submit.label || "发送", ctx))}</button>
+  const busyVal = sec.busy_from ? String(fill(sec.busy_from, ctx) || "") : "";
+  const busy = !disabled && busyVal && busyVal === (sec.busy_when || "running");
+  return `<div class="composer-wrap">
+    <div class="composer${disabled ? " off" : ""}">
+      <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
+      ${acts}
+      <button class="primary" data-act="${submitIdx}"${gate}>${esc(fill(submit.label || "发送", ctx))}</button>
+    </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
+    ${busy ? `<div class="composer-hint busy">${esc(fill(sec.busy_text || "", ctx))}</div>` : ""}
   </div>`;
 }
 
