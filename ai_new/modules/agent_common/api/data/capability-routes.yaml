@@ -134,3 +134,20 @@ capabilities:
     - tickets.stale
     - demand_engine.run
     - ops.assemble
+  react.run:
+    calls:
+    - react.schemas
+    - demand_engine.run
+    - react.assistant
+    - react.toolnames
+    - codec.json_decode
+    - react.args
+    - tools.execute
+    - codec.json_encode
+    - react.toolmsg
+    - react.result
+  channel.reply:
+    calls:
+    - channel.read_tail
+    - demand_engine.run
+    - channel.post

@@ -17,6 +17,7 @@ def setup(ctx):
     ctx.api.register("channel.post", _route_post, "发消息：读历史→拼消息→追加→emit", module="channel")
     ctx.api.register("channel.read_since", _route_read_since, "按游标取新消息（遍历在能力内）", module="channel")
     ctx.api.register("channel.read_tail", _route_read_tail, "取最近 N 条（遍历在能力内）", module="channel")
+    ctx.api.register("channel.reply", _route_reply, "网页消息→对话→回复写回同一频道", module="channel")
 
     def _watch(ctx, payload):
         """SSE 轮询门面：不自己读盘，按游标委托 channel-since 需求回 {items, cursor}。"""
@@ -76,4 +77,23 @@ def _route_read_tail(ctx, payload):
     rows = _read_rows(ctx, cid.get("id"))
     return ctx.api.call("channel.tail", {"channel": cid.get("id"), "rows": rows,
                                         "limit": payload.get("limit")}, caller=None)
+
+
+def _route_reply(ctx, payload):
+    """网页回复闭环：只回复用户消息，取历史、跑对话编排、把结果写回同一频道。"""
+    if payload.get("role") != "user":
+        return {"ok": True, "skipped": True}
+    history = ctx.api.call("channel.read_tail", {
+        "channel": payload.get("channel"), "limit": 20}, caller=None)
+    messages = list(history.get("messages") or [])
+    messages.append({"role": "user", "content": payload.get("content")})
+    reply = ctx.api.call("demand_engine.run", {
+        "id": "llm-chat", "input": {"messages": messages}}, caller=None)
+    answer = reply.get("result") or {}
+    if reply.get("ok") is False:
+        role, content = "system", "模型调用失败：%s" % (answer.get("error") or "")
+    else:
+        role, content = "assistant", answer.get("content") or ""
+    return ctx.api.call("channel.post", {
+        "channel": payload.get("channel"), "role": role, "content": content}, caller=None)
 

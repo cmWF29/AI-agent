@@ -1,69 +1,18 @@
 id: web-chat-reply
-title: 网页发一条消息 → 编排对话 → 回复写回同一个频道
+title: 网页发消息→对话→回复写回频道：闭环在 channel.reply 能力内
 enabled: true
 'on':
 - channel.posted
 do:
-- when:
-    op: ==
-    a:
+- call: channel.reply
+  with:
+    channel:
+      get: event.data.channel
+    role:
       get: event.data.role
-    b: user
-  then:
-  - call: channel.tail
-    with:
-      channel:
-        get: event.data.channel
-      limit:
-        lit: 20
-    as: history
-  - call: demand_engine.run
-    with:
-      id:
-        lit: llm-chat
-      input:
-        messages:
-          op: append
-          a:
-            get: history.messages
-          b:
-            role: user
-            content:
-              get: event.data.content
-    as: reply
-  - when:
-      op: '!='
-      a:
-        get: reply.ok
-      b: true
-    then:
-    - call: demand_engine.run
-      with:
-        id:
-          lit: channel-post
-        input:
-          channel:
-            get: event.data.channel
-          role:
-            lit: system
-          content:
-            op: +
-            a:
-              lit: 模型调用失败：
-            b:
-              get: reply.result.error
-    else:
-    - call: demand_engine.run
-      with:
-        id:
-          lit: channel-post
-        input:
-          channel:
-            get: event.data.channel
-          role:
-            lit: assistant
-          content:
-            get: reply.result.content
+    content:
+      get: event.data.content
+  as: out
 expect:
   given:
     'on': channel.posted
@@ -72,14 +21,11 @@ expect:
         channel: web
         role: user
         content: 你好
-    input:
-      text: hi
+    input: {}
   calls:
-  - channel.tail
-  - demand_engine.run
-  - demand_engine.run
+  - channel.reply
   payload:
-    channel.tail:
+    channel.read_tail:
       channel:
         get: event.data.channel
-  promise: 用户消息进来，跑一遍对话编排，回复落同一个频道；编排失败回一条系统提示，不死循环
+  promise: 只回复用户消息、取历史、跑对话编排、写回同频道都在能力内部
