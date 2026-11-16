@@ -26,6 +26,9 @@ def setup(ctx):
         ("tickets.stale", _pure.stale),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="tickets")
+    ctx.api.register("tickets.close", _route_close, "结单：子单守卫→关闭→落盘→通知父单 PM", module="tickets")
+    ctx.api.register("tickets.split", _route_split, "拆子单：守上限→逐个建单并挂链接", module="tickets")
+    ctx.api.register("tickets.stall_scan", _route_stall_scan, "停滞扫描：遍历在途→判定→开审计单", module="tickets")
     ctx.api.register("tickets.create", _route_create, "建工单：校验项目→造记录→拉 PM→落盘", module="tickets")
     return True
 
@@ -70,4 +73,86 @@ def _route_create(ctx, payload):
         "path": "tickets/%s/ticket.yaml" % (rec.get("id") or ""),
         "value": rec}, caller=None)
     return ctx.api.call("tickets.view", {"rec": rec}, caller=None)
+
+
+def _ticket_path(ticket_id):
+    return "tickets/%s/ticket.yaml" % (ticket_id or "")
+
+
+def _route_close(ctx, payload):
+    """结单闭环：先守子单，再关闭落盘，最后按需通知父单。守卫与通知都在能力内部。"""
+    row = ctx.api.call("store.read", {"module": "agent/tickets",
+                                      "path": _ticket_path(payload.get("id"))}, caller=None)
+    rec = row.get("value") or {}
+    for cid in rec.get("children") or []:
+        child = ctx.api.call("store.read", {"module": "agent/tickets",
+                                            "path": _ticket_path(cid)}, caller=None)
+        cv = child.get("value")
+        if cv is not None and cv.get("status") != "closed":
+            return {"ok": False, "code": "children_open", "status": 409,
+                    "error": "子工单尚未结单: %s" % cid}
+    now = ctx.api.call("clock.now", {}, caller=None)
+    closed = ctx.api.call("tickets.closefin", {
+        "rec": rec, "summary": payload.get("summary"),
+        "verdict": payload.get("verdict"), "now": now.get("ts")}, caller=None)
+    ctx.api.call("store.write", {"module": "agent/tickets",
+                                 "path": _ticket_path(closed.get("id")), "value": closed},
+                 caller=None)
+    if closed.get("parent"):
+        ctx.api.call("demand_engine.run", {
+            "id": "ticket-message",
+            "input": {"id": closed.get("parent"),
+                      "text": "子工单已结单： %s" % (closed.get("id") or ""),
+                      "target": "pm"}}, caller=None)
+    return ctx.api.call("tickets.view", {"rec": closed}, caller=None)
+
+
+def _route_split(ctx, payload):
+    """拆单闭环：上限守卫 + 逐个建子单（每次建单都是一条独立编排）。"""
+    row = ctx.api.call("store.read", {"module": "agent/tickets",
+                                      "path": _ticket_path(payload.get("id"))}, caller=None)
+    cur = row.get("value") or {}
+    if len(cur.get("children") or []) >= 8 and payload.get("force") is False:
+        return {"ok": False, "code": "too_many_children", "status": 409,
+                "error": "子工单最多 8 个"}
+    for child_spec in payload.get("children") or []:
+        spec = child_spec or {}
+        child = ctx.api.call("demand_engine.run", {
+            "id": "ticket-create",
+            "input": {"title": spec.get("title"), "goal": spec.get("goal"),
+                      "project": cur.get("project"), "kind": "sub",
+                      "parent": payload.get("id"), "auto_retrospective": False}},
+            caller=None)
+        now = ctx.api.call("clock.now", {}, caller=None)
+        cur = ctx.api.call("tickets.bindchild", {
+            "rec": cur, "child": ((child.get("result") or {}).get("id")) or "",
+            "now": now.get("ts")}, caller=None)
+        ctx.api.call("store.write", {"module": "agent/tickets",
+                                     "path": _ticket_path(cur.get("id")), "value": cur},
+                     caller=None)
+    return ctx.api.call("tickets.view", {"rec": cur}, caller=None)
+
+
+def _route_stall_scan(ctx, payload):
+    """停滞扫描闭环：遍历在途工单、逐条判定、按命中开审计单。"""
+    now = ctx.api.call("clock.now", {}, caller=None)
+    rows = ctx.api.call("store.walk", {"module": "agent/tickets", "root": "tickets",
+                                       "pattern": "*/ticket.yaml"}, caller=None)
+    hot = []
+    for rec in rows.get("rows") or []:
+        rec = rec or {}
+        idle = ctx.api.call("clock.since", {"iso": rec.get("updated")}, caller=None)
+        verdict = ctx.api.call("tickets.stale", {
+            "rec": rec, "idle_seconds": idle.get("seconds"),
+            "limit_seconds": payload.get("limit_seconds")}, caller=None)
+        if verdict.get("stale") is True:
+            hot.append(rec.get("id"))
+    for tid in hot:
+        ctx.api.call("demand_engine.run", {
+            "id": "ticket-create",
+            "input": {"title": "停滞审计: %s" % tid, "goal": "工单久未推进: %s" % tid,
+                      "kind": "stall-audit", "auto_retrospective": False}},
+            caller=None)
+    return ctx.api.call("ops.assemble", {"parts": {"scan": hot, "at": now.get("ts")}},
+                        caller=None)
 

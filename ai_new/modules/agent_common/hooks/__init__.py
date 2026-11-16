@@ -24,12 +24,6 @@ def setup(ctx):
     ctx.hooks = _hooks.Hooks(ctx, ctx.demand_engine)
     ctx.api.register("hooks.points", lambda c, p: ctx.hooks.points(), "已声明的 hook 点",
                      module="hooks")
-    ctx.api.register("hooks.emit",
-                     lambda c, payload: ctx.hooks.emit(
-                         payload.get("point") or payload.get("name"),
-                         payload.get("payload") or payload.get("data"),
-                         payload.get("level", "info")),
-                     "触发 hook 点", module="hooks")
     return ctx.hooks
 
 

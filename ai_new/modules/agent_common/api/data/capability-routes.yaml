@@ -86,3 +86,51 @@ capabilities:
     - tickets.bindpm
     - store.write
     - tickets.view
+  channel.post:
+    calls:
+    - store.id
+    - store.read_text
+    - channel.split
+    - codec.json_decode
+    - clock.now
+    - channel.make
+    - codec.json_encode
+    - store.append_text
+  channel.read_since:
+    calls:
+    - store.id
+    - store.read_text
+    - channel.split
+    - codec.json_decode
+    - channel.since
+  channel.read_tail:
+    calls:
+    - store.id
+    - store.read_text
+    - channel.split
+    - codec.json_decode
+    - channel.tail
+  tickets.close:
+    calls:
+    - store.read
+    - clock.now
+    - tickets.closefin
+    - store.write
+    - demand_engine.run
+    - tickets.view
+  tickets.split:
+    calls:
+    - store.read
+    - demand_engine.run
+    - clock.now
+    - tickets.bindchild
+    - store.write
+    - tickets.view
+  tickets.stall_scan:
+    calls:
+    - clock.now
+    - store.walk
+    - clock.since
+    - tickets.stale
+    - demand_engine.run
+    - ops.assemble

@@ -1,126 +1,17 @@
 id: channel-post
-title: 发消息：归一频道 → 读历史算 seq → 拼消息 → 追加 → 通知需求层
+title: 发消息：闭环在 channel.post 能力内，需求只做顺序编排
 enabled: true
 callable: true
 'on': []
 do:
-- call: store.id
-  with:
-    value:
-      get: input.channel
-  as: cid
-- call: store.read_text
-  with:
-    module:
-      lit: agent/channel
-    path:
-      op: +
-      a:
-        lit: channels/
-      b:
-        op: +
-        a:
-          get: cid.id
-        b:
-          lit: .jsonl
-  as: txt
-- call: channel.split
-  with:
-    text:
-      get: txt.value
-  as: split
-- let: rows
-  eq:
-    lit: []
-- each:
-    get: split.lines
-  as: line
-  do:
-  - call: codec.json_decode
-    with:
-      text:
-        get: line
-    as: obj
-  - when:
-      op: '!='
-      a:
-        get: obj.ok
-      b: false
-    then:
-    - let: rows
-      eq:
-        op: append
-        a:
-          get: rows
-        b:
-          get: obj.value
-- call: clock.now
-  as: now
-- call: channel.make
+- call: channel.post
   with:
     channel:
-      get: cid.id
+      get: input.channel
     role:
       get: input.role
     content:
       get: input.content
-    rows:
-      get: rows
-    ts:
-      get: now.ts
-  as: rec
-- call: codec.json_encode
-  with:
-    value:
-      get: rec
-  as: enc
-- call: store.append_text
-  with:
-    module:
-      lit: agent/channel
-    path:
-      op: +
-      a:
-        lit: channels/
-      b:
-        op: +
-        a:
-          get: cid.id
-        b:
-          lit: .jsonl
-    text:
-      op: +
-      a:
-        get: enc.text
-      b:
-        lit: '
-
-          '
-  as: w
-- call: hooks.emit
-  with:
-    point:
-      lit: channel.posted
-    data:
-      channel:
-        get: rec.channel
-      role:
-        get: rec.role
-      content:
-        get: rec.content
-  as: emit
-- call: channel.make
-  with:
-    channel:
-      get: cid.id
-    role:
-      get: rec.role
-    content:
-      get: rec.content
-    rows:
-      get: rows
-    ts:
-      get: now.ts
   as: out
 expect:
   given:
@@ -129,13 +20,6 @@ expect:
       role: user
       content: hi
   calls:
-  - store.id
-  - store.read_text
-  - channel.split
-  - channel.make
-  - codec.json_encode
-  - store.append_text
-  - hooks.emit
-  - channel.make
+  - channel.post
   payload: {}
-  promise: 追加由需求做，seq 与消息形状归模块
+  promise: 读历史、算 seq、追加、emit 都在能力内部，需求树只有一次顺序调用

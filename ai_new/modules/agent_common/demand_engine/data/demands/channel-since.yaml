@@ -1,63 +1,13 @@
 id: channel-since
-title: 按游标取新消息
+title: 按游标取新消息：闭环在 channel.read_since 能力内
 enabled: true
 callable: true
 'on': []
 do:
-- call: store.id
+- call: channel.read_since
   with:
-    value:
+    channel:
       get: input.channel
-  as: cid
-- call: store.read_text
-  with:
-    module:
-      lit: agent/channel
-    path:
-      op: +
-      a:
-        lit: channels/
-      b:
-        op: +
-        a:
-          get: cid.id
-        b:
-          lit: .jsonl
-  as: txt
-- call: channel.split
-  with:
-    text:
-      get: txt.value
-  as: split
-- let: rows
-  eq:
-    lit: []
-- each:
-    get: split.lines
-  as: line
-  do:
-  - call: codec.json_decode
-    with:
-      text:
-        get: line
-    as: obj
-  - when:
-      op: '!='
-      a:
-        get: obj.ok
-      b: false
-    then:
-    - let: rows
-      eq:
-        op: append
-        a:
-          get: rows
-        b:
-          get: obj.value
-- call: channel.since
-  with:
-    rows:
-      get: rows
     cursor:
       get: input.cursor
   as: out
@@ -67,9 +17,6 @@ expect:
       channel: c1
       limit: 5
   calls:
-  - store.id
-  - store.read_text
-  - channel.split
-  - channel.since
+  - channel.read_since
   payload: {}
-  promise: 游标比较归模块
+  promise: 逐行解码与游标比较都在能力内部

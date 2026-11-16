@@ -1,96 +1,18 @@
 id: ticket-stall-scan
-title: 停滞扫描：遍历在途工单，超过阈值没更新就开审计单
+title: 停滞扫描：闭环在 tickets.stall_scan 能力内，需求只做顺序编排
 enabled: true
 callable: true
 'on': []
 do:
-- call: clock.now
-  as: now
-- call: store.walk
+- call: tickets.stall_scan
   with:
-    module:
-      lit: agent/tickets
-    root:
-      lit: tickets
-    pattern:
-      lit: '*/ticket.yaml'
-  as: rows
-- let: hot
-  eq:
-    lit: []
-- each:
-    get: rows.rows
-  as: rec
-  do:
-  - call: clock.since
-    with:
-      iso:
-        get: rec.updated
-    as: idle
-  - call: tickets.stale
-    with:
-      rec:
-        get: rec
-      idle_seconds:
-        get: idle.seconds
-      limit_seconds:
-        get: input.limit_seconds
-    as: verdict
-  - when:
-      op: ==
-      a:
-        get: verdict.stale
-      b:
-        lit: true
-    then:
-    - let: hot
-      eq:
-        op: append
-        a:
-          get: hot
-        b:
-          get: rec.id
-    else: []
-- each:
-    get: hot
-  as: tid
-  do:
-  - call: demand_engine.run
-    with:
-      id:
-        lit: ticket-create
-      input:
-        title:
-          op: +
-          a:
-            lit: '停滞审计: '
-          b:
-            get: tid
-        goal:
-          op: +
-          a:
-            lit: '工单久未推进: '
-          b:
-            get: tid
-        kind:
-          lit: stall-audit
-        auto_retrospective:
-          lit: false
-    as: audit
-- call: ops.assemble
-  with:
-    parts:
-      scan:
-        get: hot
-      at:
-        get: now.ts
+    limit_seconds:
+      get: input.limit_seconds
   as: out
 expect:
   given:
     input: {}
   calls:
-  - clock.now
-  - store.walk
-  - ops.assemble
+  - tickets.stall_scan
   payload: {}
-  promise: 扫描是需求，判定归模块，建单还是 ticket-create 需求
+  promise: 遍历在途、逐条判定、按命中开审计单都在能力内部
