@@ -22,6 +22,36 @@ def view(p):
             "default_backend": rec.get("default_backend", "")}
 
 
+def tree(p):
+    """项目 → 工单两级归组：项目行与工单行都由需求取来，这里只分组成形。"""
+    projs = p.get("projects") or []
+    tickets = p.get("tickets") or []
+    by, orphans = {}, []
+    for t in tickets:
+        if not t:
+            continue
+        proj = t.get("project") or ""
+        item = _ticket_view(t)
+        if proj:
+            by.setdefault(proj, []).append(item)
+        else:
+            orphans.append(item)
+    items = []
+    for pr in projs:
+        if not pr:
+            continue
+        items.append({"project": view({"rec": pr}),
+                      "tickets": by.get(pr.get("id")) or []})
+    return {"items": items, "orphans": orphans}
+
+
+def _ticket_view(rec):
+    return {"id": rec.get("id"), "title": rec.get("title"), "goal": rec.get("goal"),
+            "project": rec.get("project"), "kind": rec.get("kind"),
+            "status": rec.get("status"), "pm": rec.get("pm"),
+            "updated": rec.get("updated")}
+
+
 def screen(p):
     """列表：rows 是档案记录列表，这里只挑要露出的字段。"""
     rows = p.get("rows") or []

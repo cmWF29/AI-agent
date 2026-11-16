@@ -24,9 +24,11 @@
   .msg { max-width: 78%; padding: 9px 12px; border-radius: 10px; background: #1a1e26;
          border: 1px solid #23262f; white-space: pre-wrap; word-break: break-word; }
   .msg.user { align-self: flex-end; background: #1c2b4d; border-color: #2b4070; }
-  .msg.assistant { align-self: flex-start; }
+  .msg.assistant, .msg.role { align-self: flex-start; }
   .msg.system { align-self: center; background: #2a2020; border-color: #4a2f2f;
                 color: #ffb4b4; font-size: 12px; }
+  .msg .who { font-size: 12px; color: #9aa3b8; margin-bottom: 3px; }
+  .msg.user .who { text-align: right; }
   .msg .meta { display: block; margin-top: 4px; font-size: 11px; color: #7d8599; }
   #composer { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid #23262f;
               background: #14171d; }
@@ -60,7 +62,11 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const stateEl = $("state"), list = $("list"), input = $("text");
-let cursor = 0, abort = null, alive = false;
+let cursor = 0, abort = null, alive = false, lastRole = "";
+const ROLE_CN = { user: "用户", assistant: "助手", pm: "PM", system: "系统" };
+function speaker(msg) {
+  return (msg.meta && msg.meta.display) || ROLE_CN[msg.role] || msg.role || "assistant";
+}
 
 function readCookie(name) {
   const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
@@ -84,14 +90,25 @@ function setState(text) { stateEl.textContent = text; }
 function render(msg) {
   const empty = list.querySelector(".empty");
   if (empty) empty.remove();
+  const role = msg.role || "assistant";
   const box = document.createElement("div");
-  box.className = "msg " + (msg.role || "assistant");
-  box.textContent = msg.content == null ? "" : msg.content;
+  box.className = "msg " + role;
+  const grouped = role === lastRole;
+  if (!grouped && role !== "system") {
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = speaker(msg);
+    box.appendChild(who);
+  }
+  const body = document.createElement("div");
+  body.textContent = msg.content == null ? "" : msg.content;
+  box.appendChild(body);
   const meta = document.createElement("span");
   meta.className = "meta";
-  meta.textContent = (msg.role || "") + (msg.ts ? " · " + new Date(msg.ts).toLocaleTimeString() : "");
+  meta.textContent = msg.ts ? new Date(msg.ts).toLocaleTimeString() : "";
   box.appendChild(meta);
   list.appendChild(box);
+  lastRole = role;
   list.scrollTop = list.scrollHeight;
 }
 
@@ -165,7 +182,7 @@ async function send() {
 }
 
 $("connect").onclick = connect;
-$("clear").onclick = () => { list.innerHTML = '<div class="empty">还没有消息</div>'; };
+$("clear").onclick = () => { list.innerHTML = '<div class="empty">还没有消息</div>'; lastRole = ""; };
 $("send").onclick = send;
 $("logout").onclick = async () => {
   try { await fetch("/api/rpc/demand_engine/run", {

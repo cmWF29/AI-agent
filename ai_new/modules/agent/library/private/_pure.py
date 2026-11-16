@@ -50,6 +50,34 @@ def _records(p):
     return out
 
 
+def _position(rec, flow):
+    """岗位 = 相对性系统提示词引用 + 代码性流程规范 + 产出约束。"""
+    return {"id": rec.get("id"), "cn": rec.get("cn"),
+            "prompt_file": rec.get("prompt_file"),
+            "must_outputs": rec.get("must_outputs") or [],
+            "backend": rec.get("backend") or "",
+            "builtin": bool(rec.get("builtin")),
+            "flow": {"id": (flow or {}).get("id") or rec.get("id"),
+                     "checks": (flow or {}).get("checks") or []}}
+
+
+def positionp(p):
+    """单条岗位：岗位记录 + 关联流程规范合并成形。"""
+    rec = p.get("rec") or {}
+    if not rec:
+        return {"ok": False, "code": "not_found", "status": 404,
+                "error": "岗位不存在: %s" % (p.get("id") or "")}
+    return _position(rec, p.get("flow") or {})
+
+
+def positionsp(p):
+    """岗位列表：岗位记录按 id 关联各自流程规范。"""
+    roles = _records({"seed": p.get("seed"), "user": p.get("user"), "kind": "roles"})
+    flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
+    items = [_position(rec, flows.get(rid) or {}) for rid, rec in roles.items()]
+    return {"items": items}
+
+
 def listp(p):
     kind = p.get("kind") or "roles"
     return {"kind": kind, "items": [dict(r) for r in _records(p).values()]}

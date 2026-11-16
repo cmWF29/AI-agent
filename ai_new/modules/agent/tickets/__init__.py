@@ -8,6 +8,8 @@ def setup(ctx):
     for name, fn in [
         ("tickets.newid", _pure.newid),
         ("tickets.build", _pure.build),
+        ("tickets.validate_project", _pure.validate_project),
+        ("tickets.threadp", _pure.threadp),
         ("tickets.view", _pure.view),
         ("tickets.screen", _pure.screen),
         ("tickets.roles", _pure.roles),

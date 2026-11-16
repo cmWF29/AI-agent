@@ -10,6 +10,7 @@ def setup(ctx):
         ("projects.build", _pure.build),
         ("projects.view", _pure.view),
         ("projects.screen", _pure.screen),
+        ("projects.tree", _pure.tree),
         ("projects.archive", _pure.archive),
         ("projects.missing", _pure.missing),
         ("projects.conflict", _pure.conflict),

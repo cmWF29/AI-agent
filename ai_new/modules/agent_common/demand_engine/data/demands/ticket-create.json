@@ -1,6 +1,6 @@
 {
   "id": "ticket-create",
-  "title": "建工单：算 id → 造记录 → 拉 PM 会话 → 落盘",
+  "title": "建工单：校验项目必填且存在 → 算 id → 造记录 → 拉 PM 会话 → 落盘",
   "enabled": true,
   "callable": true,
   "on": [],
@@ -19,152 +19,233 @@
       "as": "now"
     },
     {
-      "call": "tickets.newid",
+      "call": "tickets.validate_project",
       "with": {
-        "today": {
-          "get": "now.iso"
-        },
-        "n": {
-          "get": "input.n"
-        }
-      },
-      "as": "fresh"
-    },
-    {
-      "call": "tickets.build",
-      "with": {
-        "id": {
-          "get": "fresh.id"
-        },
-        "title": {
-          "get": "input.title"
-        },
-        "goal": {
-          "get": "input.goal"
-        },
         "project": {
           "get": "input.project"
-        },
-        "kind": {
-          "get": "input.kind"
-        },
-        "parent": {
-          "get": "input.parent"
-        },
-        "meta": {
-          "get": "input.meta"
-        },
-        "auto_retrospective": {
-          "get": "input.auto_retrospective"
-        },
-        "now": {
-          "get": "now.ts"
         }
       },
-      "as": "rec"
+      "as": "vproj"
     },
     {
       "when": {
-        "op": "!=",
+        "op": "==",
         "a": {
-          "get": "input.kind"
+          "get": "vproj.ok"
         },
-        "b": "stall-audit"
+        "b": false
       },
       "then": [
         {
-          "call": "demand_engine.run",
+          "call": "tickets.err",
           "with": {
-            "id": {
-              "lit": "session-spawn"
+            "code": {
+              "lit": "missing_project"
             },
-            "input": {
-              "kind": {
-                "lit": "pm"
+            "status": {
+              "lit": 400
+            },
+            "message": {
+              "get": "vproj.error"
+            }
+          },
+          "as": "out"
+        }
+      ],
+      "else": [
+        {
+          "call": "store.read",
+          "with": {
+            "module": {
+              "lit": "agent/projects"
+            },
+            "path": {
+              "op": "+",
+              "a": {
+                "get": "input.project"
               },
-              "name": {
-                "op": "+",
-                "a": {
-                  "lit": "PM-"
-                },
-                "b": {
-                  "get": "fresh.id"
-                }
-              },
-              "ticket": {
-                "get": "fresh.id"
-              },
-              "max_steps": {
-                "get": "input.pm_max_steps"
-              },
-              "task": {
-                "get": "input.task"
+              "b": {
+                "lit": ".json"
               }
             }
           },
-          "as": "pm"
+          "as": "prow"
         },
         {
-          "call": "tickets.bindpm",
-          "with": {
-            "rec": {
-              "get": "rec"
+          "when": {
+            "op": "==",
+            "a": {
+              "get": "prow.value"
             },
-            "session": {
-              "get": "pm.result.id"
-            },
-            "now": {
-              "get": "now.ts"
-            }
+            "b": null
           },
-          "as": "rec"
+          "then": [
+            {
+              "call": "projects.missing",
+              "with": {
+                "id": {
+                  "get": "input.project"
+                }
+              },
+              "as": "out"
+            }
+          ],
+          "else": [
+            {
+              "call": "tickets.newid",
+              "with": {
+                "today": {
+                  "get": "now.iso"
+                },
+                "n": {
+                  "get": "input.n"
+                }
+              },
+              "as": "fresh"
+            },
+            {
+              "call": "tickets.build",
+              "with": {
+                "id": {
+                  "get": "fresh.id"
+                },
+                "title": {
+                  "get": "input.title"
+                },
+                "goal": {
+                  "get": "input.goal"
+                },
+                "project": {
+                  "get": "input.project"
+                },
+                "kind": {
+                  "get": "input.kind"
+                },
+                "parent": {
+                  "get": "input.parent"
+                },
+                "meta": {
+                  "get": "input.meta"
+                },
+                "auto_retrospective": {
+                  "get": "input.auto_retrospective"
+                },
+                "now": {
+                  "get": "now.ts"
+                }
+              },
+              "as": "rec"
+            },
+            {
+              "when": {
+                "op": "!=",
+                "a": {
+                  "get": "input.kind"
+                },
+                "b": "stall-audit"
+              },
+              "then": [
+                {
+                  "call": "demand_engine.run",
+                  "with": {
+                    "id": {
+                      "lit": "session-spawn"
+                    },
+                    "input": {
+                      "kind": {
+                        "lit": "pm"
+                      },
+                      "name": {
+                        "op": "+",
+                        "a": {
+                          "lit": "PM-"
+                        },
+                        "b": {
+                          "get": "fresh.id"
+                        }
+                      },
+                      "ticket": {
+                        "get": "fresh.id"
+                      },
+                      "max_steps": {
+                        "get": "input.pm_max_steps"
+                      },
+                      "task": {
+                        "get": "input.task"
+                      }
+                    }
+                  },
+                  "as": "pm"
+                },
+                {
+                  "call": "tickets.bindpm",
+                  "with": {
+                    "rec": {
+                      "get": "rec"
+                    },
+                    "session": {
+                      "get": "pm.result.id"
+                    },
+                    "now": {
+                      "get": "now.ts"
+                    }
+                  },
+                  "as": "rec"
+                }
+              ]
+            },
+            {
+              "call": "store.write",
+              "with": {
+                "module": {
+                  "lit": "agent/tickets"
+                },
+                "path": {
+                  "op": "+",
+                  "a": {
+                    "lit": "tickets/"
+                  },
+                  "b": {
+                    "op": "+",
+                    "a": {
+                      "get": "rec.id"
+                    },
+                    "b": {
+                      "lit": "/ticket.json"
+                    }
+                  }
+                },
+                "value": {
+                  "get": "rec"
+                }
+              },
+              "as": "w"
+            },
+            {
+              "call": "tickets.view",
+              "with": {
+                "rec": {
+                  "get": "rec"
+                }
+              },
+              "as": "out"
+            }
+          ]
         }
       ]
-    },
-    {
-      "call": "store.write",
-      "with": {
-        "module": {
-          "lit": "agent/tickets"
-        },
-        "path": {
-          "op": "+",
-          "a": {
-            "lit": "tickets/"
-          },
-          "b": {
-            "op": "+",
-            "a": {
-              "get": "rec.id"
-            },
-            "b": {
-              "lit": "/ticket.json"
-            }
-          }
-        },
-        "value": {
-          "get": "rec"
-        }
-      },
-      "as": "w"
-    },
-    {
-      "call": "tickets.view",
-      "with": {
-        "rec": {
-          "get": "rec"
-        }
-      },
-      "as": "out"
     }
   ],
   "expect": {
     "given": {
-      "input": {}
+      "input": {
+        "project": "p1"
+      }
     },
     "calls": [
       "store.id",
       "clock.now",
+      "tickets.validate_project",
+      "store.read",
       "tickets.newid",
       "tickets.build",
       "demand_engine.run",
@@ -173,6 +254,6 @@
       "tickets.view"
     ],
     "payload": {},
-    "promise": "PM 会话也是需求拉的，模块只造记录"
+    "promise": "项目必填且存在由需求把关，PM 会话也是需求拉的，模块只造记录"
   }
 }

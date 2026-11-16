@@ -8,6 +8,8 @@ def setup(ctx):
     pairs = [
         ("library.list", _pure.listp),
         ("library.get", _pure.getp),
+        ("library.positions", _pure.positionsp),
+        ("library.position", _pure.positionp),
         ("library.design", _pure.designp),
         ("library.summary", _pure.summaryp),
         ("library.role_prompt", _pure.promptp),

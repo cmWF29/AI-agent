@@ -216,8 +216,9 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(any(p["id"] == created["id"] for p in after))
 
     def test_ticket_lifecycle_and_role_tool(self):
+        proj = self._run("projects-create", {"name": "工单归属项目"})["result"]
         c = self._run("ticket-create", {"title": "冒烟任务", "goal": "验证工单流程",
-                                        "project": "p1"})
+                                        "project": proj["id"]})
         t = c["result"]
         self.assertTrue(t["pm"], "PM 会话未创建")
         self.assertEqual(t["status"], "queued")
@@ -234,6 +235,35 @@ class CoreTest(unittest.TestCase):
         self._run("ticket-close", {"id": t["id"], "summary": "验证完成"})
         got = self._run("ticket-get", {"id": t["id"]})
         self.assertEqual(got["result"]["status"], "closed")
+
+    def test_project_tree_thread_and_positions(self):
+        """项目→工单分级树；工单 1:1 主会话线程；岗位带流程规范。"""
+        proj = self._run("projects-create", {"name": "分级树项目"})["result"]
+        c = self._run("ticket-create", {"title": "分级工单", "project": proj["id"]})["result"]
+        tree = self._run("project-tree", {})["result"]
+        node = next((n for n in tree["items"] if n["project"]["id"] == proj["id"]), None)
+        self.assertIsNotNone(node, "分级树里找不到项目节点")
+        self.assertTrue(any(x["id"] == c["id"] for x in node["tickets"]))
+        th = self._run("ticket-thread", {"id": c["id"]})["result"]
+        self.assertEqual(th["ticket"]["id"], c["id"])
+        self.assertEqual(th["thread"]["id"], c["pm"])
+        self.assertIn("roles", th)
+        plist = self._run("position-list", {})["result"]
+        self.assertTrue(plist["items"])
+        arch = next((x for x in plist["items"] if x["id"] == "architect"), None)
+        self.assertIsNotNone(arch)
+        self.assertIn("flow", arch)
+        pget = self._run("position-get", {"id": "architect"})["result"]
+        self.assertEqual(pget["id"], "architect")
+        self.assertTrue(pget["prompt_file"])
+
+    def test_ticket_requires_existing_project(self):
+        """工单必须绑定存在的项目：缺项目 / 项目不存在都被拦下。"""
+        miss = self._run("ticket-create", {"title": "无项目工单"})["result"]
+        self.assertEqual(miss["code"], "missing_project")
+        ghost = self._run("ticket-create", {"title": "幽灵项目工单",
+                                            "project": "no-such-proj"})["result"]
+        self.assertEqual(ghost["code"], "not_found")
 
     def test_session_spawn_send_run_wait(self):
         sp = self._run("session-spawn", {"kind": "role", "role": "developer",

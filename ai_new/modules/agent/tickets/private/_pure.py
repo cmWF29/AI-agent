@@ -56,6 +56,28 @@ def build(p):
     }
 
 
+def validate_project(p):
+    """工单必须绑定项目：纯空值守卫，项目是否存在由需求层读盘判断。"""
+    project = (p.get("project") or "").strip()
+    if not project:
+        return {"ok": False, "code": "missing_project", "status": 400,
+                "error": "工单必须绑定到某个项目"}
+    return {"ok": True, "project": project}
+
+
+def threadp(p):
+    """工单主会话（1:1）线程视图：工单档案 + 主会话消息流 + 角色实例清单。"""
+    ticket = p.get("ticket") or {}
+    thread = p.get("thread") or {}
+    return {
+        "ticket": view({"rec": ticket}),
+        "thread": {"id": thread.get("id") or "", "name": thread.get("name") or "",
+                   "status": thread.get("status") or "",
+                   "messages": thread.get("messages") or []},
+        "roles": ticket.get("roles") or [],
+    }
+
+
 def view(p):
     rec = p.get("rec") or {}
     base = {k: rec.get(k) for k in ("id", "title", "goal", "project", "kind", "parent",

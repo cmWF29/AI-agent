@@ -107,7 +107,11 @@
         "ticket-split",
         "ticket-stall-scan",
         "web-chat-reply",
-        "web-page"
+        "web-page",
+        "project-tree",
+        "ticket-thread",
+        "position-list",
+        "position-get"
       ]
     }
   ]

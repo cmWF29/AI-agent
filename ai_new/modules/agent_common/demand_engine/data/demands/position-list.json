@@ -1,0 +1,73 @@
+{
+  "id": "position-list",
+  "title": "岗位列表：岗位记录关联各自流程规范，合并种子与用户记录",
+  "enabled": true,
+  "callable": true,
+  "on": [],
+  "do": [
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/library"
+        },
+        "path": {
+          "lit": "seed.json"
+        }
+      },
+      "as": "seed"
+    },
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/library"
+        },
+        "path": {
+          "lit": "roles.json"
+        }
+      },
+      "as": "uroles"
+    },
+    {
+      "call": "store.read",
+      "with": {
+        "module": {
+          "lit": "agent/library"
+        },
+        "path": {
+          "lit": "flows.json"
+        }
+      },
+      "as": "uflows"
+    },
+    {
+      "call": "library.positions",
+      "with": {
+        "seed": {
+          "get": "seed.value"
+        },
+        "user": {
+          "get": "uroles.value"
+        },
+        "flows": {
+          "get": "uflows.value"
+        }
+      },
+      "as": "out"
+    }
+  ],
+  "expect": {
+    "given": {
+      "input": {}
+    },
+    "calls": [
+      "store.read",
+      "store.read",
+      "store.read",
+      "library.positions"
+    ],
+    "payload": {},
+    "promise": "岗位提示词与流程规范的合并规则归模块，取数归需求"
+  }
+}

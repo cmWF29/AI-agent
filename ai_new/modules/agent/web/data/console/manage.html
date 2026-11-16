@@ -21,7 +21,7 @@ button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(-
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button.danger{color:#f53f3f;border-color:#f53f3f}
 button:disabled{opacity:.4;cursor:not-allowed}
-main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 20px}
+main{display:grid;grid-template-columns:380px 1fr;gap:16px;padding:16px 20px}
 section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
 section h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin:0 0 10px}
 form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -36,12 +36,42 @@ th{opacity:.6;font-weight:500}
 .badge.running{color:#1664ff;border-color:#1664ff}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
 .actions button{padding:3px 8px;font-size:12px}
-#detail{margin-top:12px;max-height:260px;overflow:auto}
-pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,monospace;font-size:12px;margin:0}
 #status{margin-top:8px;font-size:12px;opacity:.7}
 #banner{margin:12px 20px 0;padding:10px 14px;border-radius:10px;font-size:13px;display:none}
 #banner.err{display:block;background:#ffece8;color:#f53f3f;border:1px solid #f53f3f}
 #banner.ok{display:block;background:#e8ffea;color:#00b42a;border:1px solid #00b42a}
+/* 分级树 */
+.tree{margin-top:10px}
+.proj{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.proj-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer}
+.proj-head .caret{width:14px;display:inline-block;transition:transform:.15s}
+.proj.open .caret{transform:rotate(90deg)}
+.proj-head .pname{font-weight:600;flex:1}
+.proj-head .cnt{font-size:12px;opacity:.6}
+.proj-body{display:none;border-top:1px solid var(--line)}
+.proj.open .proj-body{display:block}
+.ticket-row{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 34px;cursor:pointer;border-top:1px solid var(--line)}
+.ticket-row:hover{background:var(--bg)}
+.ticket-row.active{background:rgba(22,100,255,.08)}
+.ticket-row .t-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.orphans{margin-top:10px}
+/* 群聊气泡 */
+.chat{display:flex;flex-direction:column;gap:12px;max-height:46vh;overflow-y:auto;padding:4px 2px}
+.bubble{display:flex;flex-direction:column;max-width:72%;gap:3px}
+.bubble .who{font-size:12px;opacity:.65}
+.bubble .body{padding:9px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word}
+.bubble.user{align-self:flex-end;text-align:right}
+.bubble.user .body{background:#1c2b4d;border-color:#2b4070;color:#eaf1ff}
+.bubble.assistant,.bubble.role{align-self:flex-start}
+.bubble.system{align-self:center;max-width:90%}
+.bubble.system .body{background:transparent;border-color:transparent;color:var(--fg);opacity:.55;font-size:12px}
+.bubble .ts{font-size:11px;opacity:.5}
+.thread-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px}
+.composer{display:flex;gap:8px;margin-top:10px}
+.composer textarea{flex:1;min-height:44px}
+.full{grid-column:1/-1}
 @media (max-width:900px){main{grid-template-columns:1fr}}
 </style>
 </head>
@@ -59,7 +89,7 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
 <div id="banner"></div>
 <main>
   <section>
-    <h2>项目管理</h2>
+    <h2>项目 / 工单（分级）</h2>
     <form id="proj-form">
       <div class="row">
         <div><label class="muted">项目名称</label><input id="p-name" placeholder="例如：官网重构" required></div>
@@ -68,18 +98,10 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
       <div class="actions"><button class="primary" type="submit">新建项目</button>
         <button type="button" id="p-refresh">刷新</button></div>
     </form>
-    <table>
-      <thead><tr><th>ID</th><th>名称</th><th>后端</th><th>状态</th><th>操作</th></tr></thead>
-      <tbody id="proj-rows"></tbody>
-    </table>
-  </section>
-
-  <section>
-    <h2>工单管理</h2>
-    <form id="ticket-form">
+    <form id="ticket-form" style="margin-top:12px">
       <div class="row">
         <div><label class="muted">标题</label><input id="t-title" placeholder="工单标题" required></div>
-        <div><label class="muted">所属项目</label><select id="t-project"></select></div>
+        <div><label class="muted">所属项目</label><select id="t-project" required></select></div>
       </div>
       <div class="full"><label class="muted">需求目标</label><textarea id="t-goal" placeholder="要做什么、验收标准是什么"></textarea></div>
       <div class="row">
@@ -89,45 +111,39 @@ pre{white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,
         </select></div>
         <div><label class="muted">父工单（可选）</label><input id="t-parent" placeholder="父工单 ID"></div>
       </div>
-      <div class="actions"><button class="primary" type="submit">建工单</button>
-        <button type="button" id="t-refresh">刷新</button></div>
+      <div class="actions"><button class="primary" type="submit">建工单</button></div>
     </form>
-    <div class="row" style="margin:10px 0">
-      <div><label class="muted">按状态筛选</label><select id="t-filter-status">
-        <option value="">全部</option><option value="queued">queued</option>
-        <option value="running">running</option><option value="idle">idle</option>
-        <option value="closed">closed</option>
-      </select></div>
-      <div><label class="muted">按项目筛选</label><select id="t-filter-project"></select></div>
-    </div>
-    <table>
-      <thead><tr><th>ID</th><th>标题</th><th>项目</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
-      <tbody id="ticket-rows"></tbody>
-    </table>
+    <div class="tree" id="tree"></div>
   </section>
 
-  <section style="grid-column:1/-1">
-    <h2>工单操作与详情</h2>
-    <div class="row">
-      <div><label class="muted">选中工单</label><input id="op-id" placeholder="工单 ID"></div>
-      <div><label class="muted">备注 / 消息内容</label><input id="op-text" placeholder="写给 PM 或追加备注的文字"></div>
+  <section>
+    <h2>工单会话</h2>
+    <div class="thread-meta" id="thread-meta"><span class="muted">从左侧项目展开后选择一个工单</span></div>
+    <div class="chips" id="thread-roles"></div>
+    <div class="chat" id="chat"><div class="muted" style="margin:auto">还没有消息</div></div>
+    <div class="composer">
+      <textarea id="op-text" placeholder="发给 PM 的消息，Enter 发送"></textarea>
+      <button class="primary" id="op-message">发送</button>
     </div>
-    <div class="row">
-      <div><label class="muted">结单结论 summary</label><input id="op-summary" placeholder="结单摘要"></div>
-      <div><label class="muted">验收 verdict（可选）</label><input id="op-verdict" placeholder="通过 / 驳回"></div>
-    </div>
-    <div class="actions" style="margin-bottom:10px">
+    <div class="actions" style="margin-top:10px">
       <button id="op-detail">查看详情</button>
       <button id="op-note">追加备注</button>
-      <button id="op-message">发消息给 PM</button>
       <button id="op-close" class="danger">结单</button>
     </div>
-    <pre id="detail">未选择工单</pre>
+    <pre id="detail" style="margin-top:10px;max-height:180px;overflow:auto"></pre>
     <div id="status"></div>
   </section>
 
-  <section style="grid-column:1/-1">
-    <h2>会话管理</h2>
+  <section class="full">
+    <h2>岗位库（岗位 = 系统提示词 + 流程规范；角色是岗位的实例）</h2>
+    <table>
+      <thead><tr><th>ID</th><th>名称</th><th>提示词</th><th>产出约束</th><th>流程检查</th></tr></thead>
+      <tbody id="position-rows"></tbody>
+    </table>
+  </section>
+
+  <section class="full">
+    <h2>会话调试（内部推理会话）</h2>
     <div class="row" style="margin-bottom:10px">
       <div><label class="muted">按状态筛选</label><select id="s-filter-status">
         <option value="">全部</option><option value="idle">idle</option>
@@ -154,7 +170,6 @@ function clearToken() {
   sessionStorage.removeItem("hive.token");
   document.cookie = "hive_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 }
-
 function headers() {
   const h = { "Content-Type": "application/json" };
   if (token()) h["X-Auth-Token"] = token();
@@ -165,9 +180,9 @@ function esc(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-// 工单 / 会话缓存：前端只用来按后端状态前置禁用按钮，业务事实以后端为准
 const ticketMap = {};
 const sessionMap = {};
+let selId = "";
 
 async function run(demand, input) {
   let resp, body;
@@ -193,7 +208,6 @@ async function run(demand, input) {
   }
   return inner;
 }
-
 function banner(msg, kind) {
   const el = $("banner");
   if (!msg) { el.style.display = "none"; el.textContent = ""; return; }
@@ -201,205 +215,219 @@ function banner(msg, kind) {
   el.textContent = msg;
 }
 function status(text) { $("status").textContent = text; }
-
 function gateMessage(err) {
-  if (err && (err.status === 401 || err.code === "unauthorized")) {
-    return "登录已失效（401），请重新登录。";
-  }
+  if (err && (err.status === 401 || err.code === "unauthorized")) return "登录已失效（401），请重新登录。";
   return (err && err.message) || "操作失败";
 }
-
 async function withBusy(btn, fn) {
   if (btn) { btn.disabled = true; }
   try { return await fn(); }
   finally { if (btn) btn.disabled = false; }
 }
-
 function actBtn(act, id, label, disabled, cls, tip) {
   const attrs = disabled ? 'disabled title="' + esc(tip || "当前状态不可用") + '"' : "";
   const clsAttr = cls ? 'class="' + cls + '"' : "";
   return `<button ${clsAttr} data-act="${act}" data-id="${esc(id)}" ${attrs}>${label}</button>`;
 }
 
-// ---- 项目 ----
-async function loadProjects() {
-  const list = await run("projects-list", {});
-  const items = list.items || [];
-  const opts = ['<option value="">（未指定）</option>']
-    .concat(items.map((p) => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`));
-  $("t-project").innerHTML = opts.join("");
-  $("t-filter-project").innerHTML = opts.join("");
-  $("proj-rows").innerHTML = items.map((p) => {
-    const archived = !!p.archived;
+const ROLE_CN = { pm: "PM", user: "用户", assistant: "助手", system: "系统" };
+function speakerOf(msg, roles) {
+  const role = msg.role || "assistant";
+  if (role === "user") return "用户";
+  if (role === "system") return "系统";
+  if (role === "pm" || role === "assistant") return ROLE_CN[role] || role;
+  const hit = (roles || []).find((r) => r.role === role || r.session === role);
+  return (hit && (hit.display || hit.role)) || role;
+}
+function bubbleClass(msg) {
+  const role = msg.role || "assistant";
+  if (role === "user") return "user";
+  if (role === "system") return "system";
+  if (role === "assistant" || role === "pm") return "assistant";
+  return "role";
+}
+
+// ---- 分级树：项目 → 工单 ----
+async function loadTree() {
+  const tree = await run("project-tree", {});
+  const items = tree.items || [];
+  const orphans = tree.orphans || [];
+  Object.keys(ticketMap).forEach((k) => delete ticketMap[k]);
+  items.forEach((n) => (n.tickets || []).forEach((t) => { ticketMap[t.id] = t; }));
+  orphans.forEach((t) => { ticketMap[t.id] = t; });
+
+  const projOpts = ['<option value="">（选择项目）</option>']
+    .concat(items.map((n) => `<option value="${esc(n.project.id)}">${esc(n.project.name || n.project.id)}</option>`));
+  $("t-project").innerHTML = projOpts.join("");
+
+  const html = items.map((n) => {
+    const p = n.project;
+    const tickets = (n.tickets || []).map((t) => ticketRow(t)).join("")
+      || '<div class="ticket-row muted" style="cursor:default">暂无工单</div>';
     return `
-    <tr>
-      <td>${esc(p.id)}</td>
-      <td>${esc(p.name)}</td>
-      <td class="muted">${esc(p.default_backend || "")}</td>
-      <td>${archived ? '<span class="badge archived">已归档</span>' : '<span class="badge">活跃</span>'}</td>
-      <td class="actions">
-        ${actBtn("archive", p.id, "归档", archived, "", "项目已归档")}
-        ${actBtn("del", p.id, "删除", false, "danger")}
-      </td>
-    </tr>`;
-  }).join("") || '<tr><td colspan="5" class="muted">暂无项目</td></tr>';
+    <div class="proj" data-proj="${esc(p.id)}">
+      <div class="proj-head" data-proj-head="${esc(p.id)}">
+        <span class="caret">▶</span>
+        <span class="pname">${esc(p.name || p.id)}</span>
+        <span class="cnt">${(n.tickets || []).length} 工单</span>
+        <span class="actions">
+          ${actBtn("archive", p.id, "归档", !!p.archived, "", "项目已归档")}
+          ${actBtn("del", p.id, "删除", false, "danger")}
+        </span>
+      </div>
+      <div class="proj-body">${tickets}</div>
+    </div>`;
+  }).join("");
+  const orphanHtml = orphans.length
+    ? `<div class="orphans"><div class="muted">未归属工单</div>` +
+      orphans.map((t) => ticketRow(t)).join("") + "</div>" : "";
+  $("tree").innerHTML = html + orphanHtml || '<div class="muted">暂无项目</div>';
+}
+
+function ticketRow(t) {
+  const closed = t.status === "closed";
+  const badge = closed ? '<span class="badge closed">closed</span>'
+    : `<span class="badge ${esc(t.status)}">${esc(t.status)}</span>`;
+  const active = t.id === selId ? " active" : "";
+  return `<div class="ticket-row${active}" data-ticket="${esc(t.id)}">
+    <span class="t-title">${esc(t.title || t.id)}</span>${badge}</div>`;
 }
 
 $("proj-form").onsubmit = async (e) => {
   e.preventDefault();
   try {
     const rec = await run("projects-create", {
-      name: $("p-name").value.trim(),
-      default_backend: $("p-backend").value.trim()
+      name: $("p-name").value.trim(), default_backend: $("p-backend").value.trim()
     });
     banner(""); status("已建项目：" + (rec.id || ""));
     $("p-name").value = ""; $("p-backend").value = "";
-    await loadProjects(); await loadTickets();
+    await loadTree();
   } catch (err) { banner(gateMessage(err), "err"); status("项目创建失败：" + err.message); }
 };
-$("p-refresh").onclick = () => loadProjects().catch((e) => banner(gateMessage(e), "err"));
+$("p-refresh").onclick = () => loadTree().catch((e) => banner(gateMessage(e), "err"));
 
-$("proj-rows").onclick = async (e) => {
-  const btn = e.target.closest("button"); if (!btn || btn.disabled) return;
-  const id = btn.dataset.id;
-  try {
-    if (btn.dataset.act === "archive") {
-      await withBusy(btn, () => run("projects-archive", { id }));
-      status("已归档：" + id);
-    } else if (btn.dataset.act === "del") {
-      if (!confirm("彻底删除项目 " + id + "？")) return;
-      await withBusy(btn, () => run("projects-delete", { id, purge: true }));
-      status("已删除：" + id);
-    }
-    await loadProjects(); await loadTickets();
-  } catch (err) { banner(gateMessage(err), "err"); status("操作失败：" + err.message); }
+$("tree").onclick = async (e) => {
+  const head = e.target.closest("[data-proj-head]");
+  if (head) { head.closest(".proj").classList.toggle("open"); return; }
+  const btn = e.target.closest("button");
+  if (btn && !btn.disabled) {
+    const id = btn.dataset.id;
+    try {
+      if (btn.dataset.act === "archive") { await withBusy(btn, () => run("projects-archive", { id })); status("已归档：" + id); }
+      else if (btn.dataset.act === "del") {
+        if (!confirm("彻底删除项目 " + id + "？")) return;
+        await withBusy(btn, () => run("projects-delete", { id, purge: true })); status("已删除：" + id);
+      }
+      await loadTree();
+    } catch (err) { banner(gateMessage(err), "err"); status("操作失败：" + err.message); }
+    return;
+  }
+  const row = e.target.closest("[data-ticket]");
+  if (row) { await openTicket(row.dataset.ticket); }
 };
-
-// ---- 工单 ----
-async function loadTickets() {
-  const list = await run("ticket-list", {
-    status: $("t-filter-status").value,
-    project: $("t-filter-project").value
-  });
-  const items = list.items || [];
-  Object.keys(ticketMap).forEach((k) => delete ticketMap[k]);
-  items.forEach((t) => { ticketMap[t.id] = t; });
-  $("ticket-rows").innerHTML = items.map((t) => {
-    const closed = t.status === "closed";
-    const badge = closed ? '<span class="badge closed">closed</span>'
-      : `<span class="badge ${esc(t.status)}">${esc(t.status)}</span>`;
-    return `
-    <tr>
-      <td>${esc(t.id)}</td>
-      <td>${esc(t.title)}</td>
-      <td class="muted">${esc(t.project || "")}</td>
-      <td class="muted">${esc(t.kind || "")}</td>
-      <td>${badge}</td>
-      <td class="actions">
-        ${actBtn("detail", t.id, "详情", false)}
-        ${actBtn("note", t.id, "备注", closed, "", "工单已结单")}
-        ${actBtn("message", t.id, "发 PM", closed, "", "工单已结单")}
-        ${actBtn("close", t.id, "结单", closed, "danger", "工单已结单")}
-      </td>
-    </tr>`;
-  }).join("") || '<tr><td colspan="6" class="muted">暂无工单</td></tr>';
-  syncTicketOps();
-}
 
 $("ticket-form").onsubmit = async (e) => {
   e.preventDefault();
   try {
     const rec = await run("ticket-create", {
-      title: $("t-title").value.trim(),
-      goal: $("t-goal").value.trim(),
-      project: $("t-project").value,
-      kind: $("t-kind").value,
-      parent: $("t-parent").value.trim()
+      title: $("t-title").value.trim(), goal: $("t-goal").value.trim(),
+      project: $("t-project").value, kind: $("t-kind").value, parent: $("t-parent").value.trim()
     });
     banner(""); status("已建工单：" + (rec.id || ""));
     $("t-title").value = ""; $("t-goal").value = ""; $("t-parent").value = "";
-    await loadTickets();
+    await loadTree();
+    if (rec.id) await openTicket(rec.id);
   } catch (err) { banner(gateMessage(err), "err"); status("工单创建失败：" + err.message); }
 };
-$("t-refresh").onclick = () => loadTickets().catch((e) => banner(gateMessage(e), "err"));
-$("t-filter-status").onchange = () => loadTickets().catch((e) => banner(gateMessage(e), "err"));
-$("t-filter-project").onchange = () => loadTickets().catch((e) => banner(gateMessage(e), "err"));
 
-function showDetail(rec) {
-  $("detail").textContent = JSON.stringify(rec, null, 2);
+// ---- 工单主会话（1:1 业务会话）----
+async function openTicket(id) {
+  selId = id;
+  let th;
+  try { th = await run("ticket-thread", { id }); }
+  catch (err) { banner(gateMessage(err), "err"); status("加载工单会话失败：" + err.message); return; }
+  const t = th.ticket || {};
+  $("thread-meta").innerHTML =
+    `<strong>${esc(t.title || id)}</strong><span class="muted">${esc(t.id || "")}</span>` +
+    `<span class="badge ${esc(t.status || "")}">${esc(t.status || "")}</span>`;
+  const roles = th.roles || [];
+  $("thread-roles").innerHTML = roles.map((r) =>
+    `<span class="chip">${esc(r.display || r.role)} · ${esc(r.status || "")}</span>`).join("");
+  renderChat(th.thread || {}, roles);
+  showDetail(t);
+  syncOps();
+  loadTree().catch(() => {});
 }
 
-$("ticket-rows").onclick = async (e) => {
-  const btn = e.target.closest("button"); if (!btn || btn.disabled) return;
-  const id = btn.dataset.id; $("op-id").value = id; syncTicketOps();
-  try {
-    if (btn.dataset.act === "detail") {
-      showDetail(await run("ticket-get", { id }));
-    } else if (btn.dataset.act === "note") {
-      const text = prompt("追加备注内容：");
-      if (text == null) return;
-      await withBusy(btn, () => run("ticket-note", { id, text }));
-      status("备注已追加：" + id); await loadTickets();
-    } else if (btn.dataset.act === "message") {
-      const text = prompt("发给 PM 的消息：");
-      if (text == null) return;
-      await withBusy(btn, () => run("ticket-message", { id, text, target: "pm" }));
-      status("已通知 PM：" + id); await loadTickets();
-    } else if (btn.dataset.act === "close") {
-      await closeTicket(id, btn);
-    }
-  } catch (err) { banner(gateMessage(err), "err"); status("操作失败：" + err.message); }
-};
-
-async function closeTicket(id, btn) {
-  const summary = prompt("结单摘要：");
-  if (summary == null) return;
-  const verdict = prompt("验收结论（可选，通过/驳回）：") || "";
-  try {
-    const rec = await withBusy(btn, () => run("ticket-close", { id, summary, verdict }));
-    showDetail(rec); status("已结单：" + id); await loadTickets();
-  } catch (err) { banner(gateMessage(err), "err"); status("结单失败：" + err.message); }
+function renderChat(thread, roles) {
+  const msgs = thread.messages || [];
+  const list = $("chat");
+  if (!msgs.length) { list.innerHTML = '<div class="muted" style="margin:auto">还没有消息</div>'; return; }
+  list.innerHTML = msgs.map((m) => {
+    const cls = bubbleClass(m);
+    const who = cls === "system" ? "" : `<span class="who">${esc(speakerOf(m, roles))}</span>`;
+    const ts = m.ts ? `<span class="ts">${new Date(m.ts).toLocaleTimeString()}</span>` : "";
+    return `<div class="bubble ${cls}">${who}<div class="body">${esc(m.content == null ? "" : m.content)}</div>${ts}</div>`;
+  }).join("");
+  list.scrollTop = list.scrollHeight;
 }
 
-function syncTicketOps() {
-  const id = $("op-id").value.trim();
-  const t = ticketMap[id];
+function showDetail(rec) { $("detail").textContent = JSON.stringify(rec, null, 2); }
+
+function syncOps() {
+  const t = ticketMap[selId];
   const closed = !!(t && t.status === "closed");
   $("op-note").disabled = closed;
   $("op-message").disabled = closed;
   $("op-close").disabled = closed;
 }
-$("op-id").oninput = syncTicketOps;
 
-// 底部工单操作栏
 $("op-detail").onclick = async () => {
-  try { showDetail(await run("ticket-get", { id: $("op-id").value.trim() })); }
+  if (!selId) return;
+  try { showDetail(await run("ticket-get", { id: selId })); }
   catch (e) { banner(gateMessage(e), "err"); status(e.message); }
 };
 $("op-note").onclick = async () => {
-  try {
-    await run("ticket-note", { id: $("op-id").value.trim(), text: $("op-text").value.trim() });
-    status("备注已追加"); $("op-text").value = ""; await loadTickets();
-  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
+  if (!selId) return;
+  const text = $("op-text").value.trim();
+  if (!text) return;
+  try { await run("ticket-note", { id: selId, text }); status("备注已追加"); $("op-text").value = ""; await openTicket(selId); }
+  catch (e) { banner(gateMessage(e), "err"); status(e.message); }
 };
 $("op-message").onclick = async () => {
-  try {
-    await run("ticket-message", { id: $("op-id").value.trim(), text: $("op-text").value.trim(), target: "pm" });
-    status("已通知 PM"); $("op-text").value = ""; await loadTickets();
-  } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
+  if (!selId) return;
+  const text = $("op-text").value.trim();
+  if (!text) return;
+  try { await run("ticket-message", { id: selId, text, target: "pm" }); status("已通知 PM"); $("op-text").value = ""; await openTicket(selId); }
+  catch (e) { banner(gateMessage(e), "err"); status(e.message); }
 };
 $("op-close").onclick = async () => {
+  if (!selId) return;
+  const summary = prompt("结单摘要：");
+  if (summary == null) return;
+  const verdict = prompt("验收结论（可选，通过/驳回）：") || "";
   try {
-    const rec = await run("ticket-close", {
-      id: $("op-id").value.trim(),
-      summary: $("op-summary").value.trim(),
-      verdict: $("op-verdict").value.trim()
-    });
-    showDetail(rec); status("已结单"); await loadTickets();
+    const rec = await run("ticket-close", { id: selId, summary, verdict });
+    showDetail(rec); status("已结单"); await openTicket(selId);
   } catch (e) { banner(gateMessage(e), "err"); status(e.message); }
 };
 
-// ---- 会话 ----
+// ---- 岗位库 ----
+async function loadPositions() {
+  const list = await run("position-list", {});
+  const items = list.items || [];
+  $("position-rows").innerHTML = items.map((p) => {
+    const checks = (p.flow && p.flow.checks) || [];
+    return `<tr>
+      <td>${esc(p.id)}</td><td>${esc(p.cn || "")}</td>
+      <td class="muted">${esc(p.prompt_file || "")}</td>
+      <td class="muted">${esc((p.must_outputs || []).join(", "))}</td>
+      <td>${checks.length} 项流程检查</td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="5" class="muted">暂无岗位</td></tr>';
+}
+
+// ---- 会话调试 ----
 async function loadSessions() {
   const list = await run("session-list", { status: $("s-filter-status").value });
   const items = list.items || [];
@@ -407,14 +435,10 @@ async function loadSessions() {
   items.forEach((s) => { sessionMap[s.id] = s; });
   $("session-rows").innerHTML = items.map((s) => {
     const st = s.status || "unknown";
-    const gone = st === "gone";
-    const running = st === "running";
-    return `
-    <tr>
-      <td>${esc(s.id)}</td>
-      <td>${esc(s.name || "")}</td>
-      <td class="muted">${esc(s.role || "")}</td>
-      <td class="muted">${esc(s.ticket || "")}</td>
+    const gone = st === "gone", running = st === "running";
+    return `<tr>
+      <td>${esc(s.id)}</td><td>${esc(s.name || "")}</td>
+      <td class="muted">${esc(s.role || "")}</td><td class="muted">${esc(s.ticket || "")}</td>
       <td class="muted">${esc(s.kind || "")}</td>
       <td><span class="badge ${esc(st)}">${esc(st)}</span></td>
       <td class="actions">
@@ -422,21 +446,17 @@ async function loadSessions() {
         ${actBtn("s-send", s.id, "发消息", gone, "", "会话已销毁")}
         ${actBtn("s-run", s.id, "运行", gone || running, "", running ? "会话运行中" : "会话已销毁")}
         ${actBtn("s-wait", s.id, "取回复", gone, "", "会话已销毁")}
-      </td>
-    </tr>`;
+      </td></tr>`;
   }).join("") || '<tr><td colspan="7" class="muted">暂无可会话</td></tr>';
 }
-
 $("s-refresh").onclick = () => loadSessions().catch((e) => banner(gateMessage(e), "err"));
 $("s-filter-status").onchange = () => loadSessions().catch((e) => banner(gateMessage(e), "err"));
-
 $("session-rows").onclick = async (e) => {
   const btn = e.target.closest("button"); if (!btn || btn.disabled) return;
   const id = btn.dataset.id;
   try {
-    if (btn.dataset.act === "s-detail") {
-      showDetail(await run("session-get", { id }));
-    } else if (btn.dataset.act === "s-send") {
+    if (btn.dataset.act === "s-detail") showDetail(await run("session-get", { id }));
+    else if (btn.dataset.act === "s-send") {
       const text = prompt("发给会话 " + id + " 的消息：");
       if (text == null) return;
       await withBusy(btn, () => run("session-send", { id, text }));
@@ -458,19 +478,13 @@ $("logout").onclick = async () => {
 
 async function boot() {
   let st = { enabled: false };
-  try {
-    const r = await fetch("/api/auth/status");
-    const _j = await r.json(); st = _j.result || _j || {};
-  } catch (e) {}
+  try { const r = await fetch("/api/auth/status"); const _j = await r.json(); st = _j.result || _j || {}; } catch (e) {}
   if (st.enabled && !token()) { location.href = "/login.html"; return; }
   const errors = [];
-  const steps = [loadProjects, loadTickets, loadSessions];
-  for (const step of steps) {
-    try { await step(); }
-    catch (e) { errors.push(gateMessage(e)); }
+  for (const step of [loadTree, loadPositions, loadSessions]) {
+    try { await step(); } catch (e) { errors.push(gateMessage(e)); }
   }
-  if (errors.length) { banner(errors[0], "err"); }
-  else { banner(""); }
+  if (errors.length) banner(errors[0], "err"); else banner("");
 }
 boot();
 </script>
