@@ -11,6 +11,7 @@ def setup(ctx):
         ("library.positions", _pure.positionsp),
         ("library.position", _pure.positionp),
         ("library.design", _pure.designp),
+        ("library.normalize_fields", _pure.normalize_fields),
         ("library.summary", _pure.summaryp),
         ("library.role_prompt", _pure.promptp),
         ("library.check", _pure.checkp),

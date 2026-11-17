@@ -79,6 +79,8 @@ checks:
   - projects-rename
   - project-positions
   - project-library-design
+  - project-skills
+  - project-tools
   - react-run
   - session-ask
   - session-finished

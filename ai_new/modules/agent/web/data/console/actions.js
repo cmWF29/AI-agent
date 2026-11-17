@@ -71,7 +71,8 @@ function openForm(form, ctx) {
   $("modal-err").className = "modal-err";
   $("modal-err").textContent = "";
   $("modal-form").innerHTML = (form.fields || []).map((f) => {
-    const val = f.value != null ? fill(f.value, ctx) : "";
+    let val = f.value != null ? fill(f.value, ctx) : "";
+    if (Array.isArray(val)) val = val.join("\n");
     const req = f.required ? ' data-required="1"' : "";
     const ro = f.readonly ? " readonly" : "";
     const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "";

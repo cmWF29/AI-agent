@@ -34,6 +34,22 @@ def merge(p):
     return {"items": items}
 
 
+def pickp(p):
+    """合并清单按岗位名单交集裁剪；名单为空按会话类型放行。成形归模块，注册表与外部候选由路由给齐。"""
+    items = p.get("items") or []
+    allow = p.get("tools") or []
+    kind = p.get("kind")
+    if allow:
+        wanted = set(allow)
+        base = [t for t in items if t.get("name") in wanted]
+    else:
+        base = [t for t in items
+                if not t.get("kinds") or (kind and kind in (t.get("kinds") or []))]
+    return {"items": [{"name": t.get("name"), "desc": t.get("desc"),
+                       "params": t.get("params"), "module": t.get("module")}
+                      for t in base]}
+
+
 def scope(items, kind):
     """按来源裁剪清单：builtin=代码内置工具库，external=外部登记/拆解来的工具，all=全量。
 

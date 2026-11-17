@@ -202,6 +202,18 @@ capabilities:
   tools.external_run:
     calls:
     - store.read
+  tools.pick:
+    calls:
+    - projects.project_lib_path
+    - store.read
+    - projects.choose_dict
+    - library.disabled_skills
+  tools.execute:
+    calls:
+    - projects.project_lib_path
+    - store.read
+    - projects.choose_dict
+    - library.disabled_skills
   channel.reply:
     calls:
     - channel.read_tail

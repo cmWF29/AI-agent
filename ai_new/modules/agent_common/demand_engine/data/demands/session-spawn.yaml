@@ -100,6 +100,8 @@ do:
       get: input.name
     ticket:
       get: input.ticket
+    project:
+      get: input.project
     role:
       get: input.role
     backend:

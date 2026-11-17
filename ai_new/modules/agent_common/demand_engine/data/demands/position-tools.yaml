@@ -51,6 +51,8 @@ do:
       get: rec.item.tools
     kind:
       get: input.kind
+    project:
+      get: input.project
   as: out
 expect:
   given:

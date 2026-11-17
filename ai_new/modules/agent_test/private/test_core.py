@@ -628,6 +628,59 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(out.get("tool"), "probe_ext_img")
         self.assertEqual(out.get("args"), {"prompt": "一只猫"})
 
+    def test_project_tool_snapshot_pick_and_execute(self):
+        """项目副本外部工具叠加进 pick 名单；execute 未命中内置按项目副本回退占位；无项目上下文回退不到。"""
+        created = self._run("projects-create", {"name": "工具叠加项目"})["result"]
+        pid = created["id"]
+        proj = self.ctx.api.call("store.read", {"module": "agent/projects",
+                                                "path": "projects/%s/tools.yaml" % pid})
+        tools = dict(proj.get("value") or {})
+        tools["proj_only_tool"] = {"desc": "项目专属探测工具",
+                                   "params": [{"name": "prompt", "type": "string"}],
+                                   "module": "external", "kinds": ["role"], "deps": {}}
+        self.ctx.api.call("store.write", {"module": "agent/projects",
+                                          "path": "projects/%s/tools.yaml" % pid, "value": tools})
+
+        picked = self.ctx.api.call("tools.pick", {"project": pid, "tools": [], "kind": "role"})
+        names = {t["name"] for t in picked["items"]}
+        self.assertIn("proj_only_tool", names)
+
+        out = self.ctx.api.call("tools.execute", {"name": "proj_only_tool",
+                                                  "args": {"prompt": "x"},
+                                                  "session": {"project": pid}})
+        self.assertEqual(out.get("code"), "external_pending")
+        self.assertEqual(out.get("tool"), "proj_only_tool")
+        self.assertEqual(out.get("args"), {"prompt": "x"})
+
+        with self.assertRaises(Exception) as cm:
+            self.ctx.api.call("tools.execute", {"name": "proj_only_tool", "args": {}})
+        self.assertEqual(cm.exception.code, "no_tool")
+
+    def test_project_skills_and_tools_list(self):
+        """项目技能/工具清单取数：项目快照兜底公共，成行字段齐全。"""
+        created = self._run("projects-create", {"name": "清单项目"})["result"]
+        pid = created["id"]
+        skills = self._run("project-skills", {"id": pid})["result"]
+        self.assertIsInstance(skills["items"], list)
+        tools = self._run("project-tools", {"id": pid})["result"]
+        self.assertIsInstance(tools["items"], list)
+        required = {"name", "desc", "module", "params", "kinds", "deps",
+                    "status", "status_text", "missing", "builtin", "source"}
+        for row in tools["items"]:
+            self.assertTrue(required <= set(row), "项目工具行缺字段: %s" % (required - set(row)))
+
+    def test_normalize_fields_splits_list_fields(self):
+        """表单文本规整：岗位数组字段按换行/逗号拆清单，标量去空白；已是列表逐项去空。"""
+        out = lib_pure.normalize_fields({"kind": "roles", "fields": {
+            "cn": "  设计师 ", "prompt": "  正文 ",
+            "must_dos": "a\nb, c", "forbidden": "   ", "tools": ["x", " y "],
+        }})["fields"]
+        self.assertEqual(out["cn"], "设计师")
+        self.assertEqual(out["prompt"], "正文")
+        self.assertEqual(out["must_dos"], ["a", "b", "c"])
+        self.assertEqual(out["forbidden"], [])
+        self.assertEqual(out["tools"], ["x", "y"])
+
     def test_install_plan_empty_deps_is_ready(self):
         """空依赖清单的安装计划直接就绪；有未在位 pip 包才进待装清单。"""
         plan = tools_pure.install_plan({"tools": [], "snapshot": {}})

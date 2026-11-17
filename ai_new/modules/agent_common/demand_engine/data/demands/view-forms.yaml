@@ -145,6 +145,53 @@ view:
           project: '{thread.ticket.project}'
           ticket: '{thread.ticket.id}'
         reload: true
+  - id: project.role.edit
+    title: 编辑项目岗位
+    hint: 改动只落在本项目的快照副本上，不回写公共岗位库；必做/禁止/工具清单每行一项，留空即清空。内置与只读岗位不可编辑。
+    fields:
+    - name: cn
+      label: 岗位名称
+      value: '{row.cn}'
+      required: true
+    - name: prompt
+      label: 岗位描述 / 提示词
+      kind: textarea
+      value: '{row.prompt}'
+      placeholder: 这个岗位负责什么、按什么方式做事
+    - name: must_dos
+      label: 必须做到
+      kind: textarea
+      value: '{row.must_dos}'
+      placeholder: 每行一条必须做到的事项
+    - name: forbidden
+      label: 禁止事项
+      kind: textarea
+      value: '{row.forbidden}'
+      placeholder: 每行一条禁止事项
+    - name: tools
+      label: 工具清单
+      kind: textarea
+      value: '{row.tools}'
+      placeholder: 每行一个工具名；留空表示不挂工具
+    submit:
+      demand: project-library-design
+      params:
+        project: '{project.id}'
+        kind: roles
+        id: row.id
+        fields:
+          cn: $cn
+          prompt: $prompt
+          must_dos: $must_dos
+          forbidden: $forbidden
+          tools: $tools
+      ok: 保存
+      flash: 已更新岗位：{row.cn}
+      then:
+        view: project
+        params:
+          project: '{project.id}'
+        reload: true
 expect:
   given:
     input: {}

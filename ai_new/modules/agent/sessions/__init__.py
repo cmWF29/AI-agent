@@ -96,7 +96,8 @@ def _route_spawn(ctx, payload):
     rec = ctx.api.call("sessions.build", {
         "kind": kind, "seq": seq,
         "name": nid.get("id"), "ticket": payload.get("ticket"),
-        "role": payload.get("role"), "backend": payload.get("backend"),
+        "role": payload.get("role"), "project": payload.get("project"),
+        "backend": payload.get("backend"),
         "max_steps": payload.get("max_steps"), "meta": meta,
         "prompt": role_prompt,
         "injected": payload.get("injected") or "",

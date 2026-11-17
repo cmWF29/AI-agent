@@ -84,6 +84,7 @@ function tableHtml(sec, ctx) {
       `<button data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</button>`).join("")}</span>` : ""}
   </div>`;
   const cols = sec.columns || [];
+  const rowActs = sec.actions || [];
   const body = rows.length ? rows.map((row) => {
     const c = { ...ctx, row };
     const cells = cols.map((col) => {
@@ -98,12 +99,14 @@ function tableHtml(sec, ctx) {
       if (val === "" || val === "undefined") val = esc(col.fallback ? fill(col.fallback, c) : "—");
       return `<td class="${col.muted ? "muted" : ""}">${val}</td>`;
     }).join("");
+    const acts = rowActs.length ? `<td class="actions">${rowActs.map((a) => buttonHtml(a, c)).join("")}</td>` : "";
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
-    return `<tr ${click >= 0 ? `data-go="${click}"` : ""}>${cells}</tr>`;
-  }).join("") : `<tr><td colspan="${cols.length}" class="muted">${esc((sec.empty || {}).text || "暂无数据")}</td></tr>`;
+    return `<tr ${click >= 0 ? `data-go="${click}"` : ""}>${cells}${acts}</tr>`;
+  }).join("") : `<tr><td colspan="${cols.length + (rowActs.length ? 1 : 0)}" class="muted">${esc((sec.empty || {}).text || "暂无数据")}</td></tr>`;
   if (sec.hide_when_empty && !rows0.length) return "";
+  const actHead = rowActs.length ? "<th>操作</th>" : "";
   const wrap = `<div class="tbl-wrap">${sec.heading || filters.length || sec.count_note ? head : ""}<table>
-    <thead><tr>${cols.map((c) => `<th>${esc(c.label || "")}</th>`).join("")}</tr></thead>
+    <thead><tr>${cols.map((c) => `<th>${esc(c.label || "")}</th>`).join("")}${actHead}</tr></thead>
     <tbody>${body}</tbody></table></div>`;
   if (sec.summarize) {
     return `<div class="orphans"><details><summary>${esc(fill(sec.title || "", ctx))}（${rows0.length}）</summary>${wrap}</details></div>`;

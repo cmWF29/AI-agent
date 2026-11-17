@@ -10,16 +10,10 @@ EXTERNAL_DEMAND = "tool-external-run"
 def setup(ctx):
     """装配入口：ctx.tools 指向注册表。"""
     ctx.tools = _registry.ToolRegistry(ctx)
-    ctx.api.register("tools.execute",
-                     lambda c, payload: ctx.tools.execute(payload.get("name"),
-                                                       payload.get("args"),
-                                                       session=payload.get("session"),
-                                                       defer=bool(payload.get("defer"))),
-                     module="tools")
-    ctx.api.register("tools.pick",
-                     lambda c, payload: {"items": ctx.tools.pick(
-                         payload.get("tools") or [], payload.get("kind"))},
-                     module="tools")
+    ctx.api.register("tools.execute", _route_execute,
+                     "执行工具：注册表命中直跑；未命中按项目副本/公共登记回退占位", module="tools")
+    ctx.api.register("tools.pick", _route_pick,
+                     "岗位工具名单：内置注册表 ∪ 项目副本外部登记（兜底公共），按名单/类型裁剪", module="tools")
     ctx.api.register("tools.list", _route_list,
                      "工具清单：内置 ∪ 外部登记，附依赖就绪状态", module="tools")
     ctx.api.register("tools.install_missing", _route_install_missing,
@@ -66,6 +60,65 @@ def execute(ctx, name, args, session=None):
 def list_tools(ctx):
     """全部内置工具（脱敏描述）。"""
     return ctx.tools.list_tools()
+
+
+def _project_external(ctx, project):
+    """按项目取外部登记工具字典与已禁用 Skill 集合；项目副本缺/空回退公共库。
+
+    项目快照独立演进：项目内登记/裁剪的工具不回写公共；无 project 时退化为公共库。
+    """
+    if project:
+        tp = ctx.api.call("projects.project_lib_path",
+                          {"id": project, "kind": "tools"}, caller=None)
+        proj = ctx.api.call("store.read", {"module": "agent/projects",
+                                           "path": tp["path"]}, caller=None)
+        pub = ctx.api.call("store.read", {"module": "agent_common/tools",
+                                          "path": "tools.yaml"}, caller=None)
+        ext = ctx.api.call("projects.choose_dict",
+                           {"project": proj, "public": pub}, caller=None)
+        sp = ctx.api.call("projects.project_lib_path",
+                          {"id": project, "kind": "skills"}, caller=None)
+        psk = ctx.api.call("store.read", {"module": "agent/projects",
+                                          "path": sp["path"]}, caller=None)
+        pubsk = ctx.api.call("store.read", {"module": "agent/library",
+                                            "path": "skills.yaml"}, caller=None)
+        sk = ctx.api.call("projects.choose_dict",
+                          {"project": psk, "public": pubsk}, caller=None)
+    else:
+        ext = ctx.api.call("store.read", {"module": "agent_common/tools",
+                                          "path": "tools.yaml"}, caller=None)
+        sk = ctx.api.call("store.read", {"module": "agent/library",
+                                        "path": "skills.yaml"}, caller=None)
+    disabled = ctx.api.call("library.disabled_skills",
+                            {"skills": (sk.get("value") or {})}, caller=None)
+    return ext.get("value") or {}, disabled.get("ids") or []
+
+
+def _route_pick(ctx, payload):
+    """岗位工具名单：内置注册表 ∪ 项目副本外部登记（兜底公共），按名单交集/会话类型裁剪。"""
+    builtin = ctx.tools.list_tools()
+    external, disabled = _project_external(ctx, payload.get("project"))
+    merged = _pure.merge({"builtin": builtin, "external": external,
+                          "disabled": disabled})
+    return _pure.pickp({"items": merged["items"],
+                        "tools": payload.get("tools") or [],
+                        "kind": payload.get("kind")})
+
+
+def _route_execute(ctx, payload):
+    """执行工具：注册表命中直跑；未命中按项目副本/公共登记回退占位，仍无则报 no_tool。"""
+    name = payload.get("name")
+    session = payload.get("session")
+    if ctx.tools.has(name):
+        return ctx.tools.execute(name, payload.get("args"), session=session,
+                                 defer=bool(payload.get("defer")))
+    external, _ = _project_external(ctx, (session or {}).get("project"))
+    rec = external.get(name)
+    if not isinstance(rec, dict):
+        raise ctx.ApiError("工具不存在: %s" % name, code="no_tool", status=404)
+    args = dict(payload.get("args") or {})
+    args.pop("tool", None)
+    return _pure.external_pending({"tool": name, "args": args, "rec": rec})
 
 
 def _collect_snapshot(ctx, tools):

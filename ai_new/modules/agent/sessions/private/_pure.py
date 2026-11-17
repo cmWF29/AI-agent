@@ -26,6 +26,7 @@ def build(p):
     return {
         "id": sid, "kind": p.get("kind") or "role", "name": p.get("name") or sid,
         "ticket": p.get("ticket") or "", "role": p.get("role") or "",
+        "project": p.get("project") or "",
         "scenario": p.get("kind") or "role", "backend": p.get("backend") or "",
         "status": "idle", "created": p.get("now") or "", "updated": p.get("now") or "",
         "max_steps": p.get("max_steps"),
@@ -38,6 +39,7 @@ def view(p):
     rec = p.get("rec") or {}
     return {"id": rec.get("id"), "kind": rec.get("kind"), "name": rec.get("name"),
             "ticket": rec.get("ticket"), "role": rec.get("role"),
+            "project": rec.get("project"),
             "backend": rec.get("backend"), "status": rec.get("status"),
             "created": rec.get("created"), "updated": rec.get("updated"),
             "meta": rec.get("meta") or {},

@@ -1,0 +1,101 @@
+id: project-tools
+title: 项目工具清单：项目快照副本外部登记 ∪ 内置注册表，兜底公共库
+description: "项目工具清单：优先用项目快照副本里的外部登记工具，副本缺或空回退公共库；与代码内置注册表合并，按已禁用 Skill 裁剪，附依赖就绪状态。合并/裁剪/判定归工具模块，兜底选择归项目模块，取数归需求"
+tags: [project, tool, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.id
+  with:
+    value:
+      get: input.id
+  as: pid
+- call: projects.project_lib_path
+  with:
+    id:
+      get: pid.id
+    kind:
+      lit: tools
+  as: ptool_p
+- call: store.read
+  with:
+    module:
+      lit: agent/projects
+    path:
+      get: ptool_p.path
+  as: ptool
+- call: store.read
+  with:
+    module:
+      lit: agent_common/tools
+    path:
+      lit: tools.yaml
+  as: pubtool
+- call: projects.choose_dict
+  with:
+    project:
+      get: ptool
+    public:
+      get: pubtool
+  as: tool
+- call: projects.project_lib_path
+  with:
+    id:
+      get: pid.id
+    kind:
+      lit: skills
+  as: psk_p
+- call: store.read
+  with:
+    module:
+      lit: agent/projects
+    path:
+      get: psk_p.path
+  as: psk
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+  as: pubsk
+- call: projects.choose_dict
+  with:
+    project:
+      get: psk
+    public:
+      get: pubsk
+  as: sk
+- call: library.disabled_skills
+  with:
+    skills:
+      get: sk.value
+  as: dis
+- call: tools.list
+  with:
+    external:
+      get: tool.value
+    disabled:
+      get: dis.ids
+    scope:
+      lit: all
+  as: out
+expect:
+  given:
+    input:
+      id: <project-id>
+  calls:
+  - store.id
+  - projects.project_lib_path
+  - store.read
+  - store.read
+  - projects.choose_dict
+  - projects.project_lib_path
+  - store.read
+  - store.read
+  - projects.choose_dict
+  - library.disabled_skills
+  - tools.list
+  payload: {}
+  promise: 副本/公共兜底、合并裁剪与就绪判定归工具模块，取数归需求

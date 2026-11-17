@@ -206,6 +206,43 @@ def getp(p):
     return {"kind": kind, "item": rec}
 
 
+_ARRAY_FIELDS = {
+    "roles": ["must_dos", "forbidden", "tools", "must_outputs"],
+}
+
+
+def _split_list(text):
+    """换行/逗号分隔 → 非空清单；已是列表逐项去空白。纯拆分，不取值不判断。"""
+    if isinstance(text, list):
+        return [str(x).strip() for x in text if str(x).strip()]
+    if not text:
+        return []
+    out = []
+    for raw in str(text).replace(",", "\n").split("\n"):
+        item = raw.strip()
+        if item:
+            out.append(item)
+    return out
+
+
+def normalize_fields(p):
+    """表单字段规整：按 kind 约定的数组字段把多行文本拆成清单；标量字段去空白。
+
+    纯形状规整，不落库；拆分成清单的规则归岗位库模块。
+    """
+    fields = dict(p.get("fields") or {})
+    list_fields = _ARRAY_FIELDS.get(p.get("kind") or "roles") or []
+    out = {}
+    for k, v in fields.items():
+        if k in list_fields:
+            out[k] = _split_list(v)
+        elif isinstance(v, str):
+            out[k] = v.strip()
+        else:
+            out[k] = v
+    return {"fields": out}
+
+
 def designp(p):
     """用户记录合并字段；内置角色不许改提示词。"""
     kind = p.get("kind") or "roles"
