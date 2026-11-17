@@ -19,6 +19,7 @@ def setup(ctx):
         ("tickets.bindpm", _pure.bindpm),
         ("tickets.bindchild", _pure.bindchild),
         ("tickets.closefin", _pure.closefin),
+        ("tickets.archive_transcript", _pure.archive_transcript),
         ("tickets.pick", _pure.pick),
         ("tickets.resolve_target", _pure.resolve_target),
         ("tickets.files_filter", _pure.files_filter),
@@ -154,8 +155,25 @@ def _ticket_path(ticket_id):
     return "tickets/%s/ticket.yaml" % (ticket_id or "")
 
 
+def _session_snapshot(ctx, sid):
+    """读会话留档快照；会话已不在则返 None。消息原文交纯函数裁剪。"""
+    if not sid:
+        return None
+    row = ctx.api.call("store.read", {"module": "agent/sessions",
+                                      "path": "sessions/%s.yaml" % sid}, caller=None)
+    rec = row.get("value")
+    if not rec:
+        return None
+    return {"session": sid, "name": rec.get("name") or "",
+            "messages": rec.get("messages") or []}
+
+
 def _route_close(ctx, payload):
-    """结单闭环：先守子单，再关闭落盘，最后按需通知父单。守卫与通知都在能力内部。"""
+    """结单闭环：守子单 → 关闭落盘 → 对话固化进工单 → 回收 PM/角色会话 → 通知父单。
+
+    会话文件回收前先 stop 等收尾（同 purge 范式）；往来对话已固化进工单 transcript，
+    删文件后仍可从工单回看。守卫、固化、回收都在能力内部。
+    """
     row = ctx.api.call("store.read", {"module": "agent/tickets",
                                       "path": _ticket_path(payload.get("id"))}, caller=None)
     rec = row.get("value") or {}
@@ -170,13 +188,31 @@ def _route_close(ctx, payload):
     closed = ctx.api.call("tickets.closefin", {
         "rec": rec, "summary": payload.get("summary"),
         "verdict": payload.get("verdict"), "now": now.get("ts")}, caller=None)
-    view = ctx.api.call("tickets.view", {"rec": closed}, caller=None)
+    sids = [closed.get("pm")] + [r.get("session") for r in closed.get("roles") or []]
+    sids = [sid for sid in dict.fromkeys(sids) if sid]
+    # 先停后台线程并等收尾，避免定稿落盘把已删会话又写回
+    for sid in sids:
+        ctx.runtime.stop(sid)
+    pm_snap = _session_snapshot(ctx, closed.get("pm"))
+    role_snaps = []
+    for r in closed.get("roles") or []:
+        snap = _session_snapshot(ctx, r.get("session"))
+        if snap:
+            snap["role"] = r.get("role") or ""
+            snap["display"] = r.get("display") or r.get("role") or ""
+            role_snaps.append(snap)
+    archived = ctx.api.call("tickets.archive_transcript", {
+        "rec": closed, "pm": pm_snap, "roles": role_snaps}, caller=None)
+    view = ctx.api.call("tickets.view", {"rec": archived}, caller=None)
     effects = [{"kind": "write", "module": "agent/tickets",
-                "path": _ticket_path(closed.get("id")), "value": closed}]
-    if closed.get("parent"):
+                "path": _ticket_path(archived.get("id")), "value": archived}]
+    for sid in sids:
+        effects.append({"kind": "remove", "module": "agent/sessions",
+                        "path": "sessions/%s.yaml" % sid})
+    if archived.get("parent"):
         effects.append({"kind": "demand", "id": "ticket-message",
-                        "input": {"id": closed.get("parent"),
-                                  "text": "子工单已结单： %s" % (closed.get("id") or ""),
+                        "input": {"id": archived.get("parent"),
+                                  "text": "子工单已结单： %s" % (archived.get("id") or ""),
                                   "target": "pm"}})
     view["effects"] = effects
     return view

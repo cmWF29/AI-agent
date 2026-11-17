@@ -16,8 +16,9 @@ view:
   - kind: table
     source: list.items
     columns:
-    - {label: 名称, value: row.cn, fallback: row.id}
+    - {label: 名称, value: row.cn, fallback: row.id, sub: row.prompt_file}
     - {label: 流程检查, value: "row.flow.checks|count", suffix: 项, muted: true}
+    on_click: {view: position, params: {position: row.id}}
     empty: {text: 暂无岗位}
 expect:
   given:

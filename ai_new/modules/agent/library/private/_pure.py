@@ -50,6 +50,21 @@ def _records(p):
     return out
 
 
+def _pm_record():
+    """PM 是工单主会话编排者，不是可被派单实例化的岗位；在库内只作只读条目展示。
+
+    提示词引用会话侧 prompts/pm.md；这里只给定位与职责骨架，不读盘、不取时间。
+    """
+    return {"id": "pm", "cn": "PM", "prompt_file": "prompts/pm.md",
+            "must_outputs": [],
+            "must_dos": ["受理工单需求并拆解执行计划", "按需派角色、返工缺口与组织验收",
+                         "对照验收标准闭环结单"],
+            "forbidden": ["不替代执行角色直接撰写交付件"],
+            "tools": ["role_spawn", "role_task", "ticket_split", "ticket_close",
+                      "ticket_read_doc", "ticket_note"],
+            "backend": "", "builtin": True, "readonly": True, "system": True}
+
+
 def _position(rec, flow):
     """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 代码性流程规范 + 产出约束。"""
     return {"id": rec.get("id"), "cn": rec.get("cn"),
@@ -60,6 +75,8 @@ def _position(rec, flow):
             "tools": rec.get("tools") or [],
             "backend": rec.get("backend") or "",
             "builtin": bool(rec.get("builtin")),
+            "readonly": bool(rec.get("readonly")),
+            "system": bool(rec.get("system")),
             "flow": {"id": (flow or {}).get("id") or rec.get("id"),
                      "checks": (flow or {}).get("checks") or []}}
 
@@ -116,19 +133,22 @@ def prompt_blocks(p):
 
 
 def positionp(p):
-    """单条岗位：岗位记录 + 关联流程规范合并成形。"""
+    """单条岗位：岗位记录 + 关联流程规范合并成形。PM 为主会话只读条目，不在角色记录里。"""
     rec = p.get("rec") or {}
     if not rec:
+        if (p.get("id") or "") == "pm":
+            return _position(_pm_record(), p.get("flow") or {})
         return {"ok": False, "code": "not_found", "status": 404,
                 "error": "岗位不存在: %s" % (p.get("id") or "")}
     return _position(rec, p.get("flow") or {})
 
 
 def positionsp(p):
-    """岗位列表：岗位记录按 id 关联各自流程规范。"""
+    """岗位列表：岗位记录按 id 关联各自流程规范；末尾附只读 PM 主会话条目。"""
     roles = _records({"seed": p.get("seed"), "user": p.get("user"), "kind": "roles"})
     flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
     items = [_position(rec, flows.get(rid) or {}) for rid, rec in roles.items()]
+    items.append(_position(_pm_record(), {}))
     return {"items": items}
 
 

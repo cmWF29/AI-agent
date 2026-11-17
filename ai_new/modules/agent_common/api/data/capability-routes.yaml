@@ -128,7 +128,9 @@ capabilities:
     - store.read
     - clock.now
     - tickets.closefin
+    - tickets.archive_transcript
     - store.write
+    - store.remove
     - demand_engine.run
     - tickets.view
   tickets.split:

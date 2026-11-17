@@ -46,6 +46,7 @@ checks:
   - demands-list
   - view-forms
   - view-positions
+  - view-position
   - view-project-detail
   - view-projects-list
   - view-ticket-thread

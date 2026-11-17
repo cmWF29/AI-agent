@@ -478,6 +478,28 @@ class CoreTest(unittest.TestCase):
         got = self._run("ticket-get", {"id": t["id"]})
         self.assertEqual(got["result"]["status"], "closed")
 
+    def test_ticket_close_archives_transcript_and_recycles_sessions(self):
+        """结单：往来对话固化进工单 transcript，随后 PM/角色会话文件被回收。"""
+        proj = self._run("projects-create", {"name": "结单回收项目"})["result"]
+        c = self._run("ticket-create", {"title": "回收工单", "goal": "结单后回收会话",
+                                        "project": proj["id"]})
+        t = c["result"]
+        pm = t["pm"]
+        rs = self._run("ticket-role-spawn", {"id": t["id"], "role": "developer",
+                                             "task": "写交接文档"})
+        role_sid = rs["result"]["roles"][0]["session"]
+        self.assertTrue(any(pm in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        closed = self._run("ticket-close", {"id": t["id"], "summary": "验收通过"})
+        removed = [e["path"] for e in closed["result"]["effects"] if e["kind"] == "remove"]
+        self.assertIn("sessions/%s.yaml" % pm, removed)
+        self.assertIn("sessions/%s.yaml" % role_sid, removed)
+        left = self._glob("agent/sessions", "sessions/*.yaml")
+        self.assertFalse(any(pm in s for s in left), "PM 会话未被回收")
+        self.assertFalse(any(role_sid in s for s in left), "角色会话未被回收")
+        # 对话已固化：会话文件删除后，线程仍从工单 transcript 回填出往来消息
+        th = self._run("ticket-thread", {"id": t["id"]})["result"]
+        self.assertTrue(th["thread"]["messages"], "结单后工单未回填留档对话")
+
     def test_project_tree_thread_and_positions(self):
         """项目→工单分级树；工单 1:1 主会话线程；岗位带流程规范。"""
         proj = self._run("projects-create", {"name": "分级树项目"})["result"]
@@ -498,6 +520,14 @@ class CoreTest(unittest.TestCase):
         pget = self._run("position-get", {"id": "architect"})["result"]
         self.assertEqual(pget["id"], "architect")
         self.assertTrue(pget["prompt_file"])
+        # PM 作为主会话只读条目进库，不可派单；单条详情同样可取
+        pm = next((x for x in plist["items"] if x["id"] == "pm"), None)
+        self.assertIsNotNone(pm, "岗位库缺只读 PM 条目")
+        self.assertTrue(pm["readonly"])
+        self.assertTrue(pm["system"])
+        pmget = self._run("position-get", {"id": "pm"})["result"]
+        self.assertEqual(pmget["id"], "pm")
+        self.assertTrue(pmget["readonly"])
 
     def test_ticket_requires_existing_project(self):
         """工单必须绑定存在的项目：缺项目 / 项目不存在都被拦下。"""
@@ -655,6 +685,21 @@ class CoreTest(unittest.TestCase):
         # 交付件条目 → 路径清单
         self.assertEqual(ticket_pure.paths(
             {"items": [{"path": "x/a.py"}, {"nopath": 1}]})["paths"], ["x/a.py"])
+        # 结单留档：system 人设不进 transcript，往来对话按会话固化
+        arch = ticket_pure.archive_transcript({
+            "rec": {"id": "T-1"},
+            "pm": {"session": "pm-1", "messages": [
+                {"role": "system", "content": "人设大段"},
+                {"role": "user", "content": "开工"},
+                {"role": "assistant", "content": "计划已出"}]},
+            "roles": [{"session": "role-1", "role": "developer",
+                       "messages": [{"role": "system", "content": "角色人设"},
+                                    {"role": "assistant", "content": "交付完成"}]}]})
+        pm_msgs = arch["transcript"]["pm"]["messages"]
+        self.assertFalse(any(m["role"] == "system" for m in pm_msgs))
+        self.assertEqual([m["content"] for m in pm_msgs], ["开工", "计划已出"])
+        role_msgs = arch["transcript"]["roles"][0]["messages"]
+        self.assertEqual([m["content"] for m in role_msgs], ["交付完成"])
 
     def test_flow_plan_effects(self):
         rec = {"id": "role-1", "kind": "role", "role": "developer",
@@ -683,6 +728,11 @@ class CoreTest(unittest.TestCase):
         kinds = [e["kind"] for e in exhausted["effects"]]
         self.assertIn("demand", kinds)
         self.assertNotIn("dispatch", kinds)
+        # 会话标识缺失：不写盘、不再驱动，避免落出 sessions/None.yaml 孤儿
+        orphan = sess_run.flow_plan({
+            "rec": {"id": "", "meta": {}}, "review": {"verdict": "pass"},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+        self.assertEqual(orphan["effects"], [])
 
     def test_react_schema_normalizes_list_to_array(self):
         """内部 list 类型要归一为模型侧 JSON Schema 的 array，并带 items。"""

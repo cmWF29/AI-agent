@@ -1,0 +1,61 @@
+id: view-position
+title: 岗位详情：岗位记录 + 流程规范 + 提示词引用，只读
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: position
+  crumb: [项目, 岗位库, "{position.cn}"]
+  heading: "{position.cn}"
+  subheading: 岗位 = 系统提示词 + 流程规范；主会话条目只读，不可被派单实例化
+  data:
+  - {as: position, demand: position-get, params: {id: "{route.position}"}}
+  sections:
+  - kind: kv
+    source: position
+    heading: 岗位信息
+    rows:
+    - label: 标识
+      value: row.id
+    - label: 提示词引用
+      value: row.prompt_file
+      fallback: —
+    - label: 执行后端
+      value: row.backend
+      fallback: 跟随配置
+    - label: 流程检查
+      value: "row.flow.checks|count"
+      suffix: 项
+      muted: true
+  - kind: table
+    source: position.must_dos
+    heading: 必须做到
+    hide_when_empty: true
+    columns:
+    - {label: 条目, value: "{row}"}
+  - kind: table
+    source: position.forbidden
+    heading: 禁止事项
+    hide_when_empty: true
+    columns:
+    - {label: 红线, value: "{row}"}
+  - kind: table
+    source: position.must_outputs
+    heading: 产出约束
+    hide_when_empty: true
+    columns:
+    - {label: 路径, value: "{row}"}
+  - kind: table
+    source: position.tools
+    heading: 可见工具
+    hide_when_empty: true
+    columns:
+    - {label: 工具, value: "{row}"}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 岗位详情只声明区块，数据源走 position-get

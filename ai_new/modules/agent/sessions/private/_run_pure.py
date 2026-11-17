@@ -85,6 +85,9 @@ def flow_plan(p):
     rec["meta"] = meta
     sid = rec.get("id")
     effects = []
+    if not sid:
+        # 会话标识缺失：不写盘、不再驱动，避免落出 sessions/None.yaml 孤儿
+        return {"verdict": verdict, "rec": rec, "effects": []}
     if verdict == "repush":
         rec = appendmsg({"rec": rec, "text": p.get("repush_text") or "",
                          "now": p.get("now") or ""})

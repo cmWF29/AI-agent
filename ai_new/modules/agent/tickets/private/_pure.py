@@ -83,10 +83,52 @@ def validate_project(p):
     return {"ok": True, "project": project}
 
 
+def _slim_msg(m):
+    """留档消息：去掉 system 人设大段，只保留往来对话与工具调用痕迹。"""
+    if not isinstance(m, dict):
+        return {"role": "system", "content": str(m)}
+    out = {"role": m.get("role") or "", "content": m.get("content") or ""}
+    if m.get("ts"):
+        out["ts"] = m.get("ts")
+    if m.get("tool_calls"):
+        out["tool_calls"] = m.get("tool_calls")
+    return out
+
+
+def _slim_thread(messages):
+    return [_slim_msg(m) for m in (messages or []) if (m or {}).get("role") != "system"]
+
+
+def archive_transcript(p):
+    """结单留档：把 PM/角色会话往来对话固化进工单记录，随后会话文件可被回收。
+
+    纯计算不读盘；会话快照由路由读盘后传入。system 人设不进留档。
+    """
+    rec = dict(p.get("rec") or {})
+    pm = p.get("pm") or {}
+    pm_snap = {"session": pm.get("session") or "", "name": pm.get("name") or "",
+               "messages": _slim_thread(pm.get("messages"))}
+    role_snaps = []
+    for r in p.get("roles") or []:
+        r = r or {}
+        role_snaps.append({"session": r.get("session") or "", "role": r.get("role") or "",
+                           "display": r.get("display") or r.get("role") or "",
+                           "messages": _slim_thread(r.get("messages"))})
+    rec["transcript"] = {"pm": pm_snap, "roles": role_snaps}
+    return rec
+
+
 def threadp(p):
-    """工单主会话（1:1）线程视图：工单档案 + 主会话消息流 + 角色实例清单。"""
+    """工单主会话（1:1）线程视图：工单档案 + 主会话消息流 + 角色实例清单。
+
+    会话被回收后，主对话从工单留档 transcript 回填，结单后仍可回看往来。
+    """
     ticket = p.get("ticket") or {}
     thread = p.get("thread") or {}
+    messages = thread.get("messages") or []
+    if not messages:
+        transcript = ticket.get("transcript") or {}
+        messages = (transcript.get("pm") or {}).get("messages") or []
     return {
         "ticket": view({"rec": ticket}),
         "thread": {"id": thread.get("id") or "", "name": thread.get("name") or "",
@@ -94,7 +136,7 @@ def threadp(p):
                    "backend": thread.get("backend") or "", "role": thread.get("role") or "",
                    "updated": thread.get("updated") or "",
                    "meta": thread.get("meta") or {},
-                   "messages": thread.get("messages") or []},
+                   "messages": messages},
         "roles": ticket.get("roles") or [],
     }
 

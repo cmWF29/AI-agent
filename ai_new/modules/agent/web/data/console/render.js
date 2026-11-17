@@ -164,7 +164,8 @@ function toolBodyHtml(m) {
     const o = JSON.parse(content);
     if (o && o.ok === false) { err = true; content = o.error || content; }
   } catch (e) {}
-  return `<div class="bubble-body tool${err ? " error" : ""}">${esc(content)}</div>`;
+  if (err) return `<div class="bubble-body tool error">${esc(content)}</div>`;
+  return `<div class="bubble-body tool md">${renderMarkdown(content)}</div>`;
 }
 function renderBubbles(msgs, roles) {
   const groups = [];
@@ -182,7 +183,8 @@ function renderBubbles(msgs, roles) {
     }
     if (g.cls === "tool") {
       const bodies = g.msgs.map(toolBodyHtml).join("");
-      return `<div class="msg left tool-msg"><div class="msg-main"><div class="msg-name">${esc(g.who)}</div><div class="bubble-stack">${bodies}</div></div></div>`;
+      return `<div class="msg left tool-msg"><div class="avatar avatar-ph"></div>
+        <div class="msg-main"><div class="msg-name">${esc(g.who)}</div><div class="bubble-stack">${bodies}</div></div></div>`;
     }
     const side = g.cls === "user" ? "right" : "left";
     const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
