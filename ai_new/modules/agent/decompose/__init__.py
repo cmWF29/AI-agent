@@ -30,9 +30,25 @@ def setup(ctx):
 
 
 def _route_run(ctx, payload):
-    """拆解闭环在能力内部：模型没交答复或回的不是 JSON，都短路成错误形状，不写半截草稿。"""
+    """拆解闭环在能力内部：模型没交答复或回的不是 JSON，都短路成错误形状，不写半截草稿。
+
+    技能正文两种来源：直接粘贴的 skill_md，或给一个网页链接经 net 拉回正文；
+    链接优先，拉取失败短路，不带半截内容进模型。
+    """
+    skill_md = payload.get("skill_md")
+    url = str(payload.get("url") or "").strip()
+    if url:
+        fetched = ctx.api.call("net.request",
+                               {"url": url, "method": "GET", "timeout": 30}, caller=None)
+        if not isinstance(fetched, dict) or fetched.get("ok") is False:
+            return fetched or {"ok": False, "code": "fetch_failed",
+                               "error": "技能链接拉取失败"}
+        skill_md = fetched.get("text") or ""
+    if not str(skill_md or "").strip() and not url:
+        return {"ok": False, "code": "empty_input",
+                "error": "请粘贴 Skill.md 正文、拖入文件或填写链接"}
     doc = ctx.api.call("decompose.parse_skill_doc", {
-        "skill_md": payload.get("skill_md"),
+        "skill_md": skill_md,
         "requirements": payload.get("requirements"),
         "scripts": payload.get("scripts")}, caller=None)
     tools = ctx.api.call("tools.list", {}, caller=None).get("items") or []

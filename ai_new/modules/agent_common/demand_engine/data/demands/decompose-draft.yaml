@@ -20,6 +20,8 @@ do:
   with:
     skill_md:
       get: input.skill_md
+    url:
+      get: input.url
     requirements:
       get: input.requirements
     scripts:

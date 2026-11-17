@@ -7,6 +7,40 @@ import shutil
 import importlib.util
 
 
+# pip 规范名 → Python 导入名对照：安装清单写 pip 名，探测要按导入名 find_spec。
+# key 已按 PEP 503 归一化（小写，-/_/. 统一为 -）；未收录的包名兜底连字符转下划线。
+_IMPORT_MAP = {
+    "pymupdf": "fitz",
+    "python-docx": "docx",
+    "python-pptx": "pptx",
+    "python-dateutil": "dateutil",
+    "python-multipart": "multipart",
+    "beautifulsoup4": "bs4",
+    "pyyaml": "yaml",
+    "pillow": "PIL",
+    "scikit-learn": "sklearn",
+    "opencv-python": "cv2",
+    "opencv-python-headless": "cv2",
+}
+
+
+def _norm_pkg(name):
+    """pip 名归一化：小写，连字符/下划线/点统一成连字符，便于对照表查找。"""
+    out = []
+    for ch in str(name or "").strip().lower():
+        out.append("-" if ch in ("-", "_", ".") else ch)
+    return "".join(out)
+
+
+def _import_name(pkg):
+    """pip 规范名 → 探测用的导入名；对照表优先，未收录则连字符转下划线兜底。"""
+    raw = str(pkg or "").strip()
+    if not raw:
+        return raw
+    mapped = _IMPORT_MAP.get(_norm_pkg(raw))
+    return mapped or raw.replace("-", "_")
+
+
 def _mem():
     total = free = None
     try:
@@ -62,12 +96,13 @@ def which(ctx, payload):
 
 
 def importable(ctx, payload):
-    """探测一个 Python 模块/包当前解释器能否导入：包可用性是主机事实，归 host。"""
+    """探测一个 Python 包当前解释器能否导入；pip 名先对照成导入名再 find_spec。"""
     pkg = str((payload or {}).get("name") or "").strip()
+    probe = _import_name(pkg)
     ok = False
-    if pkg:
+    if probe:
         try:
-            ok = importlib.util.find_spec(pkg) is not None
+            ok = importlib.util.find_spec(probe) is not None
         except (ImportError, ValueError, ModuleNotFoundError, AttributeError):
             ok = False
     return {"ok": True, "name": pkg, "importable": ok}

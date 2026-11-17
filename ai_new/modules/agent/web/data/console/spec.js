@@ -21,6 +21,7 @@ function dig(obj, path) {
   return cur;
 }
 function ref(path, ctx) {
+  if (path === "row") return ctx.row;
   if (path.startsWith("$")) return (ctx.fields || {})[path.slice(1)];
   if (path.startsWith("result.")) return dig(ctx.result, path.slice(7));
   if (path.startsWith("row.")) return dig(ctx.row, path.slice(4));

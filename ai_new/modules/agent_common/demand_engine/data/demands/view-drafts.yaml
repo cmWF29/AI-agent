@@ -16,16 +16,20 @@ view:
   forms:
   - id: decompose.new
     title: 拆解技能包
-    hint: 贴入一份 Skill.md 技能包（含顶部标识与说明）；Python 依赖与脚本清单可一并附上。拆解结果先存草稿，核对后再入库。
+    hint: 三种方式提供 Skill.md：粘贴正文、拖入 .md/.txt 文件，或填网页链接由后台拉取；链接优先。Python 依赖与脚本清单可一并附上。拆解结果先存草稿，核对后再入库。
     fields:
     - name: source
       label: 来源标识（可选）
       placeholder: 技能名或包路径，便于追溯
+    - name: url
+      label: 技能文档链接（可选）
+      kind: url
+      placeholder: https://example.com/SKILL.md；填了就从链接拉取正文
     - name: skill_md
       label: SKILL.md 正文
       kind: textarea
-      placeholder: 粘贴含 frontmatter 的技能说明全文
-      required: true
+      drop: true
+      placeholder: 粘贴含 frontmatter 的技能说明全文，或把 .md/.txt 文件拖到此处
     - name: requirements
       label: requirements.txt（可选）
       kind: textarea
@@ -38,6 +42,7 @@ view:
       demand: decompose-draft
       params:
         skill_md: $skill_md
+        url: $url
         requirements: $requirements
         scripts: $scripts
         source: $source

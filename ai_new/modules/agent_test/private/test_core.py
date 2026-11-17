@@ -21,6 +21,8 @@ from ai_new.modules.agent.library.private import _pure as lib_pure  # noqa: E402
 from ai_new.modules.agent.sessions.private import _run_pure as sess_run  # noqa: E402
 from ai_new.modules.agent.tickets.private import _pure as ticket_pure  # noqa: E402
 from ai_new.modules.agent_common.react.private import _pure as react_pure  # noqa: E402
+from ai_new.modules.agent_common.tools.private import _pure as tools_pure  # noqa: E402
+from ai_new.modules.agent_common.host.private import _probe as host_probe  # noqa: E402
 from _fixtures import stage, write_config  # noqa: E402
 import _fixtures  # noqa: E402
 
@@ -588,6 +590,49 @@ class CoreTest(unittest.TestCase):
         self.assertIn("events", logs)
         lib = self._run("library-summary")["result"]
         self.assertGreaterEqual(lib["counts"]["roles"], 8)
+
+    # ---- 工具库 / 技能库边界与依赖就绪 ----
+
+    def test_tool_library_splits_builtin_and_external(self):
+        """工具库只列代码内置，技能库只列外部登记；内置行字段齐全、来源标记正确。"""
+        builtin_list = self._run("tools-list")["result"]
+        ext_list = self._run("tools-external-list")["result"]
+        for row in builtin_list["items"]:
+            self.assertTrue(row["builtin"], "工具库混入外部能力: %s" % row["name"])
+            self.assertEqual(row["source"], "内置")
+        for row in ext_list["items"]:
+            self.assertFalse(row["builtin"], "技能库混入内置能力: %s" % row["name"])
+        required = {"name", "desc", "module", "params", "kinds", "deps",
+                    "status", "status_text", "missing", "builtin", "source"}
+        for row in builtin_list["items"]:
+            self.assertTrue(required <= set(row), "工具行缺字段: %s" % (required - set(row)))
+        self.assertGreaterEqual(len(builtin_list["items"]), 1)
+
+    def test_install_plan_empty_deps_is_ready(self):
+        """空依赖清单的安装计划直接就绪；有未在位 pip 包才进待装清单。"""
+        plan = tools_pure.install_plan({"tools": [], "snapshot": {}})
+        self.assertTrue(plan["ready"])
+        self.assertEqual(plan["pip"], [])
+        tool = {"name": "x", "deps": {"pip": ["numpy"]}}
+        plan2 = tools_pure.install_plan({"tools": [tool], "snapshot": {"pip": {}}})
+        self.assertFalse(plan2["ready"])
+        self.assertIn("numpy", plan2["pip"])
+
+    def test_pip_name_maps_to_import_name(self):
+        """pip 规范名与导入名不一致时，探测按映射后的导入名走；未收录的兜底连字符转下划线。"""
+        self.assertEqual(host_probe._import_name("PyMuPDF"), "fitz")
+        self.assertEqual(host_probe._import_name("python-docx"), "docx")
+        self.assertEqual(host_probe._import_name("beautifulsoup4"), "bs4")
+        self.assertEqual(host_probe._import_name("opencv-python"), "cv2")
+        self.assertEqual(host_probe._import_name("numpy"), "numpy")
+
+    def test_assembled_demands_include_new_entries(self):
+        """装配后需求清单含本轮入口（冒烟断言固化进门禁，避免下线后静默丢失）。"""
+        listed = self.ctx.api.call("demand_engine.list", {})
+        ids = {d.get("id") for d in listed}
+        for need in ("tools-list", "tools-external-list", "tools-install", "decompose-draft",
+                     "view-tools", "view-skills", "view-drafts"):
+            self.assertIn(need, ids, "装配后需求清单缺少: %s" % need)
 
     # ---- 调用面与 HTTP 通道 ----
 

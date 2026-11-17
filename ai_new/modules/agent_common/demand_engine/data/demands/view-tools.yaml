@@ -1,6 +1,6 @@
 id: view-tools
-title: 工具库视图：注册表登记的全部能力，只读清单
-description: "工具库视图：注册表登记的全部能力，只读清单。视图只声明表格，数据源走需求"
+title: 工具库视图：agent 代码内置能力，只读清单
+description: "工具库视图：只列代码内置工具。视图只声明表格，数据源走需求"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -8,9 +8,9 @@ callable: false
 do: []
 view:
   key: tools
-  crumb: [项目, 工具库]
+  crumb: [工具库]
   heading: 工具库
-  subheading: 工具 = 注册表登记的一条能力；清单只读，工具定义与登记方式不在此改
+  subheading: 工具 = agent 代码里注册的内置能力；宏观 Shell/进程执行属平台底座，不作为业务工具露出。外部安装的能力包归技能库
   actions:
   - label: 安装缺失依赖
     demand: tools-install

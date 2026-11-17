@@ -113,8 +113,10 @@ checks:
   - position-get
   - position-tools
   - tools-list
+  - tools-external-list
   - tools-install
   - view-tools
+  - view-skills
   - view-drafts
   - decompose-draft
   - decompose-accept

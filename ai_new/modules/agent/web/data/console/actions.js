@@ -39,6 +39,7 @@ function resolveView(target, c) {
   if (view === "project") return { view: "project", project: params.project || "" };
   if (view === "ticket") return { view: "ticket", project: params.project || "", ticket: params.ticket || "" };
   if (view === "tools") return { view: "tools" };
+  if (view === "skills") return { view: "skills" };
   if (view === "drafts") return { view: "drafts" };
   if (view === "positions") return { view: "positions" };
   if (view === "position") return { view: "position", position: params.position || "" };
@@ -47,6 +48,22 @@ function resolveView(target, c) {
 
 
 /* ---- 弹窗 ---- */
+function bindDropZones(form) {
+  (form.querySelectorAll("[data-drop]") || []).forEach((box) => {
+    const ta = box.querySelector("textarea");
+    if (!ta) return;
+    box.addEventListener("dragover", (e) => { e.preventDefault(); box.classList.add("drag"); });
+    box.addEventListener("dragleave", () => box.classList.remove("drag"));
+    box.addEventListener("drop", (e) => {
+      e.preventDefault(); box.classList.remove("drag");
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => { ta.value = String(reader.result || ""); ta.dispatchEvent(new Event("input")); };
+      reader.readAsText(file);
+    });
+  });
+}
 function openForm(form, ctx) {
   if (!form) return;
   MODAL_CTX = { form, ctx };
@@ -60,15 +77,18 @@ function openForm(form, ctx) {
     const ro = f.readonly ? " readonly" : "";
     const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "";
     if (f.kind === "textarea") {
-      return `<div class="field"><label>${esc(f.label)}</label><textarea name="${esc(f.name)}"${ph}>${esc(val)}</textarea></div>`;
+      const drop = f.drop ? ` data-drop="${esc(f.name)}"` : "";
+      return `<div class="field"${drop}><label>${esc(f.label)}</label><textarea name="${esc(f.name)}"${ph}${req}${ro}>${esc(val)}</textarea></div>`;
     }
     if (f.kind === "select") {
       const opts = (f.options || []).map((o) =>
         `<option value="${esc(o.value)}"${String(val) === String(o.value) ? " selected" : ""}>${esc(o.label)}</option>`).join("");
       return `<div class="field"><label>${esc(f.label)}</label><select name="${esc(f.name)}">${opts}</select></div>`;
     }
-    return `<div class="field"><label>${esc(f.label)}</label><input name="${esc(f.name)}" value="${esc(val)}"${ph}${req}${ro}></div>`;
+    const type = f.kind === "url" ? "url" : "text";
+    return `<div class="field"><label>${esc(f.label)}</label><input name="${esc(f.name)}" type="${type}" value="${esc(val)}"${ph}${req}${ro}></div>`;
   }).join("");
+  bindDropZones($("modal-form"));
   $("modal-ok").textContent = fill((form.submit || {}).ok || "确定", ctx);
   $("modal-ok").disabled = false;
   $("modal").hidden = false;

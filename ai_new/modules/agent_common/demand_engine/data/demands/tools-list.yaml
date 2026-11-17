@@ -1,6 +1,6 @@
 id: tools-list
-title: 工具库清单：内置 ∪ 外部登记，附依赖就绪状态
-description: "工具库清单：注册表内置工具与外部登记记录合并，逐条对照在位快照给出依赖就绪状态。成形与判定归工具模块，取数归需求"
+title: 工具库清单：agent 代码内置工具，附依赖就绪状态
+description: "工具库清单：只列注册表内置工具（代码自带能力），逐条对照在位快照给出依赖就绪状态。外部安装/拆解来的能力归技能库，不在此列。成形与判定归工具模块，取数归需求"
 tags: [tool, read]
 enabled: true
 callable: true
@@ -17,6 +17,8 @@ do:
   with:
     external:
       get: ext.value
+    scope:
+      lit: builtin
   as: out
 expect:
   given:
@@ -25,4 +27,4 @@ expect:
   - store.read
   - tools.list
   payload: {}
-  promise: 合并与就绪判定归模块，取数归需求
+  promise: 内置裁剪与就绪判定归模块，取数归需求

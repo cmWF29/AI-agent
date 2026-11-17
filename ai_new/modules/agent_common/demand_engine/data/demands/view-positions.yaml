@@ -8,7 +8,7 @@ callable: false
 do: []
 view:
   key: positions
-  crumb: [项目, 岗位库]
+  crumb: [岗位库]
   heading: 岗位库
   subheading: 岗位 = 系统提示词 + 流程规范；角色是岗位在某工单上的实例
   data:

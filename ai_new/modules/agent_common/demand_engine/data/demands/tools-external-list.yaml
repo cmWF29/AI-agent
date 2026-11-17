@@ -1,0 +1,30 @@
+id: tools-external-list
+title: 技能库清单：外部安装/拆解来的能力，附依赖就绪状态
+description: "技能库清单：只列外部登记记录（拆解确认后并入、后续外部安装的能力包），逐条对照在位快照给出依赖就绪状态。代码内置能力归工具库，不在此列。成形与判定归工具模块，取数归需求"
+tags: [skill, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent_common/tools
+    path:
+      lit: tools.yaml
+  as: ext
+- call: tools.list
+  with:
+    external:
+      get: ext.value
+    scope:
+      lit: external
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - tools.list
+  payload: {}
+  promise: 外部裁剪与就绪判定归模块，取数归需求

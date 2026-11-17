@@ -28,6 +28,19 @@ def merge(p):
     return {"items": items}
 
 
+def scope(items, kind):
+    """按来源裁剪清单：builtin=代码内置工具库，external=外部安装/拆解来的技能库，all=全量。
+
+    工具库与技能库的划分在此成形；视图只按组取数，不在前端做判断。
+    """
+    items = items or []
+    if kind == "builtin":
+        return [t for t in items if t.get("builtin")]
+    if kind == "external":
+        return [t for t in items if not t.get("builtin")]
+    return list(items)
+
+
 def _missing_for(deps, snapshot):
     """按依赖分类对照快照，列出缺项；resources 不在在线探测范围，只登记不判。"""
     deps = deps or {}

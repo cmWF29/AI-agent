@@ -42,6 +42,7 @@ document.addEventListener("keydown", (e) => {
 
 $("nav-points").onclick = () => go({ view: "positions" }, true);
 $("nav-tools").onclick = () => go({ view: "tools" }, true);
+$("nav-skills").onclick = () => go({ view: "skills" }, true);
 $("nav-drafts").onclick = () => go({ view: "drafts" }, true);
 $("logout").onclick = async () => {
   try { await run("auth-logout", { token: token() }); } catch (e) {}

@@ -167,6 +167,7 @@ capabilities:
     - react.result
   decompose.run:
     calls:
+    - net.request
     - decompose.parse_skill_doc
     - tools.list
     - decompose.promptize

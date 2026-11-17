@@ -115,6 +115,9 @@ input[readonly]{background:var(--line-2);color:var(--fg-2)}
 textarea{min-height:72px;resize:vertical}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .field{margin-bottom:10px}
+.field[data-drop]{border:1px dashed var(--line);border-radius:10px;padding:8px 10px}
+.field[data-drop].drag{border-color:var(--accent);background:rgba(47,107,255,.06)}
+.field[data-drop] textarea{border:0;min-height:84px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .modal{position:fixed;inset:0;background:rgba(16,24,40,.42);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
 .modal[hidden]{display:none}
@@ -246,6 +249,7 @@ textarea{min-height:72px;resize:vertical}
   <div class="spacer"></div>
   <button id="nav-points" class="ghost">岗位库</button>
   <button id="nav-tools" class="ghost">工具库</button>
+  <button id="nav-skills" class="ghost">技能库</button>
   <button id="nav-drafts" class="ghost">拆解</button>
   <button id="logout" class="ghost">登出</button>
 </header>

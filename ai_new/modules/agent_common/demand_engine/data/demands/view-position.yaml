@@ -8,7 +8,7 @@ callable: false
 do: []
 view:
   key: position
-  crumb: [项目, 岗位库, "{position.cn}"]
+  crumb: [岗位库, "{position.cn}"]
   heading: "{position.cn}"
   subheading: 岗位 = 系统提示词 + 流程规范；主会话条目只读，不可被派单实例化
   data:

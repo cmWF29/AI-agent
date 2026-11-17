@@ -65,12 +65,16 @@ def _collect_snapshot(ctx, tools):
 
 
 def _route_list(ctx, payload):
-    """清单闭环：内置注册表 ∪ 外部登记记录 → 收集在位快照 → 纯函数判定成形。"""
+    """清单闭环：内置注册表 ∪ 外部登记记录 → 按来源裁剪 → 收集在位快照 → 纯函数判定成形。
+
+    scope=builtin 只给代码内置工具库，scope=external 只给外部安装的技能库；默认全量。
+    """
     builtin = ctx.tools.list_tools()
     merged = _pure.merge({"builtin": builtin,
                           "external": (payload or {}).get("external") or {}})
-    snapshot = _collect_snapshot(ctx, merged["items"])
-    return _pure.listing({"tools": merged["items"], "snapshot": snapshot})
+    items = _pure.scope(merged["items"], (payload or {}).get("scope"))
+    snapshot = _collect_snapshot(ctx, items)
+    return _pure.listing({"tools": items, "snapshot": snapshot})
 
 
 def _route_install_missing(ctx, payload):
