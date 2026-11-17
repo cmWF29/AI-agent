@@ -174,6 +174,14 @@ python3 test_start.py --smoke
 
 ### 6.1 安装引擎
 
+若系统 Python 没有 pip（`python3 -m pip` 报 `No module named pip`），先引导 pip：
+
+```bash
+apt-get install -y python3-pip   # Debian/Ubuntu；其他发行版用对应包
+```
+
+再装引擎：
+
 ```bash
 python3 -m pip install vosk
 ```
@@ -188,7 +196,9 @@ ai_new/modules/agent/asr/data/models/cn/
 
 目录内应直接包含模型文件（如 `am/`、`conf/`、`graph/` 等，即 vosk `Model` 能直接读取的那一层）。
 
-- 模型选型：vosk 中文小模型（CPU 离线、纯 wheel，无需 ffmpeg）。
+- 模型选型：vosk 中文小模型（CPU 离线、纯 wheel，无需 ffmpeg）。已验证版本 `vosk-model-small-cn-0.22`（约 42MB，16kHz）：
+  `https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip`
+- 下载解压后，把内层 `vosk-model-small-cn-0.22/` 下的 `am/`、`conf/`、`graph/`、`ivector/` 等直接放到 `models/cn/`，不要多套一层模型目录。
 - 前端录音在浏览器内重采样为 **16kHz 单声道 PCM WAV** 再上传；后端只收未压缩 PCM WAV。
 
 ### 6.3 未装时的降级行为

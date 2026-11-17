@@ -503,9 +503,13 @@ def _route_glob(payload):
     base = _p(payload.get("module"), payload.get("root"))
     if not base.is_dir():
         return {"items": []}
+    pattern = str(payload.get("pattern") or "*")
+    # pathlib 的 `**` 只跨目录段、不返回叶子文件；以 `**` 结尾的递归模式补一层文件通配，
+    # 否则 `projects/**` 这类断言/清理会漏掉目录下的文件。
+    if pattern == "**" or pattern.endswith("/**"):
+        pattern = pattern + "/*"
     return {"items": sorted(i.relative_to(base).as_posix()
-                            for i in base.glob(str(payload.get("pattern") or "*"))
-                            if i.is_file())}
+                            for i in base.glob(pattern) if i.is_file())}
 
 
 def _route_walk(payload):
