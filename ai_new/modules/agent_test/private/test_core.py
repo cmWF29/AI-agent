@@ -362,6 +362,12 @@ class CoreTest(unittest.TestCase):
         t = c["result"]
         self.assertTrue(t["pm"], "PM 会话未创建")
         self.assertEqual(t["status"], "queued")
+        # 建单即交首轮开工：dispatch 一把钥匙指向 PM 会话，由 apply 后台派发
+        run_eff = next((e for e in t["effects"] if e["kind"] == "dispatch"), None)
+        self.assertIsNotNone(run_eff, "建单后未派发首轮 session-run")
+        self.assertEqual(run_eff["id"], "session-run")
+        self.assertEqual(run_eff["key"], t["pm"])
+        self.assertEqual(run_eff["input"], {"id": t["pm"]})
         # PM 会话挂在工单上；拉一个角色会话
         rs = self._run("ticket-role-spawn", {"id": t["id"], "role": "developer",
                                              "task": "写一份 docs/handoff/developer.md"})
@@ -404,6 +410,14 @@ class CoreTest(unittest.TestCase):
         ghost = self._run("ticket-create", {"title": "幽灵项目工单",
                                             "project": "no-such-proj"})["result"]
         self.assertEqual(ghost["code"], "not_found")
+
+    def test_stall_audit_ticket_skips_pm_and_dispatch(self):
+        """停滞审计单不拉 PM，也不派发首轮开工。"""
+        proj = self._run("projects-create", {"name": "审计归属项目"})["result"]
+        audit = self._run("ticket-create", {"title": "停滞审计", "project": proj["id"],
+                                            "kind": "stall-audit"})["result"]
+        self.assertEqual(audit["pm"], "")
+        self.assertNotIn("dispatch", [e["kind"] for e in audit["effects"]])
 
     def test_session_spawn_send_run_wait(self):
         sp = self._run("session-spawn", {"kind": "role", "role": "developer",

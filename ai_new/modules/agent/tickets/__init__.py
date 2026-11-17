@@ -121,6 +121,7 @@ def _route_create(ctx, payload):
         return ctx.api.call("tickets.err", {
             "code": "ticket_id_conflict", "status": 409,
             "message": "工单号已存在：%s，拒绝覆盖" % (rec.get("id") or "")}, caller=None)
+    pm_id = ""
     if not skip_pm:
         intro = _pure.msg({
             "tpl": (_msg_tpl(ctx).get("pm_intro") or ""),
@@ -133,13 +134,19 @@ def _route_create(ctx, payload):
             "max_steps": payload.get("pm_max_steps"),
             "task": payload.get("task"),
             "intro": intro})
+        pm_id = pm.get("id") or ""
         rec = ctx.api.call("tickets.bindpm", {
             "rec": rec,
-            "session": (pm.get("id")) or "",
+            "session": pm_id,
             "now": now.get("ts")}, caller=None)
     view = ctx.api.call("tickets.view", {"rec": rec}, caller=None)
-    view["effects"] = [{"kind": "write", "module": "agent/tickets",
-                        "path": "tickets/%s/ticket.yaml" % (rec.get("id") or ""), "value": rec}]
+    effects = [{"kind": "write", "module": "agent/tickets",
+                "path": "tickets/%s/ticket.yaml" % (rec.get("id") or ""), "value": rec}]
+    # 首轮开工随效果清单后台派发：会话在 spawn 内已落盘，这里只交一把钥匙；审计单无 PM 不派发。
+    if pm_id:
+        effects.append({"kind": "dispatch", "id": "session-run",
+                        "key": pm_id, "input": {"id": pm_id}})
+    view["effects"] = effects
     return view
 
 
