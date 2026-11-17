@@ -82,16 +82,6 @@ class LanguageTest(unittest.TestCase):
         self.assertEqual(api.calls[0][0], "ops.record")
         self.assertEqual(api.calls[0][1]["hook"], "x.happened")
 
-    def test_let_can_feed_a_later_call(self):
-        api = FakeApi()
-        stmt = [
-            {"let": "n", "eq": {"get": "event.data.members"}},
-            {"call": "notify.send", "with": {"n": {"get": "n"}}},
-        ]
-        _lang.run(stmt, {"event": {"data": {"members": ["a", "b"]}}}, api, None)
-        self.assertEqual([c[0] for c in api.calls], ["notify.send"])
-        self.assertEqual(api.calls[0][1]["n"], ["a", "b"])
-
     def test_rejected_operators_raise(self):
         """判断/逻辑/集合/度量运算符已下沉模块纯函数，需求表达式求值必须拒绝。"""
         for op in ("==", "!=", "in", "and", "or", "not", "len", ">", "<", ">=", "<="):
@@ -116,7 +106,7 @@ class LanguageTest(unittest.TestCase):
         self.assertTrue(results[1]["ok"])
 
     def test_routes_of_lists_sequential_calls(self):
-        stmt = [{"call": "a.b"}, {"let": "x", "eq": {"lit": 1}}, {"call": "c.d"}]
+        stmt = [{"call": "a.b"}, {"call": "c.d"}]
         self.assertEqual(sorted(_lang.routes_of(stmt)), ["a.b", "c.d"])
 
 

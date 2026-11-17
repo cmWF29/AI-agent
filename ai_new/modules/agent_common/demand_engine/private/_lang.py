@@ -2,7 +2,7 @@
 
 语言是**数据**（JSON AST），不是代码。这是需求层的语法，`demand_engine` 负责跑它。
 
-**需求树只允许顺序执行**：`call`（顺序调用）、`let`（顺序绑定）、`fail`（显式中止）。
+**需求树只允许顺序执行**：`call`（顺序调用）。
 分支、遍历、循环、等待一律下沉到模块功能函数内部——需求层不再有控制流语法。
 
 表达式：
@@ -16,8 +16,6 @@
 
 语句：
     {"call": "module.fn", "with": {"k": 表达式}, "as": "变量"}   调服务，结果可留作变量
-    {"let": "name", "eq": 表达式}                                绑定局部变量
-    {"fail": {"code": 表达式, "message": 表达式, "status": 表达式}} 显式失败（转成 ApiError）
 
 解释器对失败零容忍但不外溢：任何一条语句出错只记结果，不影响触发它的模块。
 """
@@ -110,17 +108,5 @@ def _run_one(stmt, scope, api, ctx, demand_id, results):
             scope[stmt["as"]] = result
         results.append({"demand": demand_id, "call": route, "ok": True, "result": result})
         return
-
-    if "let" in stmt:
-        scope[stmt["let"]] = eval_expr(stmt.get("eq"), scope)
-        return
-
-    if "fail" in stmt:
-        spec = stmt.get("fail") or {}
-        code = eval_expr(spec.get("code"), scope)
-        message = eval_expr(spec.get("message"), scope)
-        status = int(eval_expr(spec.get("status"), scope) or 400)
-        raise ctx.ApiError(str(message or code or "需求失败"), code=str(code or "failed"),
-                           status=status)
 
     raise ValueError("未知语句: %s" % sorted(stmt.keys()))

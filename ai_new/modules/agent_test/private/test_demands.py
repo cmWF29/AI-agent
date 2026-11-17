@@ -195,7 +195,7 @@ class DemandContractTest(unittest.TestCase):
         self.assertEqual(problems, [], "需求预期不完整: %s" % problems)
 
     def test_demand_trees_are_sequential_only(self):
-        """需求树只允许顺序语句：call / let / fail。
+        """需求树只允许顺序语句：call。
 
         分支、遍历、循环、等待都必须下沉到模块功能函数内部；
         需求层再出现这些键，就等于把控制流又搬回了编排里。
@@ -210,7 +210,7 @@ class DemandContractTest(unittest.TestCase):
                 hit = control & set(stmt.keys())
                 if hit:
                     problems.append("%s 出现控制流语句 %s" % (rec.get("id"), sorted(hit)))
-                if not ({"call", "let", "fail"} & set(stmt.keys())):
+                if not ({"call"} & set(stmt.keys())):
                     problems.append("%s 有未知语句: %s" % (rec.get("id"), sorted(stmt.keys())))
         self.assertEqual(problems, [], "需求树仍有控制流: %s" % problems)
 
