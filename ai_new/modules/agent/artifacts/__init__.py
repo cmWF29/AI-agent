@@ -32,10 +32,21 @@ def setup(ctx):
 
 
 def _route_save(ctx, payload):
-    pid = ctx.api.call("store.id", {"value": payload.get("project")}, caller=None)
-    tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
+    layer = payload.get("layer") or "ticket"
+    pid_raw = payload.get("project")
+    tid_raw = payload.get("ticket")
+    if layer == "ticket":
+        # 归属项目以工单记录为准，不采信模型传入的 project：漏填/错填时不能错位到 projects/item。
+        row = ctx.api.call("store.read", {
+            "module": "agent/tickets",
+            "path": "tickets/%s/ticket.yaml" % (tid_raw or "")}, caller=None)
+        rec = row.get("value")
+        if rec and rec.get("project"):
+            pid_raw = rec.get("project")
+    pid = ctx.api.call("store.id", {"value": pid_raw}, caller=None)
+    tid = ctx.api.call("store.id", {"value": tid_raw}, caller=None)
     base = ctx.api.call("artifacts.base", {
-        "layer": payload.get("layer"),
+        "layer": layer,
         "project": pid.get("id"), "ticket": tid.get("id")}, caller=None)
     if not base.get("ok"):
         return base
@@ -54,6 +65,6 @@ def _route_save(ctx, payload):
                   "path": rel.get("path"), "text": content}
         size = len(content.encode("utf-8"))
     out = ctx.api.call("artifacts.written", {"path": rel.get("path"),
-        "size": size, "layer": payload.get("layer")}, caller=None)
+        "size": size, "layer": layer}, caller=None)
     out["effects"] = [effect]
     return out

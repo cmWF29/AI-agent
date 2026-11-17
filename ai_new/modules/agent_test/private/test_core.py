@@ -303,6 +303,22 @@ class CoreTest(unittest.TestCase):
             cfg.clear()
             cfg.update(keep)
 
+    def test_runtime_stop_cancels_and_joins_running_thread(self):
+        """purge 硬删会话前：stop 置打断位、等线程收尾，再从运行表摘除，定稿不会写回。"""
+        import threading, time as _time
+        box = {"done": False}
+        def work():
+            _time.sleep(0.05)
+            box["done"] = True
+        th = threading.Thread(target=work, daemon=True)
+        th.start()
+        self.ctx.runtime._runs["stop-probe"] = th
+        self.ctx.runtime.stop("stop-probe")
+        self.assertNotIn("stop-probe", self.ctx.runtime._runs)
+        self.assertNotIn("stop-probe", self.ctx.runtime._cancel)
+        self.assertFalse(self.ctx.runtime.cancelled("stop-probe", 0))
+        self.assertTrue(box["done"], "stop 应 join 等线程收尾后再返回")
+
     def test_agent_backend_runs_external_command(self):
         """agent 模式：对话拼成一段话交给外部进程，收回 stdout 当答复。
 
@@ -338,6 +354,28 @@ class CoreTest(unittest.TestCase):
         esc = self.ctx.api.call("artifacts.rel",
                                 {"base": "projects/p1/tickets/T-1", "path": "../../escape.md"})
         self.assertFalse(esc.get("ok", True))
+
+    def test_ticket_artifact_project_follows_ticket(self):
+        """ticket 层写产物：归属项目以工单记录为准，模型传错/漏填都不能错位到 projects/item。"""
+        proj = self._run("projects-create", {"name": "产物归属项目"})["result"]
+        pid = proj["id"]
+        t = self._run("ticket-create", {"title": "归属工单", "goal": "x",
+                                        "project": pid})["result"]
+        # 故意传错 project：落盘仍归工单记录的项目
+        self._run("artifacts-write", {"layer": "ticket", "project": "WRONG-PID",
+                                      "ticket": t["id"], "path": "docs/pm/plan.md",
+                                      "content": "计划正文"})
+        # 漏填 project：同样归工单项目，不兜底到 projects/item
+        self._run("artifacts-write", {"layer": "ticket", "ticket": t["id"],
+                                      "path": "docs/pm/note.md", "content": "备注正文"})
+        nid = self.ctx.api.call("store.id", {"value": t["id"]})["id"]
+        paths = self._glob("agent/artifacts", "projects/**")
+        self.assertTrue(any("projects/%s/tickets/%s/" % (pid, nid) in p for p in paths),
+                        "产物应落在工单归属项目下: %s" % paths)
+        self.assertFalse(any("projects/wrong-pid" in p for p in paths),
+                         "错误 project 不得被采信: %s" % paths)
+        self.assertFalse(any("/projects/item/" in p for p in paths),
+                         "漏填 project 不得兜底到 projects/item: %s" % paths)
 
     def test_project_lifecycle(self):
         """项目：建 → 列表露出字段 → 归档 → 彻底删除（纯形状解包不能漏层）。"""

@@ -31,6 +31,24 @@ class Runtime:
         """同一把钥匙上，since 之后有没有人置过打断位。"""
         return (self._cancel.get(str(key or "")) or 0) > (since or 0)
 
+    def stop(self, key):
+        """置打断位并等同一把钥匙上的后台线程收尾；不在跑就直接返回。
+
+        硬删会话文件前先 stop：等线程退出后再落删除 effect，避免定稿落盘把文件写回。
+        """
+        key = str(key or "")
+        if not key:
+            return {"ok": False, "code": "no_key"}
+        with self._lock:
+            self._cancel[key] = self._now()
+            thread = self._runs.get(key)
+        if thread and thread.is_alive():
+            thread.join()
+        with self._lock:
+            self._runs.pop(key, None)
+            self._cancel.pop(key, None)
+        return {"ok": True, "key": key}
+
     # ---- 运行期草稿：内存面，不落盘。进程边跑边吐的正文先攒在这里，定稿后清掉 ----
 
     def stream_put(self, key, text):

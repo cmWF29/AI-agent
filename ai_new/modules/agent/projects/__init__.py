@@ -65,7 +65,10 @@ def _purge_tickets(ctx, pid):
 
 
 def _purge_sessions(ctx, ticket_ids):
-    """清掉挂在被删工单上的 PM/角色会话；会话记录只记 ticket，按工单集合匹配。"""
+    """清掉挂在被删工单上的 PM/角色会话；会话记录只记 ticket，按工单集合匹配。
+
+    删文件前先 stop 后台线程并等收尾：未定稿的线程若在 remove 后再落盘，会把会话写回。
+    """
     if not ticket_ids:
         return []
     ids = set(ticket_ids)
@@ -75,8 +78,12 @@ def _purge_sessions(ctx, ticket_ids):
     for rel in listed.get("items") or []:
         row = ctx.api.call("store.read", {
             "module": "agent/sessions", "path": rel}, caller=None)
-        if (row.get("value") or {}).get("ticket") in ids:
-            effects.append({"kind": "remove", "module": "agent/sessions", "path": rel})
+        rec = row.get("value") or {}
+        if rec.get("ticket") not in ids:
+            continue
+        sid = rec.get("id") or str(rel.rsplit("/", 1)[-1])[:-5]
+        ctx.runtime.stop(sid)
+        effects.append({"kind": "remove", "module": "agent/sessions", "path": rel})
     return effects
 
 
