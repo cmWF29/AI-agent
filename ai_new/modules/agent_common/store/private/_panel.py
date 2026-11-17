@@ -558,9 +558,10 @@ def _route_read_bytes(payload):
     import base64
     path = _p(payload.get("module"), payload.get("path"))
     if not path.is_file():
-        return {"value": "", "hex": "", "exists": False}
+        return {"value": "", "hex": "", "size": 0, "exists": False}
     raw = path.read_bytes()
-    return {"value": base64.b64encode(raw).decode(), "hex": raw.hex(), "exists": True}
+    return {"value": base64.b64encode(raw).decode(), "hex": raw.hex(),
+            "size": len(raw), "exists": True}
 
 
 def _route_write_bytes(payload):

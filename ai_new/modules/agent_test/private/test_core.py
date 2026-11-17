@@ -328,6 +328,8 @@ class CoreTest(unittest.TestCase):
         r = self._run("artifacts-read", {"layer": "ticket", "project": "p1", "ticket": "T-1",
                                          "path": "docs/handoff/dev.md"})
         self.assertIn("改动点", r["result"]["text"])
+        # 读回 size 必须是实际 UTF-8 字节数，不能恒为 0
+        self.assertEqual(r["result"]["size"], len("改动点：x".encode("utf-8")))
         # 越界在纯函数里拦：rel 直接给失败形状，不落到盘上
         esc = self.ctx.api.call("artifacts.rel",
                                 {"base": "projects/p1/tickets/T-1", "path": "../../escape.md"})
