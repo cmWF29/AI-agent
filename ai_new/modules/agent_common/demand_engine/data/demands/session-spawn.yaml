@@ -1,7 +1,9 @@
 id: session-spawn
 title: 造会话：人设 + 岗位红线/必做 + 岗位工具清单 + 知识注入，拼装落盘
-description: "造会话：人设 + 岗位红线/必做 + 岗位工具清单 + 知识注入，拼装落盘。人设、岗位要素、工具清单、知识各自取来，会话拼装归能力，落盘由 apply 执行"
-tags: [session, write]
+description: 造会话：人设 + 岗位红线/必做 + 岗位工具清单 + 知识注入，拼装落盘。人设、岗位要素、工具清单、知识各自取来，会话拼装归能力，落盘由 apply 执行
+tags:
+- session
+- write
 enabled: true
 callable: true
 'on': []
@@ -51,6 +53,11 @@ do:
     forbidden:
       get: rec.item.forbidden
   as: blocks
+- call: knowledge.project_prefix
+  with:
+    ticket:
+      get: input.ticket
+  as: kp
 - call: demand_engine.run
   with:
     id:
@@ -58,11 +65,7 @@ do:
     input:
       prefixes:
       - public/
-      - op: +
-        a:
-          lit: projects/
-        b:
-          get: input.ticket
+      - get: kp.prefix
   as: know
 - call: sessions.spawn
   with:
@@ -112,6 +115,7 @@ expect:
   - library.get
   - demand_engine.run
   - library.prompt_blocks
+  - knowledge.project_prefix
   - demand_engine.run
   - sessions.spawn
   - runtime.apply

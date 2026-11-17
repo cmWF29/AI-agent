@@ -85,6 +85,17 @@ process:
     match: any
     min_bytes: 80
   builtin: true
+skill-decomposer:
+  id: skill-decomposer
+  role: skill-decomposer
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*拆解*
+    - docs/**/*.yaml
+    match: any
+    min_bytes: 80
+  builtin: true
 requirement-owner:
   id: requirement-owner
   kind: process

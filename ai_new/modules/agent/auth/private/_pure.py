@@ -40,3 +40,8 @@ def session_view(p):
     rec = p.get("record") or {}
     return {"token": rec.get("token"), "username": rec.get("username"),
             "expires": rec.get("expires")}
+
+
+def session_path(p):
+    """注销要删的会话记录相对路径：布局约定属鉴权模块。"""
+    return {"path": "sessions/%s.yaml" % (p.get("token") or "")}

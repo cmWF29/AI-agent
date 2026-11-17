@@ -16,6 +16,9 @@ def setup(ctx):
         ("library.check", _pure.checkp),
         ("library.review", _pure.reviewp),
         ("library.prompt_blocks", _pure.prompt_blocks),
+        ("library.kind_file", _pure.kind_file),
+        ("library.prompt_path", _pure.prompt_path),
+        ("library.save_record", _pure.save_record),
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="library")

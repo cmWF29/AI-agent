@@ -1,21 +1,24 @@
 id: library-design
 title: 改岗位库：读用户记录 → 合并字段（带时间）→ 落盘
-description: "改岗位库：读用户记录 → 合并字段（带时间）→ 落盘。改记录要带时间，时间由需求给"
-tags: [library, write]
+description: 改岗位库：读用户记录 → 合并字段（带时间）→ 落盘。改记录要带时间，时间由需求给
+tags:
+- library
+- write
 enabled: true
 callable: true
 'on': []
 do:
+- call: library.kind_file
+  with:
+    kind:
+      get: input.kind
+  as: lk1
 - call: store.read
   with:
     module:
       lit: agent/library
     path:
-      op: +
-      a:
-        get: input.kind
-      b:
-        lit: s.yaml
+      get: lk1.path
   as: user
 - call: library.get
   with:
@@ -43,27 +46,38 @@ do:
     now:
       get: now.ts
   as: rec
+- call: library.save_record
+  with:
+    user:
+      get: user.value
+    rec:
+      get: rec
+  as: saved
+- call: library.kind_file
+  with:
+    kind:
+      get: input.kind
+  as: lk2
 - call: store.write
   with:
     module:
       lit: agent/library
     path:
-      op: +
-      a:
-        get: input.kind
-      b:
-        lit: s.yaml
+      get: lk2.path
     value:
-      op: append
-      a:
-        lit: {}
+      get: saved.value
   as: w
 expect:
   given:
     input: {}
   calls:
+  - library.kind_file
+  - store.read
   - library.get
   - clock.now
   - library.design
+  - library.save_record
+  - library.kind_file
+  - store.write
   payload: {}
   promise: 改记录要带时间，时间由需求给

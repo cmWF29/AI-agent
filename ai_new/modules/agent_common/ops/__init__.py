@@ -10,6 +10,8 @@ def setup(ctx):
         ("ops.record", _pure.record),
         ("ops.events", _pure.events),
         ("ops.tail", _pure.tail),
+        ("ops.export_path", _pure.export_path),
+        ("ops.log_line", _pure.log_line),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="ops")
     return True

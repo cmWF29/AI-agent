@@ -126,7 +126,8 @@ let ACTS = [], FILTER = null, modalSubmit = null, MODAL_CTX = null;
 
 function qsOf(s) {
   const q = new URLSearchParams();
-  if (s.view === "positions") q.set("view", "positions");
+  if (s.view === "tools") q.set("view", "tools");
+  else if (s.view === "positions") q.set("view", "positions");
   else if (s.view === "position") { q.set("view", "position"); q.set("position", s.position || ""); }
   else if (s.ticket) { q.set("project", s.project || ""); q.set("ticket", s.ticket); }
   else if (s.project) q.set("project", s.project);
@@ -135,6 +136,7 @@ function qsOf(s) {
 }
 function parseURL() {
   const q = new URLSearchParams(location.search);
+  if (q.get("view") === "tools") return { view: "tools" };
   if (q.get("view") === "positions") return { view: "positions" };
   if (q.get("view") === "position") return { view: "position", position: q.get("position") || "" };
   const p = q.get("project") || "";

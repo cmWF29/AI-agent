@@ -29,6 +29,7 @@ class WebPanel:
 def setup(ctx):
     ctx.web = WebPanel(ctx)
     for name, fn in [("web.rel", _pure.rel), ("web.mime", _pure.mime),
-                     ("web.info", _pure.info), ("web.gate", _pure.gate)]:
+                     ("web.info", _pure.info), ("web.gate", _pure.gate),
+                     ("web.console_path", _pure.console_path)]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="web")
     return True

@@ -1,7 +1,9 @@
 id: web-page
 title: 取控制台页面：纯路径 → store 读文本 → MIME
-description: "取控制台页面：纯路径 → store 读文本 → MIME。页面是数据，路径与 MIME 是纯计算；清单一并下发，页面与需求不再各存一份"
-tags: [web, read]
+description: 取控制台页面：纯路径 → store 读文本 → MIME。页面是数据，路径与 MIME 是纯计算；清单一并下发，页面与需求不再各存一份
+tags:
+- web
+- read
 enabled: true
 callable: true
 'on': []
@@ -11,16 +13,17 @@ do:
     path:
       get: input.path
   as: p
+- call: web.console_path
+  with:
+    path:
+      get: p.path
+  as: wc
 - call: store.read_text
   with:
     module:
       lit: agent/web
     path:
-      op: +
-      a:
-        lit: console/
-      b:
-        get: p.path
+      get: wc.path
     fallback:
       lit: ''
   as: text
@@ -46,6 +49,8 @@ expect:
     input: {}
   calls:
   - web.rel
+  - web.console_path
+  - store.read_text
   - web.mime
   - demand_engine.list
   - web.info

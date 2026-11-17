@@ -85,3 +85,13 @@ def compactp(p):
 def missing(p):
     return {"ok": False, "code": "not_found", "status": 404,
             "error": "会话不存在: %s" % (p.get("id") or "")}
+
+
+def record_path(p):
+    """会话记录落盘相对路径：布局约定属会话模块，需求层不拼字符串。"""
+    return {"path": "sessions/%s.yaml" % (p.get("id") or "")}
+
+
+def role_name(p):
+    """角色会话名：岗位标识 - 工单 id，纯拼装。"""
+    return {"name": "%s-%s" % (p.get("role") or "", p.get("id") or "")}

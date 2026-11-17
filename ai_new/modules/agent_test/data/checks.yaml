@@ -112,3 +112,7 @@ checks:
   - position-list
   - position-get
   - position-tools
+  - tools-list
+  - view-tools
+  - decompose-draft
+  - decompose-accept

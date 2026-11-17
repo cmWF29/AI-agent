@@ -38,3 +38,13 @@ def tail(p):
     rows = p.get("rows") or []
     n = max(1, int(p.get("lines") or 50))
     return {"rows": rows[-n:]}
+
+
+def export_path(p):
+    """导出归档相对路径：exports/<name>，命名归属运维模块。"""
+    return {"path": "exports/%s" % (p.get("name") or "")}
+
+
+def log_line(p):
+    """日志行：末尾补换行，文本拼装下沉模块，需求层不拼字符串。"""
+    return {"text": (p.get("text") or "") + "\n"}

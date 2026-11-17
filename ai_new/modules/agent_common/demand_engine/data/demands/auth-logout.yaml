@@ -1,31 +1,31 @@
 id: auth-logout
 title: 注销：删除自己的会话记录
-description: "注销：删除自己的会话记录。注销只删自己的会话记录，不碰别的模块数据"
-tags: [auth, write]
+description: 注销：删除自己的会话记录。注销只删自己的会话记录，不碰别的模块数据
+tags:
+- auth
+- write
 enabled: true
 callable: true
 'on': []
 do:
+- call: auth.session_path
+  with:
+    token:
+      get: input.token
+  as: ap
 - call: store.remove
   with:
     module:
       lit: agent/auth
     path:
-      op: +
-      a:
-        op: +
-        a:
-          lit: sessions/
-        b:
-          get: input.token
-      b:
-        lit: .yaml
+      get: ap.path
   as: out
 expect:
   given:
     input:
       token: abc123
   calls:
+  - auth.session_path
   - store.remove
   payload:
     store.remove:

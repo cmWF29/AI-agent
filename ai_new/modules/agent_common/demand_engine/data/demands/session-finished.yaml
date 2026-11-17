@@ -1,25 +1,26 @@
 id: session-finished
 title: 会话收尾闭环：岗位流程校验 → 三态评审 → 回催/复盘/卡点
-description: "会话收尾闭环：岗位流程校验 → 三态评审 → 回催/复盘/卡点。校验与判定归模块，闭环动作清单由 flow_plan 成形，写盘与再驱动交 apply"
-tags: [session, position, write, async]
+description: 会话收尾闭环：岗位流程校验 → 三态评审 → 回催/复盘/卡点。校验与判定归模块，闭环动作清单由 flow_plan 成形，写盘与再驱动交 apply
+tags:
+- session
+- position
+- write
+- async
 enabled: true
 'on':
 - sessions.finished
 do:
+- call: sessions.record_path
+  with:
+    id:
+      get: event.data.id
+  as: sp
 - call: store.read
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: event.data.id
-        b:
-          lit: .yaml
+      get: sp.path
   as: row
 - call: store.read
   with:
@@ -82,20 +83,17 @@ do:
     key:
       lit: tickets.auto_retrospective
   as: cfg
+- call: tickets.record_path
+  with:
+    id:
+      get: event.data.ticket
+  as: tp1
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: event.data.ticket
-        b:
-          lit: /ticket.yaml
+      get: tp1.path
   as: ticket_row
 - call: clock.now
   as: now
@@ -156,20 +154,17 @@ do:
     now:
       get: now.ts
   as: touched
+- call: tickets.record_path
+  with:
+    id:
+      get: event.data.ticket
+  as: tp2
 - call: store.write
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: event.data.ticket
-        b:
-          lit: /ticket.yaml
+      get: tp2.path
     value:
       get: touched
   as: tw
@@ -191,6 +186,7 @@ expect:
         ticket: T-1
     input: {}
   calls:
+  - sessions.record_path
   - store.read
   - store.read
   - library.get
@@ -200,6 +196,7 @@ expect:
   - library.review
   - store.read
   - config.get
+  - tickets.record_path
   - store.read
   - clock.now
   - tickets.msg
@@ -207,6 +204,7 @@ expect:
   - tickets.msg
   - sessions.flow_plan
   - tickets.touch
+  - tickets.record_path
   - store.write
   - runtime.apply
   payload: {}

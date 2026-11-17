@@ -84,7 +84,7 @@ class LanguageTest(unittest.TestCase):
 
     def test_rejected_operators_raise(self):
         """判断/逻辑/集合/度量运算符已下沉模块纯函数，需求表达式求值必须拒绝。"""
-        for op in ("==", "!=", "in", "and", "or", "not", "len", ">", "<", ">=", "<="):
+        for op in ("==", "!=", "in", "and", "or", "not", "len", ">", "<", ">=", "<=", "+", "append"):
             with self.assertRaises(ValueError):
                 _lang.eval_expr({"op": op, "a": {"lit": 1}, "b": {"lit": 2}}, {})
 

@@ -1,7 +1,9 @@
 id: knowledge-remove-project
 title: 删项目知识：归一 id → 删目录
-description: "删项目知识：归一 id → 删目录。删目录也是需求的动作"
-tags: [knowledge, write]
+description: 删项目知识：归一 id → 删目录。删目录也是需求的动作
+tags:
+- knowledge
+- write
 enabled: true
 callable: true
 'on': []
@@ -11,16 +13,17 @@ do:
     value:
       get: input.project
   as: pid
+- call: knowledge.project_dir
+  with:
+    project:
+      get: pid.id
+  as: kd
 - call: store.remove_dir
   with:
     module:
       lit: agent/knowledge
     path:
-      op: +
-      a:
-        lit: projects/
-      b:
-        get: pid.id
+      get: kd.path
   as: rm
 - call: knowledge.removed
   with:
@@ -34,6 +37,7 @@ expect:
     input: {}
   calls:
   - store.id
+  - knowledge.project_dir
   - store.remove_dir
   - knowledge.removed
   payload: {}

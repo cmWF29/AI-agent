@@ -1,28 +1,34 @@
 id: ticket-role-spawn
 title: 拉角色会话：spawn 需求 → 挂到 roles → 落盘
-description: "拉角色会话：spawn 需求 → 挂到 roles → 落盘。会话由需求拉，工单只记账"
-tags: [ticket, write]
+description: 拉角色会话：spawn 需求 → 挂到 roles → 落盘。会话由需求拉，工单只记账
+tags:
+- ticket
+- write
 enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp1
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp1.path
   as: row
 - call: clock.now
   as: now
+- call: sessions.role_name
+  with:
+    role:
+      get: input.role
+    id:
+      get: input.id
+  as: rn
 - call: demand_engine.run
   with:
     id:
@@ -33,15 +39,7 @@ do:
       role:
         get: input.role
       name:
-        op: +
-        a:
-          get: input.role
-        b:
-          op: +
-          a:
-            lit: '-'
-          b:
-            get: input.id
+        get: rn.name
       ticket:
         get: input.id
       task:
@@ -62,20 +60,17 @@ do:
     now:
       get: now.ts
   as: rec
+- call: tickets.record_path
+  with:
+    id:
+      get: rec.id
+  as: tp2
 - call: store.write
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: rec.id
-        b:
-          lit: /ticket.yaml
+      get: tp2.path
     value:
       get: rec
   as: w
@@ -88,8 +83,13 @@ expect:
   given:
     input: {}
   calls:
+  - tickets.record_path
+  - store.read
   - clock.now
+  - sessions.role_name
+  - demand_engine.run
   - tickets.bindrole
+  - tickets.record_path
   - store.write
   - tickets.view
   payload: {}

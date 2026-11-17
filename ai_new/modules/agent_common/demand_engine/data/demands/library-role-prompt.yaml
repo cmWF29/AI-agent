@@ -1,7 +1,9 @@
 id: library-role-prompt
 title: 角色提示词：读角色表 → 找 prompt_file → 取数据文件
-description: "角色提示词：读角色表 → 找 prompt_file → 取数据文件。提示词是数据文件，模块只拼形状"
-tags: [library, read]
+description: 角色提示词：读角色表 → 找 prompt_file → 取数据文件。提示词是数据文件，模块只拼形状
+tags:
+- library
+- read
 enabled: true
 callable: true
 'on': []
@@ -24,16 +26,17 @@ do:
     user:
       get: roles.value
   as: rec
+- call: library.prompt_path
+  with:
+    file:
+      get: rec.item.prompt_file
+  as: lp
 - call: store.read_text
   with:
     module:
       lit: agent/library
     path:
-      op: +
-      a:
-        lit: prompts/
-      b:
-        get: rec.item.prompt_file
+      get: lp.path
   as: file
 - call: library.role_prompt
   with:
@@ -50,6 +53,8 @@ expect:
   calls:
   - store.read
   - library.get
+  - library.prompt_path
+  - store.read_text
   - library.role_prompt
   payload: {}
   promise: 提示词是数据文件，模块只拼形状

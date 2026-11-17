@@ -1,25 +1,24 @@
 id: ticket-file
 title: 读工单交付件：artifacts-read 需求
-description: "读工单交付件：artifacts-read 需求。读盘归需求"
-tags: [ticket, write]
+description: 读工单交付件：artifacts-read 需求。读盘归需求
+tags:
+- ticket
+- write
 enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp.path
   as: row
 - call: demand_engine.run
   with:
@@ -41,6 +40,8 @@ expect:
   given:
     input: {}
   calls:
+  - tickets.record_path
+  - store.read
   - demand_engine.run
   payload: {}
   promise: 读盘归需求

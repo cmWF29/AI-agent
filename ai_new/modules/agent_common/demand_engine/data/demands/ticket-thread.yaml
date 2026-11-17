@@ -1,45 +1,42 @@
 id: ticket-thread
 title: 工单主会话线程：读工单 → 归一化主会话 id → 取 1:1 主会话消息流 → 露出角色实例
-description: "工单主会话线程：读工单 → 归一化主会话 id → 取 1:1 主会话消息流 → 露出角色实例。工单与主会话 1:1，消息流由会话记录露出，模块只拼视图"
-tags: [ticket, session, read]
+description: 工单主会话线程：读工单 → 归一化主会话 id → 取 1:1 主会话消息流 → 露出角色实例。工单与主会话 1:1，消息流由会话记录露出，模块只拼视图
+tags:
+- ticket
+- session
+- read
 enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp.path
   as: row
 - call: store.id
   with:
     value:
       get: row.value.pm
   as: sid
+- call: sessions.record_path
+  with:
+    id:
+      get: sid.id
+  as: sp
 - call: store.read
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: sid.id
-        b:
-          lit: .yaml
+      get: sp.path
   as: srow
 - call: sessions.view
   with:
@@ -60,8 +57,10 @@ expect:
     input:
       id: T-1
   calls:
+  - tickets.record_path
   - store.read
   - store.id
+  - sessions.record_path
   - store.read
   - sessions.view
   - tickets.thread

@@ -1,7 +1,9 @@
 id: session-destroy
 title: 销毁会话：读记录 → 打 gone 标记 → 落盘
-description: "销毁会话：读记录 → 打 gone 标记 → 落盘。状态迁移归模块，落盘归需求"
-tags: [session, write]
+description: 销毁会话：读记录 → 打 gone 标记 → 落盘。状态迁移归模块，落盘归需求
+tags:
+- session
+- write
 enabled: true
 callable: true
 'on': []
@@ -11,20 +13,17 @@ do:
     value:
       get: input.id
   as: sid
+- call: sessions.record_path
+  with:
+    id:
+      get: sid.id
+  as: sp1
 - call: store.read
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: sid.id
-        b:
-          lit: .yaml
+      get: sp1.path
   as: row
 - call: clock.now
   as: now
@@ -35,20 +34,17 @@ do:
     now:
       get: now.ts
   as: rec
+- call: sessions.record_path
+  with:
+    id:
+      get: sid.id
+  as: sp2
 - call: store.write
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: sid.id
-        b:
-          lit: .yaml
+      get: sp2.path
     value:
       get: rec
   as: w
@@ -62,9 +58,11 @@ expect:
     input: {}
   calls:
   - store.id
+  - sessions.record_path
   - store.read
   - clock.now
   - sessions.gone
+  - sessions.record_path
   - store.write
   - sessions.view
   payload: {}

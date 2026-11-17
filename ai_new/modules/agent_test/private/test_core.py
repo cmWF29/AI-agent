@@ -87,7 +87,8 @@ class CoreTest(unittest.TestCase):
         expect = {"config", "store", "hooks", "demand_engine", "api", "tools", "llm", "react",
                   "knowledge", "artifacts", "library", "sessions", "projects",
                   "tickets", "agents", "health", "ops", "skills", "web", "http",
-                  "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec"}
+                  "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec",
+                  "decompose"}
         self.assertEqual(set(self.loaded), expect)
 
     def test_modules_have_no_log_capability(self):

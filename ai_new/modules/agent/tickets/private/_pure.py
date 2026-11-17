@@ -298,3 +298,8 @@ def stale(p):
     idle = int(p.get("idle_seconds") or 0)
     limit = int(p.get("limit_seconds") or 3600)
     return {"stale": idle >= limit}
+
+
+def record_path(p):
+    """工单记录落盘相对路径：布局约定属工单模块，需求层不拼字符串。"""
+    return {"path": "tickets/%s/ticket.yaml" % (p.get("id") or "")}

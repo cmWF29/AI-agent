@@ -153,3 +153,13 @@ def missing(p):
 
 def removed(p):
     return {"removed": bool(p.get("removed")), "project": p.get("project") or ""}
+
+
+def project_dir(p):
+    """项目知识目录相对路径：projects/<id>。"""
+    return {"path": "projects/%s" % (p.get("project") or p.get("ticket") or "")}
+
+
+def project_prefix(p):
+    """项目层知识注入前缀：projects/<id>（与 compose 前缀约定一致）。"""
+    return {"prefix": "projects/%s" % (p.get("ticket") or p.get("project") or "")}

@@ -1,7 +1,7 @@
 """工具模块：注册、白名单、执行。无任何业务；落盘由需求显式编排。"""
 from __future__ import annotations
 
-from .private import _registry
+from .private import _registry, _pure
 
 def setup(ctx):
     """装配入口：ctx.tools 指向注册表。"""
@@ -15,6 +15,9 @@ def setup(ctx):
     ctx.api.register("tools.pick",
                      lambda c, payload: {"items": ctx.tools.pick(
                          payload.get("tools") or [], payload.get("kind"))},
+                     module="tools")
+    ctx.api.register("tools.list",
+                     lambda c, payload: _pure.listing({"tools": ctx.tools.list_tools()}),
                      module="tools")
     return ctx.tools
 

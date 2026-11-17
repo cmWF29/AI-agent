@@ -165,6 +165,12 @@ capabilities:
     - codec.json_encode
     - react.toolmsg
     - react.result
+  decompose.run:
+    calls:
+    - tools.list
+    - decompose.promptize
+    - codec.json_decode
+    - decompose.parse
   channel.reply:
     calls:
     - channel.read_tail

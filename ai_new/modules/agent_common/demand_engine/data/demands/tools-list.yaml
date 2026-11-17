@@ -1,0 +1,17 @@
+id: tools-list
+title: 工具库清单：注册表登记的全部工具只读列出
+description: "工具库清单：注册表登记的全部工具只读列出。参数与可见类型的成形归工具模块，取数归需求"
+tags: [tool, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: tools.list
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - tools.list
+  payload: {}
+  promise: 参数与可见类型成形归模块，取数归需求

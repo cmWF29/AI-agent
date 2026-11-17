@@ -223,8 +223,8 @@ class DemandContractTest(unittest.TestCase):
             self.assertNotIn(token, src, "引擎仍保留控制流解释: %s" % token)
 
     def test_demand_expressions_use_only_data_assembly(self):
-        """表达式只允许取值/字面量/薄装配：比较、逻辑、集合、度量都是业务判断，下沉模块纯函数。"""
-        allowed = {"+", "append"}
+        """表达式只允许取值/字面量：比较、逻辑、集合、度量、拼装都是业务装配，下沉模块纯函数。"""
+        allowed = set()
         problems = []
         for rec in load_all():
             ops = []

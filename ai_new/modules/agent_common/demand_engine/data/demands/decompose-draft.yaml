@@ -1,0 +1,86 @@
+id: decompose-draft
+title: 技能拆解：自然语言 → 模型拆成角色/工具/流程 → 先落草稿待确认
+description: "技能拆解：自然语言 → 模型拆成岗位角色、引用工具、流程规则三要素，先落草稿待确认后再入库。拆解闭环在 decompose.run 能力内，需求只编排成形与落盘；工具只引用注册表已有项"
+tags:
+- skill
+- llm
+- write
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read_text
+  with:
+    module:
+      lit: agent/decompose
+    path:
+      lit: system.md
+  as: sys
+- call: decompose.run
+  with:
+    text:
+      get: input.text
+    system:
+      get: sys.value
+    base_url:
+      get: input.base_url
+    api_key:
+      get: input.api_key
+    model:
+      get: input.model
+    mode:
+      get: input.mode
+    cancel:
+      get: input.cancel
+  as: out
+- call: clock.now
+  as: now
+- call: decompose.draft_record
+  with:
+    draft:
+      get: out.draft
+    now:
+      get: now.ts
+    source:
+      get: input.text
+  as: rec
+- call: decompose.draft_file
+  as: lk
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lk.path
+  as: user
+- call: decompose.save_draft
+  with:
+    user:
+      get: user.value
+    rec:
+      get: rec.rec
+  as: saved
+- call: store.write
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lk.path
+    value:
+      get: saved.value
+  as: w
+expect:
+  given:
+    input:
+      text: 帮我拆一个负责写发布公告的岗位
+  calls:
+  - store.read_text
+  - decompose.run
+  - clock.now
+  - decompose.draft_record
+  - decompose.draft_file
+  - store.read
+  - decompose.save_draft
+  - store.write
+  payload: {}
+  promise: 拆解产物先落草稿待确认，工具只引用注册表已有项，入库合并另走确认需求

@@ -1,25 +1,24 @@
 id: ticket-roles
 title: 工单角色清单：读记录后取 roles
-description: "工单角色清单：读记录后取 roles。取一个字段"
-tags: [ticket, read]
+description: 工单角色清单：读记录后取 roles。取一个字段
+tags:
+- ticket
+- read
 enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp.path
   as: row
 - call: tickets.roles
   with:
@@ -30,6 +29,8 @@ expect:
   given:
     input: {}
   calls:
+  - tickets.record_path
+  - store.read
   - tickets.roles
   payload: {}
   promise: 取一个字段

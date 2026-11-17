@@ -47,6 +47,7 @@ def setup(ctx):
         ("auth.credentials_ok", _pure.credentials_ok),
         ("auth.build_session", _pure.build_session),
         ("auth.session_view", _pure.session_view),
+        ("auth.session_path", _pure.session_path),
     ]
     for name, fn in pairs:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="auth")

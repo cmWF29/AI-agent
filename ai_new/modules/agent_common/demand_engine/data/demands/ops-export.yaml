@@ -1,23 +1,26 @@
 id: ops-export
 title: 导出模块数据：打包走 store.archive
-description: "导出模块数据：打包走 store.archive。压缩是能力，清单由装配给"
-tags: [ops, write]
+description: 导出模块数据：打包走 store.archive。压缩是能力，清单由装配给
+tags:
+- ops
+- write
 enabled: true
 callable: true
 'on': []
 do:
 - call: clock.now
   as: now
+- call: ops.export_path
+  with:
+    name:
+      get: input.name
+  as: ep
 - call: store.archive
   with:
     module:
       lit: agent_common/ops
     name:
-      op: +
-      a:
-        lit: exports/
-      b:
-        get: input.name
+      get: ep.path
     scripts:
       get: input.scripts
   as: out
@@ -26,5 +29,7 @@ expect:
     input: {}
   calls:
   - clock.now
+  - ops.export_path
+  - store.archive
   payload: {}
   promise: 压缩是能力，清单由装配给

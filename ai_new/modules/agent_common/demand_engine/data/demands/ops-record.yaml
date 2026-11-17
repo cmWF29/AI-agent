@@ -1,7 +1,9 @@
 id: ops-record
 title: 记一条事件：成形 → 追加到 logs/app.jsonl
-description: "记一条事件：成形 → 追加到 logs/app.jsonl。日志是运维的业务，写盘是能力"
-tags: [ops, write]
+description: 记一条事件：成形 → 追加到 logs/app.jsonl。日志是运维的业务，写盘是能力
+tags:
+- ops
+- write
 enabled: true
 callable: true
 'on': []
@@ -24,6 +26,11 @@ do:
     value:
       get: rec
   as: enc
+- call: ops.log_line
+  with:
+    text:
+      get: enc.text
+  as: ll
 - call: store.append_text
   with:
     module:
@@ -31,13 +38,7 @@ do:
     path:
       lit: logs/app.jsonl
     text:
-      op: +
-      a:
-        get: enc.text
-      b:
-        lit: '
-
-          '
+      get: ll.text
   as: w
 - call: ops.record
   with:
@@ -57,6 +58,7 @@ expect:
   - clock.now
   - ops.record
   - codec.json_encode
+  - ops.log_line
   - store.append_text
   - ops.record
   payload: {}

@@ -25,6 +25,7 @@ def setup(ctx):
         ("tickets.resolve_target", _pure.resolve_target),
         ("tickets.files_filter", _pure.files_filter),
         ("tickets.paths", _pure.paths),
+        ("tickets.record_path", _pure.record_path),
         ("tickets.msg", _pure.msg),
         ("tickets.err", _pure.err),
         ("tickets.stale", _pure.stale),

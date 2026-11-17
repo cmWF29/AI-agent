@@ -1,0 +1,30 @@
+id: view-tools
+title: 工具库视图：注册表登记的全部能力，只读清单
+description: "工具库视图：注册表登记的全部能力，只读清单。视图只声明表格，数据源走需求"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: tools
+  crumb: [项目, 工具库]
+  heading: 工具库
+  subheading: 工具 = 注册表登记的一条能力；清单只读，工具定义与登记方式不在此改
+  data:
+  - {as: list, demand: tools-list}
+  sections:
+  - kind: table
+    source: list.items
+    columns:
+    - {label: 工具名, value: row.name, sub: row.module}
+    - {label: 说明, value: row.desc}
+    - {label: 参数, value: row.params, muted: true}
+    - {label: 可见类型, value: row.kinds, muted: true}
+    empty: {text: 暂无工具}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 工具库只声明表格，数据源走需求

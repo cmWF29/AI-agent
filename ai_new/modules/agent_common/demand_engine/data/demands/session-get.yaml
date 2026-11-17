@@ -1,7 +1,9 @@
 id: session-get
 title: 取会话：按 id 取记录，缺就报缺
-description: "取会话：按 id 取记录，缺就报缺。读一次，缺就报缺"
-tags: [session, read]
+description: 取会话：按 id 取记录，缺就报缺。读一次，缺就报缺
+tags:
+- session
+- read
 enabled: true
 callable: true
 'on': []
@@ -11,20 +13,17 @@ do:
     value:
       get: input.id
   as: sid
+- call: sessions.record_path
+  with:
+    id:
+      get: sid.id
+  as: sp
 - call: store.read
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: sid.id
-        b:
-          lit: .yaml
+      get: sp.path
   as: row
 - call: sessions.present
   with:
@@ -38,6 +37,7 @@ expect:
     input: {}
   calls:
   - store.id
+  - sessions.record_path
   - store.read
   - sessions.present
   payload: {}

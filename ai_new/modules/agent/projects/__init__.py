@@ -14,6 +14,7 @@ def setup(ctx):
         ("projects.tree", _pure.tree),
         ("projects.archive", _pure.archive),
         ("projects.missing", _pure.missing),
+        ("projects.record_path", _pure.record_path),
         ("projects.conflict", _pure.conflict),
         ("projects.deleted", _pure.deleted),
         ("projects.renamed", _pure.renamed),

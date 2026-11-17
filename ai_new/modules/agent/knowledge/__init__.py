@@ -19,6 +19,8 @@ def setup(ctx):
         ("knowledge.search", _pure.search),
         ("knowledge.compose", _pure.compose),
         ("knowledge.removed", _pure.removed),
+        ("knowledge.project_dir", _pure.project_dir),
+        ("knowledge.project_prefix", _pure.project_prefix),
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="knowledge")

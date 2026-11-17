@@ -1,7 +1,9 @@
 id: projects-get
 title: 项目详情：按 id 取档案并露出字段；没有就报 not_found
-description: "项目详情：按 id 取档案并露出字段；没有就报 not_found。读一次，缺就报缺，不吞错"
-tags: [project, read]
+description: 项目详情：按 id 取档案并露出字段；没有就报 not_found。读一次，缺就报缺，不吞错
+tags:
+- project
+- read
 enabled: true
 callable: true
 'on': []
@@ -11,16 +13,17 @@ do:
     value:
       get: input.id
   as: id
+- call: projects.record_path
+  with:
+    id:
+      get: id.id
+  as: pp
 - call: store.read
   with:
     module:
       lit: agent/projects
     path:
-      op: +
-      a:
-        get: id.id
-      b:
-        lit: .yaml
+      get: pp.path
   as: row
 - call: projects.present
   with:
@@ -34,6 +37,7 @@ expect:
     input: {}
   calls:
   - store.id
+  - projects.record_path
   - store.read
   - projects.present
   payload: {}

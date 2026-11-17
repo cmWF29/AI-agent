@@ -1,6 +1,6 @@
 id: ticket-message
 title: 工单消息：pm 或指定角色 → send 需求
-description: "工单消息：pm 或指定角色 → send 需求。目标解析归模块"
+description: 工单消息：pm 或指定角色 → send 需求。目标解析归模块
 tags:
 - ticket
 - write
@@ -8,20 +8,17 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp.path
   as: row
 - call: tickets.resolve_target
   with:
@@ -59,6 +56,8 @@ expect:
   given:
     input: {}
   calls:
+  - tickets.record_path
+  - store.read
   - tickets.resolve_target
   - demand_engine.run
   - runtime.dispatch

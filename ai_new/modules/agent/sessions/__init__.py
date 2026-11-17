@@ -17,6 +17,8 @@ def setup(ctx):
         ("sessions.present", _pure.present),
         ("sessions.screen", _pure.screen),
         ("sessions.gone", _pure.gone),
+        ("sessions.record_path", _pure.record_path),
+        ("sessions.role_name", _pure.role_name),
         ("sessions.compact", _pure.compactp),
         ("sessions.appendmsg", _run_pure.appendmsg),
         ("sessions.mark", _run_pure.mark),

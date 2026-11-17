@@ -1,7 +1,9 @@
 id: projects-archive
 title: 归档项目：读一次 → 打归档标记（带时间）→ 落盘 → 露出字段
-description: "归档项目：读一次 → 打归档标记（带时间）→ 落盘 → 露出字段。标记与时间都由需求带进来，模块纯计算"
-tags: [project, write]
+description: 归档项目：读一次 → 打归档标记（带时间）→ 落盘 → 露出字段。标记与时间都由需求带进来，模块纯计算
+tags:
+- project
+- write
 enabled: true
 callable: true
 'on': []
@@ -11,16 +13,17 @@ do:
     value:
       get: input.id
   as: id
+- call: projects.record_path
+  with:
+    id:
+      get: id.id
+  as: pp1
 - call: store.read
   with:
     module:
       lit: agent/projects
     path:
-      op: +
-      a:
-        get: id.id
-      b:
-        lit: .yaml
+      get: pp1.path
   as: row
 - call: clock.now
   as: now
@@ -31,16 +34,17 @@ do:
     now:
       get: now.ts
   as: rec
+- call: projects.record_path
+  with:
+    id:
+      get: id.id
+  as: pp2
 - call: store.write
   with:
     module:
       lit: agent/projects
     path:
-      op: +
-      a:
-        get: id.id
-      b:
-        lit: .yaml
+      get: pp2.path
     value:
       get: rec
   as: w
@@ -54,9 +58,11 @@ expect:
     input: {}
   calls:
   - store.id
+  - projects.record_path
   - store.read
   - clock.now
   - projects.archive
+  - projects.record_path
   - store.write
   - projects.view
   payload: {}

@@ -1,25 +1,24 @@
 id: session-wait
 title: 取会话回复：读记录 → 摘最后一条 assistant
-description: "取会话回复：读记录 → 摘最后一条 assistant。等多久由调用方决定，这里只取一次"
-tags: [session, read]
+description: 取会话回复：读记录 → 摘最后一条 assistant。等多久由调用方决定，这里只取一次
+tags:
+- session
+- read
 enabled: true
 callable: true
 'on': []
 do:
+- call: sessions.record_path
+  with:
+    id:
+      get: input.id
+  as: sp
 - call: store.read
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: .yaml
+      get: sp.path
   as: row
 - call: sessions.reply
   with:
@@ -32,6 +31,8 @@ expect:
   given:
     input: {}
   calls:
+  - sessions.record_path
+  - store.read
   - sessions.reply
   payload: {}
   promise: 等多久由调用方决定，这里只取一次

@@ -1,0 +1,183 @@
+id: decompose-accept
+title: 确认入库：一条已确认草稿并入角色/流程/技能卡三库
+description: "确认入库：人工核对后的草稿，按字段映射分别并入角色、流程、技能卡用户记录。字段映射归拆解模块，取数落盘归需求；内置记录受保护不改"
+tags:
+- skill
+- write
+enabled: true
+callable: true
+'on': []
+do:
+- call: decompose.draft_file
+  as: lk
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lk.path
+  as: duser
+- call: decompose.draft_get
+  with:
+    user:
+      get: duser.value
+    id:
+      get: input.id
+  as: draft
+- call: decompose.accept_parts
+  with:
+    rec:
+      get: draft.item
+  as: parts
+- call: clock.now
+  as: now
+- call: library.kind_file
+  with:
+    kind:
+      lit: roles
+  as: lkr
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lkr.path
+  as: ur
+- call: library.design
+  with:
+    kind:
+      lit: roles
+    id:
+      get: parts.role.id
+    fields:
+      get: parts.role
+    record:
+      lit: {}
+    now:
+      get: now.ts
+  as: rr
+- call: library.save_record
+  with:
+    user:
+      get: ur.value
+    rec:
+      get: rr
+  as: sr
+- call: store.write
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lkr.path
+    value:
+      get: sr.value
+  as: wr
+- call: library.kind_file
+  with:
+    kind:
+      lit: flows
+  as: lkf
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lkf.path
+  as: uf
+- call: library.design
+  with:
+    kind:
+      lit: flows
+    id:
+      get: parts.flow.id
+    fields:
+      get: parts.flow
+    record:
+      lit: {}
+    now:
+      get: now.ts
+  as: rf
+- call: library.save_record
+  with:
+    user:
+      get: uf.value
+    rec:
+      get: rf
+  as: sf
+- call: store.write
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lkf.path
+    value:
+      get: sf.value
+  as: wf
+- call: library.kind_file
+  with:
+    kind:
+      lit: skills
+  as: lks
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lks.path
+  as: us
+- call: library.design
+  with:
+    kind:
+      lit: skills
+    id:
+      get: parts.skill.id
+    fields:
+      get: parts.skill
+    record:
+      lit: {}
+    now:
+      get: now.ts
+  as: rs
+- call: library.save_record
+  with:
+    user:
+      get: us.value
+    rec:
+      get: rs
+  as: ss
+- call: store.write
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lks.path
+    value:
+      get: ss.value
+  as: ws
+expect:
+  given:
+    input:
+      id: demo
+  calls:
+  - decompose.draft_file
+  - store.read
+  - decompose.draft_get
+  - decompose.accept_parts
+  - clock.now
+  - library.kind_file
+  - store.read
+  - library.design
+  - library.save_record
+  - store.write
+  - library.kind_file
+  - store.read
+  - library.design
+  - library.save_record
+  - store.write
+  - library.kind_file
+  - store.read
+  - library.design
+  - library.save_record
+  - store.write
+  payload: {}
+  promise: 草稿经确认后才并入三库；映射与保护规则归模块，落盘编排归需求

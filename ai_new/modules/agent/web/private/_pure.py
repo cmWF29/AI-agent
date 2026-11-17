@@ -37,3 +37,9 @@ def gate(p):
 def info(p):
     return {"name": "ai_new", "console": p.get("console") or {},
             "routes": p.get("routes") or [], "demands": p.get("demands") or []}
+
+
+def console_path(p):
+    """控制台资源相对路径：console/<rel>，前缀归属 Web 模块。"""
+    rel = (p.get("path") or "").strip("/")
+    return {"path": "console/%s" % rel}

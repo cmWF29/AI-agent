@@ -1,6 +1,6 @@
 id: session-run
 title: 驱动会话：标记 running → 跑一轮 react → 收尾落盘
-description: "驱动会话：标记 running → 跑一轮 react → 收尾落盘。循环在 react 里，本需求只负责状态迁移；收尾校验/回催/复盘由 finished 钩子编排"
+description: 驱动会话：标记 running → 跑一轮 react → 收尾落盘。循环在 react 里，本需求只负责状态迁移；收尾校验/回催/复盘由 finished 钩子编排
 tags:
 - session
 - write
@@ -8,20 +8,17 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: sessions.record_path
+  with:
+    id:
+      get: input.id
+  as: sp1
 - call: store.read
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: .yaml
+      get: sp1.path
   as: row
 - call: clock.now
   as: now
@@ -34,20 +31,17 @@ do:
     now:
       get: now.ts
   as: running
+- call: sessions.record_path
+  with:
+    id:
+      get: running.id
+  as: sp2
 - call: store.write
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: running.id
-        b:
-          lit: .yaml
+      get: sp2.path
     value:
       get: running
   as: w
@@ -78,20 +72,17 @@ do:
       mode:
         get: row.value.backend
   as: out
+- call: sessions.record_path
+  with:
+    id:
+      get: input.id
+  as: sp3
 - call: store.read
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: .yaml
+      get: sp3.path
   as: latest
 - call: clock.now
   as: done_at
@@ -106,20 +97,17 @@ do:
     now:
       get: done_at.ts
   as: rec
+- call: sessions.record_path
+  with:
+    id:
+      get: rec.id
+  as: sp4
 - call: store.write
   with:
     module:
       lit: agent/sessions
     path:
-      op: +
-      a:
-        lit: sessions/
-      b:
-        op: +
-        a:
-          get: rec.id
-        b:
-          lit: .yaml
+      get: sp4.path
     value:
       get: rec
   as: w
@@ -137,11 +125,18 @@ expect:
   given:
     input: {}
   calls:
+  - sessions.record_path
+  - store.read
   - clock.now
   - sessions.mark
+  - sessions.record_path
+  - store.write
   - demand_engine.run
+  - sessions.record_path
+  - store.read
   - clock.now
   - sessions.finish
+  - sessions.record_path
   - store.write
   - sessions.view
   - sessions.emit_finished

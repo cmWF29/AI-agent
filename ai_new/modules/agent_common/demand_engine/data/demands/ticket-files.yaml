@@ -1,25 +1,24 @@
 id: ticket-files
 title: 工单交付件清单：artifacts-list 需求 + 模式过滤
-description: "工单交付件清单：artifacts-list 需求 + 模式过滤。过滤归模块"
-tags: [ticket, write]
+description: 工单交付件清单：artifacts-list 需求 + 模式过滤。过滤归模块
+tags:
+- ticket
+- write
 enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp.path
   as: row
 - call: demand_engine.run
   with:
@@ -46,6 +45,8 @@ expect:
   given:
     input: {}
   calls:
+  - tickets.record_path
+  - store.read
   - demand_engine.run
   - tickets.files_filter
   payload: {}

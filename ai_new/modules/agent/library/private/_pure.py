@@ -257,3 +257,23 @@ def checkp(p):
             if not any(text and text in (contents.get(f) or "") for f in files):
                 missing.append({"kind": kind, "text": text, "reason": "无文件包含该文本"})
     return {"flow": p.get("flow") or "", "missing": missing, "checked": len(checks)}
+
+
+def kind_file(p):
+    """岗位库分库用户记录文件：<kind>s.yaml，布局约定属岗位库模块。"""
+    return {"path": "%ss.yaml" % (p.get("kind") or "")}
+
+
+def prompt_path(p):
+    """角色提示词文件相对路径：prompts/<file>。"""
+    return {"path": "prompts/%s" % (p.get("file") or "")}
+
+
+def save_record(p):
+    """把合并后的记录并回用户记录字典（按 id 映射）；写盘值归岗位库模块。"""
+    user = dict(p.get("user") or {})
+    rec = p.get("rec") or {}
+    rid = rec.get("id")
+    if rid:
+        user[rid] = dict(rec)
+    return {"value": user}

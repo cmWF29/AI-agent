@@ -1,7 +1,9 @@
 id: library-get
 title: 岗位库单条：种子 + 用户记录合并后取一条
-description: "岗位库单条：种子 + 用户记录合并后取一条。查不到就返回 not_found 形状"
-tags: [library, read]
+description: 岗位库单条：种子 + 用户记录合并后取一条。查不到就返回 not_found 形状
+tags:
+- library
+- read
 enabled: true
 callable: true
 'on': []
@@ -13,16 +15,17 @@ do:
     path:
       lit: seed.yaml
   as: seed
+- call: library.kind_file
+  with:
+    kind:
+      get: input.kind
+  as: lk
 - call: store.read
   with:
     module:
       lit: agent/library
     path:
-      op: +
-      a:
-        get: input.kind
-      b:
-        lit: s.yaml
+      get: lk.path
   as: user
 - call: library.get
   with:
@@ -39,6 +42,8 @@ expect:
   given:
     input: {}
   calls:
+  - store.read
+  - library.kind_file
   - store.read
   - library.get
   payload: {}

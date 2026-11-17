@@ -1,25 +1,24 @@
 id: ticket-note
 title: 写备注：追加一条 history 并落盘
-description: "写备注：追加一条 history 并落盘。追加归模块"
-tags: [ticket, write]
+description: 写备注：追加一条 history 并落盘。追加归模块
+tags:
+- ticket
+- write
 enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp1
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp1.path
   as: row
 - call: clock.now
   as: now
@@ -32,20 +31,17 @@ do:
     now:
       get: now.ts
   as: rec
+- call: tickets.record_path
+  with:
+    id:
+      get: rec.id
+  as: tp2
 - call: store.write
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: rec.id
-        b:
-          lit: /ticket.yaml
+      get: tp2.path
     value:
       get: rec
   as: w
@@ -58,8 +54,11 @@ expect:
   given:
     input: {}
   calls:
+  - tickets.record_path
+  - store.read
   - clock.now
   - tickets.note
+  - tickets.record_path
   - store.write
   - tickets.view
   payload: {}

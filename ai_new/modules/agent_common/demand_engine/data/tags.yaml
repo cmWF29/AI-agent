@@ -9,6 +9,7 @@ tags:
 - {id: artifact, name: 产物, group: 业务域, color: indigo}
 - {id: library, name: 库, group: 业务域, color: indigo}
 - {id: skill, name: 技能, group: 业务域, color: indigo}
+- {id: tool, name: 工具, group: 业务域, color: purple}
 - {id: web, name: 界面, group: 面, color: teal}
 - {id: view, name: 视图, group: 面, color: teal}
 - {id: auth, name: 认证, group: 面, color: teal}

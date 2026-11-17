@@ -1,25 +1,24 @@
 id: ticket-get
 title: 取工单：读一次，缺就报缺
-description: "取工单：读一次，缺就报缺。缺就报缺"
-tags: [ticket, read]
+description: 取工单：读一次，缺就报缺。缺就报缺
+tags:
+- ticket
+- read
 enabled: true
 callable: true
 'on': []
 do:
+- call: tickets.record_path
+  with:
+    id:
+      get: input.id
+  as: tp
 - call: store.read
   with:
     module:
       lit: agent/tickets
     path:
-      op: +
-      a:
-        lit: tickets/
-      b:
-        op: +
-        a:
-          get: input.id
-        b:
-          lit: /ticket.yaml
+      get: tp.path
   as: row
 - call: tickets.present
   with:
@@ -33,6 +32,7 @@ expect:
     input:
       id: t1
   calls:
+  - tickets.record_path
   - store.read
   - tickets.present
   payload: {}

@@ -102,3 +102,8 @@ def conflict(payload):
 
 def deleted(payload):
     return {"deleted": True, "id": payload.get("id") or ""}
+
+
+def record_path(p):
+    """项目档案落盘相对路径：布局约定属项目模块，需求层不拼字符串。"""
+    return {"path": "%s.yaml" % (p.get("id") or "")}
