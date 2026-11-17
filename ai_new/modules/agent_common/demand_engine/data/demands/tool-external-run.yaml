@@ -1,0 +1,24 @@
+id: tool-external-run
+title: 外部工具占位执行：后端未接入前回显登记与依赖提示
+description: "外部工具统一执行入口：注册表按工具名绑到本需求，需求只把工具名与参数交给 tools.external_run 闭环。真实外部后端接入前，闭环回占位提示与依赖清单，不探测主机、不执行；成形归工具模块，取参归需求"
+tags:
+- tool
+- exec
+enabled: true
+callable: true
+'on': []
+do:
+- call: tools.external_run
+  with:
+    tool:
+      get: input.tool
+    args:
+      get: input
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - tools.external_run
+  payload: {}
+  promise: 外部工具未接真实后端，统一在此占位；登记读取与结果成形归工具模块

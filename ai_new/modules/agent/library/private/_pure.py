@@ -215,12 +215,11 @@ def summaryp(p):
     seed = p.get("seed") or {}
     user = p.get("user") or {}
     counts, names = {}, {}
-    for kind in ("roles", "flows", "skills"):
+    for kind in ("roles", "flows"):
         recs = _records({"seed": seed, "user": user.get(kind) or {}, "kind": kind})
         counts[kind] = len(recs)
         names[kind] = sorted(recs)
-    return {"counts": counts, "roles": names["roles"],
-            "flows": names["flows"], "skills": names["skills"]}
+    return {"counts": counts, "roles": names["roles"], "flows": names["flows"]}
 
 
 def promptp(p):

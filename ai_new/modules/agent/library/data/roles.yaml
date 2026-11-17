@@ -161,13 +161,13 @@ process:
   builtin: true
 skill-decomposer:
   id: skill-decomposer
-  cn: 技能拆解者
+  cn: 拆解者
   prompt_file: roles/skill-decomposer.md
   must_outputs:
   - docs/**/*拆解*
   - docs/**/*.yaml
   must_dos:
-  - 把自然语言技能描述拆成岗位角色、引用工具、流程规则三要素
+  - 把外部 Skill.md 包拆成岗位角色、引用工具、流程规则三要素
   - 工具只引用注册表已有项，名单外的不写
   - 拆解结果先交草稿待确认，不直接并入岗位库
   forbidden:

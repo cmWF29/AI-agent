@@ -6,7 +6,7 @@ document.addEventListener("click", (e) => {
   if (btn && !btn.disabled) {
     const binding = ACTS[Number(btn.dataset.act)];
     if (!binding) return;
-    if (binding.composer) {
+    if (binding.composer && !binding.act.modal) {
       const box = $("view-body").querySelector(".composer textarea");
       const text = (box && box.value || "").trim();
       if (!text) {

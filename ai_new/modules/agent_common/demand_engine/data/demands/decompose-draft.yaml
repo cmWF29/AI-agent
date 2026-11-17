@@ -1,8 +1,8 @@
 id: decompose-draft
-title: 技能拆解：Skill.md 包 → 模型拆成角色/工具/流程/新工具 → 先落草稿待确认
-description: "技能拆解：读入技能包（SKILL.md 正文、requirements、脚本清单），经模型拆成岗位角色、引用工具、流程规则、新工具定义四要素，先落草稿待确认后再入库。拆解闭环在 decompose.run 能力内，需求只编排成形与落盘"
+title: 拆解：Skill.md 包 → 模型拆成岗位/引用工具/流程规则/新工具 → 先落草稿待确认
+description: "拆解：读入 Skill.md 包（正文、requirements、脚本清单），经模型拆成岗位角色、引用工具、流程规则与新工具定义三要素，先落草稿待确认后再入库。拆解闭环在 decompose.run 能力内，需求只编排成形与落盘"
 tags:
-- skill
+- tool
 - llm
 - write
 enabled: true

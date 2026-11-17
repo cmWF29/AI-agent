@@ -21,7 +21,18 @@ function badgeHtml(value, ctx) {
   const s = String(value == null ? "" : value);
   const cls = s === "closed" || s === "gone" || s === "done" ? "closed"
     : (s === "open" || s === "running" || s === "queued" || s === "doing" ? "open" : "");
-  return `<span class="badge ${cls}">${esc(s || "open")}</span>`;
+  return `<span class="badge ${cls}">${esc(s || "下线")}</span>`;
+}
+const BUSY_STATUS = ["running", "queued", "doing"];
+const OFFLINE_STATUS = ["gone", "done", "closed", ""];
+function statusKind(s) {
+  s = String(s == null ? "" : s);
+  if (BUSY_STATUS.includes(s)) return "busy";
+  if (OFFLINE_STATUS.includes(s)) return "offline";
+  return "idle";
+}
+function statusText(s) {
+  return { busy: "忙", idle: "空闲", offline: "下线" }[statusKind(s)];
 }
 function emptyHtml(block) {
   block = block || {};
@@ -100,17 +111,16 @@ function tableHtml(sec, ctx) {
   return wrap;
 }
 
-const ROLE_CN = { pm: "PM", user: "用户", assistant: "助手", system: "系统", tool: "工具" };
 const AVATAR_PALETTE = ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"];
 function speakerOf(msg, roles) {
   if (msg.kind === "note") return "系统";
-  const role = msg.role || "assistant";
-  if (role === "user") return "用户";
-  if (role === "system") return "系统";
-  if (role === "tool") return msg.name ? ("工具 · " + msg.name) : "工具";
-  if (role === "pm" || role === "assistant") return ROLE_CN[role] || role;
-  const hit = (roles || []).find((r) => r.role === role || r.session === role);
-  return (hit && (hit.display || hit.role)) || role;
+  const actor = msg.actor || msg.role || "assistant";
+  if (actor === "user") return "用户";
+  if (actor === "system") return "系统";
+  if (actor === "tool") return msg.name ? ("工具 · " + msg.name) : "工具";
+  if (actor === "pm" || actor === "assistant") return "PM";
+  const hit = (roles || []).find((r) => r.role === actor || r.session === actor);
+  return (hit && (hit.display || hit.role)) || actor;
 }
 function bubbleClass(msg) {
   if (msg.kind === "note") return "system";
@@ -118,7 +128,8 @@ function bubbleClass(msg) {
   if (role === "user") return "user";
   if (role === "system") return "system";
   if (role === "tool") return "tool";
-  if (role === "assistant" || role === "pm") return "assistant";
+  const actor = msg.actor || role;
+  if (actor === "pm" || actor === "assistant") return "assistant";
   return "role";
 }
 function avatarColor(name) {
@@ -148,7 +159,7 @@ function chatHtml(sec, ctx) {
     : "";
   const body = (msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
-    ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip">${esc((r.display || r.role) + " · " + (r.status || ""))}</span>`).join("")}</div></div>` : ""}
+    ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip st-${statusKind(r.status)}"><i class="dot"></i>${esc(r.display || r.role)} · ${statusText(r.status)}</span>`).join("")}</div></div>` : ""}
     <div class="chat">${body}</div>
   </section>`;
 }

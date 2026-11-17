@@ -20,6 +20,7 @@ def setup(ctx):
         ("tickets.bindpm", _pure.bindpm),
         ("tickets.bindchild", _pure.bindchild),
         ("tickets.closefin", _pure.closefin),
+        ("tickets.collect_session_ids", _pure.collect_session_ids),
         ("tickets.archive_transcript", _pure.archive_transcript),
         ("tickets.pick", _pure.pick),
         ("tickets.resolve_target", _pure.resolve_target),
@@ -190,18 +191,40 @@ def _route_close(ctx, payload):
     closed = ctx.api.call("tickets.closefin", {
         "rec": rec, "summary": payload.get("summary"),
         "verdict": payload.get("verdict"), "now": now.get("ts")}, caller=None)
-    sids = [closed.get("pm")] + [r.get("session") for r in closed.get("roles") or []]
-    sids = [sid for sid in dict.fromkeys(sids) if sid]
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+    session_rows, session_by_sid = [], {}
+    for rel in listed.get("items") or []:
+        row = ctx.api.call("store.read", {"module": "agent/sessions",
+                                          "path": rel}, caller=None)
+        rec_s = row.get("value")
+        if rec_s:
+            session_rows.append(rec_s)
+            session_by_sid[rec_s.get("id") or ""] = rec_s
+    sids = ctx.api.call("tickets.collect_session_ids", {
+        "rec": closed, "rows": session_rows}, caller=None).get("sids") or []
     # 先停后台线程并等收尾，避免定稿落盘把已删会话又写回
     for sid in sids:
         ctx.runtime.stop(sid)
     pm_snap = _session_snapshot(ctx, closed.get("pm"))
     role_snaps = []
+    known = {closed.get("pm")}
     for r in closed.get("roles") or []:
         snap = _session_snapshot(ctx, r.get("session"))
         if snap:
             snap["role"] = r.get("role") or ""
             snap["display"] = r.get("display") or r.get("role") or ""
+            role_snaps.append(snap)
+        known.add(r.get("session"))
+    # 兜底归集：目录里挂在本工单、却没登记回 roles 的会话，往来对话一并留档再删
+    for sid in sids:
+        if sid in known:
+            continue
+        extra = session_by_sid.get(sid) or {}
+        snap = _session_snapshot(ctx, sid)
+        if snap:
+            snap["role"] = extra.get("role") or ""
+            snap["display"] = extra.get("display") or extra.get("role") or sid
             role_snaps.append(snap)
     archived = ctx.api.call("tickets.archive_transcript", {
         "rec": closed, "pm": pm_snap, "roles": role_snaps}, caller=None)

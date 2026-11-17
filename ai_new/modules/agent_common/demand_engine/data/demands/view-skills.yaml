@@ -1,6 +1,6 @@
 id: view-skills
-title: 技能库视图：外部安装/拆解来的能力包，只读清单
-description: "技能库视图：只列外部登记的能力（拆解确认后并入、后续外部安装）。视图只声明表格，数据源走需求"
+title: 外部工具视图：外部安装/拆解来的工具，只读清单
+description: "外部工具视图：只列外部登记的工具（拆解确认后并入、后续外部安装）。视图只声明表格，数据源走需求"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -8,9 +8,9 @@ callable: false
 do: []
 view:
   key: skills
-  crumb: [技能库]
-  heading: 技能库
-  subheading: 技能 = 从外部技能包安装/拆解来的能力；代码内置能力归工具库。清单只读，依赖缺失可一键装 Python 包
+  crumb: [外部工具]
+  heading: 外部工具
+  subheading: 外部工具 = 从外部 Skill.md 包安装/拆解来的工具；代码内置能力归工具库。清单只读，依赖缺失可一键装 Python 包
   actions:
   - label: 安装缺失依赖
     demand: tools-install
@@ -30,10 +30,10 @@ view:
     - {label: 状态, badge: row.status_text}
     - {label: 缺失项, value: row.missing, muted: true}
     - {label: 参数, value: row.params, muted: true}
-    empty: {text: 暂无外部技能；经「拆解」确认入库的能力会出现在这里}
+    empty: {text: 暂无外部工具；经「拆解」确认入库的工具会出现在这里}
 expect:
   given:
     input: {}
   calls: []
   payload: {}
-  promise: 技能库只声明表格，数据源走需求
+  promise: 外部工具视图只声明表格，数据源走需求

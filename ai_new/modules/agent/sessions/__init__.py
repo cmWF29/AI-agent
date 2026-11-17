@@ -33,7 +33,25 @@ def setup(ctx):
                      "造会话：取人设与知识拼记录，写入算成效果交出去", module="sessions")
     ctx.api.register("sessions.emit_finished", _route_emit_finished,
                      "一轮收尾落盘后触发 finished 钩子，后续业务由需求编排", module="sessions")
+    ctx.api.register("sessions.by_ticket", _route_by_ticket,
+                     "按工单归集全部会话视图：PM 与角色会话同一群聊流", module="sessions")
     return True
+
+
+def _route_by_ticket(ctx, payload):
+    """按工单 id 归集本工单全部会话视图；遍历与读盘在闭环内，成形交 sessions.view。"""
+    tid = payload.get("ticket") or ""
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+    items = []
+    for rel in listed.get("items") or []:
+        row = ctx.api.call("store.read", {"module": "agent/sessions",
+                                          "path": rel}, caller=None)
+        rec = row.get("value")
+        if not rec or rec.get("ticket") != tid:
+            continue
+        items.append(ctx.api.call("sessions.view", {"rec": rec}, caller=None))
+    return {"items": items}
 
 
 def _route_emit_finished(ctx, payload):

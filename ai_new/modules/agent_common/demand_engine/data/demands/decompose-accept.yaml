@@ -1,8 +1,8 @@
 id: decompose-accept
-title: 确认入库：一条已确认草稿并入角色/流程/技能卡三库
-description: "确认入库：人工核对后的草稿，按字段映射分别并入角色、流程、技能卡用户记录。字段映射归拆解模块，取数落盘归需求；内置记录受保护不改"
+title: 确认入库：一条已确认草稿并入岗位/流程两库与外部工具登记
+description: "确认入库：人工核对后的草稿，按字段映射分别并入岗位角色、流程规则用户记录与外部工具登记。字段映射归拆解模块，取数落盘归需求；内置记录受保护不改"
 tags:
-- skill
+- tool
 - write
 enabled: true
 callable: true
@@ -113,47 +113,6 @@ do:
     value:
       get: sf.value
   as: wf
-- call: library.kind_file
-  with:
-    kind:
-      lit: skills
-  as: lks
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
-      get: lks.path
-  as: us
-- call: library.design
-  with:
-    kind:
-      lit: skills
-    id:
-      get: parts.skill.id
-    fields:
-      get: parts.skill
-    record:
-      lit: {}
-    now:
-      get: now.ts
-  as: rs
-- call: library.save_record
-  with:
-    user:
-      get: us.value
-    rec:
-      get: rs
-  as: ss
-- call: store.write
-  with:
-    module:
-      lit: agent/library
-    path:
-      get: lks.path
-    value:
-      get: ss.value
-  as: ws
 - call: decompose.tools_file
   as: lkt
 - call: store.read
@@ -199,14 +158,9 @@ expect:
   - library.design
   - library.save_record
   - store.write
-  - library.kind_file
-  - store.read
-  - library.design
-  - library.save_record
-  - store.write
   - decompose.tools_file
   - store.read
   - decompose.merge_tools
   - store.write
   payload: {}
-  promise: 草稿经确认后才并入三库与工具登记；映射与保护规则归模块，落盘编排归需求
+  promise: 草稿经确认后才并入岗位、流程与工具登记；映射与保护规则归模块，落盘编排归需求

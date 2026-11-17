@@ -95,7 +95,12 @@ tbody tr:last-child td{border-bottom:0}
 .badge.open,.badge.running{color:var(--accent);border-color:rgba(47,107,255,.4)}
 .badge.archived{color:var(--warn);border-color:rgba(255,125,0,.4)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--fg-2)}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--fg-2);display:inline-flex;align-items:center;gap:6px}
+.chip .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.chip.st-busy .dot{background:var(--accent)}
+.chip.st-idle .dot{background:var(--ok)}
+.chip.st-offline .dot{background:var(--muted)}
+.chip.st-offline{opacity:.55}
 
 /* ---- 按钮 ---- */
 button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;transition:background .15s,border-color .15s,opacity .15s}
@@ -129,18 +134,19 @@ textarea{min-height:72px;resize:vertical}
 .modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 
 /* ---- 会话视图 ---- */
-.ticket-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
-.lane{display:flex;flex-direction:column;min-width:0}
+.ticket-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:stretch;height:calc(100vh - 150px)}
+.lane{display:flex;flex-direction:column;min-width:0;min-height:0}
 .lane>.vsec{margin-bottom:0}
-.lane-left>.vsec[data-kind="chat"] .chat-card{min-height:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent;box-shadow:none}
+.lane-left>.vsec[data-kind="chat"]{flex:1;min-height:0;display:flex}
+.lane-left>.vsec[data-kind="chat"] .chat-card{flex:1;min-height:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent;box-shadow:none}
+.lane-left>.vsec[data-kind="composer"]{flex:none}
 .lane-left>.vsec[data-kind="composer"] .composer{background:var(--card);border:1px solid var(--line);border-top:1px solid var(--line);border-radius:0 0 var(--radius) var(--radius);box-shadow:var(--shadow);padding:12px 16px}
 .lane-left>.vsec[data-kind="composer"] .composer textarea{min-height:56px;resize:none}
-.chat{height:auto;min-height:380px}
-.chat-card{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:520px}
-.chat-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chat-card{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.chat-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;flex:none}
 .chat-title{font-size:13px;color:var(--fg-2);display:flex;align-items:center;gap:8px;min-width:0}
 .chat-title strong{color:var(--fg);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chat{flex:1;overflow:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+.chat{flex:1;min-height:0;overflow:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
 .chat-empty{margin:auto;color:var(--muted);font-size:13px}
 .msg{display:flex;gap:8px;align-items:flex-start;max-width:82%}
 .msg.right{align-self:flex-end;flex-direction:row}
@@ -227,7 +233,10 @@ textarea{min-height:72px;resize:vertical}
   .topbar .spacer{margin-left:auto}
   .topbar button{white-space:nowrap;flex:none}
   .view-head{flex-wrap:wrap;gap:8px}
-  .ticket-grid{grid-template-columns:1fr;gap:12px}
+  .ticket-grid{grid-template-columns:1fr;gap:12px;height:auto}
+  .lane-left>.vsec[data-kind="chat"]{flex:none}
+  .chat-card{max-height:62vh}
+  .chat{max-height:62vh}
   .row2{grid-template-columns:1fr}
   .cards{grid-template-columns:1fr}
   .tbl-wrap{overflow-x:auto}
@@ -249,7 +258,7 @@ textarea{min-height:72px;resize:vertical}
   <div class="spacer"></div>
   <button id="nav-points" class="ghost">岗位库</button>
   <button id="nav-tools" class="ghost">工具库</button>
-  <button id="nav-skills" class="ghost">技能库</button>
+  <button id="nav-skills" class="ghost">外部工具</button>
   <button id="nav-drafts" class="ghost">拆解</button>
   <button id="logout" class="ghost">登出</button>
 </header>

@@ -126,13 +126,20 @@ capabilities:
   tickets.close:
     calls:
     - store.read
+    - store.glob
     - clock.now
     - tickets.closefin
+    - tickets.collect_session_ids
     - tickets.archive_transcript
     - store.write
     - store.remove
     - demand_engine.run
     - tickets.view
+  sessions.by_ticket:
+    calls:
+    - store.glob
+    - store.read
+    - sessions.view
   tickets.split:
     calls:
     - store.read
@@ -187,6 +194,9 @@ capabilities:
     - config.get
     - host.executable
     - exec.run
+  tools.external_run:
+    calls:
+    - store.read
   channel.reply:
     calls:
     - channel.read_tail

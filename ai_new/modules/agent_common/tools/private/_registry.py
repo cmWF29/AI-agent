@@ -7,27 +7,31 @@ class ToolRegistry:
         self.ctx = ctx
         self._tools = {}
 
-    def register_demand(self, name, desc, params, demand, module=None, kinds=None, deps=None):
+    def register_demand(self, name, desc, params, demand, module=None, kinds=None, deps=None, builtin=True):
         """工具就是一个需求 id：执行=跑那条需求，工具本身不再持有实现。"""
         return self.register(name, desc, params, None, module=module,
-                             kinds=kinds, demand=demand, deps=deps)
+                             kinds=kinds, demand=demand, deps=deps, builtin=builtin)
 
-    def register(self, name, desc, params, fn, module=None, kinds=None, demand=None, deps=None):
+    def register(self, name, desc, params, fn, module=None, kinds=None, demand=None, deps=None, builtin=True):
         if name in self._tools:
             raise ValueError("tool already registered: " + name)
         self._tools[name] = {
             "name": name, "desc": desc, "params": params or [],
             "fn": fn, "module": module or "", "kinds": kinds, "demand": demand,
-            "deps": deps or {},
+            "deps": deps or {}, "builtin": builtin,
         }
         return name
+
+    def has(self, name):
+        return name in self._tools
 
     def list_tools(self):
         return [
             {"name": t["name"], "desc": t["desc"], "module": t["module"],
              "params": t["params"], "kinds": t["kinds"], "deps": t["deps"],
-             "builtin": True}
+             "builtin": t["builtin"]}
             for t in sorted(self._tools.values(), key=lambda x: x["name"])
+            if t["builtin"]
         ]
 
     def tools_for(self, kind):
@@ -63,8 +67,10 @@ class ToolRegistry:
         if t.get("demand"):
             if defer:
                 # 组合一律写成需求：注册表只声明"该跑哪个需求"，伸手的是需求身份
+                args.setdefault("tool", t["name"])
                 return {"ok": True, "deferred": True, "demand": t["demand"],
                         "input": args}
+            args.setdefault("tool", t["name"])
             result = self.ctx.runtime.call(t["demand"], args)
         else:
             result = t["fn"](self.ctx, args or {}, session=session)

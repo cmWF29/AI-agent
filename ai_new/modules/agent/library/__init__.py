@@ -1,4 +1,4 @@
-"""岗位库模块：角色/流程/技能的纯计算。取数落盘在需求里。"""
+"""岗位库模块：角色/流程的纯计算。取数落盘在需求里。"""
 from __future__ import annotations
 
 from .private import _pure

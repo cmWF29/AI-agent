@@ -88,7 +88,7 @@ class CoreTest(unittest.TestCase):
     def test_all_modules_loaded(self):
         expect = {"config", "store", "hooks", "demand_engine", "api", "tools", "llm", "react",
                   "knowledge", "artifacts", "library", "sessions", "projects",
-                  "tickets", "agents", "health", "ops", "skills", "web", "http",
+                  "tickets", "agents", "health", "ops", "web", "http",
                   "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec",
                   "decompose"}
         self.assertEqual(set(self.loaded), expect)
@@ -591,22 +591,36 @@ class CoreTest(unittest.TestCase):
         lib = self._run("library-summary")["result"]
         self.assertGreaterEqual(lib["counts"]["roles"], 8)
 
-    # ---- 工具库 / 技能库边界与依赖就绪 ----
+    # ---- 内置工具 / 外部工具边界与依赖就绪 ----
 
     def test_tool_library_splits_builtin_and_external(self):
-        """工具库只列代码内置，技能库只列外部登记；内置行字段齐全、来源标记正确。"""
+        """内置清单只列代码内置，外部清单只列外部登记；内置行字段齐全、来源标记正确。"""
         builtin_list = self._run("tools-list")["result"]
         ext_list = self._run("tools-external-list")["result"]
         for row in builtin_list["items"]:
             self.assertTrue(row["builtin"], "工具库混入外部能力: %s" % row["name"])
             self.assertEqual(row["source"], "内置")
         for row in ext_list["items"]:
-            self.assertFalse(row["builtin"], "技能库混入内置能力: %s" % row["name"])
+            self.assertFalse(row["builtin"], "外部清单混入内置能力: %s" % row["name"])
         required = {"name", "desc", "module", "params", "kinds", "deps",
                     "status", "status_text", "missing", "builtin", "source"}
         for row in builtin_list["items"]:
             self.assertTrue(required <= set(row), "工具行缺字段: %s" % (required - set(row)))
         self.assertGreaterEqual(len(builtin_list["items"]), 1)
+
+    def test_external_tool_registers_and_runs_pending(self):
+        """外部登记工具装配进注册表但不进内置清单；占位执行回 external_pending，业务参数透传、tool 键剥离。"""
+        reg = self.ctx.tools
+        reg.register_demand("probe_ext_img", "探测用外部生图",
+                            [{"name": "prompt", "type": "string", "required": True}],
+                            demand="tool-external-run", module="external", builtin=False)
+        self.assertTrue(reg.has("probe_ext_img"))
+        self.assertNotIn("probe_ext_img", {t["name"] for t in reg.list_tools()})
+        out = reg.execute("probe_ext_img", {"prompt": "一只猫"})
+        self.assertFalse(out.get("ok", True))
+        self.assertEqual(out.get("code"), "external_pending")
+        self.assertEqual(out.get("tool"), "probe_ext_img")
+        self.assertEqual(out.get("args"), {"prompt": "一只猫"})
 
     def test_install_plan_empty_deps_is_ready(self):
         """空依赖清单的安装计划直接就绪；有未在位 pip 包才进待装清单。"""

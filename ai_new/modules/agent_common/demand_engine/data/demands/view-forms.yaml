@@ -113,6 +113,38 @@ view:
           project: '{project.id}'
           ticket: '{result.id}'
         reload: true
+  - id: ticket.close
+    title: 结单
+    hint: 对照验收标准填写结单结论；提交后会话回收，本工单不能再发消息。
+    fields:
+    - name: summary
+      label: 结单结论
+      kind: textarea
+      placeholder: 逐条对照验收标准：做了什么、结果如何、有哪些遗留观察
+      required: true
+    - name: verdict
+      label: 验收结论
+      kind: select
+      value: accepted
+      options:
+      - value: accepted
+        label: 验收通过
+      - value: rejected
+        label: 未通过（返工）
+    submit:
+      demand: ticket-close
+      params:
+        id: '{thread.ticket.id}'
+        summary: $summary
+        verdict: $verdict
+      ok: 确认结单
+      flash: 工单已结单
+      then:
+        view: ticket
+        params:
+          project: '{thread.ticket.project}'
+          ticket: '{thread.ticket.id}'
+        reload: true
 expect:
   given:
     input: {}

@@ -37,7 +37,7 @@ view:
     hide_roles:
     - system
     empty: 还没有消息，PM 正在准备…
-    roles_source: thread.roles
+    roles_source: thread.members
   - kind: kv
     lane: right
     source: thread.ticket
@@ -135,15 +135,8 @@ view:
       clear: true
       empty_hint: 请先输入备注内容
     - label: 结单
-      demand: ticket-close
-      params:
-        id: '{thread.ticket.id}'
-        summary: $text
-        verdict: done
-      confirm: 确认结单？结单后不能再发消息。
+      modal: ticket.close
       tone: danger
-      stay: true
-      empty_hint: 请先输入结单结论
     disabled_when: '{thread.ticket.status=closed}'
     disabled_hint: 工单已结单：不能再发消息或追加备注
 expect:

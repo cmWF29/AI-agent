@@ -119,25 +119,71 @@ def archive_transcript(p):
 
 
 def threadp(p):
-    """工单主会话（1:1）线程视图：工单档案 + 主会话消息流 + 角色实例清单。
+    """工单群聊线程视图：工单档案 + PM/角色会话合并消息流 + 成员与角色实例清单。
 
-    会话被回收后，主对话从工单留档 transcript 回填，结单后仍可回看往来。
+    PM 与角色会话不分 tab，并入同一消息流；每条消息带 session/actor 标注发言者。
+    会话被回收后，往来对话从工单留档 transcript 回填，结单后仍可回看。
     """
     ticket = p.get("ticket") or {}
     thread = p.get("thread") or {}
-    messages = thread.get("messages") or []
-    if not messages:
-        transcript = ticket.get("transcript") or {}
-        messages = (transcript.get("pm") or {}).get("messages") or []
+    role_threads = p.get("role_threads") or []
+    transcript = ticket.get("transcript") or {}
+
+    pm_sid = thread.get("id") or ticket.get("pm") or ""
+    pm_messages = thread.get("messages") or []
+    if not pm_messages:
+        pm_messages = (transcript.get("pm") or {}).get("messages") or []
+    status = thread.get("status") or ""
+    if ticket.get("status") == "closed" and not status:
+        status = "gone"
+
+    merged = [dict(m, session=pm_sid, actor="pm") for m in pm_messages]
+
+    reg_by_sid = {(r or {}).get("session"): r for r in ticket.get("roles") or []}
+    live_by_sid = {(r or {}).get("id"): r for r in role_threads}
+    archived_by_sid = {(r or {}).get("session"): r for r in (transcript.get("roles") or [])}
+
+    members = [{"session": pm_sid, "role": "pm", "display": "PM",
+                "status": status, "kind": "pm"}]
+    roles_out = []
+    seen = set()
+
+    def add_role(sid, reg, live, archived):
+        if not sid or sid in seen:
+            return
+        seen.add(sid)
+        actor = (live or {}).get("role") or (reg or {}).get("role") or sid
+        display = (reg or {}).get("display") or (live or {}).get("name") or actor
+        if live:
+            rstatus = live.get("status") or "idle"
+        else:
+            rstatus = "gone"
+        if ticket.get("status") == "closed":
+            rstatus = "gone"
+        members.append({"session": sid, "role": actor, "display": display,
+                        "status": rstatus, "kind": (live or {}).get("kind") or "role"})
+        roles_out.append({"session": sid, "role": actor, "display": display,
+                          "status": rstatus, "task": (reg or {}).get("task") or ""})
+        msgs = (live or {}).get("messages") or (archived or {}).get("messages") or []
+        for m in msgs:
+            mm = dict(m)
+            mm["session"] = sid
+            mm["actor"] = actor
+            merged.append(mm)
+
+    for sid, live in live_by_sid.items():
+        add_role(sid, reg_by_sid.get(sid), live, archived_by_sid.get(sid))
+    for sid, reg in reg_by_sid.items():
+        add_role(sid, reg, live_by_sid.get(sid), archived_by_sid.get(sid))
+
     return {
         "ticket": view({"rec": ticket}),
-        "thread": {"id": thread.get("id") or "", "name": thread.get("name") or "",
-                   "status": thread.get("status") or "",
-                   "backend": thread.get("backend") or "", "role": thread.get("role") or "",
-                   "updated": thread.get("updated") or "",
-                   "meta": thread.get("meta") or {},
-                   "messages": messages},
-        "roles": ticket.get("roles") or [],
+        "thread": {"id": pm_sid, "name": thread.get("name") or "", "status": status,
+                   "backend": thread.get("backend") or "", "role": "pm",
+                   "updated": thread.get("updated") or "", "meta": thread.get("meta") or {},
+                   "messages": merged},
+        "roles": roles_out,
+        "members": members,
     }
 
 
@@ -227,6 +273,31 @@ def bindchild(p):
     rec.setdefault("children", []).append(p.get("child"))
     rec["updated"] = p.get("now") or ""
     return rec
+
+
+def collect_session_ids(p):
+    """结单回收名单：工单登记的 PM/角色会话 ∪ 会话目录里挂在本工单上的全部记录。
+
+    登记名单可能漏挂异常退出的角色会话，再按会话记录的 ticket 字段兜底匹配，
+    确保本工单会话不残留。纯计算不读盘；会话记录由闭环读盘后传入。
+    """
+    rec = p.get("rec") or {}
+    tid = str(rec.get("id") or "")
+    ids = []
+
+    def add(sid):
+        sid = str(sid or "").strip()
+        if sid and sid not in ids:
+            ids.append(sid)
+
+    add(rec.get("pm"))
+    for r in rec.get("roles") or []:
+        add((r or {}).get("session"))
+    for row in p.get("rows") or []:
+        row = row or {}
+        if str(row.get("ticket") or "") == tid:
+            add(row.get("id"))
+    return {"sids": ids}
 
 
 def closefin(p):

@@ -1,5 +1,5 @@
 id: view-drafts
-title: 拆解草稿视图：待确认的技能拆解产物，确认后才入库
+title: 拆解草稿视图：待确认的拆解产物，确认后才入库
 description: "拆解草稿视图：列出待确认的拆解草稿，头部入口新建拆解；确认入库走 decompose-accept。视图只声明卡片与动作，数据源走需求"
 tags: [view, web, read]
 enabled: true
@@ -8,11 +8,11 @@ callable: false
 do: []
 view:
   key: drafts
-  crumb: [技能拆解]
+  crumb: [拆解]
   heading: 拆解草稿
-  subheading: 从 Skill.md 技能包拆出岗位、流程与新工具，先成草稿；核对无误再确认入库
+  subheading: 从 Skill.md 包拆出岗位、流程与新工具，先成草稿；核对无误再确认入库
   actions:
-  - {label: ＋ 拆解技能, tone: primary, modal: decompose.new}
+  - {label: ＋ 新建拆解, tone: primary, modal: decompose.new}
   forms:
   - id: decompose.new
     title: 拆解技能包
@@ -20,9 +20,9 @@ view:
     fields:
     - name: source
       label: 来源标识（可选）
-      placeholder: 技能名或包路径，便于追溯
+      placeholder: 标识名或包路径，便于追溯
     - name: url
-      label: 技能文档链接（可选）
+      label: 文档链接（可选）
       kind: url
       placeholder: https://example.com/SKILL.md；填了就从链接拉取正文
     - name: skill_md
@@ -67,10 +67,10 @@ view:
     - label: 确认入库
       demand: decompose-accept
       params: {id: row.id}
-      confirm: "把草稿「{row.cn}」并入岗位、流程、技能卡与工具登记？"
+      confirm: "把草稿「{row.cn}」并入岗位、流程与工具登记？"
       flash: "已入库：{row.cn}"
       after: {view: drafts, reload: true}
-    empty: {title: 暂无拆解草稿, text: 点右上角「拆解技能」，贴一份 Skill.md 技能包开始拆解。}
+    empty: {title: 暂无拆解草稿, text: 点右上角「新建拆解」，贴一份 Skill.md 包开始拆解。}
 expect:
   given:
     input: {}

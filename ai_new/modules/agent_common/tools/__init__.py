@@ -3,6 +3,9 @@ from __future__ import annotations
 
 from .private import _registry, _pure
 
+# 外部登记工具共用的占位执行需求：真实后端接入前，执行统一回占位提示（#48 搁置）。
+EXTERNAL_DEMAND = "tool-external-run"
+
 
 def setup(ctx):
     """装配入口：ctx.tools 指向注册表。"""
@@ -21,7 +24,23 @@ def setup(ctx):
                      "工具清单：内置 ∪ 外部登记，附依赖就绪状态", module="tools")
     ctx.api.register("tools.install_missing", _route_install_missing,
                      "安装缺失的 Python 包；cli/env/config 只列待人工处理", module="tools")
+    ctx.api.register("tools.external_run", _route_external_run,
+                     "外部工具占位执行：后端未接入前回显登记与依赖提示", module="tools")
     return ctx.tools
+
+
+def start(ctx):
+    """全部内置工具注册完成后，把外部登记工具并入注册表；内置同名优先，不被覆盖。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent_common/tools", "path": "tools.yaml"}, caller=None)
+    for name, rec in (row.get("value") or {}).items():
+        if not name or not isinstance(rec, dict) or ctx.tools.has(name):
+            continue
+        ctx.tools.register_demand(
+            name, rec.get("desc") or "", rec.get("params") or [],
+            demand=rec.get("demand") or EXTERNAL_DEMAND,
+            module=rec.get("module") or "external",
+            kinds=rec.get("kinds") or [], deps=rec.get("deps") or {}, builtin=False)
 
 
 def register(ctx, name, desc, params, fn, module=None, kinds=None, deps=None):
@@ -64,10 +83,21 @@ def _collect_snapshot(ctx, tools):
     return snap
 
 
+def _route_external_run(ctx, payload):
+    """外部工具占位闭环：取登记记录 → 纯函数成形占位结果；不探测主机、不执行。"""
+    name = payload.get("tool") or ""
+    args = dict(payload.get("args") or {})
+    args.pop("tool", None)  # 工具名是注册身份，不是业务参数
+    row = ctx.api.call("store.read", {
+        "module": "agent_common/tools", "path": "tools.yaml"}, caller=None)
+    rec = (row.get("value") or {}).get(name) or {}
+    return _pure.external_pending({"tool": name, "args": args, "rec": rec})
+
+
 def _route_list(ctx, payload):
     """清单闭环：内置注册表 ∪ 外部登记记录 → 按来源裁剪 → 收集在位快照 → 纯函数判定成形。
 
-    scope=builtin 只给代码内置工具库，scope=external 只给外部安装的技能库；默认全量。
+    scope=builtin 只给代码内置工具库，scope=external 只给外部登记的工具；默认全量。
     """
     builtin = ctx.tools.list_tools()
     merged = _pure.merge({"builtin": builtin,

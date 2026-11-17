@@ -153,13 +153,13 @@ roles:
   backend: ''
   builtin: true
 - id: skill-decomposer
-  cn: 技能拆解者
+  cn: 拆解者
   prompt_file: roles/skill-decomposer.md
   must_outputs:
   - docs/**/*拆解*
   - docs/**/*.yaml
   must_dos:
-  - 把自然语言技能描述拆成岗位角色、引用工具、流程规则三要素
+  - 把外部 Skill.md 包拆成岗位角色、引用工具、流程规则三要素
   - 工具只引用注册表已有项，名单外的不写
   - 拆解结果先交草稿待确认，不直接并入岗位库
   forbidden:
@@ -298,10 +298,3 @@ flows:
     - ops.recover
   - - ops.recover
     - audit.close
-skills:
-- id: handoff
-  cn: 交接文档写法
-  doc: 角色完成工作后写 docs/handoff/<角色>.md：改动点、验证命令、结果、坑。system_result 只回 5 行摘要。
-- id: knowledge-vs-artifact
-  cn: 知识与交付件分离
-  doc: 知识=总结（结论/约定/坑），交付件=落盘文件。归档文件不等于知识，必须另写知识总结。

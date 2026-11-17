@@ -43,6 +43,11 @@ do:
     rec:
       get: srow.value
   as: thread
+- call: sessions.by_ticket
+  with:
+    ticket:
+      get: input.id
+  as: roles_sessions
 - call: tickets.thread
   with:
     id:
@@ -51,6 +56,8 @@ do:
       get: row.value
     thread:
       get: thread
+    role_threads:
+      get: roles_sessions.items
   as: out
 expect:
   given:
@@ -63,6 +70,7 @@ expect:
   - sessions.record_path
   - store.read
   - sessions.view
+  - sessions.by_ticket
   - tickets.thread
   payload: {}
   promise: 工单与主会话 1:1，消息流由会话记录露出，模块只拼视图

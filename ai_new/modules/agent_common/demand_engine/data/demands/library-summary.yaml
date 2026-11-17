@@ -1,7 +1,7 @@
 id: library-summary
 title: 岗位库总览：种子 + 三类用户记录，交给 library 数数
 description: "岗位库总览：种子 + 三类用户记录，交给 library 数数。三张表一起数，规则归模块"
-tags: [library, skill, read]
+tags: [library, read]
 enabled: true
 callable: true
 'on': []
@@ -27,13 +27,6 @@ do:
     path:
       lit: flows.yaml
   as: flows
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: skills.yaml
-  as: skills
 - call: library.summary
   with:
     seed:
@@ -43,8 +36,6 @@ do:
         get: roles.value
       flows:
         get: flows.value
-      skills:
-        get: skills.value
   as: out
 expect:
   given:
@@ -53,7 +44,6 @@ expect:
   - store.read
   - store.read
   - store.read
-  - store.read
   - library.summary
   payload: {}
-  promise: 三张表一起数，规则归模块
+  promise: 两张表一起数，规则归模块

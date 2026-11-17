@@ -1,6 +1,6 @@
-"""技能拆解模块：Skill.md 技能包 → 模型拆解 → 结构化草稿（角色/工具/流程/新工具）。
+"""拆解模块：Skill.md 包 → 模型拆解 → 结构化草稿（岗位/引用工具/流程/新工具）。
 
-闭环（解析技能包、取工具名单、拼提示词、调模型、解码、成形草稿）收在 decompose.run
+闭环（解析包内容、取工具名单、拼提示词、调模型、解码、成形草稿）收在 decompose.run
 能力内；需求树只编排"跑拆解 → 成形草稿记录 → 落草稿文件"，不做拼装与判断。
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ def setup(ctx):
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="decompose")
     ctx.api.register("decompose.run", _route_run,
-                     "拆解闭环：解析技能包→取工具名单→拼提示→模型→解码→成形草稿",
+                     "拆解闭环：解析包内容→取工具名单→拼提示→模型→解码→成形草稿",
                      module="decompose")
     return True
 
@@ -32,7 +32,7 @@ def setup(ctx):
 def _route_run(ctx, payload):
     """拆解闭环在能力内部：模型没交答复或回的不是 JSON，都短路成错误形状，不写半截草稿。
 
-    技能正文两种来源：直接粘贴的 skill_md，或给一个网页链接经 net 拉回正文；
+    包正文两种来源：直接粘贴的 skill_md，或给一个网页链接经 net 拉回正文；
     链接优先，拉取失败短路，不带半截内容进模型。
     """
     skill_md = payload.get("skill_md")
@@ -42,7 +42,7 @@ def _route_run(ctx, payload):
                                {"url": url, "method": "GET", "timeout": 30}, caller=None)
         if not isinstance(fetched, dict) or fetched.get("ok") is False:
             return fetched or {"ok": False, "code": "fetch_failed",
-                               "error": "技能链接拉取失败"}
+                               "error": "链接拉取失败"}
         skill_md = fetched.get("text") or ""
     if not str(skill_md or "").strip() and not url:
         return {"ok": False, "code": "empty_input",
