@@ -6,6 +6,7 @@ document.addEventListener("click", (e) => {
   if (btn && !btn.disabled) {
     const binding = ACTS[Number(btn.dataset.act)];
     if (!binding) return;
+    if (binding.voice) return executeVoice(binding, btn);
     if (binding.composer && !binding.act.modal) {
       const box = $("view-body").querySelector(".composer textarea");
       const text = (box && box.value || "").trim();
@@ -43,6 +44,8 @@ document.addEventListener("keydown", (e) => {
 $("nav-points").onclick = () => go({ view: "positions" }, true);
 $("nav-tools").onclick = () => go({ view: "tools" }, true);
 $("nav-skills").onclick = () => go({ view: "skills" }, true);
+$("nav-knowledge").onclick = () => go({ view: "knowledge" }, true);
+$("nav-password").onclick = () => openForm(FORMS["auth.change"], {});
 $("logout").onclick = async () => {
   try { await run("auth-logout", { token: token() }); } catch (e) {}
   clearToken(); location.href = "/login.html";

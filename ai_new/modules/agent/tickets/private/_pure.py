@@ -61,17 +61,21 @@ def next_n(p):
 
 
 def build(p):
+    now = p.get("now") or ""
+    title = p.get("title") or "未命名需求"
     return {
-        "id": p.get("id"), "title": p.get("title") or "未命名需求",
+        "id": p.get("id"), "title": title,
         "goal": p.get("goal") or "", "project": p.get("project") or "",
         "kind": p.get("kind") or "normal", "parent": p.get("parent") or "",
         "children": [], "status": "queued", "pm": p.get("pm") or "", "roles": [],
         "auto_retrospective": bool(p.get("auto_retrospective")),
-        "created": p.get("now") or "", "updated": p.get("now") or "",
-        "closed": "", "summary": "", "verdict": "", "history": [],
+        "created": now, "updated": now,
+        "closed": "", "summary": "", "verdict": "",
+        "history": [{"at": now, "event": "created", "text": title}],
         "backend": p.get("backend") or "",
         "meta": p.get("meta") or {},
     }
+
 
 
 def validate_project(p):
@@ -264,6 +268,8 @@ def bindrole(p):
 def bindpm(p):
     rec = dict(p.get("rec") or {})
     rec["pm"] = p.get("session") or ""
+    rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "pm_start",
+                                          "text": "PM 会话已拉起"})
     rec["updated"] = p.get("now") or ""
     return rec
 
@@ -271,6 +277,8 @@ def bindpm(p):
 def bindchild(p):
     rec = dict(p.get("rec") or {})
     rec.setdefault("children", []).append(p.get("child"))
+    rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "child_split",
+                                          "text": "拆出子工单: %s" % (p.get("child") or "")})
     rec["updated"] = p.get("now") or ""
     return rec
 
@@ -302,13 +310,37 @@ def collect_session_ids(p):
 
 def closefin(p):
     rec = dict(p.get("rec") or {})
+    verdict = p.get("verdict") or "accepted"
     rec["status"] = "closed"
     rec["summary"] = p.get("summary") or ""
-    rec["verdict"] = p.get("verdict") or "accepted"
+    rec["verdict"] = verdict
     rec["closed"] = p.get("now") or ""
     rec["updated"] = p.get("now") or ""
+    verdict_label = "验收通过" if verdict == "accepted" else "未通过关闭"
+    summary = p.get("summary") or ""
+    text = "%s%s" % (verdict_label, ("：" + summary) if summary else "")
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "closed",
-                                          "text": p.get("summary") or ""})
+                                          "text": text})
+    return rec
+
+
+def review_mark(p):
+    """收尾评审落历程：repush 回催缺口 / pass 达标 / exhausted 卡点；waiting 不落事件。
+
+    纯计算，不读盘；事件节点随工单写盘一起落。verdict 三态由 library.review 判定，
+    各态说明文案由调用方传入，选哪条由本函数按 verdict 决定。
+    """
+    rec = dict(p.get("rec") or {})
+    verdict = p.get("verdict") or ""
+    event_map = {"repush": ("repush", p.get("repush_text") or ""),
+                 "pass": ("review_pass", "评审达标"),
+                 "exhausted": ("exhausted", p.get("exhausted_text") or "")}
+    hit = event_map.get(verdict)
+    if not hit:
+        return rec
+    event, text = hit
+    rec.setdefault("history", []).append({"at": p.get("now") or "", "event": event, "text": text})
+    rec["updated"] = p.get("now") or ""
     return rec
 
 

@@ -63,24 +63,8 @@ view:
     - label: 父工单
       value: row.parent
       fallback: —
-  - kind: kv
-    lane: right
-    source: thread.thread
-    heading: PM 会话
-    rows:
-    - label: 会话 ID
-      value: row.id
-      fallback: 未拉起
-    - label: 后端
-      value: row.backend
-      fallback: 跟随配置
-    - label: 会话状态
-      badge: row.status
-    - label: 最后活动
-      value: row.updated
-      format: when
     - label: 最近错误
-      value: row.meta.last_error.error
+      value: thread.thread.meta.last_error.error
       fallback: 无
   - kind: table
     lane: right
@@ -107,12 +91,19 @@ view:
       format: when
     - label: 事件
       value: row.event
+      format: event_label
     - label: 说明
       value: row.text
       fallback: —
   - kind: composer
     lane: left
     placeholder: 发给 PM 的消息，Enter 发送
+    voice:
+      label: 语音
+      demand: asr-transcribe
+      params:
+        mime: audio/wav
+      hint: 点一次开始录音，再点停止；识别文字回填到输入框，可修改后手动发送
     submit:
       label: 发送
       demand: ticket-message

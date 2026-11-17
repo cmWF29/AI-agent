@@ -45,6 +45,7 @@ def setup(ctx):
 
     pairs = [
         ("auth.credentials_ok", _pure.credentials_ok),
+        ("auth.password_check", _pure.change_password),
         ("auth.build_session", _pure.build_session),
         ("auth.session_view", _pure.session_view),
         ("auth.session_path", _pure.session_path),
@@ -53,6 +54,8 @@ def setup(ctx):
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="auth")
     ctx.api.register("auth.login", _route_login, "登录闭环：配置→摘要比对→发会话→落盘→会话视图",
                      module="auth")
+    ctx.api.register("auth.change_password", _route_change_password,
+                     "修改密码：验旧密码→摘要校验→写配置新摘要", module="auth")
     ctx.api.register("auth.verify", lambda c, p: _verify(p), module="auth")
     ctx.api.register("auth.status", lambda c, p: _status(p), module="auth")
     return True
@@ -81,3 +84,27 @@ def _route_login(ctx, payload):
     view["effects"] = [{"kind": "write", "module": "agent/auth",
                         "path": "sessions/%s.yaml" % rec.get("token"), "value": rec}]
     return view
+
+
+def _route_change_password(ctx, payload):
+    """改密闭环：读配置 → 摘要旧/新/确认 → 纯函数校验 → 写配置新摘要。不落会话。"""
+    cfg = ctx.api.call("config.get", {"key": "server.auth"}, caller=None) or {}
+    cfgv = cfg.get("value") or {}
+    salt = str(cfgv.get("salt") or "")
+
+    def _digest(text):
+        return ctx.api.call("codec.digest", {
+            "text": salt + ":" + str(text or ""), "algorithm": "sha256"}, caller=None).get("hex")
+
+    check = ctx.api.call("auth.password_check", {
+        "old_digest": _digest(payload.get("old_password")),
+        "new_digest": _digest(payload.get("new_password")),
+        "confirm_digest": _digest(payload.get("confirm")),
+        "expect_hash": cfgv.get("password_hash")}, caller=None)
+    if not check.get("ok"):
+        return {"ok": False, "code": check.get("code"), "status": check.get("status") or 400,
+                "message": check.get("error")}
+    ctx.api.call("config.set_value", {
+        "key": "server.auth.password_hash", "value": _digest(payload.get("new_password"))},
+        caller=None)
+    return {"ok": True, "username": cfgv.get("username") or ""}

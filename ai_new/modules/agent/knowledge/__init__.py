@@ -16,6 +16,7 @@ def setup(ctx):
         ("knowledge.present", _pure.present),
         ("knowledge.screen", _pure.screen),
         ("knowledge.overview", _pure.overview),
+        ("knowledge.index", _pure.index),
         ("knowledge.search", _pure.search),
         ("knowledge.compose", _pure.compose),
         ("knowledge.removed", _pure.removed),

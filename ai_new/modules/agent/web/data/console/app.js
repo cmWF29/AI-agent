@@ -130,6 +130,11 @@ function qsOf(s) {
   else if (s.view === "skills") q.set("view", "skills");
   else if (s.view === "positions") q.set("view", "positions");
   else if (s.view === "position") { q.set("view", "position"); q.set("position", s.position || ""); }
+  else if (s.view === "knowledge") q.set("view", "knowledge");
+  else if (s.view === "knowledge-doc") {
+    q.set("view", "knowledge-doc"); q.set("layer", s.layer || ""); q.set("name", s.name || "");
+    q.set("project", s.project || ""); q.set("ticket", s.ticket || "");
+  }
   else if (s.ticket) { q.set("project", s.project || ""); q.set("ticket", s.ticket); }
   else if (s.project) q.set("project", s.project);
   const str = q.toString();
@@ -141,6 +146,10 @@ function parseURL() {
   if (q.get("view") === "skills") return { view: "skills" };
   if (q.get("view") === "positions") return { view: "positions" };
   if (q.get("view") === "position") return { view: "position", position: q.get("position") || "" };
+  if (q.get("view") === "knowledge") return { view: "knowledge" };
+  if (q.get("view") === "knowledge-doc") return { view: "knowledge-doc",
+    layer: q.get("layer") || "", name: q.get("name") || "",
+    project: q.get("project") || "", ticket: q.get("ticket") || "" };
   const p = q.get("project") || "";
   const t = q.get("ticket") || "";
   if (t) return { view: "ticket", project: p, ticket: t };
@@ -241,6 +250,8 @@ async function render(opts) {
 
 function crumbUp() {
   if (state.view === "ticket") return { view: "project", project: state.project || "" };
+  if (state.view === "position") return { view: "positions" };
+  if (state.view === "knowledge-doc") return { view: "knowledge" };
   return { view: "projects" };
 }
 function renderCrumb(spec, ctx) {

@@ -34,6 +34,7 @@ def setup(ctx):
         ctx.cfg["server"] = {}
     _apply_env(ctx.cfg)
     ctx.api.register("config.get", _route_get, "读取脱敏配置")
+    ctx.api.register("config.set_value", _route_set_value, "按点号路径写配置并落盘", module="config")
 
 
 def _apply_env(cfg):
@@ -79,6 +80,15 @@ def _route_get(ctx, payload):
         value = _nested_get(ctx.cfg, key) if "." in key else ctx.cfg.get(key)
         return {"key": key, "value": value}
     return redacted(ctx)
+
+
+def _route_set_value(ctx, payload):
+    key = str((payload or {}).get("key") or "")
+    if not key:
+        return {"ok": False, "code": "missing_key", "status": 400,
+                "error": "配置路径不能为空"}
+    value = set_value(ctx, key, (payload or {}).get("value"))
+    return {"key": key, "written": True, "value": value}
 
 
 # ---------------------------------------------------------------- 文件读写

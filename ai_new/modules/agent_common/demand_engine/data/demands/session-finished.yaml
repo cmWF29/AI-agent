@@ -147,10 +147,23 @@ do:
     retrospect_default:
       get: cfg.value
   as: plan
-- call: tickets.touch
+- call: tickets.review_mark
   with:
     rec:
       get: ticket_row.value
+    verdict:
+      get: rev.verdict
+    repush_text:
+      get: repush.text
+    exhausted_text:
+      get: exh.text
+    now:
+      get: now.ts
+  as: marked
+- call: tickets.touch
+  with:
+    rec:
+      get: marked
     now:
       get: now.ts
   as: touched
@@ -203,6 +216,7 @@ expect:
   - tickets.msg
   - tickets.msg
   - sessions.flow_plan
+  - tickets.review_mark
   - tickets.touch
   - tickets.record_path
   - store.write

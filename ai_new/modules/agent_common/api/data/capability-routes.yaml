@@ -87,6 +87,18 @@ capabilities:
     - auth.build_session
     - store.write
     - auth.session_view
+  auth.change_password:
+    calls:
+    - config.get
+    - codec.digest
+    - auth.password_check
+    - config.set_value
+  asr.transcribe:
+    calls:
+    - asr.validate
+    - codec.wave_decode
+    - codec.json_decode
+    - asr.present
   sessions.spawn:
     calls:
     - store.id

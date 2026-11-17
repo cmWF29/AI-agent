@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 import json
 import secrets
+import wave
 
 import yaml
 
@@ -120,3 +122,18 @@ def hex_from_base64(text):
         return {"ok": True, "hex": base64.b64decode(str(text or "")).hex()}
     except (TypeError, ValueError) as exc:
         return {"ok": False, "error": str(exc), "code": "decode_failed"}
+
+
+def wave_decode(raw):
+    """WAV(PCM) 字节 → {pcm 字节, rate, channels}；压缩/解析失败结构化报错。"""
+    try:
+        wav = wave.Wave_read(io.BytesIO(bytes(raw or b"")))
+    except wave.Error as exc:
+        return {"ok": False, "code": "bad_audio", "error": str(exc)}
+    with wav:
+        if wav.getcomptype() != "NONE":
+            return {"ok": False, "code": "compressed_wav", "error": "仅支持未压缩 PCM WAV"}
+        rate = wav.getframerate()
+        channels = wav.getnchannels()
+        pcm = wav.readframes(wav.getnframes())
+    return {"ok": True, "pcm": pcm, "rate": rate, "channels": channels}

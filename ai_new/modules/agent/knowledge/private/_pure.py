@@ -107,6 +107,33 @@ def overview(p):
     return {"counts": counts}
 
 
+def index(p):
+    """整树路径拍平成三级条目列表，供浏览视图按层展示。
+
+    rows: [{path}]；每条定 layer / 归属 id / 文档名（去 .md）。纯分组，不读正文。
+    """
+    items = []
+    counts = {"public": 0, "project": 0, "ticket": 0}
+    layer_label = {"public": "公共", "project": "项目", "ticket": "工单"}
+    for row in p.get("rows") or []:
+        rel = row.get("path") if isinstance(row, dict) else str(row or "")
+        parts = [s for s in rel.split("/") if s]
+        name = parts[-1][:-3] if parts and parts[-1].endswith(".md") else (parts[-1] if parts else "")
+        if parts[0] == "public" and len(parts) == 2:
+            items.append({"layer": "public", "layer_label": layer_label["public"],
+                          "project": "", "ticket": "", "name": name, "path": rel})
+            counts["public"] += 1
+        elif parts[0] == "projects" and len(parts) == 3:
+            items.append({"layer": "project", "layer_label": layer_label["project"],
+                          "project": parts[1], "ticket": "", "name": name, "path": rel})
+            counts["project"] += 1
+        elif parts[0] == "tickets" and len(parts) == 3:
+            items.append({"layer": "ticket", "layer_label": layer_label["ticket"],
+                          "project": "", "ticket": parts[1], "name": name, "path": rel})
+            counts["ticket"] += 1
+    return {"items": items, "counts": counts}
+
+
 def search(p):
     """rows: [{path,text}]；按内容与路径匹配，截 400 字。"""
     q = (p.get("query") or "").lower()

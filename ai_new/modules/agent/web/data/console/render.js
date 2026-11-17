@@ -315,16 +315,26 @@ function composerHtml(sec, ctx) {
   const submit = sec.submit || {};
   ACTS.push({ act: submit, ctx, composer: true });
   const submitIdx = ACTS.length - 1;
+  const voice = sec.voice || null;
+  let voiceIdx = -1;
+  if (voice) {
+    ACTS.push({ act: voice, ctx, composer: true, voice: true });
+    voiceIdx = ACTS.length - 1;
+  }
   const hint = disabled ? (sec.disabled_hint || "") : "";
   const gate = disabled ? ` disabled${hint ? ` title="${esc(hint)}"` : ""}` : "";
   const acts = (sec.actions || []).map((a) =>
     buttonHtml(a, ctx, { disabled, hint, composer: true })).join("");
   const busyVal = sec.busy_from ? String(fill(sec.busy_from, ctx) || "") : "";
   const busy = !disabled && busyVal && busyVal === (sec.busy_when || "running");
+  const voiceBtn = voice && !disabled
+    ? `<button class="voice" data-act="${voiceIdx}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || "语音", ctx))}</button>`
+    : "";
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
       <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
       ${acts}
+      ${voiceBtn}
       <button class="primary" data-act="${submitIdx}"${gate}>${esc(fill(submit.label || "发送", ctx))}</button>
     </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}

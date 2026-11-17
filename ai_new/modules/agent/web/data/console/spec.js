@@ -98,10 +98,14 @@ function fill(tpl, ctx) {
   }
   return s;
 }
+const EVENT_LABELS = { created: "建单", pm_start: "PM 开工", role_spawn: "派角色",
+  child_split: "拆子单", repush: "回催缺口", review_pass: "评审达标", exhausted: "卡点",
+  note: "备注", closed: "结单" };
 function fmtVal(item, ctx) {
   let v = fill(item.value, ctx);
   if (item.format === "when") v = when(v);
   else if (item.format === "project_name") v = projectName(v, ctx);
+  else if (item.format === "event_label") v = EVENT_LABELS[String(v || "")] || String(v || "");
   return v;
 }
 function truthy(v) {

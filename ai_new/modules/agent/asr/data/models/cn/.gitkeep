@@ -1,0 +1,2 @@
+# 语音模型占位：vosk 中文小模型解压到本目录（cn/ 下直接是 am/ conf/ graph/ 等）。
+# 模型包不进 git；未放置模型时识别路由返回 model_missing，不阻塞启动。

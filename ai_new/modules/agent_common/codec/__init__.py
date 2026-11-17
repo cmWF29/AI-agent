@@ -22,6 +22,10 @@ def setup(ctx):
                      "安全随机令牌", module="codec")
     ctx.api.register("codec.hex_from_base64", lambda c, p: _codec.hex_from_base64(p.get("text")),
                      "base64 → hex", module="codec")
+    ctx.api.register("codec.base64_decode_bytes", lambda c, p: _codec.base64_decode_bytes(p.get("text")),
+                     "base64 → 原始字节", module="codec")
+    ctx.api.register("codec.wave_decode", lambda c, p: _codec.wave_decode(p.get("raw")),
+                     "WAV(PCM) 字节 → PCM 帧/采样率", module="codec")
     return True
 
 

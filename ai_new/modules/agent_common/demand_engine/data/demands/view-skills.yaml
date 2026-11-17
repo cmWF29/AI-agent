@@ -8,7 +8,7 @@ callable: false
 do: []
 view:
   key: skills
-  crumb: [技能]
+  crumb: [项目管理, 技能]
   heading: 技能
   subheading: Skill = 从一份 Skill.md 拆出的一个岗位、配套流程与工具，归到同一标识下；可临时禁用，也可级联卸载。内置能力受保护不可卸载
   actions:

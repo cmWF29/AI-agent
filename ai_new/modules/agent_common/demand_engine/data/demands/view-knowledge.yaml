@@ -1,0 +1,46 @@
+id: view-knowledge
+title: 知识库视图：公共/项目/工单三级文档只读浏览
+description: "知识库视图：公共/项目/工单三级文档只读浏览。目录由 knowledge-index 分组，点进文档看正文，不在此页编辑"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: knowledge
+  crumb: [项目管理, 知识库]
+  heading: 知识库
+  subheading: 公共规范、项目沉淀与工单留档；只读浏览，写入由流程自动沉淀
+  data:
+  - {as: idx, demand: knowledge-index}
+  sections:
+  - kind: kv
+    source: idx.counts
+    heading: 层级统计
+    rows:
+    - label: 公共
+      value: row.public
+    - label: 项目
+      value: row.project
+    - label: 工单
+      value: row.ticket
+  - kind: table
+    source: idx.items
+    columns:
+    - {label: 层, badge: row.layer_label}
+    - {label: 文档, value: row.name, sub: row.path}
+    - {label: 归属, value: row.project, fallback: row.ticket, muted: true}
+    on_click:
+      view: knowledge-doc
+      params:
+        layer: row.layer
+        name: row.name
+        project: row.project
+        ticket: row.ticket
+    empty: {title: 知识库为空, text: 流程运行后会把规范与结论沉淀到这里。}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 目录由 knowledge-index 分组，浏览视图只读

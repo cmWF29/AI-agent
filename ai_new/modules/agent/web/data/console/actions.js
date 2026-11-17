@@ -32,8 +32,42 @@ async function execute(binding, fields) {
     banner(gateMessage(err), "err");
   }
 }
-function resolveView(target, c) {
-  const params = fill(target.params || {}, c);
+/* ---- 语音录音：开始/停止 → 识别 → 回填输入框，不自动发送 ---- */
+function voiceBtnLabel(binding) {
+  return String((binding.act && binding.act.label) || "语音");
+}
+function resetVoiceBtn(btn, binding) {
+  btn.classList.remove("on");
+  btn.textContent = voiceBtnLabel(binding);
+}
+async function executeVoice(binding, btn) {
+  const act = binding.act;
+  const box = $("view-body").querySelector(".composer textarea");
+  if (!VoiceRecorder.recording) {
+    try { await VoiceRecorder.start(); }
+    catch (err) { banner(gateMessage(err) || "麦克风不可用，请检查浏览器授权", "err"); return; }
+    btn.classList.add("on");
+    btn.textContent = "停止";
+    return;
+  }
+  let rec;
+  try { rec = await VoiceRecorder.stop(); }
+  catch (err) { resetVoiceBtn(btn, binding); banner(gateMessage(err), "err"); return; }
+  resetVoiceBtn(btn, binding);
+  try {
+    const params = fill(act.params || {}, { ...binding.ctx });
+    params.audio_b64 = rec.b64;
+    params.mime = rec.mime;
+    const res = await run(act.demand, params);
+    const text = String((res && res.text) || "").trim();
+    if (text && box) {
+      box.value = box.value.trim() ? box.value.trim() + " " + text : text;
+      box.focus();
+    }
+  } catch (err) { banner(gateMessage(err), "err"); }
+}
+
+function resolveView(target, c) {  const params = fill(target.params || {}, c);
   const view = target.view;
   if (view === "projects") return { view: "projects" };
   if (view === "project") return { view: "project", project: params.project || "" };
@@ -42,6 +76,10 @@ function resolveView(target, c) {
   if (view === "skills") return { view: "skills" };
   if (view === "positions") return { view: "positions" };
   if (view === "position") return { view: "position", position: params.position || "" };
+  if (view === "knowledge") return { view: "knowledge" };
+  if (view === "knowledge-doc") return { view: "knowledge-doc",
+    layer: params.layer || "", name: params.name || "",
+    project: params.project || "", ticket: params.ticket || "" };
   return { view: view };
 }
 
@@ -85,7 +123,7 @@ function openForm(form, ctx) {
         `<option value="${esc(o.value)}"${String(val) === String(o.value) ? " selected" : ""}>${esc(o.label)}</option>`).join("");
       return `<div class="field"><label>${esc(f.label)}</label><select name="${esc(f.name)}">${opts}</select></div>`;
     }
-    const type = f.kind === "url" ? "url" : "text";
+    const type = f.kind === "url" ? "url" : f.kind === "password" ? "password" : "text";
     return `<div class="field"><label>${esc(f.label)}</label><input name="${esc(f.name)}" type="${type}" value="${esc(val)}"${ph}${req}${ro}></div>`;
   }).join("");
   bindDropZones($("modal-form"));

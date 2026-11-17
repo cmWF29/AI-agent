@@ -5,6 +5,7 @@ tags:
 - {id: session, name: 会话, group: 业务域, color: indigo}
 - {id: channel, name: 频道, group: 业务域, color: indigo}
 - {id: knowledge, name: 知识, group: 业务域, color: indigo}
+- {id: asr, name: 语音识别, group: 业务域, color: indigo}
 - {id: position, name: 岗位, group: 业务域, color: indigo}
 - {id: artifact, name: 产物, group: 业务域, color: indigo}
 - {id: library, name: 库, group: 业务域, color: indigo}

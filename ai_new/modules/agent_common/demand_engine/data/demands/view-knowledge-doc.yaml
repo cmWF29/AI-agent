@@ -1,0 +1,43 @@
+id: view-knowledge-doc
+title: 知识正文：只读浏览单篇文档
+description: "知识正文：只读浏览单篇文档。正文由 knowledge-read 取回，视图只声明区块，不提供编辑"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: knowledge-doc
+  crumb: [项目管理, 知识库, "{route.name}"]
+  heading: "{route.name}"
+  subheading: 只读浏览；文档由流程运行沉淀，不在此页修改
+  data:
+  - as: doc
+    demand: knowledge-read
+    params:
+      layer: "{route.layer}"
+      name: "{route.name}"
+      project: "{route.project}"
+      ticket: "{route.ticket}"
+  sections:
+  - kind: kv
+    lane: right
+    source: doc
+    heading: 文档信息
+    rows:
+    - label: 路径
+      value: row.path
+      fallback: —
+    - label: 字符数
+      value: row.chars
+      fallback: 0
+  - kind: doc
+    lane: left
+    source: doc.text
+    heading: 正文
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 正文由 knowledge-read 取回，视图只读

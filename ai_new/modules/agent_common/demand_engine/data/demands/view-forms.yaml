@@ -115,7 +115,7 @@ view:
         reload: true
   - id: ticket.close
     title: 结单
-    hint: 对照验收标准填写结单结论；提交后会话回收，本工单不能再发消息。
+    hint: 对照验收标准填写结单结论；提交后会话回收，本工单不能再发消息。选「未通过关闭」只记录驳回结论并关单，不会自动重开或重新派角色。
     fields:
     - name: summary
       label: 结单结论
@@ -130,7 +130,7 @@ view:
       - value: accepted
         label: 验收通过
       - value: rejected
-        label: 未通过（返工）
+        label: 未通过关闭
     submit:
       demand: ticket-close
       params:
@@ -145,6 +145,30 @@ view:
           project: '{thread.ticket.project}'
           ticket: '{thread.ticket.id}'
         reload: true
+  - id: auth.change
+    title: 修改密码
+    hint: 需验证当前密码；新密码需两次输入一致。本期只支持改密，不做角色与权限。
+    fields:
+    - name: old_password
+      label: 当前密码
+      kind: password
+      required: true
+    - name: new_password
+      label: 新密码
+      kind: password
+      required: true
+    - name: confirm
+      label: 确认新密码
+      kind: password
+      required: true
+    submit:
+      demand: auth-change-password
+      params:
+        old_password: $old_password
+        new_password: $new_password
+        confirm: $confirm
+      ok: 保存密码
+      flash: 密码已修改
 expect:
   given:
     input: {}

@@ -1,0 +1,32 @@
+id: asr-transcribe
+title: 语音转写：base64 解码 → 离线模型识别 → 文本回填
+description: "语音转写：base64 解码 → 离线模型识别 → 文本成形。只服务会话输入框；结果回填输入框，不自动发送，用户可改后手动发送"
+tags:
+- asr
+- read
+enabled: true
+callable: true
+'on': []
+do:
+- call: codec.base64_decode_bytes
+  with:
+    text:
+      get: input.audio_b64
+  as: decoded
+- call: asr.transcribe
+  with:
+    audio:
+      get: decoded.data
+    mime:
+      get: input.mime
+  as: out
+expect:
+  given:
+    input:
+      audio_b64: ""
+      mime: audio/wav
+  calls:
+  - codec.base64_decode_bytes
+  - asr.transcribe
+  payload: {}
+  promise: 解码归 codec，识别归引擎，成形归纯函数；需求树只做顺序编排

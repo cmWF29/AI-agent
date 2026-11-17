@@ -1,0 +1,28 @@
+id: knowledge-index
+title: 知识目录：整树取路径 → 交给 knowledge 分三级成形
+description: "知识目录：整树取路径 → 交给 knowledge 分三级成形。取路径归需求，分组归模块，浏览视图只读"
+tags: [knowledge, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.walk_text
+  with:
+    module:
+      lit: agent/knowledge
+    pattern:
+      lit: '**/*.md'
+  as: rows
+- call: knowledge.index
+  with:
+    rows:
+      get: rows.rows
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.walk_text
+  - knowledge.index
+  payload: {}
+  promise: 取路径归需求，三级分组归模块

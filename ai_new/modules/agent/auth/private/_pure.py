@@ -13,6 +13,24 @@ def credentials_ok(p):
     return {"ok": True, "username": username}
 
 
+def change_password(p):
+    """改密校验（纯计算）：旧摘要匹配、新密码非空、两次新密码一致。不碰盘、不发摘要。"""
+    old_digest = str(p.get("old_digest") or "")
+    new_digest = str(p.get("new_digest") or "")
+    confirm_digest = str(p.get("confirm_digest") or "")
+    expect_hash = str(p.get("expect_hash") or "")
+    if expect_hash and old_digest != expect_hash:
+        return {"ok": False, "code": "bad_old_password", "status": 400,
+                "error": "旧密码不正确"}
+    if not new_digest:
+        return {"ok": False, "code": "weak_password", "status": 400,
+                "error": "新密码不能为空"}
+    if new_digest != confirm_digest:
+        return {"ok": False, "code": "confirm_mismatch", "status": 400,
+                "error": "两次输入的新密码不一致"}
+    return {"ok": True}
+
+
 def build_session(p):
     """造会话记录形状：expires = issued + ttl。"""
     issued = float(p.get("issued") or 0)
