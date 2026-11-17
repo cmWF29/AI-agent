@@ -96,7 +96,8 @@ def screen(p):
 
 def overview(p):
     counts = {"public": 0, "project": {}, "ticket": {}}
-    for rel in p.get("rows") or []:
+    for row in p.get("rows") or []:
+        rel = row.get("path") if isinstance(row, dict) else row
         parts = rel.split("/")
         if parts[0] == "public" and len(parts) == 2:
             counts["public"] += 1

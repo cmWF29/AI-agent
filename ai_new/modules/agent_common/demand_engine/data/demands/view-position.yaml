@@ -1,6 +1,6 @@
 id: view-position
-title: 岗位详情：岗位记录 + 流程规范 + 提示词引用，只读
-description: "岗位详情：岗位记录 + 流程规范 + 提示词引用，只读。岗位详情只声明区块，数据源走 position-get"
+title: 岗位详情：岗位记录 + 流程规范 + 提示词正文，只读
+description: "岗位详情：岗位记录 + 流程规范 + 提示词正文，只读。岗位详情只声明区块，数据源走 position-get"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -30,6 +30,10 @@ view:
       value: "row.flow.checks|count"
       suffix: 项
       muted: true
+  - kind: doc
+    source: position.prompt
+    heading: 提示词正文
+    hide_when_empty: true
   - kind: table
     source: position.must_dos
     heading: 必须做到
@@ -57,6 +61,7 @@ view:
     - {label: 匹配路径, value: row.paths}
     - {label: 命中规则, value: row.match, fallback: —}
     - {label: 最小字节, value: row.min_bytes, fallback: —}
+    - {label: 说明, value: row.desc, fallback: —}
   - kind: table
     source: position.tools
     heading: 可见工具

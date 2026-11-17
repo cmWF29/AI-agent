@@ -65,10 +65,34 @@ def _pm_record():
             "backend": "", "builtin": True, "readonly": True, "system": True}
 
 
-def _position(rec, flow):
-    """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 代码性流程规范 + 产出约束。"""
+def _check_desc(c):
+    """单条流程检查规则翻成可读中文；形状来自 flows 记录，缺字段不报错。"""
+    kind = c.get("kind")
+    paths = c.get("paths") or []
+    minb = c.get("min_bytes")
+    if kind == "contains":
+        head = "交付件内容须包含文本：%s" % (c.get("text") or "")
+    else:
+        match = c.get("match") or "all"
+        if match == "any":
+            head = "交付件路径命中以下任一模式即可：%s" % "、".join(paths)
+        else:
+            head = "交付件须逐条命中以下路径模式：%s" % "、".join(paths)
+    if minb:
+        head += "；且文件不少于 %s 字节" % minb
+    return head
+
+
+def _position(rec, flow, prompt_text="", pm_prompt=""):
+    """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 代码性流程规范 + 产出约束。
+
+    正文优先取角色提示词；PM 条目无角色文件，回退 sessions 侧 PM 提示词。
+    """
+    flow = flow or {}
+    checks = [dict(c, desc=_check_desc(c)) for c in (flow.get("checks") or [])]
     return {"id": rec.get("id"), "cn": rec.get("cn"),
             "prompt_file": rec.get("prompt_file"),
+            "prompt": prompt_text or pm_prompt or "",
             "must_outputs": rec.get("must_outputs") or [],
             "forbidden": rec.get("forbidden") or [],
             "must_dos": rec.get("must_dos") or [],
@@ -78,7 +102,7 @@ def _position(rec, flow):
             "readonly": bool(rec.get("readonly")),
             "system": bool(rec.get("system")),
             "flow": {"id": (flow or {}).get("id") or rec.get("id"),
-                     "checks": (flow or {}).get("checks") or []}}
+                     "checks": checks}}
 
 
 def reviewp(p):
@@ -135,12 +159,14 @@ def prompt_blocks(p):
 def positionp(p):
     """单条岗位：岗位记录 + 关联流程规范合并成形。PM 为主会话只读条目，不在角色记录里。"""
     rec = p.get("rec") or {}
+    prompt_text = p.get("prompt_text") or ""
+    pm_prompt = p.get("pm_prompt") or ""
     if not rec:
         if (p.get("id") or "") == "pm":
-            return _position(_pm_record(), p.get("flow") or {})
+            return _position(_pm_record(), p.get("flow") or {}, prompt_text, pm_prompt)
         return {"ok": False, "code": "not_found", "status": 404,
                 "error": "岗位不存在: %s" % (p.get("id") or "")}
-    return _position(rec, p.get("flow") or {})
+    return _position(rec, p.get("flow") or {}, prompt_text, pm_prompt)
 
 
 def positionsp(p):

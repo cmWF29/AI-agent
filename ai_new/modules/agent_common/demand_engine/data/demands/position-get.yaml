@@ -1,6 +1,6 @@
 id: position-get
-title: 岗位详情：岗位记录 + 关联流程规范 + 提示词引用
-description: "岗位详情：岗位记录 + 关联流程规范 + 提示词引用。岗位是提示词加流程规范的模板，实例化不在此需求"
+title: 岗位详情：岗位记录 + 关联流程规范 + 提示词正文
+description: "岗位详情：岗位记录 + 关联流程规范 + 提示词正文。岗位是提示词加流程规范的模板，实例化不在此需求"
 tags: [position, library, read]
 enabled: true
 callable: true
@@ -49,6 +49,24 @@ do:
     user:
       get: uflows.value
   as: flowrec
+- call: store.read_text
+  with:
+    module:
+      lit: agent/library
+    path:
+      op: +
+      a:
+        lit: prompts/
+      b:
+        get: rec.item.prompt_file
+  as: libprompt
+- call: store.read_text
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      lit: prompts/pm.md
+  as: pmprompt
 - call: library.position
   with:
     id:
@@ -57,6 +75,10 @@ do:
       get: rec.item
     flow:
       get: flowrec.item
+    prompt_text:
+      get: libprompt.value
+    pm_prompt:
+      get: pmprompt.value
   as: out
 expect:
   given:

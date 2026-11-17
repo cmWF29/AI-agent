@@ -6,12 +6,12 @@ enabled: true
 callable: true
 'on': []
 do:
-- call: store.walk
+- call: store.walk_text
   with:
     module:
       lit: agent/knowledge
     pattern:
-      lit: '*.md'
+      lit: '**/*.md'
   as: rows
 - call: knowledge.overview
   with:
@@ -22,7 +22,7 @@ expect:
   given:
     input: {}
   calls:
-  - store.walk
+  - store.walk_text
   - knowledge.overview
   payload: {}
   promise: 谁的目录谁定义层级，需求只负责取回

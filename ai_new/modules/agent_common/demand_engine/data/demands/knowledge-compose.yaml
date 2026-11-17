@@ -6,12 +6,12 @@ enabled: true
 callable: true
 'on': []
 do:
-- call: store.walk
+- call: store.walk_text
   with:
     module:
       lit: agent/knowledge
     pattern:
-      lit: '*.md'
+      lit: '**/*.md'
   as: rows
 - call: knowledge.compose
   with:
@@ -26,7 +26,7 @@ expect:
   given:
     input: {}
   calls:
-  - store.walk
+  - store.walk_text
   - knowledge.compose
   payload: {}
   promise: 拼哪些层、截多少，都写在需求里

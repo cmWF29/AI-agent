@@ -284,6 +284,16 @@ function kvHtml(sec, ctx) {
   </aside>`;
 }
 
+function docHtml(sec, ctx) {
+  const raw = String(ref(sec.source, ctx) == null ? "" : ref(sec.source, ctx));
+  if (sec.hide_when_empty && !raw.trim()) return "";
+  const body = raw.trim() ? renderMarkdown(raw) : esc(sec.fallback || "暂无正文");
+  return `<aside class="side-card">
+    ${sec.heading ? `<h3>${esc(fill(sec.heading, ctx))}</h3>` : ""}
+    <div class="doc-body">${body}</div>
+  </aside>`;
+}
+
 function composerHtml(sec, ctx) {
   const disabled = sec.disabled_when != null && condOf(sec.disabled_when, ctx);
   const submit = sec.submit || {};
@@ -313,6 +323,7 @@ function sectionHtml(sec, ctx) {
   else if (kind === "table") html = tableHtml(sec, ctx);
   else if (kind === "chat") html = chatHtml(sec, ctx);
   else if (kind === "kv") html = kvHtml(sec, ctx);
+  else if (kind === "doc") html = docHtml(sec, ctx);
   else if (kind === "composer") html = composerHtml(sec, ctx);
   else html = emptyHtml({ text: "未知区块: " + kind });
   return `<div class="vsec" data-kind="${esc(kind)}">${html}</div>`;

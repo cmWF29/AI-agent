@@ -523,6 +523,23 @@ def _route_walk(payload):
             continue
     return {"rows": rows}
 
+def _route_walk_text(payload):
+    """整树取文本：返回 [{path, text}]，给知识检索/注入这类按原文匹配的场景。
+
+    与 walk（把文件当 YAML 记录解析）分开：文本类知识不做 YAML 反序列化。
+    """
+    base = _p(payload.get("module"), payload.get("root"))
+    if not base.is_dir():
+        return {"rows": []}
+    pattern = str(payload.get("pattern") or "**/*.md")
+    rows = []
+    for item in sorted(base.rglob(pattern)):
+        if not item.is_file():
+            continue
+        rows.append({"path": item.relative_to(base).as_posix(),
+                     "text": item.read_text(encoding="utf-8", errors="replace")})
+    return {"rows": rows}
+
 def _route_read_text(payload):
     path = _p(payload.get("module"), payload.get("path"))
     if not path.is_file():
@@ -595,6 +612,7 @@ def setup(ctx):
         ("store.remove", _route_remove),
         ("store.glob", _route_glob),
         ("store.walk", _route_walk),
+        ("store.walk_text", _route_walk_text),
         ("store.read_text", _route_read_text),
         ("store.write_text", _route_write_text),
         ("store.append_text", _route_append_text),

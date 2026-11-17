@@ -190,6 +190,16 @@ class CoreTest(unittest.TestCase):
         # public 层没有就是没有：读不到回 not_found，不抛异常
         miss = self._run("knowledge-read", {"layer": "public", "name": "secretary"})
         self.assertFalse(miss["result"].get("ok", True))
+        # 结构化计划要素已下沉 public 知识库：可按名读到模板正文
+        tmpl = self._run("knowledge-read", {"layer": "public", "name": "plan-structure"})["result"]
+        self.assertIn("计划结构模板", tmpl["content"])
+        self.assertIn("验收标准", tmpl["content"])
+        # 检索与注入链路递归扫到 public 子目录种子，文本进匹配与注入结果
+        found = self._run("knowledge-search", {"query": "验收标准"})["result"]
+        self.assertTrue(any("plan-structure" in i["path"] for i in found["items"]))
+        comp = self._run("knowledge-compose", {"prefixes": ["public/"]})["result"]
+        self.assertIn("计划结构模板", comp["text"])
+        self.assertIn("验收标准", comp["text"])
 
     def test_channel_post_tail_roundtrip(self):
         """频道：需求发两条、按序读回；watch 门面按游标回 {items, cursor}。"""
@@ -520,6 +530,10 @@ class CoreTest(unittest.TestCase):
         pget = self._run("position-get", {"id": "architect"})["result"]
         self.assertEqual(pget["id"], "architect")
         self.assertTrue(pget["prompt_file"])
+        self.assertTrue(pget["prompt"].strip(), "岗位详情应透出提示词正文")
+        arch_check = (pget["flow"]["checks"] or [])[0]
+        self.assertTrue(arch_check["desc"], "检查规则应带可读说明")
+        self.assertIn("任一", arch_check["desc"])
         # PM 作为主会话只读条目进库，不可派单；单条详情同样可取
         pm = next((x for x in plist["items"] if x["id"] == "pm"), None)
         self.assertIsNotNone(pm, "岗位库缺只读 PM 条目")
@@ -528,6 +542,7 @@ class CoreTest(unittest.TestCase):
         pmget = self._run("position-get", {"id": "pm"})["result"]
         self.assertEqual(pmget["id"], "pm")
         self.assertTrue(pmget["readonly"])
+        self.assertTrue(pmget["prompt"].strip(), "PM 详情应透出 sessions 侧提示词正文")
 
     def test_ticket_requires_existing_project(self):
         """工单必须绑定存在的项目：缺项目 / 项目不存在都被拦下。"""
@@ -733,6 +748,45 @@ class CoreTest(unittest.TestCase):
             "rec": {"id": "", "meta": {}}, "review": {"verdict": "pass"},
             "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
         self.assertEqual(orphan["effects"], [])
+
+    def test_flow_plan_awaiting_user_skips_review_loop(self):
+        """仅读知识后向用户提问、无产物/编排动作：判等待用户，只落盘不回催不复盘。"""
+        waiting_msgs = [
+            {"role": "system", "content": "人设"},
+            {"role": "user", "content": "开工"},
+            {"role": "assistant", "tool_calls": [{"function": {"name": "knowledge_search"}}],
+             "content": "先查知识"},
+            {"role": "tool", "name": "knowledge_search", "content": '{"items": []}'},
+            {"role": "assistant", "content": "需求信息不足，请补充被测对象与验收标准。"},
+        ]
+        rec = {"id": "pm-1", "kind": "pm", "role": "", "ticket": "T-1",
+               "meta": {}, "messages": waiting_msgs}
+        plan = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 0},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+        self.assertEqual(plan["verdict"], "waiting")
+        kinds = [e["kind"] for e in plan["effects"]]
+        self.assertEqual(kinds, ["write"])
+        self.assertNotIn("dispatch", kinds)
+        self.assertFalse(plan["rec"]["meta"].get("retrospected"))
+
+    def test_flow_plan_delivered_round_not_waiting(self):
+        """本轮有写产物工具调用：不算等待，正常进入评审闭环。"""
+        done_msgs = [
+            {"role": "system", "content": "人设"},
+            {"role": "user", "content": "开工"},
+            {"role": "assistant", "tool_calls": [{"function": {"name": "artifact_write"}}],
+             "content": "写计划"},
+            {"role": "tool", "name": "artifact_write", "content": '{"written": true}'},
+            {"role": "assistant", "content": "计划已落盘。"},
+        ]
+        rec = {"id": "pm-1", "kind": "pm", "role": "", "ticket": "T-1",
+               "meta": {}, "messages": done_msgs}
+        plan = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 0},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+        self.assertNotEqual(plan["verdict"], "waiting")
+        self.assertIn("dispatch", [e["kind"] for e in plan["effects"]])
 
     def test_react_schema_normalizes_list_to_array(self):
         """内部 list 类型要归一为模型侧 JSON Schema 的 array，并带 items。"""
