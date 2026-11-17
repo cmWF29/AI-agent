@@ -700,6 +700,18 @@ class CoreTest(unittest.TestCase):
         # 交付件条目 → 路径清单
         self.assertEqual(ticket_pure.paths(
             {"items": [{"path": "x/a.py"}, {"nopath": 1}]})["paths"], ["x/a.py"])
+        # 工单 touch：只刷新最后活动时间，不动状态与历史
+        touched = ticket_pure.touch({"rec": {"id": "T-1", "status": "queued",
+                                             "history": [{"at": 1, "event": "note"}]}, "now": 999})
+        self.assertEqual(touched["updated"], 999)
+        self.assertEqual(touched["status"], "queued")
+        self.assertEqual(len(touched["history"]), 1)
+        # 闭环注入消息：role 仍为 user（喂模型），打 note 标记供前端归系统条
+        note_rec = sess_run.appendmsg({"rec": {"id": "s-1", "messages": [], "status": "idle"},
+                                       "text": "回催", "kind": "note", "now": 5})
+        note_msg = note_rec["messages"][0]
+        self.assertEqual(note_msg["role"], "user")
+        self.assertEqual(note_msg["kind"], "note")
         # 结单留档：system 人设不进 transcript，往来对话按会话固化
         arch = ticket_pure.archive_transcript({
             "rec": {"id": "T-1"},
@@ -729,14 +741,29 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(repush["rec"]["meta"]["retries"], 1)
         passed = sess_run.flow_plan({
             "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 1},
-            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": "",
+            "retrospect_enabled": True})
         self.assertIn("dispatch", [e["kind"] for e in passed["effects"]])
         self.assertTrue(passed["rec"]["meta"]["retrospected"])
         # 已复盘过一轮：不再重复触发复盘，避免闭环空转
         again = sess_run.flow_plan({
             "rec": passed["rec"], "review": {"verdict": "pass", "missing": [], "retries": 1},
-            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": "",
+            "retrospect_enabled": True})
         self.assertNotIn("dispatch", [e["kind"] for e in again["effects"]])
+        # 复盘开关关闭：达标也不注入复盘提示、不再驱动复盘轮，只落盘
+        off = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 1},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": "",
+            "retrospect_enabled": False})
+        self.assertNotIn("dispatch", [e["kind"] for e in off["effects"]])
+        self.assertFalse(off["rec"]["meta"].get("retrospected"))
+        # 工单未显式设置时回退全局默认；默认关闭同样不复盘
+        default_off = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 1},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": "",
+            "retrospect_default": False})
+        self.assertNotIn("dispatch", [e["kind"] for e in default_off["effects"]])
         exhausted = sess_run.flow_plan({
             "rec": rec, "review": {"verdict": "exhausted", "missing": gap, "retries": 2},
             "ticket": "T-1", "repush_text": "", "retrospect_text": "", "exhausted_text": "卡点"})
@@ -784,7 +811,8 @@ class CoreTest(unittest.TestCase):
                "meta": {}, "messages": done_msgs}
         plan = sess_run.flow_plan({
             "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 0},
-            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": "",
+            "retrospect_enabled": True})
         self.assertNotEqual(plan["verdict"], "waiting")
         self.assertIn("dispatch", [e["kind"] for e in plan["effects"]])
 

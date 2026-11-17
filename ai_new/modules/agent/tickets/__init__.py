@@ -15,6 +15,7 @@ def setup(ctx):
         ("tickets.screen", _pure.screen),
         ("tickets.roles", _pure.roles),
         ("tickets.note", _pure.note),
+        ("tickets.touch", _pure.touch),
         ("tickets.bindrole", _pure.bindrole),
         ("tickets.bindpm", _pure.bindpm),
         ("tickets.bindchild", _pure.bindchild),

@@ -30,6 +30,18 @@ def load_all():
     return [yaml.safe_load(p.read_text(encoding="utf-8")) for p in demand_files()]
 
 
+def _collect_ops(node, acc):
+    """递归收集语句树里出现的全部运算符（含嵌套 with 表达式）。"""
+    if isinstance(node, dict):
+        if "op" in node:
+            acc.append(node["op"])
+        for value in node.values():
+            _collect_ops(value, acc)
+    elif isinstance(node, list):
+        for value in node:
+            _collect_ops(value, acc)
+
+
 def claimed():
     """验收清单里声明覆盖了哪些需求。"""
     record = yaml.safe_load(CHECKS.read_text(encoding="utf-8"))
@@ -209,6 +221,18 @@ class DemandContractTest(unittest.TestCase):
         for token in ('if "when" in stmt', 'if "each" in stmt',
                       'if "until" in stmt', 'if "wait" in stmt'):
             self.assertNotIn(token, src, "引擎仍保留控制流解释: %s" % token)
+
+    def test_demand_expressions_use_only_data_assembly(self):
+        """表达式只允许取值/字面量/薄装配：比较、逻辑、集合、度量都是业务判断，下沉模块纯函数。"""
+        allowed = {"+", "append"}
+        problems = []
+        for rec in load_all():
+            ops = []
+            _collect_ops(rec.get("do"), ops)
+            stray = sorted(set(ops) - allowed)
+            if stray:
+                problems.append("%s 出现应下沉的运算符 %s" % (rec.get("id"), stray))
+        self.assertEqual(problems, [], "需求树仍有业务判断运算符: %s" % problems)
 
     def test_expect_calls_exist_in_do(self):
         """预期里写的服务调用必须真在语句树里 —— 预期不能凭空写。"""

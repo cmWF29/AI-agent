@@ -11,12 +11,25 @@ ADVANCE_TOOLS = {
 def appendmsg(p):
     rec = dict(p.get("rec") or {})
     msgs = list(rec.get("messages") or [])
-    msgs.append({"role": "user", "content": p.get("text") or ""})
+    msg = {"role": p.get("role") or "user", "content": p.get("text") or ""}
+    # 闭环注入的回催/复盘提示不是真实用户发言：打 note 标记，前端归系统条展示；
+    # role 仍留 user，作为下一轮给模型的指令输入。标记只供展示，不进 LLM 载荷。
+    if p.get("kind"):
+        msg["kind"] = p["kind"]
+    msgs.append(msg)
     rec["messages"] = msgs
     rec["updated"] = p.get("now") or ""
     if rec.get("status") in ("idle", "gone", None):
         rec["status"] = "queued"
     return rec
+
+
+def _retrospect_enabled(p):
+    """复盘开关：工单级标记优先；工单未显式设置时回退全局默认。兜底判定在纯函数内。"""
+    ticket = p.get("retrospect_enabled")
+    if ticket is not None:
+        return bool(ticket)
+    return bool(p.get("retrospect_default"))
 
 
 def mark(p):
@@ -131,18 +144,19 @@ def flow_plan(p):
                 "rec": rec, "effects": effects}
     if verdict == "repush":
         rec = appendmsg({"rec": rec, "text": p.get("repush_text") or "",
-                         "now": p.get("now") or ""})
+                         "kind": "note", "now": p.get("now") or ""})
         effects.append({"kind": "write", "module": "agent/sessions",
                         "path": "sessions/%s.yaml" % sid, "value": rec})
         effects.append({"kind": "dispatch", "id": "session-run", "key": sid,
                         "input": {"id": sid}})
     elif verdict == "pass":
         already = bool(meta.get("retrospected"))
-        if not already:
+        enabled = _retrospect_enabled(p)
+        if not already and enabled:
             meta["retrospected"] = True
             rec["meta"] = meta
             rec = appendmsg({"rec": rec, "text": p.get("retrospect_text") or "",
-                             "now": p.get("now") or ""})
+                             "kind": "note", "now": p.get("now") or ""})
             effects.append({"kind": "write", "module": "agent/sessions",
                             "path": "sessions/%s.yaml" % sid, "value": rec})
             effects.append({"kind": "dispatch", "id": "session-run", "key": sid,

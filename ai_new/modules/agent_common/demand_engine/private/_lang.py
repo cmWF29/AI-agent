@@ -8,9 +8,11 @@
 表达式：
     {"get": "event.data.layer"}                 从作用域取值（点号路径）
     {"lit": 任意 JSON}                          字面量
-    {"op": "==" | "!=" | "in" | "and" | "or" | "not" | "len" | "+" | ">" | "<" | ">=" | "<=",
-     "a": 表达式, "b": 表达式}                   运算（not/len 只用 a）
+    {"op": "+" | "append", "a": 表达式, "b": 表达式}
+                                                仅保留薄数据装配：+ 拼路径/文本，append 拼列表
     裸字符串 / 数字 / 布尔 / 列表 / 普通字典       字面量
+
+比较、逻辑、集合、度量运算符不在本语言内：判断与兜底一律下沉模块纯函数。
 
 语句：
     {"call": "module.fn", "with": {"k": 表达式}, "as": "变量"}   调服务，结果可留作变量
@@ -44,39 +46,13 @@ def eval_expr(expr, scope, depth=0):
     op = expr.get("op")
     a = eval_expr(expr.get("a"), scope, depth + 1)
     b = eval_expr(expr.get("b"), scope, depth + 1)
-    if op == "==":
-        return a == b
-    if op == "!=":
-        return a != b
-    if op == "in":
-        try:
-            return a in b
-        except TypeError:
-            return False
-    if op == "and":
-        return bool(a) and bool(b)
-    if op == "or":
-        return bool(a) or bool(b)
-    if op == "not":
-        return not a
-    if op == "len":
-        try:
-            return len(a)
-        except TypeError:
-            return 0
     if op == "+":
         return a + b
-    if op == ">":
-        return a > b
-    if op == "<":
-        return a < b
-    if op == ">=":
-        return a >= b
-    if op == "<=":
-        return a <= b
     if op == "append":
         return list(a or []) + [b]
-    raise ValueError("未知运算符: %r" % (op,))
+    # 比较（== != > < >= <=）、逻辑（and or not）、集合（in）、度量（len）都是业务判断，
+    # 必须下沉到模块纯函数内用 Python 完成；需求层不保留这些运算符，避免编排树变成一门小语言。
+    raise ValueError("需求层不支持运算符 %r：判断/兜底/度量请下沉模块纯函数" % (op,))
 
 
 def _get(scope, path):

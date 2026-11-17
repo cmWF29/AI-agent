@@ -77,6 +77,28 @@ do:
     path:
       lit: messages.yaml
   as: tpls
+- call: config.get
+  with:
+    key:
+      lit: tickets.auto_retrospective
+  as: cfg
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: event.data.ticket
+        b:
+          lit: /ticket.yaml
+  as: ticket_row
+- call: clock.now
+  as: now
 - call: tickets.msg
   with:
     tpl:
@@ -120,7 +142,37 @@ do:
       get: retro.text
     exhausted_text:
       get: exh.text
+    now:
+      get: now.ts
+    retrospect_enabled:
+      get: ticket_row.value.auto_retrospective
+    retrospect_default:
+      get: cfg.value
   as: plan
+- call: tickets.touch
+  with:
+    rec:
+      get: ticket_row.value
+    now:
+      get: now.ts
+  as: touched
+- call: store.write
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      op: +
+      a:
+        lit: tickets/
+      b:
+        op: +
+        a:
+          get: event.data.ticket
+        b:
+          lit: /ticket.yaml
+    value:
+      get: touched
+  as: tw
 - call: runtime.apply
   with:
     effect:
@@ -147,10 +199,15 @@ expect:
   - library.check
   - library.review
   - store.read
+  - config.get
+  - store.read
+  - clock.now
   - tickets.msg
   - tickets.msg
   - tickets.msg
   - sessions.flow_plan
+  - tickets.touch
+  - store.write
   - runtime.apply
   payload: {}
   promise: 校验与判定归模块，闭环动作清单由 flow_plan 成形，写盘与再驱动交 apply

@@ -85,12 +85,18 @@ class LanguageTest(unittest.TestCase):
     def test_let_can_feed_a_later_call(self):
         api = FakeApi()
         stmt = [
-            {"let": "n", "eq": {"op": "len", "a": {"get": "event.data.members"}}},
+            {"let": "n", "eq": {"get": "event.data.members"}},
             {"call": "notify.send", "with": {"n": {"get": "n"}}},
         ]
         _lang.run(stmt, {"event": {"data": {"members": ["a", "b"]}}}, api, None)
         self.assertEqual([c[0] for c in api.calls], ["notify.send"])
-        self.assertEqual(api.calls[0][1]["n"], 2)
+        self.assertEqual(api.calls[0][1]["n"], ["a", "b"])
+
+    def test_rejected_operators_raise(self):
+        """判断/逻辑/集合/度量运算符已下沉模块纯函数，需求表达式求值必须拒绝。"""
+        for op in ("==", "!=", "in", "and", "or", "not", "len", ">", "<", ">=", "<="):
+            with self.assertRaises(ValueError):
+                _lang.eval_expr({"op": op, "a": {"lit": 1}, "b": {"lit": 2}}, {})
 
     def test_control_flow_statement_is_recorded_not_interpreted(self):
         """控制流语句已经不在语法里：引擎记一条失败，然后照常跑后续顺序语句。"""

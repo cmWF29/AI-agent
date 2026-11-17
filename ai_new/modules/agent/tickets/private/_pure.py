@@ -186,6 +186,13 @@ def roles(p):
     return {"items": (p.get("rec") or {}).get("roles") or []}
 
 
+def touch(p):
+    """会话活动后刷新工单 updated：不改状态、不记 history，只更新最后活动时间。"""
+    rec = dict(p.get("rec") or {})
+    rec["updated"] = p.get("now") or ""
+    return rec
+
+
 def note(p):
     rec = dict(p.get("rec") or {})
     text = (p.get("text") or "").strip()

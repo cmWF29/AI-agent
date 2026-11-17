@@ -103,6 +103,7 @@ function tableHtml(sec, ctx) {
 const ROLE_CN = { pm: "PM", user: "用户", assistant: "助手", system: "系统", tool: "工具" };
 const AVATAR_PALETTE = ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"];
 function speakerOf(msg, roles) {
+  if (msg.kind === "note") return "系统";
   const role = msg.role || "assistant";
   if (role === "user") return "用户";
   if (role === "system") return "系统";
@@ -112,6 +113,7 @@ function speakerOf(msg, roles) {
   return (hit && (hit.display || hit.role)) || role;
 }
 function bubbleClass(msg) {
+  if (msg.kind === "note") return "system";
   const role = msg.role || "assistant";
   if (role === "user") return "user";
   if (role === "system") return "system";
