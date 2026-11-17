@@ -16,6 +16,8 @@ def setup(ctx):
                      "岗位工具名单：内置注册表 ∪ 公共外部登记，按名单/类型与项目禁用裁剪", module="tools")
     ctx.api.register("tools.list", _route_list,
                      "工具清单：内置 ∪ 外部登记，附依赖就绪状态", module="tools")
+    ctx.api.register("tools.deps", _route_deps,
+                     "依赖盘点：分类汇总在位/缺失依赖、工具就绪统计与待装计划（只读）", module="tools")
     ctx.api.register("tools.install_missing", _route_install_missing,
                      "安装缺失的 Python 包；cli/env/config 只列待人工处理", module="tools")
     ctx.api.register("tools.external_run", _route_external_run,
@@ -161,6 +163,19 @@ def _route_list(ctx, payload):
     snapshot = _collect_snapshot(ctx, items)
     return _pure.listing({"tools": items, "snapshot": snapshot,
                           "disabled_names": (payload or {}).get("disabled_names") or []})
+
+
+def _route_deps(ctx, payload):
+    """盘点闭环：合并清单 → 在位快照 → 纯函数聚合分类在位/缺失与就绪统计。
+
+    只读盘点，不装包；口径与安装计划一致（内置 ∪ 外部，已禁用 Skill 剔除）。
+    """
+    builtin = ctx.tools.list_tools()
+    merged = _pure.merge({"builtin": builtin,
+                          "external": (payload or {}).get("external") or {},
+                          "disabled": (payload or {}).get("disabled") or []})
+    snapshot = _collect_snapshot(ctx, merged["items"])
+    return _pure.deps_report({"tools": merged["items"], "snapshot": snapshot})
 
 
 def _route_install_missing(ctx, payload):

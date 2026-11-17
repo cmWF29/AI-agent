@@ -1,0 +1,44 @@
+id: tools-deps
+title: 依赖盘点：分类汇总在位/缺失依赖与工具就绪状态，先检查再决定安装
+description: "依赖盘点：合并内置与外部登记工具，对照在位快照按命令/Python 包/环境变量/配置项分类汇总在位与缺失，给出就绪工具统计、可自动装的缺失 Python 包清单与待人工项。只读盘点不装包；聚合判定与成形归工具模块，取外部登记归需求"
+tags: [tool, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent_common/tools
+    path:
+      lit: tools.yaml
+  as: ext
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+  as: sk
+- call: library.disabled_skills
+  with:
+    skills:
+      get: sk.value
+  as: dis
+- call: tools.deps
+  with:
+    external:
+      get: ext.value
+    disabled:
+      get: dis.ids
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - store.read
+  - library.disabled_skills
+  - tools.deps
+  payload: {}
+  promise: 分类聚合、就绪统计与计划成形归模块，取外部登记与禁用过滤编排归需求

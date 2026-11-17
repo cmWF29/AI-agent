@@ -141,6 +141,70 @@ def install_plan(p):
             "ready": not pip and not any(manual[k] for k in manual)}
 
 
+def _group_deps(tools, snapshot):
+    """遍历工具依赖，按类别聚合成在位 / 缺失两组；缺失项带归属工具。resources 只登记不判。"""
+    groups = {kind: {"present": [], "missing": []} for kind, _label in _DEP_KINDS}
+    seen = {kind: set() for kind, _label in _DEP_KINDS}
+    resources, res_seen = [], set()
+    for t in tools or []:
+        deps = t.get("deps") or {}
+        tname = t.get("name") or ""
+        for kind, _label in _DEP_KINDS:
+            names = deps.get(kind) or []
+            present = snapshot.get(kind) or {}
+            for name in names:
+                name = str(name or "")
+                if not name:
+                    continue
+                if kind == "resources":
+                    if name not in res_seen:
+                        res_seen.add(name)
+                        resources.append(name)
+                    continue
+                ok = present.get(name)
+                if kind in ("env", "config"):
+                    ok = bool(ok)
+                if name in seen[kind]:
+                    if not ok:
+                        for m in groups[kind]["missing"]:
+                            if m["name"] == name and tname and tname not in m["tools"]:
+                                m["tools"].append(tname)
+                    continue
+                seen[kind].add(name)
+                if ok:
+                    groups[kind]["present"].append(name)
+                else:
+                    groups[kind]["missing"].append(
+                        {"name": name, "tools": [tname] if tname else []})
+    groups["resources"] = resources
+    return groups
+
+
+def deps_report(p):
+    """依赖盘点：合并清单 + 在位快照 → 分类在位/缺失、工具就绪统计与安装计划。
+
+    只读盘点，不装东西；可自动装的缺失 pip 与待人工项随 plan 成形，供视图先检查再决定安装。
+    """
+    tools = p.get("tools") or []
+    snapshot = p.get("snapshot") or {}
+    groups = _group_deps(tools, snapshot)
+    plan = install_plan({"tools": tools, "snapshot": snapshot})
+    ready_tools = sum(1 for t in tools
+                      if not _missing_for(t.get("deps") or {}, snapshot))
+    manual_missing = sum(len(plan["manual"][k]) for k in plan["manual"])
+    return {
+        "total": len(tools),
+        "ready": ready_tools,
+        "missing_tools": len(tools) - ready_tools,
+        "can_install": bool(plan["pip"]),
+        "install_blocked": not plan["pip"],
+        "pip_missing": len(plan["pip"]),
+        "manual_missing": manual_missing,
+        "plan": plan,
+        "groups": groups,
+    }
+
+
 def external_pending(p):
     """外部工具执行占位：后端未接入前回显登记与依赖提示；不碰主机、不执行。"""
     rec = p.get("rec") or {}

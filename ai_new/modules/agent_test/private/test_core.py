@@ -266,7 +266,7 @@ class CoreTest(unittest.TestCase):
         cfg = self.ctx.cfg.setdefault("llm", {})
         keep = dict(cfg)
         cfg["mode"] = "agent"
-        cfg["agent"] = {"command": ["python3", str(script)], "timeout": 20}
+        cfg["agent"] = {"command": [sys.executable, str(script)], "timeout": 20}
         key = "draft-probe"
         seen, box = [], {}
         def worker():
@@ -342,7 +342,7 @@ class CoreTest(unittest.TestCase):
         cfg = self.ctx.cfg.setdefault("llm", {})
         keep = dict(cfg)
         cfg["mode"] = "agent"
-        cfg["agent"] = {"command": ["python3", "-c",
+        cfg["agent"] = {"command": [sys.executable, "-c",
                         "import sys; d=sys.stdin.read(); print('AGENT-ANSWER:' + str(len(d)))"],
                         "timeout": 20}
         try:
@@ -692,6 +692,56 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(plan2["ready"])
         self.assertIn("numpy", plan2["pip"])
 
+    def test_deps_report_groups_present_and_missing(self):
+        """盘点按类别聚合在位/缺失：在位项进 present，缺失项带归属工具；统计与可装标志成形。"""
+        tools = [
+            {"name": "a", "deps": {"pip": ["numpy"], "cli": ["ffmpeg"], "env": ["HOME"]}},
+            {"name": "b", "deps": {"pip": ["nonexistent_pkg_zzz"], "config": ["db.url"]}},
+        ]
+        snapshot = {"pip": {"numpy": True}, "cli": {"ffmpeg": True},
+                    "env": {"HOME": "/home"}, "config": {"db.url": ""}}
+        rep = tools_pure.deps_report({"tools": tools, "snapshot": snapshot})
+        self.assertEqual(rep["total"], 2)
+        self.assertEqual(rep["ready"], 1)
+        self.assertEqual(rep["missing_tools"], 1)
+        self.assertIn("numpy", rep["groups"]["pip"]["present"])
+        self.assertIn("ffmpeg", rep["groups"]["cli"]["present"])
+        self.assertIn("HOME", rep["groups"]["env"]["present"])
+        pip_missing = [m["name"] for m in rep["groups"]["pip"]["missing"]]
+        cfg_missing = [m["name"] for m in rep["groups"]["config"]["missing"]]
+        self.assertIn("nonexistent_pkg_zzz", pip_missing)
+        self.assertIn("db.url", cfg_missing)
+        self.assertTrue(rep["can_install"])
+        self.assertFalse(rep["install_blocked"])
+        self.assertIn("nonexistent_pkg_zzz", rep["plan"]["pip"])
+        self.assertEqual(rep["pip_missing"], 1)
+        self.assertEqual(rep["manual_missing"], 1)
+
+    def test_deps_report_all_ready_blocks_install(self):
+        """全部在位时盘点就绪、无可自动装项，安装按钮应被禁用。"""
+        tools = [{"name": "a", "deps": {"pip": ["numpy"]}}]
+        rep = tools_pure.deps_report({"tools": tools,
+                                      "snapshot": {"pip": {"numpy": True}}})
+        self.assertEqual(rep["total"], 1)
+        self.assertEqual(rep["ready"], 1)
+        self.assertEqual(rep["missing_tools"], 0)
+        self.assertTrue(rep["plan"]["ready"])
+        self.assertFalse(rep["can_install"])
+        self.assertTrue(rep["install_blocked"])
+        self.assertEqual(rep["pip_missing"], 0)
+        self.assertEqual(rep["manual_missing"], 0)
+
+    def test_tools_deps_demand_runs_report(self):
+        """盘点需求闭环：取外部登记与禁用过滤 → tools.deps 成形分类盘点，只读不装包。"""
+        rep = self._run("tools-deps")["result"]
+        for key in ("total", "ready", "missing_tools", "can_install",
+                    "install_blocked", "pip_missing", "manual_missing",
+                    "plan", "groups"):
+            self.assertIn(key, rep, "盘点结果缺字段: %s" % key)
+        self.assertGreaterEqual(rep["total"], 1)
+        for kind in ("pip", "cli", "env", "config", "resources"):
+            self.assertIn(kind, rep["groups"])
+
     def test_pip_name_maps_to_import_name(self):
         """pip 规范名与导入名不一致时，探测按映射后的导入名走；未收录的兜底连字符转下划线。"""
         self.assertEqual(host_probe._import_name("PyMuPDF"), "fitz")
@@ -704,7 +754,7 @@ class CoreTest(unittest.TestCase):
         """装配后需求清单含本轮入口（冒烟断言固化进门禁，避免下线后静默丢失）。"""
         listed = self.ctx.api.call("demand_engine.list", {})
         ids = {d.get("id") for d in listed}
-        for need in ("tools-list", "tools-install", "decompose-install",
+        for need in ("tools-list", "tools-deps", "tools-install", "decompose-install",
                      "skills-list", "skill-disable", "skill-enable", "skill-uninstall",
                      "view-tools", "view-skills"):
             self.assertIn(need, ids, "装配后需求清单缺少: %s" % need)

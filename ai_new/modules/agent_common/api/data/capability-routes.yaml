@@ -210,6 +210,12 @@ capabilities:
     - host.importable
     - host.env
     - config.get
+  tools.deps:
+    calls:
+    - host.which
+    - host.importable
+    - host.env
+    - config.get
   tools.install_missing:
     calls:
     - host.which

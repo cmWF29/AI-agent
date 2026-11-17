@@ -11,15 +11,33 @@ view:
   crumb: [项目管理, 工具库]
   heading: 工具库
   subheading: 工具 = agent 代码里注册的内置能力；宏观 Shell/进程执行属平台底座，不作为业务工具露出
-  actions:
-  - label: 安装缺失依赖
-    demand: tools-install
-    confirm: "自动安装清单里缺失的 Python 包；CLI/环境变量/配置项需另行人工补齐。"
-    flash: 依赖安装完成
-    after: {view: tools, reload: true}
+  actions: []
   data:
   - {as: list, demand: tools-list}
+  - {as: deps, demand: tools-deps}
   sections:
+  - kind: kv
+    source: deps
+    heading: 依赖盘点
+    rows:
+    - label: 工具总数
+      value: row.total
+    - label: 就绪工具
+      value: row.ready
+    - label: 缺依赖工具
+      value: row.missing_tools
+    - label: 待装 Python 包
+      value: row.pip_missing
+    - label: 待人工补齐
+      value: row.manual_missing
+    actions:
+    - label: 安装缺失依赖
+      demand: tools-install
+      disabled_when: row.install_blocked
+      disabled_hint: 没有待自动安装的 Python 包；CLI/环境变量/配置项需人工补齐
+      confirm: "自动安装盘点中缺失的 Python 包；CLI/环境变量/配置项需另行人工补齐。"
+      flash: 依赖安装完成
+      after: {view: tools, reload: true}
   - kind: table
     source: list.items
     columns:

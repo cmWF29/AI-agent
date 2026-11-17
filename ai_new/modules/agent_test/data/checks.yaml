@@ -120,6 +120,7 @@ checks:
   - position-get
   - position-tools
   - tools-list
+  - tools-deps
   - tools-install
   - tool-external-run
   - view-tools
