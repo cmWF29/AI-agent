@@ -158,15 +158,80 @@ function toolCallHtml(call) {
   if (args && args.length > 200) args = args.slice(0, 200) + "…";
   return `<div class="tool-call"><span class="tool-call-name">${esc(name)}</span>${args ? `<span class="tool-call-args">${esc(args)}</span>` : ""}</div>`;
 }
+const TOOL_META_LABELS = { path: "路径", id: "ID", title: "标题", status: "状态", project: "项目",
+  kind: "类型", layer: "层", size: "字节", chars: "字符", query: "关键词", truncated: "截断",
+  written: "已落盘", pm: "PM", demand: "需求", encoding: "编码" };
+const TOOL_META_ORDER = ["demand", "id", "title", "status", "project", "kind", "layer", "path",
+  "query", "size", "chars", "truncated", "written", "pm", "encoding"];
+
+function toolMetaChips(obj) {
+  const chips = [];
+  for (const k of TOOL_META_ORDER) {
+    let v = obj[k];
+    if (v == null || v === "") continue;
+    if (typeof v === "boolean") v = v ? "是" : "否";
+    chips.push(`<span class="tool-meta-item"><b>${esc(TOOL_META_LABELS[k] || k)}</b> ${esc(v)}</span>`);
+  }
+  return chips.length ? `<div class="tool-meta">${chips.join("")}</div>` : "";
+}
+
+function toolCollectTexts(o) {
+  const texts = [];
+  const push = (t) => { if (typeof t === "string" && t.trim() && !texts.includes(t)) texts.push(t); };
+  push(o.text); push(o.content);
+  if (o.result && typeof o.result === "object") { push(o.result.text); push(o.result.content); }
+  (o.effects || []).forEach((e) => e && push(e.text));
+  return texts;
+}
+
+function toolTraceHtml(o) {
+  const lines = [];
+  (o.effects || []).forEach((e) => {
+    if (!e) return;
+    const seg = [e.kind, e.module, e.path].filter(Boolean).join(" · ");
+    if (seg) lines.push(seg);
+  });
+  (o.applied || []).forEach((a) => {
+    if (!a) return;
+    const seg = (a.written === false ? "未写入" : "已写入") + (a.path ? " · " + a.path : "");
+    lines.push(seg);
+  });
+  (o.history || []).forEach((h) => {
+    if (h && h.text) lines.push((h.event || "记录") + " · " + String(h.text).slice(0, 120));
+  });
+  return lines.length ? `<div class="tool-trace">${lines.map(esc).join("<br>")}</div>` : "";
+}
+
+function toolResultHtml(o, raw) {
+  const res = (o.result && typeof o.result === "object") ? o.result : o;
+  const metaObj = Object.assign({}, res, o);
+  ["result", "effects", "applied", "history", "items"].forEach((k) => delete metaObj[k]);
+  const parts = [];
+  parts.push(toolMetaChips(metaObj));
+  if (Array.isArray(res.items)) {
+    if (!res.items.length) parts.push(`<div class="tool-empty">无命中</div>`);
+    else parts.push(`<ul class="tool-items">${res.items.map((it) => {
+      const label = typeof it === "string" ? it : (it.title || it.path || it.summary || JSON.stringify(it));
+      return `<li>${esc(label)}</li>`;
+    }).join("")}</ul>`);
+  }
+  toolCollectTexts(o).forEach((t) => parts.push(`<div class="tool-text md">${renderMarkdown(t)}</div>`));
+  parts.push(toolTraceHtml(o));
+  let pretty = raw;
+  try { pretty = JSON.stringify(o, null, 2); } catch (e) {}
+  parts.push(`<details class="tool-raw"><summary>原始数据</summary><pre>${esc(pretty)}</pre></details>`);
+  return `<div class="bubble-body tool md">${parts.join("")}</div>`;
+}
+
 function toolBodyHtml(m) {
-  let content = m.content == null ? "" : String(m.content);
-  let err = false;
-  try {
-    const o = JSON.parse(content);
-    if (o && o.ok === false) { err = true; content = o.error || content; }
-  } catch (e) {}
-  if (err) return `<div class="bubble-body tool error md">${renderMarkdown(content)}</div>`;
-  return `<div class="bubble-body tool md">${renderMarkdown(content)}</div>`;
+  const raw = m.content == null ? "" : String(m.content);
+  let o = null;
+  try { o = JSON.parse(raw); } catch (e) {}
+  if (o && typeof o === "object" && o.ok === false) {
+    return `<div class="bubble-body tool error md">${renderMarkdown(o.error || raw)}</div>`;
+  }
+  if (o && typeof o === "object") return toolResultHtml(o, raw);
+  return `<div class="bubble-body tool md">${renderMarkdown(raw)}</div>`;
 }
 function renderBubbles(msgs, roles) {
   const groups = [];
