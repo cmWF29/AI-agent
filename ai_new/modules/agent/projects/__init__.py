@@ -81,9 +81,13 @@ def _purge_sessions(ctx, ticket_ids):
 
 
 def _purge_ticket_knowledge(ctx, ticket_ids):
-    """清掉被删工单的 ticket 层知识；该层前缀是 tickets/<tid>，不在项目知识树下。"""
-    return [{"kind": "remove_dir", "module": "agent/knowledge",
-             "path": "tickets/%s" % tid} for tid in ticket_ids]
+    """清掉被删工单的 ticket 层知识；该层前缀 tickets/<tid>，tid 经 store.id 归一为小写。"""
+    effects = []
+    for tid in ticket_ids:
+        nid = ctx.api.call("store.id", {"value": tid}, caller=None).get("id")
+        effects.append({"kind": "remove_dir", "module": "agent/knowledge",
+                        "path": "tickets/%s" % nid})
+    return effects
 
 
 def _purge_project_tree(ctx, module, pid):

@@ -399,8 +399,9 @@ class CoreTest(unittest.TestCase):
         # 项目产物 / 项目知识前缀整棵清掉
         self.assertEqual(self._glob("agent/artifacts", "projects/%s/**" % pid), [])
         self.assertEqual(self._glob("agent/knowledge", "projects/%s/**" % pid), [])
-        # 工单 ticket 层知识随工单清掉（前缀 tickets/<tid>，不在项目知识树下）
-        self.assertEqual(self._glob("agent/knowledge", "tickets/%s/**" % t["id"]), [])
+        # 工单 ticket 层知识随工单清掉（前缀 tickets/<tid>，不在项目知识树下；tid 归一为小写）
+        nid = self.ctx.api.call("store.id", {"value": t["id"]})["id"]
+        self.assertEqual(self._glob("agent/knowledge", "tickets/%s/**" % nid), [])
         # public 层知识不被误删
         pub = self._run("knowledge-read", {"layer": "public", "name": "keep-public"})
         self.assertIn("全局保留", pub["result"]["content"])
