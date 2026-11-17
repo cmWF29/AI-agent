@@ -79,7 +79,8 @@ function tableHtml(sec, ctx) {
       let val;
       if (col.badge) val = badgeHtml(fill(col.badge, c), c);
       else {
-        val = esc(col.format ? fmtVal(col, c) : fill(col.value, c));
+        const raw = col.format ? fmtVal(col, c) : fill(col.value, c);
+        val = Array.isArray(raw) ? raw.map((x) => esc(x)).join("<br>") : esc(raw);
         if (col.suffix) val += ` ${esc(fill(col.suffix, c))}`;
         if (col.sub) val += `<div class="muted">${esc(fill(col.sub, c))}</div>`;
       }
@@ -164,7 +165,7 @@ function toolBodyHtml(m) {
     const o = JSON.parse(content);
     if (o && o.ok === false) { err = true; content = o.error || content; }
   } catch (e) {}
-  if (err) return `<div class="bubble-body tool error">${esc(content)}</div>`;
+  if (err) return `<div class="bubble-body tool error md">${renderMarkdown(content)}</div>`;
   return `<div class="bubble-body tool md">${renderMarkdown(content)}</div>`;
 }
 function renderBubbles(msgs, roles) {
@@ -179,7 +180,7 @@ function renderBubbles(msgs, roles) {
   }
   return groups.map((g) => {
     if (g.cls === "system") {
-      return g.msgs.map((m) => `<div class="msg system"><div class="sys-body">${esc(m.content == null ? "" : m.content)}</div></div>`).join("");
+      return g.msgs.map((m) => `<div class="msg system"><div class="sys-body md">${renderMarkdown(m.content == null ? "" : m.content)}</div></div>`).join("");
     }
     if (g.cls === "tool") {
       const bodies = g.msgs.map(toolBodyHtml).join("");

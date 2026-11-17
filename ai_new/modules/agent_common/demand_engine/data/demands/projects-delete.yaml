@@ -1,5 +1,6 @@
 id: projects-delete
 title: 删除项目：闭环在 projects.remove 能力内，需求只做顺序编排
+description: "删除项目：闭环在 projects.remove 能力内，需求只做顺序编排。purge 真删与归档两条路在能力内部选，需求树不分岔"
 tags:
 - project
 - write

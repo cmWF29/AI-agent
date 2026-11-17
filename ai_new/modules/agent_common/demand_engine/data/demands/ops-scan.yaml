@@ -1,5 +1,6 @@
 id: ops-scan
 title: 运维扫描：把 tickets 的停滞扫描按只读口径跑一遍
+description: "运维扫描：把 tickets 的停滞扫描按只读口径跑一遍。扫描是 tickets 的能力，运维只是按只读口径触发它"
 tags: [ops, write]
 enabled: true
 callable: true

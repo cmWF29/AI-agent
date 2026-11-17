@@ -1,5 +1,6 @@
 id: view-projects-list
 title: 项目列表视图：首屏只列项目，工单归项目内，未归属单折叠在底部
+description: "项目列表视图：首屏只列项目，工单归项目内，未归属单折叠在底部。首屏只列项目，动作与文案全在规格里"
 tags: [view, web, read]
 enabled: true
 callable: false

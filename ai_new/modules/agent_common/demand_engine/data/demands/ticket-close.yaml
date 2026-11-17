@@ -1,5 +1,6 @@
 id: ticket-close
 title: 结单：闭环在 tickets.close 能力内，需求只做顺序编排
+description: "结单：闭环在 tickets.close 能力内，需求只做顺序编排。子单守卫、关闭落盘、通知父单都在能力内部"
 tags:
 - ticket
 - write

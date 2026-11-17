@@ -1,5 +1,6 @@
 id: session-get
 title: 取会话：按 id 取记录，缺就报缺
+description: "取会话：按 id 取记录，缺就报缺。读一次，缺就报缺"
 tags: [session, read]
 enabled: true
 callable: true

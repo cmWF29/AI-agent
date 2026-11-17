@@ -1,5 +1,6 @@
 id: health-self
 title: 自检聚合：取回各模块快照，交给 health 组装（不跨模块调业务）
+description: "自检聚合：取回各模块快照，交给 health 组装（不跨模块调业务）。服务存活与否是运维口径：先取数，再组装；模块里只剩形状整理"
 tags: [write]
 enabled: true
 callable: true

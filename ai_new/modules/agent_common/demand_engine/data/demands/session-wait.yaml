@@ -1,5 +1,6 @@
 id: session-wait
 title: 取会话回复：读记录 → 摘最后一条 assistant
+description: "取会话回复：读记录 → 摘最后一条 assistant。等多久由调用方决定，这里只取一次"
 tags: [session, read]
 enabled: true
 callable: true

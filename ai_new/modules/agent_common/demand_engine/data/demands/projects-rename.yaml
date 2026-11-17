@@ -1,5 +1,6 @@
 id: projects-rename
 title: 项目改名：闭环在 projects.rename 能力内，需求只做单条顺序调用
+description: "项目改名：闭环在 projects.rename 能力内，需求只做单条顺序调用。查重、迁档、工单引用改挂都在能力内部闭环，需求树不分岔"
 tags:
 - project
 - write

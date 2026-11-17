@@ -1,5 +1,6 @@
 id: auth-logout
 title: 注销：删除自己的会话记录
+description: "注销：删除自己的会话记录。注销只删自己的会话记录，不碰别的模块数据"
 tags: [auth, write]
 enabled: true
 callable: true

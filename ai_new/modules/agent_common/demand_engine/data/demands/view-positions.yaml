@@ -1,5 +1,6 @@
 id: view-positions
 title: 岗位库视图：岗位是系统提示词与流程规范，不在主线
+description: "岗位库视图：岗位是系统提示词与流程规范，不在主线。岗位库只声明表格，数据源走需求"
 tags: [view, web, read]
 enabled: true
 callable: false

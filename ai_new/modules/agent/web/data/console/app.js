@@ -163,6 +163,7 @@ async function boot() {
 }
 
 let POLL = null;   // 视图级轮询句柄：只有声明了 poll 的视图才自刷新
+let LAST_STATUS = "";  // 最近一次会话状态：忙碌时高频轮询，空闲/结单后拉长间隔
 
 function typing() {
   const ta = document.querySelector("#view-body .composer textarea");
@@ -172,27 +173,65 @@ function typing() {
 function schedulePoll(spec) {
   if (POLL) { clearTimeout(POLL); POLL = null; }
   if (!spec || !spec.poll) return;
+  const busy = ["running", "queued", "doing"].includes(LAST_STATUS);
+  const interval = busy ? Number(spec.poll) : Math.max(8000, Number(spec.poll) * 5);
   POLL = setTimeout(async () => {
     if (typing()) { schedulePoll(spec); return; }  // 用户正在写，不抢输入
     try { await render({ keepBanner: true }); } catch (e) {}
-  }, Number(spec.poll));
+  }, interval);
+}
+
+function paramRefs(obj, acc) {
+  if (typeof obj === "string") {
+    const re = /\{([^{}]+)\}/g; let m;
+    while ((m = re.exec(obj))) {
+      let p = m[1].split("|")[0].trim();
+      if (p.startsWith("data.")) p = p.slice(5);
+      else if (p.startsWith("cache.")) p = p.slice(6);
+      const head = p.split(".")[0];
+      if (head) acc.add(head);
+    }
+  } else if (Array.isArray(obj)) obj.forEach((x) => paramRefs(x, acc));
+  else if (obj && typeof obj === "object") Object.values(obj).forEach((x) => paramRefs(x, acc));
+}
+
+async function loadData(spec, ctx) {
+  // 数据源按依赖分层：参数只引用已就绪数据源的一层并行发起；引用前序结果的下一层再跑。
+  const sources = spec.data || [];
+  const done = new Set();
+  let pending = sources.slice();
+  while (pending.length) {
+    const ready = [], wait = [];
+    for (const src of pending) {
+      const refs = new Set();
+      paramRefs(src.params || {}, refs);
+      if ([...refs].every((a) => done.has(a))) ready.push(src);
+      else wait.push(src);
+    }
+    if (!ready.length) ready.push(wait.shift());  // 环或缺依赖兜底：串行先跑一个
+    await Promise.all(ready.map(async (src) => {
+      const params = fill(src.params || {}, ctx);
+      const res = await run(src.demand, params);
+      ctx.data[src.as] = res;
+      if (src.cache) ctx.cache[src.cache] = res;
+    }));
+    ready.forEach((s) => done.add(s.as));
+    pending = wait;
+  }
 }
 
 async function render(opts) {
   const spec = VIEWS[state.view] || VIEWS.projects;
   const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
-  for (const src of spec.data || []) {
-    const params = fill(src.params || {}, ctx);
-    const res = await run(src.demand, params);
-    ctx.data[src.as] = res;
-    if (src.cache) ctx.cache[src.cache] = res;
-  }
+  await loadData(spec, ctx);
   if (!(opts && opts.keepBanner)) banner("");
   const draft = (document.querySelector("#view-body .composer textarea") || {}).value || "";
   renderCrumb(spec, ctx);
   renderView(spec, ctx);
   const ta = document.querySelector("#view-body .composer textarea");
   if (ta && draft) ta.value = draft;   // 轮询重建 DOM 时把用户草稿还回去
+  const th = (ctx.data.thread && ctx.data.thread.thread) || {};
+  LAST_STATUS = th.status || "";
   schedulePoll(spec);
 }
 

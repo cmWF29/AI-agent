@@ -1,5 +1,6 @@
 id: projects-get
 title: 项目详情：按 id 取档案并露出字段；没有就报 not_found
+description: "项目详情：按 id 取档案并露出字段；没有就报 not_found。读一次，缺就报缺，不吞错"
 tags: [project, read]
 enabled: true
 callable: true

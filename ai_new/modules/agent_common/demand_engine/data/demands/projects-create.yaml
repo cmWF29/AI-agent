@@ -1,5 +1,6 @@
 id: projects-create
 title: 新建项目：闭环在 projects.create 能力内，需求只做顺序编排
+description: "新建项目：闭环在 projects.create 能力内，需求只做顺序编排。查重与落盘在能力内部闭环，需求树不分岔"
 tags:
 - project
 - write

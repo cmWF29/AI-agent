@@ -1,5 +1,6 @@
 id: artifacts-write
 title: 写交付件：能力算路径与内容，落盘由 apply 执行
+description: "写交付件：能力算路径与内容，落盘由 apply 执行。文本/二进制两条写路在能力内部选，需求树不分岔"
 tags:
 - artifact
 enabled: true

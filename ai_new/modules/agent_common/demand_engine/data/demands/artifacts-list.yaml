@@ -1,5 +1,6 @@
 id: artifacts-list
 title: 列交付件：分层 → 遍历该层 → 成形
+description: "列交付件：分层 → 遍历该层 → 成形。遍历归需求"
 tags: [artifact, read]
 enabled: true
 callable: true

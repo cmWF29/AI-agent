@@ -1,5 +1,6 @@
 id: artifacts-read
 title: 读交付件：分层 → 算路径 → 取字节 → 解码成形；越界在纯函数里拦
+description: "读交付件：分层 → 算路径 → 取字节 → 解码成形；越界在纯函数里拦。读盘归需求，解码是纯计算"
 tags: [artifact, read]
 enabled: true
 callable: true

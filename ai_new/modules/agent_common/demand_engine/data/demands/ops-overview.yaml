@@ -1,5 +1,6 @@
 id: ops-overview
 title: 运维总览：取回各模块只读状态，交给 ops 组装
+description: "运维总览：取回各模块只读状态，交给 ops 组装。总览的形状属于运维，取数属于编排；面板只读一次结果"
 tags: [ops, write]
 enabled: true
 callable: true

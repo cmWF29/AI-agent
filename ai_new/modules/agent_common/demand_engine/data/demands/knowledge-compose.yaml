@@ -1,5 +1,6 @@
 id: knowledge-compose
 title: 注入知识：整树取文本 → 按层前缀拼接并截断
+description: "注入知识：整树取文本 → 按层前缀拼接并截断。拼哪些层、截多少，都写在需求里"
 tags: [knowledge, read]
 enabled: true
 callable: true

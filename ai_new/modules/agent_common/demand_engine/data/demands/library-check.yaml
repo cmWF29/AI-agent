@@ -1,5 +1,6 @@
 id: library-check
 title: 流程检查：读流程记录，按调用方给的文件清单核验
+description: "流程检查：读流程记录，按调用方给的文件清单核验。文件从外面进来，判断归模块"
 tags: [library, read]
 enabled: true
 callable: true

@@ -1,5 +1,6 @@
 id: view-position
 title: 岗位详情：岗位记录 + 流程规范 + 提示词引用，只读
+description: "岗位详情：岗位记录 + 流程规范 + 提示词引用，只读。岗位详情只声明区块，数据源走 position-get"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -47,6 +48,15 @@ view:
     hide_when_empty: true
     columns:
     - {label: 路径, value: "{row}"}
+  - kind: table
+    source: position.flow.checks
+    heading: 流程检查规则
+    hide_when_empty: true
+    columns:
+    - {label: 类型, value: row.kind}
+    - {label: 匹配路径, value: row.paths}
+    - {label: 命中规则, value: row.match, fallback: —}
+    - {label: 最小字节, value: row.min_bytes, fallback: —}
   - kind: table
     source: position.tools
     heading: 可见工具

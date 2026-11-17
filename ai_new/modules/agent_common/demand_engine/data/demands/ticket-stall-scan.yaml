@@ -1,5 +1,6 @@
 id: ticket-stall-scan
 title: 停滞扫描：闭环在 tickets.stall_scan 能力内，需求只做顺序编排
+description: "停滞扫描：闭环在 tickets.stall_scan 能力内，需求只做顺序编排。遍历在途、逐条判定、按命中开审计单都在能力内部"
 tags:
 - ticket
 enabled: true

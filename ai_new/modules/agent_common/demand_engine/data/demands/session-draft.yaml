@@ -1,5 +1,6 @@
 id: session-draft
 title: 会话运行期草稿：读内存面，看外部 agent 逐行吐出的正文
+description: "会话运行期草稿：读内存面，看外部 agent 逐行吐出的正文。草稿只来自运行期内存面，不落盘；一轮定稿后清空"
 tags: [session, read, web]
 enabled: true
 callable: true

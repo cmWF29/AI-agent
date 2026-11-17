@@ -1,5 +1,6 @@
 id: session-run
 title: 驱动会话：标记 running → 跑一轮 react → 收尾落盘
+description: "驱动会话：标记 running → 跑一轮 react → 收尾落盘。循环在 react 里，本需求只负责状态迁移；收尾校验/回催/复盘由 finished 钩子编排"
 tags:
 - session
 - write

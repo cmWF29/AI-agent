@@ -1,5 +1,6 @@
 id: llm-chat-stream
 title: 对话（流式）：闭环在 llm.chat_stream 能力内，需求只做顺序编排
+description: "对话（流式）：闭环在 llm.chat_stream 能力内，需求只做顺序编排。流式对话同一条闭环，只是反序列化换成 SSE 帧，失败短路链收进能力"
 tags: [llm]
 enabled: true
 callable: true

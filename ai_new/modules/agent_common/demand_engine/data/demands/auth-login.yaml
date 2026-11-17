@@ -1,5 +1,6 @@
 id: auth-login
 title: 登录：闭环在 auth.login 能力内，需求只做顺序编排
+description: "登录：闭环在 auth.login 能力内，需求只做顺序编排。凭据比对与失败守卫在能力内部闭环，需求树不写 when/fail"
 tags:
 - auth
 enabled: true

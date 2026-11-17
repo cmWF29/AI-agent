@@ -1,5 +1,6 @@
 id: web-page
 title: 取控制台页面：纯路径 → store 读文本 → MIME
+description: "取控制台页面：纯路径 → store 读文本 → MIME。页面是数据，路径与 MIME 是纯计算；清单一并下发，页面与需求不再各存一份"
 tags: [web, read]
 enabled: true
 callable: true

@@ -1,5 +1,6 @@
 id: session-finished
 title: 会话收尾闭环：岗位流程校验 → 三态评审 → 回催/复盘/卡点
+description: "会话收尾闭环：岗位流程校验 → 三态评审 → 回催/复盘/卡点。校验与判定归模块，闭环动作清单由 flow_plan 成形，写盘与再驱动交 apply"
 tags: [session, position, write, async]
 enabled: true
 'on':

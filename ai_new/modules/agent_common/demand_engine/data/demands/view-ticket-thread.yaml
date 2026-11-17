@@ -1,5 +1,6 @@
 id: view-ticket-thread
 title: 工单会话视图：主会话按群聊渲染，工单属性与操作在右栏
+description: "工单会话视图：主会话按群聊渲染，工单属性与操作在右栏。会话视图只声明区块，数据源走需求"
 tags:
 - view
 - web

@@ -1,5 +1,6 @@
 id: session-list
 title: 列会话：遍历会话目录后成形
+description: "列会话：遍历会话目录后成形。遍历归需求"
 tags: [session, read]
 enabled: true
 callable: true

@@ -1,5 +1,6 @@
 id: ticket-create
 title: 建工单：闭环在 tickets.create 能力内，需求只做顺序编排
+description: "建工单：闭环在 tickets.create 能力内，需求只做顺序编排。项目守卫与 PM 拉起都在能力内部，需求树只有一次顺序调用"
 tags:
 - ticket
 - write

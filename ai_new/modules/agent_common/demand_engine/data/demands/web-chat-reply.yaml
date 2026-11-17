@@ -1,5 +1,6 @@
 id: web-chat-reply
 title: 网页发消息→对话→回复写回频道：闭环在 channel.reply 能力内
+description: "网页发消息→对话→回复写回频道：闭环在 channel.reply 能力内。只回复用户消息、取历史、跑对话编排、写回同频道都在能力内部"
 tags:
 - channel
 - web

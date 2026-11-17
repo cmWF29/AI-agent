@@ -1,5 +1,6 @@
 id: skills-list
 title: 技能列表：取回技能卡交给 skills 筛
+description: "技能列表：取回技能卡交给 skills 筛。筛选归模块，取数归需求"
 tags: [skill, read]
 enabled: true
 callable: true

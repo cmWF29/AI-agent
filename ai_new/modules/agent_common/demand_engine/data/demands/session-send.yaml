@@ -1,5 +1,6 @@
 id: session-send
 title: 发消息给会话：读记录 → 追加 user 消息 → 落盘
+description: "发消息给会话：读记录 → 追加 user 消息 → 落盘。追加与状态迁移归模块，落盘归需求"
 tags: [session, write]
 enabled: true
 callable: true

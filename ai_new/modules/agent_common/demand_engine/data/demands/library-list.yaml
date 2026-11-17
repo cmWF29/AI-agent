@@ -1,5 +1,6 @@
 id: library-list
 title: 岗位库列表：种子 + 用户记录交给 library 合并
+description: "岗位库列表：种子 + 用户记录交给 library 合并。合并规则归模块，取数归需求"
 tags: [library, read]
 enabled: true
 callable: true

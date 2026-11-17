@@ -1,5 +1,6 @@
 id: ticket-role-spawn
 title: 拉角色会话：spawn 需求 → 挂到 roles → 落盘
+description: "拉角色会话：spawn 需求 → 挂到 roles → 落盘。会话由需求拉，工单只记账"
 tags: [ticket, write]
 enabled: true
 callable: true

@@ -204,6 +204,9 @@ def _make_handler(ctx):
             self.send_response(200)
             self.send_header("Content-Type", asset.get("content_type") or "text/plain; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
+            suffix = Path(rel).suffix
+            self.send_header("Cache-Control",
+                             "no-cache" if suffix == ".html" else "public, max-age=300")
             self.end_headers()
             self.wfile.write(data)
 

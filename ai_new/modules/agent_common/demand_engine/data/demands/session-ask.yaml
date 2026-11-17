@@ -1,5 +1,6 @@
 id: session-ask
 title: 一问一答：send → run → wait 三步编排
+description: "一问一答：send → run → wait 三步编排。编排就是三行调用，没有隐式线程"
 tags: [session, write]
 enabled: true
 callable: true

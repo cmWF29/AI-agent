@@ -1,5 +1,6 @@
 id: session-spawn
 title: 造会话：人设 + 岗位红线/必做 + 岗位工具清单 + 知识注入，拼装落盘
+description: "造会话：人设 + 岗位红线/必做 + 岗位工具清单 + 知识注入，拼装落盘。人设、岗位要素、工具清单、知识各自取来，会话拼装归能力，落盘由 apply 执行"
 tags: [session, write]
 enabled: true
 callable: true

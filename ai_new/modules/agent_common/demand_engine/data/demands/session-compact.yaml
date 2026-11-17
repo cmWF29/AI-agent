@@ -1,5 +1,6 @@
 id: session-compact
 title: 裁剪上下文：保留系统消息 + 最近 N 条
+description: "裁剪上下文：保留系统消息 + 最近 N 条。裁剪规则归模块"
 tags: [session, write]
 enabled: true
 callable: true

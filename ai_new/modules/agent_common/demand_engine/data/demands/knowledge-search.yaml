@@ -1,5 +1,6 @@
 id: knowledge-search
 title: 搜知识：整树取文本 → 交给 knowledge 匹配
+description: "搜知识：整树取文本 → 交给 knowledge 匹配。取文本归需求，匹配归模块"
 tags: [knowledge, read]
 enabled: true
 callable: true

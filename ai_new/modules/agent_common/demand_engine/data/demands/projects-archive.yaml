@@ -1,5 +1,6 @@
 id: projects-archive
 title: 归档项目：读一次 → 打归档标记（带时间）→ 落盘 → 露出字段
+description: "归档项目：读一次 → 打归档标记（带时间）→ 落盘 → 露出字段。标记与时间都由需求带进来，模块纯计算"
 tags: [project, write]
 enabled: true
 callable: true

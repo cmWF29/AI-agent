@@ -1,5 +1,6 @@
 id: ticket-split
 title: 拆子单：闭环在 tickets.split 能力内，需求只做顺序编排
+description: "拆子单：闭环在 tickets.split 能力内，需求只做顺序编排。上限守卫与逐个建单都在能力内部，每次建单仍是独立编排"
 tags:
 - ticket
 - write

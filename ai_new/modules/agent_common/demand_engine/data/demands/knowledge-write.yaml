@@ -1,5 +1,6 @@
 id: knowledge-write
 title: 写知识：闭环在 knowledge.save 能力内，需求只做顺序编排
+description: "写知识：闭环在 knowledge.save 能力内，需求只做顺序编排。append 与覆盖两条写路在能力内部选，需求树不分岔"
 tags:
 - knowledge
 enabled: true

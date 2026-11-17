@@ -1,5 +1,6 @@
 id: llm-chat
 title: 对话（非流式）：闭环在 llm.chat 能力内，需求只做顺序编排
+description: "对话（非流式）：闭环在 llm.chat 能力内，需求只做顺序编排。配置→载荷→序列化→传输→反序列化→解码的失败短路链收进 llm.chat 能力"
 tags:
 - llm
 enabled: true

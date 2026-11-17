@@ -1,5 +1,6 @@
 id: ops-logs
 title: 读日志：读文本 → 切成行 → 解析成事件
+description: "读日志：读文本 → 切成行 → 解析成事件。解析归模块，读盘归能力"
 tags: [ops, read]
 enabled: true
 callable: true

@@ -1,5 +1,6 @@
 id: channel-tail
 title: 取最近 N 条：闭环在 channel.read_tail 能力内
+description: "取最近 N 条：闭环在 channel.read_tail 能力内。读整频道、逐行解码、取窗口都在能力内部"
 tags: [channel]
 enabled: true
 callable: true

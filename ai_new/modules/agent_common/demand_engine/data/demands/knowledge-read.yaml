@@ -1,5 +1,6 @@
 id: knowledge-read
 title: 读知识：归一 id → 算路径 → 取文本 → 有则返回，无则报缺
+description: "读知识：归一 id → 算路径 → 取文本 → 有则返回，无则报缺。路径由模块算，内容由 store 给，读不到就报缺"
 tags: [knowledge, read]
 enabled: true
 callable: true

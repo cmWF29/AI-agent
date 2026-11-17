@@ -1,5 +1,6 @@
 id: channel-since
 title: 按游标取新消息：闭环在 channel.read_since 能力内
+description: "按游标取新消息：闭环在 channel.read_since 能力内。逐行解码与游标比较都在能力内部"
 tags: [channel]
 enabled: true
 callable: true

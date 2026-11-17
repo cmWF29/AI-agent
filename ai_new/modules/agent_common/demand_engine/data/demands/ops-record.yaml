@@ -1,5 +1,6 @@
 id: ops-record
 title: 记一条事件：成形 → 追加到 logs/app.jsonl
+description: "记一条事件：成形 → 追加到 logs/app.jsonl。日志是运维的业务，写盘是能力"
 tags: [ops, write]
 enabled: true
 callable: true

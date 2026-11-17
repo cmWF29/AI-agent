@@ -1,5 +1,6 @@
 id: position-get
 title: 岗位详情：岗位记录 + 关联流程规范 + 提示词引用
+description: "岗位详情：岗位记录 + 关联流程规范 + 提示词引用。岗位是提示词加流程规范的模板，实例化不在此需求"
 tags: [position, library, read]
 enabled: true
 callable: true

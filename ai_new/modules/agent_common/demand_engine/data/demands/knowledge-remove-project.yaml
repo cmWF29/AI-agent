@@ -1,5 +1,6 @@
 id: knowledge-remove-project
 title: 删项目知识：归一 id → 删目录
+description: "删项目知识：归一 id → 删目录。删目录也是需求的动作"
 tags: [knowledge, write]
 enabled: true
 callable: true

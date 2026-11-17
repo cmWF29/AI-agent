@@ -1,5 +1,6 @@
 id: view-project-detail
 title: 项目详情视图：一个项目下的全部工单，建单自动挂本项目
+description: "项目详情视图：一个项目下的全部工单，建单自动挂本项目。项目详情只声明区块，数据源走需求"
 tags: [view, web, read]
 enabled: true
 callable: false

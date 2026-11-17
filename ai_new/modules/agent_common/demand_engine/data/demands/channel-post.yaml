@@ -1,5 +1,6 @@
 id: channel-post
 title: 发消息：闭环在 channel.post 能力内，需求只做顺序编排
+description: "发消息：闭环在 channel.post 能力内，需求只做顺序编排。读历史、算 seq、追加、emit 都在能力内部，需求树只有一次顺序调用"
 tags:
 - channel
 - write
