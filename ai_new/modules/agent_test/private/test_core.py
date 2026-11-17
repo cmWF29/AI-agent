@@ -21,6 +21,7 @@ from ai_new.modules.agent.library.private import _pure as lib_pure  # noqa: E402
 from ai_new.modules.agent.decompose.private import _pure as decompose_pure  # noqa: E402
 from ai_new.modules.agent.sessions.private import _run_pure as sess_run  # noqa: E402
 from ai_new.modules.agent.tickets.private import _pure as ticket_pure  # noqa: E402
+from ai_new.modules.agent.projects.private import _pure as projects_pure  # noqa: E402
 from ai_new.modules.agent_common.react.private import _pure as react_pure  # noqa: E402
 from ai_new.modules.agent_common.tools.private import _pure as tools_pure  # noqa: E402
 from ai_new.modules.agent_common.host.private import _probe as host_probe  # noqa: E402
@@ -402,10 +403,15 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(created["default_backend"], "deepseek-chat")
 
         pid = created["id"]
+        rec = self.ctx.api.call("store.read", {"module": "agent/projects",
+                                "path": pid + ".yaml"}).get("value") or {}
+        ov = rec.get("overrides") or {}
+        for kind in ("roles", "flows", "skills", "tools"):
+            self.assertEqual(ov.get(kind) or [], [], "新项目覆盖层应默认为全启用: %s" % kind)
         for fname in ("roles.yaml", "flows.yaml", "skills.yaml", "tools.yaml"):
             snap = self.ctx.api.call("store.read", {"module": "agent/projects",
                                      "path": "projects/%s/%s" % (pid, fname)})
-            self.assertIsNotNone(snap.get("value"), "新建项目快照缺副本: %s" % fname)
+            self.assertIsNone(snap.get("value"), "新项目不应再物理拷贝库副本: %s" % fname)
         pos = self._run("project-positions", {"id": pid})["result"]
         self.assertGreaterEqual(len(pos["items"]), 1)
 
@@ -628,36 +634,43 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(out.get("tool"), "probe_ext_img")
         self.assertEqual(out.get("args"), {"prompt": "一只猫"})
 
-    def test_project_tool_snapshot_pick_and_execute(self):
-        """项目副本外部工具叠加进 pick 名单；execute 未命中内置按项目副本回退占位；无项目上下文回退不到。"""
-        created = self._run("projects-create", {"name": "工具叠加项目"})["result"]
+    def test_project_tool_override_toggle_pick_and_execute(self):
+        """项目覆盖层禁用工具：pick 名单剔除、execute 拦截；启用后恢复占位执行。公共库定义不被改写。"""
+        created = self._run("projects-create", {"name": "工具覆盖项目"})["result"]
         pid = created["id"]
-        proj = self.ctx.api.call("store.read", {"module": "agent/projects",
-                                                "path": "projects/%s/tools.yaml" % pid})
-        tools = dict(proj.get("value") or {})
-        tools["proj_only_tool"] = {"desc": "项目专属探测工具",
-                                   "params": [{"name": "prompt", "type": "string"}],
-                                   "module": "external", "kinds": ["role"], "deps": {}}
-        self.ctx.api.call("store.write", {"module": "agent/projects",
-                                          "path": "projects/%s/tools.yaml" % pid, "value": tools})
+        row = self.ctx.api.call("store.read", {"module": "agent_common/tools",
+                                              "path": "tools.yaml"})
+        tools = dict(row.get("value") or {})
+        tools["ext_demo_tool"] = {"desc": "公共登记探测工具",
+                                  "params": [{"name": "prompt", "type": "string"}],
+                                  "module": "external", "kinds": ["role"], "deps": {}}
+        self.ctx.api.call("store.write", {"module": "agent_common/tools",
+                                          "path": "tools.yaml", "value": tools})
 
         picked = self.ctx.api.call("tools.pick", {"project": pid, "tools": [], "kind": "role"})
-        names = {t["name"] for t in picked["items"]}
-        self.assertIn("proj_only_tool", names)
+        self.assertIn("ext_demo_tool", {t["name"] for t in picked["items"]})
 
-        out = self.ctx.api.call("tools.execute", {"name": "proj_only_tool",
+        self._run("project-override-toggle", {"project": pid, "kind": "tools",
+                                              "id": "ext_demo_tool", "enabled": False})
+        picked = self.ctx.api.call("tools.pick", {"project": pid, "tools": [], "kind": "role"})
+        self.assertNotIn("ext_demo_tool", {t["name"] for t in picked["items"]})
+
+        with self.assertRaises(Exception) as cm:
+            self.ctx.api.call("tools.execute", {"name": "ext_demo_tool",
+                                                "args": {"prompt": "x"},
+                                                "session": {"project": pid}})
+        self.assertEqual(cm.exception.code, "no_tool")
+
+        self._run("project-override-toggle", {"project": pid, "kind": "tools",
+                                              "id": "ext_demo_tool", "enabled": True})
+        out = self.ctx.api.call("tools.execute", {"name": "ext_demo_tool",
                                                   "args": {"prompt": "x"},
                                                   "session": {"project": pid}})
         self.assertEqual(out.get("code"), "external_pending")
-        self.assertEqual(out.get("tool"), "proj_only_tool")
-        self.assertEqual(out.get("args"), {"prompt": "x"})
-
-        with self.assertRaises(Exception) as cm:
-            self.ctx.api.call("tools.execute", {"name": "proj_only_tool", "args": {}})
-        self.assertEqual(cm.exception.code, "no_tool")
+        self.assertEqual(out.get("tool"), "ext_demo_tool")
 
     def test_project_skills_and_tools_list(self):
-        """项目技能/工具清单取数：项目快照兜底公共，成行字段齐全。"""
+        """项目技能/工具清单取数：直读公共库并按覆盖层打标记，成行字段齐全。"""
         created = self._run("projects-create", {"name": "清单项目"})["result"]
         pid = created["id"]
         skills = self._run("project-skills", {"id": pid})["result"]
@@ -668,18 +681,6 @@ class CoreTest(unittest.TestCase):
                     "status", "status_text", "missing", "builtin", "source"}
         for row in tools["items"]:
             self.assertTrue(required <= set(row), "项目工具行缺字段: %s" % (required - set(row)))
-
-    def test_normalize_fields_splits_list_fields(self):
-        """表单文本规整：岗位数组字段按换行/逗号拆清单，标量去空白；已是列表逐项去空。"""
-        out = lib_pure.normalize_fields({"kind": "roles", "fields": {
-            "cn": "  设计师 ", "prompt": "  正文 ",
-            "must_dos": "a\nb, c", "forbidden": "   ", "tools": ["x", " y "],
-        }})["fields"]
-        self.assertEqual(out["cn"], "设计师")
-        self.assertEqual(out["prompt"], "正文")
-        self.assertEqual(out["must_dos"], ["a", "b", "c"])
-        self.assertEqual(out["forbidden"], [])
-        self.assertEqual(out["tools"], ["x", "y"])
 
     def test_install_plan_empty_deps_is_ready(self):
         """空依赖清单的安装计划直接就绪；有未在位 pip 包才进待装清单。"""
@@ -943,6 +944,29 @@ class CoreTest(unittest.TestCase):
         self.assertEqual([t["name"] for t in merged["items"]], ["t1"])
         listing = tools_pure.listing({"tools": merged["items"], "snapshot": {}})["items"]
         self.assertEqual(listing[0]["skill"], "s1")
+
+    def test_project_override_pure_parts_and_toggle(self):
+        """覆盖层纯函数：缺省四类空清单；禁用加入、启用移出、去重保序；非法类型/标识返错误形状。"""
+        empty = projects_pure.override_parts({"rec": {}})
+        self.assertEqual(empty, {"roles": [], "flows": [], "skills": [], "tools": []})
+        rec = {"id": "p1", "overrides": {"roles": [" dev ", "dev"], "tools": ["t1"]}}
+        parts = projects_pure.override_parts({"rec": rec})
+        self.assertEqual(parts["roles"], ["dev"])
+        self.assertEqual(parts["tools"], ["t1"])
+
+        off = projects_pure.toggle_override({"rec": rec, "kind": "roles",
+                                            "id": "qa", "enabled": False, "now": "t1"})
+        self.assertEqual(off["overrides"]["roles"], ["dev", "qa"])
+        on = projects_pure.toggle_override({"rec": off, "kind": "roles",
+                                           "id": "dev", "enabled": True, "now": "t2"})
+        self.assertEqual(on["overrides"]["roles"], ["qa"])
+
+        bad_kind = projects_pure.toggle_override({"rec": {}, "kind": "billing",
+                                                  "id": "x", "enabled": False})
+        self.assertFalse(bad_kind["ok"])
+        missing_id = projects_pure.toggle_override({"rec": {}, "kind": "roles",
+                                                    "id": "  ", "enabled": False})
+        self.assertFalse(missing_id["ok"])
 
     def test_flow_plan_effects(self):
         rec = {"id": "role-1", "kind": "role", "role": "developer",

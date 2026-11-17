@@ -11,9 +11,9 @@ def setup(ctx):
     """装配入口：ctx.tools 指向注册表。"""
     ctx.tools = _registry.ToolRegistry(ctx)
     ctx.api.register("tools.execute", _route_execute,
-                     "执行工具：注册表命中直跑；未命中按项目副本/公共登记回退占位", module="tools")
+                     "执行工具：注册表命中直跑；未命中按公共登记回退占位，项目禁用工具不执行", module="tools")
     ctx.api.register("tools.pick", _route_pick,
-                     "岗位工具名单：内置注册表 ∪ 项目副本外部登记（兜底公共），按名单/类型裁剪", module="tools")
+                     "岗位工具名单：内置注册表 ∪ 公共外部登记，按名单/类型与项目禁用裁剪", module="tools")
     ctx.api.register("tools.list", _route_list,
                      "工具清单：内置 ∪ 外部登记，附依赖就绪状态", module="tools")
     ctx.api.register("tools.install_missing", _route_install_missing,
@@ -63,56 +63,47 @@ def list_tools(ctx):
 
 
 def _project_external(ctx, project):
-    """按项目取外部登记工具字典与已禁用 Skill 集合；项目副本缺/空回退公共库。
+    """按项目取外部登记工具字典、已禁用 Skill 集合与项目禁用工具名集合。
 
-    项目快照独立演进：项目内登记/裁剪的工具不回写公共；无 project 时退化为公共库。
+    工具定义正文只存公共库一份；项目只持有启停覆盖层。无 project 时退化为公共库。
     """
-    if project:
-        tp = ctx.api.call("projects.project_lib_path",
-                          {"id": project, "kind": "tools"}, caller=None)
-        proj = ctx.api.call("store.read", {"module": "agent/projects",
-                                           "path": tp["path"]}, caller=None)
-        pub = ctx.api.call("store.read", {"module": "agent_common/tools",
-                                          "path": "tools.yaml"}, caller=None)
-        ext = ctx.api.call("projects.choose_dict",
-                           {"project": proj, "public": pub}, caller=None)
-        sp = ctx.api.call("projects.project_lib_path",
-                          {"id": project, "kind": "skills"}, caller=None)
-        psk = ctx.api.call("store.read", {"module": "agent/projects",
-                                          "path": sp["path"]}, caller=None)
-        pubsk = ctx.api.call("store.read", {"module": "agent/library",
-                                            "path": "skills.yaml"}, caller=None)
-        sk = ctx.api.call("projects.choose_dict",
-                          {"project": psk, "public": pubsk}, caller=None)
-    else:
-        ext = ctx.api.call("store.read", {"module": "agent_common/tools",
-                                          "path": "tools.yaml"}, caller=None)
-        sk = ctx.api.call("store.read", {"module": "agent/library",
-                                        "path": "skills.yaml"}, caller=None)
+    ext = ctx.api.call("store.read", {"module": "agent_common/tools",
+                                      "path": "tools.yaml"}, caller=None)
+    sk = ctx.api.call("store.read", {"module": "agent/library",
+                                    "path": "skills.yaml"}, caller=None)
     disabled = ctx.api.call("library.disabled_skills",
                             {"skills": (sk.get("value") or {})}, caller=None)
-    return ext.get("value") or {}, disabled.get("ids") or []
+    disabled_names = []
+    if project:
+        row = ctx.api.call("store.read", {"module": "agent/projects",
+                                          "path": project + ".yaml"}, caller=None)
+        ov = ctx.api.call("projects.override_parts", {"rec": row.get("value")}, caller=None)
+        disabled_names = ov.get("tools") or []
+    return ext.get("value") or {}, disabled.get("ids") or [], disabled_names
 
 
 def _route_pick(ctx, payload):
-    """岗位工具名单：内置注册表 ∪ 项目副本外部登记（兜底公共），按名单交集/会话类型裁剪。"""
+    """岗位工具名单：内置注册表 ∪ 公共外部登记，按名单交集/会话类型与项目禁用裁剪。"""
     builtin = ctx.tools.list_tools()
-    external, disabled = _project_external(ctx, payload.get("project"))
+    external, disabled, disabled_names = _project_external(ctx, payload.get("project"))
     merged = _pure.merge({"builtin": builtin, "external": external,
                           "disabled": disabled})
     return _pure.pickp({"items": merged["items"],
                         "tools": payload.get("tools") or [],
-                        "kind": payload.get("kind")})
+                        "kind": payload.get("kind"),
+                        "disabled": disabled_names})
 
 
 def _route_execute(ctx, payload):
-    """执行工具：注册表命中直跑；未命中按项目副本/公共登记回退占位，仍无则报 no_tool。"""
+    """执行工具：注册表命中直跑；项目禁用工具拦截；未命中按公共登记回退占位，仍无则报 no_tool。"""
     name = payload.get("name")
     session = payload.get("session")
+    external, _, disabled_names = _project_external(ctx, (session or {}).get("project"))
+    if name in set(disabled_names):
+        raise ctx.ApiError("工具已在本项目禁用: %s" % name, code="no_tool", status=404)
     if ctx.tools.has(name):
         return ctx.tools.execute(name, payload.get("args"), session=session,
                                  defer=bool(payload.get("defer")))
-    external, _ = _project_external(ctx, (session or {}).get("project"))
     rec = external.get(name)
     if not isinstance(rec, dict):
         raise ctx.ApiError("工具不存在: %s" % name, code="no_tool", status=404)
@@ -168,7 +159,8 @@ def _route_list(ctx, payload):
                           "disabled": (payload or {}).get("disabled") or []})
     items = _pure.scope(merged["items"], (payload or {}).get("scope"))
     snapshot = _collect_snapshot(ctx, items)
-    return _pure.listing({"tools": items, "snapshot": snapshot})
+    return _pure.listing({"tools": items, "snapshot": snapshot,
+                          "disabled_names": (payload or {}).get("disabled_names") or []})
 
 
 def _route_install_missing(ctx, payload):

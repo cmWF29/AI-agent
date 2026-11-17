@@ -177,17 +177,29 @@ def _disabled_skill_ids(skills):
 
 
 def positionsp(p):
-    """岗位列表：岗位记录按 id 关联各自流程规范；禁用 Skill 的岗位摘除；末尾附只读 PM 条目。"""
+    """岗位列表：岗位记录按 id 关联各自流程规范；禁用 Skill 的岗位摘除；末尾附只读 PM 条目。
+
+    disabled_roles 为项目级禁用岗位 id 集合：公共库记录仍展示并打 disabled 标记，供项目重新启用。
+    """
     roles = _records({"seed": p.get("seed"), "user": p.get("user"), "kind": "roles"})
     flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
     disabled = _disabled_skill_ids(p.get("skills"))
+    disabled_roles = set(p.get("disabled_roles") or [])
     items = []
     for rid, rec in roles.items():
         sk = rec.get("skill")
         if sk and sk in disabled:
             continue
-        items.append(_position(rec, flows.get(rid) or {}))
-    items.append(_position(_pm_record(), {}))
+        row = _position(rec, flows.get(rid) or {})
+        row["disabled"] = rid in disabled_roles
+        row["disabled_text"] = "项目禁用" if row["disabled"] else "启用中"
+        row["locked"] = bool(rec.get("system") or rec.get("readonly"))
+        items.append(row)
+    pm = _position(_pm_record(), {})
+    pm["disabled"] = False
+    pm["disabled_text"] = "启用中"
+    pm["locked"] = True
+    items.append(pm)
     return {"items": items}
 
 
@@ -204,43 +216,6 @@ def getp(p):
         return {"ok": False, "code": "not_found", "status": 404,
                 "error": "%s 不存在: %s" % (kind, rid)}
     return {"kind": kind, "item": rec}
-
-
-_ARRAY_FIELDS = {
-    "roles": ["must_dos", "forbidden", "tools", "must_outputs"],
-}
-
-
-def _split_list(text):
-    """换行/逗号分隔 → 非空清单；已是列表逐项去空白。纯拆分，不取值不判断。"""
-    if isinstance(text, list):
-        return [str(x).strip() for x in text if str(x).strip()]
-    if not text:
-        return []
-    out = []
-    for raw in str(text).replace(",", "\n").split("\n"):
-        item = raw.strip()
-        if item:
-            out.append(item)
-    return out
-
-
-def normalize_fields(p):
-    """表单字段规整：按 kind 约定的数组字段把多行文本拆成清单；标量字段去空白。
-
-    纯形状规整，不落库；拆分成清单的规则归岗位库模块。
-    """
-    fields = dict(p.get("fields") or {})
-    list_fields = _ARRAY_FIELDS.get(p.get("kind") or "roles") or []
-    out = {}
-    for k, v in fields.items():
-        if k in list_fields:
-            out[k] = _split_list(v)
-        elif isinstance(v, str):
-            out[k] = v.strip()
-        else:
-            out[k] = v
-    return {"fields": out}
 
 
 def designp(p):
@@ -338,11 +313,13 @@ def disabled_p(p):
 def skills_listp(p):
     """Skill 登记字典 → 清单行：关联岗位中文名、流程在库与否、工具名清单与状态。
 
+    disabled 为项目级禁用 Skill 标识集合：记录仍展示并打 disabled_project 标记，供项目重新启用。
     合并与摘要成形归岗位库模块；各库记录由需求读盘后交入。
     """
     skills = p.get("skills") or {}
     roles = p.get("roles") or {}
     flows = p.get("flows") or {}
+    disabled_project = set(p.get("disabled") or [])
     items = []
     for sid, rec in skills.items():
         if not isinstance(rec, dict):
@@ -360,6 +337,8 @@ def skills_listp(p):
             "version": rec.get("version") or "",
             "status": rec.get("status") or "enabled",
             "status_text": "已禁用" if disabled else "启用中",
+            "disabled_project": sid in disabled_project,
+            "disabled_text": "项目禁用" if sid in disabled_project else "",
             "role": role_id,
             "role_cn": role_rec.get("cn") or "",
             "flow": flow_id,

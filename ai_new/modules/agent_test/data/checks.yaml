@@ -78,7 +78,7 @@ checks:
   - projects-list
   - projects-rename
   - project-positions
-  - project-library-design
+  - project-override-toggle
   - project-skills
   - project-tools
   - react-run

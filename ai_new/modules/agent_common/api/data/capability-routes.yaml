@@ -44,9 +44,16 @@ capabilities:
     - projects.conflict
     - store.write
     - projects.view
+  projects.toggle:
+    calls:
+    - store.id
     - store.read
-    - projects.snapshot_parts
-    - projects.project_lib_path
+    - projects.missing
+    - clock.now
+    - projects.toggle_override
+    - projects.override_parts
+    - projects.view
+    - store.write
   projects.rename:
     calls:
     - store.id
@@ -204,16 +211,14 @@ capabilities:
     - store.read
   tools.pick:
     calls:
-    - projects.project_lib_path
     - store.read
-    - projects.choose_dict
     - library.disabled_skills
+    - projects.override_parts
   tools.execute:
     calls:
-    - projects.project_lib_path
     - store.read
-    - projects.choose_dict
     - library.disabled_skills
+    - projects.override_parts
   channel.reply:
     calls:
     - channel.read_tail

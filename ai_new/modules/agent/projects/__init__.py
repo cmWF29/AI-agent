@@ -18,14 +18,14 @@ def setup(ctx):
         ("projects.conflict", _pure.conflict),
         ("projects.deleted", _pure.deleted),
         ("projects.renamed", _pure.renamed),
-        ("projects.snapshot_parts", _pure.snapshot_parts),
-        ("projects.project_lib_path", _pure.project_lib_path),
-        ("projects.choose_dict", _pure.choose_dict),
+        ("projects.override_parts", _pure.override_parts),
+        ("projects.toggle_override", _pure.toggle_override),
     ]:
         ctx.api.register(name, _as_handler(fn), module="projects")
     ctx.api.register("projects.create", _route_create, "新建项目：归一→造档→查重→落盘→回执", module="projects")
     ctx.api.register("projects.remove", _route_remove, "删除项目：purge 真删，否则归档", module="projects")
     ctx.api.register("projects.rename", _route_rename, "项目改名：查重→迁档→工单引用改挂", module="projects")
+    ctx.api.register("projects.toggle", _route_toggle, "项目启停：翻转覆盖层禁用清单，定义正文仍指向公共库", module="projects")
     return True
 
 
@@ -40,36 +40,34 @@ def _route_create(ctx, payload):
     if ex.get("exists"):
         return ctx.api.call("projects.conflict", {"id": pid.get("id")}, caller=None)
     view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
-    effects = [{"kind": "write", "module": "agent/projects",
+    view["effects"] = [{"kind": "write", "module": "agent/projects",
                 "path": pid.get("id") + ".yaml", "value": rec}]
-    effects += _snapshot_effects(ctx, pid.get("id"))
-    view["effects"] = effects
     return view
 
 
-def _snapshot_effects(ctx, pid):
-    """新建项目：从公共岗位/流程/技能/工具库全量复制一份项目副本，项目内定制不回写公共。
+def _route_toggle(ctx, payload):
+    """项目启停闭环：读档 → 纯函数翻转覆盖层禁用清单 → 写回项目档案；定义正文不回写公共库。
 
-    公共记录由需求/装配落公共库；这里只读取并成形项目副本写盘，分库路径约定归项目模块。
+    项目档案不存在返 missing；类型/标识非法由纯函数返错误形状，不落盘。
     """
-    common = {
-        "roles": ctx.api.call("store.read", {"module": "agent/library",
-                              "path": "roles.yaml"}, caller=None).get("value"),
-        "flows": ctx.api.call("store.read", {"module": "agent/library",
-                              "path": "flows.yaml"}, caller=None).get("value"),
-        "skills": ctx.api.call("store.read", {"module": "agent/library",
-                               "path": "skills.yaml"}, caller=None).get("value"),
-        "tools": ctx.api.call("store.read", {"module": "agent_common/tools",
-                              "path": "tools.yaml"}, caller=None).get("value"),
-    }
-    parts = ctx.api.call("projects.snapshot_parts", common, caller=None)
-    effects = []
-    for kind in ("roles", "flows", "skills", "tools"):
-        rp = ctx.api.call("projects.project_lib_path",
-                          {"id": pid, "kind": kind}, caller=None)
-        effects.append({"kind": "write", "module": "agent/projects",
-                        "path": rp["path"], "value": parts.get(kind) or {}})
-    return effects
+    pid = ctx.api.call("store.id", {"value": payload.get("project")}, caller=None)
+    row = ctx.api.call("store.read", {"module": "agent/projects",
+        "path": pid.get("id") + ".yaml"}, caller=None)
+    if row.get("value") is None:
+        return ctx.api.call("projects.missing", {"id": pid.get("id")}, caller=None)
+    now = ctx.api.call("clock.now", {}, caller=None)
+    rec = ctx.api.call("projects.toggle_override", {
+        "rec": row.get("value"), "kind": payload.get("kind"),
+        "id": payload.get("id"), "enabled": payload.get("enabled"),
+        "now": now.get("ts")}, caller=None)
+    if rec.get("ok") is False:
+        return rec
+    view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
+    view["overrides"] = ctx.api.call("projects.override_parts",
+                                     {"rec": rec}, caller=None)
+    view["effects"] = [{"kind": "write", "module": "agent/projects",
+                        "path": pid.get("id") + ".yaml", "value": rec}]
+    return view
 
 
 def _purge_tickets(ctx, pid):

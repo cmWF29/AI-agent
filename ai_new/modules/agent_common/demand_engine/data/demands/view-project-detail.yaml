@@ -1,6 +1,6 @@
 id: view-project-detail
 title: 项目详情视图：一个项目下的全部工单，建单自动挂本项目
-description: "项目详情视图：一个项目下的全部工单，建单自动挂本项目。项目详情只声明区块，数据源走需求"
+description: "项目详情视图：一个项目下的全部工单，建单自动挂本项目。岗位/技能/工具定义正文只存公共库一份，项目只持启停覆盖层；项目详情只声明区块，数据源走需求"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -30,39 +30,85 @@ view:
   - kind: table
     source: positions.items
     heading: 项目岗位
-    count_note: "{data.positions.items.length} 个岗位（项目快照副本；副本缺则回退公共库）"
+    count_note: "{data.positions.items.length} 个岗位（引用公共岗位库；可在本项目单独禁用）"
     columns:
     - {label: 岗位, value: row.cn, fallback: row.id, sub: row.prompt_file}
     - {label: 工具, value: "row.tools|count", suffix: 项, muted: true}
     - {label: 门禁检查, value: "row.flow.checks|count", suffix: 项, muted: true}
+    - {label: 状态, badge: row.disabled_text}
     actions:
-    - label: 编辑
-      modal: project.role.edit
-      disabled_when: "row.builtin == true"
-      disabled_hint: 内置岗位不可编辑
+    - label: 禁用
+      demand: project-override-toggle
+      params: {project: "{project.id}", kind: roles, id: row.id, enabled: false}
+      disabled_when: "row.disabled == true"
+      disabled_hint: 已在本项目禁用
+      confirm: "在本项目禁用岗位「{row.cn}」？"
+      flash: 已禁用岗位：{row.cn}
+      stay: true
+    - label: 启用
+      demand: project-override-toggle
+      params: {project: "{project.id}", kind: roles, id: row.id, enabled: true}
+      disabled_when: "row.locked == true"
+      disabled_hint: 只读岗位不可启停
+      flash: 已启用岗位：{row.cn}
+      stay: true
     on_click: {view: position, params: {position: row.id}}
     empty: {text: 这个项目还没有岗位}
   - kind: table
     source: skills.items
     heading: 项目技能
-    count_note: "{data.skills.items.length} 个技能（项目快照副本；副本缺则回退公共库）"
+    count_note: "{data.skills.items.length} 个技能（引用公共技能库；可在本项目单独禁用）"
     columns:
     - {label: 技能, value: row.cn, fallback: row.id}
     - {label: 岗位, value: row.role_cn, fallback: "—", muted: true}
     - {label: 流程, value: row.flow_text, fallback: "—", muted: true}
     - {label: 工具, value: row.tools, muted: true}
-    - {label: 状态, badge: row.status_text}
+    - {label: 公共状态, badge: row.status_text}
+    - {label: 项目状态, badge: row.disabled_text}
+    actions:
+    - label: 禁用
+      demand: project-override-toggle
+      params: {project: "{project.id}", kind: skills, id: row.id, enabled: false}
+      disabled_when: "row.disabled_project == true"
+      disabled_hint: 已在本项目禁用
+      confirm: "在本项目禁用技能「{row.cn}」？"
+      flash: 已禁用技能：{row.cn}
+      stay: true
+    - label: 启用
+      demand: project-override-toggle
+      params: {project: "{project.id}", kind: skills, id: row.id, enabled: true}
+      disabled_when: "row.disabled_project != true"
+      disabled_hint: 已启用
+      flash: 已启用技能：{row.cn}
+      stay: true
     empty: {text: 这个项目还没有技能}
   - kind: table
     source: ptools.items
     heading: 项目工具
-    count_note: "{data.ptools.items.length} 个工具（内置 ∪ 项目副本外部登记，兜底公共库）"
+    count_note: "{data.ptools.items.length} 个工具（内置 ∪ 公共外部登记；可在本项目单独禁用）"
     columns:
     - {label: 工具名, value: row.name, sub: row.module}
     - {label: 来源, value: row.source}
     - {label: 说明, value: row.desc}
     - {label: 依赖, value: row.deps}
     - {label: 状态, badge: row.status_text}
+    - {label: 项目状态, badge: row.disabled_text}
+    actions:
+    - label: 禁用
+      demand: project-override-toggle
+      params: {project: "{project.id}", kind: tools, id: row.name, enabled: false}
+      disabled_when: "row.disabled_project == true"
+      disabled_hint: 已在本项目禁用
+      confirm: "在本项目禁用工具「{row.name}」？"
+      flash: 已禁用工具：{row.name}
+      stay: true
+    - label: 启用
+      demand: project-override-toggle
+      params: {project: "{project.id}", kind: tools, id: row.name, enabled: true}
+      disabled_when: "row.disabled_project != true"
+      disabled_hint: 已启用
+      flash: 已启用工具：{row.name}
+      stay: true
     empty: {text: 这个项目还没有工具}
   - kind: table
     source: tickets.items

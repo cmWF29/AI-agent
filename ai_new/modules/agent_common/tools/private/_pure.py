@@ -35,16 +35,21 @@ def merge(p):
 
 
 def pickp(p):
-    """合并清单按岗位名单交集裁剪；名单为空按会话类型放行。成形归模块，注册表与外部候选由路由给齐。"""
+    """合并清单按岗位名单交集裁剪；名单为空按会话类型放行。disabled 为项目禁用工具名集合，不进运行名单。
+
+    成形归模块，注册表与外部候选由路由给齐。
+    """
     items = p.get("items") or []
     allow = p.get("tools") or []
     kind = p.get("kind")
+    disabled = set(p.get("disabled") or [])
     if allow:
         wanted = set(allow)
         base = [t for t in items if t.get("name") in wanted]
     else:
         base = [t for t in items
                 if not t.get("kinds") or (kind and kind in (t.get("kinds") or []))]
+    base = [t for t in base if t.get("name") not in disabled]
     return {"items": [{"name": t.get("name"), "desc": t.get("desc"),
                        "params": t.get("params"), "module": t.get("module")}
                       for t in base]}
@@ -147,7 +152,11 @@ def external_pending(p):
 
 
 def listing(p):
-    """合并后工具清单翻成只读清单行：参数、可见类型、依赖、就绪状态都成形为文本。"""
+    """合并后工具清单翻成只读清单行：参数、可见类型、依赖、就绪状态都成形为文本。
+
+    disabled_names 为项目禁用工具名集合：行内打 disabled_project 标记，仍展示供重新启用。
+    """
+    disabled_names = set(p.get("disabled_names") or [])
     rows = []
     for t in p.get("tools") or []:
         params = t.get("params") or []
@@ -171,6 +180,8 @@ def listing(p):
             "missing": _missing_text(status["missing"]),
             "builtin": bool(t.get("builtin")),
             "skill": t.get("skill") or "",
+            "disabled_project": t.get("name") in disabled_names,
+            "disabled_text": "项目禁用" if t.get("name") in disabled_names else "",
             "source": "内置" if t.get("builtin") else "拆解",
         })
     return {"items": rows}

@@ -1,6 +1,6 @@
 id: project-tools
-title: 项目工具清单：项目快照副本外部登记 ∪ 内置注册表，兜底公共库
-description: "项目工具清单：优先用项目快照副本里的外部登记工具，副本缺或空回退公共库；与代码内置注册表合并，按已禁用 Skill 裁剪，附依赖就绪状态。合并/裁剪/判定归工具模块，兜底选择归项目模块，取数归需求"
+title: 项目工具清单：内置注册表 ∪ 公共外部登记，按项目覆盖层打禁用标记
+description: "项目工具清单：外部登记工具定义正文只存公共库一份，项目档案只持启停覆盖层；与代码内置注册表合并，按已禁用 Skill 与项目禁用裁剪展示标记，附依赖就绪状态。合并/裁剪/判定归工具模块，覆盖层取数归项目模块，取数归需求"
 tags: [project, tool, read]
 enabled: true
 callable: true
@@ -11,61 +11,31 @@ do:
     value:
       get: input.id
   as: pid
-- call: projects.project_lib_path
-  with:
-    id:
-      get: pid.id
-    kind:
-      lit: tools
-  as: ptool_p
 - call: store.read
   with:
     module:
       lit: agent/projects
     path:
-      get: ptool_p.path
-  as: ptool
+      get: pid.id
+  as: proj
+- call: projects.override_parts
+  with:
+    rec:
+      get: proj.value
+  as: ov
 - call: store.read
   with:
     module:
       lit: agent_common/tools
     path:
       lit: tools.yaml
-  as: pubtool
-- call: projects.choose_dict
-  with:
-    project:
-      get: ptool
-    public:
-      get: pubtool
   as: tool
-- call: projects.project_lib_path
-  with:
-    id:
-      get: pid.id
-    kind:
-      lit: skills
-  as: psk_p
-- call: store.read
-  with:
-    module:
-      lit: agent/projects
-    path:
-      get: psk_p.path
-  as: psk
 - call: store.read
   with:
     module:
       lit: agent/library
     path:
       lit: skills.yaml
-  as: pubsk
-- call: projects.choose_dict
-  with:
-    project:
-      get: psk
-    public:
-      get: pubsk
   as: sk
 - call: library.disabled_skills
   with:
@@ -78,6 +48,8 @@ do:
       get: tool.value
     disabled:
       get: dis.ids
+    disabled_names:
+      get: ov.tools
     scope:
       lit: all
   as: out
@@ -87,15 +59,11 @@ expect:
       id: <project-id>
   calls:
   - store.id
-  - projects.project_lib_path
+  - store.read
+  - projects.override_parts
   - store.read
   - store.read
-  - projects.choose_dict
-  - projects.project_lib_path
-  - store.read
-  - store.read
-  - projects.choose_dict
   - library.disabled_skills
   - tools.list
   payload: {}
-  promise: 副本/公共兜底、合并裁剪与就绪判定归工具模块，取数归需求
+  promise: 公共库唯一事实源、合并裁剪与就绪判定归工具模块，项目覆盖层只打标记，取数归需求

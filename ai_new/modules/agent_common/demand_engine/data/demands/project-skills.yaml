@@ -1,6 +1,6 @@
 id: project-skills
-title: 项目 Skill 清单：项目快照副本优先，副本缺或空回退公共库
-description: "项目 Skill 清单：优先用项目快照副本里的技能/岗位/流程/工具记录，副本不存在或为空回退公共库；关联岗位中文名、流程在库与否、工具名与启停状态。摘要成形归岗位库模块，兜底选择归项目模块，取数归需求"
+title: 项目 Skill 清单：直读公共技能库，按项目覆盖层打禁用标记
+description: "项目 Skill 清单：技能/岗位/流程/工具定义正文只存公共库一份，项目档案只持启停覆盖层；读公共库成形摘要，项目禁用技能仍展示并打 disabled_project 标记，供重新启用。关联岗位中文名、流程在库与否、工具名与状态。摘要成形归岗位库模块，覆盖层取数归项目模块，取数归需求"
 tags: [project, library, read]
 enabled: true
 callable: true
@@ -11,117 +11,45 @@ do:
     value:
       get: input.id
   as: pid
-- call: projects.project_lib_path
-  with:
-    id:
-      get: pid.id
-    kind:
-      lit: skills
-  as: psk_p
 - call: store.read
   with:
     module:
       lit: agent/projects
     path:
-      get: psk_p.path
-  as: psk
+      get: pid.id
+  as: proj
+- call: projects.override_parts
+  with:
+    rec:
+      get: proj.value
+  as: ov
 - call: store.read
   with:
     module:
       lit: agent/library
     path:
       lit: skills.yaml
-  as: pubsk
-- call: projects.choose_dict
-  with:
-    project:
-      get: psk
-    public:
-      get: pubsk
   as: sk
-- call: projects.project_lib_path
-  with:
-    id:
-      get: pid.id
-    kind:
-      lit: roles
-  as: prole_p
-- call: store.read
-  with:
-    module:
-      lit: agent/projects
-    path:
-      get: prole_p.path
-  as: prole
 - call: store.read
   with:
     module:
       lit: agent/library
     path:
       lit: roles.yaml
-  as: pubrole
-- call: projects.choose_dict
-  with:
-    project:
-      get: prole
-    public:
-      get: pubrole
   as: role
-- call: projects.project_lib_path
-  with:
-    id:
-      get: pid.id
-    kind:
-      lit: flows
-  as: pflow_p
-- call: store.read
-  with:
-    module:
-      lit: agent/projects
-    path:
-      get: pflow_p.path
-  as: pflow
 - call: store.read
   with:
     module:
       lit: agent/library
     path:
       lit: flows.yaml
-  as: pubflow
-- call: projects.choose_dict
-  with:
-    project:
-      get: pflow
-    public:
-      get: pubflow
   as: flow
-- call: projects.project_lib_path
-  with:
-    id:
-      get: pid.id
-    kind:
-      lit: tools
-  as: ptool_p
-- call: store.read
-  with:
-    module:
-      lit: agent/projects
-    path:
-      get: ptool_p.path
-  as: ptool
 - call: store.read
   with:
     module:
       lit: agent_common/tools
     path:
       lit: tools.yaml
-  as: pubtool
-- call: projects.choose_dict
-  with:
-    project:
-      get: ptool
-    public:
-      get: pubtool
   as: tool
 - call: library.skills_list
   with:
@@ -133,6 +61,8 @@ do:
       get: flow.value
     tools:
       get: tool.value
+    disabled:
+      get: ov.skills
   as: out
 expect:
   given:
@@ -140,22 +70,12 @@ expect:
       id: <project-id>
   calls:
   - store.id
-  - projects.project_lib_path
+  - store.read
+  - projects.override_parts
   - store.read
   - store.read
-  - projects.choose_dict
-  - projects.project_lib_path
   - store.read
   - store.read
-  - projects.choose_dict
-  - projects.project_lib_path
-  - store.read
-  - store.read
-  - projects.choose_dict
-  - projects.project_lib_path
-  - store.read
-  - store.read
-  - projects.choose_dict
   - library.skills_list
   payload: {}
-  promise: 副本/公共兜底、Skill 摘要成形归模块，取数归需求
+  promise: 公共库唯一事实源、Skill 摘要成形归模块，项目覆盖层只打标记，取数归需求

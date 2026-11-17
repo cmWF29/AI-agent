@@ -16,33 +16,12 @@ do:
       role:
         get: input.role
   as: prompt
-- call: projects.project_lib_path
-  with:
-    id:
-      get: input.project
-    kind:
-      lit: roles
-  as: prole_p
-- call: store.read
-  with:
-    module:
-      lit: agent/projects
-    path:
-      get: prole_p.path
-  as: prole
 - call: store.read
   with:
     module:
       lit: agent/library
     path:
       lit: roles.yaml
-  as: pubrole
-- call: projects.choose_dict
-  with:
-    project:
-      get: prole
-    public:
-      get: pubrole
   as: role
 - call: library.get
   with:
@@ -136,10 +115,7 @@ expect:
       kind: role
   calls:
   - demand_engine.run
-  - projects.project_lib_path
   - store.read
-  - store.read
-  - projects.choose_dict
   - library.get
   - demand_engine.run
   - library.prompt_blocks

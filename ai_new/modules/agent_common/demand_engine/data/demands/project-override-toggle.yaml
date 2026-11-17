@@ -1,0 +1,41 @@
+id: project-override-toggle
+title: 项目启停：翻转某类岗位/流程/技能/工具的项目级禁用覆盖
+description: "项目启停：定义正文仍指向公共库一份，项目档案只增删覆盖层禁用清单。启用即移出禁用清单，禁用即加入；校验与清单成形归 projects 模块，落盘由 apply 执行，不回写公共库"
+tags:
+- project
+- library
+- write
+enabled: true
+callable: true
+'on': []
+do:
+- call: projects.toggle
+  with:
+    project:
+      get: input.project
+    kind:
+      get: input.kind
+    id:
+      get: input.id
+    enabled:
+      get: input.enabled
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input:
+      project: p1
+      kind: roles
+      id: developer
+      enabled: false
+  calls:
+  - projects.toggle
+  - runtime.apply
+  payload: {}
+  promise: 覆盖层翻转与校验成形归模块，写盘只落项目档案，公共库定义不回写
