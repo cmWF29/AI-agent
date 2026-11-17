@@ -164,7 +164,7 @@ function renderBubbles(msgs, roles) {
     }
     const side = g.cls === "user" ? "right" : "left";
     const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
-    const bodies = g.msgs.map((m) => `<div class="bubble-body">${esc(m.content == null ? "" : m.content)}</div>`).join("");
+    const bodies = g.msgs.map((m) => `<div class="bubble-body md">${renderMarkdown(m.content == null ? "" : m.content)}</div>`).join("");
     const last = g.msgs[g.msgs.length - 1];
     const ts = last.ts ? `<div class="msg-ts">${when(last.ts)}</div>` : "";
     return `<div class="msg ${side}">${side === "left" ? av : ""}

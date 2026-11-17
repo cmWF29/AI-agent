@@ -340,7 +340,7 @@ class StructureTest(unittest.TestCase):
                    "README.md", "ARCHITECTURE.md",
                    "agent_start.out.log", "agent_start.err.log",
                    # VCS 元数据；部署副本运行期产物（TLS 材料目录、运行日志）
-                   ".gitignore", "certs", "run.log"}
+                   ".git", ".gitignore", "certs", "run.log"}
         self.assertEqual(sorted(entries - allowed), [],
                          "根目录多出了东西: %s" % sorted(entries - allowed))
         self.assertTrue((ROOT / "agent_start.py").is_file())

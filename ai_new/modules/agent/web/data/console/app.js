@@ -27,6 +27,55 @@ function esc(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// 轻量 Markdown 渲染：先整体转义杜绝原始 HTML 注入，再在安全文本上解析基础语法
+// 支持：标题(#/##/###)、加粗、斜体、行内代码、有序/无序列表、链接(http/https/相对路径)、软换行。
+function renderMarkdown(text) {
+  const raw = String(text == null ? "" : text);
+  if (!raw.trim()) return "";
+  let s = esc(raw);
+  // 抽出行内代码占位保护，避免代码内的 * _ ` 被当作语法解析
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
+
+  const inline = (t) => t
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+|\/[^)\s]*)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  const lines = s.split(/\r?\n/);
+  const out = [];
+  let list = null;
+  let para = [];
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  const flushPara = () => { if (para.length) { out.push(`<p>${para.join("<br>")}</p>`); para = []; } };
+
+  for (const line of lines) {
+    let m;
+    if (/^\s*#{1,3}\s+/.test(line)) {
+      flushPara(); closeList();
+      out.push(`<h5>${inline(line.replace(/^\s*#{1,3}\s+/, ""))}</h5>`);
+    } else if ((m = line.match(/^\s*[-*]\s+(.*)$/))) {
+      flushPara();
+      if (list !== "ul") { closeList(); list = "ul"; out.push("<ul>"); }
+      out.push(`<li>${inline(m[1])}</li>`);
+    } else if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))) {
+      flushPara();
+      if (list !== "ol") { closeList(); list = "ol"; out.push("<ol>"); }
+      out.push(`<li>${inline(m[1])}</li>`);
+    } else if (!line.trim()) {
+      flushPara(); closeList();
+    } else {
+      para.push(inline(line));
+    }
+  }
+  flushPara(); closeList();
+
+  let html = out.join("");
+  html = html.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[+i]}</code>`);
+  return html;
+}
+
 async function run(demand, input) {
   let resp, body;
   try {
