@@ -50,7 +50,8 @@ def step(p):
 def result(p):
     msgs = p.get("messages") or []
     return {"steps": p.get("steps") or 0, "messages": msgs,
-            "last": msgs[-1] if msgs else None, "cancelled": bool(p.get("cancelled"))}
+            "last": msgs[-1] if msgs else None, "cancelled": bool(p.get("cancelled")),
+            "failed": p.get("failed")}
 
 
 def toolerr(p):

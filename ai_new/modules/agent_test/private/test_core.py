@@ -20,6 +20,7 @@ from ai_new.modules.agent.auth.private import _pure as auth_pure  # noqa: E402
 from ai_new.modules.agent.library.private import _pure as lib_pure  # noqa: E402
 from ai_new.modules.agent.sessions.private import _run_pure as sess_run  # noqa: E402
 from ai_new.modules.agent.tickets.private import _pure as ticket_pure  # noqa: E402
+from ai_new.modules.agent_common.react.private import _pure as react_pure  # noqa: E402
 from _fixtures import stage, write_config  # noqa: E402
 import _fixtures  # noqa: E402
 
@@ -572,6 +573,35 @@ class CoreTest(unittest.TestCase):
         kinds = [e["kind"] for e in exhausted["effects"]]
         self.assertIn("demand", kinds)
         self.assertNotIn("dispatch", kinds)
+
+    def test_react_result_carries_failure(self):
+        """后端未答复的原因要随结果透出，不能在循环里丢掉。"""
+        res = react_pure.result({"messages": [{"role": "user", "content": "x"}],
+                                  "steps": 0, "cancelled": False,
+                                  "failed": {"code": "net_error", "error": "连不上"}})
+        self.assertEqual(res["failed"]["code"], "net_error")
+        self.assertFalse(res["cancelled"])
+
+    def test_finish_records_and_clears_last_error(self):
+        """失败原因落进会话 meta；下一轮成功后清除上一次的错误痕迹。"""
+        rec = {"id": "pm-1", "meta": {}}
+        failed_out = {"messages": [], "steps": 0, "last": None, "cancelled": False,
+                      "failed": {"code": "llm_error", "error": "余额不足"}}
+        done = sess_run.finish({"rec": rec, "out": failed_out, "latest": {}, "now": 1})
+        self.assertEqual(done["meta"]["last_error"]["error"], "余额不足")
+        self.assertTrue(done["result"].get("failed"))
+        ok_out = {"messages": [{"role": "assistant", "content": "好"}], "steps": 1,
+                  "last": {"content": "好"}, "cancelled": False, "failed": None}
+        cleared = sess_run.finish({"rec": done, "out": ok_out, "latest": {}, "now": 2})
+        self.assertNotIn("last_error", cleared["meta"])
+
+    def test_thread_exposes_session_backend_and_meta(self):
+        """线程视图要露出主会话后端与 meta，界面才能判断 PM 走哪条链路、有无卡点。"""
+        thread = {"id": "pm-2", "name": "pm", "status": "idle", "backend": "api",
+                  "role": "", "updated": 1, "meta": {"tools": []}, "messages": []}
+        out = ticket_pure.threadp({"ticket": {"id": "T-1", "roles": []}, "thread": thread})
+        self.assertEqual(out["thread"]["backend"], "api")
+        self.assertEqual(out["thread"]["meta"], {"tools": []})
 
     def test_auth_verify_legacy_token(self):
         """夹具配了旧令牌 t：命中放行，空/错令牌拒绝。"""

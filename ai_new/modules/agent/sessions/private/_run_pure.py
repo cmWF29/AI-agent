@@ -33,9 +33,20 @@ def finish(p):
     rec["status"] = "idle"
     rec["steps"] = out.get("steps") or 0
     rec["updated"] = p.get("now") or ""
+    meta = dict(rec.get("meta") or {})
+    failed = out.get("failed")
+    # 后端未答复的原因落进会话面，供视图透出；成功一轮后清除上一次的错误痕迹
+    if failed:
+        meta["last_error"] = {"code": failed.get("code") or "", "error": failed.get("error") or ""}
+    else:
+        meta.pop("last_error", None)
+    rec["meta"] = meta
     last = out.get("last") or {}
     if out.get("cancelled"):
         rec["result"] = {"summary": "（已打断）", "at": p.get("now") or "", "cancelled": True}
+    elif failed:
+        rec["result"] = {"summary": (failed.get("error") or "后端未答复")[:500],
+                         "at": p.get("now") or "", "failed": True}
     else:
         rec["result"] = {"summary": (last.get("content") or "")[:500], "at": p.get("now") or ""}
     return rec

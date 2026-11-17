@@ -32,10 +32,9 @@ view:
   - kind: chat
     lane: left
     source: thread.thread
-    heading: '{thread.ticket.title} · {thread.ticket.id} · {thread.ticket.status}'
+    heading: '{thread.ticket.title} · {thread.ticket.id} · 工单 {thread.ticket.status} · 会话 {thread.thread.status}'
     hide_roles:
     - system
-    - tool
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.roles
   - kind: kv
@@ -62,6 +61,53 @@ view:
       format: when
     - label: 父工单
       value: row.parent
+      fallback: —
+  - kind: kv
+    lane: right
+    source: thread.thread
+    heading: PM 会话
+    rows:
+    - label: 会话 ID
+      value: row.id
+      fallback: 未拉起
+    - label: 后端
+      value: row.backend
+      fallback: 跟随配置
+    - label: 会话状态
+      badge: row.status
+    - label: 最后活动
+      value: row.updated
+      format: when
+    - label: 最近错误
+      value: row.meta.last_error.error
+      fallback: 无
+  - kind: table
+    lane: right
+    source: thread.roles
+    heading: 角色实例
+    hide_when_empty: true
+    columns:
+    - label: 角色
+      value: row.display
+      fallback: row.role
+    - label: 任务
+      value: row.task
+      fallback: —
+    - label: 状态
+      badge: row.status
+  - kind: table
+    lane: right
+    source: thread.ticket.history
+    heading: 工单历程
+    hide_when_empty: true
+    columns:
+    - label: 时间
+      value: row.at
+      format: when
+    - label: 事件
+      value: row.event
+    - label: 说明
+      value: row.text
       fallback: —
   - kind: composer
     lane: left

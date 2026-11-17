@@ -99,12 +99,13 @@ function tableHtml(sec, ctx) {
   return wrap;
 }
 
-const ROLE_CN = { pm: "PM", user: "用户", assistant: "助手", system: "系统" };
+const ROLE_CN = { pm: "PM", user: "用户", assistant: "助手", system: "系统", tool: "工具" };
 const AVATAR_PALETTE = ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"];
 function speakerOf(msg, roles) {
   const role = msg.role || "assistant";
   if (role === "user") return "用户";
   if (role === "system") return "系统";
+  if (role === "tool") return msg.name ? ("工具 · " + msg.name) : "工具";
   if (role === "pm" || role === "assistant") return ROLE_CN[role] || role;
   const hit = (roles || []).find((r) => r.role === role || r.session === role);
   return (hit && (hit.display || hit.role)) || role;
@@ -113,6 +114,7 @@ function bubbleClass(msg) {
   const role = msg.role || "assistant";
   if (role === "user") return "user";
   if (role === "system") return "system";
+  if (role === "tool") return "tool";
   if (role === "assistant" || role === "pm") return "assistant";
   return "role";
 }
@@ -131,8 +133,7 @@ function chatHtml(sec, ctx) {
   const hidden = sec.hide_roles || [];
   const msgs = arr(src.messages).filter((m) => {
     if (hidden.includes(m.role || "")) return false;
-    // 只调工具、没有说话内容的助手消息不占气泡（用户看不到工具细节）
-    return !(m.role === "assistant" && !String(m.content || "").trim());
+    return true;
   });
   const headTitle = sec.heading ? `<div class="chat-title">${esc(fill(sec.heading, ctx))}</div>` : "";
   const draft = (ctx.data && ctx.data.draft) || {};
@@ -148,6 +149,23 @@ function chatHtml(sec, ctx) {
     <div class="chat">${body}</div>
   </section>`;
 }
+function toolCallHtml(call) {
+  const fn = (call && call.function) || {};
+  const name = fn.name || "";
+  let args = fn.arguments || "";
+  try { args = JSON.stringify(JSON.parse(args)); } catch (e) {}
+  if (args && args.length > 200) args = args.slice(0, 200) + "…";
+  return `<div class="tool-call"><span class="tool-call-name">${esc(name)}</span>${args ? `<span class="tool-call-args">${esc(args)}</span>` : ""}</div>`;
+}
+function toolBodyHtml(m) {
+  let content = m.content == null ? "" : String(m.content);
+  let err = false;
+  try {
+    const o = JSON.parse(content);
+    if (o && o.ok === false) { err = true; content = o.error || content; }
+  } catch (e) {}
+  return `<div class="bubble-body tool${err ? " error" : ""}">${esc(content)}</div>`;
+}
 function renderBubbles(msgs, roles) {
   const groups = [];
   for (const m of msgs) {
@@ -162,9 +180,18 @@ function renderBubbles(msgs, roles) {
     if (g.cls === "system") {
       return g.msgs.map((m) => `<div class="msg system"><div class="sys-body">${esc(m.content == null ? "" : m.content)}</div></div>`).join("");
     }
+    if (g.cls === "tool") {
+      const bodies = g.msgs.map(toolBodyHtml).join("");
+      return `<div class="msg left tool-msg"><div class="msg-main"><div class="msg-name">${esc(g.who)}</div><div class="bubble-stack">${bodies}</div></div></div>`;
+    }
     const side = g.cls === "user" ? "right" : "left";
     const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
-    const bodies = g.msgs.map((m) => `<div class="bubble-body md">${renderMarkdown(m.content == null ? "" : m.content)}</div>`).join("");
+    const bodies = g.msgs.map((m) => {
+      const calls = (m.tool_calls || []).map(toolCallHtml).join("");
+      const body = String(m.content || "").trim()
+        ? `<div class="bubble-body md">${renderMarkdown(m.content)}</div>` : "";
+      return calls + body;
+    }).join("");
     const last = g.msgs[g.msgs.length - 1];
     const ts = last.ts ? `<div class="msg-ts">${when(last.ts)}</div>` : "";
     return `<div class="msg ${side}">${side === "left" ? av : ""}

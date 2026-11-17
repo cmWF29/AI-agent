@@ -91,6 +91,9 @@ def threadp(p):
         "ticket": view({"rec": ticket}),
         "thread": {"id": thread.get("id") or "", "name": thread.get("name") or "",
                    "status": thread.get("status") or "",
+                   "backend": thread.get("backend") or "", "role": thread.get("role") or "",
+                   "updated": thread.get("updated") or "",
+                   "meta": thread.get("meta") or {},
                    "messages": thread.get("messages") or []},
         "roles": ticket.get("roles") or [],
     }
