@@ -1,8 +1,9 @@
-"""拆解纯函数：包内容解析、提示词成形、草稿解析与工具核对、记录成形。
+"""拆解纯函数：包内容解析、提示词成形、模型返回成形、入库记录映射。
 
 不读盘、不取时间、不调模型；模型返回的对象已由闭环解码后交进来。
 Skill.md 的 frontmatter 与 requirements.txt 都是纯文本，这里手写极简解析，
 不借 yaml/json 标准库（编解码归 codec，文件读取归 store）。
+拆解结果直接成形为一个 Skill 单元（岗位 + 流程 + 工具），不再经过草稿待确认。
 """
 from __future__ import annotations
 
@@ -208,46 +209,11 @@ def parse(p):
                  "edges": list(flow.get("edges") or [])},
         "tools": new_tools,
     }
-    return {"draft": draft, "dropped": dropped + tool_dropped, "tools": sorted(whitelist)}
+    return {"draft": draft, "meta": meta, "dropped": dropped + tool_dropped,
+            "tools": sorted(whitelist)}
 
 
-# ---- 草稿记录与入库映射 ----
-
-def draft_record(p):
-    """草稿成形：补状态、来源、时间；id 来自包标识，缺了不收。"""
-    draft = p.get("draft") or {}
-    rid = (draft.get("id") or "").strip()
-    if not rid:
-        return {"ok": False, "code": "missing_id", "status": 400,
-                "error": "拆解结果缺少标识 id（英文标识）"}
-    rec = dict(draft)
-    rec["id"] = rid
-    rec["status"] = "draft"
-    rec["source"] = p.get("source") or ""
-    rec["created"] = p.get("now") or ""
-    rec["builtin"] = False
-    return {"rec": rec}
-
-
-def save_draft(p):
-    """并回草稿字典（按 id 映射）；写盘值归拆解模块。"""
-    user = dict(p.get("user") or {})
-    rec = p.get("rec") or {}
-    rid = rec.get("id")
-    if rid:
-        user[rid] = dict(rec)
-    return {"value": user}
-
-
-def draft_file(p):
-    """草稿分库用户记录文件：drafts.yaml。布局约定归拆解模块。"""
-    return {"path": "drafts.yaml"}
-
-
-def tools_file(p):
-    """外部工具登记文件：tools.yaml。布局约定归拆解模块。"""
-    return {"path": "tools.yaml"}
-
+# ---- 入库记录映射 ----
 
 def merge_tools(p):
     """新工具定义并回外部工具登记字典（按 name 映射）；写盘值归拆解模块。"""
@@ -259,66 +225,58 @@ def merge_tools(p):
     return {"value": user}
 
 
-def draft_get(p):
-    """按 id 取一条草稿；查不到返回 not_found 形状。"""
-    rec = (p.get("user") or {}).get(p.get("id") or "")
-    if not rec:
-        return {"ok": False, "code": "not_found", "status": 404,
-                "error": "草稿不存在: %s" % (p.get("id") or "")}
-    return {"item": rec}
+def install_parts(p):
+    """模型成形的拆解草稿 → 一个 Skill 单元的入库记录：岗位 + 流程 + 工具 + Skill 条目。
 
+    字段映射归拆解模块，不写盘；流程拆不出就留空（无 checks/nodes/edges），不硬造。
+    """
+    draft = p.get("draft") or {}
+    rid = (draft.get("id") or "").strip()
+    if not rid:
+        return {"ok": False, "code": "missing_id", "status": 400,
+                "error": "拆解结果缺少标识 id（英文标识）"}
+    role = draft.get("role") or {}
+    flow = draft.get("flow") or {}
+    meta = p.get("meta") or {}
 
-def drafts_list(p):
-    """草稿字典 → 摘要清单：列表给岗位库/草稿视图用，完整记录仍按 id 取。"""
-    items = []
-    for rid, rec in (p.get("user") or {}).items():
-        if not isinstance(rec, dict):
+    role_tools = list(role.get("tools") or [])
+    tool_records = []
+    for tool in draft.get("tools") or []:
+        if not isinstance(tool, dict) or not tool.get("name"):
             continue
-        role = rec.get("role") or {}
-        tools = rec.get("tools") or []
-        items.append({
-            "id": rec.get("id") or rid,
-            "cn": role.get("cn") or rid,
-            "doc": "",
-            "role_cn": role.get("cn") or "",
-            "tools": "、".join(role.get("tools") or []),
-            "new_tools": "、".join(t.get("name") for t in tools
-                                  if isinstance(t, dict) and t.get("name")),
-            "status": rec.get("status") or "draft",
-            "source": rec.get("source") or "",
-            "created": rec.get("created") or "",
-        })
-    items.sort(key=lambda x: x.get("created") or "", reverse=True)
-    return {"items": items}
+        rec = dict(tool, skill=rid, builtin=False)
+        tool_records.append(rec)
+        if tool["name"] not in role_tools:
+            role_tools.append(tool["name"])
 
-
-def accept_parts(p):
-    """草稿 → 入库记录形状：角色/流程 + 新工具定义。字段映射归拆解模块，不写盘。"""
-    rec = p.get("rec") or {}
-    role = rec.get("role") or {}
-    flow = rec.get("flow") or {}
-    rid = rec.get("id") or ""
     role_record = {"id": rid, "cn": role.get("cn") or "",
                    "must_dos": role.get("must_dos") or [],
                    "forbidden": role.get("forbidden") or [],
-                   "tools": role.get("tools") or [],
-                   "prompt_file": "", "backend": "", "builtin": False}
-    flow_record = {"id": rid, "role": rid}
+                   "tools": role_tools,
+                   "prompt_file": "", "backend": "",
+                   "skill": rid, "builtin": False}
+
+    flow_record = {"id": rid, "role": rid, "skill": rid}
+    flow_id = ""
     if flow.get("checks"):
         flow_record["checks"] = flow.get("checks")
+        flow_id = rid
     if flow.get("nodes"):
         flow_record["kind"] = "process"
         flow_record["nodes"] = flow.get("nodes")
         flow_record["edges"] = flow.get("edges")
-    tool_records = []
-    for tool in rec.get("tools") or []:
-        if not isinstance(tool, dict) or not tool.get("name"):
-            continue
-        tool_records.append(dict(tool, builtin=False, source=rid))
-    # 新工具随拆解岗位一并进可见名单：岗位既能引用现有白名单工具，也带上自产新工具。
-    kept_tools = list(role.get("tools") or [])
-    for t in tool_records:
-        if t.get("name") not in kept_tools:
-            kept_tools.append(t["name"])
-    role_record["tools"] = kept_tools
-    return {"role": role_record, "flow": flow_record, "tools": tool_records}
+        flow_id = rid
+    if not flow_id:
+        flow_record = None
+
+    skill_record = {"id": rid, "cn": role.get("cn") or rid,
+                     "doc": meta.get("doc") or "",
+                     "source": p.get("source") or "",
+                     "version": meta.get("version") or "",
+                     "status": "enabled", "role": rid, "flow": flow_id,
+                     "tools": [t["name"] for t in tool_records],
+                     "builtin": False,
+                     "created": p.get("now") or "", "updated": p.get("now") or ""}
+    return {"skill": skill_record, "role": role_record,
+            "flow": flow_record, "tools": tool_records}
+

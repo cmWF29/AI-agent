@@ -18,6 +18,7 @@ from ai_new.modules.agent_common.boot.private._boot import _build as build  # no
 from ai_new.modules.agent_common.boot.private._context import Context  # noqa: E402
 from ai_new.modules.agent.auth.private import _pure as auth_pure  # noqa: E402
 from ai_new.modules.agent.library.private import _pure as lib_pure  # noqa: E402
+from ai_new.modules.agent.decompose.private import _pure as decompose_pure  # noqa: E402
 from ai_new.modules.agent.sessions.private import _run_pure as sess_run  # noqa: E402
 from ai_new.modules.agent.tickets.private import _pure as ticket_pure  # noqa: E402
 from ai_new.modules.agent_common.react.private import _pure as react_pure  # noqa: E402
@@ -644,8 +645,9 @@ class CoreTest(unittest.TestCase):
         """装配后需求清单含本轮入口（冒烟断言固化进门禁，避免下线后静默丢失）。"""
         listed = self.ctx.api.call("demand_engine.list", {})
         ids = {d.get("id") for d in listed}
-        for need in ("tools-list", "tools-external-list", "tools-install", "decompose-draft",
-                     "view-tools", "view-skills", "view-drafts"):
+        for need in ("tools-list", "tools-external-list", "tools-install", "decompose-install",
+                     "skills-list", "skill-disable", "skill-enable", "skill-uninstall",
+                     "view-tools", "view-skills", "view-external-tools"):
             self.assertIn(need, ids, "装配后需求清单缺少: %s" % need)
 
     # ---- 调用面与 HTTP 通道 ----
@@ -792,6 +794,97 @@ class CoreTest(unittest.TestCase):
         self.assertEqual([m["content"] for m in pm_msgs], ["开工", "计划已出"])
         role_msgs = arch["transcript"]["roles"][0]["messages"]
         self.assertEqual([m["content"] for m in role_msgs], ["交付完成"])
+
+    def test_skill_unit_pure_functions(self):
+        # install_parts：流程拆不出 → flow=null、skill.flow 留空；岗位/工具带同一 skill 归属
+        draft_empty = {"id": "ppt_design_skill",
+                       "role": {"cn": "演示文稿设计师", "must_dos": ["出稿"],
+                                "forbidden": ["不改码"], "tools": ["artifact_read"]},
+                       "flow": {"checks": [], "nodes": [], "edges": []},
+                       "tools": [{"name": "ppt_render", "desc": "渲染", "params": [],
+                                  "deps": {"pip": ["python-pptx"]}}]}
+        out = decompose_pure.install_parts(
+            {"draft": draft_empty, "meta": {"id": "ppt_design_skill", "doc": "做PPT", "version": "v1"},
+             "source": "github:x", "now": "t1"})
+        self.assertIsNone(out["flow"])
+        self.assertEqual(out["skill"]["flow"], "")
+        self.assertEqual(out["skill"]["status"], "enabled")
+        self.assertEqual(out["role"]["skill"], "ppt_design_skill")
+        self.assertEqual(out["tools"][0]["skill"], "ppt_design_skill")
+        self.assertIn("artifact_read", out["role"]["tools"])
+        self.assertIn("ppt_render", out["role"]["tools"])
+        # 带检查项 → 流程成形，skill.flow 指向流程标识
+        draft_flow = dict(draft_empty)
+        draft_flow["flow"] = {"checks": [{"kind": "file", "paths": ["docs/a.md"]}],
+                              "nodes": [], "edges": []}
+        out2 = decompose_pure.install_parts(
+            {"draft": draft_flow, "meta": {"id": "ppt_design_skill"}, "now": "t2"})
+        self.assertIsNotNone(out2["flow"])
+        self.assertEqual(out2["skill"]["flow"], "ppt_design_skill")
+        # 缺标识 → 成形报错，不落有效记录
+        bad = decompose_pure.install_parts({"draft": {"role": {}}})
+        self.assertFalse(bad["ok"])
+
+        # skills_listp：关联岗位中文名、流程在库与否、工具名、启停文本
+        skills = {"s1": {"id": "s1", "cn": "PPT师", "status": "enabled", "role": "r1",
+                         "flow": "f1", "tools": ["t1"], "builtin": False},
+                  "s2": {"id": "s2", "cn": "生图师", "status": "disabled", "role": "r2",
+                         "flow": "", "tools": ["t2"], "builtin": False}}
+        roles = {"r1": {"id": "r1", "cn": "PPT师", "skill": "s1"},
+                 "r2": {"id": "r2", "cn": "生图师", "skill": "s2"}}
+        flows = {"f1": {"id": "f1", "role": "r1", "checks": []}}
+        tools = {"t1": {"name": "t1", "skill": "s1"}, "t2": {"name": "t2", "skill": "s2"}}
+        listed = lib_pure.skills_listp({"skills": skills, "roles": roles,
+                                        "flows": flows, "tools": tools})["items"]
+        row1 = next(x for x in listed if x["id"] == "s1")
+        row2 = next(x for x in listed if x["id"] == "s2")
+        self.assertEqual(row1["role_cn"], "PPT师")
+        self.assertTrue(row1["has_flow"])
+        self.assertEqual(row1["flow_text"], "有流程")
+        self.assertEqual(row1["tools"], "t1")
+        self.assertEqual(row1["status_text"], "启用中")
+        self.assertFalse(row2["has_flow"])
+        self.assertEqual(row2["flow_text"], "无流程")
+        self.assertEqual(row2["status_text"], "已禁用")
+
+        # disabled_p：只成形已禁用标识清单
+        self.assertEqual(lib_pure.disabled_p({"skills": skills})["ids"], ["s2"])
+
+        # 岗位清单摘除禁用 Skill 的岗位；内置 PM 只读条目仍在
+        pos = lib_pure.positionsp({"seed": {}, "user": roles, "flows": flows,
+                                   "skills": skills})["items"]
+        self.assertIn("r1", [p["id"] for p in pos])
+        self.assertNotIn("r2", [p["id"] for p in pos])
+
+        # skill_statusp：翻转状态；内置受保护
+        on = lib_pure.skill_statusp({"id": "s1", "record": skills["s1"],
+                                     "status": "disabled", "now": "t3"})
+        self.assertEqual(on["status"], "disabled")
+        self.assertEqual(on["updated"], "t3")
+        prot = lib_pure.skill_statusp({"id": "b", "record": {"builtin": True},
+                                       "status": "disabled", "now": "t"})
+        self.assertFalse(prot["ok"])
+        self.assertEqual(prot["status"], 403)
+
+        # skill_uninstallp：级联删岗位/流程/工具/Skill；内置受保护
+        removed = lib_pure.skill_uninstallp(
+            {"id": "s1", "skills": dict(skills), "roles": dict(roles),
+             "flows": dict(flows), "tools": dict(tools)})
+        self.assertNotIn("s1", removed["skills"])
+        self.assertNotIn("r1", removed["roles"])
+        self.assertNotIn("f1", removed["flows"])
+        self.assertNotIn("t1", removed["tools"])
+        self.assertIn("s2", removed["skills"])
+        prot_un = lib_pure.skill_uninstallp(
+            {"id": "b", "skills": {"b": {"builtin": True}}, "roles": {}, "flows": {}, "tools": {}})
+        self.assertFalse(prot_un["ok"])
+        self.assertEqual(prot_un["status"], 403)
+
+        # 工具合并：归属禁用 Skill 的外部工具不进清单；清单行带 skill 归属
+        merged = tools_pure.merge({"builtin": [], "external": tools, "disabled": ["s2"]})
+        self.assertEqual([t["name"] for t in merged["items"]], ["t1"])
+        listing = tools_pure.listing({"tools": merged["items"], "snapshot": {}})["items"]
+        self.assertEqual(listing[0]["skill"], "s1")
 
     def test_flow_plan_effects(self):
         rec = {"id": "role-1", "kind": "role", "role": "developer",

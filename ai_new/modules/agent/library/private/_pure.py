@@ -98,6 +98,7 @@ def _position(rec, flow, prompt_text="", pm_prompt=""):
             "must_dos": rec.get("must_dos") or [],
             "tools": rec.get("tools") or [],
             "backend": rec.get("backend") or "",
+            "skill": rec.get("skill") or "",
             "builtin": bool(rec.get("builtin")),
             "readonly": bool(rec.get("readonly")),
             "system": bool(rec.get("system")),
@@ -169,11 +170,23 @@ def positionp(p):
     return _position(rec, p.get("flow") or {}, prompt_text, pm_prompt)
 
 
+def _disabled_skill_ids(skills):
+    """状态为 disabled 的 Skill 标识集合；归属这些 Skill 的岗位/工具/流程不进运行名单。"""
+    return {sid for sid, rec in (skills or {}).items()
+            if isinstance(rec, dict) and rec.get("status") == "disabled"}
+
+
 def positionsp(p):
-    """岗位列表：岗位记录按 id 关联各自流程规范；末尾附只读 PM 主会话条目。"""
+    """岗位列表：岗位记录按 id 关联各自流程规范；禁用 Skill 的岗位摘除；末尾附只读 PM 条目。"""
     roles = _records({"seed": p.get("seed"), "user": p.get("user"), "kind": "roles"})
     flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
-    items = [_position(rec, flows.get(rid) or {}) for rid, rec in roles.items()]
+    disabled = _disabled_skill_ids(p.get("skills"))
+    items = []
+    for rid, rec in roles.items():
+        sk = rec.get("skill")
+        if sk and sk in disabled:
+            continue
+        items.append(_position(rec, flows.get(rid) or {}))
     items.append(_position(_pm_record(), {}))
     return {"items": items}
 
@@ -276,3 +289,102 @@ def save_record(p):
     if rid:
         user[rid] = dict(rec)
     return {"value": user}
+
+
+# ---- Skill 单元：聚合岗位/流程/工具，支持禁用与级联卸载 ----
+
+def disabled_p(p):
+    """Skill 登记字典 → 已禁用标识清单；供工具/岗位清单按归属摘除。判断归岗位库模块。"""
+    return {"ids": sorted(_disabled_skill_ids(p.get("skills")))}
+
+
+def skills_listp(p):
+    """Skill 登记字典 → 清单行：关联岗位中文名、流程在库与否、工具名清单与状态。
+
+    合并与摘要成形归岗位库模块；各库记录由需求读盘后交入。
+    """
+    skills = p.get("skills") or {}
+    roles = p.get("roles") or {}
+    flows = p.get("flows") or {}
+    items = []
+    for sid, rec in skills.items():
+        if not isinstance(rec, dict):
+            continue
+        role_id = rec.get("role") or ""
+        flow_id = rec.get("flow") or ""
+        tool_names = rec.get("tools") or []
+        role_rec = roles.get(role_id) or {}
+        disabled = rec.get("status") == "disabled"
+        items.append({
+            "id": sid,
+            "cn": rec.get("cn") or sid,
+            "doc": rec.get("doc") or "",
+            "source": rec.get("source") or "",
+            "version": rec.get("version") or "",
+            "status": rec.get("status") or "enabled",
+            "status_text": "已禁用" if disabled else "启用中",
+            "role": role_id,
+            "role_cn": role_rec.get("cn") or "",
+            "flow": flow_id,
+            "has_flow": bool(flow_id and flow_id in flows),
+            "flow_text": "有流程" if (flow_id and flow_id in flows) else "无流程",
+            "tools": "、".join(tool_names),
+            "tool_names": tool_names,
+            "builtin": bool(rec.get("builtin")),
+            "created": rec.get("created") or "",
+            "updated": rec.get("updated") or "",
+        })
+    items.sort(key=lambda x: x.get("created") or "", reverse=True)
+    return {"items": items}
+
+
+def skill_statusp(p):
+    """翻转 Skill 启用状态；内置 Skill 受保护不改。记录合并归岗位库模块。"""
+    sid = (p.get("id") or "").strip()
+    rec = dict(p.get("record") or {})
+    if not sid:
+        return {"ok": False, "code": "missing_id", "error": "id 必填"}
+    if rec.get("builtin"):
+        return {"ok": False, "code": "builtin_protected", "status": 403,
+                "error": "内置 Skill 受保护"}
+    rec["id"] = sid
+    rec["status"] = p.get("status") or rec.get("status") or "enabled"
+    rec["updated"] = p.get("now") or ""
+    return rec
+
+
+def skill_uninstallp(p):
+    """级联卸载：从 Skill 登记及其岗位/流程/工具字典中一并摘除；内置受保护。
+
+    只裁剪字典不写盘；写盘编排归需求。工具按登记名单与 skill 归属双保险清理。
+    """
+    sid = (p.get("id") or "").strip()
+    skills = dict(p.get("skills") or {})
+    if not sid:
+        return {"ok": False, "code": "missing_id", "error": "id 必填"}
+    rec = skills.get(sid)
+    if not isinstance(rec, dict):
+        return {"ok": False, "code": "not_found", "status": 404,
+                "error": "Skill 不存在: %s" % sid}
+    if rec.get("builtin"):
+        return {"ok": False, "code": "builtin_protected", "status": 403,
+                "error": "内置 Skill 受保护，不可卸载"}
+    roles = dict(p.get("roles") or {})
+    flows = dict(p.get("flows") or {})
+    tools = dict(p.get("tools") or {})
+    role_id = rec.get("role") or ""
+    flow_id = rec.get("flow") or ""
+    tool_names = list(rec.get("tools") or [])
+    if role_id and role_id in roles:
+        del roles[role_id]
+    if flow_id and flow_id in flows:
+        del flows[flow_id]
+    for tn in tool_names:
+        if tn in tools:
+            del tools[tn]
+    for tn, t in list(tools.items()):
+        if isinstance(t, dict) and t.get("skill") == sid:
+            del tools[tn]
+    del skills[sid]
+    return {"skills": skills, "roles": roles, "flows": flows, "tools": tools,
+            "removed": {"role": role_id, "flow": flow_id, "tools": tool_names}}

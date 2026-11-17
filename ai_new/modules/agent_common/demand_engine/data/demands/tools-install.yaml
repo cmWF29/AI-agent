@@ -13,16 +13,32 @@ do:
     path:
       lit: tools.yaml
   as: ext
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+  as: sk
+- call: library.disabled_skills
+  with:
+    skills:
+      get: sk.value
+  as: dis
 - call: tools.install_missing
   with:
     external:
       get: ext.value
+    disabled:
+      get: dis.ids
   as: out
 expect:
   given:
     input: {}
   calls:
   - store.read
+  - store.read
+  - library.disabled_skills
   - tools.install_missing
   payload: {}
-  promise: 安装计划与装包结果归模块，取外部登记与执行编排归需求
+  promise: 禁用过滤、安装计划与装包结果归模块，取外部登记与执行编排归需求

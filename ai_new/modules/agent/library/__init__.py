@@ -19,6 +19,10 @@ def setup(ctx):
         ("library.kind_file", _pure.kind_file),
         ("library.prompt_path", _pure.prompt_path),
         ("library.save_record", _pure.save_record),
+        ("library.skills_list", _pure.skills_listp),
+        ("library.disabled_skills", _pure.disabled_p),
+        ("library.skill_status", _pure.skill_statusp),
+        ("library.skill_uninstall", _pure.skill_uninstallp),
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="library")

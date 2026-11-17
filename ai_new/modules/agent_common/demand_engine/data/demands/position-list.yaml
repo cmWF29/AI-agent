@@ -27,6 +27,13 @@ do:
     path:
       lit: flows.yaml
   as: uflows
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+  as: usk
 - call: library.positions
   with:
     seed:
@@ -35,6 +42,8 @@ do:
       get: uroles.value
     flows:
       get: uflows.value
+    skills:
+      get: usk.value
   as: out
 expect:
   given:
@@ -43,6 +52,7 @@ expect:
   - store.read
   - store.read
   - store.read
+  - store.read
   - library.positions
   payload: {}
-  promise: 岗位提示词与流程规范的合并规则归模块，取数归需求
+  promise: 岗位提示词、流程规范合并与禁用摘除规则归模块，取数归需求

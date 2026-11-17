@@ -176,6 +176,8 @@ capabilities:
     calls:
     - net.request
     - decompose.parse_skill_doc
+    - store.read
+    - library.disabled_skills
     - tools.list
     - decompose.promptize
     - codec.json_decode

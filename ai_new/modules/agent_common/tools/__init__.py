@@ -30,11 +30,20 @@ def setup(ctx):
 
 
 def start(ctx):
-    """全部内置工具注册完成后，把外部登记工具并入注册表；内置同名优先，不被覆盖。"""
+    """全部内置工具注册完成后，把外部登记工具并入注册表；内置同名优先，不被覆盖。
+
+    归属已禁用 Skill 的外部工具不并入运行注册表。
+    """
     row = ctx.api.call("store.read", {
         "module": "agent_common/tools", "path": "tools.yaml"}, caller=None)
+    skills = ctx.api.call("store.read", {
+        "module": "agent/library", "path": "skills.yaml"}, caller=None)
+    disabled = {sid for sid, rec in (skills.get("value") or {}).items()
+                if isinstance(rec, dict) and rec.get("status") == "disabled"}
     for name, rec in (row.get("value") or {}).items():
         if not name or not isinstance(rec, dict) or ctx.tools.has(name):
+            continue
+        if rec.get("skill") in disabled:
             continue
         ctx.tools.register_demand(
             name, rec.get("desc") or "", rec.get("params") or [],
@@ -98,10 +107,12 @@ def _route_list(ctx, payload):
     """清单闭环：内置注册表 ∪ 外部登记记录 → 按来源裁剪 → 收集在位快照 → 纯函数判定成形。
 
     scope=builtin 只给代码内置工具库，scope=external 只给外部登记的工具；默认全量。
+    disabled 为已禁用 Skill 标识集合，归属这些 Skill 的工具不进清单。
     """
     builtin = ctx.tools.list_tools()
     merged = _pure.merge({"builtin": builtin,
-                          "external": (payload or {}).get("external") or {}})
+                          "external": (payload or {}).get("external") or {},
+                          "disabled": (payload or {}).get("disabled") or []})
     items = _pure.scope(merged["items"], (payload or {}).get("scope"))
     snapshot = _collect_snapshot(ctx, items)
     return _pure.listing({"tools": items, "snapshot": snapshot})
@@ -111,10 +122,12 @@ def _route_install_missing(ctx, payload):
     """安装闭环：合并清单 → 在位快照 → 安装计划 → 逐条装缺失 pip 包。
 
     装包是起进程的 effect，经 exec.run；cli/env/config 不在此自动处理，只随计划返回。
+    已禁用 Skill 的工具不参与安装计划。
     """
     builtin = ctx.tools.list_tools()
     merged = _pure.merge({"builtin": builtin,
-                          "external": (payload or {}).get("external") or {}})
+                          "external": (payload or {}).get("external") or {},
+                          "disabled": (payload or {}).get("disabled") or []})
     snapshot = _collect_snapshot(ctx, merged["items"])
     plan = _pure.install_plan({"tools": merged["items"], "snapshot": snapshot})
     installs = []

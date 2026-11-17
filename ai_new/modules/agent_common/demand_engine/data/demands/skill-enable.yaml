@@ -1,0 +1,70 @@
+id: skill-enable
+title: 启用 Skill：恢复其岗位/工具/流程进入运行名单
+description: "启用 Skill：把 Skill 单元状态翻回 enabled，归属它的岗位、工具、流程重新进入运行名单。内置 Skill 受保护不改。状态翻转归岗位库模块，取数落盘归需求"
+tags:
+- library
+- write
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+  as: us
+- call: library.get
+  with:
+    kind:
+      lit: skill
+    id:
+      get: input.id
+    seed:
+      lit: {}
+    user:
+      get: us.value
+  as: cur
+- call: clock.now
+  as: now
+- call: library.skill_status
+  with:
+    id:
+      get: input.id
+    record:
+      get: cur.item
+    status:
+      lit: enabled
+    now:
+      get: now.ts
+  as: rec
+- call: library.save_record
+  with:
+    user:
+      get: us.value
+    rec:
+      get: rec
+  as: saved
+- call: store.write
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+    value:
+      get: saved.value
+  as: w
+expect:
+  given:
+    input:
+      id: demo
+  calls:
+  - store.read
+  - library.get
+  - clock.now
+  - library.skill_status
+  - library.save_record
+  - store.write
+  payload: {}
+  promise: 状态翻转与保护规则归模块，落盘编排归需求

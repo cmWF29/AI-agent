@@ -116,7 +116,9 @@ checks:
   - tool-external-run
   - view-tools
   - view-skills
-  - view-drafts
-  - decompose-draft
-  - decompose-accept
-  - drafts-list
+  - view-external-tools
+  - decompose-install
+  - skills-list
+  - skill-disable
+  - skill-enable
+  - skill-uninstall

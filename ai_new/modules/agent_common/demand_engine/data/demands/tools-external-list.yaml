@@ -13,10 +13,24 @@ do:
     path:
       lit: tools.yaml
   as: ext
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: skills.yaml
+  as: sk
+- call: library.disabled_skills
+  with:
+    skills:
+      get: sk.value
+  as: dis
 - call: tools.list
   with:
     external:
       get: ext.value
+    disabled:
+      get: dis.ids
     scope:
       lit: external
   as: out
@@ -25,6 +39,8 @@ expect:
     input: {}
   calls:
   - store.read
+  - store.read
+  - library.disabled_skills
   - tools.list
   payload: {}
-  promise: 外部裁剪与就绪判定归模块，取数归需求
+  promise: 外部裁剪、禁用过滤与就绪判定归模块，取数归需求

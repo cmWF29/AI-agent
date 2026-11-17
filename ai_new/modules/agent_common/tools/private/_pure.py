@@ -12,9 +12,13 @@ _DEP_KINDS = (("cli", "命令"), ("pip", "Python 包"),
 
 
 def merge(p):
-    """内置注册表清单 ∪ 外部登记记录（data/tools.yaml）；内置优先，外部不覆盖同名。"""
+    """内置注册表清单 ∪ 外部登记记录（data/tools.yaml）；内置优先，外部不覆盖同名。
+
+    disabled 为已禁用 Skill 标识集合：归属这些 Skill 的外部工具不进合并清单。
+    """
     builtin = p.get("builtin") or []
     external = p.get("external") or {}
+    disabled = set(p.get("disabled") or [])
     seen = {t.get("name") for t in builtin if t.get("name")}
     items = [dict(t) for t in builtin]
     for name, rec in (external or {}).items():
@@ -23,6 +27,8 @@ def merge(p):
         row = dict(rec or {})
         row.setdefault("name", name)
         row.setdefault("builtin", False)
+        if row.get("skill") and row["skill"] in disabled:
+            continue
         items.append(row)
     items.sort(key=lambda x: x.get("name") or "")
     return {"items": items}
@@ -148,6 +154,7 @@ def listing(p):
             "status_text": "就绪" if status["status"] == "ok" else "缺依赖",
             "missing": _missing_text(status["missing"]),
             "builtin": bool(t.get("builtin")),
+            "skill": t.get("skill") or "",
             "source": "内置" if t.get("builtin") else "拆解",
         })
     return {"items": rows}

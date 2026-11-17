@@ -1,7 +1,7 @@
-"""拆解模块：Skill.md 包 → 模型拆解 → 结构化草稿（岗位/引用工具/流程/新工具）。
+"""拆解模块：Skill.md 包 → 模型拆解 → 直接成形为 Skill 单元（岗位/流程/工具）入库。
 
-闭环（解析包内容、取工具名单、拼提示词、调模型、解码、成形草稿）收在 decompose.run
-能力内；需求树只编排"跑拆解 → 成形草稿记录 → 落草稿文件"，不做拼装与判断。
+闭环（解析包内容、取工具名单、拼提示词、调模型、解码、成形）收在 decompose.run
+能力内；需求树只编排"跑拆解 → 成形入库记录 → 分库落盘"，不做拼装与判断。
 """
 from __future__ import annotations
 
@@ -13,24 +13,18 @@ def setup(ctx):
         ("decompose.parse_skill_doc", _pure.parse_skill_doc),
         ("decompose.promptize", _pure.promptize),
         ("decompose.parse", _pure.parse),
-        ("decompose.draft_record", _pure.draft_record),
-        ("decompose.save_draft", _pure.save_draft),
-        ("decompose.draft_file", _pure.draft_file),
-        ("decompose.tools_file", _pure.tools_file),
-        ("decompose.draft_get", _pure.draft_get),
-        ("decompose.drafts_list", _pure.drafts_list),
         ("decompose.merge_tools", _pure.merge_tools),
-        ("decompose.accept_parts", _pure.accept_parts),
+        ("decompose.install_parts", _pure.install_parts),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="decompose")
     ctx.api.register("decompose.run", _route_run,
-                     "拆解闭环：解析包内容→取工具名单→拼提示→模型→解码→成形草稿",
+                     "拆解闭环：解析包内容→取工具名单→拼提示→模型→解码→成形入库记录",
                      module="decompose")
     return True
 
 
 def _route_run(ctx, payload):
-    """拆解闭环在能力内部：模型没交答复或回的不是 JSON，都短路成错误形状，不写半截草稿。
+    """拆解闭环在能力内部：模型没交答复或回的不是 JSON，都短路成错误形状，不写半截记录。
 
     包正文两种来源：直接粘贴的 skill_md，或给一个网页链接经 net 拉回正文；
     链接优先，拉取失败短路，不带半截内容进模型。
@@ -51,7 +45,12 @@ def _route_run(ctx, payload):
         "skill_md": skill_md,
         "requirements": payload.get("requirements"),
         "scripts": payload.get("scripts")}, caller=None)
-    tools = ctx.api.call("tools.list", {}, caller=None).get("items") or []
+    skills = ctx.api.call("store.read", {
+        "module": "agent/library", "path": "skills.yaml"}, caller=None)
+    disabled = ctx.api.call("library.disabled_skills",
+                            {"skills": skills.get("value") or {}}, caller=None)
+    tools = ctx.api.call("tools.list", {"disabled": disabled.get("ids") or []},
+                         caller=None).get("items") or []
     prompt = ctx.api.call("decompose.promptize", {
         "system": payload.get("system"), "meta": doc.get("meta"),
         "body": doc.get("body"), "pip": doc.get("pip"),
