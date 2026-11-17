@@ -178,6 +178,10 @@ class CoreTest(unittest.TestCase):
         return self.ctx.api.call("demand_engine.run",
                                  {"id": demand, "input": input or {}})
 
+    def _glob(self, module, pattern):
+        return self.ctx.api.call("store.glob",
+                                 {"module": module, "pattern": pattern})["items"]
+
     def test_knowledge_roundtrip(self):
         self._run("knowledge-write", {"layer": "public", "name": "arch-note",
                                       "content": "架构约定：模块只能通过 api 调用。"})
@@ -356,6 +360,53 @@ class CoreTest(unittest.TestCase):
         self.assertTrue(gone["deleted"])
         after = self._run("projects-list", {})["result"]["items"]
         self.assertFalse(any(p["id"] == created["id"] for p in after))
+
+    def test_project_purge_cascades_children(self):
+        """彻底删项目：工单、PM 会话、项目产物、项目知识一并清；public 知识保留。"""
+        proj = self._run("projects-create", {"name": "级联删除项目"})["result"]
+        pid = proj["id"]
+        t = self._run("ticket-create", {"title": "级联工单", "goal": "x",
+                                         "project": pid})["result"]
+        pm = t["pm"]
+        self._run("artifacts-write", {"layer": "ticket", "project": pid, "ticket": t["id"],
+                                      "path": "docs/pm/plan.md", "content": "计划正文"})
+        self._run("knowledge-write", {"layer": "project", "project": pid, "name": "decisions",
+                                      "content": "项目取舍"})
+        self._run("knowledge-write", {"layer": "public", "name": "keep-public",
+                                       "content": "全局保留"})
+        # 对照项目：purge 本项目时它的工单/会话/知识必须原样保留
+        proj2 = self._run("projects-create", {"name": "留存对照项目"})["result"]
+        t2 = self._run("ticket-create", {"title": "对照工单", "project": proj2["id"]})["result"]
+        pm2 = t2["pm"]
+        self._run("knowledge-write", {"layer": "project", "project": proj2["id"],
+                                      "name": "keep-other", "content": "对照项目取舍"})
+        # 删前确实落了盘
+        self.assertTrue(any(pm in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        self.assertTrue(any(pid in a for a in self._glob("agent/artifacts", "projects/**")))
+        self.assertTrue(any(pid in k for k in self._glob("agent/knowledge", "projects/**")))
+
+        self._run("projects-delete", {"id": pid, "purge": True})
+
+        # 项目档与工单目录
+        self.assertFalse(any(p["id"] == pid for p in
+                             self._run("projects-list", {})["result"]["items"]))
+        self.assertFalse(any(x["id"] == t["id"] for x in
+                             self._run("ticket-list", {})["result"]["items"]))
+        # 会话按被删工单集合清掉
+        self.assertFalse(any(pm in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        # 项目产物 / 项目知识前缀整棵清掉
+        self.assertEqual(self._glob("agent/artifacts", "projects/%s/**" % pid), [])
+        self.assertEqual(self._glob("agent/knowledge", "projects/%s/**" % pid), [])
+        # public 层知识不被误删
+        pub = self._run("knowledge-read", {"layer": "public", "name": "keep-public"})
+        self.assertIn("全局保留", pub["result"]["content"])
+        # 对照项目的工单、会话、项目知识原样保留
+        self.assertTrue(any(x["id"] == t2["id"] for x in
+                             self._run("ticket-list", {})["result"]["items"]))
+        self.assertTrue(any(pm2 in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        other = self._run("knowledge-read", {"layer": "project", "project": proj2["id"],
+                                              "name": "keep-other"})
+        self.assertIn("对照项目取舍", other["result"]["content"])
 
     def test_ticket_lifecycle_and_role_tool(self):
         proj = self._run("projects-create", {"name": "工单归属项目"})["result"]

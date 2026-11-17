@@ -42,8 +42,12 @@ def _route_create(ctx, payload):
 
 
 def _purge_tickets(ctx, pid):
-    """真删项目时清掉它名下的工单：工单必属项目，不能留指向空项目的孤儿单。"""
+    """真删项目时清掉它名下的工单：工单必属项目，不能留指向空项目的孤儿单。
+
+    返回 (effects, 被删工单 id 集合)；会话只记 ticket 不记 project，要靠这组 id 回扫。
+    """
     effects = []
+    ticket_ids = []
     listed = ctx.api.call("store.glob", {
         "module": "agent/tickets", "pattern": "tickets/T-*/ticket.yaml"}, caller=None)
     for rel in listed.get("items") or []:
@@ -54,9 +58,31 @@ def _purge_tickets(ctx, pid):
             "module": "agent/tickets", "path": rel}, caller=None)
         if ((row.get("value") or {}).get("project")) != pid:
             continue
+        ticket_ids.append(segs[1])
         effects.append({"kind": "remove_dir", "module": "agent/tickets",
                         "path": "tickets/%s" % segs[1]})
+    return effects, ticket_ids
+
+
+def _purge_sessions(ctx, ticket_ids):
+    """清掉挂在被删工单上的 PM/角色会话；会话记录只记 ticket，按工单集合匹配。"""
+    if not ticket_ids:
+        return []
+    ids = set(ticket_ids)
+    effects = []
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+    for rel in listed.get("items") or []:
+        row = ctx.api.call("store.read", {
+            "module": "agent/sessions", "path": rel}, caller=None)
+        if (row.get("value") or {}).get("ticket") in ids:
+            effects.append({"kind": "remove", "module": "agent/sessions", "path": rel})
     return effects
+
+
+def _purge_project_tree(ctx, module, pid):
+    """清掉项目在产物/知识层的整棵前缀目录；目录不存在时 remove_dir 自报未删，不报错。"""
+    return [{"kind": "remove_dir", "module": module, "path": "projects/%s" % pid}]
 
 
 def _route_remove(ctx, payload):
@@ -64,7 +90,11 @@ def _route_remove(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/projects",
         "path": pid.get("id") + ".yaml"}, caller=None)
     if payload.get("purge") is True:
-        effects = _purge_tickets(ctx, pid.get("id"))
+        ticket_effects, ticket_ids = _purge_tickets(ctx, pid.get("id"))
+        effects = list(ticket_effects)
+        effects += _purge_sessions(ctx, ticket_ids)
+        effects += _purge_project_tree(ctx, "agent/artifacts", pid.get("id"))
+        effects += _purge_project_tree(ctx, "agent/knowledge", pid.get("id"))
         effects.append({"kind": "remove", "module": "agent/projects",
                         "path": pid.get("id") + ".yaml"})
         out = ctx.api.call("projects.deleted", {"id": pid.get("id")}, caller=None)
