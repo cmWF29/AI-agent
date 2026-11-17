@@ -372,6 +372,8 @@ class CoreTest(unittest.TestCase):
                                       "path": "docs/pm/plan.md", "content": "计划正文"})
         self._run("knowledge-write", {"layer": "project", "project": pid, "name": "decisions",
                                       "content": "项目取舍"})
+        self._run("knowledge-write", {"layer": "ticket", "ticket": t["id"], "name": "note",
+                                      "content": "工单层知识"})
         self._run("knowledge-write", {"layer": "public", "name": "keep-public",
                                        "content": "全局保留"})
         # 对照项目：purge 本项目时它的工单/会话/知识必须原样保留
@@ -397,6 +399,8 @@ class CoreTest(unittest.TestCase):
         # 项目产物 / 项目知识前缀整棵清掉
         self.assertEqual(self._glob("agent/artifacts", "projects/%s/**" % pid), [])
         self.assertEqual(self._glob("agent/knowledge", "projects/%s/**" % pid), [])
+        # 工单 ticket 层知识随工单清掉（前缀 tickets/<tid>，不在项目知识树下）
+        self.assertEqual(self._glob("agent/knowledge", "tickets/%s/**" % t["id"]), [])
         # public 层知识不被误删
         pub = self._run("knowledge-read", {"layer": "public", "name": "keep-public"})
         self.assertIn("全局保留", pub["result"]["content"])

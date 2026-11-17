@@ -80,6 +80,12 @@ def _purge_sessions(ctx, ticket_ids):
     return effects
 
 
+def _purge_ticket_knowledge(ctx, ticket_ids):
+    """清掉被删工单的 ticket 层知识；该层前缀是 tickets/<tid>，不在项目知识树下。"""
+    return [{"kind": "remove_dir", "module": "agent/knowledge",
+             "path": "tickets/%s" % tid} for tid in ticket_ids]
+
+
 def _purge_project_tree(ctx, module, pid):
     """清掉项目在产物/知识层的整棵前缀目录；目录不存在时 remove_dir 自报未删，不报错。"""
     return [{"kind": "remove_dir", "module": module, "path": "projects/%s" % pid}]
@@ -93,6 +99,7 @@ def _route_remove(ctx, payload):
         ticket_effects, ticket_ids = _purge_tickets(ctx, pid.get("id"))
         effects = list(ticket_effects)
         effects += _purge_sessions(ctx, ticket_ids)
+        effects += _purge_ticket_knowledge(ctx, ticket_ids)
         effects += _purge_project_tree(ctx, "agent/artifacts", pid.get("id"))
         effects += _purge_project_tree(ctx, "agent/knowledge", pid.get("id"))
         effects.append({"kind": "remove", "module": "agent/projects",
