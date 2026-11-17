@@ -1,0 +1,74 @@
+id: view-drafts
+title: 拆解草稿视图：待确认的技能拆解产物，确认后才入库
+description: "拆解草稿视图：列出待确认的拆解草稿，头部入口新建拆解；确认入库走 decompose-accept。视图只声明卡片与动作，数据源走需求"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: drafts
+  crumb: [技能拆解]
+  heading: 拆解草稿
+  subheading: 从 Skill.md 技能包拆出岗位、流程与新工具，先成草稿；核对无误再确认入库
+  actions:
+  - {label: ＋ 拆解技能, tone: primary, modal: decompose.new}
+  forms:
+  - id: decompose.new
+    title: 拆解技能包
+    hint: 贴入一份 Skill.md 技能包（含顶部标识与说明）；Python 依赖与脚本清单可一并附上。拆解结果先存草稿，核对后再入库。
+    fields:
+    - name: source
+      label: 来源标识（可选）
+      placeholder: 技能名或包路径，便于追溯
+    - name: skill_md
+      label: SKILL.md 正文
+      kind: textarea
+      placeholder: 粘贴含 frontmatter 的技能说明全文
+      required: true
+    - name: requirements
+      label: requirements.txt（可选）
+      kind: textarea
+      placeholder: 每行一个 Python 包，可带版本约束
+    - name: scripts
+      label: 随包脚本 / 资源（可选）
+      kind: textarea
+      placeholder: 换行或逗号分隔的脚本、文件名
+    submit:
+      demand: decompose-draft
+      params:
+        skill_md: $skill_md
+        requirements: $requirements
+        scripts: $scripts
+        source: $source
+      ok: 开始拆解
+      flash: 拆解草稿已生成，请到草稿列表核对
+      then:
+        view: drafts
+        reload: true
+  data:
+  - {as: drafts, demand: drafts-list}
+  sections:
+  - kind: cards
+    source: drafts.items
+    title: row.cn
+    meta:
+    - {label: 岗位, value: row.role_cn, hide_if_empty: true}
+    - {label: 引用工具, value: row.tools, hide_if_empty: true}
+    - {label: 新工具, value: row.new_tools, hide_if_empty: true}
+    - {label: 来源, value: row.source, hide_if_empty: true}
+    - {label: 拆, value: row.created, format: when}
+    actions:
+    - label: 确认入库
+      demand: decompose-accept
+      params: {id: row.id}
+      confirm: "把草稿「{row.cn}」并入岗位、流程、技能卡与工具登记？"
+      flash: "已入库：{row.cn}"
+      after: {view: drafts, reload: true}
+    empty: {title: 暂无拆解草稿, text: 点右上角「拆解技能」，贴一份 Skill.md 技能包开始拆解。}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 草稿视图只声明卡片与动作，数据源走需求

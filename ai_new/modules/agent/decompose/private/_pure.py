@@ -1,23 +1,124 @@
-"""技能拆解纯函数：提示词成形、草稿解析与工具核对、草稿记录成形。
+"""技能拆解纯函数：技能包解析、提示词成形、草稿解析与工具核对、记录成形。
 
 不读盘、不取时间、不调模型；模型返回的对象已由闭环解码后交进来。
+Skill.md 的 frontmatter 与 requirements.txt 都是纯文本，这里手写极简解析，
+不借 yaml/json 标准库（编解码归 codec，文件读取归 store）。
 """
 from __future__ import annotations
 
+
+# ---- 技能包文本解析 ----
+
+def _split_frontmatter(md):
+    """拆出 frontmatter 行与正文；没有头部分隔符时整段算正文。"""
+    lines = (md or "").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return [], md or ""
+    end = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            end = i
+            break
+    if end is None:
+        return [], md or ""
+    return lines[1:end], "\n".join(lines[end + 1:])
+
+
+def _parse_meta_lines(meta_lines):
+    """极简 frontmatter 键值解析：顶层键平铺，缩进键归 metadata。不做类型转换。"""
+    meta = {}
+    nested = {}
+    for line in meta_lines:
+        if not line.strip():
+            continue
+        indented = line[:1] in (" ", "\t")
+        key, _, val = line.strip().partition(":")
+        val = val.strip().strip('"').strip("'")
+        key = key.strip()
+        if not key:
+            continue
+        if indented:
+            nested[key] = val
+        else:
+            meta[key] = val
+    if nested:
+        meta["metadata"] = nested
+    return meta
+
+
+def _req_package(line):
+    """requirements 一行 → 包名；剥版本约束、注释与环境标记。"""
+    s = line.strip()
+    if not s or s.startswith("#"):
+        return ""
+    for sep in ("==", ">=", "<=", "~=", "!=", ";", "<", ">", " "):
+        idx = s.find(sep)
+        if idx != -1:
+            s = s[:idx]
+    return s.strip()
+
+
+def _as_list(value):
+    """文本按换行/逗号拆清单；本就是列表就逐项转字符串。"""
+    if isinstance(value, list):
+        return [str(x).strip() for x in value if str(x or "").strip()]
+    text = str(value or "")
+    if not text.strip():
+        return []
+    for sep in ("\n", ",", "，"):
+        text = text.replace(sep, "\n")
+    return [x.strip() for x in text.split("\n") if x.strip()]
+
+
+def parse_skill_doc(p):
+    """技能包文本 → 结构化元数据：技能标识/说明、Python 依赖、脚本资源清单。
+
+    输入是需求经 store/表单取来的纯文本；这里只拆结构，不判断依赖是否装好。
+    """
+    md = p.get("skill_md") or ""
+    meta_lines, body = _split_frontmatter(md)
+    meta = _parse_meta_lines(meta_lines)
+    pip = [pkg for pkg in (_req_package(x) for x in (p.get("requirements") or "").splitlines()) if pkg]
+    scripts = _as_list(p.get("scripts"))
+    version = (meta.get("metadata") or {}).get("version") if isinstance(meta.get("metadata"), dict) else ""
+    return {
+        "meta": {
+            "id": (meta.get("name") or "").strip(),
+            "doc": (meta.get("description") or "").strip(),
+            "version": (version or "").strip(),
+        },
+        "body": body.strip(),
+        "pip": pip,
+        "scripts": scripts,
+    }
+
+
+# ---- 提示词成形 ----
 
 def _names(tools):
     return [t.get("name") for t in (tools or []) if t.get("name")]
 
 
 def promptize(p):
-    """把系统提示词、自然语言描述与可用工具名单拼成对话消息；成形规则归拆解模块。
-
-    系统提示词是 data 文件，由需求读入后传入；纯函数不持提示词正文。
-    """
-    text = (p.get("text") or "").strip()
+    """把系统提示词、技能包内容与现有工具名单拼成对话消息；成形规则归拆解模块。"""
     system = (p.get("system") or "").strip()
-    avail = "、".join(_names(p.get("tools")))
-    user = "可用工具名单：%s\n\n待拆解技能描述：%s" % (avail, text)
+    meta = p.get("meta") or {}
+    parts = []
+    if meta.get("id"):
+        parts.append("技能标识：%s" % meta["id"])
+    if meta.get("doc"):
+        parts.append("技能说明：%s" % meta["doc"])
+    if meta.get("version"):
+        parts.append("版本：%s" % meta["version"])
+    if p.get("pip"):
+        parts.append("Python 依赖：%s" % "、".join(p["pip"]))
+    if p.get("scripts"):
+        parts.append("随包脚本/资源：%s" % "、".join(p["scripts"]))
+    if p.get("body"):
+        parts.append("技能正文：\n%s" % p["body"])
+    avail = "、".join(_names(p.get("tools"))) or "（无）"
+    parts.append("现有工具名单（引用这些工具时直接用名字）：%s" % avail)
+    user = "\n\n".join(parts)
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -25,23 +126,82 @@ def promptize(p):
     return {"messages": messages}
 
 
+# ---- 模型返回成形 ----
+
+def _norm_deps(deps, fallback_pip=None):
+    """依赖声明归一为四类清单；resources 另记脚本资源。"""
+    deps = deps or {}
+    out = {
+        "cli": _as_list(deps.get("cli")),
+        "pip": _as_list(deps.get("pip")) or list(fallback_pip or []),
+        "env": _as_list(deps.get("env")),
+        "config": _as_list(deps.get("config")),
+        "resources": _as_list(deps.get("resources")),
+    }
+    return out
+
+
+def _norm_tool(rec, whitelist, fallback_pip, fallback_scripts):
+    """模型给的新工具定义 → 成形记录；与现有工具重名的不算新工具。"""
+    if not isinstance(rec, dict):
+        return None, ["工具定义不是对象: %s" % rec]
+    name = str(rec.get("name") or "").strip()
+    if not name:
+        return None, ["新工具缺少 name"]
+    if name in whitelist:
+        return None, [name]
+    params = []
+    for x in rec.get("params") or []:
+        if not isinstance(x, dict):
+            continue
+        pname = str(x.get("name") or "").strip()
+        if pname:
+            params.append({"name": pname, "type": x.get("type") or "string",
+                           "required": bool(x.get("required")),
+                           "desc": x.get("desc") or ""})
+    deps = _norm_deps(rec.get("deps"), fallback_pip)
+    if fallback_scripts and not deps["resources"]:
+        deps["resources"] = list(fallback_scripts)
+    tool = {"name": name, "desc": str(rec.get("desc") or "").strip(),
+            "params": params, "module": "decompose", "kinds": [],
+            "deps": deps, "demand": "", "builtin": False}
+    return tool, []
+
+
 def parse(p):
-    """模型返回对象 → 结构化草稿；工具名与注册表白名单核对，名单外的剔除并记 dropped。
+    """模型返回对象 → 结构化草稿；引用现有工具核对白名单，新工具定义成形。
 
     缺字段给空兜底，不报错；核对规则归拆解模块。
     """
     obj = p.get("draft") or {}
-    whitelist = _names(p.get("tools"))
-    avail = set(whitelist)
+    whitelist = set(_names(p.get("tools")))
+    meta = p.get("meta") or {}
+    fallback_pip = p.get("pip") or []
+    fallback_scripts = p.get("scripts") or []
     skill = obj.get("skill") or {}
     role = obj.get("role") or {}
     flow = obj.get("flow") or {}
+
     kept, dropped = [], []
     for name in role.get("tools") or []:
-        (kept if name in avail else dropped).append(name)
+        name = str(name or "").strip()
+        if not name:
+            continue
+        (kept if name in whitelist else dropped).append(name)
+
+    new_tools, tool_dropped = [], []
+    for rec in obj.get("new_tools") or []:
+        tool, bad = _norm_tool(rec, whitelist, fallback_pip, fallback_scripts)
+        if tool:
+            new_tools.append(tool)
+        else:
+            tool_dropped.extend(bad)
+
+    skill_id = (skill.get("id") or meta.get("id") or "").strip()
     draft = {
-        "skill": {"id": skill.get("id") or "", "cn": skill.get("cn") or "",
-                  "doc": skill.get("doc") or ""},
+        "skill": {"id": skill_id,
+                  "cn": skill.get("cn") or "",
+                  "doc": skill.get("doc") or meta.get("doc") or ""},
         "role": {"cn": role.get("cn") or "",
                  "must_dos": list(role.get("must_dos") or []),
                  "forbidden": list(role.get("forbidden") or []),
@@ -49,12 +209,15 @@ def parse(p):
         "flow": {"checks": list(flow.get("checks") or []),
                  "nodes": list(flow.get("nodes") or []),
                  "edges": list(flow.get("edges") or [])},
+        "tools": new_tools,
     }
-    return {"draft": draft, "dropped": dropped, "tools": whitelist}
+    return {"draft": draft, "dropped": dropped + tool_dropped, "tools": sorted(whitelist)}
 
+
+# ---- 草稿记录与入库映射 ----
 
 def draft_record(p):
-    """草稿成形：补状态、来源、时间；id 来自模型给的技能英文标识，缺了不收。"""
+    """草稿成形：补状态、来源、时间；id 来自技能标识，缺了不收。"""
     draft = p.get("draft") or {}
     skill = draft.get("skill") or {}
     rid = (skill.get("id") or "").strip()
@@ -85,6 +248,21 @@ def draft_file(p):
     return {"path": "drafts.yaml"}
 
 
+def tools_file(p):
+    """外部工具登记文件：tools.yaml。布局约定归拆解模块。"""
+    return {"path": "tools.yaml"}
+
+
+def merge_tools(p):
+    """新工具定义并回外部工具登记字典（按 name 映射）；写盘值归拆解模块。"""
+    user = dict(p.get("user") or {})
+    for tool in p.get("tools") or []:
+        name = tool.get("name")
+        if name:
+            user[name] = dict(tool)
+    return {"value": user}
+
+
 def draft_get(p):
     """按 id 取一条草稿；查不到返回 not_found 形状。"""
     rec = (p.get("user") or {}).get(p.get("id") or "")
@@ -94,8 +272,33 @@ def draft_get(p):
     return {"item": rec}
 
 
+def drafts_list(p):
+    """草稿字典 → 摘要清单：列表给岗位库/草稿视图用，完整记录仍按 id 取。"""
+    items = []
+    for rid, rec in (p.get("user") or {}).items():
+        if not isinstance(rec, dict):
+            continue
+        skill = rec.get("skill") or {}
+        role = rec.get("role") or {}
+        tools = rec.get("tools") or []
+        items.append({
+            "id": rec.get("id") or rid,
+            "cn": skill.get("cn") or role.get("cn") or rid,
+            "doc": skill.get("doc") or "",
+            "role_cn": role.get("cn") or "",
+            "tools": "、".join(role.get("tools") or []),
+            "new_tools": "、".join(t.get("name") for t in tools
+                                  if isinstance(t, dict) and t.get("name")),
+            "status": rec.get("status") or "draft",
+            "source": rec.get("source") or "",
+            "created": rec.get("created") or "",
+        })
+    items.sort(key=lambda x: x.get("created") or "", reverse=True)
+    return {"items": items}
+
+
 def accept_parts(p):
-    """草稿 → 岗位库三库记录形状（角色/流程/技能卡）。字段映射归拆解模块，不写盘。"""
+    """草稿 → 入库记录形状：角色/流程/技能卡 + 新工具定义。字段映射归拆解模块，不写盘。"""
     rec = p.get("rec") or {}
     skill = rec.get("skill") or {}
     role = rec.get("role") or {}
@@ -115,4 +318,10 @@ def accept_parts(p):
         flow_record["edges"] = flow.get("edges")
     skill_record = {"id": rid, "cn": skill.get("cn") or "",
                     "doc": skill.get("doc") or "", "builtin": False}
-    return {"role": role_record, "flow": flow_record, "skill": skill_record}
+    tool_records = []
+    for tool in rec.get("tools") or []:
+        if not isinstance(tool, dict) or not tool.get("name"):
+            continue
+        tool_records.append(dict(tool, builtin=False, source=rid))
+    return {"role": role_record, "flow": flow_record, "skill": skill_record,
+            "tools": tool_records}

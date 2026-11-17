@@ -114,5 +114,7 @@ checks:
   - position-tools
   - tools-list
   - view-tools
+  - view-drafts
   - decompose-draft
   - decompose-accept
+  - drafts-list

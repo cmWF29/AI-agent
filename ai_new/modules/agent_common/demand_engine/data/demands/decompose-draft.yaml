@@ -1,6 +1,6 @@
 id: decompose-draft
-title: 技能拆解：自然语言 → 模型拆成角色/工具/流程 → 先落草稿待确认
-description: "技能拆解：自然语言 → 模型拆成岗位角色、引用工具、流程规则三要素，先落草稿待确认后再入库。拆解闭环在 decompose.run 能力内，需求只编排成形与落盘；工具只引用注册表已有项"
+title: 技能拆解：Skill.md 包 → 模型拆成角色/工具/流程/新工具 → 先落草稿待确认
+description: "技能拆解：读入技能包（SKILL.md 正文、requirements、脚本清单），经模型拆成岗位角色、引用工具、流程规则、新工具定义四要素，先落草稿待确认后再入库。拆解闭环在 decompose.run 能力内，需求只编排成形与落盘"
 tags:
 - skill
 - llm
@@ -18,8 +18,12 @@ do:
   as: sys
 - call: decompose.run
   with:
-    text:
-      get: input.text
+    skill_md:
+      get: input.skill_md
+    requirements:
+      get: input.requirements
+    scripts:
+      get: input.scripts
     system:
       get: sys.value
     base_url:
@@ -42,7 +46,7 @@ do:
     now:
       get: now.ts
     source:
-      get: input.text
+      get: input.source
   as: rec
 - call: decompose.draft_file
   as: lk
@@ -72,7 +76,12 @@ do:
 expect:
   given:
     input:
-      text: 帮我拆一个负责写发布公告的岗位
+      skill_md: |
+        ---
+        name: release_announcement_writer
+        description: 撰写发布公告
+        ---
+        根据发布资料撰写公告并自检交付。
   calls:
   - store.read_text
   - decompose.run
@@ -83,4 +92,4 @@ expect:
   - decompose.save_draft
   - store.write
   payload: {}
-  promise: 拆解产物先落草稿待确认，工具只引用注册表已有项，入库合并另走确认需求
+  promise: 拆解产物先落草稿待确认；新工具定义随草稿带出，入库合并另走确认需求

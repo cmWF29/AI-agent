@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import importlib.util
 
 
 def _mem():
@@ -50,3 +51,22 @@ def info(ctx):
 def env(name):
     """读一个环境变量：部署差异是主机事实，不是某个模块的知识。"""
     return {"ok": True, "name": str(name or ""), "value": os.environ.get(str(name or ""))}
+
+
+def which(ctx, payload):
+    """探测一个 CLI 命令是否在 PATH：命令可用性是主机事实，归 host。"""
+    cmd = str((payload or {}).get("name") or "").strip()
+    found = bool(cmd) and shutil.which(cmd) is not None
+    return {"ok": True, "name": cmd, "found": found}
+
+
+def importable(ctx, payload):
+    """探测一个 Python 模块/包当前解释器能否导入：包可用性是主机事实，归 host。"""
+    pkg = str((payload or {}).get("name") or "").strip()
+    ok = False
+    if pkg:
+        try:
+            ok = importlib.util.find_spec(pkg) is not None
+        except (ImportError, ValueError, ModuleNotFoundError, AttributeError):
+            ok = False
+    return {"ok": True, "name": pkg, "importable": ok}

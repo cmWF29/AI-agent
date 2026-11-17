@@ -1,0 +1,4 @@
+# 外部登记工具：拆解或手工追加的工具定义落这里；内置工具在代码注册表，同名不被覆盖。
+# 每条形状: name -> {desc, params, module, kinds, deps, demand}
+# deps: {cli: [], pip: [], env: [], config: [], resources: []}
+{}

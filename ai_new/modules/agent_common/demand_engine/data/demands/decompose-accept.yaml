@@ -154,6 +154,31 @@ do:
     value:
       get: ss.value
   as: ws
+- call: decompose.tools_file
+  as: lkt
+- call: store.read
+  with:
+    module:
+      lit: agent_common/tools
+    path:
+      get: lkt.path
+  as: ut
+- call: decompose.merge_tools
+  with:
+    user:
+      get: ut.value
+    tools:
+      get: parts.tools
+  as: st
+- call: store.write
+  with:
+    module:
+      lit: agent_common/tools
+    path:
+      get: lkt.path
+    value:
+      get: st.value
+  as: wt
 expect:
   given:
     input:
@@ -179,5 +204,9 @@ expect:
   - library.design
   - library.save_record
   - store.write
+  - decompose.tools_file
+  - store.read
+  - decompose.merge_tools
+  - store.write
   payload: {}
-  promise: 草稿经确认后才并入三库；映射与保护规则归模块，落盘编排归需求
+  promise: 草稿经确认后才并入三库与工具登记；映射与保护规则归模块，落盘编排归需求

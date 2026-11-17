@@ -1,17 +1,28 @@
 id: tools-list
-title: 工具库清单：注册表登记的全部工具只读列出
-description: "工具库清单：注册表登记的全部工具只读列出。参数与可见类型的成形归工具模块，取数归需求"
+title: 工具库清单：内置 ∪ 外部登记，附依赖就绪状态
+description: "工具库清单：注册表内置工具与外部登记记录合并，逐条对照在位快照给出依赖就绪状态。成形与判定归工具模块，取数归需求"
 tags: [tool, read]
 enabled: true
 callable: true
 'on': []
 do:
+- call: store.read
+  with:
+    module:
+      lit: agent_common/tools
+    path:
+      lit: tools.yaml
+  as: ext
 - call: tools.list
+  with:
+    external:
+      get: ext.value
   as: out
 expect:
   given:
     input: {}
   calls:
+  - store.read
   - tools.list
   payload: {}
-  promise: 参数与可见类型成形归模块，取数归需求
+  promise: 合并与就绪判定归模块，取数归需求

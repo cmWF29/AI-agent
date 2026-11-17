@@ -7,24 +7,25 @@ class ToolRegistry:
         self.ctx = ctx
         self._tools = {}
 
-    def register_demand(self, name, desc, params, demand, module=None, kinds=None):
+    def register_demand(self, name, desc, params, demand, module=None, kinds=None, deps=None):
         """工具就是一个需求 id：执行=跑那条需求，工具本身不再持有实现。"""
         return self.register(name, desc, params, None, module=module,
-                             kinds=kinds, demand=demand)
+                             kinds=kinds, demand=demand, deps=deps)
 
-    def register(self, name, desc, params, fn, module=None, kinds=None, demand=None):
+    def register(self, name, desc, params, fn, module=None, kinds=None, demand=None, deps=None):
         if name in self._tools:
             raise ValueError("tool already registered: " + name)
         self._tools[name] = {
             "name": name, "desc": desc, "params": params or [],
             "fn": fn, "module": module or "", "kinds": kinds, "demand": demand,
+            "deps": deps or {},
         }
         return name
 
     def list_tools(self):
         return [
             {"name": t["name"], "desc": t["desc"], "module": t["module"],
-             "params": t["params"], "kinds": t["kinds"]}
+             "params": t["params"], "kinds": t["kinds"], "deps": t["deps"]}
             for t in sorted(self._tools.values(), key=lambda x: x["name"])
         ]
 

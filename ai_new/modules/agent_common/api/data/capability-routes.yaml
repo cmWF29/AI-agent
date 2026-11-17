@@ -167,10 +167,17 @@ capabilities:
     - react.result
   decompose.run:
     calls:
+    - decompose.parse_skill_doc
     - tools.list
     - decompose.promptize
     - codec.json_decode
     - decompose.parse
+  tools.list:
+    calls:
+    - host.which
+    - host.importable
+    - host.env
+    - config.get
   channel.reply:
     calls:
     - channel.read_tail

@@ -38,6 +38,8 @@ function resolveView(target, c) {
   if (view === "projects") return { view: "projects" };
   if (view === "project") return { view: "project", project: params.project || "" };
   if (view === "ticket") return { view: "ticket", project: params.project || "", ticket: params.ticket || "" };
+  if (view === "tools") return { view: "tools" };
+  if (view === "drafts") return { view: "drafts" };
   if (view === "positions") return { view: "positions" };
   if (view === "position") return { view: "position", position: params.position || "" };
   return { view: view };

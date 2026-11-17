@@ -1,0 +1,33 @@
+id: drafts-list
+title: 拆解草稿列表：待确认的拆解产物只读列出
+description: "拆解草稿列表：读草稿文件并成形摘要清单。合并与成形归拆解模块，取数归需求"
+tags:
+- skill
+- read
+enabled: true
+callable: true
+'on': []
+do:
+- call: decompose.draft_file
+  as: lk
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lk.path
+  as: user
+- call: decompose.drafts_list
+  with:
+    user:
+      get: user.value
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - decompose.draft_file
+  - store.read
+  - decompose.drafts_list
+  payload: {}
+  promise: 草稿成形归模块，取数归需求

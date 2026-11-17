@@ -12,6 +12,12 @@ def setup(ctx):
     ctx.host = _probe
     ctx.api.register("host.info", lambda c, p: _probe.info(c),
                      "内存/磁盘/负载读数", module="host")
+    ctx.api.register("host.which", lambda c, p: _probe.which(c, p),
+                     "探测 CLI 命令是否在 PATH", module="host")
+    ctx.api.register("host.importable", lambda c, p: _probe.importable(c, p),
+                     "探测 Python 包当前解释器可否导入", module="host")
+    ctx.api.register("host.env", lambda c, p: _probe.env((p or {}).get("name")),
+                     "读一个环境变量", module="host")
     return True
 
 

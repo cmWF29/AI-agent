@@ -19,8 +19,10 @@ view:
     columns:
     - {label: 工具名, value: row.name, sub: row.module}
     - {label: 说明, value: row.desc}
+    - {label: 依赖, value: row.deps}
+    - {label: 状态, badge: row.status_text}
+    - {label: 缺失项, value: row.missing, muted: true}
     - {label: 参数, value: row.params, muted: true}
-    - {label: 可见类型, value: row.kinds, muted: true}
     empty: {text: 暂无工具}
 expect:
   given:
