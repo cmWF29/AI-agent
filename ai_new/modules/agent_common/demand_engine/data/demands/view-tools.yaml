@@ -11,6 +11,12 @@ view:
   crumb: [项目, 工具库]
   heading: 工具库
   subheading: 工具 = 注册表登记的一条能力；清单只读，工具定义与登记方式不在此改
+  actions:
+  - label: 安装缺失依赖
+    demand: tools-install
+    confirm: "自动安装清单里缺失的 Python 包；CLI/环境变量/配置项需另行人工补齐。"
+    flash: 依赖安装完成
+    after: {view: tools, reload: true}
   data:
   - {as: list, demand: tools-list}
   sections:
@@ -18,6 +24,7 @@ view:
     source: list.items
     columns:
     - {label: 工具名, value: row.name, sub: row.module}
+    - {label: 来源, value: row.source}
     - {label: 说明, value: row.desc}
     - {label: 依赖, value: row.deps}
     - {label: 状态, badge: row.status_text}

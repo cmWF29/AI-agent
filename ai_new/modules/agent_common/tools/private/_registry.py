@@ -25,7 +25,8 @@ class ToolRegistry:
     def list_tools(self):
         return [
             {"name": t["name"], "desc": t["desc"], "module": t["module"],
-             "params": t["params"], "kinds": t["kinds"], "deps": t["deps"]}
+             "params": t["params"], "kinds": t["kinds"], "deps": t["deps"],
+             "builtin": True}
             for t in sorted(self._tools.values(), key=lambda x: x["name"])
         ]
 

@@ -19,6 +19,8 @@ def setup(ctx):
                      module="tools")
     ctx.api.register("tools.list", _route_list,
                      "工具清单：内置 ∪ 外部登记，附依赖就绪状态", module="tools")
+    ctx.api.register("tools.install_missing", _route_install_missing,
+                     "安装缺失的 Python 包；cli/env/config 只列待人工处理", module="tools")
     return ctx.tools
 
 
@@ -69,3 +71,26 @@ def _route_list(ctx, payload):
                           "external": (payload or {}).get("external") or {}})
     snapshot = _collect_snapshot(ctx, merged["items"])
     return _pure.listing({"tools": merged["items"], "snapshot": snapshot})
+
+
+def _route_install_missing(ctx, payload):
+    """安装闭环：合并清单 → 在位快照 → 安装计划 → 逐条装缺失 pip 包。
+
+    装包是起进程的 effect，经 exec.run；cli/env/config 不在此自动处理，只随计划返回。
+    """
+    builtin = ctx.tools.list_tools()
+    merged = _pure.merge({"builtin": builtin,
+                          "external": (payload or {}).get("external") or {}})
+    snapshot = _collect_snapshot(ctx, merged["items"])
+    plan = _pure.install_plan({"tools": merged["items"], "snapshot": snapshot})
+    installs = []
+    if plan["pip"]:
+        exe = ctx.api.call("host.executable", {}, caller=None).get("path") or "python"
+        for pkg in plan["pip"]:
+            r = ctx.api.call("exec.run",
+                             {"argv": [exe, "-m", "pip", "install", pkg],
+                              "timeout": 300}, caller=None)
+            installs.append({"pkg": pkg, "ok": bool(r.get("ok")),
+                             "error": r.get("error") or ""})
+    return {"plan": plan, "installs": installs,
+            "ready": plan["ready"] and all(x["ok"] for x in installs)}

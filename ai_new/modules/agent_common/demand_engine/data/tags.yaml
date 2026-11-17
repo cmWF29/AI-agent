@@ -15,6 +15,7 @@ tags:
 - {id: auth, name: 认证, group: 面, color: teal}
 - {id: read, name: 只读, group: 性质, color: gray}
 - {id: write, name: 写盘, group: 性质, color: amber}
+- {id: exec, name: 执行, group: 性质, color: amber}
 - {id: async, name: 异步, group: 性质, color: purple}
 - {id: llm, name: 模型, group: 性质, color: purple}
 - {id: ops, name: 运维, group: 性质, color: gray}

@@ -18,6 +18,8 @@ def setup(ctx):
                      "探测 Python 包当前解释器可否导入", module="host")
     ctx.api.register("host.env", lambda c, p: _probe.env((p or {}).get("name")),
                      "读一个环境变量", module="host")
+    ctx.api.register("host.executable", lambda c, p: _probe.executable(c),
+                     "当前 Python 解释器路径", module="host")
     return True
 
 

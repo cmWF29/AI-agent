@@ -1,0 +1,28 @@
+id: tools-install
+title: 安装缺失依赖：缺失的 Python 包自动装上，CLI/环境变量/配置项列待人工处理
+description: "安装缺失依赖：合并内置与外部登记工具，对照在位快照算出待装 Python 包并逐条安装；CLI 命令、环境变量、配置项无法自动装，只列出待人工补齐。装包经进程能力执行，计划与结果成形归工具模块"
+tags: [tool, write, exec]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent_common/tools
+    path:
+      lit: tools.yaml
+  as: ext
+- call: tools.install_missing
+  with:
+    external:
+      get: ext.value
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - tools.install_missing
+  payload: {}
+  promise: 安装计划与装包结果归模块，取外部登记与执行编排归需求

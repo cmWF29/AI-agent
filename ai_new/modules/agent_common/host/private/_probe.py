@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import shutil
 import importlib.util
 
@@ -70,3 +71,8 @@ def importable(ctx, payload):
         except (ImportError, ValueError, ModuleNotFoundError, AttributeError):
             ok = False
     return {"ok": True, "name": pkg, "importable": ok}
+
+
+def executable(ctx):
+    """当前解释器路径：装包要用同一个 Python，避免装进别的环境。"""
+    return {"ok": True, "path": sys.executable}

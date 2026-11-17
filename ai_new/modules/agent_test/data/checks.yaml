@@ -113,6 +113,7 @@ checks:
   - position-get
   - position-tools
   - tools-list
+  - tools-install
   - view-tools
   - view-drafts
   - decompose-draft

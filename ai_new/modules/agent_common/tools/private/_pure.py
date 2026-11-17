@@ -75,6 +75,32 @@ def _missing_text(missing):
                      for m in missing)
 
 
+def install_plan(p):
+    """合并后工具清单 + 在位快照 → 安装计划：pip 包可自动装，cli/env/config 需人工处理。
+
+    只算计划不执行；resources 不在在线探测范围，也不进计划。
+    """
+    snap = p.get("snapshot") or {}
+    pip, manual = [], {"cli": [], "env": [], "config": []}
+    seen = set()
+    for t in p.get("tools") or []:
+        deps = t.get("deps") or {}
+        for m in _missing_for(deps, snap):
+            kind, name = m.get("kind"), str(m.get("name") or "")
+            if not name:
+                continue
+            if kind == "pip":
+                if name not in seen:
+                    seen.add(name)
+                    pip.append(name)
+            elif kind in manual:
+                entry = {"tool": t.get("name") or "", "name": name}
+                if entry not in manual[kind]:
+                    manual[kind].append(entry)
+    return {"pip": pip, "manual": manual,
+            "ready": not pip and not any(manual[k] for k in manual)}
+
+
 def listing(p):
     """合并后工具清单翻成只读清单行：参数、可见类型、依赖、就绪状态都成形为文本。"""
     rows = []
@@ -99,5 +125,6 @@ def listing(p):
             "status_text": "就绪" if status["status"] == "ok" else "缺依赖",
             "missing": _missing_text(status["missing"]),
             "builtin": bool(t.get("builtin")),
+            "source": "内置" if t.get("builtin") else "拆解",
         })
     return {"items": rows}

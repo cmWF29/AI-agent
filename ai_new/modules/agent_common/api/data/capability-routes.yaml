@@ -178,6 +178,14 @@ capabilities:
     - host.importable
     - host.env
     - config.get
+  tools.install_missing:
+    calls:
+    - host.which
+    - host.importable
+    - host.env
+    - config.get
+    - host.executable
+    - exec.run
   channel.reply:
     calls:
     - channel.read_tail
