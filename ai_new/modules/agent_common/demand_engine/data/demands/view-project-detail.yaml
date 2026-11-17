@@ -13,6 +13,7 @@ view:
   subheading: "建 {project.created|when}"
   data:
   - {as: project, demand: projects-get, params: {id: "{route.project}"}}
+  - {as: positions, demand: project-positions, params: {id: "{route.project}"}}
   - {as: tickets, demand: ticket-list, params: {project: "{route.project}"}}
   actions:
   - {label: 重命名, modal: project.rename}
@@ -24,6 +25,16 @@ view:
   - {label: ＋ 新建工单, tone: primary, modal: ticket.new,
      disabled_when: "{project.archived}", disabled_hint: 已归档项目不能再建工单}
   sections:
+  - kind: table
+    source: positions.items
+    heading: 项目岗位
+    count_note: "{data.positions.items.length} 个岗位（项目快照副本；副本缺则回退公共库）"
+    columns:
+    - {label: 岗位, value: row.cn, fallback: row.id, sub: row.prompt_file}
+    - {label: 工具, value: "row.tools|count", suffix: 项, muted: true}
+    - {label: 门禁检查, value: "row.flow.checks|count", suffix: 项, muted: true}
+    on_click: {view: position, params: {position: row.id}}
+    empty: {text: 这个项目还没有岗位}
   - kind: table
     source: tickets.items
     heading: 工单

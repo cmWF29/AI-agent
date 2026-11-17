@@ -18,6 +18,9 @@ def setup(ctx):
         ("projects.conflict", _pure.conflict),
         ("projects.deleted", _pure.deleted),
         ("projects.renamed", _pure.renamed),
+        ("projects.snapshot_parts", _pure.snapshot_parts),
+        ("projects.project_lib_path", _pure.project_lib_path),
+        ("projects.choose_dict", _pure.choose_dict),
     ]:
         ctx.api.register(name, _as_handler(fn), module="projects")
     ctx.api.register("projects.create", _route_create, "新建项目：归一→造档→查重→落盘→回执", module="projects")
@@ -37,9 +40,36 @@ def _route_create(ctx, payload):
     if ex.get("exists"):
         return ctx.api.call("projects.conflict", {"id": pid.get("id")}, caller=None)
     view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
-    view["effects"] = [{"kind": "write", "module": "agent/projects",
-                        "path": pid.get("id") + ".yaml", "value": rec}]
+    effects = [{"kind": "write", "module": "agent/projects",
+                "path": pid.get("id") + ".yaml", "value": rec}]
+    effects += _snapshot_effects(ctx, pid.get("id"))
+    view["effects"] = effects
     return view
+
+
+def _snapshot_effects(ctx, pid):
+    """新建项目：从公共岗位/流程/技能/工具库全量复制一份项目副本，项目内定制不回写公共。
+
+    公共记录由需求/装配落公共库；这里只读取并成形项目副本写盘，分库路径约定归项目模块。
+    """
+    common = {
+        "roles": ctx.api.call("store.read", {"module": "agent/library",
+                              "path": "roles.yaml"}, caller=None).get("value"),
+        "flows": ctx.api.call("store.read", {"module": "agent/library",
+                              "path": "flows.yaml"}, caller=None).get("value"),
+        "skills": ctx.api.call("store.read", {"module": "agent/library",
+                               "path": "skills.yaml"}, caller=None).get("value"),
+        "tools": ctx.api.call("store.read", {"module": "agent_common/tools",
+                              "path": "tools.yaml"}, caller=None).get("value"),
+    }
+    parts = ctx.api.call("projects.snapshot_parts", common, caller=None)
+    effects = []
+    for kind in ("roles", "flows", "skills", "tools"):
+        rp = ctx.api.call("projects.project_lib_path",
+                          {"id": pid, "kind": kind}, caller=None)
+        effects.append({"kind": "write", "module": "agent/projects",
+                        "path": rp["path"], "value": parts.get(kind) or {}})
+    return effects
 
 
 def _purge_tickets(ctx, pid):

@@ -107,3 +107,40 @@ def deleted(payload):
 def record_path(p):
     """项目档案落盘相对路径：布局约定属项目模块，需求层不拼字符串。"""
     return {"path": "%s.yaml" % (p.get("id") or "")}
+
+
+# ---- 项目级库：新建项目从公共库全量快照一份副本，项目内定制不回写公共 ----
+
+def _copy_dict(d):
+    """字典值浅拷贝一层；记录是字典就复制，避免项目副本回引公共对象。"""
+    out = {}
+    for k, v in (d or {}).items():
+        out[k] = dict(v) if isinstance(v, dict) else v
+    return out
+
+
+def snapshot_parts(p):
+    """新建项目时把公共岗位/流程/技能/工具四份字典整体复制为项目副本。
+
+    全量物理快照：项目从此独立演进；种子内置岗位由 seed 恒定提供，不复制。
+    """
+    return {"roles": _copy_dict(p.get("roles")),
+            "flows": _copy_dict(p.get("flows")),
+            "skills": _copy_dict(p.get("skills")),
+            "tools": _copy_dict(p.get("tools"))}
+
+
+def project_lib_path(p):
+    """项目库副本相对 projects 模块根：projects/<pid>/<kind>.yaml；kind 传复数 roles/flows/skills/tools。"""
+    pid = p.get("id") or ""
+    kind = p.get("kind") or "roles"
+    return {"path": "projects/%s/%s.yaml" % (pid, kind)}
+
+
+def choose_dict(p):
+    """项目副本存在且非空用项目，否则回退公共；缺省分支在模块内，需求树不写 when。"""
+    proj = p.get("project")
+    if isinstance(proj, dict) and proj.get("exists") and proj.get("value"):
+        return {"value": proj.get("value")}
+    pub = p.get("public")
+    return {"value": (pub.get("value") if isinstance(pub, dict) else pub)}

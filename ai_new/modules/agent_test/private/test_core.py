@@ -401,6 +401,14 @@ class CoreTest(unittest.TestCase):
         self.assertTrue(created["created"])
         self.assertEqual(created["default_backend"], "deepseek-chat")
 
+        pid = created["id"]
+        for fname in ("roles.yaml", "flows.yaml", "skills.yaml", "tools.yaml"):
+            snap = self.ctx.api.call("store.read", {"module": "agent/projects",
+                                     "path": "projects/%s/%s" % (pid, fname)})
+            self.assertIsNotNone(snap.get("value"), "新建项目快照缺副本: %s" % fname)
+        pos = self._run("project-positions", {"id": pid})["result"]
+        self.assertGreaterEqual(len(pos["items"]), 1)
+
         listed = self._run("projects-list", {})["result"]["items"]
         mine = [p for p in listed if p["id"] == created["id"]]
         self.assertEqual(len(mine), 1)
@@ -595,14 +603,11 @@ class CoreTest(unittest.TestCase):
     # ---- 内置工具 / 外部工具边界与依赖就绪 ----
 
     def test_tool_library_splits_builtin_and_external(self):
-        """内置清单只列代码内置，外部清单只列外部登记；内置行字段齐全、来源标记正确。"""
+        """内置清单只列代码内置；内置行字段齐全、来源标记正确。外部边界由注册表占位用例覆盖。"""
         builtin_list = self._run("tools-list")["result"]
-        ext_list = self._run("tools-external-list")["result"]
         for row in builtin_list["items"]:
             self.assertTrue(row["builtin"], "工具库混入外部能力: %s" % row["name"])
             self.assertEqual(row["source"], "内置")
-        for row in ext_list["items"]:
-            self.assertFalse(row["builtin"], "外部清单混入内置能力: %s" % row["name"])
         required = {"name", "desc", "module", "params", "kinds", "deps",
                     "status", "status_text", "missing", "builtin", "source"}
         for row in builtin_list["items"]:
@@ -645,9 +650,9 @@ class CoreTest(unittest.TestCase):
         """装配后需求清单含本轮入口（冒烟断言固化进门禁，避免下线后静默丢失）。"""
         listed = self.ctx.api.call("demand_engine.list", {})
         ids = {d.get("id") for d in listed}
-        for need in ("tools-list", "tools-external-list", "tools-install", "decompose-install",
+        for need in ("tools-list", "tools-install", "decompose-install",
                      "skills-list", "skill-disable", "skill-enable", "skill-uninstall",
-                     "view-tools", "view-skills", "view-external-tools"):
+                     "view-tools", "view-skills"):
             self.assertIn(need, ids, "装配后需求清单缺少: %s" % need)
 
     # ---- 调用面与 HTTP 通道 ----

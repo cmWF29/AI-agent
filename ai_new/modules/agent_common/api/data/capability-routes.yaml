@@ -44,6 +44,9 @@ capabilities:
     - projects.conflict
     - store.write
     - projects.view
+    - store.read
+    - projects.snapshot_parts
+    - projects.project_lib_path
   projects.rename:
     calls:
     - store.id

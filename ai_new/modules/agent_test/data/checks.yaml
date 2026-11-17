@@ -77,6 +77,8 @@ checks:
   - projects-get
   - projects-list
   - projects-rename
+  - project-positions
+  - project-library-design
   - react-run
   - session-ask
   - session-finished
@@ -111,12 +113,10 @@ checks:
   - position-get
   - position-tools
   - tools-list
-  - tools-external-list
   - tools-install
   - tool-external-run
   - view-tools
   - view-skills
-  - view-external-tools
   - decompose-install
   - skills-list
   - skill-disable

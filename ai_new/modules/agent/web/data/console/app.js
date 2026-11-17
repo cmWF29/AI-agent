@@ -128,7 +128,6 @@ function qsOf(s) {
   const q = new URLSearchParams();
   if (s.view === "tools") q.set("view", "tools");
   else if (s.view === "skills") q.set("view", "skills");
-  else if (s.view === "ext-tools") q.set("view", "ext-tools");
   else if (s.view === "positions") q.set("view", "positions");
   else if (s.view === "position") { q.set("view", "position"); q.set("position", s.position || ""); }
   else if (s.ticket) { q.set("project", s.project || ""); q.set("ticket", s.ticket); }
@@ -140,7 +139,6 @@ function parseURL() {
   const q = new URLSearchParams(location.search);
   if (q.get("view") === "tools") return { view: "tools" };
   if (q.get("view") === "skills") return { view: "skills" };
-  if (q.get("view") === "ext-tools") return { view: "ext-tools" };
   if (q.get("view") === "positions") return { view: "positions" };
   if (q.get("view") === "position") return { view: "position", position: q.get("position") || "" };
   const p = q.get("project") || "";

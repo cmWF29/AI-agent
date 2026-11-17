@@ -1,0 +1,102 @@
+id: project-library-design
+title: 改项目库：项目副本记录合并字段落盘；副本缺先从公共兜底成形
+description: "改项目库：优先读项目快照副本里的记录，副本缺或空回退公共库取当前记录；合并字段（带时间）后写回项目副本，不回写公共库。首次在项目内定制时，落一份项目副本。合并与落盘成形归模块，取数落盘归需求"
+tags: [project, library, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: projects.project_lib_path
+  with:
+    id:
+      get: input.project
+    kind:
+      get: input.kind
+  as: pp
+- call: store.read
+  with:
+    module:
+      lit: agent/projects
+    path:
+      get: pp.path
+  as: proj
+- call: library.kind_file
+  with:
+    kind:
+      get: input.kind
+  as: lk
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      get: lk.path
+  as: pub
+- call: projects.choose_dict
+  with:
+    project:
+      get: proj
+    public:
+      get: pub
+  as: user
+- call: library.get
+  with:
+    kind:
+      get: input.kind
+    id:
+      get: input.id
+    seed:
+      lit: {}
+    user:
+      get: user.value
+  as: cur
+- call: clock.now
+  as: now
+- call: library.design
+  with:
+    kind:
+      get: input.kind
+    id:
+      get: input.id
+    fields:
+      get: input.fields
+    record:
+      get: cur.item
+    now:
+      get: now.ts
+  as: rec
+- call: library.save_record
+  with:
+    user:
+      get: user.value
+    rec:
+      get: rec
+  as: saved
+- call: store.write
+  with:
+    module:
+      lit: agent/projects
+    path:
+      get: pp.path
+    value:
+      get: saved.value
+  as: w
+expect:
+  given:
+    input:
+      project: p1
+      kind: roles
+      id: developer
+  calls:
+  - projects.project_lib_path
+  - store.read
+  - library.kind_file
+  - store.read
+  - projects.choose_dict
+  - library.get
+  - clock.now
+  - library.design
+  - library.save_record
+  - store.write
+  payload: {}
+  promise: 副本/公共兜底、字段合并与落盘成形归模块，写盘只落项目副本，不回写公共库

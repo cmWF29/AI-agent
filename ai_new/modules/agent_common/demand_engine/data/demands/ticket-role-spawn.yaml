@@ -42,6 +42,8 @@ do:
         get: rn.name
       ticket:
         get: input.id
+      project:
+        get: row.value.project
       task:
         get: input.task
   as: sp
