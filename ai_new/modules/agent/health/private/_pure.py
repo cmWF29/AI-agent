@@ -17,6 +17,7 @@ def assemble(p):
     disk = {"total_mb": int((host.get("total_gb") or 0) * 1024),
             "free_mb": int((host.get("free_gb") or 0) * 1024)} if host else {}
     library = p.get("library") or {}
+    library_inner = library.get("result") or {}
     return {
         "ok": True,
         "uptime": int((p.get("now") or 0) - (p.get("started") or 0)),
@@ -25,7 +26,7 @@ def assemble(p):
         "tickets": {"total": len(items), "by_status": counts},
         "knowledge": p.get("knowledge") or {},
         "artifacts": p.get("artifacts") or {},
-        "library": {"counts": library.get("counts")},
+        "library": {"counts": library_inner.get("counts")},
         "agents": p.get("agents") or {},
         "disk": disk,
     }

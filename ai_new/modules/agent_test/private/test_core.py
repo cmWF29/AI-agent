@@ -679,6 +679,11 @@ class CoreTest(unittest.TestCase):
         h = self._run("health-self")["result"]
         self.assertTrue(h["ok"])
         self.assertGreaterEqual(len(h["modules"]), 19)
+        # library 快照是 demand_engine.run 包裹层，计数在内层 result.counts
+        lib_counts = h["library"]["counts"]
+        self.assertIsNotNone(lib_counts)
+        self.assertIn("roles", lib_counts)
+        self.assertIn("flows", lib_counts)
         req = urllib.request.Request(
             "http://127.0.0.1:%d/api/rpc/demand_engine/run" % self.port,
             data=yaml.safe_dump({"id": "health-self"}, allow_unicode=True, sort_keys=False, default_flow_style=True).strip().encode("utf-8"), method="POST",
