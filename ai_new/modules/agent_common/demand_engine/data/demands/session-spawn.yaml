@@ -1,8 +1,6 @@
 id: session-spawn
-title: 造会话：闭环在 sessions.spawn 能力内，需求只做顺序编排
-tags:
-- session
-- write
+title: 造会话：人设 + 岗位红线/必做 + 岗位工具清单 + 知识注入，拼装落盘
+tags: [session, write]
 enabled: true
 callable: true
 'on': []
@@ -15,6 +13,43 @@ do:
       role:
         get: input.role
   as: prompt
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: roles.yaml
+  as: roles
+- call: library.get
+  with:
+    kind:
+      lit: roles
+    id:
+      get: input.role
+    seed:
+      lit: {}
+    user:
+      get: roles.value
+  as: rec
+- call: demand_engine.run
+  with:
+    id:
+      lit: position-tools
+    input:
+      role:
+        get: input.role
+      kind:
+        get: input.kind
+  as: tools
+- call: library.prompt_blocks
+  with:
+    text:
+      get: prompt.result.prompt
+    must_dos:
+      get: rec.item.must_dos
+    forbidden:
+      get: rec.item.forbidden
+  as: blocks
 - call: demand_engine.run
   with:
     id:
@@ -46,12 +81,14 @@ do:
       get: input.max_steps
     meta:
       get: input.meta
+    tools:
+      get: tools.result.items
     task:
       get: input.task
     intro:
       get: input.intro
     role_prompt:
-      get: prompt.result.prompt
+      get: blocks.system
     injected:
       get: know.result.text
   as: out
@@ -70,8 +107,12 @@ expect:
       kind: role
   calls:
   - demand_engine.run
+  - store.read
+  - library.get
+  - demand_engine.run
+  - library.prompt_blocks
   - demand_engine.run
   - sessions.spawn
   - runtime.apply
   payload: {}
-  promise: 人设与知识各自一条需求取来，会话拼装归能力，落盘由 apply 执行
+  promise: 人设、岗位要素、工具清单、知识各自取来，会话拼装归能力，落盘由 apply 执行

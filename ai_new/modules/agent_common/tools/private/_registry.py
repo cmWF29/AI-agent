@@ -34,6 +34,16 @@ class ToolRegistry:
             if not t["kinds"] or kind in t["kinds"]
         ]
 
+    def pick(self, allow, kind):
+        """按名单裁剪工具：显式名单优先取交集；名单为空则按会话类型放行。"""
+        if allow:
+            wanted = set(allow)
+            base = [t for t in self._tools.values() if t["name"] in wanted]
+        else:
+            base = self.tools_for(kind)
+        return [{"name": t["name"], "desc": t["desc"],
+                 "params": t["params"], "module": t["module"]} for t in base]
+
     def execute(self, name, args, session=None, defer=False):
         if name not in self._tools:
             raise self.ctx.ApiError("工具不存在: %s" % name, code="no_tool", status=404)
@@ -41,12 +51,19 @@ class ToolRegistry:
         if t["kinds"] and isinstance(session, dict) and session.get("kind") not in t["kinds"]:
             raise self.ctx.ApiError("该会话不可用此工具: %s" % name,
                                     code="tool_forbidden", status=403)
+        args = dict(args or {})
+        if isinstance(session, dict):
+            # 会话上下文是工具参数的缺省落点：模型显式给的优先，其余由会话记录补
+            for key, src in (("id", "ticket"), ("ticket", "ticket"),
+                             ("role", "role"), ("session", "id")):
+                if not args.get(key) and session.get(src):
+                    args[key] = session[src]
         if t.get("demand"):
             if defer:
                 # 组合一律写成需求：注册表只声明"该跑哪个需求"，伸手的是需求身份
                 return {"ok": True, "deferred": True, "demand": t["demand"],
-                        "input": args or {}}
-            result = self.ctx.runtime.call(t["demand"], args or {})
+                        "input": args}
+            result = self.ctx.runtime.call(t["demand"], args)
         else:
             result = t["fn"](self.ctx, args or {}, session=session)
         # 落盘是有副作用的业务动作：工具注册表不隐式写盘；

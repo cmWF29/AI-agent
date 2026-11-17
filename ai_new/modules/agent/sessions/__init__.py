@@ -9,6 +9,8 @@ from .private import _pure, _run_pure
 
 
 def setup(ctx):
+    # 通知型：一轮收尾后的校验/回催/复盘不阻塞响应，写完再派发
+    ctx.hooks.point("sessions.finished", ("id", "kind", "role", "ticket"), defer=True)
     pairs = [
         ("sessions.build", _pure.build),
         ("sessions.view", _pure.view),
@@ -21,12 +23,24 @@ def setup(ctx):
         ("sessions.finish", _run_pure.finish),
         ("sessions.reply", _run_pure.reply),
         ("sessions.statsp", _run_pure.statsp),
+        ("sessions.flow_plan", _run_pure.flow_plan),
     ]
     for name, fn in pairs:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="sessions")
     ctx.api.register("sessions.spawn", _route_spawn,
                      "造会话：取人设与知识拼记录，写入算成效果交出去", module="sessions")
+    ctx.api.register("sessions.emit_finished", _route_emit_finished,
+                     "一轮收尾落盘后触发 finished 钩子，后续业务由需求编排", module="sessions")
     return True
+
+
+def _route_emit_finished(ctx, payload):
+    rec = payload.get("rec") or {}
+    if getattr(ctx, "hooks", None) is not None:
+        ctx.hooks.emit("sessions.finished", {
+            "id": rec.get("id"), "kind": rec.get("kind"),
+            "role": rec.get("role"), "ticket": rec.get("ticket")})
+    return {"ok": True}
 
 
 def _seq_of(kind, items):
@@ -48,7 +62,7 @@ def _route_spawn(ctx, payload):
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
     tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
     role_prompt = payload.get("role_prompt") or None
-    if role_prompt is None:
+    if not role_prompt:
         row = ctx.api.call("store.read_text", {
             "module": "agent/sessions", "path": "prompts/%s.md" % kind}, caller=None)
         role_prompt = row.get("value") or ""
@@ -56,11 +70,14 @@ def _route_spawn(ctx, payload):
         "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
     seq = payload.get("seq") or _seq_of(kind, listed.get("items"))
     now = ctx.api.call("clock.now", {}, caller=None)
+    meta = dict(payload.get("meta") or {})
+    if payload.get("tools"):
+        meta["tools"] = payload.get("tools")
     rec = ctx.api.call("sessions.build", {
         "kind": kind, "seq": seq,
         "name": nid.get("id"), "ticket": payload.get("ticket"),
         "role": payload.get("role"), "backend": payload.get("backend"),
-        "max_steps": payload.get("max_steps"), "meta": payload.get("meta"),
+        "max_steps": payload.get("max_steps"), "meta": meta,
         "prompt": role_prompt,
         "injected": payload.get("injected") or "",
         "prefix": "", "task": payload.get("task"), "intro": payload.get("intro"),

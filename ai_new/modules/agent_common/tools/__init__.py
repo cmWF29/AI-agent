@@ -12,6 +12,10 @@ def setup(ctx):
                                                        session=payload.get("session"),
                                                        defer=bool(payload.get("defer"))),
                      module="tools")
+    ctx.api.register("tools.pick",
+                     lambda c, payload: {"items": ctx.tools.pick(
+                         payload.get("tools") or [], payload.get("kind"))},
+                     module="tools")
     return ctx.tools
 
 def register(ctx, name, desc, params, fn, module=None, kinds=None):

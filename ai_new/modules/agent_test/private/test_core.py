@@ -17,6 +17,9 @@ sys.path.insert(0, str(ROOT))
 from ai_new.modules.agent_common.boot.private._boot import _build as build  # noqa: E402
 from ai_new.modules.agent_common.boot.private._context import Context  # noqa: E402
 from ai_new.modules.agent.auth.private import _pure as auth_pure  # noqa: E402
+from ai_new.modules.agent.library.private import _pure as lib_pure  # noqa: E402
+from ai_new.modules.agent.sessions.private import _run_pure as sess_run  # noqa: E402
+from ai_new.modules.agent.tickets.private import _pure as ticket_pure  # noqa: E402
 from _fixtures import stage, write_config  # noqa: E402
 import _fixtures  # noqa: E402
 
@@ -409,6 +412,12 @@ class CoreTest(unittest.TestCase):
         # 角色人设必须进 system 消息（嵌套需求结果要解到 .result.prompt）
         sysmsg = next(m for m in sp["result"]["messages"] if m["role"] == "system")
         self.assertIn("开发角色", sysmsg["content"])
+        # 岗位红线/必做进系统提示词；工具清单按岗位名单裁剪落会话 meta
+        self.assertIn("必须做到", sysmsg["content"])
+        self.assertIn("禁止事项", sysmsg["content"])
+        names = {t["name"] for t in sp["result"].get("meta", {}).get("tools") or []}
+        self.assertIn("artifact_read", names)
+        self.assertNotIn("role_spawn", names)
         self._run("session-send", {"id": sid, "text": "开始"})
         self._run("session-run", {"id": sid})
         done = self._run("session-wait", {"id": sid})["result"]
@@ -513,6 +522,56 @@ class CoreTest(unittest.TestCase):
         self.assertTrue(expired["expired"])
         self.assertEqual(auth_pure.session_view({"record": rec}),
                          {"token": "tok", "username": "admin", "expires": 1060.0})
+
+    def test_position_pure_functions(self):
+        # 评审三态：无缺口达标；有缺口未超限回催并计数；到上限不再催
+        self.assertEqual(lib_pure.reviewp({"missing": [], "retries": 0})["verdict"], "pass")
+        gap = [{"path": "docs/a.md"}]
+        rep = lib_pure.reviewp({"missing": gap, "retries": 0})
+        self.assertEqual(rep["verdict"], "repush")
+        self.assertEqual(rep["retries"], 1)
+        self.assertIn("docs/a.md", rep["missing_text"])
+        exh = lib_pure.reviewp({"missing": gap, "retries": 2, "max_retries": 2})
+        self.assertEqual(exh["verdict"], "exhausted")
+        self.assertEqual(exh["retries"], 2)
+        # 提示词拼装：正文 + 必做 + 红线分段
+        block = lib_pure.prompt_blocks({"text": "正文", "must_dos": ["做 A"], "forbidden": ["禁 B"]})
+        self.assertIn("正文", block["system"])
+        self.assertIn("必须做到", block["system"])
+        self.assertIn("做 A", block["system"])
+        self.assertIn("禁止事项", block["system"])
+        self.assertIn("禁 B", block["system"])
+        # 交付件条目 → 路径清单
+        self.assertEqual(ticket_pure.paths(
+            {"items": [{"path": "x/a.py"}, {"nopath": 1}]})["paths"], ["x/a.py"])
+
+    def test_flow_plan_effects(self):
+        rec = {"id": "role-1", "kind": "role", "role": "developer",
+               "ticket": "T-1", "meta": {}}
+        gap = [{"path": "docs/a.md"}]
+        repush = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "repush", "missing": gap, "retries": 1},
+            "ticket": "T-1", "repush_text": "补缺口", "retrospect_text": "", "exhausted_text": ""})
+        kinds = [e["kind"] for e in repush["effects"]]
+        self.assertIn("write", kinds)
+        self.assertIn("dispatch", kinds)
+        self.assertEqual(repush["rec"]["meta"]["retries"], 1)
+        passed = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 1},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+        self.assertIn("dispatch", [e["kind"] for e in passed["effects"]])
+        self.assertTrue(passed["rec"]["meta"]["retrospected"])
+        # 已复盘过一轮：不再重复触发复盘，避免闭环空转
+        again = sess_run.flow_plan({
+            "rec": passed["rec"], "review": {"verdict": "pass", "missing": [], "retries": 1},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "复盘", "exhausted_text": ""})
+        self.assertNotIn("dispatch", [e["kind"] for e in again["effects"]])
+        exhausted = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "exhausted", "missing": gap, "retries": 2},
+            "ticket": "T-1", "repush_text": "", "retrospect_text": "", "exhausted_text": "卡点"})
+        kinds = [e["kind"] for e in exhausted["effects"]]
+        self.assertIn("demand", kinds)
+        self.assertNotIn("dispatch", kinds)
 
     def test_auth_verify_legacy_token(self):
         """夹具配了旧令牌 t：命中放行，空/错令牌拒绝。"""

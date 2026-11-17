@@ -22,6 +22,8 @@ def setup(ctx):
         ("tickets.pick", _pure.pick),
         ("tickets.resolve_target", _pure.resolve_target),
         ("tickets.files_filter", _pure.files_filter),
+        ("tickets.paths", _pure.paths),
+        ("tickets.msg", _pure.msg),
         ("tickets.err", _pure.err),
         ("tickets.stale", _pure.stale),
     ]:
@@ -31,7 +33,46 @@ def setup(ctx):
     ctx.api.register("tickets.stall_scan", _route_stall_scan, "停滞扫描：遍历在途→判定→开审计单", module="tickets")
     ctx.api.register("tickets.create", _route_create, "建工单：校验项目→造记录→拉 PM→落盘", module="tickets")
     ctx.api.register("tickets.rebind", _route_rebind, "项目改名后把工单改挂到新项目 id", module="tickets")
+    _register_tools(ctx)
     return True
+
+
+def _register_tools(ctx):
+    """编排工具就是需求桥接：PM 握分单/派角色/结单，角色只读文档与记备注。
+
+    kinds 按会话类型放行；岗位 tools 名单在 library 成形时再做第二道裁剪。
+    """
+    pm, role = ["pm"], ["role"]
+    tools = [
+        ("role_spawn", "拉一个角色会话并分派任务",
+         [{"name": "role", "type": "string", "desc": "角色 id（developer/tester/...）", "required": True},
+          {"name": "display", "type": "string", "desc": "显示名", "required": False},
+          {"name": "task", "type": "string", "desc": "任务目标、输入路径、产出路径、验收标准", "required": True}],
+         "ticket-role-spawn", pm),
+        ("role_task", "给已有角色返工或补缺口",
+         [{"name": "role", "type": "string", "desc": "角色 id 或会话 id", "required": True},
+          {"name": "text", "type": "string", "desc": "缺口与验收标准，不重复整份任务书", "required": True}],
+         "ticket-role-task", pm),
+        ("ticket_split", "拆成多个可独立验收的子工单",
+         [{"name": "children", "type": "list", "desc": "子任务清单（title/goal）", "required": True},
+          {"name": "force", "type": "boolean", "desc": "超出上限是否强制", "required": False}],
+         "ticket-split", pm),
+        ("ticket_close", "对照验收标准结单",
+         [{"name": "summary", "type": "string", "desc": "结单摘要", "required": False},
+          {"name": "verdict", "type": "string", "desc": "accepted / rejected", "required": False}],
+         "ticket-close", pm),
+        ("ticket_read_doc", "读本工单交付件或交接文档（只读）",
+         [{"name": "path", "type": "string", "desc": "交付件相对路径", "required": True},
+          {"name": "max_bytes", "type": "number", "desc": "读取上限字节", "required": False}],
+         "ticket-file", pm + role),
+        ("ticket_note", "给工单记一条备注（不改动交付件）",
+         [{"name": "text", "type": "string", "desc": "备注内容", "required": True}],
+         "ticket-note", pm + role),
+        ("ticket_status", "查看本工单当前状态", [], "ticket-get", role),
+    ]
+    for name, desc, params, demand, kinds in tools:
+        ctx.tools.register_demand(name, desc, params, demand=demand,
+                                  module="tickets", kinds=kinds)
 
 
 def _msg_tpl(ctx):

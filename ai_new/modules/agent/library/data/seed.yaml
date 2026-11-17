@@ -5,6 +5,22 @@ roles:
   must_outputs:
   - docs/**/*architect*
   - docs/**/*架构*
+  must_dos:
+  - 输出结构设计文档（模块划分、接口、数据流、规则变更）并落到任务指定路径
+  - 引用现有文件时给出证据与文件路径
+  - 关键设计决策与踩坑写入知识
+  forbidden:
+  - 不直接改业务代码实现
+  - 不越出工单范围改动文件
+  - 不替测试下验收结论
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - knowledge_search
+  - ticket_read_doc
+  - ticket_note
   backend: ''
   builtin: true
 - id: developer
@@ -15,6 +31,22 @@ roles:
   - '**/*.js'
   - '**/*.go'
   - '**/*.sh'
+  must_dos:
+  - 按验收标准实现并交付代码产物
+  - 改完自己跑一遍验证，写明验证命令与结果
+  - 改动点、验证结果与坑写入交接文档和知识
+  forbidden:
+  - 不为凑清单创建项目里不存在的语言文件
+  - 不改工单范围外的文件
+  - 不自验通过就宣称完成
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - knowledge_search
+  - ticket_read_doc
+  - ticket_note
   backend: ''
   builtin: true
 - id: reviewer
@@ -23,6 +55,16 @@ roles:
   must_outputs:
   - docs/**/*review*
   - docs/**/*评审*
+  must_dos:
+  - 逐条对照验收标准给出评审结论并落文档
+  forbidden:
+  - 不改业务代码
+  - 不替开发补实现
+  tools:
+  - artifact_read
+  - knowledge_read
+  - ticket_read_doc
+  - ticket_note
   backend: ''
   builtin: true
 - id: tester
@@ -31,6 +73,18 @@ roles:
   must_outputs:
   - tests/**/*.py
   - tests/**/*.md
+  must_dos:
+  - 交付测试用例或脚本并跑通，记录结果
+  forbidden:
+  - 不改业务实现逻辑
+  - 不隐藏或跳过失败用例
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - ticket_read_doc
+  - ticket_note
   backend: ''
   builtin: true
 - id: ops
@@ -38,6 +92,15 @@ roles:
   prompt_file: roles/ops.md
   must_outputs:
   - docs/**/*.md
+  must_dos:
+  - 给出部署或恢复方案文档
+  forbidden:
+  - 不在被审计工单上直接改动其产物
+  tools:
+  - artifact_read
+  - knowledge_read
+  - knowledge_search
+  - ticket_read_doc
   backend: ''
   builtin: true
 - id: researcher
@@ -45,6 +108,15 @@ roles:
   prompt_file: roles/researcher.md
   must_outputs:
   - docs/**/*.md
+  must_dos:
+  - 输出调研结论文档并标注来源
+  forbidden:
+  - 不把调研结论当成已落地实现
+  tools:
+  - artifact_read
+  - knowledge_read
+  - knowledge_search
+  - ticket_read_doc
   backend: ''
   builtin: true
 - id: writer
@@ -52,6 +124,15 @@ roles:
   prompt_file: roles/writer.md
   must_outputs:
   - docs/**/*.md
+  must_dos:
+  - 交付对应文案文档
+  forbidden:
+  - 不改技术实现
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - ticket_read_doc
   backend: ''
   builtin: true
 - id: process
@@ -60,6 +141,15 @@ roles:
   must_outputs:
   - docs/**/*.yaml
   - docs/**/*.md
+  must_dos:
+  - 输出流程或规则配置文档
+  forbidden:
+  - 不改业务代码
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - ticket_read_doc
   backend: ''
   builtin: true
 flows:

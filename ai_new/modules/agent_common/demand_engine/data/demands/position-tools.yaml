@@ -1,0 +1,43 @@
+id: position-tools
+title: 岗位工具清单：角色名单 ∩ 注册表；名单为空按会话类型放行
+tags: [position, library, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: roles.yaml
+  as: roles
+- call: library.get
+  with:
+    kind:
+      lit: roles
+    id:
+      get: input.role
+    seed:
+      lit: {}
+    user:
+      get: roles.value
+  as: rec
+- call: tools.pick
+  with:
+    tools:
+      get: rec.item.tools
+    kind:
+      get: input.kind
+  as: out
+expect:
+  given:
+    input:
+      role: developer
+      kind: role
+  calls:
+  - store.read
+  - library.get
+  - tools.pick
+  payload: {}
+  promise: 名单交集成形归模块，注册表全量由 tools 能力给

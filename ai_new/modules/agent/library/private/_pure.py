@@ -51,14 +51,68 @@ def _records(p):
 
 
 def _position(rec, flow):
-    """岗位 = 相对性系统提示词引用 + 代码性流程规范 + 产出约束。"""
+    """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 代码性流程规范 + 产出约束。"""
     return {"id": rec.get("id"), "cn": rec.get("cn"),
             "prompt_file": rec.get("prompt_file"),
             "must_outputs": rec.get("must_outputs") or [],
+            "forbidden": rec.get("forbidden") or [],
+            "must_dos": rec.get("must_dos") or [],
+            "tools": rec.get("tools") or [],
             "backend": rec.get("backend") or "",
             "builtin": bool(rec.get("builtin")),
             "flow": {"id": (flow or {}).get("id") or rec.get("id"),
                      "checks": (flow or {}).get("checks") or []}}
+
+
+def reviewp(p):
+    """一轮收尾评审：缺口清单 + 已回催次数 → 三态判定（纯计算，不带时钟）。
+
+    pass      没有缺口，本轮交付达标；
+    repush    有缺口且未超上限：计数 +1，交回催缺口清单；
+    exhausted 有缺口但重试已到上限：不再催，留卡点交上层裁决。
+    重试上限是模块内部策略，不写进需求树。
+    """
+    missing = p.get("missing") or []
+    retries = int(p.get("retries") or 0)
+    limit = int(p.get("max_retries") or 2)
+    text = "; ".join(_gap_text(g) for g in missing)
+    if not missing:
+        return {"verdict": "pass", "missing": [], "missing_text": "",
+                "retries": retries, "repush": []}
+    if retries < limit:
+        return {"verdict": "repush", "missing": missing, "missing_text": text,
+                "retries": retries + 1, "repush": missing}
+    return {"verdict": "exhausted", "missing": missing, "missing_text": text,
+            "retries": retries, "repush": []}
+
+
+def _gap_text(gap):
+    """单条缺口成形为可读文本；形状来自 checkp，缺字段不报错。"""
+    if not isinstance(gap, dict):
+        return str(gap)
+    if gap.get("path"):
+        return str(gap["path"])
+    if gap.get("text"):
+        return str(gap["text"])
+    if gap.get("reason"):
+        return str(gap["reason"])
+    return str(gap.get("paths") or gap)
+
+
+def prompt_blocks(p):
+    """把岗位自然语言正文与结构化红线/必做拼成系统提示词附加段。
+
+    正文来自数据文件；这里只做结构拼装，不写任何职责正文。
+    """
+    text = p.get("text") or ""
+    must = p.get("must_dos") or []
+    forbidden = p.get("forbidden") or []
+    parts = [text] if text else []
+    if must:
+        parts.append("## 必须做到\n" + "\n".join("- %s" % m for m in must))
+    if forbidden:
+        parts.append("## 禁止事项\n" + "\n".join("- %s" % m for m in forbidden))
+    return {"system": "\n\n".join(parts)}
 
 
 def positionp(p):

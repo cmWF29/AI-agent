@@ -40,6 +40,7 @@ def view(p):
             "ticket": rec.get("ticket"), "role": rec.get("role"),
             "backend": rec.get("backend"), "status": rec.get("status"),
             "created": rec.get("created"), "updated": rec.get("updated"),
+            "meta": rec.get("meta") or {},
             "messages": rec.get("messages") or []}
 
 

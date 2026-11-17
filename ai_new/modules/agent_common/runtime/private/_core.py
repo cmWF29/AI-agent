@@ -83,6 +83,10 @@ class Runtime:
         if kind == "demand":
             return self.ctx.api.call("demand_engine.run", {
                 "id": effect.get("id"), "input": effect.get("input") or {}}, caller=None)
+        if kind == "dispatch":
+            return self.dispatch({"demand": effect.get("id"),
+                                   "key": effect.get("key"),
+                                   "input": effect.get("input") or {}})
         route = STORE_ROUTES.get(kind)
         if not route:
             return {"ok": False, "code": "unknown_effect", "kind": kind}

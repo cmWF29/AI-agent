@@ -219,6 +219,11 @@ def files_filter(p):
     return {"ticket": p.get("ticket"), "items": items}
 
 
+def paths(p):
+    """交付件条目清单 → 路径字符串清单，交流程校验。"""
+    return {"paths": [it.get("path") for it in (p.get("items") or []) if it.get("path")]}
+
+
 def err(p):
     return {"ok": False, "code": p.get("code") or "error",
             "status": p.get("status") or 400, "error": p.get("message") or ""}

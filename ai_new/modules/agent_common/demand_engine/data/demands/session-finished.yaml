@@ -1,0 +1,155 @@
+id: session-finished
+title: 会话收尾闭环：岗位流程校验 → 三态评审 → 回催/复盘/卡点
+tags: [session, position, write, async]
+enabled: true
+'on':
+- sessions.finished
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      op: +
+      a:
+        lit: sessions/
+      b:
+        op: +
+        a:
+          get: event.data.id
+        b:
+          lit: .yaml
+  as: row
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: flows.yaml
+  as: flows
+- call: library.get
+  with:
+    kind:
+      lit: flows
+    id:
+      get: event.data.role
+    seed:
+      lit: {}
+    user:
+      get: flows.value
+  as: flow
+- call: demand_engine.run
+  with:
+    id:
+      lit: ticket-files
+    input:
+      id:
+        get: event.data.ticket
+  as: listed
+- call: tickets.paths
+  with:
+    items:
+      get: listed.result.items
+  as: paths
+- call: library.check
+  with:
+    flow:
+      get: event.data.role
+    rec:
+      get: flow.item
+    files:
+      get: paths.paths
+    contents:
+      lit: {}
+  as: miss
+- call: library.review
+  with:
+    missing:
+      get: miss.missing
+    retries:
+      get: row.value.meta.retries
+  as: rev
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      lit: messages.yaml
+  as: tpls
+- call: tickets.msg
+  with:
+    tpl:
+      get: tpls.value.repush_task
+    vars:
+      missing:
+        get: rev.missing_text
+  as: repush
+- call: tickets.msg
+  with:
+    tpl:
+      get: tpls.value.retrospect_prompt
+    vars:
+      lit: {}
+  as: retro
+- call: tickets.msg
+  with:
+    tpl:
+      get: tpls.value.exhausted_note
+    vars:
+      role:
+        get: event.data.role
+      session:
+        get: event.data.id
+      retries:
+        get: rev.retries
+      missing:
+        get: rev.missing_text
+  as: exh
+- call: sessions.flow_plan
+  with:
+    rec:
+      get: row.value
+    review:
+      get: rev
+    ticket:
+      get: event.data.ticket
+    repush_text:
+      get: repush.text
+    retrospect_text:
+      get: retro.text
+    exhausted_text:
+      get: exh.text
+  as: plan
+- call: runtime.apply
+  with:
+    effect:
+      get: plan.effects
+    echo:
+      get: plan
+  as: applied
+expect:
+  given:
+    'on': sessions.finished
+    event:
+      data:
+        id: role-1
+        kind: role
+        role: developer
+        ticket: T-1
+    input: {}
+  calls:
+  - store.read
+  - store.read
+  - library.get
+  - demand_engine.run
+  - tickets.paths
+  - library.check
+  - library.review
+  - store.read
+  - tickets.msg
+  - tickets.msg
+  - tickets.msg
+  - sessions.flow_plan
+  - runtime.apply
+  payload: {}
+  promise: 校验与判定归模块，闭环动作清单由 flow_plan 成形，写盘与再驱动交 apply

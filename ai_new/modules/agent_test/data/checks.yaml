@@ -78,6 +78,7 @@ checks:
   - projects-rename
   - react-run
   - session-ask
+  - session-finished
   - session-compact
   - session-destroy
   - session-draft
@@ -109,3 +110,4 @@ checks:
   - ticket-thread
   - position-list
   - position-get
+  - position-tools

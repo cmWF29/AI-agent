@@ -56,3 +56,49 @@ def statsp(p):
         statuses[key] = statuses.get(key, 0) + 1
     return {"active": sum(1 for it in (p.get("items") or []) if it.get("status") == "running"),
             "max_concurrent": int(p.get("max") or 0), "statuses": statuses}
+
+
+def flow_plan(p):
+    """一轮收尾后的闭环动作清单：三态判定已在 library.review，这里只翻译成 effects。
+
+    repush    回催缺口：追加回催消息、计数落盘、后台再跑一轮；
+    pass      达标：追加复盘提示、后台再跑一轮，由模型自行决定是否沉淀知识；
+    exhausted 超上限：标记卡点、记工单备注，不再回催。
+    纯计算，不碰盘；写盘与再驱动都交 effect，由 runtime.apply 落地。
+    """
+    rec = dict(p.get("rec") or {})
+    review = p.get("review") or {}
+    verdict = review.get("verdict") or "pass"
+    meta = dict(rec.get("meta") or {})
+    meta["retries"] = review.get("retries") or 0
+    rec["meta"] = meta
+    sid = rec.get("id")
+    effects = []
+    if verdict == "repush":
+        rec = appendmsg({"rec": rec, "text": p.get("repush_text") or "",
+                         "now": p.get("now") or ""})
+        effects.append({"kind": "write", "module": "agent/sessions",
+                        "path": "sessions/%s.yaml" % sid, "value": rec})
+        effects.append({"kind": "dispatch", "id": "session-run", "key": sid,
+                        "input": {"id": sid}})
+    elif verdict == "pass":
+        already = bool(meta.get("retrospected"))
+        if not already:
+            meta["retrospected"] = True
+            rec["meta"] = meta
+            rec = appendmsg({"rec": rec, "text": p.get("retrospect_text") or "",
+                             "now": p.get("now") or ""})
+            effects.append({"kind": "write", "module": "agent/sessions",
+                            "path": "sessions/%s.yaml" % sid, "value": rec})
+            effects.append({"kind": "dispatch", "id": "session-run", "key": sid,
+                            "input": {"id": sid}})
+        else:
+            effects.append({"kind": "write", "module": "agent/sessions",
+                            "path": "sessions/%s.yaml" % sid, "value": rec})
+    else:
+        effects.append({"kind": "write", "module": "agent/sessions",
+                        "path": "sessions/%s.yaml" % sid, "value": rec})
+        effects.append({"kind": "demand", "id": "ticket-note",
+                        "input": {"id": p.get("ticket"),
+                                  "text": p.get("exhausted_text") or ""}})
+    return {"verdict": verdict, "rec": rec, "effects": effects}

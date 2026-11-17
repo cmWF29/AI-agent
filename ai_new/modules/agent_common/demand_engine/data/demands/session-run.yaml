@@ -56,11 +56,11 @@ do:
       lit: react-run
     input:
       session:
-        get: input.id
+        get: running
       messages:
         get: row.value.messages
       tools:
-        get: input.tools
+        get: row.value.meta.tools
       max_steps:
         get: input.max_steps
       base_url:
@@ -127,6 +127,11 @@ do:
     rec:
       get: rec
   as: out2
+- call: sessions.emit_finished
+  with:
+    rec:
+      get: rec
+  as: hooked
 expect:
   given:
     input: {}
@@ -138,5 +143,6 @@ expect:
   - sessions.finish
   - store.write
   - sessions.view
+  - sessions.emit_finished
   payload: {}
-  promise: 循环在 react 里，本需求只负责状态迁移
+  promise: 循环在 react 里，本需求只负责状态迁移；收尾校验/回催/复盘由 finished 钩子编排
