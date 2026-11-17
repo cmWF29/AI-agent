@@ -11,12 +11,17 @@ do:
     value:
       get: input.id
   as: pid
+- call: projects.record_path
+  with:
+    id:
+      get: pid.id
+  as: pp
 - call: store.read
   with:
     module:
       lit: agent/projects
     path:
-      get: pid.id
+      get: pp.path
   as: proj
 - call: projects.override_parts
   with:
@@ -59,6 +64,7 @@ expect:
       id: <project-id>
   calls:
   - store.id
+  - projects.record_path
   - store.read
   - projects.override_parts
   - store.read
