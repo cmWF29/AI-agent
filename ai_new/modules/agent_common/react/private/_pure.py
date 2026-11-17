@@ -5,8 +5,13 @@ from __future__ import annotations
 def schema(p):
     props, required = {}, []
     for item in p.get("tool") or []:
-        props[item["name"]] = {"type": item.get("type") or "string",
-                               "description": item.get("desc") or ""}
+        raw = item.get("type") or "string"
+        # 内部用 list 表清单，模型侧 JSON Schema 只认 array；array 需带 items。
+        t = "array" if raw == "list" else raw
+        prop = {"type": t, "description": item.get("desc") or ""}
+        if t == "array":
+            prop["items"] = {"type": "object"}
+        props[item["name"]] = prop
         if item.get("required"):
             required.append(item["name"])
     return {"type": "function",

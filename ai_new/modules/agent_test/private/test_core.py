@@ -588,6 +588,19 @@ class CoreTest(unittest.TestCase):
         self.assertIn("demand", kinds)
         self.assertNotIn("dispatch", kinds)
 
+    def test_react_schema_normalizes_list_to_array(self):
+        """内部 list 类型要归一为模型侧 JSON Schema 的 array，并带 items。"""
+        sch = react_pure.schema({"name": "ticket_split", "desc": "拆单",
+                                 "tool": [{"name": "children", "type": "list",
+                                           "desc": "子任务清单", "required": True},
+                                          {"name": "force", "type": "boolean",
+                                           "desc": "强制", "required": False}]})
+        props = sch["function"]["parameters"]["properties"]
+        self.assertEqual(props["children"]["type"], "array")
+        self.assertEqual(props["children"]["items"], {"type": "object"})
+        self.assertEqual(props["force"]["type"], "boolean")
+        self.assertEqual(sch["function"]["parameters"]["required"], ["children"])
+
     def test_react_result_carries_failure(self):
         """后端未答复的原因要随结果透出，不能在循环里丢掉。"""
         res = react_pure.result({"messages": [{"role": "user", "content": "x"}],
