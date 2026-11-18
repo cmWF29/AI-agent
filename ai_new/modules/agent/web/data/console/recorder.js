@@ -8,7 +8,22 @@ const VoiceRecorder = (() => {
 
   async function start() {
     if (recording) return;
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (!window.isSecureContext) {
+      throw new Error("非安全上下文：麦克风仅在有效 HTTPS 或 localhost 下可用；当前为 IP/自签地址，浏览器已禁用录音。");
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("当前浏览器不支持录音（mediaDevices 不可用），请通过有效 HTTPS 访问。");
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      if (e && e.name === "NotAllowedError") {
+        e.message = "麦克风权限被拒：请点地址栏左侧图标 → 网站设置 → 允许麦克风，再刷新页面；若仍被拒，说明当前自签/IP 证书不被浏览器信任，需换成有效 HTTPS 证书。";
+      } else if (e && e.name === "NotFoundError") {
+        e.message = "未检测到麦克风设备。";
+      }
+      throw e;
+    }
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     sourceRate = ctx.sampleRate;
     chunks = [];
