@@ -41,8 +41,3 @@ def channels(p):
         lines = [x for x in (row.get("text") or "").splitlines() if x.strip()]
         out.append({"channel": name, "count": len(lines), "last_ts": None})
     return {"channels": out}
-
-
-def bad(p):
-    return {"ok": False, "code": p.get("code") or "bad_role",
-            "status": p.get("status") or 400, "error": p.get("error") or "参数不合法"}

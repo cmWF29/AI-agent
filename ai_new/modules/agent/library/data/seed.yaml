@@ -1,3 +1,24 @@
+pm:
+  id: pm
+  cn: PM
+  must_outputs: []
+  must_dos:
+  - 受理工单需求并拆解执行计划
+  - 按需派角色、返工缺口与组织验收
+  - 对照验收标准闭环结单
+  forbidden:
+  - 不替代执行角色直接撰写交付件
+  tools:
+  - role_spawn
+  - role_task
+  - ticket_split
+  - ticket_close
+  - ticket_read_doc
+  - ticket_note
+  backend: ''
+  builtin: true
+  readonly: true
+  system: true
 roles:
 - id: architect
   cn: 架构

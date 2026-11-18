@@ -20,6 +20,23 @@ ROOT = Path(__file__).resolve().parents[4]
 MODULES = ROOT / "ai_new" / "modules"
 BUSINESS_WORDS = ["工单", "秘书", "角色", "PM"]
 RUNTIME_GROUPS = ("agent_common", "agent")
+_CN = re.compile(r"[\u4e00-\u9fff]")
+
+# 私有层允许保留的中文诊断/身份（文件相对 modules/，函数名）。
+# 这些类比标准库异常：门面错误码、本地引擎安装诊断、后端身份枚举，不属于面向用户的业务文案；
+# 面向模型的职责正文、面向用户的标签/规则句仍须外置到 messages.yaml / seed.yaml。
+COPY_WHITELIST = {
+    # web 门面：静态资源越界 / 缺失的 HTTP 错误诊断
+    ("agent/web/private/_panel.py", "asset"),
+    # decompose：工具定义结构校验的内部诊断
+    ("agent/decompose/private/_pure.py", "_norm_tool"),
+    # asr：本地离线引擎/模型安装与音频解析诊断
+    ("agent/asr/private/_engine.py", "_load_model"),
+    ("agent/asr/private/_engine.py", "transcribe"),
+    # agents：内置后端身份枚举与后端不存在诊断
+    ("agent/agents/private/_backends.py", "backends"),
+    ("agent/agents/private/_backends.py", "pick"),
+}
 
 
 def src_files(base):
@@ -254,6 +271,37 @@ class StructureTest(unittest.TestCase):
             if "你是" in p.read_text(encoding="utf-8"):
                 hits.append(str(p.relative_to(ROOT)))
         self.assertEqual(hits, [], "代码里出现提示词正文: %s" % hits)
+
+    def test_private_layer_hides_no_business_copy(self):
+        """业务私有层不内置面向用户/模型的中文文案；诊断与身份枚举走白名单。
+
+        平台能力模块（agent_common）整体豁免：其报错类比标准库异常。
+        工具 schema 的 ``desc`` 键值是接口元数据，随定义一起登记，不属业务文案。
+        面向模型的职责正文、面向用户的标签/规则句须外置到 messages.yaml / seed.yaml。
+        """
+        hits = []
+        for p in src_files(MODULES / "agent"):
+            if "private" not in p.parts:
+                continue
+            tree = ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
+            rel = str(p.relative_to(MODULES)).replace("\\", "/")
+            desc_values = {id(v) for d in ast.walk(tree) if isinstance(d, ast.Dict)
+                           for k, v in zip(d.keys, d.values)
+                           if isinstance(k, ast.Constant) and k.value == "desc"}
+            for func in [n for n in ast.walk(tree)
+                         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+                body = func.body[1:] if (func.body and isinstance(func.body[0], ast.Expr)
+                        and isinstance(func.body[0].value, ast.Constant)
+                        and isinstance(func.body[0].value.value, str)) else func.body
+                for fnode in body:
+                    for node in ast.walk(fnode):
+                        if not (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                                and _CN.search(node.value)):
+                            continue
+                        if id(node) in desc_values or (rel, func.name) in COPY_WHITELIST:
+                            continue
+                        hits.append((rel, func.name, node.lineno, node.value[:40]))
+        self.assertEqual(hits, [], "私有层内置了未外置的业务文案: %s" % hits)
 
     def test_prompts_and_rules_are_data(self):
         """每样数据都在它主人自己的 data 里，没有一个公共筐。"""

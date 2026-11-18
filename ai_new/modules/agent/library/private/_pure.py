@@ -50,19 +50,20 @@ def _records(p):
     return out
 
 
-def _pm_record(pm_prompt_file=""):
+def _pm_record(pm_seed=None, pm_prompt_file=""):
     """PM 是工单主会话编排者，不是可被派单实例化的岗位；在库内只作只读条目展示。
 
-    提示词引用会话侧 prompts/pm.md；这里只给定位与职责骨架，不读盘、不取时间。
+    职责骨架与工具名单来自 seed.yaml 的 pm 段；提示词引用会话侧 prompts/pm.md。
     """
-    return {"id": "pm", "cn": "PM", "prompt_file": pm_prompt_file or "",
-            "must_outputs": [],
-            "must_dos": ["受理工单需求并拆解执行计划", "按需派角色、返工缺口与组织验收",
-                         "对照验收标准闭环结单"],
-            "forbidden": ["不替代执行角色直接撰写交付件"],
-            "tools": ["role_spawn", "role_task", "ticket_split", "ticket_close",
-                      "ticket_read_doc", "ticket_note"],
-            "backend": "", "builtin": True, "readonly": True, "system": True}
+    seed = pm_seed or {}
+    return {"id": "pm", "cn": seed.get("cn") or "PM",
+            "prompt_file": pm_prompt_file or "",
+            "must_outputs": seed.get("must_outputs") or [],
+            "must_dos": seed.get("must_dos") or [],
+            "forbidden": seed.get("forbidden") or [],
+            "tools": seed.get("tools") or [],
+            "backend": seed.get("backend") or "", "builtin": True,
+            "readonly": True, "system": True}
 
 
 def _check_desc(c, tpl):
@@ -176,8 +177,8 @@ def positionp(p):
     if not rec:
         if (p.get("id") or "") == "pm":
             pm_file = paths.get("pm_prompt") or ""
-            return _position(_pm_record(pm_file), p.get("flow") or {},
-                             prompt_text, pm_prompt, tpl, paths)
+            return _position(_pm_record((p.get("seed") or {}).get("pm"), pm_file),
+                             p.get("flow") or {}, prompt_text, pm_prompt, tpl, paths)
         pid = p.get("id") or ""
         t = tpl.get("position_missing") or ""
         return {"ok": False, "code": "not_found", "status": 404,
@@ -215,7 +216,8 @@ def positionsp(p):
             row["disabled_text"] = tpl.get("label_enabled") or ""
         row["locked"] = bool(rec.get("system") or rec.get("readonly"))
         items.append(row)
-    pm = _position(_pm_record(paths.get("pm_prompt") or ""), {}, "", "", tpl, paths)
+    pm = _position(_pm_record((p.get("seed") or {}).get("pm"),
+                               paths.get("pm_prompt") or ""), {}, "", "", tpl, paths)
     pm["disabled"] = False
     pm["disabled_text"] = tpl.get("label_enabled") or ""
     pm["locked"] = True

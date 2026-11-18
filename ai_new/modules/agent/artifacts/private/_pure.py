@@ -77,8 +77,3 @@ def statsp(p):
     rows = p.get("rows") or []
     return {"files": len(rows), "bytes": sum(int(r.get("size") or 0) for r in rows),
             "chars": sum(len(r.get("text") or "") for r in rows)}
-
-
-def missing(p):
-    return {"ok": False, "code": "no_file", "status": 404,
-            "error": "文件不存在: %s" % (p.get("path") or "")}

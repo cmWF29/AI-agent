@@ -25,9 +25,6 @@ child_closed_notify: '（系统通知）子工单 {ticket} 已结单。
   知识：knowledge/tickets/{ticket}
 
   请判断该子任务是否满足父工单验收；全部齐了再结单。'
-stall_audit_goal: 本单是对停滞工单 {ticket} 的只读运维审计：诊断为什么没有推进，给出恢复方案，写 docs/health-report.md。不得修改被审计工单的任何产物。
-stall_audit_task: 工单 {ticket} 疑似停滞（最后活动 {updated}）。请检查其状态、会话、角色与卡点，写 docs/health-report.md，并在结单
-  summary 里给出：现象/根因/处理/恢复标准。
 repush_task: '（系统回催）还有缺口没完成：{missing}。请对照岗位必做事项补齐交付件后再交作业。'
 review_pass: '评审达标'
 close_accepted: '验收通过'

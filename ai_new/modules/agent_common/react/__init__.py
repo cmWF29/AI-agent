@@ -38,9 +38,11 @@ def setup(ctx):
 
 
 def _tool_threshold(ctx, payload):
-    cfgv = dict((getattr(ctx, "cfg", None) or {}).get("sessions") or {})
-    ctxv = dict(cfgv.get("context") or {})
-    return int(payload.get("tool_output_chars") or ctxv.get("tool_output_chars"))
+    if payload.get("tool_output_chars"):
+        return int(payload.get("tool_output_chars"))
+    row = ctx.api.call("config.get",
+        {"key": "sessions.context.tool_output_chars"}, caller=None)
+    return int(row.get("value"))
 
 
 def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
