@@ -25,12 +25,20 @@ html,body{height:100%}
 body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--fg);background:var(--bg)}
 button,input,select,textarea{font:inherit;color:inherit}
 
-/* ---- 顶栏 ---- */
-.topbar{display:flex;align-items:center;gap:14px;padding:12px 22px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-.brand{display:flex;align-items:center;gap:10px}
+/* ---- 侧边栏 ---- */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:216px;flex:none;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 16px}
 .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#2f6bff,#722ed1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
 .brand h1{font-size:15px;margin:0;line-height:1.2}
 .brand .sub{font-size:12px;color:var(--muted)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{justify-content:flex-start;border:0;background:transparent;text-align:left;padding:9px 12px;border-radius:10px;color:var(--fg-2)}
+.nav button:hover{background:var(--line-2);color:var(--fg)}
+.nav button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+.side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line-2)}
+.side-foot button{width:100%;justify-content:flex-start}
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column}
 .crumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-2);min-width:0}
 .crumb button{background:transparent;border:0;padding:2px 6px;border-radius:8px;color:var(--fg-2)}
 .crumb button:hover{background:var(--line-2);color:var(--fg)}
@@ -39,7 +47,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .spacer{margin-left:auto}
 
 /* ---- 视图容器 ---- */
-main{padding:18px 22px 40px;max-width:1180px;margin:0 auto}
+main{padding:14px 22px 40px;max-width:1180px;margin:0 auto;width:100%}
+main .crumb{margin-bottom:12px}
 .view-head{display:flex;align-items:flex-end;gap:12px;margin-bottom:14px}
 .view-head h2{font-size:18px;margin:0;font-weight:600}
 .view-head .desc{color:var(--muted);font-size:12.5px}
@@ -226,14 +235,17 @@ textarea{min-height:72px;resize:vertical}
 
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
 @media (max-width: 720px) {
+  .shell{flex-direction:column}
+  .sidebar{width:100%;height:auto;position:static;flex-direction:row;align-items:center;gap:8px;padding:10px 12px;overflow-x:auto}
+  .brand{padding:0;flex:none}
+  .brand .sub{display:none}
+  .nav{flex-direction:row;gap:2px;flex:1;overflow-x:auto}
+  .nav button{white-space:nowrap;padding:7px 10px}
+  .side-foot{margin:0;padding:0 0 0 8px;border:0;flex:none}
+  .side-foot button{width:auto;white-space:nowrap}
   main{padding:12px 14px 32px}
-  .topbar{flex-wrap:wrap;gap:10px;padding:10px 14px}
-  .brand{flex:1 1 auto;min-width:0}
-  .brand .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
-  .crumb{flex-basis:100%;order:3;min-width:0;overflow:hidden}
+  .crumb{min-width:0;overflow:hidden}
   .crumb .now{max-width:60vw}
-  .topbar .spacer{margin-left:auto}
-  .topbar button{white-space:nowrap;flex:none}
   .view-head{flex-wrap:wrap;gap:8px}
   .ticket-grid{grid-template-columns:1fr;gap:12px;height:auto}
   .lane-left>.vsec[data-kind="chat"]{flex:none}
@@ -254,20 +266,29 @@ textarea{min-height:72px;resize:vertical}
 </style>
 </head>
 <body>
-<header class="topbar">
-  <div class="brand"><span class="logo">H</span><div><h1>Hive AI</h1><div class="sub">项目 · 工单 · 会话</div></div></div>
-  <div class="crumb" id="crumb"></div>
-  <div class="spacer"></div>
-  <button id="nav-points" class="ghost">岗位库</button>
-  <button id="nav-tools" class="ghost">工具库</button>
-  <button id="nav-skills" class="ghost">技能</button>
-  <button id="nav-knowledge" class="ghost">知识</button>
-  <button id="nav-password" class="ghost">改密</button>
-  <button id="logout" class="ghost">登出</button>
-</header>
-<div id="banner"></div>
-
-<main><div id="view-body"></div></main>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">H</span><div><h1>Hive AI</h1><div class="sub">项目 · 工单 · 会话</div></div></div>
+    <nav class="nav" id="side-nav">
+      <button data-nav="projects">项目</button>
+      <button data-nav="positions">岗位库</button>
+      <button data-nav="tools">工具库</button>
+      <button data-nav="skills">技能</button>
+      <button data-nav="knowledge">知识</button>
+      <button data-nav="user">用户管理</button>
+    </nav>
+    <div class="side-foot">
+      <button id="logout" class="ghost">登出</button>
+    </div>
+  </aside>
+  <div class="main-col">
+    <div id="banner"></div>
+    <main>
+      <div class="crumb" id="crumb"></div>
+      <div id="view-body"></div>
+    </main>
+  </div>
+</div>
 
 <!-- 通用弹窗 -->
 <div class="modal" id="modal" hidden>

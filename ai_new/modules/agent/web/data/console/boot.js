@@ -25,6 +25,8 @@ document.addEventListener("click", (e) => {
     const binding = ACTS[Number(goEl.dataset.go)];
     if (binding) return execute(binding, {});
   }
+  const navEl = e.target.closest("[data-nav]");
+  if (navEl) return go({ view: navEl.dataset.nav }, true);
   if (e.target.closest("[data-crumb]")) return go(crumbUp(), true);
 });
 document.addEventListener("keydown", (e) => {
@@ -41,11 +43,17 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-$("nav-points").onclick = () => go({ view: "positions" }, true);
-$("nav-tools").onclick = () => go({ view: "tools" }, true);
-$("nav-skills").onclick = () => go({ view: "skills" }, true);
-$("nav-knowledge").onclick = () => go({ view: "knowledge" }, true);
-$("nav-password").onclick = () => openForm(FORMS["auth.change"], {});
+function navTarget(view) {
+  if (view === "project" || view === "ticket") return "projects";
+  if (view === "position") return "positions";
+  if (view === "knowledge-doc") return "knowledge";
+  return view;
+}
+function highlightNav() {
+  const cur = navTarget(state.view);
+  document.querySelectorAll("#side-nav [data-nav]").forEach((b) =>
+    b.classList.toggle("on", b.dataset.nav === cur));
+}
 $("logout").onclick = async () => {
   try { await run("auth-logout", { token: token() }); } catch (e) {}
   clearToken(); location.href = "/login.html";

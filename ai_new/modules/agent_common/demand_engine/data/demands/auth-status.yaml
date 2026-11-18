@@ -1,0 +1,19 @@
+id: auth-status
+title: 当前账号状态：只读回显登录态与用户名
+description: "当前账号状态：只读回显登录态与用户名。用户管理视图取数；账号口径在 auth.status 能力内，需求树不做判断"
+tags:
+- auth
+- read
+enabled: true
+callable: true
+'on': []
+do:
+- call: auth.status
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - auth.status
+  payload: {}
+  promise: 账号是否启用、当前用户名由 auth.status 能力回显，需求只做取数

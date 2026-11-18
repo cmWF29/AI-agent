@@ -39,6 +39,7 @@ checks:
   - auth-change-password
   - auth-login
   - auth-logout
+  - auth-status
   - channel-list
   - channel-post
   - channel-since
@@ -125,6 +126,7 @@ checks:
   - tool-external-run
   - view-tools
   - view-skills
+  - view-user
   - decompose-install
   - skills-list
   - skill-disable

@@ -1,0 +1,31 @@
+id: view-user
+title: 用户管理视图：当前账号与修改密码入口
+description: "用户管理视图：当前账号信息与改密入口归在本视图内，外壳不再单独放改密按钮。视图只声明区块，数据源走需求"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: user
+  crumb: [用户管理]
+  heading: 用户管理
+  subheading: 账号与密码；本期只支持修改密码，不做角色与权限
+  data:
+  - {as: me, demand: auth-status}
+  sections:
+  - kind: kv
+    source: me
+    heading: 账号
+    rows:
+    - label: 用户名
+      value: row.username
+      fallback: admin
+    actions:
+    - {label: 修改密码, modal: auth.change}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 用户管理只声明区块，账号信息走 auth-status，改密走既有表单

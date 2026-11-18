@@ -30,6 +30,8 @@ view:
   - kind: table
     source: positions.items
     heading: 项目岗位
+    summarize: true
+    title: 项目岗位
     count_note: "{data.positions.items.length} 个岗位（引用公共岗位库；可在本项目单独禁用）"
     columns:
     - {label: 岗位, value: row.cn, fallback: row.id, sub: row.prompt_file}
@@ -57,6 +59,8 @@ view:
   - kind: table
     source: skills.items
     heading: 项目技能
+    summarize: true
+    title: 项目技能
     count_note: "{data.skills.items.length} 个技能（引用公共技能库；可在本项目单独禁用）"
     columns:
     - {label: 技能, value: row.cn, fallback: row.id}
@@ -85,6 +89,8 @@ view:
   - kind: table
     source: ptools.items
     heading: 项目工具
+    summarize: true
+    title: 项目工具
     count_note: "{data.ptools.items.length} 个工具（内置 ∪ 公共外部登记；可在本项目单独禁用）"
     columns:
     - {label: 工具名, value: row.name, sub: row.module}
