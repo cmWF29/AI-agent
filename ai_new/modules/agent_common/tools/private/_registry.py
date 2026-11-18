@@ -50,12 +50,21 @@ class ToolRegistry:
         return [{"name": t["name"], "desc": t["desc"],
                  "params": t["params"], "module": t["module"]} for t in base]
 
+    def _tpl(self):
+        row = self.ctx.api.call("store.read", {
+            "module": "agent_common/tools", "path": "messages.yaml"}, caller=None)
+        return row.get("value") or {}
+
     def execute(self, name, args, session=None, defer=False):
+        tpl = self._tpl()
         if name not in self._tools:
-            raise self.ctx.ApiError("工具不存在: %s" % name, code="no_tool", status=404)
+            t = tpl.get("tool_missing") or ""
+            raise self.ctx.ApiError(t.format(name=name) if t else "",
+                                    code="no_tool", status=404)
         t = self._tools[name]
         if t["kinds"] and isinstance(session, dict) and session.get("kind") not in t["kinds"]:
-            raise self.ctx.ApiError("该会话不可用此工具: %s" % name,
+            f = tpl.get("tool_forbidden") or ""
+            raise self.ctx.ApiError(f.format(name=name) if f else "",
                                     code="tool_forbidden", status=403)
         args = dict(args or {})
         if isinstance(session, dict):

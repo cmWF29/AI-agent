@@ -19,12 +19,20 @@ def setup(ctx):
     return True
 
 
+def _msg_tpl(ctx):
+    """消息模板表：语音模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent/asr", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def _route_transcribe(ctx, payload):
+    tpl = _msg_tpl(ctx)
     audio = payload.get("audio")
-    check = ctx.api.call("asr.validate", {"audio": audio}, caller=None)
+    check = ctx.api.call("asr.validate", {"audio": audio, "tpl": tpl}, caller=None)
     if not check.get("ok"):
         return check
     heard = _engine.transcribe(ctx, audio)
     if not heard.get("ok"):
         return heard
-    return ctx.api.call("asr.present", {"text": heard.get("text")}, caller=None)
+    return ctx.api.call("asr.present", {"text": heard.get("text"), "tpl": tpl}, caller=None)

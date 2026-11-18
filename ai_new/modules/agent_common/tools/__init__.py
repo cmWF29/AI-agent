@@ -74,7 +74,8 @@ def _tool_shell(ctx, args, session=None):
     """通用命令执行：argv 数组直传 exec.run，不经 shell；超时与打断复用进程通道。"""
     argv = [str(a) for a in (args or {}).get("argv") or []]
     if not argv:
-        return {"ok": False, "error": "缺少 argv", "code": "bad_request"}
+        return {"ok": False, "error": _msg_tpl(ctx).get("argv_required") or "",
+                "code": "bad_request"}
     return ctx.api.call("exec.run", {
         "argv": argv,
         "cwd": (args or {}).get("cwd") or "",

@@ -66,7 +66,7 @@ def _tool_fetch(ctx, args, session=None):
 def _tool_pip(ctx, args, session=None):
     """拆解期白名单装单个 pip 包：包名先过纯函数校验，固定 argv 直传，不经 shell。"""
     tpl = _msg_tpl(ctx)
-    check = _pure.safe_pkg((args or {}).get("pkg"))
+    check = _pure.safe_pkg((args or {}).get("pkg"), tpl)
     if not check.get("ok"):
         return {"ok": False, "error": check.get("error"), "code": "bad_pkg"}
     exe = (ctx.api.call("host.executable", {}, caller=None) or {}).get("path") or "python"

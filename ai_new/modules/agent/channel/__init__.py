@@ -90,6 +90,13 @@ def _route_read_tail(ctx, payload):
                                         "max_limit": max_limit}, caller=None)
 
 
+def _msg_tpl(ctx):
+    """消息模板表：频道模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent/channel", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def _route_reply(ctx, payload):
     """网页回复闭环：只回复用户消息，取历史、跑对话编排、把结果写回同一频道。"""
     if payload.get("role") != "user":
@@ -101,7 +108,9 @@ def _route_reply(ctx, payload):
     reply = ctx.runtime.call("llm-chat", {"messages": messages})
     answer = reply or {}
     if answer.get("ok") is False:
-        role, content = "system", "模型调用失败：%s" % (answer.get("error") or "")
+        t = _msg_tpl(ctx).get("llm_failed") or ""
+        err = answer.get("error") or ""
+        role, content = "system", t.format(error=err) if t else ""
     else:
         role, content = "assistant", answer.get("content") or ""
     return ctx.api.call("channel.post", {

@@ -256,12 +256,16 @@ def promptp(p):
     rec = p.get("rec") or {}
     ref = rec.get("prompt_file")
     if not ref:
-        return {"ok": False, "code": "no_prompt_file", "error": "角色没有 prompt_file: %s" % role}
+        tpl = p.get("tpl") or {}
+        t = tpl.get("no_prompt_file") or ""
+        return {"ok": False, "code": "no_prompt_file",
+                "error": t.format(role=role) if t else ""}
     return {"role": role, "prompt": p.get("text") or "", "ref": ref}
 
 
 def checkp(p):
     """files: [路径]；contents: {路径: 文本}；checks 来自流程记录。"""
+    tpl = p.get("tpl") or {}
     rec = p.get("rec") or {}
     checks = rec.get("checks") or []
     files = p.get("files") or []
@@ -275,7 +279,7 @@ def checkp(p):
             if match == "any":
                 if not any(any(_glob(f, pat) for pat in paths) for f in files):
                     missing.append({"kind": kind, "paths": paths, "match": match,
-                                    "reason": "任一命中即可，均未命中"})
+                                    "reason": tpl.get("missing_any") or ""})
             else:
                 for pat in paths:
                     if not any(_glob(f, pat) for f in files):
@@ -283,7 +287,7 @@ def checkp(p):
         elif kind == "contains":
             text = c.get("text")
             if not any(text and text in (contents.get(f) or "") for f in files):
-                missing.append({"kind": kind, "text": text, "reason": "无文件包含该文本"})
+                missing.append({"kind": kind, "text": text, "reason": tpl.get("missing_contains") or ""})
     return {"flow": p.get("flow") or "", "missing": missing, "checked": len(checks)}
 
 

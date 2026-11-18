@@ -79,27 +79,30 @@ _PKG_ALLOWED = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567
 _PKG_DANGEROUS = set(" |&$`/\\(){}*?#\"'")
 
 
-def safe_pkg(p):
+def safe_pkg(p, tpl=None):
     """校验待装 pip 包名：剥版本约束，拒掉含注入字符或环境标记的写法。
 
     只认纯包名（可带简单版本约束）；分号后的环境标记、空格与任何 shell/路径
     元字符一律拒。返回 {ok, pkg, error}，不在这里起进程装包。
     """
+    tpl = tpl or {}
     raw = str(p or "").strip()
     if not raw:
-        return {"ok": False, "pkg": "", "error": "包名为空"}
+        return {"ok": False, "pkg": "", "error": tpl.get("pkg_empty") or ""}
     if any(ch in _PKG_DANGEROUS for ch in raw):
-        return {"ok": False, "pkg": raw, "error": "包名含非法字符: %s" % raw}
+        t = tpl.get("pkg_bad") or ""
+        return {"ok": False, "pkg": raw, "error": t.format(pkg=raw) if t else ""}
     for sep in ("==", ">=", "<=", "~=", "!=", "<", ">", "["):
         idx = raw.find(sep)
         if idx != -1:
             raw = raw[:idx]
     raw = raw.strip().strip("'\"")
     if not raw:
-        return {"ok": False, "pkg": "", "error": "包名为空"}
+        return {"ok": False, "pkg": "", "error": tpl.get("pkg_empty") or ""}
     if not raw[0].isalnum() or any(ch not in _PKG_ALLOWED for ch in raw):
+        t = tpl.get("pkg_bad") or ""
         return {"ok": False, "pkg": raw,
-                "error": "包名含非法字符: %s" % raw}
+                "error": t.format(pkg=raw) if t else ""}
     return {"ok": True, "pkg": raw, "error": ""}
 
 
