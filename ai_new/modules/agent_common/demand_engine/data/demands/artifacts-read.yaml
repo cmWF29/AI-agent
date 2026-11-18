@@ -11,6 +11,18 @@ do:
     key:
       lit: artifacts.max_bytes
   as: cfg_bytes
+- call: config.get
+  with:
+    key:
+      lit: artifacts.paths
+  as: cfg_paths
+- call: store.read
+  with:
+    module:
+      lit: agent/artifacts
+    path:
+      lit: messages.yaml
+  as: a_tpl
 - call: store.id
   with:
     value:
@@ -29,6 +41,10 @@ do:
       get: pid.id
     ticket:
       get: tid.id
+    paths:
+      get: cfg_paths.value
+    tpl:
+      get: a_tpl.value
   as: base
 - call: artifacts.rel
   with:
@@ -36,6 +52,8 @@ do:
       get: base.base
     path:
       get: input.path
+    tpl:
+      get: a_tpl.value
   as: rel
 - call: store.read_bytes
   with:
@@ -71,6 +89,8 @@ expect:
     input: {}
   calls:
   - config.get
+  - config.get
+  - store.read
   - store.id
   - store.id
   - artifacts.base

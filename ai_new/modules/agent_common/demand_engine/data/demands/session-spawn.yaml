@@ -8,6 +8,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: knowledge.paths
+  as: k_paths
 - call: demand_engine.run
   with:
     id:
@@ -59,6 +64,8 @@ do:
   with:
     ticket:
       get: input.ticket
+    paths:
+      get: k_paths.value
   as: kp
 - call: demand_engine.run
   with:
@@ -114,6 +121,7 @@ expect:
       role: developer
       kind: role
   calls:
+  - config.get
   - demand_engine.run
   - store.read
   - library.get

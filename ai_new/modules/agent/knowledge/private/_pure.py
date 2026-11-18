@@ -45,21 +45,24 @@ def _bad(code, message):
 def scope(p):
     """layer + 已归一化的 project/ticket id → 相对前缀。"""
     tpl = p.get("tpl") or {}
+    paths = p.get("paths") or {}
     layer = p.get("layer") or "public"
     if layer == "public":
-        return {"ok": True, "prefix": "public"}
+        return {"ok": True, "prefix": paths.get("public") or ""}
     if layer == "project":
         pid = p.get("project") or ""
         if not pid:
             t = tpl.get("missing_scope_project") or ""
             return _bad("missing_scope", t)
-        return {"ok": True, "prefix": "projects/%s" % pid}
+        t = paths.get("project") or ""
+        return {"ok": True, "prefix": t.format(project=pid) if t else ""}
     if layer == "ticket":
         tid = p.get("ticket") or ""
         if not tid:
             t = tpl.get("missing_scope_ticket") or ""
             return _bad("missing_scope", t)
-        return {"ok": True, "prefix": "tickets/%s" % tid}
+        t = paths.get("ticket") or ""
+        return {"ok": True, "prefix": t.format(ticket=tid) if t else ""}
     t = tpl.get("bad_layer") or ""
     return _bad("bad_layer", t.format(layer=layer) if t else "")
 
@@ -67,12 +70,14 @@ def scope(p):
 def doc(p):
     """前缀 + 已归一化的文档名 → 文档相对路径。"""
     tpl = p.get("tpl") or {}
+    paths = p.get("paths") or {}
     name = p.get("name") or ""
     if not name:
         t = tpl.get("missing_name") or ""
         return _bad("missing_name", t)
     clean = name[:-3] if name.endswith(".md") else name
-    return {"ok": True, "path": "%s/%s.md" % (p.get("prefix") or "public", clean)}
+    t = paths.get("doc") or ""
+    return {"ok": True, "path": t.format(prefix=p.get("prefix") or "", name=clean) if t else ""}
 
 
 def view(p):
@@ -241,10 +246,16 @@ def removed(p):
 
 
 def project_dir(p):
-    """项目知识目录相对路径：projects/<id>。"""
-    return {"path": "projects/%s" % (p.get("project") or p.get("ticket") or "")}
+    """项目知识目录相对路径。"""
+    paths = p.get("paths") or {}
+    t = paths.get("project_dir") or ""
+    ident = p.get("project") or p.get("ticket") or ""
+    return {"path": t.format(id=ident) if t else ""}
 
 
 def project_prefix(p):
-    """项目层知识注入前缀：projects/<id>（与 compose 前缀约定一致）。"""
-    return {"prefix": "projects/%s" % (p.get("ticket") or p.get("project") or "")}
+    """项目层知识注入前缀（与 compose 前缀约定一致）。"""
+    paths = p.get("paths") or {}
+    t = paths.get("project_dir") or ""
+    ident = p.get("ticket") or p.get("project") or ""
+    return {"prefix": t.format(id=ident) if t else ""}

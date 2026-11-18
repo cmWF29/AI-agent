@@ -2,30 +2,40 @@
 from __future__ import annotations
 
 
+def _bad(code, message):
+    return {"ok": False, "code": code, "error": message}
+
+
 def base(p):
     layer = p.get("layer") or "ticket"
+    paths = p.get("paths") or {}
+    tpl = p.get("tpl") or {}
     if layer == "public":
-        return {"ok": True, "base": "public"}
+        return {"ok": True, "base": paths.get("public") or ""}
     if layer == "project":
         pid = p.get("project") or ""
         if not pid:
-            return {"ok": False, "code": "missing_scope", "error": "project 层必须给 project"}
-        return {"ok": True, "base": "projects/%s" % pid}
+            return _bad("missing_scope", tpl.get("missing_scope_project") or "")
+        t = paths.get("project") or ""
+        return {"ok": True, "base": t.format(project=pid) if t else ""}
     if layer == "ticket":
         tid = p.get("ticket") or ""
         if not tid:
-            return {"ok": False, "code": "missing_scope", "error": "ticket 层必须给 ticket"}
-        return {"ok": True, "base": "projects/%s/tickets/%s" % (p.get("project") or "_", tid)}
-    return {"ok": False, "code": "bad_layer", "error": "未知交付件层: %s" % layer}
+            return _bad("missing_scope", tpl.get("missing_scope_ticket") or "")
+        t = paths.get("ticket") or ""
+        return {"ok": True, "base": t.format(project=p.get("project") or "_", ticket=tid) if t else ""}
+    t = tpl.get("bad_layer") or ""
+    return _bad("bad_layer", t.format(layer=layer) if t else "")
 
 
 def rel(p):
     base_dir = p.get("base") or ""
     path = str(p.get("path") or "").replace("\\", "/").lstrip("/")
+    tpl = p.get("tpl") or {}
     if not path or "\x00" in path:
-        return {"ok": False, "code": "bad_path", "error": "path 非法"}
+        return _bad("bad_path", tpl.get("bad_path") or "")
     if ".." in path.split("/"):
-        return {"ok": False, "code": "path_escape", "error": "路径越界", "status": 403}
+        return {"ok": False, "code": "path_escape", "error": tpl.get("path_escape") or "", "status": 403}
     return {"ok": True, "path": ("%s/%s" % (base_dir, path)) if base_dir else path}
 
 

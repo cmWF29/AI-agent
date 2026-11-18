@@ -6,6 +6,18 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: artifacts.paths
+  as: cfg_paths
+- call: store.read
+  with:
+    module:
+      lit: agent/artifacts
+    path:
+      lit: messages.yaml
+  as: a_tpl
 - call: store.id
   with:
     value:
@@ -24,6 +36,10 @@ do:
       get: pid.id
     ticket:
       get: tid.id
+    paths:
+      get: cfg_paths.value
+    tpl:
+      get: a_tpl.value
   as: base
 - call: store.walk
   with:
@@ -45,6 +61,8 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
+  - store.read
   - store.id
   - store.id
   - artifacts.base

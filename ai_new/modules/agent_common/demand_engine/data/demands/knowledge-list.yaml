@@ -6,6 +6,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: knowledge.paths
+  as: k_paths
 - call: store.read
   with:
     module:
@@ -31,6 +36,8 @@ do:
       get: pid.id
     ticket:
       get: tid.id
+    paths:
+      get: k_paths.value
     tpl:
       get: k_tpl.value
   as: scope
@@ -55,6 +62,7 @@ expect:
     input:
       project: p1
   calls:
+  - config.get
   - store.read
   - store.id
   - store.id

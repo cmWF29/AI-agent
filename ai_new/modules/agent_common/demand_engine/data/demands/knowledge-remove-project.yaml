@@ -8,6 +8,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: knowledge.paths
+  as: k_paths
 - call: store.id
   with:
     value:
@@ -17,6 +22,8 @@ do:
   with:
     project:
       get: pid.id
+    paths:
+      get: k_paths.value
   as: kd
 - call: store.remove_dir
   with:
@@ -36,6 +43,7 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
   - store.id
   - knowledge.project_dir
   - store.remove_dir

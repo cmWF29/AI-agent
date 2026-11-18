@@ -57,6 +57,12 @@ knowledge:
   max_inject_chars: 20000
   search_limit: 10        # 检索命中默认条数
   snippet_chars: 400      # 命中摘要片段字符长度
+  paths:
+    public: 'public'
+    project: 'projects/{project}'
+    ticket: 'tickets/{ticket}'
+    doc: '{prefix}/{name}.md'
+    project_dir: 'projects/{id}'
 library:
   review_max_retries: 2   # 收尾评审最多回催次数，到达即转卡点交上层裁决
 channel:
@@ -64,5 +70,9 @@ channel:
   max_limit: 200         # 单次回看条数硬上限
 artifacts:
   max_bytes: 262144      # 交付件读取截断字节上限（256 KiB）
+  paths:
+    public: 'public'
+    project: 'projects/{project}'
+    ticket: 'projects/{project}/tickets/{ticket}'
 ops:
   log_lines: 100         # 日志/操作记录回看行数

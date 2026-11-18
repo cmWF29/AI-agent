@@ -31,7 +31,20 @@ def setup(ctx):
     return True
 
 
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "artifacts.paths"}, caller=None)
+    return row.get("value") or {}
+
+
+def _msg_tpl(ctx):
+    row = ctx.api.call("store.read", {
+        "module": "agent/artifacts", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def _route_save(ctx, payload):
+    paths = _cfg_paths(ctx)
+    tpl = _msg_tpl(ctx)
     layer = payload.get("layer") or "ticket"
     pid_raw = payload.get("project")
     tid_raw = payload.get("ticket")
@@ -47,11 +60,12 @@ def _route_save(ctx, payload):
     tid = ctx.api.call("store.id", {"value": tid_raw}, caller=None)
     base = ctx.api.call("artifacts.base", {
         "layer": layer,
-        "project": pid.get("id"), "ticket": tid.get("id")}, caller=None)
+        "project": pid.get("id"), "ticket": tid.get("id"),
+        "paths": paths, "tpl": tpl}, caller=None)
     if not base.get("ok"):
         return base
     rel = ctx.api.call("artifacts.rel", {"base": base.get("base"),
-        "path": payload.get("path")}, caller=None)
+        "path": payload.get("path"), "tpl": tpl}, caller=None)
     if not rel.get("ok"):
         return rel
     content = payload.get("content") or ""
