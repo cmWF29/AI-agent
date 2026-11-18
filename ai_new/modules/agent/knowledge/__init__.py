@@ -43,17 +43,18 @@ def setup(ctx):
 
 
 def _route_save(ctx, payload):
+    tpl = _msg_tpl(ctx)
     pid = ctx.api.call("store.id", {"value": payload.get("project")}, caller=None)
     tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
     scope = ctx.api.call("knowledge.scope", {
         "layer": payload.get("layer"),
         "project": pid.get("id"),
-        "ticket": tid.get("id")}, caller=None)
+        "ticket": tid.get("id"), "tpl": tpl}, caller=None)
     if not scope.get("ok"):
         return scope
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
     doc = ctx.api.call("knowledge.doc", {"prefix": scope.get("prefix"),
-        "name": nid.get("id")}, caller=None)
+        "name": nid.get("id"), "tpl": tpl}, caller=None)
     if not doc.get("ok"):
         return doc
     content = payload.get("content") or ""
@@ -71,3 +72,10 @@ def _route_save(ctx, payload):
 
 def _as_handler(fn):
     return lambda ctx, payload: fn(payload)
+
+
+def _msg_tpl(ctx):
+    """消息模板表：知识模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent/knowledge", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}

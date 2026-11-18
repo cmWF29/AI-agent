@@ -6,6 +6,13 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: store.read
+  with:
+    module:
+      lit: agent/knowledge
+    path:
+      lit: messages.yaml
+  as: k_tpl
 - call: store.id
   with:
     value:
@@ -24,6 +31,8 @@ do:
       get: pid.id
     ticket:
       get: tid.id
+    tpl:
+      get: k_tpl.value
   as: scope
 - call: store.glob
   with:
@@ -46,6 +55,7 @@ expect:
     input:
       project: p1
   calls:
+  - store.read
   - store.id
   - store.id
   - knowledge.scope

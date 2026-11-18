@@ -1,3 +1,5 @@
 # 项目模块面向用户文案模板。纯文案数据，填参归模块，能力层读取后传入纯函数。
 missing: '项目不存在: {id}'
 conflict: '项目已存在: {id}'
+bad_kind: '不支持的库类型: {kind}'
+missing_id: 'id 必填'

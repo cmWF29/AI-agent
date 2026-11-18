@@ -1,2 +1,6 @@
 # 知识模块面向用户文案模板。纯文案数据，填参归模块，需求层读取后传入纯函数。
 missing: '知识不存在: {name}'
+missing_scope_project: 'project 层必须给 project'
+missing_scope_ticket: 'ticket 层必须给 ticket id'
+bad_layer: '未知知识层: {layer}'
+missing_name: 'name 必填'

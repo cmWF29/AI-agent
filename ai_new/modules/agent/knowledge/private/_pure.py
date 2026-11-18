@@ -44,27 +44,33 @@ def _bad(code, message):
 
 def scope(p):
     """layer + 已归一化的 project/ticket id → 相对前缀。"""
+    tpl = p.get("tpl") or {}
     layer = p.get("layer") or "public"
     if layer == "public":
         return {"ok": True, "prefix": "public"}
     if layer == "project":
         pid = p.get("project") or ""
         if not pid:
-            return _bad("missing_scope", "project 层必须给 project")
+            t = tpl.get("missing_scope_project") or ""
+            return _bad("missing_scope", t)
         return {"ok": True, "prefix": "projects/%s" % pid}
     if layer == "ticket":
         tid = p.get("ticket") or ""
         if not tid:
-            return _bad("missing_scope", "ticket 层必须给 ticket id")
+            t = tpl.get("missing_scope_ticket") or ""
+            return _bad("missing_scope", t)
         return {"ok": True, "prefix": "tickets/%s" % tid}
-    return _bad("bad_layer", "未知知识层: %s" % layer)
+    t = tpl.get("bad_layer") or ""
+    return _bad("bad_layer", t.format(layer=layer) if t else "")
 
 
 def doc(p):
     """前缀 + 已归一化的文档名 → 文档相对路径。"""
+    tpl = p.get("tpl") or {}
     name = p.get("name") or ""
     if not name:
-        return _bad("missing_name", "name 必填")
+        t = tpl.get("missing_name") or ""
+        return _bad("missing_name", t)
     clean = name[:-3] if name.endswith(".md") else name
     return {"ok": True, "path": "%s/%s.md" % (p.get("prefix") or "public", clean)}
 

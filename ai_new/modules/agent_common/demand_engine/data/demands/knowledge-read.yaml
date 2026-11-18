@@ -31,6 +31,8 @@ do:
       get: pid.id
     ticket:
       get: tid.id
+    tpl:
+      get: k_tpl.value
   as: scope
 - call: store.id
   with:
@@ -43,6 +45,8 @@ do:
       get: scope.prefix
     name:
       get: nid.id
+    tpl:
+      get: k_tpl.value
   as: doc
 - call: store.read_text
   with:

@@ -147,12 +147,15 @@ def toggle_override(p):
     kind = p.get("kind") or ""
     rid = str(p.get("id") or "").strip()
     enabled = bool(p.get("enabled"))
+    tpl = p.get("tpl") or {}
     if kind not in _OVERRIDE_KINDS:
+        t = tpl.get("bad_kind") or ""
         return {"ok": False, "code": "bad_kind", "status": 400,
-                "error": "不支持的库类型: %s" % kind}
+                "error": t.format(kind=kind) if t else ""}
     if not rid:
+        t = tpl.get("missing_id") or ""
         return {"ok": False, "code": "missing_id", "status": 400,
-                "error": "id 必填"}
+                "error": t if t else ""}
     rec = dict(p.get("rec") or {})
     ov = dict(rec.get("overrides") or {})
     cur = _clean_list(ov.get(kind))

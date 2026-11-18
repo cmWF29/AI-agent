@@ -68,7 +68,7 @@ def _route_toggle(ctx, payload):
     rec = ctx.api.call("projects.toggle_override", {
         "rec": row.get("value"), "kind": payload.get("kind"),
         "id": payload.get("id"), "enabled": payload.get("enabled"),
-        "now": now.get("ts")}, caller=None)
+        "now": now.get("ts"), "tpl": _msg_tpl(ctx)}, caller=None)
     if rec.get("ok") is False:
         return rec
     view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
