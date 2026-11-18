@@ -25,6 +25,11 @@ do:
     path:
       get: sp.path
   as: row
+- call: config.get
+  with:
+    key:
+      lit: sessions.summary_keep
+  as: cfg_keep
 - call: clock.now
   as: now
 - call: sessions.compact
@@ -32,7 +37,7 @@ do:
     rec:
       get: row.value
     keep:
-      get: input.keep
+      get: cfg_keep.value
     now:
       get: now.ts
   as: rec
@@ -43,6 +48,7 @@ expect:
   - store.id
   - sessions.record_path
   - store.read
+  - config.get
   - clock.now
   - sessions.compact
   payload: {}

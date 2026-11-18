@@ -6,6 +6,16 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: knowledge.search_limit
+  as: cfg_limit
+- call: config.get
+  with:
+    key:
+      lit: knowledge.snippet_chars
+  as: cfg_snippet
 - call: store.walk_text
   with:
     module:
@@ -20,12 +30,16 @@ do:
     query:
       get: input.query
     limit:
-      get: input.limit
+      get: cfg_limit.value
+    snippet_chars:
+      get: cfg_snippet.value
   as: out
 expect:
   given:
     input: {}
   calls:
+  - config.get
+  - config.get
   - store.walk_text
   - knowledge.search
   payload: {}

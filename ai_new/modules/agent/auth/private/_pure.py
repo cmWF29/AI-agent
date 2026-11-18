@@ -34,7 +34,7 @@ def change_password(p):
 def build_session(p):
     """造会话记录形状：expires = issued + ttl。"""
     issued = float(p.get("issued") or 0)
-    ttl = int(p.get("ttl") or 86400)
+    ttl = int(p.get("ttl"))
     return {"token": p.get("token") or "", "username": p.get("username") or "",
             "issued": issued, "expires": issued + ttl, "ttl": ttl}
 

@@ -27,6 +27,7 @@ llm:
 sessions:
   max_concurrent: 8
   max_steps: 60
+  summary_keep: 10       # 上下文裁剪保留的最近普通消息条数（system 消息全部保留）
   secretary_scenario: prompts/secretary.md
   pm_scenario: prompts/pm.md
   role_scenario: prompts/roles/{role}.md
@@ -53,3 +54,7 @@ agents:
     on_insufficient: reject
 knowledge:
   max_inject_chars: 20000
+  search_limit: 10        # 检索命中默认条数
+  snippet_chars: 400      # 命中摘要片段字符长度
+library:
+  review_max_retries: 2   # 收尾评审最多回催次数，到达即转卡点交上层裁决

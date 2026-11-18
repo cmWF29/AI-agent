@@ -77,7 +77,7 @@ def gone(p):
 
 def compactp(p):
     rec = dict(p.get("rec") or {})
-    keep = max(1, int(p.get("keep") or 10))
+    keep = max(1, int(p.get("keep")))
     msgs = rec.get("messages") or []
     system = [m for m in msgs if m.get("role") == "system"]
     rest = [m for m in msgs if m.get("role") != "system"]

@@ -1143,9 +1143,9 @@ class CoreTest(unittest.TestCase):
 
     def test_position_pure_functions(self):
         # 评审三态：无缺口达标；有缺口未超限回催并计数；到上限不再催
-        self.assertEqual(lib_pure.reviewp({"missing": [], "retries": 0})["verdict"], "pass")
+        self.assertEqual(lib_pure.reviewp({"missing": [], "retries": 0, "max_retries": 2})["verdict"], "pass")
         gap = [{"path": "docs/a.md"}]
-        rep = lib_pure.reviewp({"missing": gap, "retries": 0})
+        rep = lib_pure.reviewp({"missing": gap, "retries": 0, "max_retries": 2})
         self.assertEqual(rep["verdict"], "repush")
         self.assertEqual(rep["retries"], 1)
         self.assertIn("docs/a.md", rep["missing_text"])

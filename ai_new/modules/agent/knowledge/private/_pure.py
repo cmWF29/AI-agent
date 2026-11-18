@@ -181,13 +181,14 @@ def index(p):
 def search(p):
     """rows: [{path,text}]；按内容与路径匹配，截 400 字。"""
     q = (p.get("query") or "").lower()
-    limit = int(p.get("limit") or 10)
+    limit = int(p.get("limit"))
+    snippet = int(p.get("snippet_chars"))
     items = []
     for row in p.get("rows") or []:
         rel = row.get("path") or ""
         text = row.get("text") or ""
         if q in text.lower() or _glob(rel.lower(), "*" + q + "*"):
-            items.append({"path": rel, "snippet": text[:400]})
+            items.append({"path": rel, "snippet": text[:snippet]})
         if len(items) >= limit:
             break
     return {"query": p.get("query") or "", "items": items}
@@ -195,7 +196,7 @@ def search(p):
 
 def compose(p):
     """rows: [{path,text}]；按前缀顺序拼注入块，按字符上限截断。"""
-    limit = int(p.get("max_chars") or 20000)
+    limit = int(p.get("max_chars"))
     prefixes = p.get("prefixes") or ["public/"]
     parts = []
     total = 0

@@ -112,11 +112,11 @@ def reviewp(p):
     pass      没有缺口，本轮交付达标；
     repush    有缺口且未超上限：计数 +1，交回催缺口清单；
     exhausted 有缺口但重试已到上限：不再催，留卡点交上层裁决。
-    重试上限是模块内部策略，不写进需求树。
+    重试上限由需求层从配置传入，纯函数不持有策略默认值。
     """
     missing = p.get("missing") or []
     retries = int(p.get("retries") or 0)
-    limit = int(p.get("max_retries") or 2)
+    limit = int(p.get("max_retries"))
     text = "; ".join(_gap_text(g) for g in missing)
     if not missing:
         return {"verdict": "pass", "missing": [], "missing_text": "",

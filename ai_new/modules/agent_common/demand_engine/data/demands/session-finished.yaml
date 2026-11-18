@@ -64,12 +64,19 @@ do:
     contents:
       lit: {}
   as: miss
+- call: config.get
+  with:
+    key:
+      lit: library.review_max_retries
+  as: cfg_retries
 - call: library.review
   with:
     missing:
       get: miss.missing
     retries:
       get: row.value.meta.retries
+    max_retries:
+      get: cfg_retries.value
   as: rev
 - call: store.read
   with:
@@ -206,6 +213,7 @@ expect:
   - demand_engine.run
   - tickets.paths
   - library.check
+  - config.get
   - library.review
   - store.read
   - config.get

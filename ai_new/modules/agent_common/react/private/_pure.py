@@ -119,7 +119,7 @@ def checkpoint(p):
 def classify_tool(p):
     """工具输出分级：按字符数判定是否超限需落盘只回路径。纯计算，不碰盘。"""
     text = p.get("content") or ""
-    threshold = int(p.get("threshold") or 1000)
+    threshold = int(p.get("threshold"))
     size = len(text)
     return {"large": size > threshold, "size": size, "threshold": threshold}
 

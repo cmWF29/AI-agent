@@ -6,6 +6,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: knowledge.max_inject_chars
+  as: cfg_chars
 - call: store.walk_text
   with:
     module:
@@ -20,12 +25,13 @@ do:
     prefixes:
       get: input.prefixes
     max_chars:
-      get: input.max_chars
+      get: cfg_chars.value
   as: out
 expect:
   given:
     input: {}
   calls:
+  - config.get
   - store.walk_text
   - knowledge.compose
   payload: {}
