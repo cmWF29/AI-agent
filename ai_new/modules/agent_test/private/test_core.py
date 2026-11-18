@@ -1313,19 +1313,7 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(rec["summary"], "旧")
         self.assertEqual(rec["steps"], 2)
 
-        # P2-8 启动回收：超阈值的 running 复位 idle 并标 interrupted；新近 running 与 idle 不动
         now = 1000000
-        rows = [
-            {"path": "a.yaml", "rec": {"status": "running", "updated": now - 600}},
-            {"path": "b.yaml", "rec": {"status": "running", "updated": now - 60}},
-            {"path": "c.yaml", "rec": {"status": "idle", "updated": now - 600}},
-        ]
-        recv = sess_run.recover_stale({"rows": rows, "now": now, "limit_seconds": 300})
-        self.assertEqual([i["path"] for i in recv["items"]], ["a.yaml"])
-        a = recv["items"][0]["rec"]
-        self.assertEqual(a["status"], "idle")
-        self.assertEqual(a["meta"]["last_error"]["code"], "interrupted_on_boot")
-        self.assertEqual(a["updated"], now)
 
         # 启动续跑计划：开开关且未超上限 → resume 标记中断痕迹并复位 idle；超出上限 → stale 复位
         rows2 = [

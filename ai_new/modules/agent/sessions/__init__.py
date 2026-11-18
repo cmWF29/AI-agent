@@ -26,7 +26,6 @@ def setup(ctx):
         ("sessions.reply", _run_pure.reply),
         ("sessions.statsp", _run_pure.statsp),
         ("sessions.flow_plan", _run_pure.flow_plan),
-        ("sessions.recover_stale", _run_pure.recover_stale),
         ("sessions.resume_plan", _run_pure.resume_plan),
     ]
     for name, fn in pairs:

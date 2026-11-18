@@ -74,31 +74,6 @@ def finish(p):
     return rec
 
 
-def recover_stale(p):
-    """启动回收：进程崩溃前卡在 running 且超过阈值未动的会话，复位 idle 等待重新驱动。
-
-    纯比较：时间由 clock 给，落盘交编排层。返回需复位的 {path, rec} 列表。
-    """
-    now = float(p.get("now") or 0)
-    limit = float(p.get("limit_seconds") or 300)
-    items = []
-    for item in p.get("rows") or []:
-        rec = dict((item or {}).get("rec") or {})
-        if rec.get("status") != "running":
-            continue
-        updated = float(rec.get("updated") or 0)
-        if now - updated < limit:
-            continue
-        rec["status"] = "idle"
-        meta = dict(rec.get("meta") or {})
-        meta["last_error"] = {"code": "interrupted_on_boot",
-                              "error": "进程重启前卡在运行中，已复位等待重新驱动"}
-        rec["meta"] = meta
-        rec["updated"] = p.get("now") or ""
-        items.append({"path": (item or {}).get("path"), "rec": rec})
-    return {"items": items}
-
-
 def resume_plan(p):
     """启动回收：把上次进程崩溃前卡在 running 的会话分两类。
 
