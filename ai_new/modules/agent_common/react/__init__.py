@@ -34,6 +34,8 @@ def _route_run(ctx, payload):
         if gate and ctx.runtime.cancelled(gate.get("id"), gate.get("since")):
             cancelled = True
             break
+        if gate:
+            ctx.runtime.stream_clear(gate.get("id"))
         resp = ctx.runtime.call("llm-chat", {
                       "base_url": payload.get("base_url"),
                       "api_key": payload.get("api_key"),

@@ -150,10 +150,10 @@ def threadp(p):
     members = [{"session": pm_sid, "role": "pm", "display": "PM",
                 "status": status, "kind": "pm"}]
     roles_out = []
-    seen = set()
+    seen = {pm_sid}
 
     def add_role(sid, reg, live, archived):
-        if not sid or sid in seen:
+        if not sid or sid == pm_sid or sid in seen:
             return
         seen.add(sid)
         actor = (live or {}).get("role") or (reg or {}).get("role") or sid

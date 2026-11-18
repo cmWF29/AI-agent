@@ -7,9 +7,11 @@ capabilities:
     - config.get
     - llm.encode
     - codec.json_encode
-    - net.request
+    - net.request_stream
+    - llm.decode_sse
+  net.request_stream:
+    calls:
     - codec.json_decode
-    - llm.decode
   llm.chat_stream:
     calls:
     - config.get

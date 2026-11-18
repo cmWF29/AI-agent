@@ -14,7 +14,6 @@ from .private import _client
 
 def setup(ctx):
     ctx.api.register("llm.encode", _route_encode, "对话 → 线上载荷", module="llm")
-    ctx.api.register("llm.decode", _route_decode, "响应对象 → 对话结果", module="llm")
     ctx.api.register("llm.decode_sse", _route_decode_sse, "SSE 事件列表 → 对话结果", module="llm")
     ctx.api.register("llm.chat", _route_chat, "对话闭环：按配置选 api / agent 后端", module="llm")
     ctx.api.register("llm.chat_stream", _route_chat_stream, "流式对话闭环：配置→载荷→传输→SSE 解码", module="llm")
@@ -35,10 +34,6 @@ def _route_encode(ctx, payload):
         )
     except ctx.ApiError as exc:
         return {"ok": False, "error": exc.message, "code": exc.code}
-
-
-def _route_decode(ctx, payload):
-    return _client.decode(payload.get("payload") or {})
 
 
 def _route_decode_sse(ctx, payload):
@@ -85,20 +80,18 @@ def _mode(ctx, payload):
 def _route_chat(ctx, payload):
     if _mode(ctx, payload) == "agent":
         return _chat_agent(ctx, payload)
-    enc = _encode_call(ctx, payload, False)
+    enc = _encode_call(ctx, payload, True)
     if not enc.get("ok"):
         return enc
     body = ctx.api.call("codec.json_encode", {"value": enc.get("payload")}, caller=None)
-    resp = ctx.api.call("net.request", {
+    stream_key = (payload.get("cancel") or {}).get("id") or ""
+    resp = ctx.api.call("net.request_stream", {
         "url": enc.get("url"), "method": "POST",
         "headers": enc.get("headers"), "body": body.get("text"),
-        "timeout": payload.get("timeout")}, caller=None)
+        "timeout": payload.get("timeout"), "stream_key": stream_key}, caller=None)
     if not resp.get("ok"):
         return {"ok": False, "error": resp.get("error"), "code": "net_error"}
-    obj = ctx.api.call("codec.json_decode", {"text": resp.get("text")}, caller=None)
-    if not obj.get("ok"):
-        return obj
-    return ctx.api.call("llm.decode", {"payload": obj.get("value")}, caller=None)
+    return ctx.api.call("llm.decode_sse", {"items": resp.get("items") or []}, caller=None)
 
 
 def _chat_agent(ctx, payload):

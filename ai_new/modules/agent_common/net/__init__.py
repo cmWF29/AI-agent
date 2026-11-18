@@ -11,6 +11,8 @@ from .private import _client
 
 def setup(ctx):
     ctx.api.register("net.request", _route_request, "出站 HTTP(S) 请求", module="net")
+    ctx.api.register("net.request_stream", _route_request_stream,
+                     "出站 SSE 流式请求：逐帧推草稿槽并汇总事件", module="net")
     return True
 
 
@@ -25,5 +27,23 @@ def _route_request(ctx, payload):
     )
 
 
+def _route_request_stream(ctx, payload):
+    return _client.request_stream(
+        ctx,
+        payload.get("url"),
+        method=payload.get("method") or "POST",
+        headers=payload.get("headers") or {},
+        body=payload.get("body"),
+        timeout=payload.get("timeout"),
+        stream_key=payload.get("stream_key") or "",
+    )
+
+
 def request(ctx, url, method="GET", headers=None, body=None, timeout=None):
     return _client.request(ctx, url, method=method, headers=headers, body=body, timeout=timeout)
+
+
+def request_stream(ctx, url, method="POST", headers=None, body=None, timeout=None,
+                   stream_key=""):
+    return _client.request_stream(ctx, url, method=method, headers=headers, body=body,
+                                  timeout=timeout, stream_key=stream_key)

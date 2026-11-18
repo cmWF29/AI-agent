@@ -30,7 +30,7 @@ import _fixtures  # noqa: E402
 
 
 class FakeNet:
-    """测试用传输：不联网，按 OpenAI 的形状回一段 JSON（编排和编解码都真跑）。"""
+    """测试用传输：不联网，按 OpenAI SSE 的形状回一段事件列表（编排和编解码都真跑）。"""
 
     def __init__(self):
         self.calls = 0
@@ -38,8 +38,8 @@ class FakeNet:
     def __call__(self, ctx, payload):
         self.calls += 1
         return {"ok": True, "status": 200, "headers": {},
-                "text": '{"choices":[{"message":{"content":"（测试）已完成。"},'
-                        '"finish_reason":"stop"}],"usage":null}'}
+                "items": [{"choices": [{"delta": {"content": "（测试）已完成。"},
+                                        "finish_reason": "stop"}]}]}
 
 
 def _demand_bound_routes():
@@ -76,6 +76,7 @@ class CoreTest(unittest.TestCase):
         cls.loaded = build(cls.ctx)
         cls.fake_net = FakeNet()
         cls.ctx.api.substitute("net.request", cls.fake_net)
+        cls.ctx.api.substitute("net.request_stream", cls.fake_net)
         cls.server = cls.ctx.http
         cls.port = cls.server.server_address[1]
 
@@ -294,6 +295,49 @@ class CoreTest(unittest.TestCase):
         finally:
             cfg.clear(); cfg.update(keep)
             script.unlink(missing_ok=True)
+
+    def test_net_stream_pushes_draft_and_collects_frames(self):
+        """SSE 流式出站：逐帧正文增量进草稿槽，事件对象汇总交 decode_sse 归一。"""
+        import json
+        import http.server
+        import threading
+        from ai_new.modules.agent_common.net.private import _client as net_client
+
+        frames = [
+            {"choices": [{"delta": {"content": "你好"}}]},
+            {"choices": [{"delta": {"content": "世界"}, "finish_reason": "stop"}]},
+        ]
+        body = "".join("data: %s\n\n" % json.dumps(f, ensure_ascii=False) for f in frames)
+        body += "data: [DONE]\n\n"
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.end_headers()
+                self.wfile.write(body.encode("utf-8"))
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        key = "sse-probe"
+        try:
+            url = "http://127.0.0.1:%d/v1/chat/completions" % server.server_address[1]
+            resp = net_client.request_stream(self.ctx, url=url, method="POST",
+                                              headers={}, body="{}", timeout=10,
+                                              stream_key=key)
+            self.assertTrue(resp.get("ok"), "流式请求应成功: %s" % resp)
+            self.assertEqual(len(resp.get("items") or []), 2)
+            draft = self.ctx.runtime.stream_get(key)
+            self.assertEqual(draft["text"], "你好世界", "逐帧正文要累积进草稿槽")
+            merged = self.ctx.api.call("llm.decode_sse", {"items": resp["items"]})
+            self.assertEqual(merged["content"], "你好世界")
+        finally:
+            server.shutdown()
+            server.server_close()
+            self.ctx.runtime.stream_clear(key)
 
     def test_agent_process_is_killed_on_cancel(self):
         """打断要真停：外部 agent 进程被 kill，能在秒级收尾，不拖到自然跑完。"""
@@ -1147,6 +1191,31 @@ class CoreTest(unittest.TestCase):
         out = ticket_pure.threadp({"ticket": {"id": "T-1", "roles": []}, "thread": thread})
         self.assertEqual(out["thread"]["backend"], "api")
         self.assertEqual(out["thread"]["meta"], {"tools": []})
+
+    def test_thread_does_not_duplicate_pm_session(self):
+        """by_ticket 会把 PM 主会话一并归集；线程视图不得把它当角色二次并入成员与消息流。"""
+        intro = "工单 T-1\n\n标题：测试\n\n需求原文：\n\n测试链路是否Ok"
+        ticket = {"id": "T-1", "roles": [{"session": "role-1", "role": "developer",
+                                          "display": "探针", "task": "任务 x"}],
+                  "transcript": {}}
+        thread = {"id": "pm-1", "name": "pm-t-1", "status": "running", "backend": "api",
+                  "role": "", "updated": 1, "meta": {"tools": []},
+                  "messages": [{"role": "user", "content": intro}]}
+        role_threads = [
+            {"id": "pm-1", "role": "", "name": "pm-t-1", "status": "running",
+             "messages": [{"role": "user", "content": intro}]},
+            {"id": "role-1", "role": "developer", "name": "探针", "status": "busy",
+             "messages": [{"role": "user", "content": "角色任务"}]},
+        ]
+        out = ticket_pure.threadp({"ticket": ticket, "thread": thread,
+                                   "role_threads": role_threads})
+        pm_members = [m for m in out["members"] if m["session"] == "pm-1"]
+        self.assertEqual(len(pm_members), 1)
+        self.assertEqual(len(out["members"]), 2)
+        self.assertEqual([r["session"] for r in out["roles"]], ["role-1"])
+        intros = [m for m in out["thread"]["messages"] if m["content"] == intro]
+        self.assertEqual(len(intros), 1)
+        self.assertEqual(len(out["thread"]["messages"]), 2)
 
     def test_auth_verify_legacy_token(self):
         """夹具配了旧令牌 t：命中放行，空/错令牌拒绝。"""
