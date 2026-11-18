@@ -216,8 +216,8 @@ class CoreTest(unittest.TestCase):
             {"path": "tickets/t-20261118-0003/pm-decisions.md"},
         ]
         tickets = [
-            {"id": "t-20261117-0004", "project": "重构", "title": "登录闭环"},
-            {"id": "t-20261118-0003", "project": "重构", "title": "群聊流式"},
+            {"id": "T-20261117-0004", "project": "重构", "title": "登录闭环"},
+            {"id": "T-20261118-0003", "project": "重构", "title": "群聊流式"},
         ]
         out = self.ctx.api.call("knowledge.index", {"rows": rows, "tickets": tickets})
         self.assertEqual(out["counts"], {"public": 1, "project": 1, "ticket": 2})
@@ -231,6 +231,7 @@ class CoreTest(unittest.TestCase):
         for node in ticket_nodes:
             self.assertEqual(len(node["children"]), 1)
             self.assertEqual(node["children"][0]["project"], "重构")
+            self.assertTrue(node["label"].startswith("T-"))
         # 工单档案缺失项目归属时，工单文档落到顶层孤儿节点，不丢条目
         orphan = self.ctx.api.call("knowledge.index", {
             "rows": [{"path": "tickets/t-orphan/note.md"}], "tickets": []})
