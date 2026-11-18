@@ -25,12 +25,21 @@ do:
     path:
       get: sp.path
   as: row
+- call: store.read
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      lit: messages.yaml
+  as: tpls
 - call: sessions.present
   with:
     id:
       get: input.id
     rec:
       get: row.value
+    tpl:
+      get: tpls.value.session_missing
   as: out
 expect:
   given:
@@ -38,6 +47,7 @@ expect:
   calls:
   - store.id
   - sessions.record_path
+  - store.read
   - store.read
   - sessions.present
   payload: {}

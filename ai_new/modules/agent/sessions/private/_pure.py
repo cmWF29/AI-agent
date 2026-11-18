@@ -52,7 +52,7 @@ def present(p):
     """读档后定型：缺记录返 not_found，否则返视图。分支在模块内部。"""
     rec = p.get("rec")
     if rec is None:
-        return missing({"id": p.get("id")})
+        return missing({"id": p.get("id"), "tpl": p.get("tpl")})
     return view({"rec": rec})
 
 
@@ -87,8 +87,10 @@ def compactp(p):
 
 
 def missing(p):
+    tpl = p.get("tpl") or ""
+    sid = p.get("id") or ""
     return {"ok": False, "code": "not_found", "status": 404,
-            "error": "会话不存在: %s" % (p.get("id") or "")}
+            "error": tpl.format(id=sid) if tpl else ""}
 
 
 def record_path(p):
