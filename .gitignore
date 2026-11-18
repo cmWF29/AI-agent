@@ -6,7 +6,8 @@ ai_new/modules/agent/sessions/data/sessions/
 ai_new/modules/agent/channel/data/channels/
 ai_new/modules/agent/tickets/data/tickets/
 ai_new/modules/agent/tickets/data/messages.json
-ai_new/modules/agent/projects/data/
+ai_new/modules/agent/projects/data/*
+!ai_new/modules/agent/projects/data/messages.yaml
 ai_new/modules/agent/artifacts/data/
 ai_new/modules/agent/knowledge/data/projects/
 ai_new/modules/agent/knowledge/data/tickets/

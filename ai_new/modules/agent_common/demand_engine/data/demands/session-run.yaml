@@ -13,6 +13,13 @@ do:
     key:
       lit: sessions.result_chars
   as: cfg_chars
+- call: store.read
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      lit: messages.yaml
+  as: sess_tpl
 - call: sessions.record_path
   with:
     id:
@@ -105,6 +112,10 @@ do:
       get: done_at.ts
     result_chars:
       get: cfg_chars.value
+    cancelled_text:
+      get: sess_tpl.value.cancelled_summary
+    no_reply_text:
+      get: sess_tpl.value.backend_no_reply
   as: rec
 - call: sessions.record_path
   with:
@@ -135,6 +146,7 @@ expect:
     input: {}
   calls:
   - config.get
+  - store.read
   - sessions.record_path
   - store.read
   - clock.now

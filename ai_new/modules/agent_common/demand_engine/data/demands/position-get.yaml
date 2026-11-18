@@ -30,6 +30,13 @@ do:
     path:
       lit: flows.yaml
   as: uflows
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: messages.yaml
+  as: lib_tpl
 - call: library.get
   with:
     kind:
@@ -83,12 +90,15 @@ do:
       get: libprompt.value
     pm_prompt:
       get: pmprompt.value
+    tpl:
+      get: lib_tpl.value.position_missing
   as: out
 expect:
   given:
     input:
       id: architect
   calls:
+  - store.read
   - store.read
   - store.read
   - store.read

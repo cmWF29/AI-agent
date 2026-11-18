@@ -66,9 +66,9 @@ def finish(p):
     rec["meta"] = meta
     last = out.get("last") or {}
     if out.get("cancelled"):
-        rec["result"] = {"summary": "（已打断）", "at": p.get("now") or "", "cancelled": True}
+        rec["result"] = {"summary": p.get("cancelled_text") or "", "at": p.get("now") or "", "cancelled": True}
     elif failed:
-        rec["result"] = {"summary": (failed.get("error") or "后端未答复")[:limit],
+        rec["result"] = {"summary": (failed.get("error") or p.get("no_reply_text") or "")[:limit],
                          "at": p.get("now") or "", "failed": True}
     else:
         rec["result"] = {"summary": (last.get("content") or "")[:limit], "at": p.get("now") or ""}

@@ -30,7 +30,7 @@ def present(p):
     """读档后定型：缺档案返 not_found 形状，否则返视图。分支在模块内部，需求不写 when。"""
     rec = p.get("rec")
     if rec is None:
-        return missing({"id": p.get("id")})
+        return missing({"id": p.get("id"), "tpl": p.get("tpl")})
     return view({"rec": rec})
 
 
@@ -95,13 +95,17 @@ def renamed(payload):
 
 
 def missing(payload):
+    pid = payload.get("id") or ""
+    tpl = payload.get("tpl") or ""
     return {"ok": False, "code": "not_found", "status": 404,
-            "error": "项目不存在: %s" % (payload.get("id") or "")}
+            "error": tpl.format(id=pid) if tpl else ""}
 
 
 def conflict(payload):
+    pid = payload.get("id") or ""
+    tpl = payload.get("tpl") or ""
     return {"ok": False, "code": "exists", "status": 409,
-            "error": "项目已存在: %s" % (payload.get("id") or "")}
+            "error": tpl.format(id=pid) if tpl else ""}
 
 
 def deleted(payload):

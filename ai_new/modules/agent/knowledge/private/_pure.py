@@ -79,7 +79,7 @@ def present(p):
     """取文后定型：空文本返 not_found，否则返视图。分支在模块内部。"""
     content = p.get("content") or ""
     if content == "":
-        return missing({"name": p.get("name")})
+        return missing({"name": p.get("name"), "tpl": p.get("tpl")})
     return view({"path": p.get("path"), "content": content})
 
 
@@ -219,8 +219,10 @@ def compose(p):
 
 
 def missing(p):
+    name = p.get("name") or ""
+    tpl = p.get("tpl") or ""
     return {"ok": False, "code": "not_found", "status": 404,
-            "error": "知识不存在: %s" % (p.get("name") or "")}
+            "error": tpl.format(name=name) if tpl else ""}
 
 
 def removed(p):

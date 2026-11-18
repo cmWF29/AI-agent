@@ -6,6 +6,13 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: store.read
+  with:
+    module:
+      lit: agent/knowledge
+    path:
+      lit: messages.yaml
+  as: k_tpl
 - call: store.id
   with:
     value:
@@ -52,11 +59,14 @@ do:
       get: doc.path
     content:
       get: file.value
+    tpl:
+      get: k_tpl.value.missing
   as: out
 expect:
   given:
     input: {}
   calls:
+  - store.read
   - store.id
   - store.id
   - knowledge.scope

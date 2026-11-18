@@ -165,8 +165,10 @@ def positionp(p):
     if not rec:
         if (p.get("id") or "") == "pm":
             return _position(_pm_record(), p.get("flow") or {}, prompt_text, pm_prompt)
+        pid = p.get("id") or ""
+        tpl = p.get("tpl") or ""
         return {"ok": False, "code": "not_found", "status": 404,
-                "error": "岗位不存在: %s" % (p.get("id") or "")}
+                "error": tpl.format(id=pid) if tpl else ""}
     return _position(rec, p.get("flow") or {}, prompt_text, pm_prompt)
 
 

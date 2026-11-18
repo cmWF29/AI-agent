@@ -4,6 +4,13 @@ from __future__ import annotations
 from .private import _pure
 
 
+def _msg_tpl(ctx):
+    """消息模板表：项目模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent/projects", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def setup(ctx):
     """装配入口：注册纯函数；组合逻辑在 demand_engine/data/demands/projects-*.json。"""
     for name, fn in [
@@ -38,7 +45,8 @@ def _route_create(ctx, payload):
     ex = ctx.api.call("store.exists", {"module": "agent/projects",
         "path": pid.get("id") + ".yaml"}, caller=None)
     if ex.get("exists"):
-        return ctx.api.call("projects.conflict", {"id": pid.get("id")}, caller=None)
+        return ctx.api.call("projects.conflict",
+            {"id": pid.get("id"), "tpl": _msg_tpl(ctx).get("conflict")}, caller=None)
     view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
     view["effects"] = [{"kind": "write", "module": "agent/projects",
                 "path": pid.get("id") + ".yaml", "value": rec}]
@@ -54,7 +62,8 @@ def _route_toggle(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/projects",
         "path": pid.get("id") + ".yaml"}, caller=None)
     if row.get("value") is None:
-        return ctx.api.call("projects.missing", {"id": pid.get("id")}, caller=None)
+        return ctx.api.call("projects.missing",
+            {"id": pid.get("id"), "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.toggle_override", {
         "rec": row.get("value"), "kind": payload.get("kind"),
@@ -162,13 +171,15 @@ def _route_rename(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/projects",
         "path": old + ".yaml"}, caller=None)
     if row.get("value") is None:
-        return ctx.api.call("projects.missing", {"id": old}, caller=None)
+        return ctx.api.call("projects.missing",
+            {"id": old, "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
     new_id = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None).get("id")
     if new_id != old:
         ex = ctx.api.call("store.exists", {"module": "agent/projects",
             "path": new_id + ".yaml"}, caller=None)
         if ex.get("exists"):
-            return ctx.api.call("projects.conflict", {"id": new_id}, caller=None)
+            return ctx.api.call("projects.conflict",
+                {"id": new_id, "tpl": _msg_tpl(ctx).get("conflict")}, caller=None)
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.renamed", {
         "rec": row.get("value"), "id": new_id, "name": payload.get("name"),
