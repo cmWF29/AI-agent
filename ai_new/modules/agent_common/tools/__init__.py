@@ -142,7 +142,7 @@ def _route_execute(ctx, payload):
     args = dict(payload.get("args") or {})
     args.pop("tool", None)
     return _pure.external_pending({"tool": name, "args": args, "rec": rec,
-                                   "tpl": _msg_tpl(ctx).get("external_pending")})
+                                   "tpl": _msg_tpl(ctx)})
 
 
 def _collect_snapshot(ctx, tools):
@@ -178,7 +178,7 @@ def _route_external_run(ctx, payload):
         "module": "agent_common/tools", "path": "tools.yaml"}, caller=None)
     rec = (row.get("value") or {}).get(name) or {}
     return _pure.external_pending({"tool": name, "args": args, "rec": rec,
-                                    "tpl": _msg_tpl(ctx).get("external_pending")})
+                                    "tpl": _msg_tpl(ctx)})
 
 
 def _route_list(ctx, payload):

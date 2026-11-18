@@ -6,9 +6,8 @@
 from __future__ import annotations
 
 
-_DEP_KINDS = (("cli", "命令"), ("pip", "Python 包"),
-              ("env", "环境变量"), ("config", "配置项"),
-              ("resources", "资源文件"))
+# 依赖分类枚举键：结构性分类保留代码；其中文展示标签由模板表传入。
+_DEP_KIND_IDS = ("cli", "pip", "env", "config", "resources")
 
 
 def merge(p):
@@ -73,7 +72,7 @@ def _missing_for(deps, snapshot):
     deps = deps or {}
     snap = snapshot or {}
     missing = []
-    for kind, _label in _DEP_KINDS:
+    for kind in _DEP_KIND_IDS:
         names = deps.get(kind) or []
         if kind == "resources":
             continue
@@ -97,21 +96,24 @@ def probe(p):
     return {"status": "ok" if not missing else "missing", "missing": missing}
 
 
-def _deps_text(deps):
+def _dep_label(tpl, kind):
+    return (tpl or {}).get("label_" + kind) or kind
+
+
+def _deps_text(deps, tpl):
     deps = deps or {}
     parts = []
-    for kind, label in _DEP_KINDS:
+    for kind in _DEP_KIND_IDS:
         names = [str(x) for x in (deps.get(kind) or []) if str(x or "")]
         if names:
-            parts.append("%s: %s" % (label, "、".join(names)))
-    return "；".join(parts) if parts else "无"
+            parts.append("%s: %s" % (_dep_label(tpl, kind), "、".join(names)))
+    return "；".join(parts) if parts else ((tpl or {}).get("label_none") or "")
 
 
-def _missing_text(missing):
+def _missing_text(missing, tpl):
     if not missing:
         return ""
-    labels = dict(_DEP_KINDS)
-    return "、".join("%s:%s" % (labels.get(m.get("kind"), m.get("kind")), m.get("name"))
+    return "、".join("%s:%s" % (_dep_label(tpl, m.get("kind")), m.get("name"))
                      for m in missing)
 
 
@@ -143,13 +145,13 @@ def install_plan(p):
 
 def _group_deps(tools, snapshot):
     """遍历工具依赖，按类别聚合成在位 / 缺失两组；缺失项带归属工具。resources 只登记不判。"""
-    groups = {kind: {"present": [], "missing": []} for kind, _label in _DEP_KINDS}
-    seen = {kind: set() for kind, _label in _DEP_KINDS}
+    groups = {kind: {"present": [], "missing": []} for kind in _DEP_KIND_IDS}
+    seen = {kind: set() for kind in _DEP_KIND_IDS}
     resources, res_seen = [], set()
     for t in tools or []:
         deps = t.get("deps") or {}
         tname = t.get("name") or ""
-        for kind, _label in _DEP_KINDS:
+        for kind in _DEP_KIND_IDS:
             names = deps.get(kind) or []
             present = snapshot.get(kind) or {}
             for name in names:
@@ -209,11 +211,12 @@ def external_pending(p):
     """外部工具执行占位：后端未接入前回显登记与依赖提示；不碰主机、不执行。"""
     rec = p.get("rec") or {}
     name = p.get("tool") or ""
-    tpl = p.get("tpl") or ""
+    tpl = p.get("tpl") or {}
+    msg_tpl = tpl.get("external_pending") or ""
     return {"ok": False, "code": "external_pending", "tool": name,
             "desc": rec.get("desc") or "", "args": p.get("args") or {},
-            "deps": _deps_text(rec.get("deps") or {}),
-            "message": tpl.format(name=name) if tpl else ""}
+            "deps": _deps_text(rec.get("deps") or {}, tpl),
+            "message": msg_tpl.format(name=name) if msg_tpl else ""}
 
 
 def listing(p):
@@ -240,10 +243,10 @@ def listing(p):
             "module": t.get("module") or "",
             "params": param_text,
             "kinds": kinds_text,
-            "deps": _deps_text(deps),
+            "deps": _deps_text(deps, tpl),
             "status": status["status"],
             "status_text": (tpl.get("label_ready") or "") if status["status"] == "ok" else (tpl.get("label_deps_missing") or ""),
-            "missing": _missing_text(status["missing"]),
+            "missing": _missing_text(status["missing"], tpl),
             "builtin": bool(t.get("builtin")),
             "skill": t.get("skill") or "",
             "disabled_project": t.get("name") in disabled_names,
