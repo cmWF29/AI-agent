@@ -436,6 +436,20 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(self.ctx.runtime.cancelled("stop-probe", 0))
         self.assertTrue(box["done"], "stop 应 join 等线程收尾后再返回")
 
+    def test_runtime_dispatch_clears_run_slot_after_finish(self):
+        """后台线程跑完（正常/报错/被接管作废）即自清运行表，死 Thread 条目不随工单数堆积。"""
+        import time as _time
+        key = "rt-cleanup-probe"
+        self.ctx.runtime.dispatch({"demand": "projects-list", "key": key, "input": {}})
+        deadline = _time.perf_counter() + 5
+        while _time.perf_counter() < deadline:
+            th = self.ctx.runtime._runs.get(key)
+            if th is None or not th.is_alive():
+                break
+            _time.sleep(0.02)
+        self.assertNotIn(key, self.ctx.runtime._runs, "跑完后运行表应自清，死线程条目不残留")
+        self.assertNotIn(key, self.ctx.runtime._cancel)
+
     def test_agent_backend_runs_external_command(self):
         """agent 模式：对话拼成一段话交给外部进程，收回 stdout 当答复。
 

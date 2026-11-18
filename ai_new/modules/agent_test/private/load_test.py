@@ -12,9 +12,11 @@ llm.base_url 指到本地桩；全程不访问任何真实 LLM API。
 脚本不被 unittest discover 收集（文件名不是 test_*.py），是手动跑的压测入口。
 """
 import argparse
+import gc
 import json
 import os
 import random
+import resource
 import sys
 import tempfile
 import threading
@@ -189,6 +191,29 @@ def _ids_from_glob(items, kind):
     return out
 
 
+def _current_rss_mb():
+    try:
+        for line in open("/proc/self/status", encoding="utf-8"):
+            if line.startswith("VmRSS:"):
+                return round(int(line.split()[1]) / 1024, 1)
+    except OSError:
+        pass
+    return -1.0
+
+
+def mem_snapshot(ctx):
+    """采样内存与运行期回收面：当前/峰值 RSS、存活线程、死线程字典、草稿槽、订阅者。"""
+    rt = ctx.runtime
+    return {
+        "rss": _current_rss_mb(),
+        "peak": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
+        "threads": threading.active_count(),
+        "runs": len(rt._runs),
+        "stream": len(rt._stream),
+        "subs": sum(len(v) for v in rt._subs.values()),
+    }
+
+
 def join_background(ctx, timeout):
     """等后台 session-run 线程收敛；回催会再 dispatch 同 key，轮询到无存活线程。"""
     deadline = time.perf_counter() + timeout
@@ -223,6 +248,7 @@ def main(argv=None):
     try:
         ctx, root = assemble(stub_url)
         print("== 装配完成: %s" % root)
+        m0 = mem_snapshot(ctx)
 
         # 阶段 A：并发建项目
         t0 = time.perf_counter()
@@ -274,6 +300,7 @@ def main(argv=None):
                     if len(ticket_errs) < 10:
                         ticket_errs.append((futs[fut], r["err"]))
         t_ticket = time.perf_counter() - t1
+        m1 = mem_snapshot(ctx)
         total = args.projects * args.tickets
         print("== 工单: 成功 %d / 失败 %d（撞号 %d），共 %d，耗时 %.2fs"
               % (ticket_ok, ticket_fail, conflict, total, t_ticket))
@@ -286,6 +313,10 @@ def main(argv=None):
         leftover, t_join = join_background(ctx, args.join_timeout)
         t_wait = t_join - t2
         print("== 后台线程: 残留 %d，等待 %.2fs" % (len(leftover), t_wait))
+        m2 = mem_snapshot(ctx)
+        gc.collect()
+        m3 = mem_snapshot(ctx)
+        print("== 内存/回收: 装配前 %s | 建单后 %s | 收敛后 %s | GC 后 %s" % (m0, m1, m2, m3))
 
         # 落盘计数与桩统计
         proj_items = (ctx.api.call("store.glob", {"module": "agent/projects",

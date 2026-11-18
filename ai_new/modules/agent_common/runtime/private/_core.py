@@ -165,13 +165,20 @@ class Runtime:
         slot = {}
 
         def work():
-            if prev and prev.is_alive():
-                self._cancel[key] = self._now()
-                prev.join()
-            with self._lock:
-                if self._runs.get(key) is not slot.get("t"):
-                    return          # 后面又有人接管，这一棒作废，避免并发跑两轮
-            self.ctx.api.call("demand_engine.run", {"id": demand, "input": data}, caller=None)
+            try:
+                if prev and prev.is_alive():
+                    self._cancel[key] = self._now()
+                    prev.join()
+                with self._lock:
+                    if self._runs.get(key) is not slot.get("t"):
+                        return          # 后面又有人接管，这一棒作废，避免并发跑两轮
+                self.ctx.api.call("demand_engine.run", {"id": demand, "input": data}, caller=None)
+            finally:
+                # 本棒收尾（跑完/报错/被接管作废）即自清；已被新线程接管则不动其条目。
+                with self._lock:
+                    if self._runs.get(key) is slot.get("t"):
+                        self._runs.pop(key, None)
+                        self._cancel.pop(key, None)
 
         thread = threading.Thread(target=work, name="rt-%s" % key, daemon=True)
         slot["t"] = thread

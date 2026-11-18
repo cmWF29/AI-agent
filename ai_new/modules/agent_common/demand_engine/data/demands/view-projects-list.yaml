@@ -35,7 +35,7 @@ view:
        flash: "已归档：{row.project.name}", disabled_when: row.project.archived,
        after: {view: projects, reload: true}}
     - {label: 删除, demand: projects-delete, params: {id: row.project.id, purge: true},
-       confirm: "彻底删除项目「{row.project.name}」？工单不会被删。",
+       confirm: "彻底删除项目「{row.project.name}」？其工单、会话与知识将一并删除。",
        flash: "已删除：{row.project.name}", tone: danger,
        after: {view: projects, reload: true}}
     on_click: {view: project, params: {project: row.project.id}}
