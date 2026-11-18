@@ -8,6 +8,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: tickets.max_children
+  as: cfg_max
 - call: tickets.split
   with:
     id:
@@ -16,6 +21,8 @@ do:
       get: input.children
     force:
       get: input.force
+    max_children:
+      get: cfg_max.value
   as: out
 - call: runtime.apply
   with:
@@ -28,6 +35,7 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
   - tickets.split
   - runtime.apply
   payload: {}

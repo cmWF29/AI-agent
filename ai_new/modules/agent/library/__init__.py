@@ -30,4 +30,10 @@ def setup(ctx):
 
 
 def _as_handler(fn):
-    return lambda ctx, payload: fn(payload)
+    def handler(ctx, payload):
+        row = ctx.api.call("store.read", {
+            "module": "agent/library", "path": "messages.yaml"}, caller=None)
+        payload = dict(payload or {})
+        payload["tpl"] = row.get("value") or {}
+        return fn(payload)
+    return handler

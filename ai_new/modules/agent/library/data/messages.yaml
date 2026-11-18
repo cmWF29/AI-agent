@@ -1,2 +1,8 @@
 # 岗位库模块面向用户文案模板。纯文案数据，填参归模块，需求层读取后传入纯函数。
 position_missing: '岗位不存在: {id}'
+kind_missing: '{kind} 不存在: {id}'
+id_required: 'id 必填'
+builtin_role_protected: '内置角色提示词受保护'
+builtin_skill_protected: '内置 Skill 受保护'
+skill_missing: 'Skill 不存在: {id}'
+builtin_skill_uninstall_protected: '内置 Skill 受保护，不可卸载'

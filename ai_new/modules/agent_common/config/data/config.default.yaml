@@ -38,6 +38,7 @@ sessions:
     resume_max: 5             # 单次启动最多自动续跑的会话数，防止启动风暴
 tickets:
   max_roles: 8
+  max_children: 8
   pm_max_steps: 0
   auto_retrospective: false
   stall_check:

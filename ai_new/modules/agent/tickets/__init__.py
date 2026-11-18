@@ -126,9 +126,11 @@ def _route_create(ctx, payload):
     if ctx.api.call("store.exists", {
             "module": "agent/tickets",
             "path": _ticket_path(rec.get("id"))}, caller=None).get("exists"):
+        tpl_conflict = _msg_tpl(ctx).get("ticket_conflict") or ""
+        tid = rec.get("id") or ""
         return ctx.api.call("tickets.err", {
             "code": "ticket_id_conflict", "status": 409,
-            "message": "工单号已存在：%s，拒绝覆盖" % (rec.get("id") or "")}, caller=None)
+            "message": tpl_conflict.format(id=tid) if tpl_conflict else ""}, caller=None)
     pm_id = ""
     if not skip_pm:
         intro = _pure.msg({
@@ -185,13 +187,15 @@ def _route_close(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/tickets",
                                       "path": _ticket_path(payload.get("id"))}, caller=None)
     rec = row.get("value") or {}
+    tpl_child_open = _msg_tpl(ctx).get("child_open") or ""
     for cid in rec.get("children") or []:
         child = ctx.api.call("store.read", {"module": "agent/tickets",
                                             "path": _ticket_path(cid)}, caller=None)
         cv = child.get("value")
         if cv is not None and cv.get("status") != "closed":
+            msg_open = tpl_child_open.format(id=cid) if tpl_child_open else ""
             return {"ok": False, "code": "children_open", "status": 409,
-                    "error": "子工单尚未结单: %s" % cid}
+                    "error": msg_open}
     now = ctx.api.call("clock.now", {}, caller=None)
     closed = ctx.api.call("tickets.closefin", {
         "rec": rec, "summary": payload.get("summary"),
@@ -242,9 +246,11 @@ def _route_close(ctx, payload):
         effects.append({"kind": "remove", "module": "agent/sessions",
                         "path": "sessions/%s.yaml" % sid})
     if archived.get("parent"):
+        tpl_closed = _msg_tpl(ctx).get("child_closed") or ""
+        aid = archived.get("id") or ""
         effects.append({"kind": "demand", "id": "ticket-message",
                         "input": {"id": archived.get("parent"),
-                                  "text": "子工单已结单： %s" % (archived.get("id") or ""),
+                                  "text": tpl_closed.format(id=aid) if tpl_closed else "",
                                   "target": "pm"}})
     view["effects"] = effects
     return view
@@ -255,9 +261,12 @@ def _route_split(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/tickets",
                                       "path": _ticket_path(payload.get("id"))}, caller=None)
     cur = row.get("value") or {}
-    if len(cur.get("children") or []) >= 8 and payload.get("force") is False:
+    max_children = payload.get("max_children")
+    if max_children is not None and len(cur.get("children") or []) >= max_children \
+            and payload.get("force") is False:
+        tpl_max = _msg_tpl(ctx).get("too_many_children") or ""
         return {"ok": False, "code": "too_many_children", "status": 409,
-                "error": "子工单最多 8 个"}
+                "error": tpl_max.format(max=max_children) if tpl_max else ""}
     effects = []
     for child_spec in payload.get("children") or []:
         spec = child_spec or {}
@@ -318,9 +327,12 @@ def _route_stall_scan(ctx, payload):
         if verdict.get("stale") is True:
             hot.append(rec.get("id"))
     if create_audit:
+        tpl_title = _msg_tpl(ctx).get("audit_title") or ""
+        tpl_goal = _msg_tpl(ctx).get("audit_goal") or ""
         for tid in hot[:max_per_scan]:
             ctx.runtime.call("ticket-create", {
-                "title": "停滞审计: %s" % tid, "goal": "工单久未推进: %s" % tid,
+                "title": tpl_title.format(id=tid) if tpl_title else "",
+                "goal": tpl_goal.format(id=tid) if tpl_goal else "",
                 "kind": "stall-audit", "auto_retrospective": False})
     return ctx.api.call("ops.assemble", {"parts": {"scan": hot, "at": now.get("ts")}},
                         caller=None)

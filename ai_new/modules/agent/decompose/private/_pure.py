@@ -283,8 +283,9 @@ def install_parts(p):
     draft = p.get("draft") or {}
     rid = (draft.get("id") or "").strip()
     if not rid:
+        tpl = p.get("tpl") or {}
         return {"ok": False, "code": "missing_id", "status": 400,
-                "error": "拆解结果缺少标识 id（英文标识）"}
+                "error": tpl.get("missing_id") or ""}
     role = draft.get("role") or {}
     flow = draft.get("flow") or {}
     meta = p.get("meta") or {}
@@ -340,8 +341,9 @@ def install_effects(p):
     parts = p.get("parts") or {}
     skill = parts.get("skill") or {}
     if not skill.get("id"):
+        tpl = p.get("tpl") or {}
         return {"ok": False, "effects": [],
-                "error": parts.get("error") or "拆解产物无效，不落盘"}
+                "error": parts.get("error") or tpl.get("invalid_parts") or ""}
     roles = dict(p.get("roles") or {})
     flows = dict(p.get("flows") or {})
     tools = dict(p.get("tools") or {})

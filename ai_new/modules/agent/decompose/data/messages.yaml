@@ -1,0 +1,11 @@
+# 拆解模块面向用户文案模板。纯文案数据，填参归模块，能力层读取后透出。
+missing_url: '缺少 url'
+bad_url: '只允许 http(s) 链接'
+fetch_failed: '链接拉取失败'
+pip_failed: 'pip 安装失败'
+invalid_parts: '拆解产物无效，不落盘'
+missing_id: '拆解结果缺少标识 id（英文标识）'
+empty_input: '请粘贴 Skill.md 正文、拖入文件或填写链接'
+no_answer: '模型未返回拆解结果'
+cancelled: '拆解已被打断'
+bad_draft_json: '拆解结果不是合法 JSON'

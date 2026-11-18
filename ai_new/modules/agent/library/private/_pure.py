@@ -215,8 +215,9 @@ def getp(p):
     rid = p.get("id") or ""
     rec = _records(p).get(rid)
     if not rec:
+        tpl = (p.get("tpl") or {}).get("kind_missing") or ""
         return {"ok": False, "code": "not_found", "status": 404,
-                "error": "%s 不存在: %s" % (kind, rid)}
+                "error": tpl.format(kind=kind, id=rid) if tpl else ""}
     return {"kind": kind, "item": rec}
 
 
@@ -225,12 +226,13 @@ def designp(p):
     kind = p.get("kind") or "roles"
     rid = p.get("id") or ""
     fields = p.get("fields") or {}
+    tpl = p.get("tpl") or {}
     if not rid:
-        return {"ok": False, "code": "missing_id", "error": "id 必填"}
+        return {"ok": False, "code": "missing_id", "error": tpl.get("id_required") or ""}
     rec = dict(p.get("record") or {})
     if rec.get("builtin") and kind == "roles" and fields.get("prompt"):
         return {"ok": False, "code": "builtin_protected", "status": 403,
-                "error": "内置角色提示词受保护"}
+                "error": tpl.get("builtin_role_protected") or ""}
     rec.update(fields)
     rec.setdefault("id", rid)
     rec.setdefault("builtin", False)
@@ -360,11 +362,12 @@ def skill_statusp(p):
     """翻转 Skill 启用状态；内置 Skill 受保护不改。记录合并归岗位库模块。"""
     sid = (p.get("id") or "").strip()
     rec = dict(p.get("record") or {})
+    tpl = p.get("tpl") or {}
     if not sid:
-        return {"ok": False, "code": "missing_id", "error": "id 必填"}
+        return {"ok": False, "code": "missing_id", "error": tpl.get("id_required") or ""}
     if rec.get("builtin"):
         return {"ok": False, "code": "builtin_protected", "status": 403,
-                "error": "内置 Skill 受保护"}
+                "error": tpl.get("builtin_skill_protected") or ""}
     rec["id"] = sid
     rec["status"] = p.get("status") or rec.get("status") or "enabled"
     rec["updated"] = p.get("now") or ""
@@ -378,15 +381,17 @@ def skill_uninstallp(p):
     """
     sid = (p.get("id") or "").strip()
     skills = dict(p.get("skills") or {})
+    tpl = p.get("tpl") or {}
     if not sid:
-        return {"ok": False, "code": "missing_id", "error": "id 必填"}
+        return {"ok": False, "code": "missing_id", "error": tpl.get("id_required") or ""}
     rec = skills.get(sid)
     if not isinstance(rec, dict):
+        tpl_missing = tpl.get("skill_missing") or ""
         return {"ok": False, "code": "not_found", "status": 404,
-                "error": "Skill 不存在: %s" % sid}
+                "error": tpl_missing.format(id=sid) if tpl_missing else ""}
     if rec.get("builtin"):
         return {"ok": False, "code": "builtin_protected", "status": 403,
-                "error": "内置 Skill 受保护，不可卸载"}
+                "error": tpl.get("builtin_skill_uninstall_protected") or ""}
     roles = dict(p.get("roles") or {})
     flows = dict(p.get("flows") or {})
     tools = dict(p.get("tools") or {})

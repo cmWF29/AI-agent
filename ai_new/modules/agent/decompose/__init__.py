@@ -15,7 +15,7 @@ def setup(ctx):
         ("decompose.parse", _pure.parse),
         ("decompose.install_parts", _pure.install_parts),
     ]:
-        ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="decompose")
+        ctx.api.register(name, _as_handler(fn), module="decompose")
     ctx.api.register("decompose.run", _route_run,
                      "拆解闭环：解析包内容→取工具名单→拼提示→ReAct 拉装→模型→解码→成形入库记录",
                      module="decompose")
@@ -33,22 +33,39 @@ def setup(ctx):
     return True
 
 
+def _msg_tpl(ctx):
+    """消息模板表：拆解模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent/decompose", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
+def _as_handler(fn):
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        payload["tpl"] = _msg_tpl(ctx)
+        return fn(payload)
+    return handler
+
+
 def _tool_fetch(ctx, args, session=None):
     """拆解期只读拉取 http(s) 文档文本；非 http(s) 直接拒，不走任意地址。"""
+    tpl = _msg_tpl(ctx)
     url = str((args or {}).get("url") or "").strip()
     if not url:
-        return {"ok": False, "error": "缺少 url", "code": "bad_request"}
+        return {"ok": False, "error": tpl.get("missing_url") or "", "code": "bad_request"}
     if not (url.startswith("http://") or url.startswith("https://")):
-        return {"ok": False, "error": "只允许 http(s) 链接", "code": "bad_url"}
+        return {"ok": False, "error": tpl.get("bad_url") or "", "code": "bad_url"}
     resp = ctx.api.call("net.request",
                         {"url": url, "method": "GET", "timeout": 30}, caller=None)
     if not isinstance(resp, dict) or resp.get("ok") is False:
-        return resp or {"ok": False, "error": "链接拉取失败", "code": "fetch_failed"}
+        return resp or {"ok": False, "error": tpl.get("fetch_failed") or "", "code": "fetch_failed"}
     return {"ok": True, "url": url, "text": resp.get("text") or ""}
 
 
 def _tool_pip(ctx, args, session=None):
     """拆解期白名单装单个 pip 包：包名先过纯函数校验，固定 argv 直传，不经 shell。"""
+    tpl = _msg_tpl(ctx)
     check = _pure.safe_pkg((args or {}).get("pkg"))
     if not check.get("ok"):
         return {"ok": False, "error": check.get("error"), "code": "bad_pkg"}
@@ -58,7 +75,7 @@ def _tool_pip(ctx, args, session=None):
                          "timeout": 300}, caller=None)
     out = {"ok": bool(resp.get("ok")), "pkg": check["pkg"]}
     if not out["ok"]:
-        out["error"] = resp.get("error") or "pip 安装失败"
+        out["error"] = resp.get("error") or tpl.get("pip_failed") or ""
     else:
         out["seconds"] = resp.get("seconds")
     return out
@@ -78,14 +95,15 @@ def _route_install(ctx, payload):
         "source": payload.get("source"), "now": payload.get("now")}, caller=None)
     if not (parts or {}).get("skill"):
         return {"ok": False, "effects": [],
-                "error": (parts or {}).get("error") or "拆解产物无效，不落盘"}
+                "error": (parts or {}).get("error")
+                         or _msg_tpl(ctx).get("invalid_parts") or ""}
 
     def _read(module, path):
         row = ctx.api.call("store.read", {"module": module, "path": path}, caller=None)
         return row.get("value") or {}
 
     eff = _pure.install_effects({
-        "parts": parts,
+        "parts": parts, "tpl": _msg_tpl(ctx),
         "roles": _read("agent/library", "roles.yaml"),
         "flows": _read("agent/library", "flows.yaml"),
         "tools": _read("agent_common/tools", "tools.yaml"),
@@ -102,16 +120,17 @@ def _route_run(ctx, payload):
     """
     skill_md = payload.get("skill_md")
     url = str(payload.get("url") or "").strip()
+    tpl = _msg_tpl(ctx)
     if url:
         fetched = ctx.api.call("net.request",
                                {"url": url, "method": "GET", "timeout": 30}, caller=None)
         if not isinstance(fetched, dict) or fetched.get("ok") is False:
             return fetched or {"ok": False, "code": "fetch_failed",
-                               "error": "链接拉取失败"}
+                               "error": tpl.get("fetch_failed") or ""}
         skill_md = fetched.get("text") or ""
     if not str(skill_md or "").strip() and not url:
         return {"ok": False, "code": "empty_input",
-                "error": "请粘贴 Skill.md 正文、拖入文件或填写链接"}
+                "error": tpl.get("empty_input") or ""}
     doc = ctx.api.call("decompose.parse_skill_doc", {
         "skill_md": skill_md,
         "requirements": payload.get("requirements"),
@@ -137,18 +156,18 @@ def _route_run(ctx, payload):
         "session": payload.get("session"),
         "cancel": payload.get("cancel")}, caller=None)
     if not isinstance(react, dict):
-        return {"ok": False, "code": "no_answer", "error": "模型未返回拆解结果"}
+        return {"ok": False, "code": "no_answer", "error": tpl.get("no_answer") or ""}
     if react.get("failed"):
         return {"ok": False, "code": "no_answer",
-                "error": "模型未返回拆解结果", "failed": react.get("failed")}
+                "error": tpl.get("no_answer") or "", "failed": react.get("failed")}
     if react.get("cancelled"):
-        return {"ok": False, "code": "cancelled", "error": "拆解已被打断"}
+        return {"ok": False, "code": "cancelled", "error": tpl.get("cancelled") or ""}
     last = react.get("last") or {}
     raw = last.get("content") or ""
     obj = ctx.api.call("codec.json_decode", {"text": raw}, caller=None)
     if not obj.get("ok"):
         return {"ok": False, "code": "bad_draft_json",
-                "error": "拆解结果不是合法 JSON", "raw": raw}
+                "error": tpl.get("bad_draft_json") or "", "raw": raw}
     return ctx.api.call("decompose.parse", {
         "draft": obj.get("value"), "tools": tools,
         "meta": doc.get("meta"), "pip": doc.get("pip"),
