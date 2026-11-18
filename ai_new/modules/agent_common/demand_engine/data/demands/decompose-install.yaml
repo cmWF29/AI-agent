@@ -1,6 +1,6 @@
 id: decompose-install
-title: 拆解入库：Skill.md 包 → 模型拆成岗位/流程/工具 → 直接登记为一个 Skill 单元
-description: "拆解入库：读入 Skill.md 包（正文、requirements、脚本清单），经模型拆成岗位角色、引用工具、流程规则与新工具定义，直接并入岗位、流程、外部工具登记并登记 Skill 单元，不再经过草稿待确认。拆解闭环在 decompose.run 能力内，记录映射归拆解模块，取数落盘归需求"
+title: 拆解入库：Skill.md 包 → 模型拆成岗位/流程/工具 → 成功后登记为一个 Skill 单元
+description: "拆解入库：读入 Skill.md 包，经模型拆成岗位角色、引用工具、流程规则与新工具定义；产物有效才合并四库并落盘为一个 Skill 单元，拆解失败/空输入不写正式库。拆解闭环在 decompose.run 能力内，合并与落盘 effects 成形归 decompose.install，需求只编排调用与 apply"
 tags:
 - tool
 - llm
@@ -37,7 +37,7 @@ do:
   as: out
 - call: clock.now
   as: now
-- call: decompose.install_parts
+- call: decompose.install
   with:
     draft:
       get: out.draft
@@ -47,99 +47,14 @@ do:
       get: input.source
     now:
       get: now.ts
-  as: parts
-- call: store.read
+  as: inst
+- call: runtime.apply
   with:
-    module:
-      lit: agent/library
-    path:
-      lit: roles.yaml
-  as: ur
-- call: library.save_record
-  with:
-    user:
-      get: ur.value
-    rec:
-      get: parts.role
-  as: sr
-- call: store.write
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: roles.yaml
-    value:
-      get: sr.value
-  as: wr
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: flows.yaml
-  as: uf
-- call: library.save_record
-  with:
-    user:
-      get: uf.value
-    rec:
-      get: parts.flow
-  as: sf
-- call: store.write
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: flows.yaml
-    value:
-      get: sf.value
-  as: wf
-- call: store.read
-  with:
-    module:
-      lit: agent_common/tools
-    path:
-      lit: tools.yaml
-  as: ut
-- call: decompose.merge_tools
-  with:
-    user:
-      get: ut.value
-    tools:
-      get: parts.tools
-  as: st
-- call: store.write
-  with:
-    module:
-      lit: agent_common/tools
-    path:
-      lit: tools.yaml
-    value:
-      get: st.value
-  as: wt
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: skills.yaml
-  as: us
-- call: library.save_record
-  with:
-    user:
-      get: us.value
-    rec:
-      get: parts.skill
-  as: ss
-- call: store.write
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: skills.yaml
-    value:
-      get: ss.value
-  as: ws
+    effect:
+      get: inst.effects
+    echo:
+      get: inst
+  as: applied
 expect:
   given:
     input:
@@ -153,18 +68,7 @@ expect:
   - store.read_text
   - decompose.run
   - clock.now
-  - decompose.install_parts
-  - store.read
-  - library.save_record
-  - store.write
-  - store.read
-  - library.save_record
-  - store.write
-  - store.read
-  - decompose.merge_tools
-  - store.write
-  - store.read
-  - library.save_record
-  - store.write
+  - decompose.install
+  - runtime.apply
   payload: {}
-  promise: 拆解产物直接登记为 Skill 单元；流程拆不出就留空，记录映射归模块，落盘编排归需求
+  promise: 拆解产物有效才登记为 Skill 单元；无效回空 effects 不落盘；记录映射与合并归模块，apply 落盘归需求

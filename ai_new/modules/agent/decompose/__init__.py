@@ -13,14 +13,16 @@ def setup(ctx):
         ("decompose.parse_skill_doc", _pure.parse_skill_doc),
         ("decompose.promptize", _pure.promptize),
         ("decompose.parse", _pure.parse),
-        ("decompose.merge_tools", _pure.merge_tools),
         ("decompose.install_parts", _pure.install_parts),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="decompose")
     ctx.api.register("decompose.run", _route_run,
                      "拆解闭环：解析包内容→取工具名单→拼提示→ReAct 拉装→模型→解码→成形入库记录",
                      module="decompose")
-    # 拆解循环专用受限工具：只开放拉文档文本与白名单装 pip 包，不进普通会话工具名单。
+    ctx.api.register("decompose.install", _route_install,
+                     "拆解入库：产物有效才合并四库并产出落盘 effects；无效回空 effects 不落盘",
+                     module="decompose")
+    # 拆解循环专用工具：拉文档文本、白名单装 pip 包、跑命令；不进普通会话工具名单。
     for tool in _pure.tool_defs():
         ctx.tools.register(tool["name"], tool["desc"], tool["params"],
                            _TOOL_FNS[tool["name"]], module="decompose",
@@ -59,7 +61,45 @@ def _tool_pip(ctx, args, session=None):
     return out
 
 
-_TOOL_FNS = {"fetch_url": _tool_fetch, "pip_install": _tool_pip}
+def _tool_shell(ctx, args, session=None):
+    """拆解期跑命令：argv 数组直传 exec.run，不经 shell；超时与打断复用进程通道。"""
+    argv = [str(a) for a in (args or {}).get("argv") or []]
+    if not argv:
+        return {"ok": False, "error": "缺少 argv", "code": "bad_request"}
+    return ctx.api.call("exec.run", {
+        "argv": argv,
+        "cwd": (args or {}).get("cwd") or "",
+        "timeout": (args or {}).get("timeout") or 300}, caller=None)
+
+
+_TOOL_FNS = {"fetch_url": _tool_fetch, "pip_install": _tool_pip,
+             "shell": _tool_shell}
+
+
+def _route_install(ctx, payload):
+    """入库闭环：成形 Skill 单元 → 有效才合并四库并产出 write effects；无效回空 effects。
+
+    读现有库、合并、effects 成形都在能力内；需求只调本能力再 runtime.apply。
+    拆解没成功（缺标识/坏草稿）时不产出任何写盘动作，正式库不被重写。
+    """
+    parts = ctx.api.call("decompose.install_parts", {
+        "draft": payload.get("draft"), "meta": payload.get("meta"),
+        "source": payload.get("source"), "now": payload.get("now")}, caller=None)
+    if not (parts or {}).get("skill"):
+        return {"ok": False, "effects": [],
+                "error": (parts or {}).get("error") or "拆解产物无效，不落盘"}
+
+    def _read(module, path):
+        row = ctx.api.call("store.read", {"module": module, "path": path}, caller=None)
+        return row.get("value") or {}
+
+    eff = _pure.install_effects({
+        "parts": parts,
+        "roles": _read("agent/library", "roles.yaml"),
+        "flows": _read("agent/library", "flows.yaml"),
+        "tools": _read("agent_common/tools", "tools.yaml"),
+        "skills": _read("agent/library", "skills.yaml")})
+    return {"ok": True, "parts": parts, "effects": eff.get("effects") or []}
 
 
 

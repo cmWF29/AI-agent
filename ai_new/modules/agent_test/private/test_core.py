@@ -1045,9 +1045,9 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(decompose_pure.safe_pkg("pptx; rm -rf /")["ok"])
         self.assertFalse(decompose_pure.safe_pkg("foo/bar")["ok"])
         self.assertFalse(decompose_pure.safe_pkg("")["ok"])
-        # 工具定义只含两个受限动作
+        # 工具定义：拉文档、装 pip、跑命令三个拆解期动作
         names = [t["name"] for t in decompose_pure.tool_defs()]
-        self.assertEqual(names, ["fetch_url", "pip_install"])
+        self.assertEqual(names, ["fetch_url", "pip_install", "shell"])
 
     def test_decompose_run_reacts_with_restricted_tools(self):
         import json
@@ -1072,15 +1072,43 @@ class CoreTest(unittest.TestCase):
                 "skill_md": "---\nname: ppt_x\ndescription: 演示\n---\n正文", "system": ""})
         finally:
             self.ctx.api.substitute("react.run", original)
-        self.assertEqual(captured["tools"], ["fetch_url", "pip_install"])
+        self.assertEqual(captured["tools"], ["fetch_url", "pip_install", "shell"])
         self.assertEqual(r["draft"]["id"], "ppt_x")
         self.assertEqual([t["name"] for t in r["draft"]["tools"]], ["ppt_render"])
-        # 受限工具已注册但不进普通会话工具名单
-        self.assertTrue(self.ctx.tools.has("fetch_url"))
-        self.assertTrue(self.ctx.tools.has("pip_install"))
+        # 拆解期工具已注册但不进普通会话工具名单
+        for tn in ("fetch_url", "pip_install", "shell"):
+            self.assertTrue(self.ctx.tools.has(tn))
         listed = [t["name"] for t in self.ctx.tools.list_tools()]
-        self.assertNotIn("fetch_url", listed)
-        self.assertNotIn("pip_install", listed)
+        for tn in ("fetch_url", "pip_install", "shell"):
+            self.assertNotIn(tn, listed)
+
+    def test_decompose_install_effects_only_on_valid_parts(self):
+        draft = {"id": "ppt_x",
+                 "role": {"cn": "演示师", "must_dos": ["出稿"], "forbidden": [],
+                          "tools": []},
+                 "flow": {"checks": [], "nodes": [], "edges": []},
+                 "tools": [{"name": "ppt_render", "desc": "渲染", "params": [],
+                            "deps": {"pip": ["python-pptx"]}}]}
+        parts = decompose_pure.install_parts(
+            {"draft": draft, "meta": {"id": "ppt_x", "doc": "演示"}, "now": "t1"})
+        eff = decompose_pure.install_effects(
+            {"parts": parts, "roles": {}, "flows": {}, "tools": {}, "skills": {}})
+        self.assertTrue(eff["ok"])
+        paths = [e["path"] for e in eff["effects"]]
+        self.assertIn("roles.yaml", paths)
+        self.assertIn("tools.yaml", paths)
+        self.assertIn("skills.yaml", paths)
+        self.assertNotIn("flows.yaml", paths, "流程拆不出不写 flows.yaml")
+        # 无效产物（缺 skill）→ 空 effects，不落盘
+        bad = decompose_pure.install_effects({"parts": {"role": {}}})
+        self.assertFalse(bad["ok"])
+        self.assertEqual(bad["effects"], [])
+
+    def test_decompose_install_route_skips_write_on_invalid(self):
+        r = self.ctx.api.call("decompose.install",
+                              {"draft": None, "meta": {}, "source": "", "now": "t"})
+        self.assertFalse(r["ok"])
+        self.assertEqual(r["effects"], [])
 
         # skills_listp：关联岗位中文名、流程在库与否、工具名、启停文本
         skills = {"s1": {"id": "s1", "cn": "PPT师", "status": "enabled", "role": "r1",

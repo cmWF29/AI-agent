@@ -204,8 +204,13 @@ capabilities:
     - library.disabled_skills
     - tools.list
     - decompose.promptize
+    - react.run
     - codec.json_decode
     - decompose.parse
+  decompose.install:
+    calls:
+    - decompose.install_parts
+    - store.read
   tools.list:
     calls:
     - host.which

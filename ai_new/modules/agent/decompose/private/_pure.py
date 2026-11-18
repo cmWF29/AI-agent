@@ -119,6 +119,15 @@ def tool_defs():
          "params": [{"name": "pkg", "type": "string",
                      "desc": "Python 包名，可带版本约束（如 python-pptx==1.0）",
                      "required": True}]},
+        {"name": "shell", "desc": "在运行环境执行一条命令：argv 数组直传、不经 shell；"
+                                  "用于拆解期补装依赖、拉取资源、跑随包脚本。",
+         "params": [{"name": "argv", "type": "list",
+                     "desc": "命令与参数数组，如 [\"python\",\"-m\",\"pip\",\"install\",\"x\"]",
+                     "required": True},
+                    {"name": "cwd", "type": "string", "desc": "工作目录（可选）",
+                     "required": False},
+                    {"name": "timeout", "type": "number", "desc": "超时秒（可选，默认 300）",
+                     "required": False}]},
     ]
 
 
@@ -266,16 +275,6 @@ def parse(p):
 
 # ---- 入库记录映射 ----
 
-def merge_tools(p):
-    """新工具定义并回外部工具登记字典（按 name 映射）；写盘值归拆解模块。"""
-    user = dict(p.get("user") or {})
-    for tool in p.get("tools") or []:
-        name = tool.get("name")
-        if name:
-            user[name] = dict(tool)
-    return {"value": user}
-
-
 def install_parts(p):
     """模型成形的拆解草稿 → 一个 Skill 单元的入库记录：岗位 + 流程 + 工具 + Skill 条目。
 
@@ -330,4 +329,45 @@ def install_parts(p):
                      "created": p.get("now") or "", "updated": p.get("now") or ""}
     return {"skill": skill_record, "role": role_record,
             "flow": flow_record, "tools": tool_records}
+
+
+def install_effects(p):
+    """成形的 Skill 单元 + 现有四库字典 → 落盘 effects；产物无效则不产出任何写盘动作。
+
+    判断归拆解模块：缺 skill 记录说明拆解没成功，直接回空 effects，由需求侧
+    runtime.apply 跳过，正式库不被重写。合并按 id/name 映射，不读盘、不起进程。
+    """
+    parts = p.get("parts") or {}
+    skill = parts.get("skill") or {}
+    if not skill.get("id"):
+        return {"ok": False, "effects": [],
+                "error": parts.get("error") or "拆解产物无效，不落盘"}
+    roles = dict(p.get("roles") or {})
+    flows = dict(p.get("flows") or {})
+    tools = dict(p.get("tools") or {})
+    skills = dict(p.get("skills") or {})
+
+    role = parts.get("role") or {}
+    if role.get("id"):
+        roles[role["id"]] = dict(role)
+    flow = parts.get("flow")
+    if flow and flow.get("id"):
+        flows[flow["id"]] = dict(flow)
+    for tool in parts.get("tools") or []:
+        if isinstance(tool, dict) and tool.get("name"):
+            tools[tool["name"]] = dict(tool)
+    skills[skill["id"]] = dict(skill)
+
+    effects = [
+        {"kind": "write", "module": "agent/library",
+         "path": "roles.yaml", "value": roles},
+        {"kind": "write", "module": "agent_common/tools",
+         "path": "tools.yaml", "value": tools},
+        {"kind": "write", "module": "agent/library",
+         "path": "skills.yaml", "value": skills},
+    ]
+    if flow and flow.get("id"):
+        effects.insert(1, {"kind": "write", "module": "agent/library",
+                           "path": "flows.yaml", "value": flows})
+    return {"ok": True, "effects": effects}
 
