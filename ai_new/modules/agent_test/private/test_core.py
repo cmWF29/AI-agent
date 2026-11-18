@@ -732,6 +732,78 @@ class CoreTest(unittest.TestCase):
         finally:
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 
+    def test_react_stash_tool_output_branches(self):
+        """T1 大输出分级：阈值内全文；落盘成功回路径；无回执/写盘失败兜底全文回填。"""
+        from ai_new.modules.agent_common import react as react_mod
+        stash = react_mod._stash_tool_output
+        session = {"id": "s1", "ticket": "T-1", "project": "p"}
+        big = "x" * 1001
+        orig_save = self.ctx.api.route("artifacts.save")["fn"]
+        try:
+            # 阈值内：不碰盘，全文回填
+            short = stash(self.ctx, session, "c1", "短", 1000)
+            self.assertFalse(short["stashed"])
+            self.assertEqual(short["content"], "短")
+            # 超限 + 落盘成功：回 ticket 层路径与读取提示
+            self.ctx.api.substitute("artifacts.save",
+                                    lambda ctx, p: {"path": "tool/s1/c1.txt", "effects": []})
+            ok = stash(self.ctx, session, "c1", big, 1000)
+            self.assertTrue(ok["stashed"])
+            self.assertIn("tool/s1/c1.txt", ok["content"])
+            # 超限 + 落盘无回执：不给假路径，全文回填
+            self.ctx.api.substitute("artifacts.save",
+                                    lambda ctx, p: {"path": "", "effects": []})
+            no_path = stash(self.ctx, session, "c1", big, 1000)
+            self.assertFalse(no_path["stashed"])
+            self.assertEqual(no_path["content"], big)
+            # 超限 + 有回执但 apply 任一失败：回退全文并标 write_failed
+            self.ctx.api.substitute("artifacts.save",
+                                    lambda ctx, p: {"path": "tool/s1/c1.txt",
+                                                    "effects": [{"kind": "write"}]})
+            orig_apply = self.ctx.runtime.apply
+            self.ctx.runtime.apply = lambda req: {"applied": [{"ok": False, "code": "apply_error"}]}
+            try:
+                failed = stash(self.ctx, session, "c1", big, 1000)
+            finally:
+                self.ctx.runtime.apply = orig_apply
+            self.assertFalse(failed["stashed"])
+            self.assertEqual(failed["content"], big)
+            self.assertEqual(failed.get("fallback"), "write_failed")
+        finally:
+            self.ctx.api.substitute("artifacts.save", orig_save)
+
+    def test_react_non_structured_keeps_old_summary(self):
+        """T2 非结构化收口不清空滚动摘要；旧摘要跨轮保留。"""
+        import json as _json
+        sp = self._run("session-spawn", {"kind": "role", "role": "developer",
+                                        "name": "dev2", "ticket": "T-1"})
+        sid = sp["result"]["id"]
+        self._run("session-send", {"id": sid, "text": "开始"})
+
+        def stub_json(ctx, payload):
+            return {"ok": True, "status": 200, "headers": {},
+                    "items": [{"choices": [{"delta": {"content": _json.dumps(
+                        {"reply": "第一轮", "summary": "旧摘要"},
+                         ensure_ascii=False)}, "finish_reason": "stop"}]}]}
+
+        self.ctx.api.substitute("net.request_stream", stub_json)
+        self._run("session-run", {"id": sid})
+        self._run("session-wait", {"id": sid})
+
+        def stub_plain(ctx, payload):
+            return {"ok": True, "status": 200, "headers": {},
+                    "items": [{"choices": [{"delta": {"content": "一段普通答复，没有 JSON 壳"},
+                                          "finish_reason": "stop"}]}]}
+
+        self.ctx.api.substitute("net.request_stream", stub_plain)
+        self._run("session-send", {"id": sid, "text": "再来"})
+        self._run("session-run", {"id": sid})
+        self._run("session-wait", {"id": sid})
+        rec = self.ctx.api.call("store.read", {"module": "agent/sessions",
+                                "path": "sessions/%s.yaml" % sid}).get("value") or {}
+        self.assertEqual(rec.get("summary"), "旧摘要")
+        self.ctx.api.substitute("net.request_stream", self.fake_net)
+
     def test_ops_overview_logs_and_library(self):
         o = self._run("ops-overview")["result"]
         self.assertIn("sessions", o)
@@ -1101,6 +1173,77 @@ class CoreTest(unittest.TestCase):
             "protocol": "收口返回 JSON"})
         self.assertIn("收口返回 JSON", proto["messages"][0]["content"])
         self.assertEqual(proto["messages"][1]["content"], "开工")
+
+        # T3 第二轮视图带上一轮摘要；换一轮摘要即被新值覆盖
+        view3 = react_pure.context_view({"messages": [
+            {"role": "system", "content": "人设"}, {"role": "user", "content": "本轮"}],
+            "summary": "上一轮结论"})
+        self.assertEqual([m["role"] for m in view3["messages"]], ["system", "assistant", "user"])
+        self.assertEqual(view3["messages"][1]["kind"], "summary")
+        self.assertEqual(view3["messages"][1]["content"], "上一轮结论")
+        view3b = react_pure.context_view({"messages": [
+            {"role": "system", "content": "人设"}, {"role": "user", "content": "本轮"}],
+            "summary": "更新后的结论"})
+        self.assertEqual(view3b["messages"][1]["content"], "更新后的结论")
+
+        # T4 parse_final 字段定型：reply=None 置空、非字符串转文本、obj 为 list 回退、单键可解析
+        f4 = react_pure.parse_final({"obj": {"reply": None, "summary": 123}, "content": "x"})
+        self.assertTrue(f4["structured"])
+        self.assertEqual(f4["reply"], "")
+        self.assertEqual(f4["summary"], "123")
+        f4list = react_pure.parse_final({"obj": ["a"], "content": "普通正文"})
+        self.assertFalse(f4list["structured"])
+        self.assertEqual(f4list["reply"], "普通正文")
+        self.assertEqual(f4list["summary"], "")
+        f4one = react_pure.parse_final({"obj": {"reply": "只答复"}, "content": "x"})
+        self.assertTrue(f4one["structured"])
+        self.assertEqual(f4one["reply"], "只答复")
+        self.assertEqual(f4one["summary"], "")
+
+        # T5 strip_fence：无围栏原样、单行围栏、缺尾围栏；纯文本不动
+        self.assertEqual(react_pure.strip_fence({"text": "裸文本"})["text"], "裸文本")
+        self.assertEqual(react_pure.strip_fence(
+            {"text": '```json\n{"a": 1}\n```'})["text"], '{"a": 1}')
+        self.assertEqual(react_pure.strip_fence(
+            {"text": '```json\n{"a": 1}'})["text"], '{"a": 1}')
+        self.assertEqual(react_pure.strip_fence(
+            {"text": '```json {"a": 1} ```'})["text"], '{"a": 1}')
+
+        # T6 attach_protocol：无 system 不改消息、空协议原样、多 system 只改首条
+        no_sys = react_pure.attach_protocol(
+            {"messages": [{"role": "user", "content": "开工"}], "protocol": "收口 JSON"})
+        self.assertEqual(no_sys["messages"][0]["content"], "开工")
+        empty_proto = react_pure.attach_protocol(
+            {"messages": [{"role": "system", "content": "人设"}], "protocol": "  "})
+        self.assertEqual(empty_proto["messages"][0]["content"], "人设")
+        multi = react_pure.attach_protocol({
+            "messages": [{"role": "system", "content": "首条"},
+                         {"role": "system", "content": "次条"}],
+            "protocol": "收口 JSON"})
+        self.assertIn("收口 JSON", multi["messages"][0]["content"])
+        self.assertEqual(multi["messages"][1]["content"], "次条")
+
+        # T7 classify_tool：size 恰等于阈值不判 large，超 1 字符才落盘
+        self.assertFalse(react_pure.classify_tool(
+            {"content": "x" * 1000, "threshold": 1000})["large"])
+        self.assertTrue(react_pure.classify_tool(
+            {"content": "x" * 1001, "threshold": 1000})["large"])
+        self.assertEqual(react_pure.classify_tool(
+            {"content": "x" * 1001, "threshold": 1000})["size"], 1001)
+
+        # P2-8 启动回收：超阈值的 running 复位 idle 并标 interrupted；新近 running 与 idle 不动
+        now = 1000000
+        rows = [
+            {"path": "a.yaml", "rec": {"status": "running", "updated": now - 600}},
+            {"path": "b.yaml", "rec": {"status": "running", "updated": now - 60}},
+            {"path": "c.yaml", "rec": {"status": "idle", "updated": now - 600}},
+        ]
+        recv = sess_run.recover_stale({"rows": rows, "now": now, "limit_seconds": 300})
+        self.assertEqual([i["path"] for i in recv["items"]], ["a.yaml"])
+        a = recv["items"][0]["rec"]
+        self.assertEqual(a["status"], "idle")
+        self.assertEqual(a["meta"]["last_error"]["code"], "interrupted_on_boot")
+        self.assertEqual(a["updated"], now)
 
     def test_skill_unit_pure_functions(self):
         # install_parts：流程拆不出 → flow=null、skill.flow 留空；岗位/工具带同一 skill 归属

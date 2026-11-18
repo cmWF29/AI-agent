@@ -32,6 +32,7 @@ sessions:
   role_scenario: prompts/roles/{role}.md
   context:
     tool_output_chars: 1000   # 工具输出正文超此字符数即落盘 ticket 层，上下文只回路径
+    recover_after_seconds: 300  # 启动时卡在 running 超过该秒数的会话复位 idle
 tickets:
   max_roles: 8
   pm_max_steps: 0

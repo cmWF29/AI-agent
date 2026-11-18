@@ -203,6 +203,7 @@ capabilities:
     - artifacts.save
     - react.parse_final
     - react.strip_fence
+    - react.extract_json
     - react.attach_protocol
     - store.read_text
   decompose.run:

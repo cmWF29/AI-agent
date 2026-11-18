@@ -507,9 +507,9 @@ def _route_read(payload):
 def _route_write(payload):
     import yaml
     path = _p(payload.get("module"), payload.get("path"))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(payload.get("value"), allow_unicode=True,
-                    sort_keys=False, default_flow_style=False), encoding="utf-8")
+    body = yaml.safe_dump(payload.get("value"), allow_unicode=True,
+                    sort_keys=False, default_flow_style=False)
+    _files.write_text_atomic(path, body)
     return {"written": True, "path": str(path)}
 
 def _route_remove(payload):
@@ -574,8 +574,7 @@ def _route_read_text(payload):
 
 def _route_write_text(payload):
     path = _p(payload.get("module"), payload.get("path"))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(str(payload.get("text") or ""), encoding="utf-8")
+    _files.write_text_atomic(path, str(payload.get("text") or ""))
     return {"written": True, "path": str(path)}
 
 
@@ -610,12 +609,11 @@ def _route_write_bytes(payload):
     """二进制写入：给 hex 就按 hex，给 value 就按 base64。"""
     import base64
     path = _p(payload.get("module"), payload.get("path"))
-    path.parent.mkdir(parents=True, exist_ok=True)
     if payload.get("hex") is not None:
         raw = bytes.fromhex(str(payload.get("hex") or ""))
     else:
         raw = base64.b64decode(str(payload.get("value") or ""))
-    path.write_bytes(raw)
+    _files.write_bytes_atomic(path, raw)
     return {"written": True, "path": str(path), "bytes": len(raw)}
 
 

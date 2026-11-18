@@ -28,3 +28,6 @@ routes:
   runtime.stream_events:
     caller: http-sse
     reason: SSE 长流门面，订阅运行期草稿槽变化，事件驱动推草稿快照；内存面不落盘，替代高频轮询。
+  sessions.recover_stale:
+    caller: boot-start
+    reason: 模块 start 钩子在装配期扫描残留 running 会话并复位；启动期平台回收，不走需求 do 树。

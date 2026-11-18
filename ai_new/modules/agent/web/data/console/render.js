@@ -163,9 +163,12 @@ function chatHtml(sec, ctx) {
   const headTitle = sec.heading ? `<div class="chat-title">${esc(fill(sec.heading, ctx))}</div>` : "";
   const draft = (ctx.data && ctx.data.draft) || {};
   const draftHtml = draftBubbleHtml(draft, roles);
+  const summary = (src.summary || "").trim();
+  const summaryHtml = summary ? `<details class="chat-summary"><summary>上下文摘要</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
   const body = (msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
     ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip st-${statusKind(r.status)}"><i class="dot"></i>${esc(r.display || r.role)} · ${statusText(r.status)}</span>`).join("")}</div></div>` : ""}
+    ${summaryHtml}
     <div class="chat">${body}</div>
   </section>`;
 }

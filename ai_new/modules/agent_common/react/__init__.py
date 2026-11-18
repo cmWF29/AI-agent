@@ -16,6 +16,7 @@ def setup(ctx):
         ("react.classify_tool", _pure.classify_tool),
         ("react.parse_final", _pure.parse_final),
         ("react.strip_fence", _pure.strip_fence),
+        ("react.extract_json", _pure.extract_json),
         ("react.attach_protocol", _pure.attach_protocol),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="react")
@@ -29,14 +30,16 @@ def _tool_threshold(ctx, payload):
     return int(payload.get("tool_output_chars") or ctxv.get("tool_output_chars") or 1000)
 
 
-def _stash_tool_output(ctx, session, call_id, text, threshold):
+def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
     """工具输出分级：超限先落盘 ticket 层，回路径与读取提示；落盘失败兜底全文回填。"""
     cls = ctx.api.call("react.classify_tool",
                        {"content": text, "threshold": threshold}, caller=None)
     if not cls.get("large"):
         return {"content": text, "stashed": False}
     sid = (session or {}).get("id") or "anon"
-    path = "tool/%s/%s.txt" % (sid, call_id or "out")
+    # call_id 缺失时用步号+步内序号兜底，避免同会话多次超限输出都写到 out.txt 互相覆盖。
+    fid = call_id or ("out-%s" % (stamp or "x"))
+    path = "tool/%s/%s.txt" % (sid, fid)
     saved = ctx.api.call("artifacts.save", {
         "layer": "ticket", "ticket": (session or {}).get("ticket"),
         "project": (session or {}).get("project"),
@@ -44,10 +47,17 @@ def _stash_tool_output(ctx, session, call_id, text, threshold):
     if not isinstance(saved, dict) or not saved.get("path"):
         return {"content": text, "stashed": False}
     effects = saved.get("effects") or []
+    applied_ok = True
     if effects:
-        ctx.runtime.apply({"effect": effects})
+        res = ctx.runtime.apply({"effect": effects}) or {}
+        applied = res.get("applied") or []
+        # 单条写盘失败会被 apply 记成 {ok:false}；任一失败就不能给模型假路径，回退全文回填。
+        applied_ok = not any(isinstance(a, dict) and a.get("ok") is False for a in applied)
+    if not applied_ok:
+        return {"content": text, "stashed": False, "fallback": "write_failed"}
     note = ("输出过大（%d 字符）已落盘（ticket 层）：%s。需要时用 artifact_read 传 layer=ticket、"
-            "该 path 读取，此处不回填正文。" % (cls.get("size"), path))
+            "该 path 读取；若后续还要引用这份内容，请把该路径记入本轮 summary。"
+            % (cls.get("size"), path))
     return {"content": note, "stashed": True, "path": saved.get("path"),
             "rel_path": path, "size": cls.get("size")}
 
@@ -61,13 +71,16 @@ def _route_run(ctx, payload):
     session = payload.get("session") or {}
     archive = list(payload.get("messages") or [])
     summary = session.get("summary") or ""
+    mode = payload.get("mode")
     view = ctx.api.call("react.context_view",
                         {"messages": archive, "summary": summary}, caller=None)
-    proto_row = ctx.api.call("store.read_text", {
-        "module": "agent_common/react", "path": "prompts/final-format.md"}, caller=None)
-    view = ctx.api.call("react.attach_protocol", {
-        "messages": view.get("messages") or [],
-        "protocol": proto_row.get("value") or ""}, caller=None)
+    # 结构化收口协议只给 api 后端；agent 外部进程走纯文本，不强加 JSON 壳。
+    if mode != "agent":
+        proto_row = ctx.api.call("store.read_text", {
+            "module": "agent_common/react", "path": "prompts/final-format.md"}, caller=None)
+        view = ctx.api.call("react.attach_protocol", {
+            "messages": view.get("messages") or [],
+            "protocol": proto_row.get("value") or ""}, caller=None)
     messages = list(view.get("messages") or [])
     new_msgs = []
     new_summary = summary
@@ -105,11 +118,13 @@ def _route_run(ctx, payload):
         calls = answer.get("tool_calls")
         parsed = {"reply": answer.get("content"), "summary": ""}
         if not calls:
-            # 收口步：剥围栏 → codec 解码 → 拆出答复与摘要；失败则整段作答复，摘要回退旧值。
+            # 收口步：剥围栏 → 截取 JSON 区间 → codec 解码 → 拆出答复与摘要；失败则整段作答复，摘要回退旧值。
             stripped = ctx.api.call("react.strip_fence",
                                     {"text": answer.get("content")}, caller=None)
+            extracted = ctx.api.call("react.extract_json",
+                                     {"text": stripped.get("text")}, caller=None)
             raw = ctx.api.call("codec.json_decode",
-                               {"text": stripped.get("text")}, caller=None)
+                               {"text": extracted.get("text")}, caller=None)
             parsed = ctx.api.call("react.parse_final", {
                 "obj": raw.get("value"), "content": answer.get("content")}, caller=None)
         amsg = ctx.api.call("react.assistant", {
@@ -125,7 +140,9 @@ def _route_run(ctx, payload):
                 new_summary = parsed["summary"]
             done = True
             continue
+        tool_idx = 0
         for call in amsg.get("tool_calls") or []:
+            tool_idx += 1
             fn = (call or {}).get("function") or {}
             raw = ctx.api.call("codec.json_decode", {"text": fn.get("arguments")}, caller=None)
             targs = ctx.api.call("react.args", {"value": raw.get("value")}, caller=None)
@@ -139,8 +156,9 @@ def _route_run(ctx, payload):
                 # 工具报错要作为观察结果回给模型，让它自己纠错，不能掀翻整轮
                 out = {"ok": False, "error": exc.message, "code": exc.code}
             enc = ctx.api.call("codec.json_encode", {"value": out}, caller=None)
+            stamp = "%d-%d" % (steps, tool_idx)
             stash = _stash_tool_output(ctx, session, (call or {}).get("id"),
-                                       enc.get("text") or "", threshold)
+                                       enc.get("text") or "", threshold, stamp)
             tmsg = ctx.api.call("react.toolmsg", {
                 "id": (call or {}).get("id"), "name": fn.get("name"),
                 "content": stash["content"]}, caller=None)

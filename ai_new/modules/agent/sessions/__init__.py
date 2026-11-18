@@ -26,6 +26,7 @@ def setup(ctx):
         ("sessions.reply", _run_pure.reply),
         ("sessions.statsp", _run_pure.statsp),
         ("sessions.flow_plan", _run_pure.flow_plan),
+        ("sessions.recover_stale", _run_pure.recover_stale),
     ]
     for name, fn in pairs:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="sessions")
@@ -36,6 +37,31 @@ def setup(ctx):
     ctx.api.register("sessions.by_ticket", _route_by_ticket,
                      "按工单归集全部会话视图：PM 与角色会话同一群聊流", module="sessions")
     return True
+
+
+def start(ctx):
+    """启动回收：把上次进程崩溃前卡在 running、超时未动的会话复位 idle。失败不阻断启动。"""
+    try:
+        listed = ctx.api.call("store.glob", {
+            "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+        rows = []
+        for rel in listed.get("items") or []:
+            row = ctx.api.call("store.read", {
+                "module": "agent/sessions", "path": rel}, caller=None)
+            if row.get("value"):
+                rows.append({"path": rel, "rec": row["value"]})
+        now = ctx.api.call("clock.now", {}, caller=None)
+        cfgv = dict((getattr(ctx, "cfg", None) or {}).get("sessions") or {})
+        limit = (cfgv.get("context") or {}).get("recover_after_seconds") or 300
+        recovered = ctx.api.call("sessions.recover_stale", {
+            "rows": rows, "now": now.get("ts"), "limit_seconds": limit}, caller=None)
+        effects = [{"kind": "write", "module": "agent/sessions",
+                    "path": i["path"], "value": i["rec"]}
+                   for i in recovered.get("items") or []]
+        if effects:
+            ctx.runtime.apply({"effect": effects})
+    except Exception:  # noqa: BLE001 —— 启动回收失败不得掀翻服务启动
+        pass
 
 
 def _route_by_ticket(ctx, payload):

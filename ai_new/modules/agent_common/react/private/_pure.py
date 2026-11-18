@@ -94,7 +94,7 @@ def context_view(p):
         view.append(smsg)
     if last_user:
         view.append(last_user)
-    return {"messages": view, "system": system, "last_user": last_user}
+    return {"messages": view}
 
 
 def classify_tool(p):
@@ -109,10 +109,35 @@ def strip_fence(p):
     """剥掉模型常见的 ```json 代码围栏，留出可解析正文；纯字符串处理，不解析 JSON。"""
     t = (p.get("text") or "").strip()
     if t.startswith("```"):
-        t = t.split("\n", 1)[-1] if "\n" in t else t[3:]
-        if t.rstrip().endswith("```"):
-            t = t.rstrip()[:-3]
+        body = t[3:].strip()
+        if body.endswith("```"):
+            body = body[:-3].strip()
+        # 首行可能是语言标签（json/yaml…）：多行按行切，单行按首个空白切。
+        if "\n" in body:
+            body = body.split("\n", 1)[-1]
+        else:
+            parts = body.split(None, 1)
+            body = parts[1] if len(parts) == 2 else (parts[0] if parts else "")
+        t = body.strip()
     return {"text": t.strip()}
+
+
+def extract_json(p):
+    """从夹带前后解释文字的正文里截取首个 { 到末个 } 的 JSON 区间；无括号则原样返回。纯字符串处理。"""
+    t = (p.get("text") or "").strip()
+    i, j = t.find("{"), t.rfind("}")
+    if i != -1 and j > i:
+        return {"text": t[i:j + 1]}
+    return {"text": t}
+
+
+def _textify(value):
+    """收口字段定型为字符串：None 为空，其余类型转文本；不做结构化序列化（归 codec）。"""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    return str(value)
 
 
 def parse_final(p):
@@ -124,11 +149,9 @@ def parse_final(p):
     content = p.get("content") or ""
     obj = p.get("obj")
     if isinstance(obj, dict) and ("reply" in obj or "summary" in obj):
-        reply = obj.get("reply")
-        summary = obj.get("summary") or ""
         return {"structured": True,
-                "reply": "" if reply is None else str(reply),
-                "summary": str(summary)}
+                "reply": _textify(obj.get("reply")),
+                "summary": _textify(obj.get("summary"))}
     return {"structured": False, "reply": content, "summary": ""}
 
 

@@ -139,18 +139,21 @@ class Runtime:
 
     def _one(self, effect):
         kind = effect.get("kind")
-        if kind == "demand":
-            return self.ctx.api.call("demand_engine.run", {
-                "id": effect.get("id"), "input": effect.get("input") or {}}, caller=None)
-        if kind == "dispatch":
-            return self.dispatch({"demand": effect.get("id"),
-                                   "key": effect.get("key"),
-                                   "input": effect.get("input") or {}})
-        route = STORE_ROUTES.get(kind)
-        if not route:
-            return {"ok": False, "code": "unknown_effect", "kind": kind}
-        body = {k: v for k, v in effect.items() if k != "kind"}
-        return self.ctx.api.call(route, body, caller=None)
+        try:
+            if kind == "demand":
+                return self.ctx.api.call("demand_engine.run", {
+                    "id": effect.get("id"), "input": effect.get("input") or {}}, caller=None)
+            if kind == "dispatch":
+                return self.dispatch({"demand": effect.get("id"),
+                                       "key": effect.get("key"),
+                                       "input": effect.get("input") or {}})
+            route = STORE_ROUTES.get(kind)
+            if not route:
+                return {"ok": False, "code": "unknown_effect", "kind": kind}
+            body = {k: v for k, v in effect.items() if k != "kind"}
+            return self.ctx.api.call(route, body, caller=None)
+        except Exception as exc:  # noqa: BLE001 —— 单条 effect 失败不掀翻整串，记成失败结果交上层兜底
+            return {"ok": False, "code": "apply_error", "kind": kind, "error": str(exc)}
 
     def dispatch(self, payload):
         """后台跑一轮。已在跑就置打断位，等它自己收尾（已产出的会落盘），再开新一轮。"""

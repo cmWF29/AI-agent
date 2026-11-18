@@ -27,6 +27,21 @@ def write_text_atomic(path, text):
     return p
 
 
+def write_bytes_atomic(path, data):
+    """二进制原子写：临时文件 + 原子改名，掉电不留半个文件。"""
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(p.parent), suffix='.tmp')
+    try:
+        with os.fdopen(fd, 'wb') as f:
+            f.write(data)
+        os.replace(tmp, p)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    return p
+
+
 def read_text(path):
     return Path(path).read_text(encoding="utf-8")
 
