@@ -8,6 +8,13 @@ from __future__ import annotations
 from .private import _pure
 
 
+def _msg_tpl(ctx):
+    """消息模板表：auth 模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent/auth", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def setup(ctx):
     md = ctx.storage.own(__file__)
 
@@ -74,7 +81,7 @@ def _route_login(ctx, payload):
         "expect_hash": cfgv.get("password_hash")}, caller=None)
     if not ok.get("ok"):
         return {"ok": False, "code": "bad_credentials", "status": 401,
-                "message": "用户名或密码错误"}
+                "message": _msg_tpl(ctx).get("login_failed") or ""}
     now = ctx.api.call("clock.now", {}, caller=None)
     nonce = ctx.api.call("codec.nonce", {"length": 32}, caller=None)
     rec = ctx.api.call("auth.build_session", {
@@ -100,7 +107,8 @@ def _route_change_password(ctx, payload):
         "old_digest": _digest(payload.get("old_password")),
         "new_digest": _digest(payload.get("new_password")),
         "confirm_digest": _digest(payload.get("confirm")),
-        "expect_hash": cfgv.get("password_hash")}, caller=None)
+        "expect_hash": cfgv.get("password_hash"),
+        "tpl": _msg_tpl(ctx)}, caller=None)
     if not check.get("ok"):
         return {"ok": False, "code": check.get("code"), "status": check.get("status") or 400,
                 "message": check.get("error")}

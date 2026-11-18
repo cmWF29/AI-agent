@@ -1,0 +1,5 @@
+# 鉴权模块面向用户文案模板。键对齐纯函数返回的错误 code；纯函数只做字段定型，文案由需求/能力层读取传入。
+login_failed: '用户名或密码错误'
+bad_old_password: '旧密码不正确'
+weak_password: '新密码不能为空'
+confirm_mismatch: '两次输入的新密码不一致'

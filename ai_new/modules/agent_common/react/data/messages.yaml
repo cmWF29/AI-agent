@@ -1,0 +1,2 @@
+# ReAct 模块面向模型/用户的说明文案模板。纯文案数据，填参归能力层。
+stash_note: '输出过大（{size} 字符）已落盘（ticket 层）：{path}。需要时用 artifact_read 传 layer=ticket、该 path 读取；若后续还要引用这份内容，请把该路径记入本轮 summary。'

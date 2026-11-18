@@ -4,6 +4,13 @@ from __future__ import annotations
 from .private import _pure
 
 
+def _msg_tpl(ctx):
+    """消息模板表：react 模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent_common/react", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def setup(ctx):
     for name, fn in [
         ("react.schemas", _pure.schemas),
@@ -56,9 +63,8 @@ def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
         applied_ok = not any(isinstance(a, dict) and a.get("ok") is False for a in applied)
     if not applied_ok:
         return {"content": text, "stashed": False, "fallback": "write_failed"}
-    note = ("输出过大（%d 字符）已落盘（ticket 层）：%s。需要时用 artifact_read 传 layer=ticket、"
-            "该 path 读取；若后续还要引用这份内容，请把该路径记入本轮 summary。"
-            % (cls.get("size"), path))
+    tpl = _msg_tpl(ctx).get("stash_note") or ""
+    note = tpl.format(size=cls.get("size"), path=path) if tpl else ""
     return {"content": note, "stashed": True, "path": saved.get("path"),
             "rel_path": path, "size": cls.get("size")}
 

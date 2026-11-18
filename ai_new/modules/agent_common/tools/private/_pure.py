@@ -209,10 +209,11 @@ def external_pending(p):
     """外部工具执行占位：后端未接入前回显登记与依赖提示；不碰主机、不执行。"""
     rec = p.get("rec") or {}
     name = p.get("tool") or ""
+    tpl = p.get("tpl") or ""
     return {"ok": False, "code": "external_pending", "tool": name,
             "desc": rec.get("desc") or "", "args": p.get("args") or {},
             "deps": _deps_text(rec.get("deps") or {}),
-            "message": "外部工具「%s」后端尚未接入，参数与依赖已登记；接入后在此执行。" % (name or "?")}
+            "message": tpl.format(name=name) if tpl else ""}
 
 
 def listing(p):

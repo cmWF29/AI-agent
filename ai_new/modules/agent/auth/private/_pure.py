@@ -19,15 +19,16 @@ def change_password(p):
     new_digest = str(p.get("new_digest") or "")
     confirm_digest = str(p.get("confirm_digest") or "")
     expect_hash = str(p.get("expect_hash") or "")
+    tpl = p.get("tpl") or {}
     if expect_hash and old_digest != expect_hash:
         return {"ok": False, "code": "bad_old_password", "status": 400,
-                "error": "旧密码不正确"}
+                "error": tpl.get("bad_old_password") or ""}
     if not new_digest:
         return {"ok": False, "code": "weak_password", "status": 400,
-                "error": "新密码不能为空"}
+                "error": tpl.get("weak_password") or ""}
     if new_digest != confirm_digest:
         return {"ok": False, "code": "confirm_mismatch", "status": 400,
-                "error": "两次输入的新密码不一致"}
+                "error": tpl.get("confirm_mismatch") or ""}
     return {"ok": True}
 
 

@@ -7,6 +7,13 @@ from .private import _registry, _pure
 EXTERNAL_DEMAND = "tool-external-run"
 
 
+def _msg_tpl(ctx):
+    """消息模板表：工具模块自己的 data，读不到就退化成空。"""
+    row = ctx.api.call("store.read", {
+        "module": "agent_common/tools", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
 def setup(ctx):
     """装配入口：ctx.tools 指向注册表。"""
     ctx.tools = _registry.ToolRegistry(ctx)
@@ -122,16 +129,19 @@ def _route_execute(ctx, payload):
     session = payload.get("session")
     external, _, disabled_names = _project_external(ctx, (session or {}).get("project"))
     if name in set(disabled_names):
-        raise ctx.ApiError("工具已在本项目禁用: %s" % name, code="no_tool", status=404)
+        tpl = _msg_tpl(ctx).get("tool_disabled") or ""
+        raise ctx.ApiError(tpl.format(name=name) if tpl else "", code="no_tool", status=404)
     if ctx.tools.has(name):
         return ctx.tools.execute(name, payload.get("args"), session=session,
                                  defer=bool(payload.get("defer")))
     rec = external.get(name)
     if not isinstance(rec, dict):
-        raise ctx.ApiError("工具不存在: %s" % name, code="no_tool", status=404)
+        tpl = _msg_tpl(ctx).get("tool_missing") or ""
+        raise ctx.ApiError(tpl.format(name=name) if tpl else "", code="no_tool", status=404)
     args = dict(payload.get("args") or {})
     args.pop("tool", None)
-    return _pure.external_pending({"tool": name, "args": args, "rec": rec})
+    return _pure.external_pending({"tool": name, "args": args, "rec": rec,
+                                   "tpl": _msg_tpl(ctx).get("external_pending")})
 
 
 def _collect_snapshot(ctx, tools):
@@ -166,7 +176,8 @@ def _route_external_run(ctx, payload):
     row = ctx.api.call("store.read", {
         "module": "agent_common/tools", "path": "tools.yaml"}, caller=None)
     rec = (row.get("value") or {}).get(name) or {}
-    return _pure.external_pending({"tool": name, "args": args, "rec": rec})
+    return _pure.external_pending({"tool": name, "args": args, "rec": rec,
+                                    "tpl": _msg_tpl(ctx).get("external_pending")})
 
 
 def _route_list(ctx, payload):
