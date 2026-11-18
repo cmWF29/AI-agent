@@ -71,7 +71,12 @@ def _route_save(ctx, payload):
 
 
 def _as_handler(fn):
-    return lambda ctx, payload: fn(payload)
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        if "tpl" not in payload:
+            payload["tpl"] = _msg_tpl(ctx)
+        return fn(payload)
+    return handler
 
 
 def _msg_tpl(ctx):

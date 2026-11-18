@@ -121,7 +121,10 @@ def index(p):
     """
     items = []
     counts = {"public": 0, "project": 0, "ticket": 0}
-    layer_label = {"public": "公共", "project": "项目", "ticket": "工单"}
+    tpl = p.get("tpl") or {}
+    layer_label = {"public": tpl.get("label_public") or "",
+                   "project": tpl.get("label_project") or "",
+                   "ticket": tpl.get("label_ticket") or ""}
     ticket_project, ticket_title, ticket_raw = {}, {}, {}
     for t in p.get("tickets") or []:
         if not t:
@@ -168,19 +171,21 @@ def index(p):
 
     tree = []
     if public_docs:
-        tree.append({"type": "public", "label": "公共", "badge": "公共", "children": public_docs})
+        tree.append({"type": "public", "label": layer_label["public"],
+                     "badge": layer_label["public"], "children": public_docs})
     for pid in sorted(project_groups):
         grp = project_groups[pid]
         children = list(grp["docs"])
         for key in sorted(grp["tickets"]):
             children.append({"type": "ticket", "label": ticket_raw.get(key, key),
                              "sub": ticket_title.get(key, ""),
-                             "badge": "工单", "children": grp["tickets"][key]})
-        tree.append({"type": "project", "label": pid, "badge": "项目", "children": children})
+                             "badge": layer_label["ticket"], "children": grp["tickets"][key]})
+        tree.append({"type": "project", "label": pid, "badge": layer_label["project"],
+                     "children": children})
     for key in sorted(orphan_tickets):
         tree.append({"type": "ticket", "label": ticket_raw.get(key, key),
                      "sub": ticket_title.get(key, ""),
-                     "badge": "工单", "children": orphan_tickets[key]})
+                     "badge": layer_label["ticket"], "children": orphan_tickets[key]})
     return {"items": items, "counts": counts, "tree": tree}
 
 
