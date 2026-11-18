@@ -31,6 +31,3 @@ routes:
   sessions.recover_stale:
     caller: boot-start
     reason: 模块 start 钩子在装配期扫描残留 running 会话并复位；启动期平台回收，不走需求 do 树。
-  sessions.resume_plan:
-    caller: boot-start
-    reason: 模块 start 钩子在装配期把残留 running 会话分类为续跑/复位；启动期平台回收，不走需求 do 树。

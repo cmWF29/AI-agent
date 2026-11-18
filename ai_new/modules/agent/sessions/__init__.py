@@ -37,42 +37,51 @@ def setup(ctx):
                      "一轮收尾落盘后触发 finished 钩子，后续业务由需求编排", module="sessions")
     ctx.api.register("sessions.by_ticket", _route_by_ticket,
                      "按工单归集全部会话视图：PM 与角色会话同一群聊流", module="sessions")
+    ctx.api.register("sessions.resume", _route_resume,
+                     "启动续跑：遍历残留 running → 分类成形落盘/派发效果清单", module="sessions")
     return True
 
 
 def start(ctx):
-    """启动回收：崩溃前卡在 running 的会话按开关与上限分类——可续跑的落盘标记后重新驱动，
-    其余复位 idle 等待后续人工/停滞扫描拉起。失败不阻断启动。"""
+    """启动期只触发续跑需求；扫描、分类、落盘、派发都在需求编排里。失败不阻断启动。"""
     try:
-        listed = ctx.api.call("store.glob", {
-            "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
-        rows = []
-        for rel in listed.get("items") or []:
-            row = ctx.api.call("store.read", {
-                "module": "agent/sessions", "path": rel}, caller=None)
-            if row.get("value"):
-                rows.append({"path": rel, "rec": row["value"]})
-        now = ctx.api.call("clock.now", {}, caller=None)
-        cfgv = dict((getattr(ctx, "cfg", None) or {}).get("sessions") or {})
-        ctxv = dict(cfgv.get("context") or {})
-        enabled = ctxv.get("resume_on_boot")
-        enabled = True if enabled is None else bool(enabled)
-        max_n = int(ctxv.get("resume_max") or 5)
-        plan = ctx.api.call("sessions.resume_plan", {
-            "rows": rows, "now": now.get("ts"),
-            "enabled": enabled, "max": max_n}, caller=None)
-        effects = [{"kind": "write", "module": "agent/sessions",
-                    "path": i["path"], "value": i["rec"]}
-                   for i in (plan.get("resume") or []) + (plan.get("stale") or [])]
-        if effects:
-            ctx.runtime.apply({"effect": effects})
-        for item in plan.get("resume") or []:
-            sid = item.get("id")
-            if sid:
-                ctx.runtime.dispatch({"demand": "session-run", "key": sid,
-                                      "input": {"id": sid}})
+        ctx.runtime.call("session-resume", {})
     except Exception:  # noqa: BLE001 —— 启动回收失败不得掀翻服务启动
         pass
+
+
+def _route_resume(ctx, payload):
+    """启动续跑闭环：遍历残留 running 会话 → 纯函数分类 → 成形落盘/派发效果清单。
+
+    遍历读盘在能力内；写盘与后台派发交需求 runtime.apply。配置与文案由需求层读好传入。
+    """
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+    rows = []
+    for rel in listed.get("items") or []:
+        row = ctx.api.call("store.read", {
+            "module": "agent/sessions", "path": rel}, caller=None)
+        if row.get("value"):
+            rows.append({"path": rel, "rec": row["value"]})
+    now = ctx.api.call("clock.now", {}, caller=None)
+    enabled = payload.get("enabled")
+    enabled = True if enabled is None else bool(enabled)
+    max_n = int(payload.get("max") or 5)
+    plan = ctx.api.call("sessions.resume_plan", {
+        "rows": rows, "now": now.get("ts"), "enabled": enabled, "max": max_n,
+        "resume_text": payload.get("resume_text"),
+        "stale_text": payload.get("stale_text")}, caller=None)
+    effects = [{"kind": "write", "module": "agent/sessions",
+                "path": i["path"], "value": i["rec"]}
+               for i in (plan.get("resume") or []) + (plan.get("stale") or [])]
+    for i in plan.get("resume") or []:
+        sid = i.get("id")
+        if sid:
+            effects.append({"kind": "dispatch", "id": "session-run",
+                            "key": sid, "input": {"id": sid}})
+    return {"effects": effects,
+            "resumed": [i["id"] for i in plan.get("resume") or []],
+            "stale": [i["id"] for i in plan.get("stale") or []]}
 
 
 def _route_by_ticket(ctx, payload):

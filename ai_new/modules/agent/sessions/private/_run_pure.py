@@ -104,9 +104,11 @@ def resume_plan(p):
 
     resume  开关开且未超并发上限：标记中断痕迹、续跑计数 +1，复位 idle 交编排层重新驱动；
     stale   开关关或超上限：只复位 idle，等待后续人工/停滞扫描拉起。
-    纯比较与字段定型，时间由编排层给；落盘与派发都交编排层。
+    纯比较与字段定型，时间与文案由编排层给；落盘与派发都交编排层。
     """
     now = p.get("now") or ""
+    resume_text = p.get("resume_text") or ""
+    stale_text = p.get("stale_text") or ""
     enabled = bool(p.get("enabled", True))
     max_n = int(p.get("max") or 0)
     resume, stale, count = [], [], 0
@@ -117,8 +119,7 @@ def resume_plan(p):
         meta = dict(rec.get("meta") or {})
         path = (item or {}).get("path")
         if enabled and (max_n <= 0 or count < max_n):
-            meta["last_error"] = {"code": "interrupted_on_boot",
-                                  "error": "进程重启前卡在运行中，已自动重新驱动"}
+            meta["last_error"] = {"code": "interrupted_on_boot", "error": resume_text}
             meta["resumed"] = int(meta.get("resumed") or 0) + 1
             rec["meta"] = meta
             rec["status"] = "idle"
@@ -126,8 +127,7 @@ def resume_plan(p):
             resume.append({"path": path, "rec": rec, "id": rec.get("id")})
             count += 1
         else:
-            meta["last_error"] = {"code": "interrupted_on_boot",
-                                  "error": "进程重启前卡在运行中，已复位等待重新驱动"}
+            meta["last_error"] = {"code": "interrupted_on_boot", "error": stale_text}
             rec["meta"] = meta
             rec["status"] = "idle"
             rec["updated"] = now

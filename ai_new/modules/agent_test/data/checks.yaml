@@ -96,6 +96,7 @@ checks:
   - session-get
   - session-list
   - session-run
+  - session-resume
   - session-send
   - session-spawn
   - session-state

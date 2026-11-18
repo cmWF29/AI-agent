@@ -1,0 +1,57 @@
+id: session-resume
+title: 启动续跑：读配置与文案 → 分类残留 running → 落盘并派发
+description: 进程重启后回收在途会话：读续跑开关/上限与中断文案，能力内遍历分类，成形落盘与派发效果清单交 apply。遍历判定归模块，编排顺序归本需求
+tags:
+- session
+- write
+- async
+enabled: true
+callable: true
+'on': []
+do:
+- call: config.get
+  with:
+    key:
+      lit: sessions.context.resume_on_boot
+  as: cfg_enabled
+- call: config.get
+  with:
+    key:
+      lit: sessions.context.resume_max
+  as: cfg_max
+- call: store.read
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      lit: messages.yaml
+  as: tpl
+- call: sessions.resume
+  with:
+    enabled:
+      get: cfg_enabled.value
+    max:
+      get: cfg_max.value
+    resume_text:
+      get: tpl.value.resume_interrupted
+    stale_text:
+      get: tpl.value.stale_interrupted
+  as: plan
+- call: runtime.apply
+  with:
+    effect:
+      get: plan.effects
+    echo:
+      get: plan
+  as: applied
+expect:
+  given:
+    input: {}
+  calls:
+  - config.get
+  - config.get
+  - store.read
+  - sessions.resume
+  - runtime.apply
+  payload: {}
+  promise: 遍历判定归模块，落盘与派发交 apply；编排顺序在本需求表可见

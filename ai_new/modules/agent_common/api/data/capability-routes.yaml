@@ -166,6 +166,12 @@ capabilities:
     - store.glob
     - store.read
     - sessions.view
+  sessions.resume:
+    calls:
+    - store.glob
+    - store.read
+    - clock.now
+    - sessions.resume_plan
   tickets.split:
     calls:
     - store.read

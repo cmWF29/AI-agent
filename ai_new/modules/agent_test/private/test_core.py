@@ -809,6 +809,32 @@ class CoreTest(unittest.TestCase):
             self.ctx.runtime.apply = orig_apply
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 
+    def test_session_resume_demand_forms_effects(self):
+        """启动续跑需求：读配置/文案 → 能力分类残留 running → 成形 write+dispatch 效果清单。
+
+        中断文案来自 sessions/messages.yaml 模板，纯函数只做分类与字段定型。
+        """
+        for sid in ("rs-1", "rs-2"):
+            self.ctx.api.call("store.write", {"module": "agent/sessions",
+                "path": "sessions/%s.yaml" % sid,
+                "value": {"id": sid, "kind": "role", "role": "developer",
+                          "ticket": "T-1", "status": "running", "messages": [],
+                          "meta": {}, "updated": 0}})
+        r = self._run("session-resume", {})
+        self.assertTrue(r["ok"])
+        effects = r["result"]["effects"]
+        writes = [e for e in effects if e.get("kind") == "write"]
+        dispatches = [e for e in effects if e.get("kind") == "dispatch"]
+        self.assertEqual(len(writes), 2)
+        self.assertEqual(len(dispatches), 2)
+        for w in writes:
+            self.assertEqual(w["value"]["status"], "idle")
+            self.assertEqual(w["value"]["meta"]["last_error"]["code"],
+                             "interrupted_on_boot")
+        self.assertEqual(writes[0]["value"]["meta"]["last_error"]["error"],
+                         "进程重启前卡在运行中，已自动重新驱动")
+        self.assertEqual({d["input"]["id"] for d in dispatches}, {"rs-1", "rs-2"})
+
     def test_react_non_structured_keeps_old_summary(self):
         """T2 非结构化收口不清空滚动摘要；旧摘要跨轮保留。"""
         import json as _json
@@ -1308,20 +1334,26 @@ class CoreTest(unittest.TestCase):
             {"path": "c.yaml", "rec": {"id": "c", "status": "running"}},
             {"path": "d.yaml", "rec": {"id": "d", "status": "idle"}},
         ]
-        plan = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": True, "max": 2})
+        plan = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": True, "max": 2,
+                                     "resume_text": "续跑提示", "stale_text": "复位提示"})
         self.assertEqual([i["id"] for i in plan["resume"]], ["a", "b"])
         self.assertEqual([i["id"] for i in plan["stale"]], ["c"])
         ra = plan["resume"][0]["rec"]
         self.assertEqual(ra["status"], "idle")
         self.assertEqual(ra["meta"]["resumed"], 1)
         self.assertEqual(ra["meta"]["last_error"]["code"], "interrupted_on_boot")
+        self.assertEqual(ra["meta"]["last_error"]["error"], "续跑提示")
         self.assertEqual(ra["updated"], now)
+        sc = plan["stale"][0]["rec"]
+        self.assertEqual(sc["meta"]["last_error"]["error"], "复位提示")
         # 关开关：running 全部归 stale，不续跑
-        off = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": False, "max": 2})
+        off = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": False, "max": 2,
+                                    "resume_text": "续跑提示", "stale_text": "复位提示"})
         self.assertEqual(off["resume"], [])
         self.assertEqual([i["id"] for i in off["stale"]], ["a", "b", "c"])
         # max=0 不限制条数
-        allr = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": True, "max": 0})
+        allr = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": True, "max": 0,
+                                    "resume_text": "续跑提示", "stale_text": "复位提示"})
         self.assertEqual(len(allr["resume"]), 3)
 
     def test_skill_unit_pure_functions(self):
