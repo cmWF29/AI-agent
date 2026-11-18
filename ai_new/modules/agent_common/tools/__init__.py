@@ -194,7 +194,8 @@ def _route_list(ctx, payload):
     items = _pure.scope(merged["items"], (payload or {}).get("scope"))
     snapshot = _collect_snapshot(ctx, items)
     return _pure.listing({"tools": items, "snapshot": snapshot,
-                          "disabled_names": (payload or {}).get("disabled_names") or []})
+                          "disabled_names": (payload or {}).get("disabled_names") or [],
+                          "tpl": _msg_tpl(ctx)})
 
 
 def _route_deps(ctx, payload):

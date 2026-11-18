@@ -222,6 +222,7 @@ def listing(p):
     disabled_names 为项目禁用工具名集合：行内打 disabled_project 标记，仍展示供重新启用。
     """
     disabled_names = set(p.get("disabled_names") or [])
+    tpl = p.get("tpl") or {}
     rows = []
     for t in p.get("tools") or []:
         params = t.get("params") or []
@@ -230,7 +231,7 @@ def listing(p):
                           "*" if x.get("required") else "")
             for x in params)
         kinds = t.get("kinds") or []
-        kinds_text = "全部" if not kinds else "、".join(str(k) for k in kinds)
+        kinds_text = (tpl.get("label_all") or "") if not kinds else "、".join(str(k) for k in kinds)
         deps = t.get("deps") or {}
         status = probe({"deps": deps, "snapshot": p.get("snapshot")})
         rows.append({
@@ -241,12 +242,12 @@ def listing(p):
             "kinds": kinds_text,
             "deps": _deps_text(deps),
             "status": status["status"],
-            "status_text": "就绪" if status["status"] == "ok" else "缺依赖",
+            "status_text": (tpl.get("label_ready") or "") if status["status"] == "ok" else (tpl.get("label_deps_missing") or ""),
             "missing": _missing_text(status["missing"]),
             "builtin": bool(t.get("builtin")),
             "skill": t.get("skill") or "",
             "disabled_project": t.get("name") in disabled_names,
-            "disabled_text": "项目禁用" if t.get("name") in disabled_names else "",
-            "source": "内置" if t.get("builtin") else "拆解",
+            "disabled_text": (tpl.get("label_disabled_project") or "") if t.get("name") in disabled_names else "",
+            "source": (tpl.get("label_builtin") or "") if t.get("builtin") else (tpl.get("label_external") or ""),
         })
     return {"items": rows}

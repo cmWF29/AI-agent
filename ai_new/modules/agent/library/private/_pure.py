@@ -187,6 +187,7 @@ def positionsp(p):
     flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
     disabled = _disabled_skill_ids(p.get("skills"))
     disabled_roles = set(p.get("disabled_roles") or [])
+    tpl = p.get("tpl") or {}
     items = []
     for rid, rec in roles.items():
         sk = rec.get("skill")
@@ -194,12 +195,15 @@ def positionsp(p):
             continue
         row = _position(rec, flows.get(rid) or {})
         row["disabled"] = rid in disabled_roles
-        row["disabled_text"] = "项目禁用" if row["disabled"] else "启用中"
+        if row["disabled"]:
+            row["disabled_text"] = tpl.get("label_disabled_project") or ""
+        else:
+            row["disabled_text"] = tpl.get("label_enabled") or ""
         row["locked"] = bool(rec.get("system") or rec.get("readonly"))
         items.append(row)
     pm = _position(_pm_record(), {})
     pm["disabled"] = False
-    pm["disabled_text"] = "启用中"
+    pm["disabled_text"] = tpl.get("label_enabled") or ""
     pm["locked"] = True
     items.append(pm)
     return {"items": items}
@@ -328,6 +332,7 @@ def skills_listp(p):
     roles = p.get("roles") or {}
     flows = p.get("flows") or {}
     disabled_project = set(p.get("disabled") or [])
+    tpl = p.get("tpl") or {}
     items = []
     for sid, rec in skills.items():
         if not isinstance(rec, dict):
@@ -344,14 +349,14 @@ def skills_listp(p):
             "source": rec.get("source") or "",
             "version": rec.get("version") or "",
             "status": rec.get("status") or "enabled",
-            "status_text": "已禁用" if disabled else "启用中",
+            "status_text": (tpl.get("label_disabled") or "") if disabled else (tpl.get("label_enabled") or ""),
             "disabled_project": sid in disabled_project,
-            "disabled_text": "项目禁用" if sid in disabled_project else "",
+            "disabled_text": (tpl.get("label_disabled_project") or "") if sid in disabled_project else "",
             "role": role_id,
             "role_cn": role_rec.get("cn") or "",
             "flow": flow_id,
             "has_flow": bool(flow_id and flow_id in flows),
-            "flow_text": "有流程" if (flow_id and flow_id in flows) else "无流程",
+            "flow_text": (tpl.get("label_has_flow") or "") if (flow_id and flow_id in flows) else (tpl.get("label_no_flow") or ""),
             "tools": "、".join(tool_names),
             "tool_names": tool_names,
             "builtin": bool(rec.get("builtin")),

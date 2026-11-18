@@ -1464,12 +1464,10 @@ class CoreTest(unittest.TestCase):
         row2 = next(x for x in listed if x["id"] == "s2")
         self.assertEqual(row1["role_cn"], "PPT师")
         self.assertTrue(row1["has_flow"])
-        self.assertEqual(row1["flow_text"], "有流程")
+        self.assertEqual(row1["status"], "enabled")
         self.assertEqual(row1["tools"], "t1")
-        self.assertEqual(row1["status_text"], "启用中")
         self.assertFalse(row2["has_flow"])
-        self.assertEqual(row2["flow_text"], "无流程")
-        self.assertEqual(row2["status_text"], "已禁用")
+        self.assertEqual(row2["status"], "disabled")
 
         # disabled_p：只成形已禁用标识清单
         self.assertEqual(lib_pure.disabled_p({"skills": skills})["ids"], ["s2"])
