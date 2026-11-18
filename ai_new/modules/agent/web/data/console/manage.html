@@ -25,9 +25,17 @@ html,body{height:100%}
 body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--fg);background:var(--bg)}
 button,input,select,textarea{font:inherit;color:inherit}
 
-/* ---- 侧边栏 ---- */
-.shell{display:flex;min-height:100vh}
-.sidebar{width:216px;flex:none;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;position:sticky;top:0;height:100vh}
+/* ---- 顶部栏 + 抽屉导航（手机 App 风格） ---- */
+.shell{min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.icon-btn{width:38px;height:38px;flex:none;border:1px solid var(--line);background:transparent;border-radius:10px;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--fg-2)}
+.icon-btn:hover{background:var(--line-2);color:var(--fg)}
+.brand-mini{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-mini h1{font-size:15px;margin:0;line-height:1.2}
+.scrim{position:fixed;inset:0;background:rgba(15,20,30,.42);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.sidebar{position:fixed;left:0;top:0;height:100vh;width:264px;z-index:40;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;transform:translateX(-100%);transition:transform .22s ease;box-shadow:var(--shadow)}
+.sidebar.open{transform:translateX(0)}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px 16px}
 .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#2f6bff,#722ed1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
 .brand h1{font-size:15px;margin:0;line-height:1.2}
@@ -38,7 +46,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
 .side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line-2)}
 .side-foot button{width:100%;justify-content:flex-start}
-.main-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.main-col{min-width:0;display:flex;flex-direction:column}
 .crumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-2);min-width:0}
 .crumb button{background:transparent;border:0;padding:2px 6px;border-radius:8px;color:var(--fg-2)}
 .crumb button:hover{background:var(--line-2);color:var(--fg)}
@@ -235,14 +243,7 @@ textarea{min-height:72px;resize:vertical}
 
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
 @media (max-width: 720px) {
-  .shell{flex-direction:column}
-  .sidebar{width:100%;height:auto;position:static;flex-direction:row;align-items:center;gap:8px;padding:10px 12px;overflow-x:auto}
-  .brand{padding:0;flex:none}
-  .brand .sub{display:none}
-  .nav{flex-direction:row;gap:2px;flex:1;overflow-x:auto}
-  .nav button{white-space:nowrap;padding:7px 10px}
-  .side-foot{margin:0;padding:0 0 0 8px;border:0;flex:none}
-  .side-foot button{width:auto;white-space:nowrap}
+  .sidebar{width:280px}
   main{padding:12px 14px 32px}
   .crumb{min-width:0;overflow:hidden}
   .crumb .now{max-width:60vw}
@@ -267,7 +268,12 @@ textarea{min-height:72px;resize:vertical}
 </head>
 <body>
 <div class="shell">
-  <aside class="sidebar">
+  <header class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="菜单">☰</button>
+    <div class="brand-mini"><span class="logo">H</span><h1>Hive AI</h1></div>
+  </header>
+  <div class="scrim" id="scrim"></div>
+  <aside class="sidebar" id="drawer">
     <div class="brand"><span class="logo">H</span><div><h1>Hive AI</h1><div class="sub">项目 · 工单 · 会话</div></div></div>
     <nav class="nav" id="side-nav">
       <button data-nav="projects">项目</button>

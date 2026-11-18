@@ -26,10 +26,11 @@ document.addEventListener("click", (e) => {
     if (binding) return execute(binding, {});
   }
   const navEl = e.target.closest("[data-nav]");
-  if (navEl) return go({ view: navEl.dataset.nav }, true);
+  if (navEl) { closeDrawer(); return go({ view: navEl.dataset.nav }, true); }
   if (e.target.closest("[data-crumb]")) return go(crumbUp(), true);
 });
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { closeDrawer(); return; }
   if (e.key !== "Enter" && e.key !== " ") return;
   const card = e.target.closest && e.target.closest("[data-go][role=button]");
   if (card) { e.preventDefault(); card.click(); }
@@ -54,6 +55,16 @@ function highlightNav() {
   document.querySelectorAll("#side-nav [data-nav]").forEach((b) =>
     b.classList.toggle("on", b.dataset.nav === cur));
 }
+function openDrawer() {
+  $("drawer").classList.add("open");
+  $("scrim").classList.add("open");
+}
+function closeDrawer() {
+  $("drawer").classList.remove("open");
+  $("scrim").classList.remove("open");
+}
+$("menu-btn").onclick = openDrawer;
+$("scrim").onclick = closeDrawer;
 $("logout").onclick = async () => {
   try { await run("auth-logout", { token: token() }); } catch (e) {}
   clearToken(); location.href = "/login.html";
