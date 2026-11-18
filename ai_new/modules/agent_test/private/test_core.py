@@ -1036,6 +1036,52 @@ class CoreTest(unittest.TestCase):
         bad = decompose_pure.install_parts({"draft": {"role": {}}})
         self.assertFalse(bad["ok"])
 
+    def test_decompose_safe_pkg_validates_name(self):
+        # 合法名 / 带版本约束 / 环境标记 → 剥成纯包名；注入字符与路径 → 拒
+        self.assertEqual(decompose_pure.safe_pkg("python-pptx")["pkg"], "python-pptx")
+        self.assertEqual(decompose_pure.safe_pkg("python-pptx==1.0.0b8")["pkg"],
+                         "python-pptx")
+        self.assertFalse(decompose_pure.safe_pkg('requests; python_version>"3.8"')["ok"])
+        self.assertFalse(decompose_pure.safe_pkg("pptx; rm -rf /")["ok"])
+        self.assertFalse(decompose_pure.safe_pkg("foo/bar")["ok"])
+        self.assertFalse(decompose_pure.safe_pkg("")["ok"])
+        # 工具定义只含两个受限动作
+        names = [t["name"] for t in decompose_pure.tool_defs()]
+        self.assertEqual(names, ["fetch_url", "pip_install"])
+
+    def test_decompose_run_reacts_with_restricted_tools(self):
+        import json
+        draft = {"role": {"cn": "演示师", "must_dos": ["出稿"], "forbidden": [],
+                          "tools": []},
+                 "flow": {"checks": [], "nodes": [], "edges": []},
+                 "new_tools": [{"name": "ppt_render", "desc": "渲染", "params": [],
+                                "deps": {"pip": ["python-pptx"]}}]}
+        captured = {}
+
+        def fake_react(ctx, payload):
+            captured["tools"] = [t["name"] for t in payload.get("tools") or []]
+            text = json.dumps(draft, ensure_ascii=False)
+            return {"steps": 1, "messages": [{"role": "assistant", "content": text}],
+                    "last": {"role": "assistant", "content": text},
+                    "cancelled": False, "failed": None}
+
+        original = self.ctx.api.route("react.run")["fn"]
+        self.ctx.api.substitute("react.run", fake_react)
+        try:
+            r = self.ctx.api.call("decompose.run", {
+                "skill_md": "---\nname: ppt_x\ndescription: 演示\n---\n正文", "system": ""})
+        finally:
+            self.ctx.api.substitute("react.run", original)
+        self.assertEqual(captured["tools"], ["fetch_url", "pip_install"])
+        self.assertEqual(r["draft"]["id"], "ppt_x")
+        self.assertEqual([t["name"] for t in r["draft"]["tools"]], ["ppt_render"])
+        # 受限工具已注册但不进普通会话工具名单
+        self.assertTrue(self.ctx.tools.has("fetch_url"))
+        self.assertTrue(self.ctx.tools.has("pip_install"))
+        listed = [t["name"] for t in self.ctx.tools.list_tools()]
+        self.assertNotIn("fetch_url", listed)
+        self.assertNotIn("pip_install", listed)
+
         # skills_listp：关联岗位中文名、流程在库与否、工具名、启停文本
         skills = {"s1": {"id": "s1", "cn": "PPT师", "status": "enabled", "role": "r1",
                          "flow": "f1", "tools": ["t1"], "builtin": False},

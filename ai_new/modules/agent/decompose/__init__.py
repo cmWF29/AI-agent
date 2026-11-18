@@ -18,9 +18,49 @@ def setup(ctx):
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="decompose")
     ctx.api.register("decompose.run", _route_run,
-                     "拆解闭环：解析包内容→取工具名单→拼提示→模型→解码→成形入库记录",
+                     "拆解闭环：解析包内容→取工具名单→拼提示→ReAct 拉装→模型→解码→成形入库记录",
                      module="decompose")
+    # 拆解循环专用受限工具：只开放拉文档文本与白名单装 pip 包，不进普通会话工具名单。
+    for tool in _pure.tool_defs():
+        ctx.tools.register(tool["name"], tool["desc"], tool["params"],
+                           _TOOL_FNS[tool["name"]], module="decompose",
+                           kinds=None, deps={}, builtin=False)
     return True
+
+
+def _tool_fetch(ctx, args, session=None):
+    """拆解期只读拉取 http(s) 文档文本；非 http(s) 直接拒，不走任意地址。"""
+    url = str((args or {}).get("url") or "").strip()
+    if not url:
+        return {"ok": False, "error": "缺少 url", "code": "bad_request"}
+    if not (url.startswith("http://") or url.startswith("https://")):
+        return {"ok": False, "error": "只允许 http(s) 链接", "code": "bad_url"}
+    resp = ctx.api.call("net.request",
+                        {"url": url, "method": "GET", "timeout": 30}, caller=None)
+    if not isinstance(resp, dict) or resp.get("ok") is False:
+        return resp or {"ok": False, "error": "链接拉取失败", "code": "fetch_failed"}
+    return {"ok": True, "url": url, "text": resp.get("text") or ""}
+
+
+def _tool_pip(ctx, args, session=None):
+    """拆解期白名单装单个 pip 包：包名先过纯函数校验，固定 argv 直传，不经 shell。"""
+    check = _pure.safe_pkg((args or {}).get("pkg"))
+    if not check.get("ok"):
+        return {"ok": False, "error": check.get("error"), "code": "bad_pkg"}
+    exe = (ctx.api.call("host.executable", {}, caller=None) or {}).get("path") or "python"
+    resp = ctx.api.call("exec.run",
+                        {"argv": [exe, "-m", "pip", "install", check["pkg"]],
+                         "timeout": 300}, caller=None)
+    out = {"ok": bool(resp.get("ok")), "pkg": check["pkg"]}
+    if not out["ok"]:
+        out["error"] = resp.get("error") or "pip 安装失败"
+    else:
+        out["seconds"] = resp.get("seconds")
+    return out
+
+
+_TOOL_FNS = {"fetch_url": _tool_fetch, "pip_install": _tool_pip}
+
 
 
 def _route_run(ctx, payload):
@@ -55,17 +95,25 @@ def _route_run(ctx, payload):
         "system": payload.get("system"), "meta": doc.get("meta"),
         "body": doc.get("body"), "pip": doc.get("pip"),
         "scripts": doc.get("scripts"), "tools": tools}, caller=None)
-    resp = ctx.runtime.call("llm-chat", {
+    react = ctx.api.call("react.run", {
         "messages": prompt.get("messages"),
+        "tools": _pure.tool_defs(),
         "base_url": payload.get("base_url"),
         "api_key": payload.get("api_key"),
         "model": payload.get("model"),
         "mode": payload.get("mode"),
-        "cancel": payload.get("cancel")})
-    if not isinstance(resp, dict) or resp.get("ok") is False:
-        return resp or {"ok": False, "code": "no_answer",
-                        "error": "模型未返回拆解结果"}
-    raw = resp.get("content") or ""
+        "max_steps": payload.get("max_steps"),
+        "session": payload.get("session"),
+        "cancel": payload.get("cancel")}, caller=None)
+    if not isinstance(react, dict):
+        return {"ok": False, "code": "no_answer", "error": "模型未返回拆解结果"}
+    if react.get("failed"):
+        return {"ok": False, "code": "no_answer",
+                "error": "模型未返回拆解结果", "failed": react.get("failed")}
+    if react.get("cancelled"):
+        return {"ok": False, "code": "cancelled", "error": "拆解已被打断"}
+    last = react.get("last") or {}
+    raw = last.get("content") or ""
     obj = ctx.api.call("codec.json_decode", {"text": raw}, caller=None)
     if not obj.get("ok"):
         return {"ok": False, "code": "bad_draft_json",

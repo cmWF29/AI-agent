@@ -71,6 +71,57 @@ def _as_list(value):
     return [x.strip() for x in text.split("\n") if x.strip()]
 
 
+# ---- 拆解期拉装工具的确定性校验 ----
+
+# pip 包名允许字符（PEP 508 名称）：字母数字开头，后接字母数字 / . / _ / -。
+_PKG_ALLOWED = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+# 包名/版本约束里都不该出现的注入字符：空格、管道、后台、替换、路径、括号、通配等。
+_PKG_DANGEROUS = set(" |&$`/\\(){}*?#\"'")
+
+
+def safe_pkg(p):
+    """校验待装 pip 包名：剥版本约束，拒掉含注入字符或环境标记的写法。
+
+    只认纯包名（可带简单版本约束）；分号后的环境标记、空格与任何 shell/路径
+    元字符一律拒。返回 {ok, pkg, error}，不在这里起进程装包。
+    """
+    raw = str(p or "").strip()
+    if not raw:
+        return {"ok": False, "pkg": "", "error": "包名为空"}
+    if any(ch in _PKG_DANGEROUS for ch in raw):
+        return {"ok": False, "pkg": raw, "error": "包名含非法字符: %s" % raw}
+    for sep in ("==", ">=", "<=", "~=", "!=", "<", ">", "["):
+        idx = raw.find(sep)
+        if idx != -1:
+            raw = raw[:idx]
+    raw = raw.strip().strip("'\"")
+    if not raw:
+        return {"ok": False, "pkg": "", "error": "包名为空"}
+    if not raw[0].isalnum() or any(ch not in _PKG_ALLOWED for ch in raw):
+        return {"ok": False, "pkg": raw,
+                "error": "包名含非法字符: %s" % raw}
+    return {"ok": True, "pkg": raw, "error": ""}
+
+
+def tool_defs():
+    """拆解循环可调用的受限工具定义（供 ReAct 生成 function schema）。
+
+    只开放"拉取文档文本"与"白名单装单个 pip 包"两个动作；不开放任意 shell。
+    工具实现挂在拆解模块注册表，执行与边界在闭环内。
+    """
+    return [
+        {"name": "fetch_url", "desc": "拉取一个 http(s) 文档链接的正文文本（只读 GET）；"
+                                      "用于补读包内引用的说明/requirements 文件。",
+         "params": [{"name": "url", "type": "string", "desc": "要拉取的 http(s) URL",
+                     "required": True}]},
+        {"name": "pip_install", "desc": "把缺失的 Python 包装进当前运行环境；包名经白名单"
+                                        "校验，固定走 pip install，不执行任意命令。",
+         "params": [{"name": "pkg", "type": "string",
+                     "desc": "Python 包名，可带版本约束（如 python-pptx==1.0）",
+                     "required": True}]},
+    ]
+
+
 def parse_skill_doc(p):
     """包文本 → 结构化元数据：标识/说明、Python 依赖、脚本资源清单。
 

@@ -16,7 +16,7 @@ view:
   forms:
   - id: decompose.new
     title: 拆解 Skill.md 包
-    hint: 三种方式提供 Skill.md：粘贴正文、拖入 .md/.txt 文件，或填网页链接由后台拉取；链接优先。Python 依赖与脚本清单可一并附上。拆解结果直接入库为一个 Skill 单元，流程拆不出就留空。
+    hint: 三种方式提供 Skill.md：粘贴正文、拖入 .md/.txt 文件，或填网页链接由后台拉取；链接优先。声明的 Python 依赖由拆解者当场核对安装，脚本资源随包登记。拆解结果直接入库为一个 Skill 单元，流程拆不出就留空。
     fields:
     - name: source
       label: 来源标识（可选）
@@ -30,21 +30,11 @@ view:
       kind: textarea
       drop: true
       placeholder: 粘贴含 frontmatter 的包说明全文，或把 .md/.txt 文件拖到此处
-    - name: requirements
-      label: requirements.txt（可选）
-      kind: textarea
-      placeholder: 每行一个 Python 包，可带版本约束
-    - name: scripts
-      label: 随包脚本 / 资源（可选）
-      kind: textarea
-      placeholder: 换行或逗号分隔的脚本、文件名
     submit:
       demand: decompose-install
       params:
         skill_md: $skill_md
         url: $url
-        requirements: $requirements
-        scripts: $scripts
         source: $source
       ok: 开始拆解
       flash: 拆解完成，已入库为新技能
