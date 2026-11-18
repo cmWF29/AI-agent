@@ -62,7 +62,7 @@ def next_n(p):
 
 def build(p):
     now = p.get("now") or ""
-    title = p.get("title") or "未命名需求"
+    title = p.get("title") or p.get("default_title") or ""
     return {
         "id": p.get("id"), "title": title,
         "goal": p.get("goal") or "", "project": p.get("project") or "",
@@ -83,7 +83,7 @@ def validate_project(p):
     project = (p.get("project") or "").strip()
     if not project:
         return {"ok": False, "code": "missing_project", "status": 400,
-                "error": "工单必须绑定到某个项目"}
+                "error": p.get("tpl") or ""}
     return {"ok": True, "project": project}
 
 
@@ -195,8 +195,10 @@ def thread(p):
     """线程定型：工单档案缺失返 not_found，否则交 threadp 拼视图。分支在模块内部。"""
     ticket = p.get("ticket")
     if ticket is None:
+        tpl = p.get("tpl") or ""
+        tid = p.get("id") or ""
         return err({"code": "not_found", "status": 404,
-                    "message": "工单不存在: %s" % (p.get("id") or "")})
+                    "message": tpl.format(id=tid) if tpl else ""})
     return threadp(p)
 
 
@@ -214,8 +216,10 @@ def present(p):
     """读档后定型：缺档案返 not_found，否则返视图。分支在模块内部。"""
     rec = p.get("rec")
     if rec is None:
+        tpl = p.get("tpl") or ""
+        tid = p.get("id") or ""
         return err({"code": "not_found", "status": 404,
-                    "message": "工单不存在: %s" % (p.get("id") or "")})
+                    "message": tpl.format(id=tid) if tpl else ""})
     return view({"rec": rec})
 
 
@@ -269,7 +273,7 @@ def bindpm(p):
     rec = dict(p.get("rec") or {})
     rec["pm"] = p.get("session") or ""
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "pm_start",
-                                          "text": "PM 会话已拉起"})
+                                          "text": p.get("pm_text") or ""})
     rec["updated"] = p.get("now") or ""
     return rec
 
@@ -277,8 +281,10 @@ def bindpm(p):
 def bindchild(p):
     rec = dict(p.get("rec") or {})
     rec.setdefault("children", []).append(p.get("child"))
+    tpl = p.get("tpl") or ""
+    child = p.get("child") or ""
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "child_split",
-                                          "text": "拆出子工单: %s" % (p.get("child") or "")})
+                                          "text": tpl.format(child=child) if tpl else ""})
     rec["updated"] = p.get("now") or ""
     return rec
 
@@ -316,7 +322,7 @@ def closefin(p):
     rec["verdict"] = verdict
     rec["closed"] = p.get("now") or ""
     rec["updated"] = p.get("now") or ""
-    verdict_label = "验收通过" if verdict == "accepted" else "未通过关闭"
+    verdict_label = (p.get("accepted_text") or "") if verdict == "accepted" else (p.get("rejected_text") or "")
     summary = p.get("summary") or ""
     text = "%s%s" % (verdict_label, ("：" + summary) if summary else "")
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "closed",
@@ -333,7 +339,7 @@ def review_mark(p):
     rec = dict(p.get("rec") or {})
     verdict = p.get("verdict") or ""
     event_map = {"repush": ("repush", p.get("repush_text") or ""),
-                 "pass": ("review_pass", "评审达标"),
+                 "pass": ("review_pass", p.get("pass_text") or ""),
                  "exhausted": ("exhausted", p.get("exhausted_text") or "")}
     hit = event_map.get(verdict)
     if not hit:

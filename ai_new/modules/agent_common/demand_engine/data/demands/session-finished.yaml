@@ -164,6 +164,8 @@ do:
       get: repush.text
     exhausted_text:
       get: exh.text
+    pass_text:
+      get: tpls.value.review_pass
     now:
       get: now.ts
   as: marked

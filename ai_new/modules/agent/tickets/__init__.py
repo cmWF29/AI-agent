@@ -90,7 +90,8 @@ def _route_create(ctx, payload):
     """建单闭环：项目守卫、查档、造记录、拉 PM、落盘。分岔与派发都在能力内部。"""
     skip_pm = payload.get("kind") == "stall-audit"
     vproj = ctx.api.call("tickets.validate_project", {
-        "project": payload.get("project")}, caller=None)
+        "project": payload.get("project"),
+        "tpl": _msg_tpl(ctx).get("missing_project") or ""}, caller=None)
     if vproj.get("ok") is False:
         return ctx.api.call("tickets.err", {
             "code": "missing_project", "status": 400,
@@ -120,6 +121,7 @@ def _route_create(ctx, payload):
         "kind": payload.get("kind"), "parent": payload.get("parent"),
         "meta": payload.get("meta"),
         "auto_retrospective": payload.get("auto_retrospective"),
+        "default_title": _msg_tpl(ctx).get("default_title") or "",
         "now": now.get("ts")}, caller=None)
     if ctx.api.call("store.exists", {
             "module": "agent/tickets",
@@ -144,6 +146,7 @@ def _route_create(ctx, payload):
         rec = ctx.api.call("tickets.bindpm", {
             "rec": rec,
             "session": pm_id,
+            "pm_text": _msg_tpl(ctx).get("pm_started") or "",
             "now": now.get("ts")}, caller=None)
     view = ctx.api.call("tickets.view", {"rec": rec}, caller=None)
     effects = [{"kind": "write", "module": "agent/tickets",
@@ -192,7 +195,9 @@ def _route_close(ctx, payload):
     now = ctx.api.call("clock.now", {}, caller=None)
     closed = ctx.api.call("tickets.closefin", {
         "rec": rec, "summary": payload.get("summary"),
-        "verdict": payload.get("verdict"), "now": now.get("ts")}, caller=None)
+        "verdict": payload.get("verdict"), "now": now.get("ts"),
+        "accepted_text": _msg_tpl(ctx).get("close_accepted") or "",
+        "rejected_text": _msg_tpl(ctx).get("close_rejected") or ""}, caller=None)
     listed = ctx.api.call("store.glob", {
         "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
     session_rows, session_by_sid = [], {}
@@ -263,6 +268,7 @@ def _route_split(ctx, payload):
         now = ctx.api.call("clock.now", {}, caller=None)
         cur = ctx.api.call("tickets.bindchild", {
             "rec": cur, "child": (child.get("id")) or "",
+            "tpl": _msg_tpl(ctx).get("child_split") or "",
             "now": now.get("ts")}, caller=None)
         effects.append({"kind": "write", "module": "agent/tickets",
                         "path": _ticket_path(cur.get("id")), "value": cur})

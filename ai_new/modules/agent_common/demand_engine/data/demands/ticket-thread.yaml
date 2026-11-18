@@ -21,6 +21,13 @@ do:
     path:
       get: tp.path
   as: row
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      lit: messages.yaml
+  as: tpls
 - call: store.id
   with:
     value:
@@ -58,6 +65,8 @@ do:
       get: thread
     role_threads:
       get: roles_sessions.items
+    tpl:
+      get: tpls.value.missing
   as: out
 expect:
   given:
@@ -65,6 +74,7 @@ expect:
       id: T-1
   calls:
   - tickets.record_path
+  - store.read
   - store.read
   - store.id
   - sessions.record_path

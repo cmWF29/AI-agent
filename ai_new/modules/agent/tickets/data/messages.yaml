@@ -29,5 +29,13 @@ stall_audit_goal: 本单是对停滞工单 {ticket} 的只读运维审计：诊�
 stall_audit_task: 工单 {ticket} 疑似停滞（最后活动 {updated}）。请检查其状态、会话、角色与卡点，写 docs/health-report.md，并在结单
   summary 里给出：现象/根因/处理/恢复标准。
 repush_task: '（系统回催）还有缺口没完成：{missing}。请对照岗位必做事项补齐交付件后再交作业。'
+review_pass: '评审达标'
+close_accepted: '验收通过'
+close_rejected: '未通过关闭'
+missing_project: '工单必须绑定到某个项目'
+default_title: '未命名需求'
+missing: '工单不存在: {id}'
+pm_started: 'PM 会话已拉起'
+child_split: '拆出子工单: {child}'
 retrospect_prompt: 本轮交付已收尾。请复盘这一轮：若有可复用的规则、结论、踩坑或方法，按全局/项目/工单三级择层写入知识；无需沉淀则不用写。
 exhausted_note: '（卡点）角色 {role} 会话 {session} 经 {retries} 次回催仍未达标，缺口：{missing}，不再自动回催，请 PM 裁决后续编排。'

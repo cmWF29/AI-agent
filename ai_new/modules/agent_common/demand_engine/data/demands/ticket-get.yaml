@@ -20,12 +20,21 @@ do:
     path:
       get: tp.path
   as: row
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      lit: messages.yaml
+  as: tpls
 - call: tickets.present
   with:
     id:
       get: input.id
     rec:
       get: row.value
+    tpl:
+      get: tpls.value.missing
   as: out
 expect:
   given:
@@ -33,6 +42,7 @@ expect:
       id: t1
   calls:
   - tickets.record_path
+  - store.read
   - store.read
   - tickets.present
   payload: {}
