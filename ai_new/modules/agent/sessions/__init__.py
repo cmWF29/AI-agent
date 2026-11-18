@@ -88,7 +88,9 @@ def _route_spawn(ctx, payload):
         role_prompt = row.get("value") or ""
     listed = ctx.api.call("store.glob", {
         "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
-    seq = payload.get("seq") or _seq_of(kind, listed.get("items"))
+    baseline = _seq_of(kind, listed.get("items")) - 1
+    seq = payload.get("seq") or ctx.api.call("store.next_seq", {
+        "bucket": "session:" + kind, "baseline": baseline}, caller=None).get("seq")
     now = ctx.api.call("clock.now", {}, caller=None)
     meta = dict(payload.get("meta") or {})
     if payload.get("tools"):

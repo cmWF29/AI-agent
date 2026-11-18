@@ -107,7 +107,9 @@ def _route_create(ctx, payload):
         "module": "agent/tickets", "pattern": "tickets/T-*/ticket.yaml"}, caller=None)
     ids = [str(i).split("/")[1] for i in (listed.get("items") or [])
            if str(i).count("/") == 2]
-    n = payload.get("n") or _pure.next_n({"ids": ids, "day": day}).get("n")
+    baseline = _pure.next_n({"ids": ids, "day": day}).get("n") - 1
+    n = payload.get("n") or ctx.api.call("store.next_seq", {
+        "bucket": "ticket:" + day, "baseline": baseline}, caller=None).get("seq")
     fresh = ctx.api.call("tickets.newid", {
         "today": now.get("iso"), "n": n}, caller=None)
     backend = (payload.get("backend")

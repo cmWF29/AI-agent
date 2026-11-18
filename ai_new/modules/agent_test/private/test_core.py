@@ -1393,5 +1393,32 @@ class CoreTest(unittest.TestCase):
         self.assertTrue(body["ok"])
 
 
+    def test_next_seq_seeds_from_disk_baseline(self):
+        """新桶以磁盘最大号为基线，首号 = baseline + 1。"""
+        self.assertEqual(self.ctx.storage.next_seq("test:seed", 9), 10)
+
+    def test_next_seq_is_unique_under_concurrency(self):
+        """AtomicAdd 发号：多线程同桶取号不重复，且从基线连续递增。"""
+        import threading
+        bucket = "test:counter"
+        n_threads, per = 8, 50
+        collected = [[] for _ in range(n_threads)]
+
+        def worker(i):
+            for _ in range(per):
+                collected[i].append(self.ctx.storage.next_seq(bucket, 0))
+
+        threads = [threading.Thread(target=worker, args=(i,), daemon=True)
+                   for i in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        flat = [v for part in collected for v in part]
+        self.assertEqual(len(flat), n_threads * per)
+        self.assertEqual(len(set(flat)), len(flat), "并发取号出现重复: %s" % flat)
+        self.assertEqual(sorted(flat), list(range(1, n_threads * per + 1)))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

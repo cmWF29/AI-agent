@@ -22,6 +22,8 @@ from __future__ import annotations
 
 
 
+import itertools
+
 import os
 
 from pathlib import Path
@@ -327,6 +329,21 @@ class Storage:
     def __init__(self, ctx):
 
         self.ctx = ctx
+        self._counters = {}
+
+
+    def next_seq(self, bucket, baseline):
+        """AtomicAdd 发号：按桶返回单调递增序号。
+
+        首次建桶以磁盘最大号 baseline 为起点；之后由 itertools.count 原子自增，
+        GIL 内单次 next() 完成，多线程不会取到重复值。计数器是进程内状态，
+        基线从磁盘恢复，重启不重号。
+        """
+        counter = self._counters.get(bucket)
+        if counter is None:
+            candidate = itertools.count(start=int(baseline or 0) + 1)
+            counter = self._counters.setdefault(bucket, candidate)
+        return next(counter)
 
 
 
@@ -465,6 +482,10 @@ def _p(module, path):
 
 def _route_id(payload):
     return {"id": _files.safe_id(str(payload.get("value") or ""))}
+
+
+def _route_next_seq(ctx, payload):
+    return {"seq": ctx.storage.next_seq(payload.get("bucket"), payload.get("baseline"))}
 
 
 def _route_exists(payload):
@@ -610,6 +631,7 @@ def setup(ctx):
     ctx.storage = Storage(ctx)
     for name, fn in [
         ("store.id", _route_id),
+        ("store.next_seq", _route_next_seq),
         ("store.exists", _route_exists),
         ("store.read", _route_read),
         ("store.write", _route_write),

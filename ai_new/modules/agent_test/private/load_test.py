@@ -1,0 +1,351 @@
+"""并发压测：N 个项目 × M 个工单并发跑，LLM 全程走本地打桩网络服务，不接真实上游。
+
+用法：
+  python3 load_test.py                                   # 默认 100 项目 × 100 工单，16 并发
+  python3 load_test.py --projects 2 --tickets 5 --workers 4   # 小规模冒烟
+  python3 load_test.py --tool-rate 0.2 --delay 0.05      # 20% 回 tool_calls，桩加 50ms 延迟
+
+打桩服务是标准库 ThreadingHTTPServer，按 OpenAI chat completion 的 SSE 格式随机回打桩
+输出（纯文本收口，或按概率回一条 tool_calls）。被测系统在临时 data 目录里进程内装配，
+llm.base_url 指到本地桩；全程不访问任何真实 LLM API。
+
+脚本不被 unittest discover 收集（文件名不是 test_*.py），是手动跑的压测入口。
+"""
+import argparse
+import json
+import os
+import random
+import sys
+import tempfile
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT))
+
+from ai_new.modules.agent_common.boot.private._boot import _build as build  # noqa: E402
+from ai_new.modules.agent_common.boot.private._context import Context  # noqa: E402
+from ai_new.modules.agent_test.private import _fixtures  # noqa: E402
+
+STUB_TEXTS = [
+    "（打桩）已理解任务，进入处理。",
+    "（打桩）信息已记录，按岗位流程推进。",
+    "（打桩）本轮处理完成，交付结论如下：打桩输出。",
+    "（打桩）需求已拆解，等待执行岗接手。",
+]
+
+
+class StubStats:
+    """桩服务计数器：加锁汇总调用分类。"""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.calls = 0
+        self.text = 0
+        self.tool_calls = 0
+        self.errors = 0
+
+
+class StubHandler(BaseHTTPRequestHandler):
+    """OpenAI 兼容打桩：POST /v1/chat/completions 回 SSE 流。
+
+    多数帧回纯文本（无 tool_calls，ReAct 一轮收口）；按 tool_rate 概率从请求 tools
+    里挑第一个回一条 tool_calls，走一轮工具循环再收口。
+    """
+
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, *args):  # 压测不刷访问日志
+        pass
+
+    def _read_body(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        raw = self.rfile.read(length) if length else b""
+        try:
+            return json.loads(raw.decode("utf-8") or "{}")
+        except Exception:  # noqa: BLE001
+            return {}
+
+    def do_POST(self):
+        stats = self.server.stats
+        req = self._read_body()
+        tools = req.get("tools") or []
+        with stats.lock:
+            stats.calls += 1
+        if self.server.delay:
+            time.sleep(self.server.delay)
+
+        frames = []
+        use_tool = bool(tools) and random.random() < self.server.tool_rate
+        if use_tool:
+            spec = tools[0] or {}
+            name = (spec.get("function") or {}).get("name") or spec.get("name") or "noop"
+            with stats.lock:
+                call_id = "call_%d" % stats.calls
+                stats.tool_calls += 1
+            frames.append({"choices": [{
+                "delta": {"tool_calls": [{
+                    "index": 0, "id": call_id, "type": "function",
+                    "function": {"name": name, "arguments": "{}"}}]},
+                "finish_reason": "tool_calls"}]})
+        else:
+            text = random.choice(STUB_TEXTS)
+            half = max(1, len(text) // 2)
+            frames.append({"choices": [{"delta": {"content": text[:half]}}]})
+            frames.append({"choices": [{"delta": {"content": text[half:]},
+                                        "finish_reason": "stop"}]})
+            with stats.lock:
+                stats.text += 1
+
+        payload = b"".join(
+            ("data: " + json.dumps(f, ensure_ascii=False) + "\n\n").encode("utf-8")
+            for f in frames) + b"data: [DONE]\n\n"
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(payload)
+        except Exception:  # noqa: BLE001
+            with stats.lock:
+                stats.errors += 1
+
+
+def start_stub(tool_rate, delay):
+    server = ThreadingHTTPServer(("127.0.0.1", 0), StubHandler)
+    server.stats = StubStats()
+    server.tool_rate = tool_rate
+    server.delay = delay
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = server.server_address[1]
+    return server, thread, "http://127.0.0.1:%d/v1" % port
+
+
+def assemble(stub_url):
+    """临时 data 目录装配 ctx：llm 指桩，审计单检查关闭；不改源码数据。"""
+    tmp = tempfile.mkdtemp(prefix="ai_new_load_")
+    root = Path(tmp)
+    _fixtures.stage(root)
+    _fixtures.write_config(root, {
+        "server": {"host": "127.0.0.1", "port": 0, "token": "t"},
+        "llm": {"base_url": stub_url, "api_key": "stub", "model": "stub"},
+        "tickets": {"stall_check": {"enabled": False}},
+    })
+    os.environ["AI_NEW_DATA"] = str(root)
+    ctx = Context(root)
+    build(ctx)
+    return ctx, root
+
+
+def run_demand(ctx, demand, inp):
+    return ctx.api.call("demand_engine.run", {"id": demand, "input": inp or {}})
+
+
+def make_project(ctx, index):
+    res = run_demand(ctx, "projects-create", {"name": "load-proj-%04d" % index})
+    rec = res.get("result") or {}
+    if rec.get("id"):
+        return {"ok": True, "id": rec["id"], "err": None}
+    return {"ok": False, "id": None, "err": rec.get("code") or res}
+
+
+def make_ticket(ctx, project, index, retries=3):
+    last = None
+    for attempt in range(retries):
+        res = run_demand(ctx, "ticket-create", {
+            "title": "load 工单 %04d" % index,
+            "goal": "并发压测打桩任务",
+            "project": project})
+        rec = res.get("result") or {}
+        if rec.get("id") and rec.get("status"):
+            return {"ok": True, "id": rec["id"], "status": rec["status"],
+                    "pm": rec.get("pm"), "err": None}
+        last = rec
+        if rec.get("code") == "ticket_id_conflict":
+            time.sleep(0.02 * (attempt + 1))  # 并发撞号：让出后重排序号
+            continue
+        break
+    return {"ok": False, "id": None, "err": (last or {}).get("code") or last}
+
+
+def _ids_from_glob(items, kind):
+    """从 glob 相对路径解析记录 id：工单 tickets/T-x/ticket.yaml → T-x；会话 sessions/pm-1.yaml → pm-1。"""
+    out = set()
+    for rel in items or []:
+        name = str(rel).rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        if kind == "ticket":
+            parts = str(rel).split("/")
+            if len(parts) >= 2 and parts[1].startswith("T-"):
+                out.add(parts[1])
+        else:
+            prefix, _, tail = name.rpartition("-")
+            if prefix in ("pm", "role") and tail.isdigit():
+                out.add(name)
+    return out
+
+
+def join_background(ctx, timeout):
+    """等后台 session-run 线程收敛；回催会再 dispatch 同 key，轮询到无存活线程。"""
+    deadline = time.perf_counter() + timeout
+    while time.perf_counter() < deadline:
+        alive = [t for t in ctx.runtime._runs.values() if t.is_alive()]
+        if not alive:
+            return [], time.perf_counter()
+        time.sleep(0.2)
+        for t in alive:
+            t.join(timeout=1.0)
+    return [t for t in ctx.runtime._runs.values() if t.is_alive()], time.perf_counter()
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="Hive AI 并发压测（本地打桩，不接真实 API）")
+    ap.add_argument("--projects", type=int, default=100, help="项目数")
+    ap.add_argument("--tickets", type=int, default=100, help="每项目工单数")
+    ap.add_argument("--workers", type=int, default=16, help="并发线程数")
+    ap.add_argument("--tool-rate", type=float, default=0.0,
+                    help="桩回 tool_calls 的概率 0~1，默认 0（纯文本一轮收口）")
+    ap.add_argument("--delay", type=float, default=0.02, help="桩每轮响应延迟秒")
+    ap.add_argument("--join-timeout", type=float, default=300, help="等待后台线程收敛上限秒")
+    ap.add_argument("--keep-data", action="store_true", help="保留临时 data 目录供排查")
+    args = ap.parse_args(argv)
+
+    print("== 启动本地打桩服务（不接真实 API）")
+    stub, stub_thread, stub_url = start_stub(args.tool_rate, args.delay)
+    print("   桩地址: %s | tool_rate=%.2f delay=%.2fs" % (stub_url, args.tool_rate, args.delay))
+
+    ctx = root = None
+    failures = []
+    try:
+        ctx, root = assemble(stub_url)
+        print("== 装配完成: %s" % root)
+
+        # 阶段 A：并发建项目
+        t0 = time.perf_counter()
+        projects = []
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            futs = {pool.submit(make_project, ctx, i): i for i in range(args.projects)}
+            for fut in as_completed(futs):
+                r = fut.result()
+                if r["ok"]:
+                    projects.append(r["id"])
+                else:
+                    failures.append(("project", futs[fut], r["err"]))
+        t_proj = time.perf_counter() - t0
+        print("== 项目: 成功 %d / 失败 %d，耗时 %.2fs"
+              % (len(projects), args.projects - len(projects), t_proj))
+
+        if not projects:
+            print("!! 没有项目建成，终止压测")
+            return 1
+
+        # 阶段 B：并发建工单（每项目 args.tickets 个）
+        t1 = time.perf_counter()
+        ticket_ok = ticket_fail = conflict = 0
+        ticket_errs = []
+        submitted_tickets = set()
+        submitted_pms = set()
+        pm_submitted = 0
+        tasks = [(p, pidx, k) for pidx, p in enumerate(projects)
+                 for k in range(args.tickets)]
+
+        def _task(p, pidx, k):
+            return make_ticket(ctx, p, pidx * args.tickets + k)
+
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            futs = {pool.submit(_task, p, pidx, k): (pidx, k)
+                    for p, pidx, k in tasks}
+            for fut in as_completed(futs):
+                r = fut.result()
+                if r["ok"]:
+                    ticket_ok += 1
+                    submitted_tickets.add(r["id"])
+                    if r["pm"]:
+                        submitted_pms.add(r["pm"])
+                        pm_submitted += 1
+                else:
+                    ticket_fail += 1
+                    if r["err"] == "ticket_id_conflict":
+                        conflict += 1
+                    if len(ticket_errs) < 10:
+                        ticket_errs.append((futs[fut], r["err"]))
+        t_ticket = time.perf_counter() - t1
+        total = args.projects * args.tickets
+        print("== 工单: 成功 %d / 失败 %d（撞号 %d），共 %d，耗时 %.2fs"
+              % (ticket_ok, ticket_fail, conflict, total, t_ticket))
+        if ticket_errs:
+            print("   错误抽样: %s" % ticket_errs)
+
+        # 阶段 C：等后台会话线程收敛
+        print("== 等待后台 session-run 线程收敛（上限 %.0fs）" % args.join_timeout)
+        t2 = time.perf_counter()
+        leftover, t_join = join_background(ctx, args.join_timeout)
+        t_wait = t_join - t2
+        print("== 后台线程: 残留 %d，等待 %.2fs" % (len(leftover), t_wait))
+
+        # 落盘计数与桩统计
+        proj_items = (ctx.api.call("store.glob", {"module": "agent/projects",
+                       "pattern": "*.yaml"}).get("items") or [])
+        ticket_items = (ctx.api.call("store.glob", {"module": "agent/tickets",
+                        "pattern": "tickets/T-*/ticket.yaml"}).get("items") or [])
+        sess_items = (ctx.api.call("store.glob", {"module": "agent/sessions",
+                      "pattern": "sessions/*.yaml"}).get("items") or [])
+        disk_tickets = _ids_from_glob(ticket_items, "ticket")
+        disk_sessions = _ids_from_glob(sess_items, "session")
+        lost_tickets = submitted_tickets - disk_tickets
+        orphan_sessions = disk_sessions - submitted_pms
+        n_proj = len(proj_items)
+        n_ticket = len(ticket_items)
+        n_sess = len(sess_items)
+        st = stub.stats
+        total_sec = time.perf_counter() - t0
+        print("\n== 压测结果")
+        print("   落盘: 项目 %d | 工单 %d | 会话 %d" % (n_proj, n_ticket, n_sess))
+        print("   工单: 提交 %d 次 | 塌缩/覆盖 %d | 唯一编号 %d | 落盘 %d | 丢失 %d"
+              % (ticket_ok, ticket_ok - len(submitted_tickets),
+                 len(submitted_tickets), n_ticket, len(lost_tickets)))
+        print("   会话: 提交 PM %d | 塌缩 %d | 落盘 %d | 孤儿 %d"
+              % (pm_submitted, pm_submitted - len(submitted_pms),
+                 n_sess, len(orphan_sessions)))
+        if lost_tickets:
+            print("   丢失工单抽样: %s" % sorted(lost_tickets)[:10])
+        if orphan_sessions:
+            print("   孤儿会话抽样: %s" % sorted(orphan_sessions)[:10])
+        print("   桩调用: 总 %d | 纯文本 %d | tool_calls %d | 错误 %d"
+              % (st.calls, st.text, st.tool_calls, st.errors))
+        print("   耗时: 建项目 %.2fs | 建工单 %.2fs | 等后台 %.2fs | 总计 %.2fs"
+              % (t_proj, t_ticket, t_wait, total_sec))
+        if t_ticket > 0:
+            print("   吞吐: 工单 %.1f/s（建单阶段）" % (ticket_ok / t_ticket))
+        if st.calls:
+            print("   桩 RPS: %.1f/s（全流程）" % (st.calls / total_sec))
+        if failures:
+            print("   项目失败: %s" % failures[:10])
+        ticket_collapse = ticket_ok - len(submitted_tickets)
+        sess_collapse = pm_submitted - len(submitted_pms)
+        clean = (ticket_fail == 0 and not lost_tickets and not orphan_sessions
+                 and ticket_collapse == 0 and sess_collapse == 0 and not leftover)
+        return 0 if clean else 2
+    finally:
+        stub.shutdown()
+        stub_thread.join(timeout=2)
+        http = getattr(ctx, "http", None)
+        if http is not None:
+            try:
+                http.shutdown()
+            except Exception:  # noqa: BLE001
+                pass
+        os.environ.pop("AI_NEW_DATA", None)
+        if root and not args.keep_data:
+            import shutil
+            shutil.rmtree(root, ignore_errors=True)
+        elif root:
+            print("   保留临时数据目录: %s" % root)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

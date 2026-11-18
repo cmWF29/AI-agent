@@ -107,6 +107,7 @@ capabilities:
     - demand_engine.run
     - store.read_text
     - clock.now
+    - store.next_seq
     - sessions.build
     - store.write
     - sessions.view
@@ -117,6 +118,7 @@ capabilities:
     - store.read
     - projects.missing
     - clock.now
+    - store.next_seq
     - tickets.newid
     - tickets.build
     - demand_engine.run
