@@ -48,6 +48,7 @@ developer:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
+  - shell
   backend: ''
   builtin: true
 reviewer:
@@ -88,6 +89,7 @@ tester:
   - knowledge_write
   - ticket_read_doc
   - ticket_note
+  - shell
   backend: ''
   builtin: true
 ops:

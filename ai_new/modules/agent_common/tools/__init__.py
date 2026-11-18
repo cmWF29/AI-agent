@@ -22,6 +22,15 @@ def setup(ctx):
                      "安装缺失的 Python 包；cli/env/config 只列待人工处理", module="tools")
     ctx.api.register("tools.external_run", _route_external_run,
                      "外部工具占位执行：后端未接入前回显登记与依赖提示", module="tools")
+    ctx.tools.register("shell", "在运行环境执行命令：argv 数组直传、不经 shell；"
+                                "用于拉取资源、跑随包脚本与自验。", [
+        {"name": "argv", "type": "list",
+         "desc": "命令与参数数组，如 [\"python\",\"-m\",\"pip\",\"install\",\"x\"]",
+         "required": True},
+        {"name": "cwd", "type": "string", "desc": "工作目录（可选）", "required": False},
+        {"name": "timeout", "type": "number", "desc": "超时秒（可选，默认 300）",
+         "required": False}],
+        _tool_shell, module="tools", kinds=["role"], deps={}, builtin=True)
     return ctx.tools
 
 
@@ -52,6 +61,17 @@ def register(ctx, name, desc, params, fn, module=None, kinds=None, deps=None):
     """注册工具；kinds 为会话类型白名单（None=所有会话可见），deps 为依赖声明。"""
     return ctx.tools.register(name, desc, params, fn, module=module,
                               kinds=kinds, deps=deps)
+
+
+def _tool_shell(ctx, args, session=None):
+    """通用命令执行：argv 数组直传 exec.run，不经 shell；超时与打断复用进程通道。"""
+    argv = [str(a) for a in (args or {}).get("argv") or []]
+    if not argv:
+        return {"ok": False, "error": "缺少 argv", "code": "bad_request"}
+    return ctx.api.call("exec.run", {
+        "argv": argv,
+        "cwd": (args or {}).get("cwd") or "",
+        "timeout": (args or {}).get("timeout") or 300}, caller=None)
 
 
 def execute(ctx, name, args, session=None):

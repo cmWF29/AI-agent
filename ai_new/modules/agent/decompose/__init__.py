@@ -22,8 +22,11 @@ def setup(ctx):
     ctx.api.register("decompose.install", _route_install,
                      "拆解入库：产物有效才合并四库并产出落盘 effects；无效回空 effects 不落盘",
                      module="decompose")
-    # 拆解循环专用工具：拉文档文本、白名单装 pip 包、跑命令；不进普通会话工具名单。
+    # 拆解循环专用工具：拉文档文本、白名单装 pip 包；shell 已由通用 tools 模块注册为
+    # 内置执行工具，这里只补拆解闭环的 schema 名单，不重复注册 fn。
     for tool in _pure.tool_defs():
+        if ctx.tools.has(tool["name"]):
+            continue
         ctx.tools.register(tool["name"], tool["desc"], tool["params"],
                            _TOOL_FNS[tool["name"]], module="decompose",
                            kinds=None, deps={}, builtin=False)
@@ -61,19 +64,7 @@ def _tool_pip(ctx, args, session=None):
     return out
 
 
-def _tool_shell(ctx, args, session=None):
-    """拆解期跑命令：argv 数组直传 exec.run，不经 shell；超时与打断复用进程通道。"""
-    argv = [str(a) for a in (args or {}).get("argv") or []]
-    if not argv:
-        return {"ok": False, "error": "缺少 argv", "code": "bad_request"}
-    return ctx.api.call("exec.run", {
-        "argv": argv,
-        "cwd": (args or {}).get("cwd") or "",
-        "timeout": (args or {}).get("timeout") or 300}, caller=None)
-
-
-_TOOL_FNS = {"fetch_url": _tool_fetch, "pip_install": _tool_pip,
-             "shell": _tool_shell}
+_TOOL_FNS = {"fetch_url": _tool_fetch, "pip_install": _tool_pip}
 
 
 def _route_install(ctx, payload):

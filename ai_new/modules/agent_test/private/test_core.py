@@ -771,6 +771,23 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(out.get("code"), "external_pending")
         self.assertEqual(out.get("tool"), "ext_demo_tool")
 
+    def test_shell_only_on_execution_roles(self):
+        """shell 按岗位名单裁剪：developer/tester 可取，只读文档岗取不到。"""
+        row = self.ctx.api.call("store.read", {"module": "agent/library",
+                                               "path": "roles.yaml"})
+        roles = row.get("value") or {}
+
+        def picked(role):
+            rec = roles.get(role) or {}
+            res = self.ctx.api.call("tools.pick",
+                                    {"tools": rec.get("tools") or [], "kind": "role"})
+            return {t["name"] for t in res["items"]}
+
+        self.assertIn("shell", picked("developer"))
+        self.assertIn("shell", picked("tester"))
+        self.assertNotIn("shell", picked("reviewer"))
+        self.assertNotIn("shell", picked("researcher"))
+
     def test_project_skills_and_tools_list(self):
         """项目技能/工具清单取数：直读公共库并按覆盖层打标记，成行字段齐全。"""
         created = self._run("projects-create", {"name": "清单项目"})["result"]
@@ -1075,12 +1092,13 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(captured["tools"], ["fetch_url", "pip_install", "shell"])
         self.assertEqual(r["draft"]["id"], "ppt_x")
         self.assertEqual([t["name"] for t in r["draft"]["tools"]], ["ppt_render"])
-        # 拆解期工具已注册但不进普通会话工具名单
+        # 工具已注册；fetch_url/pip_install 是拆解专用不进普通名单，shell 已提升为内置
         for tn in ("fetch_url", "pip_install", "shell"):
             self.assertTrue(self.ctx.tools.has(tn))
-        listed = [t["name"] for t in self.ctx.tools.list_tools()]
-        for tn in ("fetch_url", "pip_install", "shell"):
-            self.assertNotIn(tn, listed)
+        listed = {t["name"] for t in self.ctx.tools.list_tools()}
+        self.assertNotIn("fetch_url", listed)
+        self.assertNotIn("pip_install", listed)
+        self.assertIn("shell", listed)
 
     def test_decompose_install_effects_only_on_valid_parts(self):
         draft = {"id": "ppt_x",
