@@ -296,6 +296,34 @@ class CoreTest(unittest.TestCase):
             cfg.clear(); cfg.update(keep)
             script.unlink(missing_ok=True)
 
+    def test_runtime_stream_events_pushes_on_change_and_clears(self):
+        """草稿事件流：订阅后 put/clear 唤醒推快照；游标对齐后不重复推。"""
+        import threading, time as _time
+        key = "events-probe"
+        self.ctx.runtime.stream_clear(key)
+        r1 = self.ctx.runtime.stream_events(key, cursor=None, timeout=0.2)
+        self.assertEqual(r1["items"][0]["text"], "")
+        self.assertFalse(r1["items"][0]["running"])
+        cursor = r1["cursor"]
+
+        def writer():
+            _time.sleep(0.2)
+            self.ctx.runtime.stream_put(key, "你好")
+        threading.Thread(target=writer, daemon=True).start()
+        r2 = self.ctx.runtime.stream_events(key, cursor=cursor, timeout=3)
+        self.assertTrue(r2["items"])
+        self.assertEqual(r2["items"][0]["text"], "你好")
+        self.assertTrue(r2["items"][0]["running"])
+
+        r3 = self.ctx.runtime.stream_events(key, cursor=r2["cursor"], timeout=0.2)
+        self.assertEqual(r3["items"], [], "游标对齐后无变化不应重复推")
+
+        self.ctx.runtime.stream_clear(key)
+        r4 = self.ctx.runtime.stream_events(key, cursor=r2["cursor"], timeout=3)
+        self.assertFalse(r4["items"][0]["running"], "定稿清空后推空快照")
+        meta = {r["name"]: r for r in self.ctx.api.routes()}
+        self.assertTrue(meta["runtime.stream_events"]["stream"])
+
     def test_net_stream_pushes_draft_and_collects_frames(self):
         """SSE 流式出站：逐帧正文增量进草稿槽，事件对象汇总交 decode_sse 归一。"""
         import json

@@ -25,6 +25,7 @@ class Runtime:
         self._runs = {}
         self._cancel = {}
         self._stream = {}
+        self._subs = {}   # 草稿槽订阅：key -> [threading.Event]，槽变化即唤醒等待方
         self._lock = threading.Lock()
 
     def cancelled(self, key, since):
@@ -58,14 +59,17 @@ class Runtime:
             slot = self._stream.setdefault(str(key), {"text": "", "at": self._now()})
             slot["text"] += str(text)
             slot["at"] = self._now()
+            subs = list(self._subs.get(str(key), ()))
+        for ev in subs:
+            ev.set()
 
     def stream_get(self, key):
         if not key:
-            return {"text": "", "running": False}
+            return {"text": "", "running": False, "at": 0}
         with self._lock:
             slot = self._stream.get(str(key))
             if not slot:
-                return {"text": "", "running": False}
+                return {"text": "", "running": False, "at": 0}
             return {"text": slot["text"], "running": True, "at": slot["at"]}
 
     def stream_clear(self, key):
@@ -73,6 +77,43 @@ class Runtime:
             return
         with self._lock:
             self._stream.pop(str(key), None)
+            subs = list(self._subs.get(str(key), ()))
+        for ev in subs:
+            ev.set()
+
+    def stream_subscribe(self, key):
+        """登记一个等待事件；返回 Event，槽变化时被唤醒。"""
+        if not key:
+            return None
+        ev = threading.Event()
+        with self._lock:
+            self._subs.setdefault(str(key), []).append(ev)
+        return ev
+
+    def stream_unsubscribe(self, key, ev):
+        if not key or ev is None:
+            return
+        with self._lock:
+            lst = self._subs.get(str(key))
+            if lst and ev in lst:
+                lst.remove(ev)
+
+    def stream_events(self, key, cursor=None, timeout=15):
+        """阻塞等待草稿槽变化：先对齐当前快照，无变化再阻塞等事件；醒后回最新快照。"""
+        key = str(key or "")
+        ev = self.stream_subscribe(key)
+        try:
+            snap = self.stream_get(key)
+            at = snap.get("at")
+            if cursor is not None and at == cursor and ev is not None:
+                ev.wait(timeout=timeout)
+                snap = self.stream_get(key)
+                at = snap.get("at")
+            if cursor is None or at != cursor:
+                return {"items": [snap], "cursor": at, "blocked": True}
+            return {"items": [], "cursor": cursor, "blocked": True}
+        finally:
+            self.stream_unsubscribe(key, ev)
 
     def call(self, demand, data=None):
         """同步跑一条需求并拿结果：能力的批量动作里，单次动作仍是一条需求。"""

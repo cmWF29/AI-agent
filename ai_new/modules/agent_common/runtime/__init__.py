@@ -18,8 +18,16 @@ def setup(ctx):
     ctx.api.register("runtime.stream", _route_stream,
                      "读运行期草稿（内存面，不落盘）：视图轮询看外部 agent 逐行吐出的正文",
                      module="runtime")
+    ctx.api.register("runtime.stream_events", _route_stream_events,
+                     "SSE 长流：阻塞等待草稿槽变化，事件驱动推草稿快照（内存面，不落盘）",
+                     module="runtime", stream=True)
     return True
 
 
 def _route_stream(ctx, payload):
     return ctx.runtime.stream_get((payload or {}).get("key"))
+
+
+def _route_stream_events(ctx, payload):
+    p = payload or {}
+    return ctx.runtime.stream_events(p.get("key"), p.get("cursor"))

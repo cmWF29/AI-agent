@@ -175,8 +175,12 @@ async function boot() {
   await render();
 }
 
-let POLL = null;   // 视图级轮询句柄：只有声明了 poll 的视图才自刷新
-let LAST_STATUS = "";  // 最近一次会话状态：忙碌时高频轮询，空闲/结单后拉长间隔
+let POLL = null;   // 视图级低频兜底轮询句柄：只在 SSE 断连时兜底，增量靠 SSE 推送
+let LAST_STATUS = "";  // 最近一次会话状态
+let ES = null;       // 草稿长连接 EventSource
+let ES_KEY = "";     // 当前订阅的会话 key
+let LAST_CTX = null; // 最近一次渲染 ctx：供 SSE 局部更新取角色等数据
+let LAST_DRAFT_RUNNING = false;
 
 function typing() {
   const ta = document.querySelector("#view-body .composer textarea");
@@ -186,12 +190,51 @@ function typing() {
 function schedulePoll(spec) {
   if (POLL) { clearTimeout(POLL); POLL = null; }
   if (!spec || !spec.poll) return;
-  const busy = ["running", "queued", "doing"].includes(LAST_STATUS);
-  const interval = busy ? Number(spec.poll) : Math.max(8000, Number(spec.poll) * 5);
+  // 增量由 SSE 事件推送；这里只保留低频兜底，覆盖长连接断连/极端场景。
+  const interval = Math.max(15000, Number(spec.poll) * 5);
   POLL = setTimeout(async () => {
     if (typing()) { schedulePoll(spec); return; }  // 用户正在写，不抢输入
     try { await render({ keepBanner: true }); } catch (e) {}
   }, interval);
+}
+
+function closeStream() {
+  if (ES) { try { ES.close(); } catch (e) {} ES = null; }
+  ES_KEY = "";
+}
+
+function applyDraft(snap) {
+  const chat = document.querySelector("#view-body .chat");
+  if (!chat) return;
+  const roles = (LAST_CTX && LAST_CTX.data && LAST_CTX.data.thread && LAST_CTX.data.thread.members) || [];
+  const was = LAST_DRAFT_RUNNING;
+  const running = !!(snap && snap.running);
+  const txt = String((snap && snap.text) || "");
+  LAST_DRAFT_RUNNING = running;
+  const existing = chat.querySelector(".draft-bubble");
+  if (running && txt.trim()) {
+    const html = draftBubbleHtml({ text: txt, running: true }, roles);
+    if (existing) existing.outerHTML = html;
+    else chat.insertAdjacentHTML("beforeend", html);
+  } else {
+    if (existing) existing.remove();
+    if (was && !running) { render({ keepBanner: true }); }  // 定稿落盘：整页拉新消息
+  }
+}
+
+function openStream(key) {
+  if (!key) { closeStream(); return; }
+  if (ES && ES_KEY === key) return;
+  closeStream();
+  ES_KEY = String(key);
+  const q = new URLSearchParams({ key: ES_KEY, token: token() });
+  ES = new EventSource("/api/sse/runtime/stream_events?" + q.toString());
+  ES.onmessage = (ev) => {
+    let snap;
+    try { snap = jsyaml.load(ev.data) || {}; } catch (e) { return; }
+    applyDraft(snap);
+  };
+  ES.onerror = () => { /* 浏览器自动重连；低频兜底轮询仍在 */ };
 }
 
 function paramRefs(obj, acc) {
@@ -245,6 +288,9 @@ async function render(opts) {
   if (ta && draft) ta.value = draft;   // 轮询重建 DOM 时把用户草稿还回去
   const th = (ctx.data.thread && ctx.data.thread.thread) || {};
   LAST_STATUS = th.status || "";
+  LAST_CTX = ctx;
+  LAST_DRAFT_RUNNING = !!(ctx.data.draft && ctx.data.draft.running);
+  openStream(th.id);
   schedulePoll(spec);
 }
 

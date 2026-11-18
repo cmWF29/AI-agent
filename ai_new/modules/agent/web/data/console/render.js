@@ -144,6 +144,14 @@ function initial(name) {
   const s = String(name || "?").trim();
   return s ? esc(s[0]) : "?";
 }
+function draftBubbleHtml(draft, roles) {
+  const draftTxt = String((draft && draft.text) || "");
+  if (!(draft && draft.running && draftTxt.trim())) return "";
+  const who = speakerOf({ role: "assistant" }, roles);
+  return `<div class="msg left draft-bubble"><div class="avatar" style="--av:${avatarColor(who)}">${initial(who)}</div>
+        <div class="msg-main"><div class="msg-name">${esc(who)}</div>
+        <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`;
+}
 function chatHtml(sec, ctx) {
   const src = ref(sec.source, ctx) || {};
   const roles = ref(sec.roles_source, ctx) || [];
@@ -154,12 +162,7 @@ function chatHtml(sec, ctx) {
   });
   const headTitle = sec.heading ? `<div class="chat-title">${esc(fill(sec.heading, ctx))}</div>` : "";
   const draft = (ctx.data && ctx.data.draft) || {};
-  const draftTxt = String(draft.text || "");
-  const draftHtml = (draft.running && draftTxt.trim())
-    ? `<div class="msg left"><div class="avatar" style="--av:${avatarColor(speakerOf({ role: "assistant" }, roles))}">${initial(speakerOf({ role: "assistant" }, roles))}</div>
-        <div class="msg-main"><div class="msg-name">${esc(speakerOf({ role: "assistant" }, roles))}</div>
-        <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`
-    : "";
+  const draftHtml = draftBubbleHtml(draft, roles);
   const body = (msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
     ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip st-${statusKind(r.status)}"><i class="dot"></i>${esc(r.display || r.role)} · ${statusText(r.status)}</span>`).join("")}</div></div>` : ""}

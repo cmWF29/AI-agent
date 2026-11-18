@@ -174,7 +174,9 @@ def _make_handler(ctx):
                         payload["cursor"] = result["cursor"]
                     self.wfile.write(b": keep-alive\n\n")
                     self.wfile.flush()
-                    ctx.api.call("clock.sleep", {"seconds": 1}, caller=None)
+                    # 事件驱动路由内部已阻塞等待；只有游标门面才需要固定节流。
+                    if not result.get("blocked"):
+                        ctx.api.call("clock.sleep", {"seconds": 1}, caller=None)
             except (BrokenPipeError, ConnectionResetError, OSError):
                 return
 
@@ -248,6 +250,9 @@ def _extract_token(handler):
             k, _, v = part.strip().partition("=")
             if k == "hive_token":
                 got = v
+    if not got:
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
+        got = (query.get("token") or [""])[0]
     return got
 
 

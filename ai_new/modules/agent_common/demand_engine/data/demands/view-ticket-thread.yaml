@@ -33,7 +33,7 @@ view:
   - kind: chat
     lane: left
     source: thread.thread
-    heading: '{thread.ticket.title} · {thread.ticket.id} · 工单 {thread.ticket.status} · 会话 {thread.thread.status}'
+    heading: '{thread.ticket.title}'
     hide_roles:
     - system
     empty: 还没有消息，PM 正在准备…
@@ -43,6 +43,8 @@ view:
     source: thread.ticket
     heading: 工单
     rows:
+    - label: 工单号
+      value: row.id
     - label: 状态
       badge: row.status
     - label: 类型
