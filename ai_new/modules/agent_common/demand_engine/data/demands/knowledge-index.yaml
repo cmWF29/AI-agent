@@ -13,16 +13,28 @@ do:
     pattern:
       lit: '**/*.md'
   as: rows
+- call: store.walk
+  with:
+    module:
+      lit: agent/tickets
+    root:
+      lit: tickets
+    pattern:
+      lit: '*/ticket.yaml'
+  as: trows
 - call: knowledge.index
   with:
     rows:
       get: rows.rows
+    tickets:
+      get: trows.rows
   as: out
 expect:
   given:
     input: {}
   calls:
   - store.walk_text
+  - store.walk
   - knowledge.index
   payload: {}
-  promise: 取路径归需求，三级分组归模块
+  promise: 取路径与工单归需求，项目/工单归属树归模块

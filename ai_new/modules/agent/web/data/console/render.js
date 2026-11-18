@@ -287,6 +287,30 @@ function renderBubbles(msgs, roles) {
   }).join("");
 }
 
+function treeDocHtml(doc, sec, ctx) {
+  const c = { ...ctx, row: doc };
+  const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
+  return `<div class="tree-doc" ${click >= 0 ? `data-go="${click}"` : ""} role="button" tabindex="0">
+    <span class="tree-doc-name">${esc(fill("row.name", c))}</span>
+    <span class="muted tree-doc-path">${esc(fill("row.path", c))}</span>
+  </div>`;
+}
+function treeNodeHtml(node, sec, ctx) {
+  if (node.type === "doc") return treeDocHtml(node, sec, ctx);
+  const kids = (node.children || []).map((k) => treeNodeHtml(k, sec, ctx)).join("");
+  const count = (node.children || []).length;
+  const sub = node.sub ? `<span class="muted tree-node-sub">${esc(node.sub)}</span>` : "";
+  return `<details class="tree-node" open>
+    <summary><span class="badge">${esc(node.badge || "")}</span><span class="tree-node-label">${esc(node.label || "")}</span>${sub}<span class="muted tree-node-count">${count}</span></summary>
+    <div class="tree-children">${kids}</div>
+  </details>`;
+}
+function treeHtml(sec, ctx) {
+  const nodes = arr(ref(sec.source, ctx));
+  if (!nodes.length) return emptyHtml(sec.empty);
+  return `<div class="tree">${nodes.map((n) => treeNodeHtml(n, sec, ctx)).join("")}</div>`;
+}
+
 function kvHtml(sec, ctx) {
   const src = ref(sec.source, ctx) || {};
   const rows = (sec.rows || []).map((r) => {
@@ -352,6 +376,7 @@ function sectionHtml(sec, ctx) {
   else if (kind === "table") html = tableHtml(sec, ctx);
   else if (kind === "chat") html = chatHtml(sec, ctx);
   else if (kind === "kv") html = kvHtml(sec, ctx);
+  else if (kind === "tree") html = treeHtml(sec, ctx);
   else if (kind === "doc") html = docHtml(sec, ctx);
   else if (kind === "composer") html = composerHtml(sec, ctx);
   else html = emptyHtml({ text: "未知区块: " + kind });

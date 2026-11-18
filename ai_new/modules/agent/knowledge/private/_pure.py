@@ -108,30 +108,69 @@ def overview(p):
 
 
 def index(p):
-    """整树路径拍平成三级条目列表，供浏览视图按层展示。
+    """整树路径 + 工单记录 → 扁平 items 与「公共/项目/工单/文档」归属树。
 
-    rows: [{path}]；每条定 layer / 归属 id / 文档名（去 .md）。纯分组，不读正文。
+    rows: [{path}]；tickets: 工单档案记录列表（带 id/project/title）。纯分组，不读正文。
+    取数归需求，归组形状归模块；前端只按 tree 递归渲染。
     """
     items = []
     counts = {"public": 0, "project": 0, "ticket": 0}
     layer_label = {"public": "公共", "project": "项目", "ticket": "工单"}
+    ticket_project, ticket_title = {}, {}
+    for t in p.get("tickets") or []:
+        if not t:
+            continue
+        tid = t.get("id") or ""
+        if tid:
+            ticket_project[tid] = t.get("project") or ""
+            ticket_title[tid] = t.get("title") or ""
+
+    public_docs = []
+    project_groups = {}   # pid -> {"docs": [], "tickets": {tid: [doc]}}
+    orphan_tickets = {}   # tid -> [doc]（工单档案缺失项目归属）
+
+    def _doc(layer, pid, tid, name, rel):
+        return {"type": "doc", "layer": layer, "layer_label": layer_label[layer],
+                "project": pid, "ticket": tid, "name": name, "path": rel}
+
     for row in p.get("rows") or []:
         rel = row.get("path") if isinstance(row, dict) else str(row or "")
         parts = [s for s in rel.split("/") if s]
         name = parts[-1][:-3] if parts and parts[-1].endswith(".md") else (parts[-1] if parts else "")
         if parts[0] == "public" and len(parts) == 2:
-            items.append({"layer": "public", "layer_label": layer_label["public"],
-                          "project": "", "ticket": "", "name": name, "path": rel})
-            counts["public"] += 1
+            doc = _doc("public", "", "", name, rel)
+            items.append(doc); counts["public"] += 1
+            public_docs.append(doc)
         elif parts[0] == "projects" and len(parts) == 3:
-            items.append({"layer": "project", "layer_label": layer_label["project"],
-                          "project": parts[1], "ticket": "", "name": name, "path": rel})
-            counts["project"] += 1
+            pid = parts[1]
+            doc = _doc("project", pid, "", name, rel)
+            items.append(doc); counts["project"] += 1
+            project_groups.setdefault(pid, {"docs": [], "tickets": {}})["docs"].append(doc)
         elif parts[0] == "tickets" and len(parts) == 3:
-            items.append({"layer": "ticket", "layer_label": layer_label["ticket"],
-                          "project": "", "ticket": parts[1], "name": name, "path": rel})
-            counts["ticket"] += 1
-    return {"items": items, "counts": counts}
+            tid = parts[1]
+            pid = ticket_project.get(tid, "")
+            doc = _doc("ticket", pid, tid, name, rel)
+            items.append(doc); counts["ticket"] += 1
+            if pid:
+                grp = project_groups.setdefault(pid, {"docs": [], "tickets": {}})
+                grp["tickets"].setdefault(tid, []).append(doc)
+            else:
+                orphan_tickets.setdefault(tid, []).append(doc)
+
+    tree = []
+    if public_docs:
+        tree.append({"type": "public", "label": "公共", "badge": "公共", "children": public_docs})
+    for pid in sorted(project_groups):
+        grp = project_groups[pid]
+        children = list(grp["docs"])
+        for tid in sorted(grp["tickets"]):
+            children.append({"type": "ticket", "label": tid, "sub": ticket_title.get(tid, ""),
+                             "badge": "工单", "children": grp["tickets"][tid]})
+        tree.append({"type": "project", "label": pid, "badge": "项目", "children": children})
+    for tid in sorted(orphan_tickets):
+        tree.append({"type": "ticket", "label": tid, "sub": ticket_title.get(tid, ""),
+                     "badge": "工单", "children": orphan_tickets[tid]})
+    return {"items": items, "counts": counts, "tree": tree}
 
 
 def search(p):

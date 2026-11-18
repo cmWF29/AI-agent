@@ -92,6 +92,25 @@ main .crumb{margin-bottom:12px}
 .orphans[open] summary::before{content:"▾ "}
 .orphans table{margin-top:10px}
 
+/* ---- 知识归属树 ---- */
+.tree{display:flex;flex-direction:column;gap:10px}
+.tree-node{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow);overflow:hidden}
+.tree-node>summary{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;list-style:none}
+.tree-node>summary::-webkit-details-marker{display:none}
+.tree-node>summary::before{content:"▾ ";color:var(--muted)}
+.tree-node:not([open])>summary::before{content:"▸ "}
+.tree-node-label{font-weight:600;font-size:13.5px}
+.tree-node-sub{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}
+.tree-node-count{margin-left:auto;font-size:12px}
+.tree-children{display:flex;flex-direction:column;gap:6px;padding:10px 10px 10px 24px;border-top:1px solid var(--line-2)}
+.tree-children .tree-node{box-shadow:none;background:transparent;border-color:var(--line-2)}
+.tree-children .tree-node>summary{padding:9px 10px}
+.tree-children .tree-children{padding-left:18px}
+.tree-doc{display:flex;align-items:baseline;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer}
+.tree-doc:hover{background:var(--line-2)}
+.tree-doc-name{font-size:13.5px;flex:none}
+.tree-doc-path{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* ---- 表格 ---- */
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-2)}

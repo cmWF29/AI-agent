@@ -207,6 +207,35 @@ class CoreTest(unittest.TestCase):
         self.assertIn("计划结构模板", comp["text"])
         self.assertIn("验收标准", comp["text"])
 
+    def test_knowledge_index_tree_groups_tickets_under_project(self):
+        """知识目录树：公共平铺，项目文档与其工单文档按归属归到项目节点下。"""
+        rows = [
+            {"path": "public/plan-structure.md"},
+            {"path": "projects/重构/pm-decisions.md"},
+            {"path": "tickets/t-20261117-0004/ticket-brief.md"},
+            {"path": "tickets/t-20261118-0003/pm-decisions.md"},
+        ]
+        tickets = [
+            {"id": "t-20261117-0004", "project": "重构", "title": "登录闭环"},
+            {"id": "t-20261118-0003", "project": "重构", "title": "群聊流式"},
+        ]
+        out = self.ctx.api.call("knowledge.index", {"rows": rows, "tickets": tickets})
+        self.assertEqual(out["counts"], {"public": 1, "project": 1, "ticket": 2})
+        top = {n["type"] + ":" + n.get("label", ""): n for n in out["tree"]}
+        self.assertIn("public:公共", top)
+        proj = top["project:重构"]
+        kinds = [c["type"] for c in proj["children"]]
+        self.assertEqual(kinds.count("doc"), 1)
+        ticket_nodes = [c for c in proj["children"] if c["type"] == "ticket"]
+        self.assertEqual(len(ticket_nodes), 2)
+        for node in ticket_nodes:
+            self.assertEqual(len(node["children"]), 1)
+            self.assertEqual(node["children"][0]["project"], "重构")
+        # 工单档案缺失项目归属时，工单文档落到顶层孤儿节点，不丢条目
+        orphan = self.ctx.api.call("knowledge.index", {
+            "rows": [{"path": "tickets/t-orphan/note.md"}], "tickets": []})
+        self.assertEqual(orphan["tree"][0]["type"], "ticket")
+
     def test_channel_post_tail_roundtrip(self):
         """频道：需求发两条、按序读回；watch 门面按游标回 {items, cursor}。"""
         self._run("channel-post", {"channel": "probe-ch", "role": "user", "content": "一"})

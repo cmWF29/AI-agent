@@ -24,12 +24,8 @@ view:
       value: row.project
     - label: 工单
       value: row.ticket
-  - kind: table
-    source: idx.items
-    columns:
-    - {label: 层, badge: row.layer_label}
-    - {label: 文档, value: row.name, sub: row.path}
-    - {label: 归属, value: row.project, fallback: row.ticket, muted: true}
+  - kind: tree
+    source: idx.tree
     on_click:
       view: knowledge-doc
       params:
