@@ -27,6 +27,7 @@ def setup(ctx):
         ("sessions.statsp", _run_pure.statsp),
         ("sessions.flow_plan", _run_pure.flow_plan),
         ("sessions.recover_stale", _run_pure.recover_stale),
+        ("sessions.resume_plan", _run_pure.resume_plan),
     ]
     for name, fn in pairs:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="sessions")
@@ -40,7 +41,8 @@ def setup(ctx):
 
 
 def start(ctx):
-    """启动回收：把上次进程崩溃前卡在 running、超时未动的会话复位 idle。失败不阻断启动。"""
+    """启动回收：崩溃前卡在 running 的会话按开关与上限分类——可续跑的落盘标记后重新驱动，
+    其余复位 idle 等待后续人工/停滞扫描拉起。失败不阻断启动。"""
     try:
         listed = ctx.api.call("store.glob", {
             "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
@@ -52,14 +54,23 @@ def start(ctx):
                 rows.append({"path": rel, "rec": row["value"]})
         now = ctx.api.call("clock.now", {}, caller=None)
         cfgv = dict((getattr(ctx, "cfg", None) or {}).get("sessions") or {})
-        limit = (cfgv.get("context") or {}).get("recover_after_seconds") or 300
-        recovered = ctx.api.call("sessions.recover_stale", {
-            "rows": rows, "now": now.get("ts"), "limit_seconds": limit}, caller=None)
+        ctxv = dict(cfgv.get("context") or {})
+        enabled = ctxv.get("resume_on_boot")
+        enabled = True if enabled is None else bool(enabled)
+        max_n = int(ctxv.get("resume_max") or 5)
+        plan = ctx.api.call("sessions.resume_plan", {
+            "rows": rows, "now": now.get("ts"),
+            "enabled": enabled, "max": max_n}, caller=None)
         effects = [{"kind": "write", "module": "agent/sessions",
                     "path": i["path"], "value": i["rec"]}
-                   for i in recovered.get("items") or []]
+                   for i in (plan.get("resume") or []) + (plan.get("stale") or [])]
         if effects:
             ctx.runtime.apply({"effect": effects})
+        for item in plan.get("resume") or []:
+            sid = item.get("id")
+            if sid:
+                ctx.runtime.dispatch({"demand": "session-run", "key": sid,
+                                      "input": {"id": sid}})
     except Exception:  # noqa: BLE001 —— 启动回收失败不得掀翻服务启动
         pass
 

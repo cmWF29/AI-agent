@@ -13,6 +13,7 @@ def setup(ctx):
         ("react.toolmsg", _pure.toolmsg),
         ("react.result", _pure.result),
         ("react.context_view", _pure.context_view),
+        ("react.checkpoint", _pure.checkpoint),
         ("react.classify_tool", _pure.classify_tool),
         ("react.parse_final", _pure.parse_final),
         ("react.strip_fence", _pure.strip_fence),
@@ -62,6 +63,25 @@ def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
             "rel_path": path, "size": cls.get("size")}
 
 
+def _checkpoint(ctx, session, path, messages, summary, steps):
+    """轮内中间落盘：把当前累积消息/摘要/步数写回会话记录。失败不掀翻 ReAct 循环。
+
+    路径由编排层（session-run）算好传入；react 不拼会话布局。写盘交 runtime 落地，
+    能力自己不伸手。检查点只缩小崩溃窗口，跨轮接续仍以 summary 为准。
+    """
+    if not path or not (session or {}).get("id"):
+        return
+    try:
+        now = ctx.api.call("clock.now", {}, caller=None)
+        ckpt = ctx.api.call("react.checkpoint", {
+            "rec": session, "messages": messages, "summary": summary,
+            "steps": steps, "now": now.get("ts")}, caller=None)
+        ctx.runtime.apply({"effect": {"kind": "write", "module": "agent/sessions",
+                                      "path": path, "value": ckpt}})
+    except Exception:  # noqa: BLE001 —— 检查点失败不中断本轮，收尾仍会整段写盘
+        pass
+
+
 def _route_run(ctx, payload):
     """ReAct 闭环：轮次循环、终止判断、工具回填都在能力内部，需求树只留一次调用。
 
@@ -70,6 +90,7 @@ def _route_run(ctx, payload):
     """
     session = payload.get("session") or {}
     archive = list(payload.get("messages") or [])
+    path = payload.get("path") or ""
     summary = session.get("summary") or ""
     mode = payload.get("mode")
     view = ctx.api.call("react.context_view",
@@ -138,8 +159,11 @@ def _route_run(ctx, payload):
         if not amsg.get("tool_calls") or not names:
             if str(parsed.get("summary") or "").strip():
                 new_summary = parsed["summary"]
+            _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
             done = True
             continue
+        # 工具步：先把这条带 tool_calls 的 assistant 落检查点，崩溃后存档不丢这一步
+        _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
         tool_idx = 0
         for call in amsg.get("tool_calls") or []:
             tool_idx += 1
@@ -164,6 +188,7 @@ def _route_run(ctx, payload):
                 "content": stash["content"]}, caller=None)
             messages = messages + [tmsg]
             new_msgs.append(tmsg)
+            _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
     if gate:
         ctx.runtime.stream_clear(gate.get("id"))
     full = archive + new_msgs

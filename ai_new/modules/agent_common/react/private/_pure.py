@@ -97,6 +97,25 @@ def context_view(p):
     return {"messages": view}
 
 
+def checkpoint(p):
+    """轮内检查点成形：在会话快照上覆盖本轮累积消息/摘要/步数与时间，供中间落盘。
+
+    纯 dict 拷贝与字段定型，不碰盘、不取时钟（now 由编排层给）。崩溃后磁盘上保留
+    最后一条检查点，重启可据此重建存档；跨轮上下文接续仍以 summary 为准。
+    """
+    rec = dict(p.get("rec") or {})
+    msgs = p.get("messages")
+    if msgs is not None:
+        rec["messages"] = list(msgs)
+    if p.get("summary") is not None:
+        rec["summary"] = p.get("summary") or ""
+    if p.get("steps") is not None:
+        rec["steps"] = p.get("steps") or 0
+    if p.get("now"):
+        rec["updated"] = p.get("now")
+    return rec
+
+
 def classify_tool(p):
     """工具输出分级：按字符数判定是否超限需落盘只回路径。纯计算，不碰盘。"""
     text = p.get("content") or ""

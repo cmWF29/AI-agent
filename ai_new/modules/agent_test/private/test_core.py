@@ -772,6 +772,43 @@ class CoreTest(unittest.TestCase):
         finally:
             self.ctx.api.substitute("artifacts.save", orig_save)
 
+    def test_react_checkpoint_writes_session_record(self):
+        """轮内检查点：带 path 时收口步经 runtime.apply 把会话记录写回，崩溃后存档不丢本轮增量。"""
+        import json as _json
+        def stub_json(ctx, payload):
+            return {"ok": True, "status": 200, "headers": {},
+                    "items": [{"choices": [{"delta": {"content": _json.dumps(
+                        {"reply": "（测试）完成", "summary": "摘要"},
+                         ensure_ascii=False)}, "finish_reason": "stop"}]}]}
+        self.ctx.api.substitute("net.request_stream", stub_json)
+        captured = []
+        orig_apply = self.ctx.runtime.apply
+        def spy(req):
+            eff = (req or {}).get("effect")
+            if isinstance(eff, list):
+                captured.extend(eff)
+            elif eff:
+                captured.append(eff)
+            return orig_apply(req)
+        self.ctx.runtime.apply = spy
+        try:
+            self._run("react-run", {
+                "session": {"id": "cp-1", "summary": "旧摘要", "backend": "api"},
+                "messages": [{"role": "system", "content": "人设"},
+                             {"role": "user", "content": "指令"}],
+                "tools": [], "path": "sessions/cp-1.yaml",
+                "cancel": {"id": "cp-1", "since": 0}})
+            writes = [e for e in captured if e.get("kind") == "write"
+                      and e.get("module") == "agent/sessions"]
+            self.assertTrue(writes, "收口步应落一条会话检查点")
+            ck = writes[-1]["value"]
+            self.assertEqual(ck["id"], "cp-1")
+            self.assertTrue(any(m["role"] == "assistant" for m in ck["messages"]))
+            self.assertEqual(ck["summary"], "摘要")
+        finally:
+            self.ctx.runtime.apply = orig_apply
+            self.ctx.api.substitute("net.request_stream", self.fake_net)
+
     def test_react_non_structured_keeps_old_summary(self):
         """T2 非结构化收口不清空滚动摘要；旧摘要跨轮保留。"""
         import json as _json
@@ -1231,6 +1268,25 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(react_pure.classify_tool(
             {"content": "x" * 1001, "threshold": 1000})["size"], 1001)
 
+        # 检查点成形：快照拷贝，覆盖 messages/summary/steps/updated，其余字段原样保留
+        rec = {"id": "s1", "kind": "role", "status": "running", "summary": "旧",
+               "messages": [{"role": "system", "content": "人设"}], "steps": 2,
+               "backend": "api"}
+        ck = react_pure.checkpoint({"rec": rec,
+            "messages": [{"role": "system"}, {"role": "user", "content": "指令"},
+                         {"role": "assistant", "content": "回"}],
+            "summary": "新摘要", "steps": 4, "now": "t2"})
+        self.assertEqual(ck["id"], "s1")
+        self.assertEqual(ck["status"], "running")
+        self.assertEqual(ck["backend"], "api")
+        self.assertEqual(len(ck["messages"]), 3)
+        self.assertEqual(ck["summary"], "新摘要")
+        self.assertEqual(ck["steps"], 4)
+        self.assertEqual(ck["updated"], "t2")
+        # 不改动原快照
+        self.assertEqual(rec["summary"], "旧")
+        self.assertEqual(rec["steps"], 2)
+
         # P2-8 启动回收：超阈值的 running 复位 idle 并标 interrupted；新近 running 与 idle 不动
         now = 1000000
         rows = [
@@ -1244,6 +1300,29 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(a["status"], "idle")
         self.assertEqual(a["meta"]["last_error"]["code"], "interrupted_on_boot")
         self.assertEqual(a["updated"], now)
+
+        # 启动续跑计划：开开关且未超上限 → resume 标记中断痕迹并复位 idle；超出上限 → stale 复位
+        rows2 = [
+            {"path": "a.yaml", "rec": {"id": "a", "status": "running"}},
+            {"path": "b.yaml", "rec": {"id": "b", "status": "running"}},
+            {"path": "c.yaml", "rec": {"id": "c", "status": "running"}},
+            {"path": "d.yaml", "rec": {"id": "d", "status": "idle"}},
+        ]
+        plan = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": True, "max": 2})
+        self.assertEqual([i["id"] for i in plan["resume"]], ["a", "b"])
+        self.assertEqual([i["id"] for i in plan["stale"]], ["c"])
+        ra = plan["resume"][0]["rec"]
+        self.assertEqual(ra["status"], "idle")
+        self.assertEqual(ra["meta"]["resumed"], 1)
+        self.assertEqual(ra["meta"]["last_error"]["code"], "interrupted_on_boot")
+        self.assertEqual(ra["updated"], now)
+        # 关开关：running 全部归 stale，不续跑
+        off = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": False, "max": 2})
+        self.assertEqual(off["resume"], [])
+        self.assertEqual([i["id"] for i in off["stale"]], ["a", "b", "c"])
+        # max=0 不限制条数
+        allr = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": True, "max": 0})
+        self.assertEqual(len(allr["resume"]), 3)
 
     def test_skill_unit_pure_functions(self):
         # install_parts：流程拆不出 → flow=null、skill.flow 留空；岗位/工具带同一 skill 归属

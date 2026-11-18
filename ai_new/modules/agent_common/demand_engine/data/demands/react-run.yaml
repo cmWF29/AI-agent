@@ -27,6 +27,8 @@ do:
       get: input.cancel
     mode:
       get: input.mode
+    path:
+      get: input.path
   as: out
 expect:
   given:

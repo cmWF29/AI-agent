@@ -33,6 +33,8 @@ sessions:
   context:
     tool_output_chars: 1000   # 工具输出正文超此字符数即落盘 ticket 层，上下文只回路径
     recover_after_seconds: 300  # 启动时卡在 running 超过该秒数的会话复位 idle
+    resume_on_boot: true      # 进程重启后自动把残留 running 会话重新驱动一轮
+    resume_max: 5             # 单次启动最多自动续跑的会话数，防止启动风暴
 tickets:
   max_roles: 8
   pm_max_steps: 0

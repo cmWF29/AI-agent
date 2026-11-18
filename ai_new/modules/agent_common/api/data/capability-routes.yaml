@@ -206,6 +206,8 @@ capabilities:
     - react.extract_json
     - react.attach_protocol
     - store.read_text
+    - clock.now
+    - react.checkpoint
   decompose.run:
     calls:
     - net.request

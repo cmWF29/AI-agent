@@ -71,6 +71,8 @@ do:
           get: now.ts
       mode:
         get: row.value.backend
+      path:
+        get: sp2.path
   as: out
 - call: sessions.record_path
   with:
