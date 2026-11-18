@@ -56,8 +56,92 @@ def result(p):
     msgs = p.get("messages") or []
     return {"steps": p.get("steps") or 0, "messages": msgs,
             "last": msgs[-1] if msgs else None, "cancelled": bool(p.get("cancelled")),
-            "failed": p.get("failed")}
+            "failed": p.get("failed"), "summary": p.get("summary")}
 
 
 def toolerr(p):
     return {"error": p.get("message") or "", "code": p.get("code") or "tool_error"}
+
+
+# ---- 上下文治理：历史摘要、发往视图、大输出分级 ----
+
+def summary_msg(p):
+    """滚动摘要消息成形：role 留 assistant 供上游识别，kind 标记摘要只供展示/治理。"""
+    text = p.get("summary") or ""
+    if not text.strip():
+        return None
+    return {"role": "assistant", "kind": "summary", "content": text.strip()}
+
+
+def context_view(p):
+    """构造发往上游的上下文视图。
+
+    存档 messages 全量保留供展示与回溯；发模型时除 system 外不带历史原始往返，
+    历史由上一轮 LLM 生成的滚动摘要替代，只保留本轮指令（最后一条 user）。
+    本轮 ReAct 内新增的 assistant/tool 由循环追加进同一视图。
+    """
+    msgs = p.get("messages") or []
+    system = [m for m in msgs if m.get("role") == "system"]
+    rest = [m for m in msgs if m.get("role") != "system"]
+    last_user = None
+    for m in reversed(rest):
+        if m.get("role") == "user":
+            last_user = m
+            break
+    view = list(system)
+    smsg = summary_msg({"summary": p.get("summary")})
+    if smsg:
+        view.append(smsg)
+    if last_user:
+        view.append(last_user)
+    return {"messages": view, "system": system, "last_user": last_user}
+
+
+def classify_tool(p):
+    """工具输出分级：按字符数判定是否超限需落盘只回路径。纯计算，不碰盘。"""
+    text = p.get("content") or ""
+    threshold = int(p.get("threshold") or 1000)
+    size = len(text)
+    return {"large": size > threshold, "size": size, "threshold": threshold}
+
+
+def strip_fence(p):
+    """剥掉模型常见的 ```json 代码围栏，留出可解析正文；纯字符串处理，不解析 JSON。"""
+    t = (p.get("text") or "").strip()
+    if t.startswith("```"):
+        t = t.split("\n", 1)[-1] if "\n" in t else t[3:]
+        if t.rstrip().endswith("```"):
+            t = t.rstrip()[:-3]
+    return {"text": t.strip()}
+
+
+def parse_final(p):
+    """拆分收口步的结构化输出：reply 进气泡，summary 存滚动摘要。
+
+    obj 为 codec 已解码结果；解析失败/非 dict 时整段作答复正文，摘要留空由调用方回退。
+    纯计算，不碰盘、不做 JSON 解码。
+    """
+    content = p.get("content") or ""
+    obj = p.get("obj")
+    if isinstance(obj, dict) and ("reply" in obj or "summary" in obj):
+        reply = obj.get("reply")
+        summary = obj.get("summary") or ""
+        return {"structured": True,
+                "reply": "" if reply is None else str(reply),
+                "summary": str(summary)}
+    return {"structured": False, "reply": content, "summary": ""}
+
+
+def attach_protocol(p):
+    """把收口输出协议约定追加到首条 system 消息；无 system 或无协议文本则原样返回。"""
+    msgs = list(p.get("messages") or [])
+    protocol = (p.get("protocol") or "").strip()
+    if not protocol:
+        return {"messages": msgs}
+    for i, m in enumerate(msgs):
+        if m.get("role") == "system":
+            msg = dict(m)
+            msg["content"] = (str(m.get("content") or "").rstrip() + "\n\n" + protocol).strip()
+            msgs[i] = msg
+            break
+    return {"messages": msgs}

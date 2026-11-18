@@ -709,10 +709,28 @@ class CoreTest(unittest.TestCase):
         self.assertIn("artifact_read", names)
         self.assertNotIn("role_spawn", names)
         self._run("session-send", {"id": sid, "text": "开始"})
-        self._run("session-run", {"id": sid})
-        done = self._run("session-wait", {"id": sid})["result"]
-        self.assertEqual(done["status"], "idle")
-        self.assertIn("测试", done["content"])
+        # 收口步桩返回严格 JSON：reply 进气泡，summary 拆出存滚动摘要
+        import json as _json
+        def stub_json(ctx, payload):
+            return {"ok": True, "status": 200, "headers": {},
+                    "items": [{"choices": [{"delta": {"content": _json.dumps(
+                        {"reply": "（测试）已完成。", "summary": "本轮结论：验证通过"},
+                         ensure_ascii=False)}, "finish_reason": "stop"}]}]}
+        self.ctx.api.substitute("net.request_stream", stub_json)
+        try:
+            self._run("session-run", {"id": sid})
+            done = self._run("session-wait", {"id": sid})["result"]
+            self.assertEqual(done["status"], "idle")
+            self.assertIn("测试", done["content"])
+            # 一轮收口后滚动摘要已回填；原始往返仍全量存档
+            rec = self.ctx.api.call("store.read", {"module": "agent/sessions",
+                                    "path": "sessions/%s.yaml" % sid}).get("value") or {}
+            self.assertEqual(rec.get("summary"), "本轮结论：验证通过")
+            self.assertTrue(any(m["role"] == "assistant" for m in rec.get("messages") or []))
+            # 存档气泡只存 reply，不夹带摘要 JSON
+            self.assertNotIn("summary", done["content"])
+        finally:
+            self.ctx.api.substitute("net.request_stream", self.fake_net)
 
     def test_ops_overview_logs_and_library(self):
         o = self._run("ops-overview")["result"]
@@ -1036,6 +1054,53 @@ class CoreTest(unittest.TestCase):
         self.assertEqual([m["content"] for m in pm_msgs], ["开工", "计划已出"])
         role_msgs = arch["transcript"]["roles"][0]["messages"]
         self.assertEqual([m["content"] for m in role_msgs], ["交付完成"])
+
+    def test_react_context_pure_functions(self):
+        # 发往视图：system 保留，历史往返剔除，摘要占位 + 本轮指令保留
+        msgs = [
+            {"role": "system", "content": "人设"},
+            {"role": "user", "content": "历史指令一"},
+            {"role": "assistant", "content": "历史答复"},
+            {"role": "tool", "tool_call_id": "c1", "name": "x", "content": "历史工具结果"},
+            {"role": "user", "content": "本轮指令"},
+        ]
+        view = react_pure.context_view({"messages": msgs, "summary": "旧摘要"})
+        self.assertEqual([m["role"] for m in view["messages"]],
+                         ["system", "assistant", "user"])
+        self.assertEqual(view["messages"][1]["kind"], "summary")
+        self.assertEqual(view["messages"][1]["content"], "旧摘要")
+        self.assertEqual(view["messages"][2]["content"], "本轮指令")
+        # 无摘要时不插摘要消息
+        view2 = react_pure.context_view({"messages": msgs, "summary": ""})
+        self.assertEqual([m["role"] for m in view2["messages"]], ["system", "user"])
+        # 工具输出分级：阈值内全文，超限标记落盘
+        self.assertFalse(react_pure.classify_tool(
+            {"content": "短", "threshold": 1000})["large"])
+        big = "x" * 1001
+        cls = react_pure.classify_tool({"content": big, "threshold": 1000})
+        self.assertTrue(cls["large"])
+        self.assertEqual(cls["size"], 1001)
+        # 收口结构化拆分：剥围栏 → 解码 → reply 进气泡，summary 存滚动摘要
+        import json as _json2
+        fenced = '```json\n{"reply": "已完成", "summary": "结论 A，路径 x"}\n```'
+        stripped = react_pure.strip_fence({"text": fenced})
+        obj = _json2.loads(stripped["text"])
+        fin = react_pure.parse_final({"obj": obj, "content": fenced})
+        self.assertTrue(fin["structured"])
+        self.assertEqual(fin["reply"], "已完成")
+        self.assertEqual(fin["summary"], "结论 A，路径 x")
+        # 非结构化文本：整段作答复，摘要留空回退
+        plain = react_pure.parse_final({"obj": None, "content": "就是一段普通答复"})
+        self.assertFalse(plain["structured"])
+        self.assertEqual(plain["reply"], "就是一段普通答复")
+        self.assertEqual(plain["summary"], "")
+        # 协议约定追加到首条 system，其余消息不动
+        proto = react_pure.attach_protocol({
+            "messages": [{"role": "system", "content": "人设"},
+                         {"role": "user", "content": "开工"}],
+            "protocol": "收口返回 JSON"})
+        self.assertIn("收口返回 JSON", proto["messages"][0]["content"])
+        self.assertEqual(proto["messages"][1]["content"], "开工")
 
     def test_skill_unit_pure_functions(self):
         # install_parts：流程拆不出 → flow=null、skill.flow 留空；岗位/工具带同一 skill 归属

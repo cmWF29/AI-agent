@@ -198,6 +198,13 @@ capabilities:
     - codec.json_encode
     - react.toolmsg
     - react.result
+    - react.context_view
+    - react.classify_tool
+    - artifacts.save
+    - react.parse_final
+    - react.strip_fence
+    - react.attach_protocol
+    - store.read_text
   decompose.run:
     calls:
     - net.request

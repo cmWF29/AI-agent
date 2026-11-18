@@ -51,6 +51,9 @@ def finish(p):
     rec["messages"] = msgs
     rec["status"] = "idle"
     rec["steps"] = out.get("steps") or 0
+    # 滚动摘要：本轮 react 产出新摘要就回填；未产出（打断/失败/首轮）保留旧摘要。
+    if out.get("summary") is not None:
+        rec["summary"] = out.get("summary") or ""
     rec["updated"] = p.get("now") or ""
     meta = dict(rec.get("meta") or {})
     failed = out.get("failed")

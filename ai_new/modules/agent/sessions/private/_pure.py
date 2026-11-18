@@ -31,6 +31,7 @@ def build(p):
         "status": "idle", "created": p.get("now") or "", "updated": p.get("now") or "",
         "max_steps": p.get("max_steps"),
         "meta": p.get("meta") or {},
+        "summary": "",
         "messages": _seed(system, intro),
     }
 
@@ -42,6 +43,7 @@ def view(p):
             "project": rec.get("project"),
             "backend": rec.get("backend"), "status": rec.get("status"),
             "created": rec.get("created"), "updated": rec.get("updated"),
+            "summary": rec.get("summary") or "",
             "meta": rec.get("meta") or {},
             "messages": rec.get("messages") or []}
 
