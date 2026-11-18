@@ -43,7 +43,7 @@ def viewed(p):
 def decode(p):
     """hex → utf8；不行就退 base64（由 codec 在需求里先转）。"""
     hx = p.get("hex") or ""
-    limit = int(p.get("max_bytes") or 262144)
+    limit = int(p.get("max_bytes"))
     truncated = int(p.get("size") or 0) > limit
     raw = bytes.fromhex(hx)[:limit]
     try:

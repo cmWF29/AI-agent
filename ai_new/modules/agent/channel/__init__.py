@@ -76,8 +76,18 @@ def _route_read_since(ctx, payload):
 def _route_read_tail(ctx, payload):
     cid = ctx.api.call("store.id", {"value": payload.get("channel")}, caller=None)
     rows = _read_rows(ctx, cid.get("id"))
+    default_limit = payload.get("default_limit")
+    if default_limit is None:
+        default_limit = ctx.api.call("config.get", {"key": "channel.default_limit"},
+                                     caller=None).get("value")
+    max_limit = payload.get("max_limit")
+    if max_limit is None:
+        max_limit = ctx.api.call("config.get", {"key": "channel.max_limit"},
+                                 caller=None).get("value")
     return ctx.api.call("channel.tail", {"channel": cid.get("id"), "rows": rows,
-                                        "limit": payload.get("limit")}, caller=None)
+                                        "limit": payload.get("limit"),
+                                        "default_limit": default_limit,
+                                        "max_limit": max_limit}, caller=None)
 
 
 def _route_reply(ctx, payload):
@@ -85,7 +95,7 @@ def _route_reply(ctx, payload):
     if payload.get("role") != "user":
         return {"ok": True, "skipped": True}
     history = ctx.api.call("channel.read_tail", {
-        "channel": payload.get("channel"), "limit": 20}, caller=None)
+        "channel": payload.get("channel")}, caller=None)
     messages = list(history.get("messages") or [])
     messages.append({"role": "user", "content": payload.get("content")})
     reply = ctx.runtime.call("llm-chat", {"messages": messages})

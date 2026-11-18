@@ -67,8 +67,7 @@ def _register_tools(ctx):
           {"name": "verdict", "type": "string", "desc": "accepted=验收通过；rejected=未通过关闭（只记录驳回结论并关单，不自动重开）", "required": False}],
          "ticket-close", pm),
         ("ticket_read_doc", "读本工单交付件或交接文档（只读）",
-         [{"name": "path", "type": "string", "desc": "交付件相对路径", "required": True},
-          {"name": "max_bytes", "type": "number", "desc": "读取上限字节", "required": False}],
+         [{"name": "path", "type": "string", "desc": "交付件相对路径", "required": True}],
          "ticket-file", pm + role),
         ("ticket_note", "给工单记一条备注（不改动交付件）",
          [{"name": "text", "type": "string", "desc": "备注内容", "required": True}],
@@ -293,23 +292,30 @@ def _route_rebind(ctx, payload):
 
 
 def _route_stall_scan(ctx, payload):
-    """停滞扫描闭环：遍历在途工单、逐条判定、按命中开审计单。"""
+    """停滞扫描闭环：开关/阈值/上限/是否开单由需求层从配置传入；遍历判定归本能力。"""
     now = ctx.api.call("clock.now", {}, caller=None)
+    if not bool(payload.get("enabled")):
+        return ctx.api.call("ops.assemble", {"parts": {"scan": [], "at": now.get("ts")}},
+                            caller=None)
     rows = ctx.api.call("store.walk", {"module": "agent/tickets", "root": "tickets",
                                        "pattern": "*/ticket.yaml"}, caller=None)
+    limit_seconds = int(payload.get("idle_minutes")) * 60
+    max_per_scan = int(payload.get("max_per_scan"))
+    create_audit = bool(payload.get("create_audit"))
     hot = []
     for rec in rows.get("rows") or []:
         rec = rec or {}
         idle = ctx.api.call("clock.since", {"iso": rec.get("updated")}, caller=None)
         verdict = ctx.api.call("tickets.stale", {
             "rec": rec, "idle_seconds": idle.get("seconds"),
-            "limit_seconds": payload.get("limit_seconds")}, caller=None)
+            "limit_seconds": limit_seconds}, caller=None)
         if verdict.get("stale") is True:
             hot.append(rec.get("id"))
-    for tid in hot:
-        ctx.runtime.call("ticket-create", {
-            "title": "停滞审计: %s" % tid, "goal": "工单久未推进: %s" % tid,
-            "kind": "stall-audit", "auto_retrospective": False})
+    if create_audit:
+        for tid in hot[:max_per_scan]:
+            ctx.runtime.call("ticket-create", {
+                "title": "停滞审计: %s" % tid, "goal": "工单久未推进: %s" % tid,
+                "kind": "stall-audit", "auto_retrospective": False})
     return ctx.api.call("ops.assemble", {"parts": {"scan": hot, "at": now.get("ts")}},
                         caller=None)
 

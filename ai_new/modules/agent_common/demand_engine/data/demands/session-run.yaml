@@ -8,6 +8,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: sessions.result_chars
+  as: cfg_chars
 - call: sessions.record_path
   with:
     id:
@@ -98,6 +103,8 @@ do:
       get: latest.value
     now:
       get: done_at.ts
+    result_chars:
+      get: cfg_chars.value
   as: rec
 - call: sessions.record_path
   with:
@@ -127,6 +134,7 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
   - sessions.record_path
   - store.read
   - clock.now

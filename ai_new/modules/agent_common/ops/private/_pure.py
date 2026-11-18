@@ -36,7 +36,7 @@ def events(p):
 
 def tail(p):
     rows = p.get("rows") or []
-    n = max(1, int(p.get("lines") or 50))
+    n = max(1, int(p.get("lines")))
     return {"rows": rows[-n:]}
 
 

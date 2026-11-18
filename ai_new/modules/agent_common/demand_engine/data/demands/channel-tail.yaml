@@ -6,12 +6,26 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: channel.default_limit
+  as: cfg_default
+- call: config.get
+  with:
+    key:
+      lit: channel.max_limit
+  as: cfg_max
 - call: channel.read_tail
   with:
     channel:
       get: input.channel
     limit:
       get: input.limit
+    default_limit:
+      get: cfg_default.value
+    max_limit:
+      get: cfg_max.value
   as: out
 expect:
   given:
@@ -19,6 +33,8 @@ expect:
       channel: c1
       limit: 5
   calls:
+  - config.get
+  - config.get
   - channel.read_tail
   payload: {}
   promise: 读整频道、逐行解码、取窗口都在能力内部

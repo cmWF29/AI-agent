@@ -1647,12 +1647,14 @@ class CoreTest(unittest.TestCase):
         rec = {"id": "pm-1", "meta": {}}
         failed_out = {"messages": [], "steps": 0, "last": None, "cancelled": False,
                       "failed": {"code": "llm_error", "error": "余额不足"}}
-        done = sess_run.finish({"rec": rec, "out": failed_out, "latest": {}, "now": 1})
+        done = sess_run.finish({"rec": rec, "out": failed_out, "latest": {}, "now": 1,
+                                "result_chars": 500})
         self.assertEqual(done["meta"]["last_error"]["error"], "余额不足")
         self.assertTrue(done["result"].get("failed"))
         ok_out = {"messages": [{"role": "assistant", "content": "好"}], "steps": 1,
                   "last": {"content": "好"}, "cancelled": False, "failed": None}
-        cleared = sess_run.finish({"rec": done, "out": ok_out, "latest": {}, "now": 2})
+        cleared = sess_run.finish({"rec": done, "out": ok_out, "latest": {}, "now": 2,
+                                   "result_chars": 500})
         self.assertNotIn("last_error", cleared["meta"])
 
     def test_thread_exposes_session_backend_and_meta(self):

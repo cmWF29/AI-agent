@@ -17,7 +17,10 @@ def make(p):
 
 def tail(p):
     rows = [r for r in (p.get("rows") or []) if isinstance(r, dict)]
-    n = max(1, min(int(p.get("limit") or 20), 200))
+    raw = p.get("limit")
+    default_limit = int(p.get("default_limit"))
+    max_limit = int(p.get("max_limit"))
+    n = max(1, min(int(raw) if raw is not None else default_limit, max_limit))
     return {"channel": p.get("channel") or "default",
             "cursor": rows[-1]["seq"] if rows else 0,
             "messages": [{"role": r.get("role"), "content": r.get("content")} for r in rows[-n:]]}

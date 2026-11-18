@@ -41,6 +41,7 @@ def mark(p):
 
 def finish(p):
     rec = dict(p.get("rec") or {})
+    limit = int(p.get("result_chars"))
     out = p.get("out") or {}
     base = list(rec.get("messages") or [])
     msgs = list(out.get("messages") or base)
@@ -67,10 +68,10 @@ def finish(p):
     if out.get("cancelled"):
         rec["result"] = {"summary": "（已打断）", "at": p.get("now") or "", "cancelled": True}
     elif failed:
-        rec["result"] = {"summary": (failed.get("error") or "后端未答复")[:500],
+        rec["result"] = {"summary": (failed.get("error") or "后端未答复")[:limit],
                          "at": p.get("now") or "", "failed": True}
     else:
-        rec["result"] = {"summary": (last.get("content") or "")[:500], "at": p.get("now") or ""}
+        rec["result"] = {"summary": (last.get("content") or "")[:limit], "at": p.get("now") or ""}
     return rec
 
 

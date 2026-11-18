@@ -399,7 +399,7 @@ def stale(p):
     if rec.get("status") == "closed":
         return {"stale": False}
     idle = int(p.get("idle_seconds") or 0)
-    limit = int(p.get("limit_seconds") or 3600)
+    limit = int(p.get("limit_seconds"))
     return {"stale": idle >= limit}
 
 

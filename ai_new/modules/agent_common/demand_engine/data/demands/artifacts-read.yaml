@@ -6,6 +6,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: artifacts.max_bytes
+  as: cfg_bytes
 - call: store.id
   with:
     value:
@@ -46,7 +51,7 @@ do:
     size:
       get: raw.size
     max_bytes:
-      get: input.max_bytes
+      get: cfg_bytes.value
   as: d
 - call: artifacts.viewed
   with:
@@ -65,6 +70,7 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
   - store.id
   - store.id
   - artifacts.base

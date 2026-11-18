@@ -7,10 +7,36 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: tickets.stall_check.enabled
+  as: cfg_enabled
+- call: config.get
+  with:
+    key:
+      lit: tickets.stall_check.idle_minutes
+  as: cfg_idle
+- call: config.get
+  with:
+    key:
+      lit: tickets.stall_check.max_per_scan
+  as: cfg_max
+- call: config.get
+  with:
+    key:
+      lit: tickets.stall_check.create_audit
+  as: cfg_audit
 - call: tickets.stall_scan
   with:
-    limit_seconds:
-      get: input.limit_seconds
+    enabled:
+      get: cfg_enabled.value
+    idle_minutes:
+      get: cfg_idle.value
+    max_per_scan:
+      get: cfg_max.value
+    create_audit:
+      get: cfg_audit.value
   as: out
 - call: runtime.apply
   with:
@@ -23,6 +49,10 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
+  - config.get
+  - config.get
+  - config.get
   - tickets.stall_scan
   - runtime.apply
   payload: {}

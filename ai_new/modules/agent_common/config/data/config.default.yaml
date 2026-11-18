@@ -28,6 +28,7 @@ sessions:
   max_concurrent: 8
   max_steps: 60
   summary_keep: 10       # 上下文裁剪保留的最近普通消息条数（system 消息全部保留）
+  result_chars: 500      # 落盘结果摘要（失败原因/回复正文）截断字符数
   secretary_scenario: prompts/secretary.md
   pm_scenario: prompts/pm.md
   role_scenario: prompts/roles/{role}.md
@@ -40,11 +41,10 @@ tickets:
   pm_max_steps: 0
   auto_retrospective: false
   stall_check:
-    enabled: true
-    interval_sec: 300
-    idle_minutes: 45
-    max_per_scan: 2
-    create_audit: true
+    enabled: true          # 是否启用停滞扫描
+    idle_minutes: 45       # 空闲超过该分钟数判停滞
+    max_per_scan: 2        # 单次扫描最多开几张审计单
+    create_audit: true     # 命中后是否真开审计单（false 只报告命中）
 agents:
   default: api
   guard:
@@ -58,3 +58,10 @@ knowledge:
   snippet_chars: 400      # 命中摘要片段字符长度
 library:
   review_max_retries: 2   # 收尾评审最多回催次数，到达即转卡点交上层裁决
+channel:
+  default_limit: 20      # 频道回看默认条数
+  max_limit: 200         # 单次回看条数硬上限
+artifacts:
+  max_bytes: 262144      # 交付件读取截断字节上限（256 KiB）
+ops:
+  log_lines: 100         # 日志/操作记录回看行数

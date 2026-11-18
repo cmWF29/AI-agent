@@ -33,8 +33,6 @@ do:
         get: row.value.project
       path:
         get: input.path
-      max_bytes:
-        get: input.max_bytes
   as: out
 expect:
   given:

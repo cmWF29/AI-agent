@@ -6,6 +6,11 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: ops.log_lines
+  as: cfg_lines
 - call: store.read_text
   with:
     module:
@@ -20,7 +25,7 @@ do:
     rows:
       get: text.value
     lines:
-      lit: 100
+      get: cfg_lines.value
   as: last
 - call: ops.events
   with:
@@ -31,6 +36,7 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
   - store.read_text
   - ops.tail
   - ops.events
