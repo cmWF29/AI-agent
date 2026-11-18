@@ -119,6 +119,8 @@ view:
   - kind: table
     source: tickets.items
     heading: 工单
+    summarize: true
+    title: 工单
     count_note: "{data.tickets.items.length} 条 / 进行中 {data.tickets.items|count(status!=closed)}"
     filters:
     - {key: all, label: 全部}
