@@ -42,28 +42,17 @@ def _records(p):
     seed = p.get("seed") or {}
     user = p.get("user") or {}
     kind = p.get("kind") or "roles"
-    out = dict(user)
-    for rec in seed.get(kind) or []:
+    seed_recs = seed.get(kind) or []
+    system_ids = {r.get("id") for r in seed_recs if r.get("system")}
+    out = {rid: dict(rec) for rid, rec in user.items()}
+    for rec in seed_recs:
         rid = rec.get("id")
-        if rid and rid not in out:
-            out[rid] = dict(rec, builtin=True)
+        if not rid:
+            continue
+        if rid in out and rid not in system_ids:
+            continue  # 非系统内置允许用户库覆盖；系统内置恒定以种子为准
+        out[rid] = dict(rec, builtin=True)
     return out
-
-
-def _pm_record(pm_seed=None, pm_prompt_file=""):
-    """PM 是工单主会话编排者，不是可被派单实例化的岗位；在库内只作只读条目展示。
-
-    职责骨架与工具名单来自 seed.yaml 的 pm 段；提示词引用会话侧 prompts/pm.md。
-    """
-    seed = pm_seed or {}
-    return {"id": "pm", "cn": seed.get("cn") or "PM",
-            "prompt_file": pm_prompt_file or "",
-            "must_outputs": seed.get("must_outputs") or [],
-            "must_dos": seed.get("must_dos") or [],
-            "forbidden": seed.get("forbidden") or [],
-            "tools": seed.get("tools") or [],
-            "backend": seed.get("backend") or "", "builtin": True,
-            "readonly": True, "system": True}
 
 
 def _check_desc(c, tpl):
@@ -86,18 +75,18 @@ def _check_desc(c, tpl):
     return head
 
 
-def _position(rec, flow, prompt_text="", pm_prompt="", tpl=None, paths=None):
+def _position(rec, flow, prompt_text="", tpl=None):
     """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 代码性流程规范 + 产出约束。
 
-    正文优先取角色提示词；PM 条目无角色文件，回退 sessions 侧 PM 提示词。
+    正文取提示词文件内容；提示词归属模块由记录 prompt_module 标注。
     """
     tpl = tpl or {}
-    paths = paths or {}
     flow = flow or {}
     checks = [dict(c, desc=_check_desc(c, tpl)) for c in (flow.get("checks") or [])]
     return {"id": rec.get("id"), "cn": rec.get("cn"),
             "prompt_file": rec.get("prompt_file"),
-            "prompt": prompt_text or pm_prompt or "",
+            "prompt_module": rec.get("prompt_module") or "agent/library",
+            "prompt": prompt_text or "",
             "must_outputs": rec.get("must_outputs") or [],
             "forbidden": rec.get("forbidden") or [],
             "must_dos": rec.get("must_dos") or [],
@@ -168,22 +157,16 @@ def prompt_blocks(p):
 
 
 def positionp(p):
-    """单条岗位：岗位记录 + 关联流程规范合并成形。PM 为主会话只读条目，不在角色记录里。"""
+    """单条岗位：岗位记录 + 关联流程规范合并成形。"""
     rec = p.get("rec") or {}
     prompt_text = p.get("prompt_text") or ""
-    pm_prompt = p.get("pm_prompt") or ""
     tpl = p.get("tpl") or {}
-    paths = p.get("paths") or {}
     if not rec:
-        if (p.get("id") or "") == "pm":
-            pm_file = paths.get("pm_prompt") or ""
-            return _position(_pm_record((p.get("seed") or {}).get("pm"), pm_file),
-                             p.get("flow") or {}, prompt_text, pm_prompt, tpl, paths)
         pid = p.get("id") or ""
         t = tpl.get("position_missing") or ""
         return {"ok": False, "code": "not_found", "status": 404,
                 "error": t.format(id=pid) if t else ""}
-    return _position(rec, p.get("flow") or {}, prompt_text, pm_prompt, tpl, paths)
+    return _position(rec, p.get("flow") or {}, prompt_text, tpl)
 
 
 def _disabled_skill_ids(skills):
@@ -193,35 +176,30 @@ def _disabled_skill_ids(skills):
 
 
 def positionsp(p):
-    """岗位列表：岗位记录按 id 关联各自流程规范；禁用 Skill 的岗位摘除；末尾附只读 PM 条目。
+    """岗位列表：岗位记录按 id 关联各自流程规范；禁用 Skill 的岗位摘除。
 
-    disabled_roles 为项目级禁用岗位 id 集合：公共库记录仍展示并打 disabled 标记，供项目重新启用。
+    disabled_roles 为项目级禁用岗位 id 集合：公共库记录仍展示并打 disabled 标记，供项目重新启用；
+    system/readonly 内置条目恒定受保护，不被项目禁用标记摘除。
     """
     roles = _records({"seed": p.get("seed"), "user": p.get("user"), "kind": "roles"})
     flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
     disabled = _disabled_skill_ids(p.get("skills"))
     disabled_roles = set(p.get("disabled_roles") or [])
     tpl = p.get("tpl") or {}
-    paths = p.get("paths") or {}
     items = []
     for rid, rec in roles.items():
         sk = rec.get("skill")
         if sk and sk in disabled:
             continue
-        row = _position(rec, flows.get(rid) or {}, "", "", tpl, paths)
-        row["disabled"] = rid in disabled_roles
+        row = _position(rec, flows.get(rid) or {}, "", tpl)
+        locked = bool(rec.get("system") or rec.get("readonly"))
+        row["disabled"] = (rid in disabled_roles) and not locked
         if row["disabled"]:
             row["disabled_text"] = tpl.get("label_disabled_project") or ""
         else:
             row["disabled_text"] = tpl.get("label_enabled") or ""
-        row["locked"] = bool(rec.get("system") or rec.get("readonly"))
+        row["locked"] = locked
         items.append(row)
-    pm = _position(_pm_record((p.get("seed") or {}).get("pm"),
-                               paths.get("pm_prompt") or ""), {}, "", "", tpl, paths)
-    pm["disabled"] = False
-    pm["disabled_text"] = tpl.get("label_enabled") or ""
-    pm["locked"] = True
-    items.append(pm)
     return {"items": items}
 
 
@@ -320,11 +298,19 @@ def kind_file(p):
 
 
 def prompt_path(p):
-    """角色提示词文件相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    """提示词文件定位：返回所属模块与相对路径；模板由需求层配置表给出，纯函数只填参。
+
+    提示词归属模块由记录 prompt_module 标注（缺省 agent/library）；sessions 侧记录的
+    prompt_file 已是相对会话数据根的完整路径，不再套 library 的 prompts 模板。
+    """
     paths = p.get("paths") or {}
+    rec = p.get("rec") or {}
+    module = rec.get("prompt_module") or "agent/library"
+    file = p.get("file") or rec.get("prompt_file") or ""
+    if module == "agent/sessions":
+        return {"module": module, "path": file}
     t = paths.get("prompt") or ""
-    file = p.get("file") or ""
-    return {"path": t.format(file=file) if t else file}
+    return {"module": module, "path": t.format(file=file) if t else file}
 
 
 def save_record(p):

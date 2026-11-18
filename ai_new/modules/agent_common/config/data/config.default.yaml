@@ -80,7 +80,6 @@ library:
   paths:
     record: '{kind}s.yaml'
     prompt: 'prompts/{file}'
-    pm_prompt: 'prompts/pm.md'
 channel:
   default_limit: 20      # 频道回看默认条数
   max_limit: 200         # 单次回看条数硬上限

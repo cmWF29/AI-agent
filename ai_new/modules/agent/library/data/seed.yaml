@@ -1,6 +1,8 @@
-pm:
-  id: pm
+roles:
+- id: pm
   cn: PM
+  prompt_module: agent/sessions
+  prompt_file: prompts/pm.md
   must_outputs: []
   must_dos:
   - 受理工单需求并拆解执行计划
@@ -19,7 +21,6 @@ pm:
   builtin: true
   readonly: true
   system: true
-roles:
 - id: architect
   cn: 架构
   prompt_file: roles/architect.md

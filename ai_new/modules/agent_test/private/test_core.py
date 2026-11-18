@@ -668,7 +668,7 @@ class CoreTest(unittest.TestCase):
         arch_check = (pget["flow"]["checks"] or [])[0]
         self.assertTrue(arch_check["desc"], "检查规则应带可读说明")
         self.assertIn("任一", arch_check["desc"])
-        # PM 作为主会话只读条目进库，不可派单；单条详情同样可取
+        # PM 作为内置只读岗位进库，不可派单；单条详情同样可取 sessions 侧提示词正文
         pm = next((x for x in plist["items"] if x["id"] == "pm"), None)
         self.assertIsNotNone(pm, "岗位库缺只读 PM 条目")
         self.assertTrue(pm["readonly"])
@@ -1475,7 +1475,7 @@ class CoreTest(unittest.TestCase):
         # disabled_p：只成形已禁用标识清单
         self.assertEqual(lib_pure.disabled_p({"skills": skills})["ids"], ["s2"])
 
-        # 岗位清单摘除禁用 Skill 的岗位；内置 PM 只读条目仍在
+        # 岗位清单摘除禁用 Skill 的岗位；seed 为空时不含内置条目
         pos = lib_pure.positionsp({"seed": {}, "user": roles, "flows": flows,
                                    "skills": skills})["items"]
         self.assertIn("r1", [p["id"] for p in pos])
