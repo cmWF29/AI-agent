@@ -1152,8 +1152,11 @@ class CoreTest(unittest.TestCase):
         exh = lib_pure.reviewp({"missing": gap, "retries": 2, "max_retries": 2})
         self.assertEqual(exh["verdict"], "exhausted")
         self.assertEqual(exh["retries"], 2)
-        # 提示词拼装：正文 + 必做 + 红线分段
-        block = lib_pure.prompt_blocks({"text": "正文", "must_dos": ["做 A"], "forbidden": ["禁 B"]})
+        # 提示词拼装：正文 + 必做 + 红线分段；段标题来自 messages.yaml
+        lib_tpl = self.ctx.api.call("store.read", {
+            "module": "agent/library", "path": "messages.yaml"}, caller=None).get("value") or {}
+        block = lib_pure.prompt_blocks({"text": "正文", "must_dos": ["做 A"],
+                                         "forbidden": ["禁 B"], "tpl": lib_tpl})
         self.assertIn("正文", block["system"])
         self.assertIn("必须做到", block["system"])
         self.assertIn("做 A", block["system"])

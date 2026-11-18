@@ -19,9 +19,11 @@ def build(p):
     injected = p.get("injected") or ""
     task = p.get("task") or ""
     intro = p.get("intro") or ""
+    tpl = p.get("tpl") or {}
     system = (prefix + "\n" + prompt + "\n" + injected).strip()
     if task:
-        system = system + "\n\n## 任务\n" + task
+        heading = tpl.get("task_heading") or ""
+        system = system + ("\n\n" + heading + "\n" if heading else "\n\n") + task
     sid = "%s-%s" % (p.get("kind") or "role", p.get("seq") or 1)
     return {
         "id": sid, "kind": p.get("kind") or "role", "name": p.get("name") or sid,
@@ -94,8 +96,11 @@ def missing(p):
 
 
 def record_path(p):
-    """会话记录落盘相对路径：布局约定属会话模块，需求层不拼字符串。"""
-    return {"path": "sessions/%s.yaml" % (p.get("id") or "")}
+    """会话记录落盘相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    paths = p.get("paths") or {}
+    t = paths.get("record") or ""
+    sid = p.get("id") or ""
+    return {"path": t.format(id=sid) if t else sid}
 
 
 def role_name(p):

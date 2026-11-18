@@ -11,6 +11,11 @@ def _msg_tpl(ctx):
     return row.get("value") or {}
 
 
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "react.paths"}, caller=None)
+    return row.get("value") or {}
+
+
 def setup(ctx):
     for name, fn in [
         ("react.schemas", _pure.schemas),
@@ -47,7 +52,8 @@ def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
     sid = (session or {}).get("id") or "anon"
     # call_id 缺失时用步号+步内序号兜底，避免同会话多次超限输出都写到 out.txt 互相覆盖。
     fid = call_id or ("out-%s" % (stamp or "x"))
-    path = "tool/%s/%s.txt" % (sid, fid)
+    pt = _cfg_paths(ctx).get("tool_out") or ""
+    path = pt.format(sid=sid, fid=fid) if pt else "%s/%s" % (sid, fid)
     saved = ctx.api.call("artifacts.save", {
         "layer": "ticket", "ticket": (session or {}).get("ticket"),
         "project": (session or {}).get("project"),

@@ -50,12 +50,12 @@ def _records(p):
     return out
 
 
-def _pm_record():
+def _pm_record(pm_prompt_file=""):
     """PM 是工单主会话编排者，不是可被派单实例化的岗位；在库内只作只读条目展示。
 
     提示词引用会话侧 prompts/pm.md；这里只给定位与职责骨架，不读盘、不取时间。
     """
-    return {"id": "pm", "cn": "PM", "prompt_file": "prompts/pm.md",
+    return {"id": "pm", "cn": "PM", "prompt_file": pm_prompt_file or "",
             "must_outputs": [],
             "must_dos": ["受理工单需求并拆解执行计划", "按需派角色、返工缺口与组织验收",
                          "对照验收标准闭环结单"],
@@ -65,31 +65,35 @@ def _pm_record():
             "backend": "", "builtin": True, "readonly": True, "system": True}
 
 
-def _check_desc(c):
+def _check_desc(c, tpl):
     """单条流程检查规则翻成可读中文；形状来自 flows 记录，缺字段不报错。"""
+    tpl = tpl or {}
     kind = c.get("kind")
     paths = c.get("paths") or []
+    joined = "、".join(paths)
     minb = c.get("min_bytes")
     if kind == "contains":
-        head = "交付件内容须包含文本：%s" % (c.get("text") or "")
+        head = (tpl.get("check_contains") or "").format(text=c.get("text") or "")
     else:
         match = c.get("match") or "all"
         if match == "any":
-            head = "交付件路径命中以下任一模式即可：%s" % "、".join(paths)
+            head = (tpl.get("check_any") or "").format(paths=joined)
         else:
-            head = "交付件须逐条命中以下路径模式：%s" % "、".join(paths)
+            head = (tpl.get("check_all") or "").format(paths=joined)
     if minb:
-        head += "；且文件不少于 %s 字节" % minb
+        head += (tpl.get("check_min_bytes") or "").format(minb=minb)
     return head
 
 
-def _position(rec, flow, prompt_text="", pm_prompt=""):
+def _position(rec, flow, prompt_text="", pm_prompt="", tpl=None, paths=None):
     """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 代码性流程规范 + 产出约束。
 
     正文优先取角色提示词；PM 条目无角色文件，回退 sessions 侧 PM 提示词。
     """
+    tpl = tpl or {}
+    paths = paths or {}
     flow = flow or {}
-    checks = [dict(c, desc=_check_desc(c)) for c in (flow.get("checks") or [])]
+    checks = [dict(c, desc=_check_desc(c, tpl)) for c in (flow.get("checks") or [])]
     return {"id": rec.get("id"), "cn": rec.get("cn"),
             "prompt_file": rec.get("prompt_file"),
             "prompt": prompt_text or pm_prompt or "",
@@ -146,14 +150,19 @@ def prompt_blocks(p):
 
     正文来自数据文件；这里只做结构拼装，不写任何职责正文。
     """
+    tpl = p.get("tpl") or {}
     text = p.get("text") or ""
     must = p.get("must_dos") or []
     forbidden = p.get("forbidden") or []
     parts = [text] if text else []
     if must:
-        parts.append("## 必须做到\n" + "\n".join("- %s" % m for m in must))
+        head = tpl.get("heading_must") or ""
+        parts.append(head + "\n" + "\n".join("- %s" % m for m in must) if head
+                     else "\n".join("- %s" % m for m in must))
     if forbidden:
-        parts.append("## 禁止事项\n" + "\n".join("- %s" % m for m in forbidden))
+        head = tpl.get("heading_forbidden") or ""
+        parts.append(head + "\n" + "\n".join("- %s" % m for m in forbidden) if head
+                     else "\n".join("- %s" % m for m in forbidden))
     return {"system": "\n\n".join(parts)}
 
 
@@ -162,14 +171,18 @@ def positionp(p):
     rec = p.get("rec") or {}
     prompt_text = p.get("prompt_text") or ""
     pm_prompt = p.get("pm_prompt") or ""
+    tpl = p.get("tpl") or {}
+    paths = p.get("paths") or {}
     if not rec:
         if (p.get("id") or "") == "pm":
-            return _position(_pm_record(), p.get("flow") or {}, prompt_text, pm_prompt)
+            pm_file = paths.get("pm_prompt") or ""
+            return _position(_pm_record(pm_file), p.get("flow") or {},
+                             prompt_text, pm_prompt, tpl, paths)
         pid = p.get("id") or ""
-        tpl = p.get("tpl") or ""
+        t = tpl.get("position_missing") or ""
         return {"ok": False, "code": "not_found", "status": 404,
-                "error": tpl.format(id=pid) if tpl else ""}
-    return _position(rec, p.get("flow") or {}, prompt_text, pm_prompt)
+                "error": t.format(id=pid) if t else ""}
+    return _position(rec, p.get("flow") or {}, prompt_text, pm_prompt, tpl, paths)
 
 
 def _disabled_skill_ids(skills):
@@ -188,12 +201,13 @@ def positionsp(p):
     disabled = _disabled_skill_ids(p.get("skills"))
     disabled_roles = set(p.get("disabled_roles") or [])
     tpl = p.get("tpl") or {}
+    paths = p.get("paths") or {}
     items = []
     for rid, rec in roles.items():
         sk = rec.get("skill")
         if sk and sk in disabled:
             continue
-        row = _position(rec, flows.get(rid) or {})
+        row = _position(rec, flows.get(rid) or {}, "", "", tpl, paths)
         row["disabled"] = rid in disabled_roles
         if row["disabled"]:
             row["disabled_text"] = tpl.get("label_disabled_project") or ""
@@ -201,7 +215,7 @@ def positionsp(p):
             row["disabled_text"] = tpl.get("label_enabled") or ""
         row["locked"] = bool(rec.get("system") or rec.get("readonly"))
         items.append(row)
-    pm = _position(_pm_record(), {})
+    pm = _position(_pm_record(paths.get("pm_prompt") or ""), {}, "", "", tpl, paths)
     pm["disabled"] = False
     pm["disabled_text"] = tpl.get("label_enabled") or ""
     pm["locked"] = True
@@ -296,13 +310,19 @@ def checkp(p):
 
 
 def kind_file(p):
-    """岗位库分库用户记录文件：<kind>s.yaml，布局约定属岗位库模块。"""
-    return {"path": "%ss.yaml" % (p.get("kind") or "")}
+    """岗位库分库用户记录文件：模板由需求层配置表给出，纯函数只填参。"""
+    paths = p.get("paths") or {}
+    t = paths.get("record") or ""
+    kind = p.get("kind") or ""
+    return {"path": t.format(kind=kind) if t else kind}
 
 
 def prompt_path(p):
-    """角色提示词文件相对路径：prompts/<file>。"""
-    return {"path": "prompts/%s" % (p.get("file") or "")}
+    """角色提示词文件相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    paths = p.get("paths") or {}
+    t = paths.get("prompt") or ""
+    file = p.get("file") or ""
+    return {"path": t.format(file=file) if t else file}
 
 
 def save_record(p):

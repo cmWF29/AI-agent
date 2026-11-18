@@ -62,5 +62,8 @@ def session_view(p):
 
 
 def session_path(p):
-    """注销要删的会话记录相对路径：布局约定属鉴权模块。"""
-    return {"path": "sessions/%s.yaml" % (p.get("token") or "")}
+    """注销要删的会话记录相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    paths = p.get("paths") or {}
+    t = paths.get("session") or ""
+    tok = p.get("token") or ""
+    return {"path": t.format(token=tok) if t else tok}

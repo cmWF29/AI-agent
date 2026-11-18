@@ -15,6 +15,20 @@ def _msg_tpl(ctx):
     return row.get("value") or {}
 
 
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "auth.paths"}, caller=None)
+    return row.get("value") or {}
+
+
+def _as_handler(fn):
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        if "paths" not in payload:
+            payload["paths"] = _cfg_paths(ctx)
+        return fn(payload)
+    return handler
+
+
 def setup(ctx):
     md = ctx.storage.own(__file__)
 
@@ -34,7 +48,8 @@ def setup(ctx):
         if not enabled:
             return {"allow": False, "mode": "legacy", "reason": "unauthorized"}
 
-        record = md.yaml_read("sessions/%s.yaml" % token, None)
+        pt = _cfg_paths(ctx).get("session") or ""
+        record = md.yaml_read(pt.format(token=token) if pt else token, None)
         if not record or not record.get("token"):
             return {"allow": False, "mode": "session", "reason": "unauthorized"}
         now = ctx.clock.now()["ts"]
@@ -58,7 +73,7 @@ def setup(ctx):
         ("auth.session_path", _pure.session_path),
     ]
     for name, fn in pairs:
-        ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="auth")
+        ctx.api.register(name, _as_handler(fn), module="auth")
     ctx.api.register("auth.login", _route_login, "登录闭环：配置→摘要比对→发会话→落盘→会话视图",
                      module="auth")
     ctx.api.register("auth.change_password", _route_change_password,
@@ -88,8 +103,10 @@ def _route_login(ctx, payload):
         "token": nonce.get("token"), "username": payload.get("username"),
         "issued": now.get("ts"), "ttl": cfgv.get("ttl")}, caller=None)
     view = ctx.api.call("auth.session_view", {"record": rec}, caller=None)
+    pt = _cfg_paths(ctx).get("session") or ""
+    tok = rec.get("token") or ""
     view["effects"] = [{"kind": "write", "module": "agent/auth",
-                        "path": "sessions/%s.yaml" % rec.get("token"), "value": rec}]
+                        "path": pt.format(token=tok) if pt else tok, "value": rec}]
     return view
 
 

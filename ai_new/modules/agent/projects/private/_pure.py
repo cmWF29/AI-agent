@@ -113,8 +113,11 @@ def deleted(payload):
 
 
 def record_path(p):
-    """项目档案落盘相对路径：布局约定属项目模块，需求层不拼字符串。"""
-    return {"path": "%s.yaml" % (p.get("id") or "")}
+    """项目档案落盘相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    paths = p.get("paths") or {}
+    t = paths.get("record") or ""
+    pid = p.get("id") or ""
+    return {"path": t.format(id=pid) if t else pid}
 
 
 # ---- 项目级启停覆盖层：定义正文只存公共库一份，项目只记禁用清单 ----

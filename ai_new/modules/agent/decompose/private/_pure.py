@@ -167,21 +167,29 @@ def promptize(p):
     """把系统提示词、包内容与现有工具名单拼成对话消息；成形规则归拆解模块。"""
     system = (p.get("system") or "").strip()
     meta = p.get("meta") or {}
+    tpl = p.get("tpl") or {}
+
+    def _label(key, value):
+        lab = tpl.get(key) or ""
+        return ("%s：%s" % (lab, value)) if lab else str(value)
+
     parts = []
     if meta.get("id"):
-        parts.append("包标识：%s" % meta["id"])
+        parts.append(_label("meta_id_label", meta["id"]))
     if meta.get("doc"):
-        parts.append("包说明：%s" % meta["doc"])
+        parts.append(_label("meta_doc_label", meta["doc"]))
     if meta.get("version"):
-        parts.append("版本：%s" % meta["version"])
+        parts.append(_label("meta_version_label", meta["version"]))
     if p.get("pip"):
-        parts.append("Python 依赖：%s" % "、".join(p["pip"]))
+        parts.append(_label("pip_label", "、".join(p["pip"])))
     if p.get("scripts"):
-        parts.append("随包脚本/资源：%s" % "、".join(p["scripts"]))
+        parts.append(_label("scripts_label", "、".join(p["scripts"])))
     if p.get("body"):
-        parts.append("包正文：\n%s" % p["body"])
-    avail = "、".join(_names(p.get("tools"))) or "（无）"
-    parts.append("现有工具名单（引用这些工具时直接用名字）：%s" % avail)
+        body_lab = tpl.get("body_label") or ""
+        parts.append(("%s：\n%s" % (body_lab, p["body"])) if body_lab else p["body"])
+    avail = "、".join(_names(p.get("tools"))) or (tpl.get("no_tools") or "")
+    tools_lab = tpl.get("tools_label") or ""
+    parts.append(("%s：%s" % (tools_lab, avail)) if tools_lab else avail)
     user = "\n\n".join(parts)
     messages = []
     if system:

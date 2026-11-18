@@ -17,7 +17,8 @@ class WebPanel:
         parts = [seg for seg in rel.split("/") if seg not in ("", ".")]
         if any(seg == ".." for seg in parts):
             raise ctx.ApiError("路径越界: %s" % rel, code="path_escape", status=403)
-        target = "console/" + "/".join(parts)
+        t = _cfg_paths(ctx).get("console") or ""
+        target = t.format(rel="/".join(parts)) if t else "/".join(parts)
         out = ctx.api.call("store.read_text",
                            {"module": "agent/web", "path": target, "fallback": ""})
         if not out.get("exists"):
@@ -26,10 +27,24 @@ class WebPanel:
         return {"content": out.get("value") or "", "content_type": ctype}
 
 
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "web.paths"}, caller=None)
+    return row.get("value") or {}
+
+
+def _as_handler(fn):
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        if "paths" not in payload:
+            payload["paths"] = _cfg_paths(ctx)
+        return fn(payload)
+    return handler
+
+
 def setup(ctx):
     ctx.web = WebPanel(ctx)
     for name, fn in [("web.rel", _pure.rel), ("web.mime", _pure.mime),
                      ("web.info", _pure.info), ("web.gate", _pure.gate),
                      ("web.console_path", _pure.console_path)]:
-        ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="web")
+        ctx.api.register(name, _as_handler(fn), module="web")
     return True

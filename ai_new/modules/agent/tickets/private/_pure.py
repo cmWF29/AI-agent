@@ -410,5 +410,8 @@ def stale(p):
 
 
 def record_path(p):
-    """工单记录落盘相对路径：布局约定属工单模块，需求层不拼字符串。"""
-    return {"path": "tickets/%s/ticket.yaml" % (p.get("id") or "")}
+    """工单记录落盘相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    paths = p.get("paths") or {}
+    t = paths.get("record") or ""
+    tid = p.get("id") or ""
+    return {"path": t.format(id=tid) if t else tid}

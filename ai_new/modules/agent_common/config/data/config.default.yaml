@@ -32,6 +32,10 @@ sessions:
   secretary_scenario: prompts/secretary.md
   pm_scenario: prompts/pm.md
   role_scenario: prompts/roles/{role}.md
+  paths:
+    record: 'sessions/{id}.yaml'
+    prompt: 'prompts/{kind}.md'
+    glob: 'sessions/*.yaml'
   context:
     tool_output_chars: 1000   # 工具输出正文超此字符数即落盘 ticket 层，上下文只回路径
     resume_on_boot: true      # 进程重启后自动把残留 running 会话重新驱动一轮
@@ -46,6 +50,14 @@ tickets:
     idle_minutes: 45       # 空闲超过该分钟数判停滞
     max_per_scan: 2        # 单次扫描最多开几张审计单
     create_audit: true     # 命中后是否真开审计单（false 只报告命中）
+  paths:
+    record: 'tickets/{id}/ticket.yaml'
+    project_record: '{project}.yaml'
+    session: 'sessions/{sid}.yaml'
+    glob: 'tickets/T-*/ticket.yaml'
+    session_glob: 'sessions/*.yaml'
+    ticket_glob: '*/ticket.yaml'
+    root: 'tickets'
 agents:
   default: api
   guard:
@@ -65,9 +77,31 @@ knowledge:
     project_dir: 'projects/{id}'
 library:
   review_max_retries: 2   # 收尾评审最多回催次数，到达即转卡点交上层裁决
+  paths:
+    record: '{kind}s.yaml'
+    prompt: 'prompts/{file}'
+    pm_prompt: 'prompts/pm.md'
 channel:
   default_limit: 20      # 频道回看默认条数
   max_limit: 200         # 单次回看条数硬上限
+  paths:
+    record: 'channels/{id}.jsonl'
+projects:
+  paths:
+    record: '{id}.yaml'
+    ticket_prefix: 'tickets/{seg}'
+    project_dir: 'projects/{pid}'
+    ticket_glob: 'tickets/T-*/ticket.yaml'
+    session_glob: 'sessions/*.yaml'
+auth:
+  paths:
+    session: 'sessions/{token}.yaml'
+web:
+  paths:
+    console: 'console/{rel}'
+react:
+  paths:
+    tool_out: 'tool/{sid}/{fid}.txt'
 artifacts:
   max_bytes: 262144      # 交付件读取截断字节上限（256 KiB）
   paths:

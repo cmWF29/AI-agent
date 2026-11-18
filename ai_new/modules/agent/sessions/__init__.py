@@ -29,7 +29,7 @@ def setup(ctx):
         ("sessions.resume_plan", _run_pure.resume_plan),
     ]
     for name, fn in pairs:
-        ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="sessions")
+        ctx.api.register(name, _as_handler(fn), module="sessions")
     ctx.api.register("sessions.spawn", _route_spawn,
                      "造会话：取人设与知识拼记录，写入算成效果交出去", module="sessions")
     ctx.api.register("sessions.emit_finished", _route_emit_finished,
@@ -55,7 +55,8 @@ def _route_resume(ctx, payload):
     遍历读盘在能力内；写盘与后台派发交需求 runtime.apply。配置与文案由需求层读好传入。
     """
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+        "module": "agent/sessions",
+        "pattern": _cfg_paths(ctx).get("glob") or ""}, caller=None)
     rows = []
     for rel in listed.get("items") or []:
         row = ctx.api.call("store.read", {
@@ -87,7 +88,8 @@ def _route_by_ticket(ctx, payload):
     """按工单 id 归集本工单全部会话视图；遍历与读盘在闭环内，成形交 sessions.view。"""
     tid = payload.get("ticket") or ""
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+        "module": "agent/sessions",
+        "pattern": _cfg_paths(ctx).get("glob") or ""}, caller=None)
     items = []
     for rel in listed.get("items") or []:
         row = ctx.api.call("store.read", {"module": "agent/sessions",
@@ -124,15 +126,19 @@ def _seq_of(kind, items):
 def _route_spawn(ctx, payload):
     """造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。"""
     kind = payload.get("kind") or "role"
+    paths = _cfg_paths(ctx)
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
     tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
     role_prompt = payload.get("role_prompt") or None
     if not role_prompt:
+        pt = paths.get("prompt") or ""
         row = ctx.api.call("store.read_text", {
-            "module": "agent/sessions", "path": "prompts/%s.md" % kind}, caller=None)
+            "module": "agent/sessions",
+            "path": pt.format(kind=kind) if pt else kind}, caller=None)
         role_prompt = row.get("value") or ""
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+        "module": "agent/sessions",
+        "pattern": paths.get("glob") or ""}, caller=None)
     baseline = _seq_of(kind, listed.get("items")) - 1
     seq = payload.get("seq") or ctx.api.call("store.next_seq", {
         "bucket": "session:" + kind, "baseline": baseline}, caller=None).get("seq")
@@ -154,5 +160,32 @@ def _route_spawn(ctx, payload):
     view["rec"] = rec
     view["effects"] = [{
         "kind": "write", "module": "agent/sessions",
-        "path": "sessions/%s.yaml" % (rec.get("id") or ""), "value": rec}]
+        "path": _record_path(paths, rec.get("id") or ""), "value": rec}]
     return view
+
+
+def _as_handler(fn):
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        if "tpl" not in payload:
+            payload["tpl"] = _msg_tpl(ctx)
+        if "paths" not in payload:
+            payload["paths"] = _cfg_paths(ctx)
+        return fn(payload)
+    return handler
+
+
+def _msg_tpl(ctx):
+    row = ctx.api.call("store.read", {
+        "module": "agent/sessions", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "sessions.paths"}, caller=None)
+    return row.get("value") or {}
+
+
+def _record_path(paths, sid):
+    t = (paths or {}).get("record") or ""
+    return t.format(id=sid) if t else sid

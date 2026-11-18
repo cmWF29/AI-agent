@@ -35,5 +35,12 @@ def _as_handler(fn):
             "module": "agent/library", "path": "messages.yaml"}, caller=None)
         payload = dict(payload or {})
         payload["tpl"] = row.get("value") or {}
+        if "paths" not in payload:
+            payload["paths"] = _cfg_paths(ctx)
         return fn(payload)
     return handler
+
+
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "library.paths"}, caller=None)
+    return row.get("value") or {}

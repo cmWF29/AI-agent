@@ -11,6 +11,16 @@ def _msg_tpl(ctx):
     return row.get("value") or {}
 
 
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "projects.paths"}, caller=None)
+    return row.get("value") or {}
+
+
+def _record(paths, pid):
+    t = (paths or {}).get("record") or ""
+    return t.format(id=pid) if t else pid
+
+
 def setup(ctx):
     """装配入口：注册纯函数；组合逻辑在 demand_engine/data/demands/projects-*.json。"""
     for name, fn in [
@@ -37,19 +47,20 @@ def setup(ctx):
 
 
 def _route_create(ctx, payload):
+    paths = _cfg_paths(ctx)
     pid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.build", {
         "id": pid.get("id"), "name": payload.get("name"),
         "created": now.get("ts"), "default_backend": payload.get("default_backend")}, caller=None)
     ex = ctx.api.call("store.exists", {"module": "agent/projects",
-        "path": pid.get("id") + ".yaml"}, caller=None)
+        "path": _record(paths, pid.get("id"))}, caller=None)
     if ex.get("exists"):
         return ctx.api.call("projects.conflict",
             {"id": pid.get("id"), "tpl": _msg_tpl(ctx).get("conflict")}, caller=None)
     view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
     view["effects"] = [{"kind": "write", "module": "agent/projects",
-                "path": pid.get("id") + ".yaml", "value": rec}]
+                "path": _record(paths, pid.get("id")), "value": rec}]
     return view
 
 
@@ -59,8 +70,9 @@ def _route_toggle(ctx, payload):
     项目档案不存在返 missing；类型/标识非法由纯函数返错误形状，不落盘。
     """
     pid = ctx.api.call("store.id", {"value": payload.get("project")}, caller=None)
+    paths = _cfg_paths(ctx)
     row = ctx.api.call("store.read", {"module": "agent/projects",
-        "path": pid.get("id") + ".yaml"}, caller=None)
+        "path": _record(paths, pid.get("id"))}, caller=None)
     if row.get("value") is None:
         return ctx.api.call("projects.missing",
             {"id": pid.get("id"), "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
@@ -75,7 +87,7 @@ def _route_toggle(ctx, payload):
     view["overrides"] = ctx.api.call("projects.override_parts",
                                      {"rec": rec}, caller=None)
     view["effects"] = [{"kind": "write", "module": "agent/projects",
-                        "path": pid.get("id") + ".yaml", "value": rec}]
+                        "path": _record(paths, pid.get("id")), "value": rec}]
     return view
 
 
@@ -86,8 +98,9 @@ def _purge_tickets(ctx, pid):
     """
     effects = []
     ticket_ids = []
+    paths = _cfg_paths(ctx)
     listed = ctx.api.call("store.glob", {
-        "module": "agent/tickets", "pattern": "tickets/T-*/ticket.yaml"}, caller=None)
+        "module": "agent/tickets", "pattern": paths.get("ticket_glob") or ""}, caller=None)
     for rel in listed.get("items") or []:
         segs = str(rel).split("/")
         if len(segs) != 3:
@@ -97,8 +110,9 @@ def _purge_tickets(ctx, pid):
         if ((row.get("value") or {}).get("project")) != pid:
             continue
         ticket_ids.append(segs[1])
+        tp = paths.get("ticket_prefix") or ""
         effects.append({"kind": "remove_dir", "module": "agent/tickets",
-                        "path": "tickets/%s" % segs[1]})
+                        "path": tp.format(seg=segs[1]) if tp else segs[1]})
     return effects, ticket_ids
 
 
@@ -112,7 +126,8 @@ def _purge_sessions(ctx, ticket_ids):
     ids = set(ticket_ids)
     effects = []
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions", "pattern": "sessions/*.yaml"}, caller=None)
+        "module": "agent/sessions",
+        "pattern": _cfg_paths(ctx).get("session_glob") or ""}, caller=None)
     for rel in listed.get("items") or []:
         row = ctx.api.call("store.read", {
             "module": "agent/sessions", "path": rel}, caller=None)
@@ -128,22 +143,26 @@ def _purge_sessions(ctx, ticket_ids):
 def _purge_ticket_knowledge(ctx, ticket_ids):
     """清掉被删工单的 ticket 层知识；该层前缀 tickets/<tid>，tid 经 store.id 归一为小写。"""
     effects = []
+    tp = _cfg_paths(ctx).get("ticket_prefix") or ""
     for tid in ticket_ids:
         nid = ctx.api.call("store.id", {"value": tid}, caller=None).get("id")
         effects.append({"kind": "remove_dir", "module": "agent/knowledge",
-                        "path": "tickets/%s" % nid})
+                        "path": tp.format(seg=nid) if tp else nid})
     return effects
 
 
 def _purge_project_tree(ctx, module, pid):
     """清掉项目在产物/知识层的整棵前缀目录；目录不存在时 remove_dir 自报未删，不报错。"""
-    return [{"kind": "remove_dir", "module": module, "path": "projects/%s" % pid}]
+    t = _cfg_paths(ctx).get("project_dir") or ""
+    return [{"kind": "remove_dir", "module": module,
+             "path": t.format(pid=pid) if t else pid}]
 
 
 def _route_remove(ctx, payload):
+    paths = _cfg_paths(ctx)
     pid = ctx.api.call("store.id", {"value": payload.get("id")}, caller=None)
     row = ctx.api.call("store.read", {"module": "agent/projects",
-        "path": pid.get("id") + ".yaml"}, caller=None)
+        "path": _record(paths, pid.get("id"))}, caller=None)
     if payload.get("purge") is True:
         ticket_effects, ticket_ids = _purge_tickets(ctx, pid.get("id"))
         effects = list(ticket_effects)
@@ -152,7 +171,7 @@ def _route_remove(ctx, payload):
         effects += _purge_project_tree(ctx, "agent/artifacts", pid.get("id"))
         effects += _purge_project_tree(ctx, "agent/knowledge", pid.get("id"))
         effects.append({"kind": "remove", "module": "agent/projects",
-                        "path": pid.get("id") + ".yaml"})
+                        "path": _record(paths, pid.get("id"))})
         out = ctx.api.call("projects.deleted", {"id": pid.get("id")}, caller=None)
         out["effects"] = effects
         return out
@@ -161,22 +180,23 @@ def _route_remove(ctx, payload):
         "now": now.get("ts")}, caller=None)
     view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
     view["effects"] = [{"kind": "write", "module": "agent/projects",
-                        "path": pid.get("id") + ".yaml", "value": rec}]
+                        "path": _record(paths, pid.get("id")), "value": rec}]
     return view
 
 
 def _route_rename(ctx, payload):
     """改名闭环：定位旧档→查重→造新档→落新档→删旧档→工单引用改挂。分岔全在能力内部。"""
     old = ctx.api.call("store.id", {"value": payload.get("id")}, caller=None).get("id")
+    paths = _cfg_paths(ctx)
     row = ctx.api.call("store.read", {"module": "agent/projects",
-        "path": old + ".yaml"}, caller=None)
+        "path": _record(paths, old)}, caller=None)
     if row.get("value") is None:
         return ctx.api.call("projects.missing",
             {"id": old, "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
     new_id = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None).get("id")
     if new_id != old:
         ex = ctx.api.call("store.exists", {"module": "agent/projects",
-            "path": new_id + ".yaml"}, caller=None)
+            "path": _record(paths, new_id)}, caller=None)
         if ex.get("exists"):
             return ctx.api.call("projects.conflict",
                 {"id": new_id, "tpl": _msg_tpl(ctx).get("conflict")}, caller=None)
@@ -186,10 +206,10 @@ def _route_rename(ctx, payload):
         "default_backend": payload.get("default_backend"),
         "now": now.get("ts")}, caller=None)
     effects = [{"kind": "write", "module": "agent/projects",
-                "path": new_id + ".yaml", "value": rec}]
+                "path": _record(paths, new_id), "value": rec}]
     if new_id != old:
         effects.append({"kind": "remove", "module": "agent/projects",
-                        "path": old + ".yaml"})
+                        "path": _record(paths, old)})
         moved = ctx.api.call("tickets.rebind", {"from": old, "to": new_id,
             "now": now.get("ts")}, caller=None)
         effects.extend((moved or {}).get("effects") or [])
@@ -199,5 +219,10 @@ def _route_rename(ctx, payload):
 
 
 def _as_handler(fn):
-    """装配适配：纯函数只收 payload，路由协议仍是 fn(ctx, payload)。"""
-    return lambda ctx, payload: fn(payload)
+    """装配适配：纯函数只收 payload，路由协议仍是 fn(ctx, payload)；paths 缺省注入。"""
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        if "paths" not in payload:
+            payload["paths"] = _cfg_paths(ctx)
+        return fn(payload)
+    return handler

@@ -40,6 +40,8 @@ def info(p):
 
 
 def console_path(p):
-    """控制台资源相对路径：console/<rel>，前缀归属 Web 模块。"""
+    """控制台资源相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    paths = p.get("paths") or {}
+    t = paths.get("console") or ""
     rel = (p.get("path") or "").strip("/")
-    return {"path": "console/%s" % rel}
+    return {"path": t.format(rel=rel) if t else rel}

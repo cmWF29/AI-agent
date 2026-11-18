@@ -33,11 +33,17 @@ def setup(ctx):
     return True
 
 
+def _cfg_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "channel.paths"}, caller=None)
+    return row.get("value") or {}
+
+
 def _read_rows(ctx, channel_id):
     """读整频道并逐行解码：外层只有一次顺序读，逐行解码是能力内部的事。"""
+    t = _cfg_paths(ctx).get("record") or ""
     txt = ctx.api.call("store.read_text", {
         "module": "agent/channel",
-        "path": "channels/%s.jsonl" % (channel_id or "")}, caller=None)
+        "path": t.format(id=channel_id or "") if t else (channel_id or "")}, caller=None)
     split = ctx.api.call("channel.split", {"text": txt.get("value")}, caller=None)
     rows = []
     for line in split.get("lines") or []:
@@ -55,8 +61,9 @@ def _route_post(ctx, payload):
         "channel": cid.get("id"), "role": payload.get("role"),
         "content": payload.get("content"), "rows": rows, "ts": now.get("ts")}, caller=None)
     enc = ctx.api.call("codec.json_encode", {"value": rec}, caller=None)
+    t = _cfg_paths(ctx).get("record") or ""
     effects = [{"kind": "append_text", "module": "agent/channel",
-                "path": "channels/%s.jsonl" % (cid.get("id") or ""),
+                "path": t.format(id=cid.get("id") or "") if t else (cid.get("id") or ""),
                 "text": (enc.get("text") or "") + "\n"}]
     posted = {"channel": rec.get("channel"), "role": rec.get("role"),
               "content": rec.get("content")}
