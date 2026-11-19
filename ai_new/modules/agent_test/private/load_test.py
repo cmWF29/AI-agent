@@ -41,18 +41,19 @@ def start_stub(tool_rate, delay, delay_jitter=0.0, spawn_rate=0.0,
     return stub_llm.start_stub(policy)
 
 
-def clean_business(root):
+def clean_business(root, agent_subdir="agent"):
     """清空业务档案：项目/工单/会话/知识/产物；保留 library 种子与配置。返回删除条目数。
 
     兼容两种数据布局：源码树 <模块>/data/ 与 external 镜像 <模块>/（无 data 层），
     业务档案目录直接 rglob，避免持久根重复压测时上一轮残留撞号。
+    agent_subdir 定位源码树 modules/agent 相对 root 的层级。
     """
     root = Path(root)
     business = ["projects", "tickets", "logs", "knowledge", "artifacts"]
     kept_templates = {"messages.yaml", "index.yaml"}
     removed = 0
     for mod in business:
-        base = root / "agent" / mod
+        base = root / agent_subdir / mod
         if not base.is_dir():
             continue
         for rel in list(base.rglob("*")):
@@ -68,10 +69,21 @@ def clean_business(root):
     return removed
 
 
-def assemble(stub_url, data_root=None, clean=False):
-    """装配 ctx：llm 指桩，审计单检查关闭。data_root 给定时持久化到该镜像根，否则临时目录。"""
+def assemble(stub_url, data_root=None, clean=False, source=False):
+    """装配 ctx：llm 指桩，审计单检查关闭。
+
+    source=True  落在源码树模块数据目录（与常驻进程同根）：不设外部镜像根、不重拷种子；
+                 供线上压测让进程直接读到桩业务数据。
+    data_root    持久化到该 external 镜像根；缺省用临时目录。
+    """
     tmp = None
-    if data_root:
+    if source:
+        root = ROOT
+        os.environ.pop("AI_NEW_DATA", None)
+        if clean:
+            n = clean_business(root, "ai_new/modules/agent")
+            print("   清洗源码树业务档案: %d 项" % n)
+    elif data_root:
         root = Path(data_root)
         root.mkdir(parents=True, exist_ok=True)
         if clean:
@@ -82,14 +94,19 @@ def assemble(stub_url, data_root=None, clean=False):
         tmp = tempfile.mkdtemp(prefix="ai_new_load_")
         root = Path(tmp)
         _fixtures.stage(root)
-    _fixtures.write_config(root, {
-        "server": {"host": "127.0.0.1", "port": 0, "token": "t"},
-        "llm": {"base_url": stub_url, "api_key": "stub", "model": "stub"},
-        "tickets": {"stall_check": {"enabled": False}},
-    })
-    os.environ["AI_NEW_DATA"] = str(root)
+    if not source:
+        _fixtures.write_config(root, {
+            "server": {"host": "127.0.0.1", "port": 0, "token": "t"},
+            "llm": {"base_url": stub_url, "api_key": "stub", "model": "stub"},
+            "tickets": {"stall_check": {"enabled": False}},
+        })
+        os.environ["AI_NEW_DATA"] = str(root)
     ctx = Context(root)
     build(ctx)
+    # 桩地址注入内存配置；source 模式不落盘，避免覆盖源码树既有配置。
+    ctx.cfg.setdefault("llm", {})["base_url"] = stub_url
+    ctx.cfg["llm"]["api_key"] = "stub"
+    ctx.cfg["llm"]["model"] = "stub"
     return ctx, root, tmp
 
 
@@ -197,6 +214,8 @@ def main(argv=None):
                     help="桩附加随机抖动上限秒（网络波动）")
     ap.add_argument("--join-timeout", type=float, default=300, help="等待后台线程收敛上限秒")
     ap.add_argument("--data-root", default="", help="持久 data 镜像根；缺省用临时目录")
+    ap.add_argument("--source-data", action="store_true",
+                    help="直接落在源码树模块数据目录（与常驻进程同根），不落外部镜像根")
     ap.add_argument("--clean", action="store_true", help="建单前清空存量业务档案")
     ap.add_argument("--pm-roles", default="developer,tester,reviewer",
                     help="PM 依次分派的角色，逗号分隔")
@@ -216,7 +235,8 @@ def main(argv=None):
     ctx = root = tmp = None
     failures = []
     try:
-        ctx, root, tmp = assemble(stub_url, args.data_root or None, args.clean)
+        ctx, root, tmp = assemble(stub_url, args.data_root or None, args.clean,
+                                  source=args.source_data)
         print("== 装配完成: %s" % root)
         m0 = mem_snapshot(ctx)
 
