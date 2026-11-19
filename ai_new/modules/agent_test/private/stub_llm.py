@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -90,6 +91,12 @@ _ROLE_STEPS = [
     "knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read",
     "artifact_write", "knowledge_write", "ticket_note",
 ]
+# 压测桩内置岗位状态链（与 roles.yaml 契约对齐；正式流程以后端契约为准）。
+_ROLE_NEXT = {
+    "developer": ["understand", "implement", "verify"],
+    "tester": ["design", "run", "report"],
+    "reviewer": ["study", "review", "deliver"],
+}
 _ROLE_READ = {"knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read"}
 _ROLE_WRITE = {"artifact_write", "knowledge_write"}
 
@@ -262,6 +269,42 @@ class _Handler(BaseHTTPRequestHandler):
                 return {"text": filler}
             return {}
 
+        # 从 system 提示识别岗位与当前状态（压测桩脚本化模拟；正式流程以后端契约为准）。
+        sys_text = " ".join(m.get("content") or "" for m in msgs if m.get("role") == "system")
+        role = ""
+        for kw, rid in (("开发角色", "developer"), ("测试角色", "tester"), ("评审角色", "reviewer")):
+            if kw in sys_text:
+                role = rid
+                break
+        cur = ""
+        mcur = re.search(r"当前阶段：[^（(]*（([a-z_]+)", sys_text)
+        if mcur:
+            cur = mcur.group(1)
+
+        if role:
+            chain = _ROLE_NEXT.get(role) or []
+            steps = [t for t in _ROLE_STEPS if t in by_name]
+            if policy.role_rounds > 1:
+                steps = steps * policy.role_rounds
+            already_tool = any(m.get("role") == "tool" for m in msgs)
+            if steps and not already_tool:
+                with stats.lock:
+                    stats.tool_calls += 1
+                return [_tool_frame("call_%d" % stats.calls, steps[0],
+                                    json.dumps(_args(steps[0]), ensure_ascii=False))]
+            nxt = ""
+            if cur in chain:
+                idx = chain.index(cur)
+                if idx + 1 < len(chain):
+                    nxt = chain[idx + 1]
+            with stats.lock:
+                stats.text += 1
+            obj = {"reply": _filler("ticket_note", policy.filler_words),
+                   "summary": "本轮交付完成，结论、依据与遗留缺口已记入工单备注。"}
+            if nxt:
+                obj["stage"] = nxt
+            return _structured_frames(obj)
+
         # PM 上下文：analyze 先读需求并自报进 plan，plan 态依次分派角色，全部分派后收口。
         if "role_spawn" in by_name or "role_task" in by_name or "ticket_split" in by_name:
             spawned = 0
@@ -296,23 +339,6 @@ class _Handler(BaseHTTPRequestHandler):
             "reply": "（stub）需求要点与验收标准已梳理，进入编排与角色分派。",
             "stage": "plan",
             "summary": "明确改动范围与交付要求，准备分派开发、测试、评审角色。"})
-
-        # 角色上下文：按“读→写→备注”步进，重复 role_rounds 遍后收口；工具按可用集过滤。
-        steps = [t for t in _ROLE_STEPS if t in by_name]
-        if policy.role_rounds > 1:
-            steps = steps * policy.role_rounds
-        if done < len(steps):
-            tool = steps[done]
-            args = json.dumps(_args(tool), ensure_ascii=False)
-            with stats.lock:
-                stats.tool_calls += 1
-            return [_tool_frame("call_%d" % stats.calls, tool, args)]
-
-        with stats.lock:
-            stats.text += 1
-        return _structured_frames({
-            "reply": _filler("ticket_note", policy.filler_words),
-            "summary": "本轮交付完成，结论、依据与遗留缺口已记入工单备注。"})
 
 
 def start_stub(policy=None):
