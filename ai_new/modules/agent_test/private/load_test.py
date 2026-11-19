@@ -80,6 +80,8 @@ def assemble(stub_url, data_root=None, clean=False, source=False):
     if source:
         root = ROOT
         os.environ.pop("AI_NEW_DATA", None)
+        # 压测进程与常驻进程同根装配；端口随机化，避免绑定线上 8788 冲突。
+        os.environ["AI_NEW_PORT"] = "0"
         if clean:
             n = clean_business(root, "ai_new/modules/agent")
             print("   清洗源码树业务档案: %d 项" % n)
