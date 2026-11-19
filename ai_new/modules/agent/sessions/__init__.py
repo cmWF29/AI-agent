@@ -148,6 +148,10 @@ def _route_spawn(ctx, payload):
     meta = dict(payload.get("meta") or {})
     if payload.get("tools"):
         meta["tools"] = payload.get("tools")
+    if payload.get("stages"):
+        meta["stages"] = payload.get("stages")
+    if payload.get("stage"):
+        meta["stage"] = payload.get("stage")
     rec = ctx.api.call("sessions.build", {
         "kind": kind, "seq": seq,
         "name": nid.get("id"), "ticket": payload.get("ticket"),

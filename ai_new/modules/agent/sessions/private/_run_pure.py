@@ -63,6 +63,17 @@ def finish(p):
         meta["last_error"] = {"code": failed.get("code") or "", "error": failed.get("error") or ""}
     else:
         meta.pop("last_error", None)
+    stage = out.get("stage")
+    stage_check = p.get("stage_check") or {}
+    if stage_check:
+        stage = stage_check.get("stage") or stage
+        if stage_check.get("ok"):
+            meta.pop("stage_alert", None)
+        else:
+            meta["stage_alert"] = {"code": stage_check.get("code") or "",
+                                   "nxt": out.get("stage") or ""}
+    if stage:
+        meta["stage"] = stage
     rec["meta"] = meta
     last = out.get("last") or {}
     if out.get("cancelled"):

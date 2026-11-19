@@ -32,6 +32,20 @@ do:
     path:
       get: sp1.path
   as: row
+- call: library.stage_contract
+  with:
+    stages:
+      get: row.value.meta.stages
+  as: contract
+- call: library.stage_tools
+  with:
+    contract:
+      get: contract
+    stage:
+      get: row.value.meta.stage
+    items:
+      get: row.value.meta.tools
+  as: run_tools
 - call: clock.now
   as: now
 - call: sessions.mark
@@ -67,7 +81,7 @@ do:
       messages:
         get: row.value.messages
       tools:
-        get: row.value.meta.tools
+        get: run_tools.items
       max_steps:
         get: input.max_steps
       base_url:
@@ -100,12 +114,23 @@ do:
   as: latest
 - call: clock.now
   as: done_at
+- call: library.stage_transition
+  with:
+    contract:
+      get: contract
+    prev:
+      get: row.value.meta.stage
+    nxt:
+      get: out.result.stage
+  as: check
 - call: sessions.finish
   with:
     rec:
       get: running
     out:
       get: out.result
+    stage_check:
+      get: check
     latest:
       get: latest.value
     now:
@@ -149,6 +174,8 @@ expect:
   - store.read
   - sessions.record_path
   - store.read
+  - library.stage_contract
+  - library.stage_tools
   - clock.now
   - sessions.mark
   - sessions.record_path
@@ -157,6 +184,7 @@ expect:
   - sessions.record_path
   - store.read
   - clock.now
+  - library.stage_transition
   - sessions.finish
   - sessions.record_path
   - store.write

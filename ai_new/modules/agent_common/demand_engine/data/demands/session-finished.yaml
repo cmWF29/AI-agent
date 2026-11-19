@@ -22,6 +22,11 @@ do:
     path:
       get: sp.path
   as: row
+- call: library.stage_contract
+  with:
+    stages:
+      get: row.value.meta.stages
+  as: contract
 - call: store.read
   with:
     module:
@@ -64,6 +69,17 @@ do:
     contents:
       lit: {}
   as: miss
+- call: library.stage_gaps
+  with:
+    contract:
+      get: contract
+    stage:
+      get: row.value.meta.stage
+    stage_alert:
+      get: row.value.meta.stage_alert
+    base:
+      get: miss.missing
+  as: gaps
 - call: config.get
   with:
     key:
@@ -72,7 +88,7 @@ do:
 - call: library.review
   with:
     missing:
-      get: miss.missing
+      get: gaps.missing
     retries:
       get: row.value.meta.retries
     max_retries:
@@ -210,11 +226,13 @@ expect:
   calls:
   - sessions.record_path
   - store.read
+  - library.stage_contract
   - store.read
   - library.get
   - demand_engine.run
   - tickets.paths
   - library.check
+  - library.stage_gaps
   - config.get
   - library.review
   - store.read

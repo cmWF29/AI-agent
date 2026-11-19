@@ -56,7 +56,8 @@ def result(p):
     msgs = p.get("messages") or []
     return {"steps": p.get("steps") or 0, "messages": msgs,
             "last": msgs[-1] if msgs else None, "cancelled": bool(p.get("cancelled")),
-            "failed": p.get("failed"), "summary": p.get("summary")}
+            "failed": p.get("failed"), "summary": p.get("summary"),
+            "stage": p.get("stage") or ""}
 
 
 def toolerr(p):
@@ -167,11 +168,12 @@ def parse_final(p):
     """
     content = p.get("content") or ""
     obj = p.get("obj")
-    if isinstance(obj, dict) and ("reply" in obj or "summary" in obj):
+    if isinstance(obj, dict) and ("reply" in obj or "summary" in obj or "stage" in obj):
         return {"structured": True,
                 "reply": _textify(obj.get("reply")),
-                "summary": _textify(obj.get("summary"))}
-    return {"structured": False, "reply": content, "summary": ""}
+                "summary": _textify(obj.get("summary")),
+                "stage": _textify(obj.get("stage"))}
+    return {"structured": False, "reply": content, "summary": "", "stage": ""}
 
 
 def attach_protocol(p):

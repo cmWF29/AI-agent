@@ -120,6 +120,7 @@ def _route_run(ctx, payload):
     messages = list(view.get("messages") or [])
     new_msgs = []
     new_summary = summary
+    new_stage = ""
     steps = 0
     done = False
     cap = 200
@@ -152,7 +153,7 @@ def _route_run(ctx, payload):
                          or (bool(gate) and ctx.runtime.cancelled(gate.get("id"), gate.get("since"))))
             break
         calls = answer.get("tool_calls")
-        parsed = {"reply": answer.get("content"), "summary": ""}
+        parsed = {"reply": answer.get("content"), "summary": "", "stage": ""}
         if not calls:
             # 收口步：剥围栏 → 截取 JSON 区间 → codec 解码 → 拆出答复与摘要；失败则整段作答复，摘要回退旧值。
             stripped = ctx.api.call("react.strip_fence",
@@ -174,6 +175,8 @@ def _route_run(ctx, payload):
         if not amsg.get("tool_calls") or not names:
             if str(parsed.get("summary") or "").strip():
                 new_summary = parsed["summary"]
+            if str(parsed.get("stage") or "").strip():
+                new_stage = parsed["stage"]
             _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
             done = True
             continue
@@ -210,5 +213,6 @@ def _route_run(ctx, payload):
     return ctx.api.call("react.result", {"messages": full, "steps": steps,
                                           "cancelled": cancelled,
                                           "failed": failed,
-                                          "summary": new_summary}, caller=None)
+                                          "summary": new_summary,
+                                          "stage": new_stage}, caller=None)
 

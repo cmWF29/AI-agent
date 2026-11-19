@@ -1281,6 +1281,81 @@ class CoreTest(unittest.TestCase):
         role_msgs = arch["transcript"]["roles"][0]["messages"]
         self.assertEqual([m["content"] for m in role_msgs], ["交付完成"])
 
+    def test_stage_state_machine(self):
+        stages = [
+            {"id": "a", "cn": "甲", "desc": "d-a", "tools": ["t1"], "next": ["b"]},
+            {"id": "b", "cn": "乙", "desc": "d-b", "tools": ["t1", "t2"], "next": ["a", "c"]},
+            {"id": "c", "cn": "丙", "tools": ["t3"], "next": [], "terminal": True},
+        ]
+        contract = lib_pure.stage_contractp({"stages": stages})
+        self.assertEqual(contract["initial"], "a")
+        self.assertEqual(contract["terminals"], ["c"])
+        self.assertEqual(set(contract["by_id"]), {"a", "b", "c"})
+        # 契约定形：空 stages 直通空
+        empty = lib_pure.stage_contractp({"stages": []})
+        self.assertEqual(empty["initial"], "")
+        self.assertEqual(empty["terminals"], [])
+        # 跳转校验：开局进初始、合法边、原地停留、未上报直通
+        self.assertTrue(lib_pure.stage_transitionp(
+            {"contract": contract, "prev": "", "nxt": "a"})["ok"])
+        ok = lib_pure.stage_transitionp({"contract": contract, "prev": "a", "nxt": "b"})
+        self.assertTrue(ok["ok"])
+        self.assertEqual(ok["stage"], "b")
+        stay = lib_pure.stage_transitionp({"contract": contract, "prev": "b", "nxt": "b"})
+        self.assertTrue(stay["ok"])
+        unset = lib_pure.stage_transitionp({"contract": contract, "prev": "b", "nxt": ""})
+        self.assertTrue(unset["ok"])
+        self.assertEqual(unset["stage"], "b")
+        # 非法边、未知阶段、开局未进初始都拦下并保留 prev
+        bad = lib_pure.stage_transitionp({"contract": contract, "prev": "a", "nxt": "c"})
+        self.assertFalse(bad["ok"])
+        self.assertEqual(bad["code"], "illegal_edge")
+        self.assertEqual(bad["stage"], "a")
+        unknown = lib_pure.stage_transitionp({"contract": contract, "prev": "b", "nxt": "zz"})
+        self.assertFalse(unknown["ok"])
+        self.assertEqual(unknown["code"], "unknown_stage")
+        start = lib_pure.stage_transitionp({"contract": contract, "prev": "", "nxt": "b"})
+        self.assertFalse(start["ok"])
+        self.assertEqual(start["code"], "illegal_start")
+        # 工具裁剪：阶段 tools 与全集取交集；dict 取 name，字符串直接比
+        items = [{"name": "t1"}, {"name": "t2"}, {"name": "t3"}, "t4"]
+        cut = lib_pure.stage_toolsp({"contract": contract, "stage": "b", "items": items})
+        self.assertEqual([t["name"] for t in cut["items"]], ["t1", "t2"])
+        # 阶段未列 tools 回退全集；无契约直通全集
+        full = lib_pure.stage_toolsp({"contract": contract, "stage": "c", "items": items})
+        self.assertEqual([t["name"] for t in full["items"] if isinstance(t, dict)], ["t3"])
+        passthrough = lib_pure.stage_toolsp({"contract": empty, "stage": "", "items": items})
+        self.assertEqual(passthrough["items"], items)
+        # 阶段段文本：标题/当前阶段/可跳转来自模板与数据；无契约返空
+        lib_tpl = self.ctx.api.call("store.read", {
+            "module": "agent/library", "path": "messages.yaml"}, caller=None).get("value") or {}
+        blk = lib_pure.stage_blockp({"contract": contract, "stage": "b", "tpl": lib_tpl})["system"]
+        self.assertIn("乙", blk)
+        self.assertIn("b", blk)
+        self.assertFalse(lib_pure.stage_blockp({"contract": empty, "stage": "", "tpl": lib_tpl})["system"])
+        # 阶段缺口：非终态追加一条；终态不追加；非法跳转告警追加；无契约直通 base
+        base = [{"path": "docs/a.md"}]
+        g_open = lib_pure.stage_gapsp({"contract": contract, "stage": "b", "base": base, "tpl": lib_tpl})
+        self.assertEqual(len(g_open["missing"]), 2)
+        g_term = lib_pure.stage_gapsp({"contract": contract, "stage": "c", "base": base, "tpl": lib_tpl})
+        self.assertEqual(len(g_term["missing"]), 1)
+        g_alert = lib_pure.stage_gapsp({"contract": contract, "stage": "c",
+                                        "stage_alert": {"code": "illegal_edge", "nxt": "zz"},
+                                        "base": base, "tpl": lib_tpl})
+        self.assertEqual(len(g_alert["missing"]), 2)
+        g_plain = lib_pure.stage_gapsp({"contract": empty, "stage": "", "base": base, "tpl": lib_tpl})
+        self.assertEqual(g_plain["missing"], base)
+        # 收口解析：stage 随结构化对象拆出；非结构化回退空串
+        f = react_pure.parse_final({"obj": {"reply": "答", "summary": "摘", "stage": "b"},
+                                    "content": "x"})
+        self.assertTrue(f["structured"])
+        self.assertEqual(f["stage"], "b")
+        f_plain = react_pure.parse_final({"obj": None, "content": "普通正文"})
+        self.assertEqual(f_plain["stage"], "")
+        # result 透出 stage
+        res = react_pure.result({"messages": [], "stage": "b"})
+        self.assertEqual(res["stage"], "b")
+
     def test_react_context_pure_functions(self):
         # 发往视图：system 保留，历史往返剔除，摘要占位 + 本轮指令保留
         msgs = [
@@ -1756,6 +1831,28 @@ class CoreTest(unittest.TestCase):
         cleared = sess_run.finish({"rec": done, "out": ok_out, "latest": {}, "now": 2,
                                    "result_chars": 500})
         self.assertNotIn("last_error", cleared["meta"])
+
+    def test_finish_records_stage_and_alert(self):
+        """合法跳转落新阶段；非法跳转保留旧阶段并留告警；无校验时按 out.stage 落库。"""
+        base_out = {"messages": [], "steps": 1, "last": {"content": "好"},
+                    "cancelled": False, "failed": None}
+        ok = sess_run.finish({"rec": {"id": "s-1", "meta": {"stage": "a"}},
+                              "out": dict(base_out, stage="b"),
+                              "stage_check": {"ok": True, "code": "ok", "stage": "b"},
+                              "latest": {}, "now": 1, "result_chars": 500})
+        self.assertEqual(ok["meta"]["stage"], "b")
+        self.assertNotIn("stage_alert", ok["meta"])
+        bad = sess_run.finish({"rec": {"id": "s-1", "meta": {"stage": "a"}},
+                               "out": dict(base_out, stage="c"),
+                               "stage_check": {"ok": False, "code": "illegal_edge", "stage": "a"},
+                               "latest": {}, "now": 2, "result_chars": 500})
+        self.assertEqual(bad["meta"]["stage"], "a")
+        self.assertEqual(bad["meta"]["stage_alert"]["code"], "illegal_edge")
+        self.assertEqual(bad["meta"]["stage_alert"]["nxt"], "c")
+        plain = sess_run.finish({"rec": {"id": "s-1", "meta": {}},
+                                 "out": dict(base_out, stage="a"),
+                                 "latest": {}, "now": 3, "result_chars": 500})
+        self.assertEqual(plain["meta"]["stage"], "a")
 
     def test_thread_exposes_session_backend_and_meta(self):
         """线程视图要露出主会话后端与 meta，界面才能判断 PM 走哪条链路、有无卡点。"""

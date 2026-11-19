@@ -39,6 +39,11 @@ do:
     user:
       get: role.value
   as: rec
+- call: library.stage_contract
+  with:
+    stages:
+      get: rec.item.stages
+  as: contract
 - call: demand_engine.run
   with:
     id:
@@ -51,6 +56,22 @@ do:
       project:
         get: input.project
   as: tools
+- call: library.stage_tools
+  with:
+    contract:
+      get: contract
+    stage:
+      get: contract.initial
+    items:
+      get: tools.result.items
+  as: stools
+- call: library.stage_block
+  with:
+    contract:
+      get: contract
+    stage:
+      get: contract.initial
+  as: stblk
 - call: library.prompt_blocks
   with:
     text:
@@ -59,6 +80,8 @@ do:
       get: rec.item.must_dos
     forbidden:
       get: rec.item.forbidden
+    stage:
+      get: stblk.system
   as: blocks
 - call: knowledge.project_prefix
   with:
@@ -97,7 +120,11 @@ do:
     meta:
       get: input.meta
     tools:
-      get: tools.result.items
+      get: stools.items
+    stages:
+      get: rec.item.stages
+    stage:
+      get: contract.initial
     task:
       get: input.task
     intro:
@@ -125,7 +152,10 @@ expect:
   - demand_engine.run
   - store.read
   - library.get
+  - library.stage_contract
   - demand_engine.run
+  - library.stage_tools
+  - library.stage_block
   - library.prompt_blocks
   - knowledge.project_prefix
   - demand_engine.run

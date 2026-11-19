@@ -91,6 +91,7 @@ def _position(rec, flow, prompt_text="", tpl=None):
             "forbidden": rec.get("forbidden") or [],
             "must_dos": rec.get("must_dos") or [],
             "tools": rec.get("tools") or [],
+            "stages": rec.get("stages") or [],
             "backend": rec.get("backend") or "",
             "skill": rec.get("skill") or "",
             "builtin": bool(rec.get("builtin")),
@@ -122,6 +123,109 @@ def reviewp(p):
             "retries": retries, "repush": []}
 
 
+def stage_contractp(p):
+    """岗位阶段契约定形：列表 → 索引、初始阶段与终态集合。无 stages 直通。"""
+    stages = [s for s in (p.get("stages") or []) if isinstance(s, dict) and s.get("id")]
+    by = {s.get("id"): s for s in stages}
+    initial = stages[0].get("id") if stages else ""
+    terminals = [s.get("id") for s in stages if s.get("terminal")]
+    return {"stages": stages, "by_id": by, "initial": initial, "terminals": terminals}
+
+
+def stage_transitionp(p):
+    """校验自报阶段与跳转边。prev 缺省视为开局；nxt 为空表示本轮未上报阶段，直通保留 prev。
+
+    ok            合法（含原地停留、开局进初始阶段）；
+    unknown_stage 自报阶段不在契约内；
+    illegal_start 开局未进初始阶段；
+    illegal_edge  相对上一阶段的跳转不在 next 表内。
+    """
+    contract = p.get("contract") or {}
+    by = contract.get("by_id") or {}
+    nxt = str(p.get("nxt") or "").strip()
+    prev = str(p.get("prev") or "").strip()
+    if not nxt:
+        return {"ok": True, "code": "unset", "stage": prev}
+    if nxt not in by:
+        return {"ok": False, "code": "unknown_stage", "stage": prev}
+    if not prev:
+        if nxt == contract.get("initial"):
+            return {"ok": True, "code": "ok", "stage": nxt}
+        return {"ok": False, "code": "illegal_start", "stage": prev}
+    if prev == nxt:
+        return {"ok": True, "code": "ok", "stage": nxt}
+    allowed = (by.get(prev) or {}).get("next") or []
+    if nxt in allowed:
+        return {"ok": True, "code": "ok", "stage": nxt}
+    return {"ok": False, "code": "illegal_edge", "stage": prev}
+
+
+def stage_toolsp(p):
+    """按阶段裁剪工具清单：阶段 tools 与全集取交集；阶段未列 tools 回退全集。"""
+    contract = p.get("contract") or {}
+    by = contract.get("by_id") or {}
+    stage = str(p.get("stage") or contract.get("initial") or "")
+    items = p.get("items") or []
+    allow = (by.get(stage) or {}).get("tools") or []
+    if not allow:
+        return {"items": list(items)}
+    wanted = set(allow)
+    kept = []
+    for t in items:
+        name = t.get("name") if isinstance(t, dict) else t
+        if name in wanted:
+            kept.append(t)
+    return {"items": kept}
+
+
+def stage_blockp(p):
+    """把当前阶段契约拼成注入 system 的文本段；标题与措辞来自模板，阶段内容来自数据。"""
+    tpl = p.get("tpl") or {}
+    contract = p.get("contract") or {}
+    by = contract.get("by_id") or {}
+    stage = str(p.get("stage") or contract.get("initial") or "")
+    rec = by.get(stage) or {}
+    if not rec:
+        return {"system": ""}
+    lines = []
+    head = tpl.get("heading_stage") or ""
+    if head:
+        lines.append(head)
+    cur = (tpl.get("stage_current") or "").format(cn=rec.get("cn") or stage, id=stage)
+    if cur:
+        lines.append(cur)
+    desc = rec.get("desc") or ""
+    if desc:
+        lines.append((tpl.get("stage_desc") or "").format(desc=desc))
+    nxt = rec.get("next") or []
+    if nxt:
+        nxt_cn = [by.get(x, {}).get("cn") or x for x in nxt]
+        lines.append((tpl.get("stage_next") or "").format(next="、".join(nxt_cn)))
+    elif rec.get("terminal"):
+        lines.append(tpl.get("stage_terminal") or "")
+    return {"system": "\n".join(lines)}
+
+
+def stage_gapsp(p):
+    """把阶段约束并入产物缺口：非终态阶段、非法跳转各成一条缺口；无契约直通。"""
+    tpl = p.get("tpl") or {}
+    contract = p.get("contract") or {}
+    by = contract.get("by_id") or {}
+    stage = str(p.get("stage") or contract.get("initial") or "")
+    alerts = p.get("stage_alert") or {}
+    missing = list(p.get("base") or [])
+    if by:
+        rec = by.get(stage)
+        if rec and not rec.get("terminal"):
+            txt = (tpl.get("stage_not_terminal") or "").format(
+                cn=rec.get("cn") or stage, id=stage)
+            missing.append({"kind": "stage", "text": txt})
+    if alerts and alerts.get("code"):
+        txt = (tpl.get("stage_alert") or "").format(code=alerts.get("code") or "")
+        missing.append({"kind": "stage", "text": txt})
+    return {"missing": missing}
+
+
 def _gap_text(gap):
     """单条缺口成形为可读文本；形状来自 checkp，缺字段不报错。"""
     if not isinstance(gap, dict):
@@ -144,6 +248,7 @@ def prompt_blocks(p):
     text = p.get("text") or ""
     must = p.get("must_dos") or []
     forbidden = p.get("forbidden") or []
+    stage_text = p.get("stage") or ""
     parts = [text] if text else []
     if must:
         head = tpl.get("heading_must") or ""
@@ -153,6 +258,8 @@ def prompt_blocks(p):
         head = tpl.get("heading_forbidden") or ""
         parts.append(head + "\n" + "\n".join("- %s" % m for m in forbidden) if head
                      else "\n".join("- %s" % m for m in forbidden))
+    if stage_text:
+        parts.append(stage_text)
     return {"system": "\n\n".join(parts)}
 
 
