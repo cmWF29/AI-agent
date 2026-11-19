@@ -74,6 +74,7 @@ capabilities:
     - store.id
     - store.read
     - store.remove
+    - logs.purge
     - projects.deleted
     - clock.now
     - projects.archive
@@ -110,6 +111,7 @@ capabilities:
     - store.next_seq
     - sessions.build
     - store.write
+    - logs.record
     - sessions.view
   tickets.create:
     calls:
@@ -160,6 +162,7 @@ capabilities:
     - tickets.archive_transcript
     - store.write
     - store.remove
+    - logs.purge
     - demand_engine.run
     - tickets.view
   sessions.by_ticket:

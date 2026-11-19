@@ -130,6 +130,7 @@ def _purge_sessions(ctx, ticket_ids):
         return []
     ids = set(ticket_ids)
     effects = []
+    removed = []
     listed = ctx.api.call("store.glob", {
         "module": "agent/logs",
         "pattern": _cfg_logs(ctx).get("session_glob") or ""}, caller=None)
@@ -142,6 +143,10 @@ def _purge_sessions(ctx, ticket_ids):
         sid = rec.get("id") or str(rel.rsplit("/", 1)[-1])[:-5]
         ctx.runtime.stop(sid)
         effects.append({"kind": "remove", "module": "agent/logs", "path": rel})
+        removed.append(rel)
+    if removed:
+        purge = ctx.api.call("logs.purge", {"paths": removed}, caller=None)
+        effects += purge.get("effects") or []
     return effects
 
 

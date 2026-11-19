@@ -1,0 +1,40 @@
+id: logs-index
+title: 日志目录：读清单条目 → 交给 logs 分三级成形
+description: "日志目录：清单条目与工单档案取数归需求，公共/项目/工单归属树归模块分组；浏览视图只读"
+tags: [log, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/logs
+    path:
+      lit: index.yaml
+  as: idx
+- call: store.walk
+  with:
+    module:
+      lit: agent/tickets
+    root:
+      lit: tickets
+    pattern:
+      lit: '*/ticket.yaml'
+  as: trows
+- call: logs.group
+  with:
+    entries:
+      get: idx.value.entries
+    tickets:
+      get: trows.rows
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - store.walk
+  - logs.group
+  payload: {}
+  promise: 清单与工单归需求取数，三级归属树归模块分组

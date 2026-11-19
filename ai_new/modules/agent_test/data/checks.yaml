@@ -50,6 +50,7 @@ checks:
   - view-forms
   - view-knowledge
   - view-knowledge-doc
+  - view-logs
   - view-positions
   - view-position
   - view-project-detail
@@ -72,6 +73,7 @@ checks:
   - library-summary
   - llm-chat
   - llm-chat-stream
+  - logs-index
   - ops-export
   - ops-logs
   - ops-overview

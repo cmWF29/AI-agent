@@ -650,6 +650,16 @@ class CoreTest(unittest.TestCase):
                                              "task": "写交接文档"})
         role_sid = rs["result"]["roles"][0]["session"]
         self.assertTrue(any(pm in s for s in self._glob("agent/logs", "sessions/*.yaml")))
+        pre = self.ctx.api.call("store.read", {
+            "module": "agent/logs", "path": "index.yaml",
+            "fallback": {"entries": []}})["value"]["entries"]
+        pre_names = {e["name"] for e in pre}
+        self.assertIn(pm, pre_names, "PM 会话未登记日志清单")
+        self.assertIn(role_sid, pre_names, "角色会话未登记日志清单")
+        pm_entry = next(e for e in pre if e["name"] == pm)
+        self.assertEqual(pm_entry["category"], "log")
+        self.assertEqual(pm_entry["source"], "system")
+        self.assertEqual(pm_entry["kind"], "session")
         closed = self._run("ticket-close", {"id": t["id"], "summary": "验收通过"})
         removed = [e["path"] for e in closed["result"]["effects"] if e["kind"] == "remove"]
         self.assertIn("sessions/%s.yaml" % pm, removed)
@@ -657,6 +667,12 @@ class CoreTest(unittest.TestCase):
         left = self._glob("agent/logs", "sessions/*.yaml")
         self.assertFalse(any(pm in s for s in left), "PM 会话未被回收")
         self.assertFalse(any(role_sid in s for s in left), "角色会话未被回收")
+        post = self.ctx.api.call("store.read", {
+            "module": "agent/logs", "path": "index.yaml",
+            "fallback": {"entries": []}})["value"]["entries"]
+        post_names = {e["name"] for e in post}
+        self.assertNotIn(pm, post_names, "PM 会话清单条目未随回收清除")
+        self.assertNotIn(role_sid, post_names, "角色会话清单条目未随回收清除")
         # 对话已固化：会话文件删除后，线程仍从工单 transcript 回填出往来消息
         th = self._run("ticket-thread", {"id": t["id"]})["result"]
         self.assertTrue(th["thread"]["messages"], "结单后工单未回填留档对话")

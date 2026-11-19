@@ -8,6 +8,7 @@ tags:
 - {id: asr, name: 语音识别, group: 业务域, color: indigo}
 - {id: position, name: 岗位, group: 业务域, color: indigo}
 - {id: artifact, name: 产物, group: 业务域, color: indigo}
+- {id: log, name: 日志, group: 业务域, color: indigo}
 - {id: library, name: 库, group: 业务域, color: indigo}
 - {id: tool, name: 工具, group: 业务域, color: purple}
 - {id: web, name: 界面, group: 面, color: teal}

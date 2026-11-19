@@ -48,13 +48,16 @@ def index_upsert(p):
 
 
 def index_purge(p):
-    """剔除归属前缀下的条目；删项目/工单目录后清清单用。"""
+    """剔除归属前缀或指定路径下的条目；删项目/工单目录、回收会话后清清单用。"""
     prefix = p.get("prefix") or ""
+    drop = set(p.get("paths") or [])
     keep = []
     for row in p.get("entries") or []:
         if not isinstance(row, dict):
             continue
         rel = row.get("path") or ""
+        if rel in drop:
+            continue
         if prefix and rel.startswith(prefix):
             continue
         keep.append(row)

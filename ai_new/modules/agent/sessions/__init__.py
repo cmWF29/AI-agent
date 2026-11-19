@@ -159,9 +159,15 @@ def _route_spawn(ctx, payload):
         "now": now.get("ts")}, caller=None)
     view = ctx.api.call("sessions.view", {"rec": rec}, caller=None)
     view["rec"] = rec
-    view["effects"] = [{
-        "kind": "write", "module": "agent/logs",
-        "path": _record_path(logs_paths, rec.get("id") or ""), "value": rec}]
+    rel_path = _record_path(logs_paths, rec.get("id") or "")
+    body_effect = {"kind": "write", "module": "agent/logs",
+                   "path": rel_path, "value": rec}
+    log_rec = ctx.api.call("logs.record", {
+        "path": rel_path, "kind": "session",
+        "layer": "ticket" if rec.get("ticket") else "public",
+        "project": rec.get("project") or "", "ticket": rec.get("ticket") or "",
+        "name": rec.get("id") or ""}, caller=None)
+    view["effects"] = [body_effect] + (log_rec.get("effects") or [])
     return view
 
 

@@ -11,8 +11,26 @@ from .private import _pure
 def setup(ctx):
     ctx.api.register("logs.record", _route_record,
                      "登记一条日志清单条目：成形→合并清单→返回写清单效果", module="logs")
-    # logs.group 视图分组由视图需求编排调用，待 F 批次接入视图需求时再注册。
+    ctx.api.register("logs.group", _as_handler(_pure.group),
+                     "日志清单按公共/项目/工单三级分组成形；纯分组不读正文", module="logs")
+    ctx.api.register("logs.purge", _route_purge,
+                     "剔除清单归属前缀（或单文件路径）下的条目；返回写清单效果", module="logs")
     return True
+
+
+def _as_handler(fn):
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        if "tpl" not in payload:
+            payload["tpl"] = _msg_tpl(ctx)
+        return fn(payload)
+    return handler
+
+
+def _msg_tpl(ctx):
+    row = ctx.api.call("store.read", {
+        "module": "agent/logs", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
 
 
 def _cfg_paths(ctx):
@@ -43,4 +61,19 @@ def _route_record(ctx, payload):
         "entries": (old.get("value") or {}).get("entries") or [],
         "entry": entry})
     return {"entry": entry, "effects": [
+        {"kind": "write", "module": "agent/logs", "path": index_path, "value": merged}]}
+
+
+def _route_purge(ctx, payload):
+    """剔除清单：不自己 apply，清单写盘效果交调用方并入 effects 串。"""
+    paths = _cfg_paths(ctx)
+    prefix = payload.get("prefix") or payload.get("path") or ""
+    index_path = paths.get("index") or "index.yaml"
+    old = ctx.api.call("store.read", {
+        "module": "agent/logs", "path": index_path,
+        "fallback": {"entries": []}}, caller=None)
+    merged = _pure.index_purge({
+        "entries": (old.get("value") or {}).get("entries") or [],
+        "prefix": prefix, "paths": payload.get("paths") or []})
+    return {"effects": [
         {"kind": "write", "module": "agent/logs", "path": index_path, "value": merged}]}

@@ -1,0 +1,35 @@
+id: view-logs
+title: 日志视图：公共/项目/工单三级日志只读浏览
+description: "日志视图：系统事件、工具输出、群聊往来与会话留档按归属分组只读浏览；目录由 logs-index 分组，不在此页编辑"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: logs
+  crumb: [项目管理, 日志]
+  heading: 日志
+  subheading: 系统事件、工具输出、群聊往来与会话留档；只读浏览，落盘由系统动作自动记录
+  data:
+  - {as: idx, demand: logs-index}
+  sections:
+  - kind: kv
+    source: idx.counts
+    heading: 层级统计
+    rows:
+    - label: 公共
+      value: row.public
+    - label: 项目
+      value: row.project
+    - label: 工单
+      value: row.ticket
+  - kind: tree
+    source: idx.tree
+    empty: {title: 日志为空, text: 流程运行后，系统事件与往来记录会留档到这里。}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 目录由 logs-index 分组，浏览视图只读

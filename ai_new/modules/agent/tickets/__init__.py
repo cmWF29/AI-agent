@@ -268,9 +268,11 @@ def _route_close(ctx, payload):
     effects = [{"kind": "write", "module": "agent/tickets",
                 "path": _ticket_path(ctx, archived.get("id")), "value": archived}]
     st = _cfg_logs(ctx).get("session") or ""
-    for sid in sids:
-        effects.append({"kind": "remove", "module": "agent/logs",
-                        "path": st.format(id=sid) if st else sid})
+    removed_paths = [st.format(id=sid) if st else sid for sid in sids]
+    for rel in removed_paths:
+        effects.append({"kind": "remove", "module": "agent/logs", "path": rel})
+    purge = ctx.api.call("logs.purge", {"paths": removed_paths}, caller=None)
+    effects += purge.get("effects") or []
     if archived.get("parent"):
         tpl_closed = _msg_tpl(ctx).get("child_closed") or ""
         aid = archived.get("id") or ""
