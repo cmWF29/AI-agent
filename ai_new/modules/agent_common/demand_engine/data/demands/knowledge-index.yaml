@@ -37,4 +37,4 @@ expect:
   - store.walk
   - knowledge.index
   payload: {}
-  promise: 取路径与工单归需求，项目/工单归属树归模块
+  promise: 取路径与工单归需求，项目/工单归属树归模块；叶子条目 type=doc

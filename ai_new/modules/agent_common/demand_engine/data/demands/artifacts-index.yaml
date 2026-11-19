@@ -37,4 +37,4 @@ expect:
   - store.walk
   - artifacts.group
   payload: {}
-  promise: 清单与工单归需求取数，三级归属树归模块分组
+  promise: 清单与工单归需求取数，三级归属树归模块分组；叶子条目 type=doc

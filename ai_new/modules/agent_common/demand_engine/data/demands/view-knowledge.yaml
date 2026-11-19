@@ -39,4 +39,4 @@ expect:
     input: {}
   calls: []
   payload: {}
-  promise: 目录由 knowledge-index 分组，浏览视图只读
+  promise: 目录由 knowledge-index 分组，浏览视图只读；tree 叶子为 doc 条目
