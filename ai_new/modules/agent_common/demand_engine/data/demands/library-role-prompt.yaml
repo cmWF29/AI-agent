@@ -37,11 +37,13 @@ do:
   with:
     file:
       get: rec.item.prompt_file
+    rec:
+      get: rec.item
   as: lp
 - call: store.read_text
   with:
     module:
-      lit: agent/library
+      get: lp.module
     path:
       get: lp.path
   as: file

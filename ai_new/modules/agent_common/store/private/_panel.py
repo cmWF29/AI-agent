@@ -539,7 +539,7 @@ def _route_walk(payload):
     if not base.is_dir():
         return {"rows": []}
     rows = []
-    for item in sorted(base.glob(str(payload.get("pattern") or "*/**/*"))):
+    for item in sorted(base.rglob(str(payload.get("pattern") or "*/**/*"))):
         if not item.is_file():
             continue
         try:

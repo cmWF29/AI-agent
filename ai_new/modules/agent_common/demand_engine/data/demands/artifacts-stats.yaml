@@ -6,12 +6,12 @@ enabled: true
 callable: true
 'on': []
 do:
-- call: store.walk
+- call: store.walk_text
   with:
     module:
       lit: agent/artifacts
     pattern:
-      lit: '*'
+      lit: '**/*'
   as: rows
 - call: artifacts.stats
   with:
@@ -22,7 +22,7 @@ expect:
   given:
     input: {}
   calls:
-  - store.walk
+  - store.walk_text
   - artifacts.stats
   payload: {}
   promise: 统计形状归模块

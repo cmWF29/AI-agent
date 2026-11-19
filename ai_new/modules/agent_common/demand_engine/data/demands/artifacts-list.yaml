@@ -41,14 +41,14 @@ do:
     tpl:
       get: a_tpl.value
   as: base
-- call: store.walk
+- call: store.walk_text
   with:
     module:
       lit: agent/artifacts
     root:
       get: base.base
     pattern:
-      lit: '*'
+      lit: '**/*'
   as: rows
 - call: artifacts.screen
   with:
@@ -66,7 +66,7 @@ expect:
   - store.id
   - store.id
   - artifacts.base
-  - store.walk
+  - store.walk_text
   - artifacts.screen
   payload: {}
   promise: 遍历归需求

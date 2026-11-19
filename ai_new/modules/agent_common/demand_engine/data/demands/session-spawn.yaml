@@ -78,6 +78,13 @@ do:
     remove:
       get: proj.value.overrides.states
   as: ov
+- call: library.stage_refs
+  with:
+    seed:
+      get: seed.value
+    flows:
+      get: flows.value
+  as: refs
 - call: library.stage_contract
   with:
     states:
@@ -86,6 +93,8 @@ do:
       get: ov.states
     checks:
       get: flow.item.checks
+    refs:
+      get: refs.refs
   as: contract
 - call: demand_engine.run
   with:
@@ -202,6 +211,7 @@ expect:
   - library.get
   - store.read
   - library.stage_apply_overrides
+  - library.stage_refs
   - library.stage_contract
   - demand_engine.run
   - library.stage_tools

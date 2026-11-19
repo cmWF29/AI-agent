@@ -62,7 +62,11 @@ def screen(p):
 
 def statsp(p):
     rows = p.get("rows") or []
-    return {"files": len(rows), "bytes": sum(int(r.get("size") or 0) for r in rows),
+    def _size(r):
+        if r.get("size"):
+            return int(r.get("size"))
+        return len((r.get("text") or "").encode("utf-8"))
+    return {"files": len(rows), "bytes": sum(_size(r) for r in rows),
             "chars": sum(len(r.get("text") or "") for r in rows)}
 
 def classify(p):

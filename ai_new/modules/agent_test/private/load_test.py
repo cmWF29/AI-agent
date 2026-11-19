@@ -15,6 +15,7 @@ import argparse
 import gc
 import os
 import resource
+import shutil
 import sys
 import tempfile
 import threading
@@ -31,17 +32,48 @@ from ai_new.modules.agent_test.private import _fixtures  # noqa: E402
 from ai_new.modules.agent_test.private import stub_llm  # noqa: E402
 
 
-def start_stub(tool_rate, delay, delay_jitter=0.0, spawn_rate=0.0):
+def start_stub(tool_rate, delay, delay_jitter=0.0, spawn_rate=0.0,
+               pm_roles=None, role_rounds=1, filler_words=120):
     policy = stub_llm.StubPolicy(tool_rate=tool_rate, spawn_rate=spawn_rate,
-                                 delay_base=delay, delay_jitter=delay_jitter)
+                                 delay_base=delay, delay_jitter=delay_jitter,
+                                 pm_roles=pm_roles, role_rounds=role_rounds,
+                                 filler_words=filler_words)
     return stub_llm.start_stub(policy)
 
 
-def assemble(stub_url):
-    """临时 data 目录装配 ctx：llm 指桩，审计单检查关闭；不改源码数据。"""
-    tmp = tempfile.mkdtemp(prefix="ai_new_load_")
-    root = Path(tmp)
-    _fixtures.stage(root)
+def clean_business(root):
+    """清空业务档案：项目/工单/会话/知识/产物；保留 library 种子与配置。返回删除条目数。"""
+    root = Path(root)
+    business = ["projects", "tickets", "logs", "knowledge", "artifacts"]
+    removed = 0
+    for mod in business:
+        data = root / "agent" / mod / "data"
+        if not data.is_dir():
+            continue
+        for rel in list(data.rglob("*")):
+            if rel.is_file() and rel.suffix in (".yaml", ".yml", ".json"):
+                rel.unlink()
+                removed += 1
+            elif rel.is_dir() and rel.name.startswith("T-"):
+                shutil.rmtree(rel, ignore_errors=True)
+                removed += 1
+    return removed
+
+
+def assemble(stub_url, data_root=None, clean=False):
+    """装配 ctx：llm 指桩，审计单检查关闭。data_root 给定时持久化到该镜像根，否则临时目录。"""
+    tmp = None
+    if data_root:
+        root = Path(data_root)
+        root.mkdir(parents=True, exist_ok=True)
+        if clean:
+            n = clean_business(root)
+            print("   清洗存量业务档案: %d 项" % n)
+        _fixtures.stage(root)
+    else:
+        tmp = tempfile.mkdtemp(prefix="ai_new_load_")
+        root = Path(tmp)
+        _fixtures.stage(root)
     _fixtures.write_config(root, {
         "server": {"host": "127.0.0.1", "port": 0, "token": "t"},
         "llm": {"base_url": stub_url, "api_key": "stub", "model": "stub"},
@@ -50,7 +82,7 @@ def assemble(stub_url):
     os.environ["AI_NEW_DATA"] = str(root)
     ctx = Context(root)
     build(ctx)
-    return ctx, root
+    return ctx, root, tmp
 
 
 def run_demand(ctx, demand, inp):
@@ -149,19 +181,27 @@ def main(argv=None):
     ap.add_argument("--delay-jitter", type=float, default=0.0,
                     help="桩附加随机抖动上限秒（网络波动）")
     ap.add_argument("--join-timeout", type=float, default=300, help="等待后台线程收敛上限秒")
+    ap.add_argument("--data-root", default="", help="持久 data 镜像根；缺省用临时目录")
+    ap.add_argument("--clean", action="store_true", help="建单前清空存量业务档案")
+    ap.add_argument("--pm-roles", default="developer,tester,reviewer",
+                    help="PM 依次分派的角色，逗号分隔")
+    ap.add_argument("--role-rounds", type=int, default=1, help="角色读→写→备注重复遍数")
+    ap.add_argument("--filler-words", type=int, default=120, help="桩每段正文字数")
     ap.add_argument("--keep-data", action="store_true", help="保留临时 data 目录供排查")
     args = ap.parse_args(argv)
 
+    pm_roles = [r.strip() for r in args.pm_roles.split(",") if r.strip()]
     print("== 启动本地打桩服务（不接真实 API）")
     stub, stub_thread, stub_url = start_stub(args.tool_rate, args.delay,
-                                            args.delay_jitter, args.spawn_rate)
-    print("   桩地址: %s | tool_rate=%.2f spawn_rate=%.2f delay=%.2fs jitter=%.2fs"
-          % (stub_url, args.tool_rate, args.spawn_rate, args.delay, args.delay_jitter))
+                                            args.delay_jitter, args.spawn_rate,
+                                            pm_roles, args.role_rounds, args.filler_words)
+    print("   桩地址: %s | roles=%s rounds=%d words=%d delay=%.2fs"
+          % (stub_url, pm_roles, args.role_rounds, args.filler_words, args.delay))
 
-    ctx = root = None
+    ctx = root = tmp = None
     failures = []
     try:
-        ctx, root = assemble(stub_url)
+        ctx, root, tmp = assemble(stub_url, args.data_root or None, args.clean)
         print("== 装配完成: %s" % root)
         m0 = mem_snapshot(ctx)
 
@@ -254,21 +294,25 @@ def main(argv=None):
                     bound_role_sids.add(r["session"])
         pm_sessions, role_sessions = [], []
         role_kinds, role_closed, role_with_tool = {}, 0, 0
+        pm_msgs = role_msgs = 0
         for rel in sess_items:
             row = ctx.api.call("store.read", {"module": "agent/logs",
                               "path": rel})["value"]
+            msgs = row.get("messages") or []
             if row.get("kind") == "pm":
                 pm_sessions.append(row)
+                pm_msgs += len(msgs)
             else:
                 role_sessions.append(row)
+                role_msgs += len(msgs)
                 rk = row.get("role") or "?"
                 role_kinds[rk] = role_kinds.get(rk, 0) + 1
-                msgs = row.get("messages") or []
                 last_a = next((m for m in reversed(msgs) if m.get("role") == "assistant"), None)
                 if last_a and not last_a.get("tool_calls"):
                     role_closed += 1
                 if any(m.get("tool_calls") for m in msgs):
                     role_with_tool += 1
+        total_msgs = pm_msgs + role_msgs
         pm_ids = {r.get("id") for r in pm_sessions}
         role_ids = {r.get("id") for r in role_sessions}
         orphan_sessions = (pm_ids - submitted_pms) | (role_ids - bound_role_sids)
@@ -280,6 +324,9 @@ def main(argv=None):
         print("\n== 压测结果")
         print("   落盘: 项目 %d | 工单 %d | 会话 %d（PM %d | 角色 %d）"
               % (n_proj, n_ticket, n_sess, len(pm_sessions), len(role_sessions)))
+        per_ticket = (total_msgs / n_ticket) if n_ticket else 0.0
+        print("   消息: 合计 %d（PM %d | 角色 %d）| 单工单均值 %.1f 条"
+              % (total_msgs, pm_msgs, role_msgs, per_ticket))
         print("   工单: 提交 %d 次 | 塌缩/覆盖 %d | 唯一编号 %d | 落盘 %d | 丢失 %d"
               % (ticket_ok, ticket_ok - len(submitted_tickets),
                  len(submitted_tickets), n_ticket, len(lost_tickets)))
@@ -318,11 +365,12 @@ def main(argv=None):
             except Exception:  # noqa: BLE001
                 pass
         os.environ.pop("AI_NEW_DATA", None)
-        if root and not args.keep_data:
-            import shutil
-            shutil.rmtree(root, ignore_errors=True)
+        if tmp and not args.keep_data:
+            shutil.rmtree(tmp, ignore_errors=True)
+        elif tmp:
+            print("   保留临时数据目录: %s" % tmp)
         elif root:
-            print("   保留临时数据目录: %s" % root)
+            print("   持久数据保留在: %s" % root)
 
 
 if __name__ == "__main__":

@@ -162,7 +162,8 @@ def _route_create(ctx, payload):
             "vars": {"ticket": fresh.get("id") or "", "title": rec.get("title") or "",
                      "goal": rec.get("goal") or ""}}).get("text") or ""
         pm = ctx.runtime.call("session-spawn", {
-            "kind": "pm", "name": "PM-%s" % (fresh.get("id") or ""),
+            "kind": "pm", "role": "pm",
+            "name": "PM-%s" % (fresh.get("id") or ""),
             "ticket": fresh.get("id"),
             "max_steps": payload.get("pm_max_steps"),
             "task": payload.get("task"),

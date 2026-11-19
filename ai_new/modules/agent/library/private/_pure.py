@@ -225,6 +225,19 @@ def stage_contractp(p):
             "depth": depths, "checks": p.get("checks") or machine.get("checks") or []}
 
 
+def stage_refsp(p):
+    """子流程引用表：流程记录中 kind=process 的条目归成 {id: states}，供契约 ref 展开。
+
+    纯表提取，不内嵌任何流程节点；记录形状来自种子与用户流程库。
+    """
+    flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
+    refs = {}
+    for rid, rec in flows.items():
+        if rec.get("kind") == "process":
+            refs[rid] = rec.get("states") or []
+    return {"refs": refs}
+
+
 def flow_to_statesp(p):
     """旧流程 nodes/edges 归一为状态机 states：边转 next 邻接，无出边者标终态。"""
     nodes = p.get("nodes") or []
@@ -297,21 +310,23 @@ def stage_transitionp(p):
         targets = [str(x).strip() for x in nxt_raw if str(x).strip()]
     else:
         targets = [str(nxt_raw or "").strip()] if str(nxt_raw or "").strip() else []
-    active = p.get("active")
-    if isinstance(active, list):
-        prev = [str(x).strip() for x in active if str(x).strip()]
-    else:
-        prev_raw = p.get("prev")
-        if isinstance(prev_raw, list):
-            prev = [str(x).strip() for x in prev_raw if str(x).strip()]
-        else:
-            prev = [str(prev_raw).strip()] if str(prev_raw or "").strip() else []
+    active_raw = p.get("active")
+    prev = []
+    if isinstance(active_raw, list):
+        prev = [str(x).strip() for x in active_raw if str(x).strip()]
+    prev_raw = p.get("prev")
+    if isinstance(prev_raw, list):
+        prev = [str(x).strip() for x in prev_raw if str(x).strip()]
+    elif str(prev_raw or "").strip():
+        prev = [str(prev_raw).strip()]
+    # 当前态以单值 prev 为准；活跃集是并发分支并集，其首项不能顶替当前态。
+    cur = prev_raw if isinstance(prev_raw, str) and prev_raw.strip() else (prev[0] if prev else "")
     if not targets:
-        return {"ok": True, "code": "unset", "stage": prev[0] if prev else "", "active": prev}
+        return {"ok": True, "code": "unset", "stage": cur, "active": prev}
     for t in targets:
         if t not in by:
             return {"ok": False, "code": "unknown_stage",
-                    "stage": prev[0] if prev else "", "active": prev}
+                    "stage": cur, "active": prev}
     if not prev:
         if targets == [contract.get("initial")]:
             return {"ok": True, "code": "ok", "stage": targets[0], "active": list(targets)}
@@ -320,7 +335,7 @@ def stage_transitionp(p):
     for t in targets:
         if t not in prev and not any(t in ((by.get(x) or {}).get("next") or []) for x in prev):
             return {"ok": False, "code": "illegal_edge",
-                    "stage": prev[0], "active": prev}
+                    "stage": cur, "active": prev}
     # 源状态交付件条件：有源将离开其 checks 须落盘达标；原地停留不强制。
     files = p.get("files") or []
     contents = p.get("contents") or {}
@@ -329,7 +344,7 @@ def stage_transitionp(p):
             rec = by.get(x) or {}
             if _check_missing(rec.get("checks") or [], files, contents, tpl):
                 return {"ok": False, "code": "condition_unmet",
-                        "stage": prev[0], "active": prev}
+                        "stage": cur, "active": prev}
     kept = [x for x in prev if not (by.get(x) or {}).get("terminal")]
     for t in targets:
         if t not in kept:

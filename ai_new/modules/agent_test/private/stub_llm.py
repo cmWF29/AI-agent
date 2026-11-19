@@ -46,7 +46,8 @@ class StubPolicy:
     """
 
     def __init__(self, script=None, tool_rate=0.0, spawn_rate=0.0, delay_base=0.0,
-                 delay_jitter=0.0, close_rate=0.0, fail_code=0, fail_rate=0.0, token_limit=0):
+                 delay_jitter=0.0, close_rate=0.0, fail_code=0, fail_rate=0.0, token_limit=0,
+                 pm_roles=None, role_rounds=1, filler_words=120):
         self.script = list(script or [])
         self.tool_rate = float(tool_rate)
         self.spawn_rate = float(spawn_rate)
@@ -56,6 +57,10 @@ class StubPolicy:
         self.fail_code = int(fail_code or 0)
         self.fail_rate = float(fail_rate)
         self.token_limit = int(token_limit or 0)
+        # PM 依次分派的角色序列；角色在收口前重复“读→写→备注”的遍数；正文每段字数。
+        self.pm_roles = list(pm_roles or ["developer", "tester", "reviewer"])
+        self.role_rounds = int(role_rounds or 1)
+        self.filler_words = int(filler_words or 120)
 
 
 def _tool_frame(call_id, name, arguments):
@@ -73,6 +78,47 @@ def _text_frames(text):
         {"choices": [{"delta": {"content": text[:half]}}]},
         {"choices": [{"delta": {"content": text[half:]}, "finish_reason": "stop"}]},
     ]
+
+
+def _structured_frames(obj):
+    """收口步结构化输出：reply 进气泡，stage/summary 随 JSON 一并交被测侧解析。"""
+    return _text_frames(json.dumps(obj, ensure_ascii=False))
+
+
+# 角色一轮内的工具步进：读依据 → 写产出 → 落备注；运行时再按当前上下文可用工具过滤。
+_ROLE_STEPS = [
+    "knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read",
+    "artifact_write", "knowledge_write", "ticket_note",
+]
+_ROLE_READ = {"knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read"}
+_ROLE_WRITE = {"artifact_write", "knowledge_write"}
+
+_FILLER = {
+    "knowledge_search": "检索既有知识条目与历史方案，比对本工单约束，定位可复用依据与待补缺口；"
+                        "逐条记录来源条目、适用条件和未覆盖项，作为后续实现与评审的参考基础。",
+    "knowledge_read": "通读命中的知识条目原文，提炼与本工单相关的规则、接口约定和边界限制；"
+                      "标注与需求直接对应的要点，存疑处单独列出，避免把不相关条目当成依据。",
+    "ticket_read_doc": "重读工单需求、验收标准与附件说明，明确改动范围、必须产出的交付物和禁止项；"
+                       "对照当前进度核对已有依据是否齐备，缺项在备注里明确列出。",
+    "artifact_read": "查看已有交付件与代码现状，摸清结构、命名与既有实现方式；"
+                     "识别可复用部分与需要新增或调整的位置，记录阅读结论供本轮产出使用。",
+    "artifact_write": "按验收标准落盘本轮交付件：补充必要的实现、文档或用例，命名与归属目录符合岗位约定；"
+                      "内容覆盖需求要点，关键片段写明用途与约束，便于后续评审与测试核对。",
+    "knowledge_write": "把本轮形成的规则、约定或复用结论沉淀为知识条目，标注适用范围与来源工单；"
+                       "避免写入临时性过程记录，保证后续同类任务可检索复用。",
+    "ticket_note": "在工单备注里记录本轮结论：已完成项、依据来源、遗留缺口与下一步建议；"
+                  "结论与交付件一致，不夸大为已通过验收，缺口如实标注。",
+}
+
+
+def _filler(tool, words):
+    base = _FILLER.get(tool, "按岗位职责完成本轮处理，记录结论与依据。")
+    extra = ("复核前后结论是否一致，检查交付件路径、命名与归属是否正确；"
+             "补充必要的上下文说明，确保下游角色能据此继续，不留模糊假设。")
+    out = base
+    while len(out) < words:
+        out += extra
+    return out[:words]
 
 
 def _sse_payload(frames):
@@ -181,6 +227,13 @@ class _Handler(BaseHTTPRequestHandler):
                                      call.get("arguments") or "{}")]
             with stats.lock:
                 stats.text += 1
+            if "stage" in step or "summary" in step:
+                obj = {"reply": step.get("reply") or ""}
+                if step.get("stage"):
+                    obj["stage"] = step["stage"]
+                if step.get("summary"):
+                    obj["summary"] = step["summary"]
+                return _structured_frames(obj)
             return _text_frames(step.get("reply") or "")
 
         tools = req.get("tools") or []
@@ -190,38 +243,76 @@ class _Handler(BaseHTTPRequestHandler):
             nm = fn.get("name") or spec.get("name")
             if nm:
                 by_name[nm] = spec
-        # 首轮消息仅 system+user；之后轮次含工具步/历史往返。按轮次分流避免无限拉新。
-        first = len(req.get("messages") or []) <= 2
-        # PM 上下文：首轮按概率拉一个开发角色会话，后续轮次收口。
-        if "role_spawn" in by_name:
-            if first and random.random() < policy.spawn_rate:
-                args = json.dumps({"role": "developer", "display": "Dev",
-                                   "task": "按需求产出交付件到交付目录"},
+        msgs = req.get("messages") or []
+        done = sum(1 for m in msgs if m.get("role") == "assistant")
+
+        def _args(tool):
+            filler = _filler(tool, policy.filler_words)
+            if tool == "artifact_write":
+                return {"layer": "ticket", "path": "docs/feature.md", "content": filler}
+            if tool == "artifact_read":
+                return {"layer": "ticket", "path": "docs/feature.md"}
+            if tool == "knowledge_write":
+                return {"layer": "ticket", "name": "round-note", "content": filler}
+            if tool == "knowledge_read":
+                return {"layer": "ticket", "name": "round-note"}
+            if tool == "knowledge_search":
+                return {"query": "工单要点 验收标准 既有方案"}
+            if tool == "ticket_note":
+                return {"text": filler}
+            return {}
+
+        # PM 上下文：analyze 先读需求并自报进 plan，plan 态依次分派角色，全部分派后收口。
+        if "role_spawn" in by_name or "role_task" in by_name or "ticket_split" in by_name:
+            spawned = 0
+            for m in msgs:
+                for tc in (m.get("tool_calls") or []):
+                    fn = tc.get("function") or {}
+                    if fn.get("name") == "role_spawn":
+                        spawned += 1
+            if spawned < len(policy.pm_roles):
+                role = policy.pm_roles[spawned]
+                args = json.dumps({"role": role, "display": role,
+                                   "task": "按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。"},
                                   ensure_ascii=False)
                 with stats.lock:
                     stats.tool_calls += 1
                 return [_tool_frame("call_%d" % stats.calls, "role_spawn", args)]
             with stats.lock:
                 stats.text += 1
-            return _text_frames("（stub）PM 已分派并确认，工单进入执行阶段。")
-        # 角色上下文：首轮按概率调写文件工具产出交付件，后续轮次收口。
-        write_name = next((n for n in ("artifact_write", "ticket_note") if n in by_name), None)
-        pick = write_name or next((n for n in by_name if n != "role_spawn"), None)
-        if pick and first and random.random() < policy.tool_rate:
-            if pick == "artifact_write":
-                args = json.dumps({"layer": "ticket", "path": "docs/feature.md",
-                                   "content": "压测交付件：功能实现说明与关键代码片段，"
-                                              "不少于八十字以满足交付件最小体量校验。"},
-                                  ensure_ascii=False)
-            else:
-                args = json.dumps({"text": "压测备注"}, ensure_ascii=False)
+            return _structured_frames({
+                "reply": "（stub）PM 已分派各角色并确认分工，工单进入执行、测试与评审阶段。",
+                "summary": "协同推进，依据工单验收标准交付，依据与缺口记入备注。"})
+
+        # analyze 态：先读工单需求，下一轮自报进入编排阶段。
+        read = next((n for n in ("ticket_read_doc", "artifact_read", "knowledge_read") if n in by_name), None)
+        if read and done < 1:
             with stats.lock:
                 stats.tool_calls += 1
-            return [_tool_frame("call_%d" % stats.calls, pick, args)]
+            return [_tool_frame("call_%d" % stats.calls, read, json.dumps(_args(read), ensure_ascii=False))]
+        with stats.lock:
+            stats.text += 1
+        return _structured_frames({
+            "reply": "（stub）需求要点与验收标准已梳理，进入编排与角色分派。",
+            "stage": "plan",
+            "summary": "明确改动范围与交付要求，准备分派开发、测试、评审角色。"})
+
+        # 角色上下文：按“读→写→备注”步进，重复 role_rounds 遍后收口；工具按可用集过滤。
+        steps = [t for t in _ROLE_STEPS if t in by_name]
+        if policy.role_rounds > 1:
+            steps = steps * policy.role_rounds
+        if done < len(steps):
+            tool = steps[done]
+            args = json.dumps(_args(tool), ensure_ascii=False)
+            with stats.lock:
+                stats.tool_calls += 1
+            return [_tool_frame("call_%d" % stats.calls, tool, args)]
 
         with stats.lock:
             stats.text += 1
-        return _text_frames("（stub）本轮处理完成，交付结论如下：打桩输出。")
+        return _structured_frames({
+            "reply": _filler("ticket_note", policy.filler_words),
+            "summary": "本轮交付完成，结论、依据与遗留缺口已记入工单备注。"})
 
 
 def start_stub(policy=None):
