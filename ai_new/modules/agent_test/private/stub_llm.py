@@ -307,14 +307,21 @@ class _Handler(BaseHTTPRequestHandler):
 
         # PM 上下文：analyze 先读需求并自报进 plan，plan 态依次分派角色，全部分派后收口。
         if "role_spawn" in by_name or "role_task" in by_name or "ticket_split" in by_name:
-            spawned = 0
-            for m in msgs:
-                for tc in (m.get("tool_calls") or []):
-                    fn = tc.get("function") or {}
-                    if fn.get("name") == "role_spawn":
-                        spawned += 1
-            if spawned < len(policy.pm_roles):
-                role = policy.pm_roles[spawned]
+            assigned = set()
+            in_block = False
+            for line in sys_text.splitlines():
+                ls = line.strip()
+                if ls.startswith("## 已分派角色"):
+                    in_block = True
+                    continue
+                if in_block and ls.startswith("## "):
+                    in_block = False
+                if in_block and ls.startswith("- "):
+                    assigned.add(ls[2:].strip())
+            pending = [r for r in policy.pm_roles if r not in assigned]
+            already_tool = any(m.get("role") == "tool" for m in msgs)
+            if pending and not already_tool:
+                role = pending[0]
                 args = json.dumps({"role": role, "display": role,
                                    "task": "按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。"},
                                   ensure_ascii=False)

@@ -60,6 +60,48 @@ do:
     items:
       get: pt.result.items
   as: run_tools
+- call: library.stage_block
+  with:
+    contract:
+      get: contract
+    active:
+      get: row.value.meta.active
+  as: stblk
+- call: sessions.refresh_stage_message
+  with:
+    messages:
+      get: row.value.messages
+    stage:
+      get: stblk.system
+  as: fresh_msgs
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: messages.yaml
+  as: libtpl
+- call: tickets.record_path
+  with:
+    id:
+      get: row.value.ticket
+  as: tp
+- call: store.read
+  with:
+    module:
+      lit: agent/tickets
+    path:
+      get: tp.path
+  as: trow
+- call: sessions.inject_assigned_message
+  with:
+    messages:
+      get: fresh_msgs.messages
+    roles:
+      get: trow.value.roles
+    heading:
+      get: libtpl.value.heading_assigned
+  as: assg_msgs
 - call: clock.now
   as: now
 - call: sessions.mark
@@ -93,7 +135,7 @@ do:
       session:
         get: running
       messages:
-        get: row.value.messages
+        get: assg_msgs.messages
       tools:
         get: run_tools.items
       max_steps:
@@ -162,6 +204,8 @@ do:
       get: out.result
     stage_check:
       get: check
+    tools:
+      get: run_tools.items
     latest:
       get: latest.value
     now:
@@ -208,6 +252,12 @@ expect:
   - library.stage_contract
   - demand_engine.run
   - library.stage_tools
+  - library.stage_block
+  - sessions.refresh_stage_message
+  - store.read
+  - tickets.record_path
+  - store.read
+  - sessions.inject_assigned_message
   - clock.now
   - sessions.mark
   - sessions.record_path

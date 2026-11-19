@@ -57,6 +57,8 @@ def finish(p):
         rec["summary"] = out.get("summary") or ""
     rec["updated"] = p.get("now") or ""
     meta = dict(rec.get("meta") or {})
+    if p.get("tools") is not None:
+        meta["tools"] = p.get("tools")
     failed = out.get("failed")
     # 后端未答复的原因落进会话面，供视图透出；成功一轮后清除上一次的错误痕迹
     if failed:

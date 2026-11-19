@@ -13,6 +13,8 @@ def setup(ctx):
     ctx.hooks.point("sessions.finished", ("id", "kind", "role", "ticket"), defer=True)
     pairs = [
         ("sessions.build", _pure.build),
+        ("sessions.refresh_stage_message", _pure.refresh_stage_message),
+        ("sessions.inject_assigned_message", _pure.inject_assigned_message),
         ("sessions.view", _pure.view),
         ("sessions.present", _pure.present),
         ("sessions.screen", _pure.screen),

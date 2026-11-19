@@ -13,6 +13,57 @@ def _seed(system, intro):
     return msgs
 
 
+def refresh_stage_message(p):
+    """用最新阶段段替换首条 system 里的旧阶段段；其余人设/红线原文保留。
+
+    阶段段标题取新阶段段首行（与 stage_block 输出一致）；纯函数不持有文案默认值。
+    """
+    msgs = list(p.get("messages") or [])
+    stage = p.get("stage") or ""
+    head = stage.split("\n", 1)[0].strip() if stage else ""
+    for i, m in enumerate(msgs):
+        if m.get("role") != "system":
+            continue
+        text = m.get("content") or ""
+        if head and head in text:
+            before = text.split(head, 1)[0].rstrip()
+            text = (before + "\n\n" + stage).strip() if stage else before
+        elif stage:
+            text = (text.rstrip() + "\n\n" + stage).strip()
+        msgs[i] = dict(m, content=text)
+        break
+    return {"messages": msgs}
+
+
+def inject_assigned_message(p):
+    """把工单已分派角色清单并入首条 system；已有同标题段先剥离再重写，避免重复注入。
+
+    清单与标题由编排层传入，纯函数不持有岗位名与文案默认值。
+    """
+    msgs = list(p.get("messages") or [])
+    heading = p.get("heading") or ""
+    names = []
+    for r in p.get("roles") or []:
+        rn = r.get("role") if isinstance(r, dict) else r
+        if rn and rn not in names:
+            names.append(rn)
+    if not heading or not names:
+        return {"messages": msgs}
+    block = heading + "\n" + "\n".join("- %s" % n for n in names)
+    for i, m in enumerate(msgs):
+        if m.get("role") != "system":
+            continue
+        cur = m.get("content") or ""
+        if heading in cur:
+            before = cur.split(heading, 1)[0].rstrip()
+            cur = (before + "\n\n" + block).strip()
+        else:
+            cur = (cur.rstrip() + "\n\n" + block).strip()
+        msgs[i] = dict(m, content=cur)
+        break
+    return {"messages": msgs}
+
+
 def build(p):
     prefix = p.get("prefix") or ""
     prompt = p.get("prompt") or ""
