@@ -132,6 +132,7 @@ function qsOf(s) {
   else if (s.view === "position") { q.set("view", "position"); q.set("position", s.position || ""); }
   else if (s.view === "knowledge") q.set("view", "knowledge");
   else if (s.view === "logs") q.set("view", "logs");
+  else if (s.view === "artifacts") q.set("view", "artifacts");
   else if (s.view === "user") q.set("view", "user");
   else if (s.view === "knowledge-doc") {
     q.set("view", "knowledge-doc"); q.set("layer", s.layer || ""); q.set("name", s.name || "");
@@ -150,6 +151,7 @@ function parseURL() {
   if (q.get("view") === "position") return { view: "position", position: q.get("position") || "" };
   if (q.get("view") === "knowledge") return { view: "knowledge" };
   if (q.get("view") === "logs") return { view: "logs" };
+  if (q.get("view") === "artifacts") return { view: "artifacts" };
   if (q.get("view") === "user") return { view: "user" };
   if (q.get("view") === "knowledge-doc") return { view: "knowledge-doc",
     layer: q.get("layer") || "", name: q.get("name") || "",

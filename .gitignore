@@ -10,6 +10,7 @@ ai_new/modules/agent/projects/data/*
 !ai_new/modules/agent/projects/data/messages.yaml
 ai_new/modules/agent/artifacts/data/*
 !ai_new/modules/agent/artifacts/data/messages.yaml
+!ai_new/modules/agent/artifacts/data/public/
 ai_new/modules/agent/knowledge/data/projects/
 ai_new/modules/agent/knowledge/data/tickets/
 ai_new/modules/agent_common/ops/data/

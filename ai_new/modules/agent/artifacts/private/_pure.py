@@ -144,3 +144,73 @@ def index_purge(p):
             continue
         keep.append(row)
     return {"entries": keep}
+
+
+def group(p):
+    """清单条目 → 公共/项目/工单三级归属树；纯分组，不读正文。
+
+    entries: 文档清单条目；tickets: 工单档案（id/project/title）用于补项目归属。
+    """
+    entries = p.get("entries") or []
+    tickets = p.get("tickets") or []
+    tpl = p.get("tpl") or {}
+    layer_label = {"public": tpl.get("label_public") or "",
+                   "project": tpl.get("label_project") or "",
+                   "ticket": tpl.get("label_ticket") or ""}
+    ticket_project, ticket_title, ticket_raw = {}, {}, {}
+    for t in tickets:
+        if not t:
+            continue
+        tid = t.get("id") or ""
+        if tid:
+            ticket_project[tid.lower()] = t.get("project") or ""
+            ticket_title[tid.lower()] = t.get("title") or ""
+            ticket_raw[tid.lower()] = tid
+
+    public_items, project_groups, orphan = [], {}, {}
+    counts = {"public": 0, "project": 0, "ticket": 0}
+    items = []
+    for row in entries:
+        if not isinstance(row, dict):
+            continue
+        layer = row.get("layer") or "public"
+        pid = row.get("project") or ""
+        tid = row.get("ticket") or ""
+        item = {"type": "doc", "layer": layer, "project": pid, "ticket": tid,
+                "name": row.get("name") or "", "path": row.get("path") or "",
+                "doc_kind": row.get("doc_kind") or "", "source": row.get("source") or "llm"}
+        items.append(item)
+        if layer == "public":
+            public_items.append(item)
+            counts["public"] += 1
+        elif layer == "ticket":
+            key = tid.lower()
+            pid = pid or ticket_project.get(key, "")
+            item["project"] = pid
+            counts["ticket"] += 1
+            if pid:
+                grp = project_groups.setdefault(pid, {"docs": [], "tickets": {}})
+                grp["tickets"].setdefault(key, []).append(item)
+            else:
+                orphan.setdefault(key, []).append(item)
+        else:
+            counts["project"] += 1
+            project_groups.setdefault(pid, {"docs": [], "tickets": {}})["docs"].append(item)
+
+    tree = []
+    if public_items:
+        tree.append({"type": "public", "label": layer_label["public"], "badge": layer_label["public"],
+                     "children": public_items})
+    for pid in sorted(project_groups):
+        grp = project_groups[pid]
+        children = list(grp["docs"])
+        for key in sorted(grp["tickets"]):
+            children.append({"type": "ticket", "label": ticket_raw.get(key, key),
+                             "sub": ticket_title.get(key, ""),
+                             "badge": layer_label["ticket"], "children": grp["tickets"][key]})
+        tree.append({"type": "project", "label": pid, "badge": layer_label["project"],
+                     "children": children})
+    for key in sorted(orphan):
+        tree.append({"type": "ticket", "label": key, "badge": layer_label["ticket"],
+                     "children": orphan[key]})
+    return {"items": items, "counts": counts, "tree": tree}

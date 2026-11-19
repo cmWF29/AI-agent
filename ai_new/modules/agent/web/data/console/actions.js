@@ -78,6 +78,7 @@ function resolveView(target, c) {  const params = fill(target.params || {}, c);
   if (view === "position") return { view: "position", position: params.position || "" };
   if (view === "knowledge") return { view: "knowledge" };
   if (view === "logs") return { view: "logs" };
+  if (view === "artifacts") return { view: "artifacts" };
   if (view === "user") return { view: "user" };
   if (view === "knowledge-doc") return { view: "knowledge-doc",
     layer: params.layer || "", name: params.name || "",

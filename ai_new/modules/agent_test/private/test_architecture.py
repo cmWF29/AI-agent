@@ -385,7 +385,7 @@ class StructureTest(unittest.TestCase):
         """根目录只有两个脚本和一个包：没有第三个特殊目录。"""
         entries = {p.name for p in ROOT.iterdir()}
         allowed = {"ai_new", "agent_start.py", "test_start.py",
-                   "README.md", "ARCHITECTURE.md", "install_skill.md",
+                   "README.md", "ARCHITECTURE.md", "install_skill.md", "scripts",
                    "agent_start.out.log", "agent_start.err.log",
                    # VCS 元数据；部署副本运行期产物（TLS 材料目录、运行日志）
                    ".git", ".gitignore", "certs", "run.log"}

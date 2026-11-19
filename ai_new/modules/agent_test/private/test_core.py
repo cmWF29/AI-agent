@@ -196,16 +196,16 @@ class CoreTest(unittest.TestCase):
         # public 层没有就是没有：读不到回 not_found，不抛异常
         miss = self._run("knowledge-read", {"layer": "public", "name": "secretary"})
         self.assertFalse(miss["result"].get("ok", True))
-        # 结构化计划要素已下沉 public 知识库：可按名读到模板正文
-        tmpl = self._run("knowledge-read", {"layer": "public", "name": "plan-structure"})["result"]
-        self.assertIn("计划结构模板", tmpl["content"])
-        self.assertIn("验收标准", tmpl["content"])
-        # 检索与注入链路递归扫到 public 子目录种子，文本进匹配与注入结果
-        found = self._run("knowledge-search", {"query": "验收标准"})["result"]
-        self.assertTrue(any("plan-structure" in i["path"] for i in found["items"]))
+        # 出厂规范模板归文档（非交付件/系统内置），按需读，不进知识检索与注入上下文
+        tmpl = self._run("artifacts-read", {"layer": "public",
+                                            "path": "plan-structure.md"})["result"]
+        self.assertIn("计划结构模板", tmpl["text"])
+        self.assertIn("验收标准", tmpl["text"])
+        # 知识检索只命中 LLM 沉淀，不卷入文档模板
+        found = self._run("knowledge-search", {"query": "架构约定"})["result"]
+        self.assertTrue(any("arch-note" in i["path"] for i in found["items"]))
         comp = self._run("knowledge-compose", {"prefixes": ["public/"]})["result"]
-        self.assertIn("计划结构模板", comp["text"])
-        self.assertIn("验收标准", comp["text"])
+        self.assertIn("架构约定", comp["text"])
         # 清单落盘：知识条目恒 category=knowledge、source=llm、doc_kind 为空
         kidx = self.ctx.api.call("store.read", {
             "module": "agent/knowledge", "path": "index.yaml",
@@ -502,6 +502,30 @@ class CoreTest(unittest.TestCase):
         esc = self.ctx.api.call("artifacts.rel",
                                 {"base": "projects/p1/tickets/T-1", "path": "../../escape.md"})
         self.assertFalse(esc.get("ok", True))
+
+    def test_artifacts_index_tree_groups_tickets_under_project(self):
+        """文档目录树：公共平铺，项目文档与其工单文档按归属归到项目节点下。"""
+        rows = [
+            {"path": "public/plan-structure.md", "layer": "public",
+             "doc_kind": "non_artifact", "source": "system", "name": "plan-structure.md"},
+            {"path": "projects/重构/docs/notes.md", "layer": "project", "project": "重构",
+             "doc_kind": "artifact", "source": "system", "name": "notes.md"},
+            {"path": "projects/重构/tickets/t-20261117-0003/docs/pm/plan.md", "layer": "ticket",
+             "project": "重构", "ticket": "t-20261117-0003",
+             "doc_kind": "artifact", "source": "system", "name": "plan.md"},
+        ]
+        tickets = [{"id": "T-20261117-0003", "project": "重构", "title": "流式去重"}]
+        out = self.ctx.api.call("artifacts.group", {"entries": rows, "tickets": tickets})
+        self.assertEqual(out["counts"], {"public": 1, "project": 1, "ticket": 1})
+        top = {n["type"] + ":" + n.get("label", ""): n for n in out["tree"]}
+        self.assertIn("public:公共文档", top)
+        proj = top["project:重构"]
+        kinds = [c["type"] for c in proj["children"]]
+        self.assertEqual(kinds.count("doc"), 1)
+        ticket_nodes = [c for c in proj["children"] if c["type"] == "ticket"]
+        self.assertEqual(len(ticket_nodes), 1)
+        self.assertEqual(ticket_nodes[0]["children"][0]["project"], "重构")
+        self.assertTrue(ticket_nodes[0]["label"].startswith("T-"))
 
     def test_ticket_artifact_project_follows_ticket(self):
         """ticket 层写产物：归属项目以工单记录为准，模型传错/漏填都不能错位到 projects/item。"""

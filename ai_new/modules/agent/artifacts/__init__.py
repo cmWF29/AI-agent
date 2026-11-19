@@ -15,6 +15,8 @@ def setup(ctx):
         ("artifacts.stats", _pure.statsp),
     ]:
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="artifacts")
+    ctx.api.register("artifacts.group", _as_handler(_pure.group),
+                     "文档清单按公共/项目/工单三级分组成形；纯分组不读正文", module="artifacts")
     ctx.api.register("artifacts.save", _route_save, "写交付件：分层→算路径→文本/二进制落盘→回执",
                      module="artifacts")
     for name, desc, demand in [
@@ -42,6 +44,15 @@ def _msg_tpl(ctx):
     row = ctx.api.call("store.read", {
         "module": "agent/artifacts", "path": "messages.yaml"}, caller=None)
     return row.get("value") or {}
+
+
+def _as_handler(fn):
+    def handler(ctx, payload):
+        payload = dict(payload or {})
+        if "tpl" not in payload:
+            payload["tpl"] = _msg_tpl(ctx)
+        return fn(payload)
+    return handler
 
 
 def _cfg(ctx, key):
