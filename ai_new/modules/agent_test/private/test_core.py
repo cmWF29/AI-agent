@@ -20,6 +20,7 @@ from ai_new.modules.agent.auth.private import _pure as auth_pure  # noqa: E402
 from ai_new.modules.agent.library.private import _pure as lib_pure  # noqa: E402
 from ai_new.modules.agent.decompose.private import _pure as decompose_pure  # noqa: E402
 from ai_new.modules.agent.sessions.private import _run_pure as sess_run  # noqa: E402
+from ai_new.modules.agent.sessions.private import _pure as sess_pure  # noqa: E402
 from ai_new.modules.agent.tickets.private import _pure as ticket_pure  # noqa: E402
 from ai_new.modules.agent.projects.private import _pure as projects_pure  # noqa: E402
 from ai_new.modules.agent_common.react.private import _pure as react_pure  # noqa: E402
@@ -1324,6 +1325,16 @@ class CoreTest(unittest.TestCase):
         self.assertIn("c", ov_by)
         self.assertNotIn("b", ov_by)
         self.assertEqual(ov_by["a"]["next"], ["c"])
+        # 契约写回快照：回收不在新契约的活跃态，全部失效则回退初始
+        contract2 = lib_pure.stage_contractp({"states": [
+            {"id": "a", "next": ["b"]}, {"id": "b", "terminal": True}]})
+        applied = sess_pure.machine_applyp({"rec": {"meta": {"active": ["a", "ghost"]}},
+                                            "contract": contract2})
+        self.assertEqual(applied["meta"]["active"], ["a"])
+        self.assertEqual(applied["meta"]["machine"]["initial"], "a")
+        app2 = sess_pure.machine_applyp({"rec": {"meta": {"active": ["ghost"]}},
+                                         "contract": contract2})
+        self.assertEqual(app2["meta"]["active"], ["a"])
 
     def test_react_context_pure_functions(self):
         # 发往视图：system 保留，历史往返剔除，摘要占位 + 本轮指令保留

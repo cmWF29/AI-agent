@@ -23,6 +23,7 @@ def setup(ctx):
         ("sessions.appendmsg", _run_pure.appendmsg),
         ("sessions.mark", _run_pure.mark),
         ("sessions.finish", _run_pure.finish),
+        ("sessions.machine_apply", _pure.machine_applyp),
         ("sessions.reply", _run_pure.reply),
         ("sessions.statsp", _run_pure.statsp),
         ("sessions.flow_plan", _run_pure.flow_plan),

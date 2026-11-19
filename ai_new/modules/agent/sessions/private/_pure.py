@@ -88,6 +88,22 @@ def compactp(p):
     return rec
 
 
+def machine_applyp(p):
+    """把并入后的状态机契约写回会话快照；活跃态不在新契约内则回收，空则回退初始。纯数据成形。"""
+    rec = dict(p.get("rec") or {})
+    contract = p.get("contract") or {}
+    meta = dict(rec.get("meta") or {})
+    meta["machine"] = contract
+    by = contract.get("by_id") or {}
+    active = [a for a in (meta.get("active") or []) if a in by]
+    if not active:
+        initial = contract.get("initial") or ""
+        active = [initial] if initial else []
+    meta["active"] = active
+    rec["meta"] = meta
+    return rec
+
+
 def missing(p):
     tpl = p.get("tpl") or ""
     sid = p.get("id") or ""

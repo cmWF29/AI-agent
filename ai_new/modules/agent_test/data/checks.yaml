@@ -99,6 +99,7 @@ checks:
   - session-draft
   - session-get
   - session-list
+  - session-machine
   - session-run
   - session-resume
   - session-send

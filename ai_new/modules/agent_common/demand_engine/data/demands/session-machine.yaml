@@ -1,0 +1,86 @@
+id: session-machine
+title: 会话状态机覆盖：增删状态与边并入快照并落盘
+description: "会话状态机覆盖：把运行时增节点、删节点及其出边、追加邻边并入本工单会话快照契约定形后落盘；增删改归模块纯函数，并入快照与写盘归需求。"
+tags:
+- session
+- write
+- contract
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.id
+  with:
+    value:
+      get: input.id
+  as: sid
+- call: sessions.record_path
+  with:
+    id:
+      get: sid.id
+  as: sp1
+- call: store.read
+  with:
+    module:
+      lit: agent/logs
+    path:
+      get: sp1.path
+  as: row
+- call: library.stage_apply_overrides
+  with:
+    states:
+      get: row.value.meta.machine.states
+    add:
+      get: input.add
+    remove:
+      get: input.remove
+    edges:
+      get: input.edges
+  as: ov
+- call: library.stage_contract
+  with:
+    states:
+      get: ov.states
+  as: contract
+- call: sessions.machine_apply
+  with:
+    rec:
+      get: row.value
+    contract:
+      get: contract
+  as: rec
+- call: sessions.record_path
+  with:
+    id:
+      get: sid.id
+  as: sp2
+- call: store.write
+  with:
+    module:
+      lit: agent/logs
+    path:
+      get: sp2.path
+    value:
+      get: rec
+  as: w
+- call: sessions.view
+  with:
+    rec:
+      get: rec
+  as: out
+expect:
+  given:
+    input:
+      id: role-1
+  calls:
+  - store.id
+  - sessions.record_path
+  - store.read
+  - library.stage_apply_overrides
+  - library.stage_contract
+  - sessions.machine_apply
+  - sessions.record_path
+  - store.write
+  - sessions.view
+  payload: {}
+  promise: 状态机增删改归模块纯函数，并入快照与落盘归需求
