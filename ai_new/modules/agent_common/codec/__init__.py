@@ -24,6 +24,9 @@ def setup(ctx):
                      "base64 → hex", module="codec")
     ctx.api.register("codec.base64_decode_bytes", lambda c, p: _codec.base64_decode_bytes(p.get("text")),
                      "base64 → 原始字节", module="codec")
+    ctx.api.register("codec.decode_hex", lambda c, p: _codec.decode_hex(
+        p.get("hex"), p.get("max_bytes"), p.get("size")),
+        "hex → utf8 文本，非 utf8 退 base64", module="codec")
     ctx.api.register("codec.wave_decode", lambda c, p: _codec.wave_decode(p.get("raw")),
                      "WAV(PCM) 字节 → PCM 帧/采样率", module="codec")
     return True

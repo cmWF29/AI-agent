@@ -10,7 +10,6 @@ def setup(ctx):
         ("artifacts.rel", _pure.rel),
         ("artifacts.written", _pure.written),
         ("artifacts.viewed", _pure.viewed),
-        ("artifacts.decode", _pure.decode),
         ("artifacts.screen", _pure.screen),
         ("artifacts.stats", _pure.statsp),
     ]:

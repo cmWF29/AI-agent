@@ -62,7 +62,7 @@ do:
     path:
       get: rel.path
   as: raw
-- call: artifacts.decode
+- call: codec.decode_hex
   with:
     hex:
       get: raw.hex
@@ -96,7 +96,7 @@ expect:
   - artifacts.base
   - artifacts.rel
   - store.read_bytes
-  - artifacts.decode
+  - codec.decode_hex
   - artifacts.viewed
   payload: {}
   promise: 读盘归需求，解码是纯计算

@@ -50,19 +50,6 @@ def viewed(p):
             "text": p.get("text") or ""}
 
 
-def decode(p):
-    """hex → utf8；不行就退 base64（由 codec 在需求里先转）。"""
-    hx = p.get("hex") or ""
-    limit = int(p.get("max_bytes"))
-    truncated = int(p.get("size") or 0) > limit
-    raw = bytes.fromhex(hx)[:limit]
-    try:
-        return {"text": raw.decode("utf-8"), "encoding": "utf8", "truncated": truncated}
-    except UnicodeDecodeError:
-                return {"text": base64.b64encode(raw).decode("ascii"), "encoding": "binary", "needs_encode": True,
-                "truncated": truncated}
-
-
 def screen(p):
     items = []
     for row in p.get("rows") or []:

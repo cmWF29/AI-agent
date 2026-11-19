@@ -117,6 +117,23 @@ def base64_from_hex(text):
         return {"ok": False, "error": str(exc), "code": "decode_failed"}
 
 
+def decode_hex(hex_text, max_bytes=None, size=None):
+    """hex 字节 → utf8 文本；非 utf8 退 base64 承载。截断阈值与截断标记在此成形。"""
+    try:
+        raw_all = bytes.fromhex(str(hex_text or ""))
+        limit = int(max_bytes) if max_bytes is not None else len(raw_all)
+        raw = raw_all[:limit]
+        truncated = int(size or 0) > limit
+    except (TypeError, ValueError) as exc:
+        return {"ok": False, "error": str(exc), "code": "decode_failed"}
+    try:
+        return {"ok": True, "text": raw.decode("utf-8"), "encoding": "utf8",
+                "truncated": truncated}
+    except UnicodeDecodeError:
+        return {"ok": True, "text": base64.b64encode(raw).decode("ascii"),
+                "encoding": "binary", "needs_encode": True, "truncated": truncated}
+
+
 def hex_from_base64(text):
     try:
         return {"ok": True, "hex": base64.b64decode(str(text or "")).hex()}

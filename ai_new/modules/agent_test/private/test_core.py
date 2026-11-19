@@ -527,6 +527,25 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(ticket_nodes[0]["children"][0]["project"], "重构")
         self.assertTrue(ticket_nodes[0]["label"].startswith("T-"))
 
+    def test_codec_decode_hex_utf8_and_binary(self):
+        """hex 解码成形：utf8 直出；非 utf8 退 base64；超阈值标 truncated。"""
+        text = "计划正文"
+        raw = text.encode("utf-8")
+        ok = self.ctx.api.call("codec.decode_hex", {"hex": raw.hex(),
+                                                    "size": len(raw), "max_bytes": 4096})
+        self.assertEqual(ok["encoding"], "utf8")
+        self.assertEqual(ok["text"], text)
+        self.assertFalse(ok["truncated"])
+        bin_raw = b"\xff\xfe\x00\x01"
+        bad = self.ctx.api.call("codec.decode_hex", {"hex": bin_raw.hex(),
+                                                      "size": len(bin_raw), "max_bytes": 4096})
+        self.assertEqual(bad["encoding"], "binary")
+        self.assertTrue(bad["needs_encode"])
+        self.assertTrue(bad["text"])
+        trunc = self.ctx.api.call("codec.decode_hex", {"hex": raw.hex(),
+                                                       "size": len(raw), "max_bytes": 2})
+        self.assertTrue(trunc["truncated"])
+
     def test_ticket_artifact_project_follows_ticket(self):
         """ticket 层写产物：归属项目以工单记录为准，模型传错/漏填都不能错位到 projects/item。"""
         proj = self._run("projects-create", {"name": "产物归属项目"})["result"]
