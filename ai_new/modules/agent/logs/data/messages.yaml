@@ -1,0 +1,9 @@
+# 日志模块面向用户文案模板。纯文案数据，填参归模块，需求层读取后传入纯函数。
+label_public: '公共'
+label_project: '项目'
+label_ticket: '工单'
+kind_system: '系统日志'
+kind_session: '会话记录'
+kind_transcript: '工单历程'
+kind_tool: '工具输出'
+kind_channel: '群聊消息'

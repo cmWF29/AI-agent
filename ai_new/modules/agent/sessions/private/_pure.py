@@ -98,7 +98,7 @@ def missing(p):
 def record_path(p):
     """会话记录落盘相对路径：模板由需求层配置表给出，纯函数只填参。"""
     paths = p.get("paths") or {}
-    t = paths.get("record") or ""
+    t = paths.get("session") or ""
     sid = p.get("id") or ""
     return {"path": t.format(id=sid) if t else sid}
 

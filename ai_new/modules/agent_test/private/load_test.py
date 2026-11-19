@@ -323,7 +323,7 @@ def main(argv=None):
                        "pattern": "*.yaml"}).get("items") or [])
         ticket_items = (ctx.api.call("store.glob", {"module": "agent/tickets",
                         "pattern": "tickets/T-*/ticket.yaml"}).get("items") or [])
-        sess_items = (ctx.api.call("store.glob", {"module": "agent/sessions",
+        sess_items = (ctx.api.call("store.glob", {"module": "agent/logs",
                       "pattern": "sessions/*.yaml"}).get("items") or [])
         disk_tickets = _ids_from_glob(ticket_items, "ticket")
         disk_sessions = _ids_from_glob(sess_items, "session")

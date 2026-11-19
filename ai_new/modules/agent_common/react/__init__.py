@@ -11,11 +11,6 @@ def _msg_tpl(ctx):
     return row.get("value") or {}
 
 
-def _cfg_paths(ctx):
-    row = ctx.api.call("config.get", {"key": "react.paths"}, caller=None)
-    return row.get("value") or {}
-
-
 def setup(ctx):
     for name, fn in [
         ("react.schemas", _pure.schemas),
@@ -45,24 +40,30 @@ def _tool_threshold(ctx, payload):
     return int(row.get("value"))
 
 
+def _logs_paths(ctx):
+    row = ctx.api.call("config.get", {"key": "logs.paths"}, caller=None)
+    return row.get("value") or {}
+
+
 def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
-    """工具输出分级：超限先落盘 ticket 层，回路径与读取提示；落盘失败兜底全文回填。"""
+    """工具输出分级：超限先落 ticket 层日志，回路径与读取提示；落盘失败兜底全文回填。"""
     cls = ctx.api.call("react.classify_tool",
                        {"content": text, "threshold": threshold}, caller=None)
     if not cls.get("large"):
         return {"content": text, "stashed": False}
-    sid = (session or {}).get("id") or "anon"
-    # call_id 缺失时用步号+步内序号兜底，避免同会话多次超限输出都写到 out.txt 互相覆盖。
+    session = session or {}
     fid = call_id or ("out-%s" % (stamp or "x"))
-    pt = _cfg_paths(ctx).get("tool_out") or ""
-    path = pt.format(sid=sid, fid=fid) if pt else "%s/%s" % (sid, fid)
-    saved = ctx.api.call("artifacts.save", {
-        "layer": "ticket", "ticket": (session or {}).get("ticket"),
-        "project": (session or {}).get("project"),
-        "path": path, "content": text}, caller=None)
-    if not isinstance(saved, dict) or not saved.get("path"):
-        return {"content": text, "stashed": False}
-    effects = saved.get("effects") or []
+    project = session.get("project") or ""
+    ticket = session.get("ticket") or ""
+    pt = _logs_paths(ctx).get("tool") or ""
+    rel_path = pt.format(project=project, ticket=ticket, fid=fid) if pt \
+        else "%s/%s" % (ticket, fid)
+    body_effect = {"kind": "write_text", "module": "agent/logs",
+                   "path": rel_path, "text": text}
+    rec = ctx.api.call("logs.record", {
+        "path": rel_path, "kind": "tool", "layer": "ticket",
+        "project": project, "ticket": ticket, "name": fid}, caller=None)
+    effects = [body_effect] + (rec.get("effects") or [])
     applied_ok = True
     if effects:
         res = ctx.runtime.apply({"effect": effects}) or {}
@@ -72,9 +73,9 @@ def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
     if not applied_ok:
         return {"content": text, "stashed": False, "fallback": "write_failed"}
     tpl = _msg_tpl(ctx).get("stash_note") or ""
-    note = tpl.format(size=cls.get("size"), path=path) if tpl else ""
-    return {"content": note, "stashed": True, "path": saved.get("path"),
-            "rel_path": path, "size": cls.get("size")}
+    note = tpl.format(size=cls.get("size"), path=rel_path) if tpl else ""
+    return {"content": note, "stashed": True, "path": rel_path,
+            "rel_path": rel_path, "size": cls.get("size")}
 
 
 def _checkpoint(ctx, session, path, messages, summary, steps):
@@ -90,7 +91,7 @@ def _checkpoint(ctx, session, path, messages, summary, steps):
         ckpt = ctx.api.call("react.checkpoint", {
             "rec": session, "messages": messages, "summary": summary,
             "steps": steps, "now": now.get("ts")}, caller=None)
-        ctx.runtime.apply({"effect": {"kind": "write", "module": "agent/sessions",
+        ctx.runtime.apply({"effect": {"kind": "write", "module": "agent/logs",
                                       "path": path, "value": ckpt}})
     except Exception:  # noqa: BLE001 —— 检查点失败不中断本轮，收尾仍会整段写盘
         pass

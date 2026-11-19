@@ -93,7 +93,7 @@ class CoreTest(unittest.TestCase):
                   "knowledge", "artifacts", "library", "sessions", "projects",
                   "tickets", "agents", "health", "ops", "web", "http",
                   "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec",
-                  "decompose", "asr"}
+                  "decompose", "asr", "logs"}
         self.assertEqual(set(self.loaded), expect)
 
     def test_modules_have_no_log_capability(self):
@@ -206,6 +206,15 @@ class CoreTest(unittest.TestCase):
         comp = self._run("knowledge-compose", {"prefixes": ["public/"]})["result"]
         self.assertIn("计划结构模板", comp["text"])
         self.assertIn("验收标准", comp["text"])
+        # 清单落盘：知识条目恒 category=knowledge、source=llm、doc_kind 为空
+        kidx = self.ctx.api.call("store.read", {
+            "module": "agent/knowledge", "path": "index.yaml",
+            "fallback": {"entries": []}})["value"]
+        kentry = next(e for e in kidx["entries"] if e["path"] == "public/arch-note.md")
+        self.assertEqual(kentry["category"], "knowledge")
+        self.assertEqual(kentry["source"], "llm")
+        self.assertEqual(kentry["layer"], "public")
+        self.assertIsNone(kentry["doc_kind"])
 
     def test_knowledge_index_tree_groups_tickets_under_project(self):
         """知识目录树：公共平铺，项目文档与其工单文档按归属归到项目节点下。"""
@@ -481,6 +490,14 @@ class CoreTest(unittest.TestCase):
         self.assertIn("改动点", r["result"]["text"])
         # 读回 size 必须是实际 UTF-8 字节数，不能恒为 0
         self.assertEqual(r["result"]["size"], len("改动点：x".encode("utf-8")))
+        # 清单落盘：文档条目恒 category=document，缺省 doc_kind=artifact、source=llm
+        aidx = self.ctx.api.call("store.read", {
+            "module": "agent/artifacts", "path": "index.yaml",
+            "fallback": {"entries": []}})["value"]
+        aentry = next(e for e in aidx["entries"] if e["path"].endswith("dev.md"))
+        self.assertEqual(aentry["category"], "document")
+        self.assertEqual(aentry["doc_kind"], "artifact")
+        self.assertEqual(aentry["source"], "llm")
         # 越界在纯函数里拦：rel 直接给失败形状，不落到盘上
         esc = self.ctx.api.call("artifacts.rel",
                                 {"base": "projects/p1/tickets/T-1", "path": "../../escape.md"})
@@ -565,7 +582,7 @@ class CoreTest(unittest.TestCase):
         self._run("knowledge-write", {"layer": "project", "project": proj2["id"],
                                       "name": "keep-other", "content": "对照项目取舍"})
         # 删前确实落了盘
-        self.assertTrue(any(pm in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        self.assertTrue(any(pm in s for s in self._glob("agent/logs", "sessions/*.yaml")))
         self.assertTrue(any(pid in a for a in self._glob("agent/artifacts", "projects/**")))
         self.assertTrue(any(pid in k for k in self._glob("agent/knowledge", "projects/**")))
 
@@ -577,7 +594,7 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(any(x["id"] == t["id"] for x in
                              self._run("ticket-list", {})["result"]["items"]))
         # 会话按被删工单集合清掉
-        self.assertFalse(any(pm in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        self.assertFalse(any(pm in s for s in self._glob("agent/logs", "sessions/*.yaml")))
         # 项目产物 / 项目知识前缀整棵清掉
         self.assertEqual(self._glob("agent/artifacts", "projects/%s/**" % pid), [])
         self.assertEqual(self._glob("agent/knowledge", "projects/%s/**" % pid), [])
@@ -590,7 +607,7 @@ class CoreTest(unittest.TestCase):
         # 对照项目的工单、会话、项目知识原样保留
         self.assertTrue(any(x["id"] == t2["id"] for x in
                              self._run("ticket-list", {})["result"]["items"]))
-        self.assertTrue(any(pm2 in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        self.assertTrue(any(pm2 in s for s in self._glob("agent/logs", "sessions/*.yaml")))
         other = self._run("knowledge-read", {"layer": "project", "project": proj2["id"],
                                               "name": "keep-other"})
         self.assertIn("对照项目取舍", other["result"]["content"])
@@ -632,12 +649,12 @@ class CoreTest(unittest.TestCase):
         rs = self._run("ticket-role-spawn", {"id": t["id"], "role": "developer",
                                              "task": "写交接文档"})
         role_sid = rs["result"]["roles"][0]["session"]
-        self.assertTrue(any(pm in s for s in self._glob("agent/sessions", "sessions/*.yaml")))
+        self.assertTrue(any(pm in s for s in self._glob("agent/logs", "sessions/*.yaml")))
         closed = self._run("ticket-close", {"id": t["id"], "summary": "验收通过"})
         removed = [e["path"] for e in closed["result"]["effects"] if e["kind"] == "remove"]
         self.assertIn("sessions/%s.yaml" % pm, removed)
         self.assertIn("sessions/%s.yaml" % role_sid, removed)
-        left = self._glob("agent/sessions", "sessions/*.yaml")
+        left = self._glob("agent/logs", "sessions/*.yaml")
         self.assertFalse(any(pm in s for s in left), "PM 会话未被回收")
         self.assertFalse(any(role_sid in s for s in left), "角色会话未被回收")
         # 对话已固化：会话文件删除后，线程仍从工单 transcript 回填出往来消息
@@ -723,7 +740,7 @@ class CoreTest(unittest.TestCase):
             self.assertEqual(done["status"], "idle")
             self.assertIn("测试", done["content"])
             # 一轮收口后滚动摘要已回填；原始往返仍全量存档
-            rec = self.ctx.api.call("store.read", {"module": "agent/sessions",
+            rec = self.ctx.api.call("store.read", {"module": "agent/logs",
                                     "path": "sessions/%s.yaml" % sid}).get("value") or {}
             self.assertEqual(rec.get("summary"), "本轮结论：验证通过")
             self.assertTrue(any(m["role"] == "assistant" for m in rec.get("messages") or []))
@@ -733,44 +750,37 @@ class CoreTest(unittest.TestCase):
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 
     def test_react_stash_tool_output_branches(self):
-        """T1 大输出分级：阈值内全文；落盘成功回路径；无回执/写盘失败兜底全文回填。"""
+        """T1 大输出分级：阈值内全文；落盘成功回日志路径；apply 失败兜底全文回填。"""
         from ai_new.modules.agent_common import react as react_mod
         stash = react_mod._stash_tool_output
         session = {"id": "s1", "ticket": "T-1", "project": "p"}
         big = "x" * 1001
-        orig_save = self.ctx.api.route("artifacts.save")["fn"]
+        orig_record = self.ctx.api.route("logs.record")["fn"]
+        orig_apply = self.ctx.runtime.apply
         try:
             # 阈值内：不碰盘，全文回填
             short = stash(self.ctx, session, "c1", "短", 1000)
             self.assertFalse(short["stashed"])
             self.assertEqual(short["content"], "短")
-            # 超限 + 落盘成功：回 ticket 层路径与读取提示
-            self.ctx.api.substitute("artifacts.save",
-                                    lambda ctx, p: {"path": "tool/s1/c1.txt", "effects": []})
+            # 超限 + 落盘成功：回 ticket 层日志路径与读取提示
+            self.ctx.api.substitute("logs.record",
+                                    lambda ctx, p: {"entry": {}, "effects": []})
+            self.ctx.runtime.apply = lambda req: {"applied": [{"ok": True}]}
             ok = stash(self.ctx, session, "c1", big, 1000)
             self.assertTrue(ok["stashed"])
-            self.assertIn("tool/s1/c1.txt", ok["content"])
-            # 超限 + 落盘无回执：不给假路径，全文回填
-            self.ctx.api.substitute("artifacts.save",
-                                    lambda ctx, p: {"path": "", "effects": []})
-            no_path = stash(self.ctx, session, "c1", big, 1000)
-            self.assertFalse(no_path["stashed"])
-            self.assertEqual(no_path["content"], big)
+            self.assertIn("projects/p/tickets/T-1/tool/c1.txt", ok["content"])
             # 超限 + 有回执但 apply 任一失败：回退全文并标 write_failed
-            self.ctx.api.substitute("artifacts.save",
-                                    lambda ctx, p: {"path": "tool/s1/c1.txt",
-                                                    "effects": [{"kind": "write"}]})
-            orig_apply = self.ctx.runtime.apply
+            self.ctx.api.substitute("logs.record",
+                                    lambda ctx, p: {"entry": {},
+                                                     "effects": [{"kind": "write"}]})
             self.ctx.runtime.apply = lambda req: {"applied": [{"ok": False, "code": "apply_error"}]}
-            try:
-                failed = stash(self.ctx, session, "c1", big, 1000)
-            finally:
-                self.ctx.runtime.apply = orig_apply
+            failed = stash(self.ctx, session, "c1", big, 1000)
             self.assertFalse(failed["stashed"])
             self.assertEqual(failed["content"], big)
             self.assertEqual(failed.get("fallback"), "write_failed")
         finally:
-            self.ctx.api.substitute("artifacts.save", orig_save)
+            self.ctx.api.substitute("logs.record", orig_record)
+            self.ctx.runtime.apply = orig_apply
 
     def test_react_checkpoint_writes_session_record(self):
         """轮内检查点：带 path 时收口步经 runtime.apply 把会话记录写回，崩溃后存档不丢本轮增量。"""
@@ -799,7 +809,7 @@ class CoreTest(unittest.TestCase):
                 "tools": [], "path": "sessions/cp-1.yaml",
                 "cancel": {"id": "cp-1", "since": 0}})
             writes = [e for e in captured if e.get("kind") == "write"
-                      and e.get("module") == "agent/sessions"]
+                      and e.get("module") == "agent/logs"]
             self.assertTrue(writes, "收口步应落一条会话检查点")
             ck = writes[-1]["value"]
             self.assertEqual(ck["id"], "cp-1")
@@ -815,7 +825,7 @@ class CoreTest(unittest.TestCase):
         中断文案来自 sessions/messages.yaml 模板，纯函数只做分类与字段定型。
         """
         for sid in ("rs-1", "rs-2"):
-            self.ctx.api.call("store.write", {"module": "agent/sessions",
+            self.ctx.api.call("store.write", {"module": "agent/logs",
                 "path": "sessions/%s.yaml" % sid,
                 "value": {"id": sid, "kind": "role", "role": "developer",
                           "ticket": "T-1", "status": "running", "messages": [],
@@ -862,7 +872,7 @@ class CoreTest(unittest.TestCase):
         self._run("session-send", {"id": sid, "text": "再来"})
         self._run("session-run", {"id": sid})
         self._run("session-wait", {"id": sid})
-        rec = self.ctx.api.call("store.read", {"module": "agent/sessions",
+        rec = self.ctx.api.call("store.read", {"module": "agent/logs",
                                 "path": "sessions/%s.yaml" % sid}).get("value") or {}
         self.assertEqual(rec.get("summary"), "旧摘要")
         self.ctx.api.substitute("net.request_stream", self.fake_net)

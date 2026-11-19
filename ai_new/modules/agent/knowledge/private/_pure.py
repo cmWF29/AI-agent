@@ -101,7 +101,7 @@ def screen(p):
         size = (p.get("sizes") or {}).get(rel)
         items.append({"name": rel.rsplit("/", 1)[-1],
                       "chars": size if size is not None else 0,
-                      "source": "user" if (p.get("layer") or "public") == "public" else None})
+                      "source": "llm"})
     return {"layer": p.get("layer") or "public", "items": items}
 
 
@@ -259,3 +259,56 @@ def project_prefix(p):
     t = paths.get("project_dir") or ""
     ident = p.get("ticket") or p.get("project") or ""
     return {"prefix": t.format(id=ident) if t else ""}
+
+def entry(p):
+    """清单条目成形：知识恒 category=knowledge、doc_kind=None、source=llm。
+
+    归属/路径由外部传入，时间由 clock 给；纯函数不内置业务默认来源。
+    """
+    return {
+        "path": p.get("path") or "",
+        "category": "knowledge",
+        "doc_kind": None,
+        "source": p.get("source") or "llm",
+        "layer": p.get("layer") or "public",
+        "project": p.get("project") or "",
+        "ticket": p.get("ticket") or "",
+        "name": p.get("name") or "",
+        "created": p.get("now") or "",
+        "updated": p.get("now") or "",
+    }
+
+
+def index_upsert(p):
+    """旧清单 entries + 新条目 → 按 path 去重合并；已有条目保留 created，刷新 updated/name。"""
+    incoming = p.get("entry") or {}
+    rel = incoming.get("path") or ""
+    out, seen = [], False
+    for row in p.get("entries") or []:
+        if not isinstance(row, dict):
+            continue
+        if row.get("path") == rel:
+            merged = dict(row)
+            merged["updated"] = incoming.get("updated") or merged.get("updated")
+            merged["name"] = incoming.get("name") or merged.get("name")
+            out.append(merged)
+            seen = True
+        else:
+            out.append(row)
+    if rel and not seen:
+        out.append(dict(incoming))
+    return {"entries": out}
+
+
+def index_purge(p):
+    """剔除归属前缀下的条目；删项目/工单目录后清清单用。"""
+    prefix = p.get("prefix") or ""
+    keep = []
+    for row in p.get("entries") or []:
+        if not isinstance(row, dict):
+            continue
+        rel = row.get("path") or ""
+        if prefix and rel.startswith(prefix):
+            continue
+        keep.append(row)
+    return {"entries": keep}

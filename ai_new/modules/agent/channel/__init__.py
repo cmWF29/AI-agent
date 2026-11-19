@@ -34,15 +34,15 @@ def setup(ctx):
 
 
 def _cfg_paths(ctx):
-    row = ctx.api.call("config.get", {"key": "channel.paths"}, caller=None)
+    row = ctx.api.call("config.get", {"key": "logs.paths"}, caller=None)
     return row.get("value") or {}
 
 
 def _read_rows(ctx, channel_id):
     """读整频道并逐行解码：外层只有一次顺序读，逐行解码是能力内部的事。"""
-    t = _cfg_paths(ctx).get("record") or ""
+    t = _cfg_paths(ctx).get("channel") or ""
     txt = ctx.api.call("store.read_text", {
-        "module": "agent/channel",
+        "module": "agent/logs",
         "path": t.format(id=channel_id or "") if t else (channel_id or "")}, caller=None)
     split = ctx.api.call("channel.split", {"text": txt.get("value")}, caller=None)
     rows = []
@@ -61,10 +61,15 @@ def _route_post(ctx, payload):
         "channel": cid.get("id"), "role": payload.get("role"),
         "content": payload.get("content"), "rows": rows, "ts": now.get("ts")}, caller=None)
     enc = ctx.api.call("codec.json_encode", {"value": rec}, caller=None)
-    t = _cfg_paths(ctx).get("record") or ""
-    effects = [{"kind": "append_text", "module": "agent/channel",
-                "path": t.format(id=cid.get("id") or "") if t else (cid.get("id") or ""),
-                "text": (enc.get("text") or "") + "\n"}]
+    t = _cfg_paths(ctx).get("channel") or ""
+    rel_path = t.format(id=cid.get("id") or "") if t else (cid.get("id") or "")
+    body_effect = {"kind": "append_text", "module": "agent/logs",
+                   "path": rel_path,
+                   "text": (enc.get("text") or "") + "\n"}
+    log_rec = ctx.api.call("logs.record", {
+        "path": rel_path, "kind": "channel", "layer": "public",
+        "project": "", "ticket": "", "name": cid.get("id")}, caller=None)
+    effects = [body_effect] + (log_rec.get("effects") or [])
     posted = {"channel": rec.get("channel"), "role": rec.get("role"),
               "content": rec.get("content")}
     if getattr(ctx, "hooks", None) is not None:

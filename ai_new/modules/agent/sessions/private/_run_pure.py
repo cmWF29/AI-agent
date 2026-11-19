@@ -172,7 +172,7 @@ def flow_plan(p):
     rec["meta"] = meta
     sid = rec.get("id")
     paths = p.get("paths") or {}
-    _t = paths.get("record") or ""
+    _t = paths.get("session") or ""
     def _rp(s):
         return _t.format(id=s) if _t else s
     effects = []
@@ -182,14 +182,14 @@ def flow_plan(p):
     wait = waitingp({"messages": rec.get("messages")})
     if wait["waiting"]:
         # 停在等待用户输入：只落盘保持 idle，不回催、不复盘、不再驱动，等用户插话。
-        effects.append({"kind": "write", "module": "agent/sessions",
+        effects.append({"kind": "write", "module": "agent/logs",
                         "path": _rp(sid), "value": rec})
         return {"verdict": "waiting", "waiting": True, "reason": wait["reason"],
                 "rec": rec, "effects": effects}
     if verdict == "repush":
         rec = appendmsg({"rec": rec, "text": p.get("repush_text") or "",
                          "kind": "note", "now": p.get("now") or ""})
-        effects.append({"kind": "write", "module": "agent/sessions",
+        effects.append({"kind": "write", "module": "agent/logs",
                         "path": _rp(sid), "value": rec})
         effects.append({"kind": "dispatch", "id": "session-run", "key": sid,
                         "input": {"id": sid}})
@@ -201,15 +201,15 @@ def flow_plan(p):
             rec["meta"] = meta
             rec = appendmsg({"rec": rec, "text": p.get("retrospect_text") or "",
                              "kind": "note", "now": p.get("now") or ""})
-            effects.append({"kind": "write", "module": "agent/sessions",
+            effects.append({"kind": "write", "module": "agent/logs",
                             "path": _rp(sid), "value": rec})
             effects.append({"kind": "dispatch", "id": "session-run", "key": sid,
                             "input": {"id": sid}})
         else:
-            effects.append({"kind": "write", "module": "agent/sessions",
+            effects.append({"kind": "write", "module": "agent/logs",
                             "path": _rp(sid), "value": rec})
     else:
-        effects.append({"kind": "write", "module": "agent/sessions",
+        effects.append({"kind": "write", "module": "agent/logs",
                         "path": _rp(sid), "value": rec})
         effects.append({"kind": "demand", "id": "ticket-note",
                         "input": {"id": p.get("ticket"),

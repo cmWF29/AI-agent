@@ -33,9 +33,7 @@ sessions:
   pm_scenario: prompts/pm.md
   role_scenario: prompts/roles/{role}.md
   paths:
-    record: 'sessions/{id}.yaml'
     prompt: 'prompts/{kind}.md'
-    glob: 'sessions/*.yaml'
   context:
     tool_output_chars: 1000   # 工具输出正文超此字符数即落盘 ticket 层，上下文只回路径
     resume_on_boot: true      # 进程重启后自动把残留 running 会话重新驱动一轮
@@ -53,9 +51,7 @@ tickets:
   paths:
     record: 'tickets/{id}/ticket.yaml'
     project_record: '{project}.yaml'
-    session: 'sessions/{sid}.yaml'
     glob: 'tickets/T-*/ticket.yaml'
-    session_glob: 'sessions/*.yaml'
     ticket_glob: '*/ticket.yaml'
     root: 'tickets'
 agents:
@@ -75,6 +71,7 @@ knowledge:
     ticket: 'tickets/{ticket}'
     doc: '{prefix}/{name}.md'
     project_dir: 'projects/{id}'
+    index: 'index.yaml'
 library:
   review_max_retries: 2   # 收尾评审最多回催次数，到达即转卡点交上层裁决
   paths:
@@ -83,29 +80,45 @@ library:
 channel:
   default_limit: 20      # 频道回看默认条数
   max_limit: 200         # 单次回看条数硬上限
-  paths:
-    record: 'channels/{id}.jsonl'
 projects:
   paths:
     record: '{id}.yaml'
     ticket_prefix: 'tickets/{seg}'
     project_dir: 'projects/{pid}'
     ticket_glob: 'tickets/T-*/ticket.yaml'
-    session_glob: 'sessions/*.yaml'
 auth:
   paths:
     session: 'sessions/{token}.yaml'
 web:
   paths:
     console: 'console/{rel}'
-react:
-  paths:
-    tool_out: 'tool/{sid}/{fid}.txt'
 artifacts:
   max_bytes: 262144      # 交付件读取截断字节上限（256 KiB）
   paths:
     public: 'public'
     project: 'projects/{project}'
     ticket: 'projects/{project}/tickets/{ticket}'
+    public_kind: 'public/{kind}'
+    project_kind: 'projects/{project}/{kind}'
+    ticket_kind: 'projects/{project}/tickets/{ticket}/{kind}'
+    index: 'index.yaml'
 ops:
   log_lines: 100         # 日志/操作记录回看行数
+taxonomy:
+  layers: [public, project, ticket]
+  categories: [knowledge, document, log]
+  doc_kinds: [artifact, non_artifact]
+  sources: [llm, system, script]
+  knowledge_source: llm
+  log_source: system
+logs:
+  paths:
+    index: 'index.yaml'
+    system_record: 'public/system/app.jsonl'
+    project: 'projects/{project}'
+    ticket: 'projects/{project}/tickets/{ticket}'
+    session: 'sessions/{id}.yaml'
+    session_glob: 'sessions/*.yaml'
+    transcript: 'projects/{project}/tickets/{ticket}/transcript.yaml'
+    tool: 'projects/{project}/tickets/{ticket}/tool/{fid}.txt'
+    channel: 'channels/{id}.jsonl'

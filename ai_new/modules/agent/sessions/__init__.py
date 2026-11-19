@@ -55,12 +55,12 @@ def _route_resume(ctx, payload):
     遍历读盘在能力内；写盘与后台派发交需求 runtime.apply。配置与文案由需求层读好传入。
     """
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions",
-        "pattern": _cfg_paths(ctx).get("glob") or ""}, caller=None)
+        "module": "agent/logs",
+        "pattern": _cfg_logs(ctx).get("session_glob") or ""}, caller=None)
     rows = []
     for rel in listed.get("items") or []:
         row = ctx.api.call("store.read", {
-            "module": "agent/sessions", "path": rel}, caller=None)
+            "module": "agent/logs", "path": rel}, caller=None)
         if row.get("value"):
             rows.append({"path": rel, "rec": row["value"]})
     now = ctx.api.call("clock.now", {}, caller=None)
@@ -71,7 +71,7 @@ def _route_resume(ctx, payload):
         "rows": rows, "now": now.get("ts"), "enabled": enabled, "max": max_n,
         "resume_text": payload.get("resume_text"),
         "stale_text": payload.get("stale_text")}, caller=None)
-    effects = [{"kind": "write", "module": "agent/sessions",
+    effects = [{"kind": "write", "module": "agent/logs",
                 "path": i["path"], "value": i["rec"]}
                for i in (plan.get("resume") or []) + (plan.get("stale") or [])]
     for i in plan.get("resume") or []:
@@ -88,11 +88,11 @@ def _route_by_ticket(ctx, payload):
     """按工单 id 归集本工单全部会话视图；遍历与读盘在闭环内，成形交 sessions.view。"""
     tid = payload.get("ticket") or ""
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions",
-        "pattern": _cfg_paths(ctx).get("glob") or ""}, caller=None)
+        "module": "agent/logs",
+        "pattern": _cfg_logs(ctx).get("session_glob") or ""}, caller=None)
     items = []
     for rel in listed.get("items") or []:
-        row = ctx.api.call("store.read", {"module": "agent/sessions",
+        row = ctx.api.call("store.read", {"module": "agent/logs",
                                           "path": rel}, caller=None)
         rec = row.get("value")
         if not rec or rec.get("ticket") != tid:
@@ -126,19 +126,20 @@ def _seq_of(kind, items):
 def _route_spawn(ctx, payload):
     """造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。"""
     kind = payload.get("kind") or "role"
-    paths = _cfg_paths(ctx)
+    logs_paths = _cfg_logs(ctx)
+    prompt_paths = _cfg_prompt(ctx)
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
     tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
     role_prompt = payload.get("role_prompt") or None
     if not role_prompt:
-        pt = paths.get("prompt") or ""
+        pt = prompt_paths.get("prompt") or ""
         row = ctx.api.call("store.read_text", {
             "module": "agent/sessions",
             "path": pt.format(kind=kind) if pt else kind}, caller=None)
         role_prompt = row.get("value") or ""
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions",
-        "pattern": paths.get("glob") or ""}, caller=None)
+        "module": "agent/logs",
+        "pattern": logs_paths.get("session_glob") or ""}, caller=None)
     baseline = _seq_of(kind, listed.get("items")) - 1
     seq = payload.get("seq") or ctx.api.call("store.next_seq", {
         "bucket": "session:" + kind, "baseline": baseline}, caller=None).get("seq")
@@ -159,8 +160,8 @@ def _route_spawn(ctx, payload):
     view = ctx.api.call("sessions.view", {"rec": rec}, caller=None)
     view["rec"] = rec
     view["effects"] = [{
-        "kind": "write", "module": "agent/sessions",
-        "path": _record_path(paths, rec.get("id") or ""), "value": rec}]
+        "kind": "write", "module": "agent/logs",
+        "path": _record_path(logs_paths, rec.get("id") or ""), "value": rec}]
     return view
 
 
@@ -170,7 +171,7 @@ def _as_handler(fn):
         if "tpl" not in payload:
             payload["tpl"] = _msg_tpl(ctx)
         if "paths" not in payload:
-            payload["paths"] = _cfg_paths(ctx)
+            payload["paths"] = _cfg_logs(ctx)
         return fn(payload)
     return handler
 
@@ -181,11 +182,16 @@ def _msg_tpl(ctx):
     return row.get("value") or {}
 
 
-def _cfg_paths(ctx):
+def _cfg_logs(ctx):
+    row = ctx.api.call("config.get", {"key": "logs.paths"}, caller=None)
+    return row.get("value") or {}
+
+
+def _cfg_prompt(ctx):
     row = ctx.api.call("config.get", {"key": "sessions.paths"}, caller=None)
     return row.get("value") or {}
 
 
 def _record_path(paths, sid):
-    t = (paths or {}).get("record") or ""
+    t = (paths or {}).get("session") or ""
     return t.format(id=sid) if t else sid

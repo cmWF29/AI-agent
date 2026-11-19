@@ -16,7 +16,7 @@ do:
 - call: store.read
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     path:
       get: sp1.path
   as: row
@@ -39,7 +39,7 @@ do:
 - call: store.write
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     path:
       get: sp2.path
     value:

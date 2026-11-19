@@ -21,7 +21,7 @@ do:
 - call: store.read
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     path:
       get: sp.path
   as: row

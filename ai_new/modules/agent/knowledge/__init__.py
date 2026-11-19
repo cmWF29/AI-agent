@@ -42,13 +42,20 @@ def setup(ctx):
     return True
 
 
+def _cfg(ctx, key):
+    row = ctx.api.call("config.get", {"key": key}, caller=None)
+    return row.get("value")
+
+
 def _route_save(ctx, payload):
     tpl = _msg_tpl(ctx)
     paths = _cfg_paths(ctx)
+    tax = _cfg(ctx, "taxonomy") or {}
+    layer = payload.get("layer") or "public"
     pid = ctx.api.call("store.id", {"value": payload.get("project")}, caller=None)
     tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
     scope = ctx.api.call("knowledge.scope", {
-        "layer": payload.get("layer"),
+        "layer": layer,
         "project": pid.get("id"),
         "ticket": tid.get("id"), "paths": paths, "tpl": tpl}, caller=None)
     if not scope.get("ok"):
@@ -59,13 +66,33 @@ def _route_save(ctx, payload):
     if not doc.get("ok"):
         return doc
     content = payload.get("content") or ""
+    rel_path = doc.get("path") or ""
     if payload.get("mode") == "append":
-        effects = [{"kind": "append_text", "module": "agent/knowledge",
-                    "path": doc.get("path"), "text": "\n\n" + content}]
+        body_effect = {"kind": "append_text", "module": "agent/knowledge",
+                       "path": rel_path, "text": "\n\n" + content}
     else:
-        effects = [{"kind": "write_text", "module": "agent/knowledge",
-                    "path": doc.get("path"), "text": content}]
-    view = ctx.api.call("knowledge.view", {"path": doc.get("path"),
+        body_effect = {"kind": "write_text", "module": "agent/knowledge",
+                       "path": rel_path, "text": content}
+    now = ctx.api.call("clock.now", {}, caller=None)
+    entry = _pure.entry({
+        "path": rel_path,
+        "source": tax.get("knowledge_source") or "llm",
+        "layer": layer,
+        "project": pid.get("id") or "",
+        "ticket": tid.get("id") or "",
+        "name": rel_path.rsplit("/", 1)[-1],
+        "now": now.get("iso"),
+    })
+    index_path = paths.get("index") or "index.yaml"
+    old = ctx.api.call("store.read", {
+        "module": "agent/knowledge", "path": index_path,
+        "fallback": {"entries": []}}, caller=None)
+    merged = _pure.index_upsert({
+        "entries": (old.get("value") or {}).get("entries") or [],
+        "entry": entry})
+    effects = [body_effect, {"kind": "write", "module": "agent/knowledge",
+                             "path": index_path, "value": merged}]
+    view = ctx.api.call("knowledge.view", {"path": rel_path,
         "content": content}, caller=None)
     view["effects"] = effects
     return view

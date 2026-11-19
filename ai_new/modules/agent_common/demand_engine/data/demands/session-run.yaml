@@ -28,7 +28,7 @@ do:
 - call: store.read
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     path:
       get: sp1.path
   as: row
@@ -51,7 +51,7 @@ do:
 - call: store.write
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     path:
       get: sp2.path
     value:
@@ -94,7 +94,7 @@ do:
 - call: store.read
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     path:
       get: sp3.path
   as: latest
@@ -125,7 +125,7 @@ do:
 - call: store.write
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     path:
       get: sp4.path
     value:

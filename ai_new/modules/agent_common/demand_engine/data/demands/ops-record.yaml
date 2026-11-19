@@ -1,6 +1,6 @@
 id: ops-record
-title: 记一条事件：成形 → 追加到 logs/app.jsonl
-description: 记一条事件：成形 → 追加到 logs/app.jsonl。日志是运维的业务，写盘是能力
+title: 记一条事件：成形 → 追加到系统日志
+description: 记一条事件：成形 → 追加到系统日志。日志是运维的业务，写盘是能力；日志正文归 logs 模块数据根。
 tags:
 - ops
 - write
@@ -10,6 +10,11 @@ callable: true
 do:
 - call: clock.now
   as: now
+- call: config.get
+  with:
+    key:
+      lit: logs.paths.system_record
+  as: rec_path
 - call: ops.record
   with:
     hook:
@@ -34,12 +39,32 @@ do:
 - call: store.append_text
   with:
     module:
-      lit: agent_common/ops
+      lit: agent/logs
     path:
-      lit: logs/app.jsonl
+      get: rec_path.value
     text:
       get: ll.text
   as: w
+- call: logs.record
+  with:
+    path:
+      get: rec_path.value
+    kind:
+      lit: system
+    layer:
+      lit: public
+    project:
+      lit: ''
+    ticket:
+      lit: ''
+    name:
+      lit: app.jsonl
+  as: logrec
+- call: runtime.apply
+  with:
+    effect:
+      get: logrec.effects
+  as: applied
 - call: ops.record
   with:
     hook:
@@ -56,10 +81,13 @@ expect:
     input: {}
   calls:
   - clock.now
+  - config.get
   - ops.record
   - codec.json_encode
   - ops.log_line
   - store.append_text
+  - logs.record
+  - runtime.apply
   - ops.record
   payload: {}
   promise: 日志是运维的业务，写盘是能力

@@ -9,7 +9,7 @@ do:
 - call: store.walk
   with:
     module:
-      lit: agent/sessions
+      lit: agent/logs
     root:
       lit: sessions
     pattern:

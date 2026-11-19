@@ -91,6 +91,11 @@ def _cfg_paths(ctx):
     return row.get("value") or {}
 
 
+def _cfg_logs(ctx):
+    row = ctx.api.call("config.get", {"key": "logs.paths"}, caller=None)
+    return row.get("value") or {}
+
+
 def _as_handler(fn):
     def handler(ctx, payload):
         payload = dict(payload or {})
@@ -187,9 +192,9 @@ def _session_snapshot(ctx, sid):
     """读会话留档快照；会话已不在则返 None。消息原文交纯函数裁剪。"""
     if not sid:
         return None
-    st = _cfg_paths(ctx).get("session") or ""
-    row = ctx.api.call("store.read", {"module": "agent/sessions",
-        "path": st.format(sid=sid) if st else sid}, caller=None)
+    st = _cfg_logs(ctx).get("session") or ""
+    row = ctx.api.call("store.read", {"module": "agent/logs",
+        "path": st.format(id=sid) if st else sid}, caller=None)
     rec = row.get("value")
     if not rec:
         return None
@@ -223,10 +228,10 @@ def _route_close(ctx, payload):
         "accepted_text": _msg_tpl(ctx).get("close_accepted") or "",
         "rejected_text": _msg_tpl(ctx).get("close_rejected") or ""}, caller=None)
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions", "pattern": paths.get("session_glob") or ""}, caller=None)
+        "module": "agent/logs", "pattern": _cfg_logs(ctx).get("session_glob") or ""}, caller=None)
     session_rows, session_by_sid = [], {}
     for rel in listed.get("items") or []:
-        row = ctx.api.call("store.read", {"module": "agent/sessions",
+        row = ctx.api.call("store.read", {"module": "agent/logs",
                                           "path": rel}, caller=None)
         rec_s = row.get("value")
         if rec_s:
@@ -262,10 +267,10 @@ def _route_close(ctx, payload):
     view = ctx.api.call("tickets.view", {"rec": archived}, caller=None)
     effects = [{"kind": "write", "module": "agent/tickets",
                 "path": _ticket_path(ctx, archived.get("id")), "value": archived}]
-    st = paths.get("session") or ""
+    st = _cfg_logs(ctx).get("session") or ""
     for sid in sids:
-        effects.append({"kind": "remove", "module": "agent/sessions",
-                        "path": st.format(sid=sid) if st else sid})
+        effects.append({"kind": "remove", "module": "agent/logs",
+                        "path": st.format(id=sid) if st else sid})
     if archived.get("parent"):
         tpl_closed = _msg_tpl(ctx).get("child_closed") or ""
         aid = archived.get("id") or ""

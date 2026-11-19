@@ -27,6 +27,8 @@ def setup(ctx):
             {"name": "content", "type": "string", "desc": "写入内容", "required": False},
             {"name": "project", "type": "string", "desc": "project/ticket 层必填", "required": False},
             {"name": "ticket", "type": "string", "desc": "ticket 层必填", "required": False},
+            {"name": "doc_kind", "type": "string", "desc": "artifact=交付件 / non_artifact=非交付件", "required": False},
+            {"name": "source", "type": "string", "desc": "llm / system / script", "required": False},
         ], demand=demand, module="artifacts")
     return True
 
@@ -42,10 +44,25 @@ def _msg_tpl(ctx):
     return row.get("value") or {}
 
 
+def _cfg(ctx, key):
+    row = ctx.api.call("config.get", {"key": key}, caller=None)
+    return row.get("value")
+
+
 def _route_save(ctx, payload):
     paths = _cfg_paths(ctx)
     tpl = _msg_tpl(ctx)
+    tax = _cfg(ctx, "taxonomy") or {}
     layer = payload.get("layer") or "ticket"
+    cls = _pure.classify({
+        "doc_kind": payload.get("doc_kind"),
+        "source": payload.get("source"),
+        "doc_kinds": tax.get("doc_kinds") or [],
+        "sources": tax.get("sources") or [],
+        "tpl": tpl})
+    if not cls.get("ok"):
+        return cls
+    doc_kind, source = cls.get("doc_kind"), cls.get("source")
     pid_raw = payload.get("project")
     tid_raw = payload.get("ticket")
     if layer == "ticket":
@@ -71,16 +88,38 @@ def _route_save(ctx, payload):
     if not rel.get("ok"):
         return rel
     content = payload.get("content") or ""
+    rel_path = rel.get("path") or ""
     if payload.get("encoding") == "base64":
         hx = ctx.api.call("codec.hex_from_base64", {"text": content}, caller=None)
         effect = {"kind": "write_bytes", "module": "agent/artifacts",
-                  "path": rel.get("path"), "hex": hx.get("hex")}
+                  "path": rel_path, "hex": hx.get("hex")}
         size = len(str(hx.get("hex") or "")) // 2
     else:
         effect = {"kind": "write_text", "module": "agent/artifacts",
-                  "path": rel.get("path"), "text": content}
+                  "path": rel_path, "text": content}
         size = len(content.encode("utf-8"))
-    out = ctx.api.call("artifacts.written", {"path": rel.get("path"),
+    now = ctx.api.call("clock.now", {}, caller=None)
+    entry = _pure.entry({
+        "path": rel_path,
+        "doc_kind": doc_kind,
+        "source": source,
+        "layer": layer,
+        "project": pid.get("id") or "",
+        "ticket": tid.get("id") or "",
+        "name": rel_path.rsplit("/", 1)[-1],
+        "now": now.get("iso"),
+    })
+    index_path = paths.get("index") or "index.yaml"
+    old = ctx.api.call("store.read", {
+        "module": "agent/artifacts", "path": index_path,
+        "fallback": {"entries": []}}, caller=None)
+    merged = _pure.index_upsert({
+        "entries": (old.get("value") or {}).get("entries") or [],
+        "entry": entry})
+    out = ctx.api.call("artifacts.written", {"path": rel_path,
         "size": size, "layer": layer}, caller=None)
-    out["effects"] = [effect]
+    out["doc_kind"] = doc_kind
+    out["source"] = source
+    out["effects"] = [effect, {"kind": "write", "module": "agent/artifacts",
+                               "path": index_path, "value": merged}]
     return out

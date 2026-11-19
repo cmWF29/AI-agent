@@ -16,6 +16,11 @@ def _cfg_paths(ctx):
     return row.get("value") or {}
 
 
+def _cfg_logs(ctx):
+    row = ctx.api.call("config.get", {"key": "logs.paths"}, caller=None)
+    return row.get("value") or {}
+
+
 def _record(paths, pid):
     t = (paths or {}).get("record") or ""
     return t.format(id=pid) if t else pid
@@ -126,17 +131,17 @@ def _purge_sessions(ctx, ticket_ids):
     ids = set(ticket_ids)
     effects = []
     listed = ctx.api.call("store.glob", {
-        "module": "agent/sessions",
-        "pattern": _cfg_paths(ctx).get("session_glob") or ""}, caller=None)
+        "module": "agent/logs",
+        "pattern": _cfg_logs(ctx).get("session_glob") or ""}, caller=None)
     for rel in listed.get("items") or []:
         row = ctx.api.call("store.read", {
-            "module": "agent/sessions", "path": rel}, caller=None)
+            "module": "agent/logs", "path": rel}, caller=None)
         rec = row.get("value") or {}
         if rec.get("ticket") not in ids:
             continue
         sid = rec.get("id") or str(rel.rsplit("/", 1)[-1])[:-5]
         ctx.runtime.stop(sid)
-        effects.append({"kind": "remove", "module": "agent/sessions", "path": rel})
+        effects.append({"kind": "remove", "module": "agent/logs", "path": rel})
     return effects
 
 

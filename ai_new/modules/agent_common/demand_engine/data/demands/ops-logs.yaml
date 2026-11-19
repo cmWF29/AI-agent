@@ -1,6 +1,6 @@
 id: ops-logs
 title: 读日志：读文本 → 切成行 → 解析成事件
-description: "读日志：读文本 → 切成行 → 解析成事件。解析归模块，读盘归能力"
+description: "读日志：读文本 → 切成行 → 解析成事件。解析归模块，读盘归能力；日志正文归 logs 模块数据根。"
 tags: [ops, read]
 enabled: true
 callable: true
@@ -11,12 +11,17 @@ do:
     key:
       lit: ops.log_lines
   as: cfg_lines
+- call: config.get
+  with:
+    key:
+      lit: logs.paths.system_record
+  as: rec_path
 - call: store.read_text
   with:
     module:
-      lit: agent_common/ops
+      lit: agent/logs
     path:
-      lit: logs/app.jsonl
+      get: rec_path.value
     fallback:
       lit: ''
   as: text
@@ -36,6 +41,7 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
   - config.get
   - store.read_text
   - ops.tail

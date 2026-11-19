@@ -77,3 +77,70 @@ def statsp(p):
     rows = p.get("rows") or []
     return {"files": len(rows), "bytes": sum(int(r.get("size") or 0) for r in rows),
             "chars": sum(len(r.get("text") or "") for r in rows)}
+
+def classify(p):
+    """校验文档类型与来源枚举；缺省 doc_kind=artifact、source=llm。
+
+    合法集合由配置 taxonomy 给出，纯函数不内置业务枚举。
+    """
+    tpl = p.get("tpl") or {}
+    doc_kinds = p.get("doc_kinds") or []
+    sources = p.get("sources") or []
+    doc_kind = p.get("doc_kind") or "artifact"
+    source = p.get("source") or "llm"
+    if doc_kinds and doc_kind not in doc_kinds:
+        return _bad("bad_doc_kind", tpl.get("bad_doc_kind", "").format(kind=doc_kind))
+    if sources and source not in sources:
+        return _bad("bad_source", tpl.get("bad_source", "").format(source=source))
+    return {"ok": True, "doc_kind": doc_kind, "source": source}
+
+
+def entry(p):
+    """清单条目成形：文档恒 category=document。"""
+    return {
+        "path": p.get("path") or "",
+        "category": "document",
+        "doc_kind": p.get("doc_kind") or None,
+        "source": p.get("source") or "llm",
+        "layer": p.get("layer") or "ticket",
+        "project": p.get("project") or "",
+        "ticket": p.get("ticket") or "",
+        "name": p.get("name") or "",
+        "created": p.get("now") or "",
+        "updated": p.get("now") or "",
+    }
+
+
+def index_upsert(p):
+    """旧清单 entries + 新条目 → 按 path 去重合并；已有条目保留 created，刷新 updated/name。"""
+    incoming = p.get("entry") or {}
+    rel = incoming.get("path") or ""
+    out, seen = [], False
+    for row in p.get("entries") or []:
+        if not isinstance(row, dict):
+            continue
+        if row.get("path") == rel:
+            merged = dict(row)
+            merged["updated"] = incoming.get("updated") or merged.get("updated")
+            merged["name"] = incoming.get("name") or merged.get("name")
+            out.append(merged)
+            seen = True
+        else:
+            out.append(row)
+    if rel and not seen:
+        out.append(dict(incoming))
+    return {"entries": out}
+
+
+def index_purge(p):
+    """剔除归属前缀下的条目；删项目/工单目录后清清单用。"""
+    prefix = p.get("prefix") or ""
+    keep = []
+    for row in p.get("entries") or []:
+        if not isinstance(row, dict):
+            continue
+        rel = row.get("path") or ""
+        if prefix and rel.startswith(prefix):
+            continue
+        keep.append(row)
+    return {"entries": keep}
