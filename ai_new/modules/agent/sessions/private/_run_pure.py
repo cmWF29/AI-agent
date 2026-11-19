@@ -210,9 +210,19 @@ def flow_plan(p):
         effects.append({"kind": "dispatch", "id": "session-run", "key": sid,
                         "input": {"id": sid}})
     elif verdict == "pass":
+        machine = meta.get("machine") or {}
+        terminals = machine.get("terminals") or []
+        cur = meta.get("stage") or ""
+        at_terminal = (not terminals) or (cur in terminals)
         already = bool(meta.get("retrospected"))
         enabled = _retrospect_enabled(p)
-        if not already and enabled:
+        if not at_terminal:
+            # 流程还没走到终态：再跑一轮推进分派/评审，不做复盘沉淀。
+            effects.append({"kind": "write", "module": "agent/logs",
+                            "path": _rp(sid), "value": rec})
+            effects.append({"kind": "dispatch", "id": "session-run", "key": sid,
+                            "input": {"id": sid}})
+        elif not already and enabled:
             meta["retrospected"] = True
             rec["meta"] = meta
             rec = appendmsg({"rec": rec, "text": p.get("retrospect_text") or "",

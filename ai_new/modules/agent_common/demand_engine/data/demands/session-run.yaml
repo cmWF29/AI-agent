@@ -37,6 +37,18 @@ do:
     machine:
       get: row.value.meta.machine
   as: contract
+- call: demand_engine.run
+  with:
+    id:
+      lit: position-tools
+    input:
+      role:
+        get: row.value.role
+      kind:
+        get: row.value.kind
+      project:
+        get: row.value.project
+  as: pt
 - call: library.stage_tools
   with:
     contract:
@@ -46,7 +58,7 @@ do:
     stage:
       get: row.value.meta.stage
     items:
-      get: row.value.meta.tools
+      get: pt.result.items
   as: run_tools
 - call: clock.now
   as: now
@@ -194,6 +206,7 @@ expect:
   - sessions.record_path
   - store.read
   - library.stage_contract
+  - demand_engine.run
   - library.stage_tools
   - clock.now
   - sessions.mark
