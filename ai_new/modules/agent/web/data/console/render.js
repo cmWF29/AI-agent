@@ -299,13 +299,13 @@ function treeDocHtml(doc, sec, ctx) {
   </div>`;
 }
 function treeNodeHtml(node, sec, ctx) {
-  if (node.type === "doc") return treeDocHtml(node, sec, ctx);
-  const kids = (node.children || []).map((k) => treeNodeHtml(k, sec, ctx)).join("");
-  const count = (node.children || []).length;
+  const kids = node.children || [];
+  if (!kids.length) return treeDocHtml(node, sec, ctx);
+  const count = kids.length;
   const sub = node.sub ? `<span class="muted tree-node-sub">${esc(node.sub)}</span>` : "";
   return `<details class="tree-node" open>
     <summary><span class="badge">${esc(node.badge || "")}</span><span class="tree-node-label">${esc(node.label || "")}</span>${sub}<span class="muted tree-node-count">${count}</span></summary>
-    <div class="tree-children">${kids}</div>
+    <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx)).join("")}</div>
   </details>`;
 }
 function treeHtml(sec, ctx) {

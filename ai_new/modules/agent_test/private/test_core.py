@@ -546,6 +546,25 @@ class CoreTest(unittest.TestCase):
                                                        "size": len(raw), "max_bytes": 2})
         self.assertTrue(trunc["truncated"])
 
+    def test_logs_index_tree_leaf_carries_name_and_type(self):
+        """日志目录叶子：带 type=log 与 name/path，前端按叶子渲染不空卡。"""
+        rows = [
+            {"path": "channels/web.jsonl", "layer": "public", "kind": "channel",
+             "name": "web.jsonl", "source": "system"},
+            {"path": "projects/重构/tickets/t-1/tool/a.txt", "layer": "ticket",
+             "project": "重构", "ticket": "t-1", "kind": "tool", "name": "a.txt"},
+        ]
+        tickets = [{"id": "T-1", "project": "重构", "title": "工具输出"}]
+        out = self.ctx.api.call("logs.group", {"entries": rows, "tickets": tickets})
+        self.assertEqual(out["counts"], {"public": 1, "project": 0, "ticket": 1})
+        leaf = out["tree"][0]["children"][0]
+        self.assertEqual(leaf["type"], "log")
+        self.assertEqual(leaf["name"], "web.jsonl")
+        self.assertEqual(leaf["path"], "channels/web.jsonl")
+        proj = next(n for n in out["tree"] if n["type"] == "project")
+        tnode = proj["children"][0]
+        self.assertEqual(tnode["children"][0]["type"], "log")
+
     def test_ticket_artifact_project_follows_ticket(self):
         """ticket 层写产物：归属项目以工单记录为准，模型传错/漏填都不能错位到 projects/item。"""
         proj = self._run("projects-create", {"name": "产物归属项目"})["result"]

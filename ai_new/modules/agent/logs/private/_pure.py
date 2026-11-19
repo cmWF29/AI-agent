@@ -93,7 +93,7 @@ def group(p):
         layer = row.get("layer") or "public"
         pid = row.get("project") or ""
         tid = row.get("ticket") or ""
-        item = {"layer": layer, "project": pid, "ticket": tid,
+        item = {"type": "log", "layer": layer, "project": pid, "ticket": tid,
                 "name": row.get("name") or "", "path": row.get("path") or "",
                 "kind": row.get("kind") or "", "source": row.get("source") or "system"}
         items.append(item)
