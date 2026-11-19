@@ -77,6 +77,10 @@ def _upsert(entries, entry):
     for i, row in enumerate(entries):
         if row.get("path") == rel:
             merged = dict(row)
+            # 归类字段以本次扫描为准纠正；created 保留，updated/name 刷新。
+            for key in ("category", "doc_kind", "source", "layer", "project", "ticket", "kind"):
+                if key in entry:
+                    merged[key] = entry[key]
             merged["updated"] = entry.get("updated") or merged.get("updated")
             merged["name"] = entry.get("name") or merged.get("name")
             entries[i] = merged
@@ -181,15 +185,17 @@ def plan(root, apply):
                 "name": name, "created": stamp, "updated": stamp,
             })
 
-    # 2) artifacts 旧落点：文档/交付件；来源无据回填 system。
+    # 2) artifacts 落点：文档/交付件；出厂内置规范模板为非交付件；来源无据回填 system。
     for path in _iter_md(artifacts_dir):
         rel = _rel(path, artifacts_dir)
         name = rel.rsplit("/", 1)[-1]
         mtime = os.path.getmtime(path)
         stamp = _iso(mtime)
         layer, project, ticket = _parse_artifacts(rel)
+        builtin = layer == "public" and name in BUILTIN_NON_ARTIFACT
+        doc_kind = "non_artifact" if builtin else "artifact"
         artifact_entries.append({
-            "path": rel, "category": "document", "doc_kind": "artifact",
+            "path": rel, "category": "document", "doc_kind": doc_kind,
             "source": "system", "layer": layer, "project": project, "ticket": ticket,
             "name": name, "created": stamp, "updated": stamp,
         })
