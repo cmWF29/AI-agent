@@ -1165,6 +1165,27 @@ class CoreTest(unittest.TestCase):
         self.assertIn("做 A", block["system"])
         self.assertIn("禁止事项", block["system"])
         self.assertIn("禁 B", block["system"])
+        # 阶段段刷新：替换旧阶段段，人设正文与 user 消息保留
+        seed_msgs = [{"role": "system",
+                      "content": "## 通用规则\n规则\n\n## 流程阶段\n当前阶段：理解（understand）"},
+                     {"role": "user", "content": "x"}]
+        ref = sess_pure.refresh_stage_message(
+            {"messages": seed_msgs, "stage": "## 流程阶段\n当前阶段：实现（implement）"})
+        ref_sys = ref["messages"][0]["content"]
+        self.assertIn("规则", ref_sys)
+        self.assertIn("implement", ref_sys)
+        self.assertNotIn("understand", ref_sys)
+        self.assertEqual(ref["messages"][1]["content"], "x")
+        # 已派角色注入：清单并入 system，重复角色去重；空清单原样返回
+        inj = sess_pure.inject_assigned_message(
+            {"messages": seed_msgs, "roles": [{"role": "developer"}, {"role": "developer"}],
+             "heading": "## 已分派角色"})
+        inj_sys = inj["messages"][0]["content"]
+        self.assertIn("developer", inj_sys)
+        self.assertEqual(inj_sys.count("developer"), 1)
+        inj_empty = sess_pure.inject_assigned_message(
+            {"messages": seed_msgs, "roles": [], "heading": "## 已分派角色"})
+        self.assertEqual(inj_empty["messages"][0]["content"], seed_msgs[0]["content"])
         # 交付件条目 → 路径清单
         self.assertEqual(ticket_pure.paths(
             {"items": [{"path": "x/a.py"}, {"nopath": 1}]})["paths"], ["x/a.py"])
