@@ -13,6 +13,13 @@ do:
     module:
       lit: agent/library
     path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
       lit: roles.yaml
   as: roles
 - call: library.get
@@ -22,7 +29,7 @@ do:
     id:
       get: input.role
     seed:
-      lit: {}
+      get: seed.value
     user:
       get: roles.value
   as: rec
@@ -51,6 +58,7 @@ expect:
   given:
     input: {}
   calls:
+  - store.read
   - store.read
   - library.get
   - library.prompt_path

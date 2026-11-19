@@ -18,6 +18,13 @@ do:
     module:
       lit: agent/library
     path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
       get: lk1.path
   as: user
 - call: library.get
@@ -27,7 +34,7 @@ do:
     id:
       get: input.id
     seed:
-      lit: {}
+      get: seed.value
     user:
       get: user.value
   as: cur
@@ -72,6 +79,7 @@ expect:
     input: {}
   calls:
   - library.kind_file
+  - store.read
   - store.read
   - library.get
   - clock.now

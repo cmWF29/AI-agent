@@ -26,6 +26,13 @@ do:
     module:
       lit: agent/library
     path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
       lit: roles.yaml
   as: role
 - call: library.get
@@ -35,7 +42,7 @@ do:
     id:
       get: input.role
     seed:
-      lit: {}
+      get: seed.value
     user:
       get: role.value
   as: rec
@@ -53,7 +60,7 @@ do:
     id:
       get: input.role
     seed:
-      lit: {}
+      get: seed.value
     user:
       get: flows.value
   as: flow
@@ -174,6 +181,7 @@ expect:
   calls:
   - config.get
   - demand_engine.run
+  - store.read
   - store.read
   - library.get
   - store.read

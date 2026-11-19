@@ -11,6 +11,13 @@ do:
     module:
       lit: agent/library
     path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
       lit: flows.yaml
   as: flows
 - call: library.get
@@ -20,7 +27,7 @@ do:
     id:
       get: input.flow
     seed:
-      lit: {}
+      get: seed.value
     user:
       get: flows.value
   as: rec
@@ -39,6 +46,7 @@ expect:
   given:
     input: {}
   calls:
+  - store.read
   - store.read
   - library.get
   - library.check
