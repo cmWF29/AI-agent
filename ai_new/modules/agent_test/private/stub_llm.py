@@ -45,10 +45,11 @@ class StubPolicy:
     token_limit     消息条数阈值：入参 messages 条数超过阈值返上下文超限错误。
     """
 
-    def __init__(self, script=None, tool_rate=0.0, delay_base=0.0, delay_jitter=0.0,
-                 close_rate=0.0, fail_code=0, fail_rate=0.0, token_limit=0):
+    def __init__(self, script=None, tool_rate=0.0, spawn_rate=0.0, delay_base=0.0,
+                 delay_jitter=0.0, close_rate=0.0, fail_code=0, fail_rate=0.0, token_limit=0):
         self.script = list(script or [])
         self.tool_rate = float(tool_rate)
+        self.spawn_rate = float(spawn_rate)
         self.delay_base = float(delay_base)
         self.delay_jitter = float(delay_jitter)
         self.close_rate = float(close_rate)
@@ -183,12 +184,40 @@ class _Handler(BaseHTTPRequestHandler):
             return _text_frames(step.get("reply") or "")
 
         tools = req.get("tools") or []
-        if tools and random.random() < policy.tool_rate:
-            spec = tools[0] or {}
-            name = (spec.get("function") or {}).get("name") or spec.get("name") or "noop"
+        by_name = {}
+        for spec in tools or []:
+            fn = spec.get("function") or {}
+            nm = fn.get("name") or spec.get("name")
+            if nm:
+                by_name[nm] = spec
+        # 首轮消息仅 system+user；之后轮次含工具步/历史往返。按轮次分流避免无限拉新。
+        first = len(req.get("messages") or []) <= 2
+        # PM 上下文：首轮按概率拉一个开发角色会话，后续轮次收口。
+        if "role_spawn" in by_name:
+            if first and random.random() < policy.spawn_rate:
+                args = json.dumps({"role": "developer", "display": "Dev",
+                                   "task": "按需求产出交付件到交付目录"},
+                                  ensure_ascii=False)
+                with stats.lock:
+                    stats.tool_calls += 1
+                return [_tool_frame("call_%d" % stats.calls, "role_spawn", args)]
+            with stats.lock:
+                stats.text += 1
+            return _text_frames("（stub）PM 已分派并确认，工单进入执行阶段。")
+        # 角色上下文：首轮按概率调写文件工具产出交付件，后续轮次收口。
+        write_name = next((n for n in ("artifact_write", "ticket_note") if n in by_name), None)
+        pick = write_name or next((n for n in by_name if n != "role_spawn"), None)
+        if pick and first and random.random() < policy.tool_rate:
+            if pick == "artifact_write":
+                args = json.dumps({"layer": "ticket", "path": "docs/feature.md",
+                                   "content": "压测交付件：功能实现说明与关键代码片段，"
+                                              "不少于八十字以满足交付件最小体量校验。"},
+                                  ensure_ascii=False)
+            else:
+                args = json.dumps({"text": "压测备注"}, ensure_ascii=False)
             with stats.lock:
                 stats.tool_calls += 1
-            return [_tool_frame("call_%d" % stats.calls, name, "{}")]
+            return [_tool_frame("call_%d" % stats.calls, pick, args)]
 
         with stats.lock:
             stats.text += 1

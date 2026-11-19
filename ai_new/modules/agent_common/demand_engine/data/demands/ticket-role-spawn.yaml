@@ -76,6 +76,16 @@ do:
     value:
       get: rec
   as: w
+- call: runtime.dispatch
+  with:
+    demand:
+      lit: session-run
+    key:
+      get: sp.result.id
+    input:
+      id:
+        get: sp.result.id
+  as: run
 - call: tickets.view
   with:
     rec:
@@ -93,6 +103,7 @@ expect:
   - tickets.bindrole
   - tickets.record_path
   - store.write
+  - runtime.dispatch
   - tickets.view
   payload: {}
   promise: 会话由需求拉，工单只记账

@@ -31,9 +31,9 @@ from ai_new.modules.agent_test.private import _fixtures  # noqa: E402
 from ai_new.modules.agent_test.private import stub_llm  # noqa: E402
 
 
-def start_stub(tool_rate, delay, delay_jitter=0.0):
-    policy = stub_llm.StubPolicy(tool_rate=tool_rate, delay_base=delay,
-                                 delay_jitter=delay_jitter)
+def start_stub(tool_rate, delay, delay_jitter=0.0, spawn_rate=0.0):
+    policy = stub_llm.StubPolicy(tool_rate=tool_rate, spawn_rate=spawn_rate,
+                                 delay_base=delay, delay_jitter=delay_jitter)
     return stub_llm.start_stub(policy)
 
 
@@ -138,11 +138,13 @@ def join_background(ctx, timeout):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Hive AI 并发压测（本地打桩，不接真实 API）")
-    ap.add_argument("--projects", type=int, default=100, help="项目数")
-    ap.add_argument("--tickets", type=int, default=100, help="每项目工单数")
+    ap.add_argument("--projects", type=int, default=10, help="项目数")
+    ap.add_argument("--tickets", type=int, default=10, help="每项目工单数")
     ap.add_argument("--workers", type=int, default=16, help="并发线程数")
-    ap.add_argument("--tool-rate", type=float, default=0.0,
-                    help="桩回 tool_calls 的概率 0~1，默认 0（纯文本一轮收口）")
+    ap.add_argument("--tool-rate", type=float, default=1.0,
+                    help="角色上下文回写文件工具的概率 0~1，默认 1.0")
+    ap.add_argument("--spawn-rate", type=float, default=1.0,
+                    help="PM 上下文拉角色会话的概率 0~1，默认 1.0")
     ap.add_argument("--delay", type=float, default=0.02, help="桩每轮基础延迟秒")
     ap.add_argument("--delay-jitter", type=float, default=0.0,
                     help="桩附加随机抖动上限秒（网络波动）")
@@ -151,9 +153,10 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     print("== 启动本地打桩服务（不接真实 API）")
-    stub, stub_thread, stub_url = start_stub(args.tool_rate, args.delay, args.delay_jitter)
-    print("   桩地址: %s | tool_rate=%.2f delay=%.2fs jitter=%.2fs"
-          % (stub_url, args.tool_rate, args.delay, args.delay_jitter))
+    stub, stub_thread, stub_url = start_stub(args.tool_rate, args.delay,
+                                            args.delay_jitter, args.spawn_rate)
+    print("   桩地址: %s | tool_rate=%.2f spawn_rate=%.2f delay=%.2fs jitter=%.2fs"
+          % (stub_url, args.tool_rate, args.spawn_rate, args.delay, args.delay_jitter))
 
     ctx = root = None
     failures = []
@@ -233,27 +236,58 @@ def main(argv=None):
         # 落盘计数与桩统计
         proj_items = (ctx.api.call("store.glob", {"module": "agent/projects",
                        "pattern": "*.yaml"}).get("items") or [])
+        proj_items = [p for p in proj_items if not p.rsplit("/", 1)[-1] == "messages.yaml"]
         ticket_items = (ctx.api.call("store.glob", {"module": "agent/tickets",
                         "pattern": "tickets/T-*/ticket.yaml"}).get("items") or [])
         sess_items = (ctx.api.call("store.glob", {"module": "agent/logs",
                       "pattern": "sessions/*.yaml"}).get("items") or [])
         disk_tickets = _ids_from_glob(ticket_items, "ticket")
-        disk_sessions = _ids_from_glob(sess_items, "session")
         lost_tickets = submitted_tickets - disk_tickets
-        orphan_sessions = disk_sessions - submitted_pms
+
+        # 会话分组：PM 会话 vs 角色会话；角色按角色计数、判定工具步与收口。
+        bound_role_sids = set()
+        for rel in ticket_items:
+            trow = ctx.api.call("store.read", {"module": "agent/tickets",
+                                "path": rel})["value"]
+            for r in trow.get("roles") or []:
+                if r.get("session"):
+                    bound_role_sids.add(r["session"])
+        pm_sessions, role_sessions = [], []
+        role_kinds, role_closed, role_with_tool = {}, 0, 0
+        for rel in sess_items:
+            row = ctx.api.call("store.read", {"module": "agent/logs",
+                              "path": rel})["value"]
+            if row.get("kind") == "pm":
+                pm_sessions.append(row)
+            else:
+                role_sessions.append(row)
+                rk = row.get("role") or "?"
+                role_kinds[rk] = role_kinds.get(rk, 0) + 1
+                msgs = row.get("messages") or []
+                last_a = next((m for m in reversed(msgs) if m.get("role") == "assistant"), None)
+                if last_a and not last_a.get("tool_calls"):
+                    role_closed += 1
+                if any(m.get("tool_calls") for m in msgs):
+                    role_with_tool += 1
+        pm_ids = {r.get("id") for r in pm_sessions}
+        role_ids = {r.get("id") for r in role_sessions}
+        orphan_sessions = (pm_ids - submitted_pms) | (role_ids - bound_role_sids)
         n_proj = len(proj_items)
         n_ticket = len(ticket_items)
         n_sess = len(sess_items)
         st = stub.stats
         total_sec = time.perf_counter() - t0
         print("\n== 压测结果")
-        print("   落盘: 项目 %d | 工单 %d | 会话 %d" % (n_proj, n_ticket, n_sess))
+        print("   落盘: 项目 %d | 工单 %d | 会话 %d（PM %d | 角色 %d）"
+              % (n_proj, n_ticket, n_sess, len(pm_sessions), len(role_sessions)))
         print("   工单: 提交 %d 次 | 塌缩/覆盖 %d | 唯一编号 %d | 落盘 %d | 丢失 %d"
               % (ticket_ok, ticket_ok - len(submitted_tickets),
                  len(submitted_tickets), n_ticket, len(lost_tickets)))
-        print("   会话: 提交 PM %d | 塌缩 %d | 落盘 %d | 孤儿 %d"
-              % (pm_submitted, pm_submitted - len(submitted_pms),
-                 n_sess, len(orphan_sessions)))
+        print("   会话: 提交 PM %d | PM 落盘 %d | 角色落盘 %d | 孤儿 %d"
+              % (pm_submitted, len(pm_sessions), len(role_sessions), len(orphan_sessions)))
+        if role_kinds:
+            print("   角色分布: %s" % role_kinds)
+        print("   角色流程: 含工具步 %d | 已收口 %d" % (role_with_tool, role_closed))
         if lost_tickets:
             print("   丢失工单抽样: %s" % sorted(lost_tickets)[:10])
         if orphan_sessions:
@@ -280,6 +314,7 @@ def main(argv=None):
         if http is not None:
             try:
                 http.shutdown()
+                http.server_close()
             except Exception:  # noqa: BLE001
                 pass
         os.environ.pop("AI_NEW_DATA", None)
