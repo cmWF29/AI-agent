@@ -13,16 +13,13 @@ llm.base_url 指到本地桩；全程不访问任何真实 LLM API。
 """
 import argparse
 import gc
-import json
 import os
-import random
 import resource
 import sys
 import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -31,101 +28,13 @@ sys.path.insert(0, str(ROOT))
 from ai_new.modules.agent_common.boot.private._boot import _build as build  # noqa: E402
 from ai_new.modules.agent_common.boot.private._context import Context  # noqa: E402
 from ai_new.modules.agent_test.private import _fixtures  # noqa: E402
-
-STUB_TEXTS = [
-    "（打桩）已理解任务，进入处理。",
-    "（打桩）信息已记录，按岗位流程推进。",
-    "（打桩）本轮处理完成，交付结论如下：打桩输出。",
-    "（打桩）需求已拆解，等待执行岗接手。",
-]
+from ai_new.modules.agent_test.private import stub_llm  # noqa: E402
 
 
-class StubStats:
-    """桩服务计数器：加锁汇总调用分类。"""
-
-    def __init__(self):
-        self.lock = threading.Lock()
-        self.calls = 0
-        self.text = 0
-        self.tool_calls = 0
-        self.errors = 0
-
-
-class StubHandler(BaseHTTPRequestHandler):
-    """OpenAI 兼容打桩：POST /v1/chat/completions 回 SSE 流。
-
-    多数帧回纯文本（无 tool_calls，ReAct 一轮收口）；按 tool_rate 概率从请求 tools
-    里挑第一个回一条 tool_calls，走一轮工具循环再收口。
-    """
-
-    protocol_version = "HTTP/1.1"
-
-    def log_message(self, *args):  # 压测不刷访问日志
-        pass
-
-    def _read_body(self):
-        length = int(self.headers.get("Content-Length") or 0)
-        raw = self.rfile.read(length) if length else b""
-        try:
-            return json.loads(raw.decode("utf-8") or "{}")
-        except Exception:  # noqa: BLE001
-            return {}
-
-    def do_POST(self):
-        stats = self.server.stats
-        req = self._read_body()
-        tools = req.get("tools") or []
-        with stats.lock:
-            stats.calls += 1
-        if self.server.delay:
-            time.sleep(self.server.delay)
-
-        frames = []
-        use_tool = bool(tools) and random.random() < self.server.tool_rate
-        if use_tool:
-            spec = tools[0] or {}
-            name = (spec.get("function") or {}).get("name") or spec.get("name") or "noop"
-            with stats.lock:
-                call_id = "call_%d" % stats.calls
-                stats.tool_calls += 1
-            frames.append({"choices": [{
-                "delta": {"tool_calls": [{
-                    "index": 0, "id": call_id, "type": "function",
-                    "function": {"name": name, "arguments": "{}"}}]},
-                "finish_reason": "tool_calls"}]})
-        else:
-            text = random.choice(STUB_TEXTS)
-            half = max(1, len(text) // 2)
-            frames.append({"choices": [{"delta": {"content": text[:half]}}]})
-            frames.append({"choices": [{"delta": {"content": text[half:]},
-                                        "finish_reason": "stop"}]})
-            with stats.lock:
-                stats.text += 1
-
-        payload = b"".join(
-            ("data: " + json.dumps(f, ensure_ascii=False) + "\n\n").encode("utf-8")
-            for f in frames) + b"data: [DONE]\n\n"
-        try:
-            self.send_response(200)
-            self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Content-Length", str(len(payload)))
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
-            self.wfile.write(payload)
-        except Exception:  # noqa: BLE001
-            with stats.lock:
-                stats.errors += 1
-
-
-def start_stub(tool_rate, delay):
-    server = ThreadingHTTPServer(("127.0.0.1", 0), StubHandler)
-    server.stats = StubStats()
-    server.tool_rate = tool_rate
-    server.delay = delay
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    port = server.server_address[1]
-    return server, thread, "http://127.0.0.1:%d/v1" % port
+def start_stub(tool_rate, delay, delay_jitter=0.0):
+    policy = stub_llm.StubPolicy(tool_rate=tool_rate, delay_base=delay,
+                                 delay_jitter=delay_jitter)
+    return stub_llm.start_stub(policy)
 
 
 def assemble(stub_url):
@@ -234,14 +143,17 @@ def main(argv=None):
     ap.add_argument("--workers", type=int, default=16, help="并发线程数")
     ap.add_argument("--tool-rate", type=float, default=0.0,
                     help="桩回 tool_calls 的概率 0~1，默认 0（纯文本一轮收口）")
-    ap.add_argument("--delay", type=float, default=0.02, help="桩每轮响应延迟秒")
+    ap.add_argument("--delay", type=float, default=0.02, help="桩每轮基础延迟秒")
+    ap.add_argument("--delay-jitter", type=float, default=0.0,
+                    help="桩附加随机抖动上限秒（网络波动）")
     ap.add_argument("--join-timeout", type=float, default=300, help="等待后台线程收敛上限秒")
     ap.add_argument("--keep-data", action="store_true", help="保留临时 data 目录供排查")
     args = ap.parse_args(argv)
 
     print("== 启动本地打桩服务（不接真实 API）")
-    stub, stub_thread, stub_url = start_stub(args.tool_rate, args.delay)
-    print("   桩地址: %s | tool_rate=%.2f delay=%.2fs" % (stub_url, args.tool_rate, args.delay))
+    stub, stub_thread, stub_url = start_stub(args.tool_rate, args.delay, args.delay_jitter)
+    print("   桩地址: %s | tool_rate=%.2f delay=%.2fs jitter=%.2fs"
+          % (stub_url, args.tool_rate, args.delay, args.delay_jitter))
 
     ctx = root = None
     failures = []

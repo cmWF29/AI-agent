@@ -119,7 +119,7 @@ def record_path(p):
 
 # ---- 项目级启停覆盖层：定义正文只存公共库一份，项目只记禁用清单 ----
 
-_OVERRIDE_KINDS = ("roles", "flows", "skills", "tools")
+_OVERRIDE_KINDS = ("roles", "flows", "skills", "tools", "states")
 
 
 def _clean_list(items):

@@ -58,6 +58,20 @@ def _encode_call(ctx, payload, stream):
     }, caller=None)
 
 
+def _fail(ctx, resp):
+    """传输失败：优先透传上游错误体里的 error.code，否则回落到 net 归类码。"""
+    code = resp.get("code") or "net_error"
+    detail = resp.get("error")
+    if detail:
+        dec = ctx.api.call("codec.json_decode", {"text": detail}, caller=None)
+        if dec.get("ok"):
+            obj = dec.get("value")
+            inner = obj.get("error") if isinstance(obj, dict) else None
+            if isinstance(inner, dict) and inner.get("code"):
+                code = inner["code"]
+    return {"ok": False, "error": detail, "code": code}
+
+
 def _route_chat(ctx, payload):
     enc = _encode_call(ctx, payload, True)
     if not enc.get("ok"):
@@ -69,7 +83,7 @@ def _route_chat(ctx, payload):
         "headers": enc.get("headers"), "body": body.get("text"),
         "timeout": payload.get("timeout"), "stream_key": stream_key}, caller=None)
     if not resp.get("ok"):
-        return {"ok": False, "error": resp.get("error"), "code": "net_error"}
+        return _fail(ctx, resp)
     return ctx.api.call("llm.decode_sse", {"items": resp.get("items") or []}, caller=None)
 
 
@@ -83,7 +97,7 @@ def _route_chat_stream(ctx, payload):
         "headers": enc.get("headers"), "body": body.get("text"),
         "timeout": payload.get("timeout")}, caller=None)
     if not resp.get("ok"):
-        return {"ok": False, "error": resp.get("error"), "code": "net_error"}
+        return _fail(ctx, resp)
     ev = ctx.api.call("codec.sse_decode", {"text": resp.get("text")}, caller=None)
     if not ev.get("ok"):
         return ev

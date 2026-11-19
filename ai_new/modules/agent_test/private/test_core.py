@@ -1653,9 +1653,9 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(listing[0]["skill"], "s1")
 
     def test_project_override_pure_parts_and_toggle(self):
-        """覆盖层纯函数：缺省四类空清单；禁用加入、启用移出、去重保序；非法类型/标识返错误形状。"""
+        """覆盖层纯函数：缺省五类空清单；禁用加入、启用移出、去重保序；非法类型/标识返错误形状。"""
         empty = projects_pure.override_parts({"rec": {}})
-        self.assertEqual(empty, {"roles": [], "flows": [], "skills": [], "tools": []})
+        self.assertEqual(empty, {"roles": [], "flows": [], "skills": [], "tools": [], "states": []})
         rec = {"id": "p1", "overrides": {"roles": [" dev ", "dev"], "tools": ["t1"]}}
         parts = projects_pure.override_parts({"rec": rec})
         self.assertEqual(parts["roles"], ["dev"])
@@ -1667,6 +1667,13 @@ class CoreTest(unittest.TestCase):
         on = projects_pure.toggle_override({"rec": off, "kind": "roles",
                                            "id": "dev", "enabled": True, "now": "t2"})
         self.assertEqual(on["overrides"]["roles"], ["qa"])
+        # 状态节点覆盖：禁用状态入清单、启用移出，与岗位/工具同构
+        st_off = projects_pure.toggle_override({"rec": rec, "kind": "states",
+                                               "id": "verify", "enabled": False, "now": "t1"})
+        self.assertEqual(st_off["overrides"]["states"], ["verify"])
+        st_on = projects_pure.toggle_override({"rec": st_off, "kind": "states",
+                                              "id": "verify", "enabled": True, "now": "t2"})
+        self.assertEqual(st_on["overrides"]["states"], [])
 
         bad_kind = projects_pure.toggle_override({"rec": {}, "kind": "billing",
                                                   "id": "x", "enabled": False})

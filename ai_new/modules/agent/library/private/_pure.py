@@ -122,7 +122,24 @@ def reviewp(p):
             "retries": retries, "repush": []}
 
 
-def _flatten_states(nodes, prefix, depth, out, parents, children, depths):
+def _collect_ids(nodes, prefix, refs, alias):
+    for node in nodes or []:
+        if not isinstance(node, dict):
+            continue
+        nid = node.get("id")
+        if not nid:
+            continue
+        path = nid if not prefix else prefix + "." + nid
+        alias[nid] = path
+        sub = node.get("children")
+        if node.get("ref") and refs:
+            sub = refs[node["ref"]]
+        _collect_ids(sub, path, refs, alias)
+
+
+def _flatten_states(nodes, prefix, depth, refs, out, parents, children, depths):
+    alias = {}
+    _collect_ids(nodes, prefix, refs, alias)
     for node in nodes or []:
         if not isinstance(node, dict):
             continue
@@ -132,6 +149,15 @@ def _flatten_states(nodes, prefix, depth, out, parents, children, depths):
         path = nid if not prefix else prefix + "." + nid
         rec = dict(node)
         rec["path"] = path
+        ref_id = node.get("ref")
+        nexts = []
+        for x in node.get("next") or []:
+            if ref_id and x == ref_id and refs and refs[ref_id]:
+                first = refs[ref_id][0]
+                nexts.append(path + "." + (first.get("id") or ""))
+            else:
+                nexts.append(alias.get(x, x))
+        rec["next"] = nexts
         if prefix:
             parents[path] = prefix
         children.setdefault(path, [])
@@ -139,7 +165,10 @@ def _flatten_states(nodes, prefix, depth, out, parents, children, depths):
         out.append(rec)
         if prefix:
             children[prefix].append(path)
-        _flatten_states(node.get("children"), path, depth + 1, out, parents, children, depths)
+        sub = node.get("children")
+        if node.get("ref") and refs:
+            sub = refs[node["ref"]]
+        _flatten_states(sub, path, depth + 1, refs, out, parents, children, depths)
 
 
 def _active_list(p):
@@ -179,11 +208,15 @@ def _check_missing(checks, files, contents, tpl):
 
 
 def stage_contractp(p):
-    """状态机契约定形：states/stages 列表（可嵌套 children）→ 路径索引、初始与终态集合。"""
+    """状态机契约定形：states/stages 列表（可嵌套 children、可 ref 引用子流程）→ 路径索引、初始与终态集合。
+
+    refs 是子流程契约表：节点 ref=R 时把 refs[R] 以 父.R 前缀并入索引；next 引用写全路径。
+    """
     machine = p.get("machine") or {}
     raw = p.get("states") or p.get("stages") or machine.get("states") or []
+    refs = p.get("refs") or machine.get("refs") or {}
     out, parents, children, depths = [], {}, {}, {}
-    _flatten_states(raw, "", 0, out, parents, children, depths)
+    _flatten_states(raw, "", 0, refs, out, parents, children, depths)
     by = {s["path"]: s for s in out}
     initial = out[0]["path"] if out else ""
     terminals = [s["path"] for s in out if s.get("terminal")]
@@ -252,11 +285,18 @@ def stage_transitionp(p):
     illegal_start   开局未进初始状态；
     illegal_edge     相对活跃态的跳转不在 next 表内；
     condition_unmet  源状态交付件条件未达标，保留活跃态。
+
+    nxt 可为单状态或多目标列表：一次分叉并行进入多条分支，活跃集合并入全部目标；
+    终态源在转移后从活跃集合摘除，非终态源保留。
     """
     contract = p.get("contract") or {}
     by = contract.get("by_id") or {}
     tpl = p.get("tpl") or {}
-    nxt = str(p.get("nxt") or "").strip()
+    nxt_raw = p.get("nxt")
+    if isinstance(nxt_raw, list):
+        targets = [str(x).strip() for x in nxt_raw if str(x).strip()]
+    else:
+        targets = [str(nxt_raw or "").strip()] if str(nxt_raw or "").strip() else []
     active = p.get("active")
     if isinstance(active, list):
         prev = [str(x).strip() for x in active if str(x).strip()]
@@ -266,31 +306,35 @@ def stage_transitionp(p):
             prev = [str(x).strip() for x in prev_raw if str(x).strip()]
         else:
             prev = [str(prev_raw).strip()] if str(prev_raw or "").strip() else []
-    if not nxt:
+    if not targets:
         return {"ok": True, "code": "unset", "stage": prev[0] if prev else "", "active": prev}
-    if nxt not in by:
-        return {"ok": False, "code": "unknown_stage",
-                "stage": prev[0] if prev else "", "active": prev}
+    for t in targets:
+        if t not in by:
+            return {"ok": False, "code": "unknown_stage",
+                    "stage": prev[0] if prev else "", "active": prev}
     if not prev:
-        if nxt == contract.get("initial"):
-            return {"ok": True, "code": "ok", "stage": nxt, "active": [nxt]}
+        if targets == [contract.get("initial")]:
+            return {"ok": True, "code": "ok", "stage": targets[0], "active": list(targets)}
         return {"ok": False, "code": "illegal_start", "stage": "", "active": []}
-    if nxt not in prev and not any(nxt in ((by.get(x) or {}).get("next") or []) for x in prev):
-        return {"ok": False, "code": "illegal_edge",
-                "stage": prev[0], "active": prev}
-    # 源状态交付件条件：离开源状态前其 checks 须落盘达标；原地停留不强制。
-    if nxt not in prev:
-        files = p.get("files") or []
-        contents = p.get("contents") or {}
-        for x in prev:
+    # 边可达：每个目标须由某活跃源 next 指向
+    for t in targets:
+        if t not in prev and not any(t in ((by.get(x) or {}).get("next") or []) for x in prev):
+            return {"ok": False, "code": "illegal_edge",
+                    "stage": prev[0], "active": prev}
+    # 源状态交付件条件：有源将离开其 checks 须落盘达标；原地停留不强制。
+    files = p.get("files") or []
+    contents = p.get("contents") or {}
+    for x in prev:
+        if any(t != x for t in targets):
             rec = by.get(x) or {}
             if _check_missing(rec.get("checks") or [], files, contents, tpl):
                 return {"ok": False, "code": "condition_unmet",
                         "stage": prev[0], "active": prev}
     kept = [x for x in prev if not (by.get(x) or {}).get("terminal")]
-    if nxt not in kept:
-        kept.append(nxt)
-    return {"ok": True, "code": "ok", "stage": nxt, "active": kept}
+    for t in targets:
+        if t not in kept:
+            kept.append(t)
+    return {"ok": True, "code": "ok", "stage": targets[0], "active": kept}
 
 
 def stage_toolsp(p):
