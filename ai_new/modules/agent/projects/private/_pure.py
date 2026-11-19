@@ -50,7 +50,7 @@ def tree(p):
             orphans.append(item)
     items = []
     for pr in projs:
-        if not pr:
+        if not pr or not pr.get("id"):
             continue
         rows = by.get(pr.get("id")) or []
         open_n = len([t for t in rows if t.get("status") != "closed"])
@@ -69,9 +69,10 @@ def _ticket_view(rec):
 
 
 def screen(p):
-    """列表：rows 是档案记录列表，这里只挑要露出的字段。"""
+    """列表：rows 是档案记录列表，这里只挑要露出的字段；非档案文件（如 messages.yaml 文案模板）
+    没有档案 id，一并滤除，不渲染成空壳卡片。"""
     rows = p.get("rows") or []
-    items = [view({"rec": rec}) for rec in rows if rec]
+    items = [view({"rec": rec}) for rec in rows if rec and rec.get("id")]
     return {"items": items}
 
 

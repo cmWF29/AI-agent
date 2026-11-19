@@ -1534,6 +1534,17 @@ class CoreTest(unittest.TestCase):
                                                     "id": "  ", "enabled": False})
         self.assertFalse(missing_id["ok"])
 
+    def test_project_screen_filters_non_record_files(self):
+        """列表/分级树：messages.yaml 这类无档案 id 的文案模板 dict 不渲染成空壳项目。"""
+        rows = [{"id": "p1", "name": "项目一", "created": "t1"},
+                {"missing": "项目不存在: {id}", "conflict": "项目已存在: {id}"},
+                None]
+        items = projects_pure.screen({"rows": rows})["items"]
+        self.assertEqual([x["id"] for x in items], ["p1"])
+
+        tree = projects_pure.tree({"projects": rows, "tickets": []})["items"]
+        self.assertEqual([x["project"]["id"] for x in tree], ["p1"])
+
     def test_flow_plan_effects(self):
         rec = {"id": "role-1", "kind": "role", "role": "developer",
                "ticket": "T-1", "meta": {}}
