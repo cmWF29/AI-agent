@@ -42,20 +42,28 @@ def start_stub(tool_rate, delay, delay_jitter=0.0, spawn_rate=0.0,
 
 
 def clean_business(root):
-    """清空业务档案：项目/工单/会话/知识/产物；保留 library 种子与配置。返回删除条目数。"""
+    """清空业务档案：项目/工单/会话/知识/产物；保留 library 种子与配置。返回删除条目数。
+
+    兼容两种数据布局：源码树 <模块>/data/ 与 external 镜像 <模块>/（无 data 层），
+    业务档案目录直接 rglob，避免持久根重复压测时上一轮残留撞号。
+    """
     root = Path(root)
     business = ["projects", "tickets", "logs", "knowledge", "artifacts"]
+    kept_templates = {"messages.yaml", "index.yaml"}
     removed = 0
     for mod in business:
-        data = root / "agent" / mod / "data"
-        if not data.is_dir():
+        base = root / "agent" / mod
+        if not base.is_dir():
             continue
-        for rel in list(data.rglob("*")):
-            if rel.is_file() and rel.suffix in (".yaml", ".yml", ".json"):
+        for rel in list(base.rglob("*")):
+            if rel.is_dir():
+                if rel.name.startswith("T-"):
+                    shutil.rmtree(rel, ignore_errors=True)
+                    removed += 1
+                continue
+            if rel.is_file() and rel.suffix in (".yaml", ".yml", ".json") \
+                    and rel.name not in kept_templates:
                 rel.unlink()
-                removed += 1
-            elif rel.is_dir() and rel.name.startswith("T-"):
-                shutil.rmtree(rel, ignore_errors=True)
                 removed += 1
     return removed
 
