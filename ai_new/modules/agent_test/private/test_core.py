@@ -1763,7 +1763,7 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(orphan["effects"], [])
 
     def test_flow_plan_awaiting_user_skips_review_loop(self):
-        """仅读知识后向用户提问、无产物/编排动作：判等待用户，只落盘不回催不复盘。"""
+        """对话型会话仅读知识后向用户提问、无产物/编排动作：判等待用户，只落盘不回催不复盘。"""
         waiting_msgs = [
             {"role": "system", "content": "人设"},
             {"role": "user", "content": "开工"},
@@ -1772,7 +1772,7 @@ class CoreTest(unittest.TestCase):
             {"role": "tool", "name": "knowledge_search", "content": '{"items": []}'},
             {"role": "assistant", "content": "需求信息不足，请补充被测对象与验收标准。"},
         ]
-        rec = {"id": "pm-1", "kind": "pm", "role": "", "ticket": "T-1",
+        rec = {"id": "ch-1", "kind": "channel", "role": "", "ticket": "T-1",
                "meta": {}, "messages": waiting_msgs}
         plan = sess_run.flow_plan({
             "rec": rec, "review": {"verdict": "pass", "missing": [], "retries": 0},
@@ -1782,6 +1782,26 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(kinds, ["write"])
         self.assertNotIn("dispatch", kinds)
         self.assertFalse(plan["rec"]["meta"].get("retrospected"))
+
+    def test_flow_plan_auto_session_not_waiting(self):
+        """后台自动会话（pm/role）不设等待闸门：读类工具后陈述也按终态判定进入闭环。"""
+        auto_msgs = [
+            {"role": "system", "content": "人设"},
+            {"role": "user", "content": "工单任务"},
+            {"role": "assistant", "tool_calls": [{"function": {"name": "ticket_read_doc"}}],
+             "content": "先读工单"},
+            {"role": "tool", "name": "ticket_read_doc", "content": '{"ok": true}'},
+            {"role": "assistant", "content": "需求要点已梳理，进入编排与分派。"},
+        ]
+        rec = {"id": "pm-1", "kind": "pm", "role": "pm", "ticket": "T-1",
+               "meta": {}, "messages": auto_msgs}
+        plan = sess_run.flow_plan({
+            "rec": rec, "review": {"verdict": "repush", "missing": [{"kind": "stage"}],
+                                   "retries": 1},
+            "ticket": "T-1", "repush_text": "回催", "retrospect_text": "复盘",
+            "exhausted_text": "卡点"})
+        self.assertNotEqual(plan["verdict"], "waiting")
+        self.assertIn("dispatch", [e["kind"] for e in plan["effects"]])
 
     def test_flow_plan_delivered_round_not_waiting(self):
         """本轮有写产物工具调用：不算等待，正常进入评审闭环。"""

@@ -6,6 +6,8 @@ ADVANCE_TOOLS = {
     "artifact_write", "knowledge_write",
     "role_spawn", "role_task", "ticket_split", "ticket_close",
 }
+# 后台自动会话类型：由工单/编排派生、自主推进，不等用户插话；waiting 闸门只拦对话型会话。
+AUTO_KINDS = {"pm", "role"}
 
 
 def appendmsg(p):
@@ -150,9 +152,12 @@ def waitingp(p):
     """判断本轮是否停在等待用户输入：末次 assistant 纯文本收尾，且自上一条用户消息
     起没有任何推进/交付类工具调用。纯计算，不碰盘、不取时钟。
 
-    场景：需求信息不足时，PM 列出缺失项、向用户提问后结束本轮；此时尚无产物或编排
-    动作，闭环不应回催、复盘或再驱动，保持 idle 等用户插话。
+    场景：需求信息不足时，对话型会话列出缺失项、向用户提问后结束本轮；此时尚无产物
+    或编排动作，闭环不应回催、复盘或再驱动，保持 idle 等用户插话。后台自动会话（pm/
+    role）自主推进，不设等待闸门，按终态判定回催或收口。
     """
+    if (p.get("kind") or "") in AUTO_KINDS:
+        return {"waiting": False, "reason": "auto_session"}
     msgs = p.get("messages") or []
     if not msgs:
         return {"waiting": False, "reason": "empty"}
@@ -197,7 +202,7 @@ def flow_plan(p):
     if not sid:
         # 会话标识缺失：不写盘、不再驱动，避免落出 sessions/None.yaml 孤儿
         return {"verdict": verdict, "rec": rec, "effects": []}
-    wait = waitingp({"messages": rec.get("messages")})
+    wait = waitingp({"messages": rec.get("messages"), "kind": rec.get("kind")})
     if wait["waiting"]:
         # 停在等待用户输入：只落盘保持 idle，不回催、不复盘、不再驱动，等用户插话。
         effects.append({"kind": "write", "module": "agent/logs",

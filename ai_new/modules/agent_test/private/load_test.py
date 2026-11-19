@@ -156,12 +156,19 @@ def mem_snapshot(ctx):
 
 
 def join_background(ctx, timeout):
-    """等后台 session-run 线程收敛；回催会再 dispatch 同 key，轮询到无存活线程。"""
+    """等后台 session-run 线程收敛；回催会再 dispatch 同 key，轮询到无存活线程。
+
+    finished 是 defer 钩子：首轮收尾只入队，必须由主线程 drain 派发，闭环才会二次
+    驱动；线程归零后再 drain 一轮，避免错过首轮结束后才入队、刚起的新线程。
+    """
     deadline = time.perf_counter() + timeout
     while time.perf_counter() < deadline:
+        ctx.hooks.drain()
         alive = [t for t in ctx.runtime._runs.values() if t.is_alive()]
         if not alive:
-            return [], time.perf_counter()
+            ctx.hooks.drain()
+            if not [t for t in ctx.runtime._runs.values() if t.is_alive()]:
+                return [], time.perf_counter()
         time.sleep(0.2)
         for t in alive:
             t.join(timeout=1.0)
