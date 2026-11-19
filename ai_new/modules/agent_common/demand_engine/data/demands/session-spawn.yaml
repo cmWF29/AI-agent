@@ -113,8 +113,6 @@ do:
       get: input.project
     role:
       get: input.role
-    backend:
-      get: input.backend
     max_steps:
       get: input.max_steps
     meta:

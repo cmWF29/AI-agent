@@ -56,9 +56,6 @@ view:
     - label: 创建
       value: row.created
       format: when
-    - label: 执行后端
-      value: row.backend
-      fallback: 跟随配置
     - label: 更新
       value: row.updated
       format: when

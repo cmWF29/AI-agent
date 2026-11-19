@@ -57,7 +57,7 @@ def _route_create(ctx, payload):
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.build", {
         "id": pid.get("id"), "name": payload.get("name"),
-        "created": now.get("ts"), "default_backend": payload.get("default_backend")}, caller=None)
+        "created": now.get("ts")}, caller=None)
     ex = ctx.api.call("store.exists", {"module": "agent/projects",
         "path": _record(paths, pid.get("id"))}, caller=None)
     if ex.get("exists"):
@@ -213,7 +213,6 @@ def _route_rename(ctx, payload):
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.renamed", {
         "rec": row.get("value"), "id": new_id, "name": payload.get("name"),
-        "default_backend": payload.get("default_backend"),
         "now": now.get("ts")}, caller=None)
     effects = [{"kind": "write", "module": "agent/projects",
                 "path": _record(paths, new_id), "value": rec}]

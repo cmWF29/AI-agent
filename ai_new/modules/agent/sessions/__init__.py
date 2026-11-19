@@ -156,7 +156,6 @@ def _route_spawn(ctx, payload):
         "kind": kind, "seq": seq,
         "name": nid.get("id"), "ticket": payload.get("ticket"),
         "role": payload.get("role"), "project": payload.get("project"),
-        "backend": payload.get("backend"),
         "max_steps": payload.get("max_steps"), "meta": meta,
         "prompt": role_prompt,
         "injected": payload.get("injected") or "",

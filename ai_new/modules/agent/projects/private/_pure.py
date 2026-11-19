@@ -12,7 +12,6 @@ def build(rec):
         "name": rec.get("name") or rec.get("id") or "default",
         "created": rec.get("created") or "",
         "archived": False,
-        "default_backend": rec.get("default_backend") or "",
         "idle": {},
         "overrides": {kind: [] for kind in _OVERRIDE_KINDS},
     }
@@ -22,8 +21,7 @@ def view(p):
     rec = p.get("rec") or p
     return {"id": rec.get("id"), "name": rec.get("name"),
             "archived": rec.get("archived", False),
-            "created": rec.get("created"),
-            "default_backend": rec.get("default_backend", "")}
+            "created": rec.get("created")}
 
 
 def present(p):
@@ -85,12 +83,10 @@ def archive(p):
 
 
 def renamed(payload):
-    """改名后的档案：换 id/name（与 default_backend），created/archived 原样保留。"""
+    """改名后的档案：换 id/name，created/archived 原样保留。"""
     rec = dict(payload.get("rec") or {})
     rec["id"] = payload.get("id") or rec.get("id")
     rec["name"] = payload.get("name") or rec.get("name") or rec.get("id")
-    if payload.get("default_backend") not in (None, ""):
-        rec["default_backend"] = payload.get("default_backend")
     rec["updated"] = payload.get("now") or rec.get("updated") or ""
     return rec
 

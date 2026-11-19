@@ -46,7 +46,6 @@ architect:
     - ticket_note
     next: []
     terminal: true
-  backend: ''
   builtin: true
 developer:
   id: developer
@@ -101,7 +100,6 @@ developer:
     - shell
     next: []
     terminal: true
-  backend: ''
   builtin: true
 reviewer:
   id: reviewer
@@ -145,7 +143,6 @@ reviewer:
     - ticket_note
     next: []
     terminal: true
-  backend: ''
   builtin: true
 tester:
   id: tester
@@ -195,7 +192,6 @@ tester:
     - ticket_note
     next: []
     terminal: true
-  backend: ''
   builtin: true
 ops:
   id: ops
@@ -239,7 +235,6 @@ ops:
     - ticket_read_doc
     next: []
     terminal: true
-  backend: ''
   builtin: true
 researcher:
   id: researcher
@@ -283,7 +278,6 @@ researcher:
     - knowledge_read
     next: []
     terminal: true
-  backend: ''
   builtin: true
 writer:
   id: writer
@@ -325,7 +319,6 @@ writer:
     - artifact_write
     next: []
     terminal: true
-  backend: ''
   builtin: true
 process:
   id: process
@@ -368,7 +361,6 @@ process:
     - artifact_write
     next: []
     terminal: true
-  backend: ''
   builtin: true
 skill-decomposer:
   id: skill-decomposer
@@ -416,5 +408,4 @@ skill-decomposer:
     - ticket_note
     next: []
     terminal: true
-  backend: ''
   builtin: true

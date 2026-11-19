@@ -92,7 +92,6 @@ def _position(rec, flow, prompt_text="", tpl=None):
             "must_dos": rec.get("must_dos") or [],
             "tools": rec.get("tools") or [],
             "stages": rec.get("stages") or [],
-            "backend": rec.get("backend") or "",
             "skill": rec.get("skill") or "",
             "builtin": bool(rec.get("builtin")),
             "readonly": bool(rec.get("readonly")),

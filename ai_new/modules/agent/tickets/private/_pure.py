@@ -72,7 +72,6 @@ def build(p):
         "created": now, "updated": now,
         "closed": "", "summary": "", "verdict": "",
         "history": [{"at": now, "event": "created", "text": title}],
-        "backend": p.get("backend") or "",
         "meta": p.get("meta") or {},
     }
 
@@ -183,7 +182,7 @@ def threadp(p):
     return {
         "ticket": view({"rec": ticket}),
         "thread": {"id": pm_sid, "name": thread.get("name") or "", "status": status,
-                   "backend": thread.get("backend") or "", "role": "pm",
+                   "role": "pm",
                    "updated": thread.get("updated") or "", "meta": thread.get("meta") or {},
                    "messages": merged},
         "roles": roles_out,
@@ -206,7 +205,7 @@ def view(p):
     rec = p.get("rec") or {}
     base = {k: rec.get(k) for k in ("id", "title", "goal", "project", "kind", "parent",
                                     "status", "pm", "created", "updated", "closed",
-                                    "summary", "verdict", "auto_retrospective", "backend")}
+                                    "summary", "verdict", "auto_retrospective")}
     base.update({"children": rec.get("children") or [], "roles": rec.get("roles") or [],
                  "history": rec.get("history") or []})
     return base

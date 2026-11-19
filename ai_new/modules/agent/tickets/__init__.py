@@ -139,10 +139,7 @@ def _route_create(ctx, payload):
         "bucket": "ticket:" + day, "baseline": baseline}, caller=None).get("seq")
     fresh = ctx.api.call("tickets.newid", {
         "today": now.get("iso"), "n": n}, caller=None)
-    backend = (payload.get("backend")
-               or (prow.get("value") or {}).get("default_backend") or "")
     rec = ctx.api.call("tickets.build", {
-        "backend": backend,
         "id": fresh.get("id"), "title": payload.get("title"),
         "goal": payload.get("goal"), "project": payload.get("project"),
         "kind": payload.get("kind"), "parent": payload.get("parent"),
@@ -166,7 +163,6 @@ def _route_create(ctx, payload):
                      "goal": rec.get("goal") or ""}}).get("text") or ""
         pm = ctx.runtime.call("session-spawn", {
             "kind": "pm", "name": "PM-%s" % (fresh.get("id") or ""),
-            "backend": backend,
             "ticket": fresh.get("id"),
             "max_steps": payload.get("pm_max_steps"),
             "task": payload.get("task"),

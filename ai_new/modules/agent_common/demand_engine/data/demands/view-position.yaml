@@ -23,9 +23,6 @@ view:
     - label: 提示词引用
       value: row.prompt_file
       fallback: —
-    - label: 执行后端
-      value: row.backend
-      fallback: 跟随配置
     - label: 流程检查
       value: "row.flow.checks|count"
       suffix: 项

@@ -38,7 +38,6 @@ roles:
     tools: [ticket_close, ticket_read_doc, ticket_note]
     next: []
     terminal: true
-  backend: ''
   builtin: true
   readonly: true
   system: true
@@ -78,7 +77,6 @@ roles:
     tools: [ticket_note]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: developer
   cn: 开发
@@ -119,7 +117,6 @@ roles:
     tools: [ticket_note, shell]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: reviewer
   cn: 评审
@@ -154,7 +151,6 @@ roles:
     tools: [ticket_note]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: tester
   cn: 测试
@@ -191,7 +187,6 @@ roles:
     tools: [artifact_write, ticket_note]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: ops
   cn: 运维
@@ -224,7 +219,6 @@ roles:
     tools: [ticket_read_doc]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: researcher
   cn: 调研
@@ -257,7 +251,6 @@ roles:
     tools: [artifact_read, knowledge_read]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: writer
   cn: 文案
@@ -290,7 +283,6 @@ roles:
     tools: [artifact_write]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: process
   cn: 流程专家
@@ -324,7 +316,6 @@ roles:
     tools: [artifact_write]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 - id: skill-decomposer
   cn: 拆解者
@@ -362,7 +353,6 @@ roles:
     tools: [ticket_note]
     next: []
     terminal: true
-  backend: ''
   builtin: true
 flows:
 - id: architect

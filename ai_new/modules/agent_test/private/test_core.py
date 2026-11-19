@@ -795,7 +795,7 @@ class CoreTest(unittest.TestCase):
         self.ctx.runtime.apply = spy
         try:
             self._run("react-run", {
-                "session": {"id": "cp-1", "summary": "旧摘要", "backend": "api"},
+                "session": {"id": "cp-1", "summary": "旧摘要"},
                 "messages": [{"role": "system", "content": "人设"},
                              {"role": "user", "content": "指令"}],
                 "tools": [], "path": "sessions/cp-1.yaml",
@@ -1376,15 +1376,13 @@ class CoreTest(unittest.TestCase):
 
         # 检查点成形：快照拷贝，覆盖 messages/summary/steps/updated，其余字段原样保留
         rec = {"id": "s1", "kind": "role", "status": "running", "summary": "旧",
-               "messages": [{"role": "system", "content": "人设"}], "steps": 2,
-               "backend": "api"}
+               "messages": [{"role": "system", "content": "人设"}], "steps": 2}
         ck = react_pure.checkpoint({"rec": rec,
             "messages": [{"role": "system"}, {"role": "user", "content": "指令"},
                          {"role": "assistant", "content": "回"}],
             "summary": "新摘要", "steps": 4, "now": "t2"})
         self.assertEqual(ck["id"], "s1")
         self.assertEqual(ck["status"], "running")
-        self.assertEqual(ck["backend"], "api")
         self.assertEqual(len(ck["messages"]), 3)
         self.assertEqual(ck["summary"], "新摘要")
         self.assertEqual(ck["steps"], 4)
@@ -1768,12 +1766,11 @@ class CoreTest(unittest.TestCase):
                                  "latest": {}, "now": 3, "result_chars": 500})
         self.assertEqual(plain["meta"]["stage"], "a")
 
-    def test_thread_exposes_session_backend_and_meta(self):
-        """线程视图要露出主会话后端与 meta，界面才能判断 PM 走哪条链路、有无卡点。"""
-        thread = {"id": "pm-2", "name": "pm", "status": "idle", "backend": "api",
+    def test_thread_exposes_session_meta(self):
+        """线程视图要露出主会话 meta，界面才能判断 PM 有无卡点。"""
+        thread = {"id": "pm-2", "name": "pm", "status": "idle",
                   "role": "", "updated": 1, "meta": {"tools": []}, "messages": []}
         out = ticket_pure.threadp({"ticket": {"id": "T-1", "roles": []}, "thread": thread})
-        self.assertEqual(out["thread"]["backend"], "api")
         self.assertEqual(out["thread"]["meta"], {"tools": []})
 
     def test_thread_does_not_duplicate_pm_session(self):
@@ -1782,7 +1779,7 @@ class CoreTest(unittest.TestCase):
         ticket = {"id": "T-1", "roles": [{"session": "role-1", "role": "developer",
                                           "display": "探针", "task": "任务 x"}],
                   "transcript": {}}
-        thread = {"id": "pm-1", "name": "pm-t-1", "status": "running", "backend": "api",
+        thread = {"id": "pm-1", "name": "pm-t-1", "status": "running",
                   "role": "", "updated": 1, "meta": {"tools": []},
                   "messages": [{"role": "user", "content": intro}]}
         role_threads = [

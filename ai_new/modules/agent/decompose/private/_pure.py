@@ -315,7 +315,7 @@ def install_parts(p):
                    "must_dos": role.get("must_dos") or [],
                    "forbidden": role.get("forbidden") or [],
                    "tools": role_tools,
-                   "prompt_file": "", "backend": "",
+                   "prompt_file": "",
                    "skill": rid, "builtin": False}
 
     flow_record = {"id": rid, "role": rid, "skill": rid}
