@@ -126,6 +126,7 @@ def _seq_of(kind, items):
 def _route_spawn(ctx, payload):
     """造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。"""
     kind = payload.get("kind") or "role"
+    tpl = _msg_tpl(ctx)
     logs_paths = _cfg_logs(ctx)
     prompt_paths = _cfg_prompt(ctx)
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
@@ -155,7 +156,7 @@ def _route_spawn(ctx, payload):
         "max_steps": payload.get("max_steps"), "meta": meta,
         "prompt": role_prompt,
         "injected": payload.get("injected") or "",
-        "prefix": "", "task": payload.get("task"), "intro": payload.get("intro"),
+        "prefix": tpl.get("common_prompt") or "", "task": payload.get("task"), "intro": payload.get("intro"),
         "now": now.get("ts")}, caller=None)
     view = ctx.api.call("sessions.view", {"rec": rec}, caller=None)
     view["rec"] = rec
