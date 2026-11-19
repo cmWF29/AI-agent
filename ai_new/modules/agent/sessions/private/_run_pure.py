@@ -67,11 +67,16 @@ def finish(p):
     stage_check = p.get("stage_check") or {}
     if stage_check:
         stage = stage_check.get("stage") or stage
+        active = stage_check.get("active")
+        if active is None:
+            active = [stage] if stage else []
         if stage_check.get("ok"):
             meta.pop("stage_alert", None)
         else:
             meta["stage_alert"] = {"code": stage_check.get("code") or "",
                                    "nxt": out.get("stage") or ""}
+        if active:
+            meta["active"] = active
     if stage:
         meta["stage"] = stage
     rec["meta"] = meta

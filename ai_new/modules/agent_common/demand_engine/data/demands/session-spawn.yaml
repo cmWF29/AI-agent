@@ -39,10 +39,32 @@ do:
     user:
       get: role.value
   as: rec
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: flows.yaml
+  as: flows
+- call: library.get
+  with:
+    kind:
+      lit: flows
+    id:
+      get: input.role
+    seed:
+      lit: {}
+    user:
+      get: flows.value
+  as: flow
 - call: library.stage_contract
   with:
+    states:
+      get: rec.item.states
     stages:
       get: rec.item.stages
+    checks:
+      get: flow.item.checks
   as: contract
 - call: demand_engine.run
   with:
@@ -60,8 +82,8 @@ do:
   with:
     contract:
       get: contract
-    stage:
-      get: contract.initial
+    active:
+    - get: contract.initial
     items:
       get: tools.result.items
   as: stools
@@ -69,8 +91,8 @@ do:
   with:
     contract:
       get: contract
-    stage:
-      get: contract.initial
+    active:
+    - get: contract.initial
   as: stblk
 - call: library.prompt_blocks
   with:
@@ -119,8 +141,12 @@ do:
       get: input.meta
     tools:
       get: stools.items
+    machine:
+      get: contract
     stages:
-      get: rec.item.stages
+      get: contract.states
+    active:
+    - get: contract.initial
     stage:
       get: contract.initial
     task:
@@ -148,6 +174,8 @@ expect:
   calls:
   - config.get
   - demand_engine.run
+  - store.read
+  - library.get
   - store.read
   - library.get
   - library.stage_contract

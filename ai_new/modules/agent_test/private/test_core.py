@@ -1269,6 +1269,61 @@ class CoreTest(unittest.TestCase):
         # result 透出 stage
         res = react_pure.result({"messages": [], "stage": "b"})
         self.assertEqual(res["stage"], "b")
+        # 嵌套子状态机：点分路径、父子/深度索引归一
+        tree = [{"id": "x", "cn": "X", "next": ["x.y"], "children": [
+            {"id": "y", "cn": "Y", "terminal": True}]}]
+        c2 = lib_pure.stage_contractp({"states": tree})
+        self.assertEqual(c2["by_id"]["x.y"]["cn"], "Y")
+        self.assertEqual(c2["parents"]["x.y"], "x")
+        self.assertEqual(c2["children"]["x"], ["x.y"])
+        self.assertEqual(c2["depth"]["x.y"], 1)
+        self.assertEqual(c2["initial"], "x")
+        self.assertEqual(c2["terminals"], ["x.y"])
+        # 并发活跃集合：多源可达即合法，非终态源保留并并入目标
+        ok = lib_pure.stage_transitionp({"contract": contract,
+                                         "active": ["a", "b"], "nxt": "c"})
+        self.assertTrue(ok["ok"])
+        self.assertEqual(ok["stage"], "c")
+        self.assertIn("b", ok["active"])
+        self.assertIn("c", ok["active"])
+        # 交付件条件未达标拦截：源状态 checks 无落盘文件 → condition_unmet 保留活跃态
+        cc = lib_pure.stage_contractp({"states": [
+            {"id": "s1", "next": ["s2"], "checks": [
+                {"kind": "glob", "paths": ["**/*.py"], "match": "any"}]},
+            {"id": "s2", "terminal": True}]})
+        un = lib_pure.stage_transitionp({"contract": cc, "prev": "s1",
+                                         "nxt": "s2", "files": [], "contents": {}})
+        self.assertFalse(un["ok"])
+        self.assertEqual(un["code"], "condition_unmet")
+        self.assertEqual(un["active"], ["s1"])
+        # 交付件达标放行
+        reached = lib_pure.stage_transitionp({"contract": cc, "prev": "s1",
+                                              "nxt": "s2", "files": ["a.py"], "contents": {}})
+        self.assertTrue(reached["ok"])
+        # 角色顶层交付约束并入条件缺口
+        cc2 = lib_pure.stage_contractp({"checks": [
+            {"kind": "glob", "paths": ["**/*.md"], "match": "any"}], "states": [
+            {"id": "s1", "next": ["s2"]}, {"id": "s2", "terminal": True}]})
+        miss = lib_pure.stage_conditionsp({"contract": cc2, "active": ["s1"],
+                                           "files": [], "contents": {}, "tpl": lib_tpl})
+        self.assertEqual(len(miss["missing"]), 1)
+        # 旧流程 nodes/edges 归一为状态机 states：边转 next 邻接，末态标 terminal
+        fs = lib_pure.flow_to_statesp({"nodes": ["n1", "n2"], "edges": [["n1", "n2"]]})
+        self.assertEqual(fs["states"][0]["next"], ["n2"])
+        self.assertTrue(fs["states"][1]["terminal"])
+        # 多活跃状态工具取并集
+        items = [{"name": "t1"}, {"name": "t2"}, {"name": "t3"}]
+        cut = lib_pure.stage_toolsp({"contract": contract, "active": ["a", "b"], "items": items})
+        self.assertEqual([t["name"] for t in cut["items"]], ["t1", "t2"])
+        # 动态增删改：增节点、删节点及其出边、追加邻接
+        ov = lib_pure.stage_apply_overridesp({"states": [
+            {"id": "a", "next": ["b"]}, {"id": "b", "next": []}],
+            "add": [{"id": "c", "next": []}],
+            "remove": ["b"], "edges": [["a", "c"]]})
+        ov_by = {s["id"]: s for s in ov["states"]}
+        self.assertIn("c", ov_by)
+        self.assertNotIn("b", ov_by)
+        self.assertEqual(ov_by["a"]["next"], ["c"])
 
     def test_react_context_pure_functions(self):
         # 发往视图：system 保留，历史往返剔除，摘要占位 + 本轮指令保留

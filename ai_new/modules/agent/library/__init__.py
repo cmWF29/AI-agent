@@ -21,6 +21,7 @@ def setup(ctx):
         ("library.stage_tools", _pure.stage_toolsp),
         ("library.stage_block", _pure.stage_blockp),
         ("library.stage_gaps", _pure.stage_gapsp),
+        ("library.stage_conditions", _pure.stage_conditionsp),
         ("library.kind_file", _pure.kind_file),
         ("library.prompt_path", _pure.prompt_path),
         ("library.save_record", _pure.save_record),

@@ -99,47 +99,38 @@ skill-decomposer:
 requirement-owner:
   id: requirement-owner
   kind: process
-  nodes:
-  - req.intake
-  - req.structure
-  - req.plan
-  - req.split
-  - req.execute
-  - req.accept
-  - req.close
-  edges:
-  - - req.intake
-    - req.structure
-  - - req.structure
-    - req.plan
-  - - req.plan
-    - req.split
-  - - req.split
-    - req.execute
-  - - req.execute
-    - req.accept
-  - - req.accept
-    - req.close
+  states:
+  - id: req.intake
+    next: [req.structure]
+  - id: req.structure
+    next: [req.plan]
+  - id: req.plan
+    next: [req.split]
+  - id: req.split
+    next: [req.execute]
+  - id: req.execute
+    next: [req.accept]
+  - id: req.accept
+    next: [req.close]
+  - id: req.close
+    next: []
+    terminal: true
   builtin: true
 ticket-health:
   id: ticket-health
   kind: process
-  nodes:
-  - scan.run
-  - scan.judge
-  - scan.audit
-  - ops.diagnose
-  - ops.recover
-  - audit.close
-  edges:
-  - - scan.run
-    - scan.judge
-  - - scan.judge
-    - scan.audit
-  - - scan.audit
-    - ops.diagnose
-  - - ops.diagnose
-    - ops.recover
-  - - ops.recover
-    - audit.close
+  states:
+  - id: scan.run
+    next: [scan.judge]
+  - id: scan.judge
+    next: [scan.audit]
+  - id: scan.audit
+    next: [ops.diagnose]
+  - id: ops.diagnose
+    next: [ops.recover]
+  - id: ops.recover
+    next: [audit.close]
+  - id: audit.close
+    next: []
+    terminal: true
   builtin: true

@@ -24,27 +24,9 @@ do:
   as: row
 - call: library.stage_contract
   with:
-    stages:
-      get: row.value.meta.stages
+    machine:
+      get: row.value.meta.machine
   as: contract
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: flows.yaml
-  as: flows
-- call: library.get
-  with:
-    kind:
-      lit: flows
-    id:
-      get: event.data.role
-    seed:
-      lit: {}
-    user:
-      get: flows.value
-  as: flow
 - call: demand_engine.run
   with:
     id:
@@ -58,27 +40,31 @@ do:
     items:
       get: listed.result.items
   as: paths
-- call: library.check
+- call: library.stage_conditions
   with:
-    flow:
-      get: event.data.role
-    rec:
-      get: flow.item
+    contract:
+      get: contract
+    active:
+      get: row.value.meta.active
+    stage:
+      get: row.value.meta.stage
     files:
       get: paths.paths
     contents:
       lit: {}
-  as: miss
+  as: cond
 - call: library.stage_gaps
   with:
     contract:
       get: contract
+    active:
+      get: row.value.meta.active
     stage:
       get: row.value.meta.stage
     stage_alert:
       get: row.value.meta.stage_alert
     base:
-      get: miss.missing
+      get: cond.missing
   as: gaps
 - call: config.get
   with:
@@ -227,11 +213,9 @@ expect:
   - sessions.record_path
   - store.read
   - library.stage_contract
-  - store.read
-  - library.get
   - demand_engine.run
   - tickets.paths
-  - library.check
+  - library.stage_conditions
   - library.stage_gaps
   - config.get
   - library.review

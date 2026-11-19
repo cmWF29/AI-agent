@@ -34,13 +34,15 @@ do:
   as: row
 - call: library.stage_contract
   with:
-    stages:
-      get: row.value.meta.stages
+    machine:
+      get: row.value.meta.machine
   as: contract
 - call: library.stage_tools
   with:
     contract:
       get: contract
+    active:
+      get: row.value.meta.active
     stage:
       get: row.value.meta.stage
     items:
@@ -112,14 +114,33 @@ do:
   as: latest
 - call: clock.now
   as: done_at
+- call: demand_engine.run
+  with:
+    id:
+      lit: ticket-files
+    input:
+      id:
+        get: input.id
+  as: listed
+- call: tickets.paths
+  with:
+    items:
+      get: listed.result.items
+  as: paths
 - call: library.stage_transition
   with:
     contract:
       get: contract
+    active:
+      get: row.value.meta.active
     prev:
       get: row.value.meta.stage
     nxt:
       get: out.result.stage
+    files:
+      get: paths.paths
+    contents:
+      lit: {}
   as: check
 - call: sessions.finish
   with:
@@ -182,6 +203,8 @@ expect:
   - sessions.record_path
   - store.read
   - clock.now
+  - demand_engine.run
+  - tickets.paths
   - library.stage_transition
   - sessions.finish
   - sessions.record_path

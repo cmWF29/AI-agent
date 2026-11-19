@@ -21,7 +21,7 @@ roles:
   - ticket_close
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: analyze
     cn: 需求分析
     desc: 澄清需求、定成可逐条核对的验收规格
@@ -60,7 +60,7 @@ roles:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: study
     cn: 研读
     desc: 读现有代码、知识与需求，摸清约束与依据
@@ -100,7 +100,7 @@ roles:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: understand
     cn: 理解
     desc: 读懂验收标准与现有实现，明确改动范围
@@ -134,7 +134,7 @@ roles:
   - knowledge_read
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: study
     cn: 研读
     desc: 读交付件与验收标准，逐条对照
@@ -170,7 +170,7 @@ roles:
   - knowledge_write
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: design
     cn: 用例设计
     desc: 依据验收标准设计测试用例或脚本
@@ -202,7 +202,7 @@ roles:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
-  stages:
+  states:
   - id: diagnose
     cn: 诊断
     desc: 查服务状态、日志与停滞工单，定位现象与根因
@@ -234,7 +234,7 @@ roles:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
-  stages:
+  states:
   - id: scope
     cn: 界定边界
     desc: 明确调研问题边界与待答结论
@@ -266,7 +266,7 @@ roles:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
-  stages:
+  states:
   - id: gather
     cn: 读素材
     desc: 读需求与现有素材，明确文案对象与格式
@@ -299,7 +299,7 @@ roles:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
-  stages:
+  states:
   - id: survey
     cn: 梳理现状
     desc: 读现有流程与规则，摸清节点与校验项
@@ -336,7 +336,7 @@ roles:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: inspect
     cn: 读包
     desc: 读外部 Skill.md 包，摸清岗位、工具与规则三要素
@@ -437,44 +437,35 @@ flows:
     min_bytes: 80
 - id: requirement-owner
   kind: process
-  nodes:
-  - req.intake
-  - req.structure
-  - req.plan
-  - req.split
-  - req.execute
-  - req.accept
-  - req.close
-  edges:
-  - - req.intake
-    - req.structure
-  - - req.structure
-    - req.plan
-  - - req.plan
-    - req.split
-  - - req.split
-    - req.execute
-  - - req.execute
-    - req.accept
-  - - req.accept
-    - req.close
+  states:
+  - id: req.intake
+    next: [req.structure]
+  - id: req.structure
+    next: [req.plan]
+  - id: req.plan
+    next: [req.split]
+  - id: req.split
+    next: [req.execute]
+  - id: req.execute
+    next: [req.accept]
+  - id: req.accept
+    next: [req.close]
+  - id: req.close
+    next: []
+    terminal: true
 - id: ticket-health
   kind: process
-  nodes:
-  - scan.run
-  - scan.judge
-  - scan.audit
-  - ops.diagnose
-  - ops.recover
-  - audit.close
-  edges:
-  - - scan.run
-    - scan.judge
-  - - scan.judge
-    - scan.audit
-  - - scan.audit
-    - ops.diagnose
-  - - ops.diagnose
-    - ops.recover
-  - - ops.recover
-    - audit.close
+  states:
+  - id: scan.run
+    next: [scan.judge]
+  - id: scan.judge
+    next: [scan.audit]
+  - id: scan.audit
+    next: [ops.diagnose]
+  - id: ops.diagnose
+    next: [ops.recover]
+  - id: ops.recover
+    next: [audit.close]
+  - id: audit.close
+    next: []
+    terminal: true

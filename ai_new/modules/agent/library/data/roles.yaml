@@ -18,7 +18,7 @@ architect:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: study
     cn: 研读
     desc: 读现有代码、知识与需求，摸清约束与依据
@@ -71,7 +71,7 @@ developer:
   - ticket_read_doc
   - ticket_note
   - shell
-  stages:
+  states:
   - id: understand
     cn: 理解
     desc: 读懂验收标准与现有实现，明确改动范围
@@ -118,7 +118,7 @@ reviewer:
   - knowledge_read
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: study
     cn: 研读
     desc: 读交付件与验收标准，逐条对照
@@ -164,7 +164,7 @@ tester:
   - ticket_read_doc
   - ticket_note
   - shell
-  stages:
+  states:
   - id: design
     cn: 用例设计
     desc: 依据验收标准设计测试用例或脚本
@@ -208,7 +208,7 @@ ops:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
-  stages:
+  states:
   - id: diagnose
     cn: 诊断
     desc: 查服务状态、日志与停滞工单，定位现象与根因
@@ -251,7 +251,7 @@ researcher:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
-  stages:
+  states:
   - id: scope
     cn: 界定边界
     desc: 明确调研问题边界与待答结论
@@ -294,7 +294,7 @@ writer:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
-  stages:
+  states:
   - id: gather
     cn: 读素材
     desc: 读需求与现有素材，明确文案对象与格式
@@ -336,7 +336,7 @@ process:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
-  stages:
+  states:
   - id: survey
     cn: 梳理现状
     desc: 读现有流程与规则，摸清节点与校验项
@@ -382,7 +382,7 @@ skill-decomposer:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
-  stages:
+  states:
   - id: inspect
     cn: 读包
     desc: 读外部 Skill.md 包，摸清岗位、工具与规则三要素

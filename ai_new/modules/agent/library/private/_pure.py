@@ -91,7 +91,7 @@ def _position(rec, flow, prompt_text="", tpl=None):
             "forbidden": rec.get("forbidden") or [],
             "must_dos": rec.get("must_dos") or [],
             "tools": rec.get("tools") or [],
-            "stages": rec.get("stages") or [],
+            "stages": rec.get("states") or rec.get("stages") or [],
             "skill": rec.get("skill") or "",
             "builtin": bool(rec.get("builtin")),
             "readonly": bool(rec.get("readonly")),
@@ -122,103 +122,244 @@ def reviewp(p):
             "retries": retries, "repush": []}
 
 
+def _flatten_states(nodes, prefix, depth, out, parents, children, depths):
+    for node in nodes or []:
+        if not isinstance(node, dict):
+            continue
+        nid = node.get("id")
+        if not nid:
+            continue
+        path = nid if not prefix else prefix + "." + nid
+        rec = dict(node)
+        rec["path"] = path
+        if prefix:
+            parents[path] = prefix
+        children.setdefault(path, [])
+        depths[path] = depth
+        out.append(rec)
+        if prefix:
+            children[prefix].append(path)
+        _flatten_states(node.get("children"), path, depth + 1, out, parents, children, depths)
+
+
+def _active_list(p):
+    """归一活跃状态集合：active 列表优先；否则回退单值 stage。"""
+    act = p.get("active")
+    if isinstance(act, list):
+        return [str(x).strip() for x in act if str(x).strip()]
+    stage = str(p.get("stage") or "").strip()
+    return [stage] if stage else []
+
+
+def _check_missing(checks, files, contents, tpl):
+    """单状态交付件条件判定：复用 glob/contains 规则，返回未达标项。
+
+    只校验交付件是否落盘达标，不做任何语义判断；规则形状来自流程记录。
+    """
+    missing = []
+    for c in checks:
+        kind = c.get("kind")
+        if kind == "glob":
+            paths = c.get("paths") or []
+            match = c.get("match") or "all"
+            if match == "any":
+                if not any(any(_glob(f, pat) for pat in paths) for f in files):
+                    missing.append({"kind": kind, "paths": paths, "match": match,
+                                    "reason": tpl.get("missing_any") or ""})
+            else:
+                for pat in paths:
+                    if not any(_glob(f, pat) for f in files):
+                        missing.append({"kind": kind, "path": pat, "match": match})
+        elif kind == "contains":
+            text = c.get("text")
+            if not any(text and text in (contents.get(f) or "") for f in files):
+                missing.append({"kind": kind, "text": text,
+                                "reason": tpl.get("missing_contains") or ""})
+    return missing
+
+
 def stage_contractp(p):
-    """岗位阶段契约定形：列表 → 索引、初始阶段与终态集合。无 stages 直通。"""
-    stages = [s for s in (p.get("stages") or []) if isinstance(s, dict) and s.get("id")]
-    by = {s.get("id"): s for s in stages}
-    initial = stages[0].get("id") if stages else ""
-    terminals = [s.get("id") for s in stages if s.get("terminal")]
-    return {"stages": stages, "by_id": by, "initial": initial, "terminals": terminals}
+    """状态机契约定形：states/stages 列表（可嵌套 children）→ 路径索引、初始与终态集合。"""
+    machine = p.get("machine") or {}
+    raw = p.get("states") or p.get("stages") or machine.get("states") or []
+    out, parents, children, depths = [], {}, {}, {}
+    _flatten_states(raw, "", 0, out, parents, children, depths)
+    by = {s["path"]: s for s in out}
+    initial = out[0]["path"] if out else ""
+    terminals = [s["path"] for s in out if s.get("terminal")]
+    return {"states": out, "stages": out, "by_id": by, "initial": initial,
+            "terminals": terminals, "parents": parents, "children": children,
+            "depth": depths, "checks": p.get("checks") or machine.get("checks") or []}
+
+
+def flow_to_statesp(p):
+    """旧流程 nodes/edges 归一为状态机 states：边转 next 邻接，无出边者标终态。"""
+    nodes = p.get("nodes") or []
+    nexts = {n: [] for n in nodes}
+    for edge in p.get("edges") or []:
+        if isinstance(edge, (list, tuple)) and len(edge) == 2:
+            a, b = edge
+            if a in nexts and b not in nexts[a]:
+                nexts[a].append(b)
+    states = [{"id": n, "next": nexts[n], "terminal": not nexts[n]} for n in nodes]
+    return {"states": states}
+
+
+def stage_apply_overridesp(p):
+    """动态并入状态机覆盖：add 增节点，remove 删节点及其出边，edges 追加邻接。
+
+    纯数据成形，不读盘；返回并入后的 states 列表。内置保护由需求层在调用前判定。
+    """
+    base = p.get("states") or p.get("stages") or []
+    by = {s.get("id"): dict(s) for s in base if isinstance(s, dict) and s.get("id")}
+    for node in p.get("add") or []:
+        if isinstance(node, dict) and node.get("id"):
+            by[node["id"]] = dict(node)
+    for rid in p.get("remove") or []:
+        by.pop(rid, None)
+        for rec in by.values():
+            rec["next"] = [x for x in (rec.get("next") or []) if x != rid]
+    for edge in p.get("edges") or []:
+        if isinstance(edge, (list, tuple)) and len(edge) == 2:
+            a, b = edge
+            if a in by and b in by and b not in by[a].get("next", []):
+                by[a].setdefault("next", []).append(b)
+    return {"states": list(by.values())}
+
+
+def stage_conditionsp(p):
+    """汇总活跃状态交付件条件缺口：各活跃状态 checks 跑落盘校验，不做语义判断。"""
+    contract = p.get("contract") or {}
+    by = contract.get("by_id") or {}
+    active = _active_list(p)
+    tpl = p.get("tpl") or {}
+    files = p.get("files") or []
+    contents = p.get("contents") or {}
+    missing = []
+    missing.extend(_check_missing(contract.get("checks") or [], files, contents, tpl))
+    for path in active:
+        rec = by.get(path) or {}
+        missing.extend(_check_missing(rec.get("checks") or [], files, contents, tpl))
+    return {"missing": missing}
 
 
 def stage_transitionp(p):
-    """校验自报阶段与跳转边。prev 缺省视为开局；nxt 为空表示本轮未上报阶段，直通保留 prev。
+    """校验自报状态与转移边；源状态交付件条件达标才放行。
 
-    ok            合法（含原地停留、开局进初始阶段）；
-    unknown_stage 自报阶段不在契约内；
-    illegal_start 开局未进初始阶段；
-    illegal_edge  相对上一阶段的跳转不在 next 表内。
+    ok               合法（原地停留、开局进初始、边可达且条件达标）；
+    unset            本轮未上报状态，直通保留活跃态；
+    unknown_stage    自报状态不在契约内；
+    illegal_start   开局未进初始状态；
+    illegal_edge     相对活跃态的跳转不在 next 表内；
+    condition_unmet  源状态交付件条件未达标，保留活跃态。
     """
     contract = p.get("contract") or {}
     by = contract.get("by_id") or {}
+    tpl = p.get("tpl") or {}
     nxt = str(p.get("nxt") or "").strip()
-    prev = str(p.get("prev") or "").strip()
+    active = p.get("active")
+    if isinstance(active, list):
+        prev = [str(x).strip() for x in active if str(x).strip()]
+    else:
+        prev_raw = p.get("prev")
+        if isinstance(prev_raw, list):
+            prev = [str(x).strip() for x in prev_raw if str(x).strip()]
+        else:
+            prev = [str(prev_raw).strip()] if str(prev_raw or "").strip() else []
     if not nxt:
-        return {"ok": True, "code": "unset", "stage": prev}
+        return {"ok": True, "code": "unset", "stage": prev[0] if prev else "", "active": prev}
     if nxt not in by:
-        return {"ok": False, "code": "unknown_stage", "stage": prev}
+        return {"ok": False, "code": "unknown_stage",
+                "stage": prev[0] if prev else "", "active": prev}
     if not prev:
         if nxt == contract.get("initial"):
-            return {"ok": True, "code": "ok", "stage": nxt}
-        return {"ok": False, "code": "illegal_start", "stage": prev}
-    if prev == nxt:
-        return {"ok": True, "code": "ok", "stage": nxt}
-    allowed = (by.get(prev) or {}).get("next") or []
-    if nxt in allowed:
-        return {"ok": True, "code": "ok", "stage": nxt}
-    return {"ok": False, "code": "illegal_edge", "stage": prev}
+            return {"ok": True, "code": "ok", "stage": nxt, "active": [nxt]}
+        return {"ok": False, "code": "illegal_start", "stage": "", "active": []}
+    if nxt not in prev and not any(nxt in ((by.get(x) or {}).get("next") or []) for x in prev):
+        return {"ok": False, "code": "illegal_edge",
+                "stage": prev[0], "active": prev}
+    # 源状态交付件条件：离开源状态前其 checks 须落盘达标；原地停留不强制。
+    if nxt not in prev:
+        files = p.get("files") or []
+        contents = p.get("contents") or {}
+        for x in prev:
+            rec = by.get(x) or {}
+            if _check_missing(rec.get("checks") or [], files, contents, tpl):
+                return {"ok": False, "code": "condition_unmet",
+                        "stage": prev[0], "active": prev}
+    kept = [x for x in prev if not (by.get(x) or {}).get("terminal")]
+    if nxt not in kept:
+        kept.append(nxt)
+    return {"ok": True, "code": "ok", "stage": nxt, "active": kept}
 
 
 def stage_toolsp(p):
-    """按阶段裁剪工具清单：阶段 tools 与全集取交集；阶段未列 tools 回退全集。"""
+    """按活跃状态裁剪工具清单：各活跃状态 tools 取并集；状态未列 tools 回退全集。"""
     contract = p.get("contract") or {}
     by = contract.get("by_id") or {}
-    stage = str(p.get("stage") or contract.get("initial") or "")
+    active = _active_list(p)
     items = p.get("items") or []
-    allow = (by.get(stage) or {}).get("tools") or []
-    if not allow:
+    allow, has_allow = set(), False
+    for path in active:
+        tools = (by.get(path) or {}).get("tools")
+        if tools:
+            has_allow = True
+            allow.update(tools)
+    if not has_allow:
         return {"items": list(items)}
-    wanted = set(allow)
     kept = []
     for t in items:
         name = t.get("name") if isinstance(t, dict) else t
-        if name in wanted:
+        if name in allow:
             kept.append(t)
     return {"items": kept}
 
 
 def stage_blockp(p):
-    """把当前阶段契约拼成注入 system 的文本段；标题与措辞来自模板，阶段内容来自数据。"""
+    """把活跃状态契约拼成注入 system 的文本段；标题与措辞来自模板，状态内容来自数据。"""
     tpl = p.get("tpl") or {}
     contract = p.get("contract") or {}
     by = contract.get("by_id") or {}
-    stage = str(p.get("stage") or contract.get("initial") or "")
-    rec = by.get(stage) or {}
-    if not rec:
+    if not by:
         return {"system": ""}
+    active = _active_list(p) or [str(contract.get("initial") or "")]
     lines = []
     head = tpl.get("heading_stage") or ""
     if head:
         lines.append(head)
-    cur = (tpl.get("stage_current") or "").format(cn=rec.get("cn") or stage, id=stage)
-    if cur:
-        lines.append(cur)
-    desc = rec.get("desc") or ""
-    if desc:
-        lines.append((tpl.get("stage_desc") or "").format(desc=desc))
-    nxt = rec.get("next") or []
-    if nxt:
-        nxt_cn = [by.get(x, {}).get("cn") or x for x in nxt]
-        lines.append((tpl.get("stage_next") or "").format(next="、".join(nxt_cn)))
-    elif rec.get("terminal"):
-        lines.append(tpl.get("stage_terminal") or "")
+    for path in active:
+        rec = by.get(path) or {}
+        if not rec:
+            continue
+        cur = (tpl.get("stage_current") or "").format(cn=rec.get("cn") or path, id=path)
+        if cur:
+            lines.append(cur)
+        desc = rec.get("desc") or ""
+        if desc:
+            lines.append((tpl.get("stage_desc") or "").format(desc=desc))
+        nxt = rec.get("next") or []
+        if nxt:
+            nxt_cn = [by.get(x, {}).get("cn") or x for x in nxt]
+            lines.append((tpl.get("stage_next") or "").format(next="、".join(nxt_cn)))
+        elif rec.get("terminal"):
+            lines.append(tpl.get("stage_terminal") or "")
     return {"system": "\n".join(lines)}
 
 
 def stage_gapsp(p):
-    """把阶段约束并入产物缺口：非终态阶段、非法跳转各成一条缺口；无契约直通。"""
+    """把状态约束并入产物缺口：任一活跃状态非终态、非法跳转各成一条；无契约直通。"""
     tpl = p.get("tpl") or {}
     contract = p.get("contract") or {}
     by = contract.get("by_id") or {}
-    stage = str(p.get("stage") or contract.get("initial") or "")
+    active = _active_list(p) or [str(contract.get("initial") or "")]
     alerts = p.get("stage_alert") or {}
     missing = list(p.get("base") or [])
-    if by:
-        rec = by.get(stage)
-        if rec and not rec.get("terminal"):
-            txt = (tpl.get("stage_not_terminal") or "").format(
-                cn=rec.get("cn") or stage, id=stage)
-            missing.append({"kind": "stage", "text": txt})
+    open_active = [x for x in active if by.get(x) and not by[x].get("terminal")]
+    if by and open_active:
+        rec = by.get(open_active[0])
+        txt = (tpl.get("stage_not_terminal") or "").format(
+            cn=rec.get("cn") or open_active[0], id=open_active[0])
+        missing.append({"kind": "stage", "text": txt})
     if alerts and alerts.get("code"):
         txt = (tpl.get("stage_alert") or "").format(code=alerts.get("code") or "")
         missing.append({"kind": "stage", "text": txt})

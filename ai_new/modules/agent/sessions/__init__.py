@@ -148,6 +148,10 @@ def _route_spawn(ctx, payload):
     meta = dict(payload.get("meta") or {})
     if payload.get("tools"):
         meta["tools"] = payload.get("tools")
+    if payload.get("machine"):
+        meta["machine"] = payload.get("machine")
+    if payload.get("active"):
+        meta["active"] = payload.get("active")
     if payload.get("stages"):
         meta["stages"] = payload.get("stages")
     if payload.get("stage"):
