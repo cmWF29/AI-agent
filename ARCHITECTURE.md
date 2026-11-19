@@ -173,7 +173,7 @@ modules/<组>/<模块>/
 | --- | --- | --- |
 | `store` | pathlib / os / shutil / zipfile / tempfile | 所有模块的 data；`ctx.storage.own(__file__)`；JSON 交 codec、时间交 clock |
 | `net` | urllib / socket / ssl（出站） | 编排需求 `llm-chat` 发请求 |
-| `host` | /proc、磁盘、负载、环境变量 | `health.self`、`agents` 资源守门 |
+| `host` | /proc、磁盘、负载、环境变量 | `health.self` 概览 |
 | `clock` | time / datetime | 全系统唯一的"现在"：uptime、消息时间戳、停滞判定、等待超时 |
 | `http` | socket / ssl / urllib.parse（入站） | 浏览器、SSE、静态 |
 
@@ -200,7 +200,7 @@ modules/<组>/<模块>/
 | llm | **纯语义**：`encode`（对话→载荷）、`decode` / `decode_sse`（响应→对话结果）；无网络/无 JSON/不读配置 |
 | codec | **纯计算**：JSON 编解码、SSE 帧解析、base64/hex、摘要 |
 | net | 出站网络：`net.request`（运行时唯一 import urllib 的模块） |
-| host | 主机资源：`host.info`（内存/磁盘/负载，health 与 agents 的守门读数） |
+| host | 主机资源：`host.info`（内存/磁盘/负载，health 概览读数） |
 | react | ReAct 循环（无业务） |
 | http | 入站传输：HTTP/SSE、静态资源、鉴权、RPC 入口（入站的 urllib/ssl 归它） |
 | ops | 记录（`data/logs/app.jsonl` 归它所有）/总览/日志/导出 |
@@ -215,7 +215,6 @@ modules/<组>/<模块>/
 | sessions | 会话生命周期、并发闸门、执行 |
 | projects | 项目档案 |
 | tickets | 工单、分单、PM 工具、通知、停滞审计 |
-| agents | 后端档案与资源门禁 |
 | health | 存活与自检 |
 | skills | 技能卡与数据驱动执行 |
 | web | 控制台与消息面板：自己的静态资源（`data/console/`），通过 `web.asset` 供给 http |

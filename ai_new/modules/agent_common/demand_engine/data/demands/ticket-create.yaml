@@ -28,8 +28,6 @@ do:
       get: input.pm_max_steps
     task:
       get: input.task
-    backend:
-      get: input.backend
   as: out
 - call: runtime.apply
   with:

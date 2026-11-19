@@ -91,7 +91,7 @@ class CoreTest(unittest.TestCase):
     def test_all_modules_loaded(self):
         expect = {"config", "store", "hooks", "demand_engine", "api", "tools", "llm", "react",
                   "knowledge", "artifacts", "library", "sessions", "projects",
-                  "tickets", "agents", "health", "ops", "web", "http",
+                  "tickets", "health", "ops", "web", "http",
                   "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec",
                   "decompose", "asr", "logs"}
         self.assertEqual(set(self.loaded), expect)
@@ -297,44 +297,6 @@ class CoreTest(unittest.TestCase):
         self.assertNotIn("exec.run", [r["name"] for r in self.ctx.api.routes()],
                          "内部路由不该出现在对外路由清单里")
 
-    def test_agent_stream_draft_grows_and_clears(self):
-        """agent 边跑边吐：运行期草稿中途可见增长，一轮定稿后清空，不落盘。"""
-        import threading, time as _time, tempfile, os, pathlib
-        script = pathlib.Path(tempfile.mkdtemp()) / "stream_agent.py"
-        script.write_text("import time\nprint('L1', flush=True); time.sleep(0.8); "
-                          "print('L2', flush=True); time.sleep(0.8); print('L3')", encoding="utf-8")
-        cfg = self.ctx.cfg.setdefault("llm", {})
-        keep = dict(cfg)
-        cfg["mode"] = "agent"
-        cfg["agent"] = {"command": [sys.executable, str(script)], "timeout": 20}
-        key = "draft-probe"
-        seen, box = [], {}
-        def worker():
-            box["r"] = self._run("react-run", {
-                "messages": [{"role": "user", "content": "x"}],
-                "mode": "agent", "tools": [],
-                "cancel": {"id": key, "since": 0}})["result"]
-        th = threading.Thread(target=worker, daemon=True)
-        th.start()
-        for _ in range(40):
-            _time.sleep(0.2)
-            d = self.ctx.runtime.stream_get(key)
-            if d["text"]:
-                seen.append(d["text"])
-            if not th.is_alive():
-                break
-        th.join()
-        try:
-            self.assertGreaterEqual(len(seen), 2, "草稿应在中途多次被读到")
-            self.assertIn("L1", seen[0])
-            msgs = box["r"].get("messages") or []
-            self.assertIn("L3", msgs[-1].get("content") or "")
-            final = self.ctx.runtime.stream_get(key)
-            self.assertFalse(final["running"], "定稿后草稿必须清空")
-        finally:
-            cfg.clear(); cfg.update(keep)
-            script.unlink(missing_ok=True)
-
     def test_runtime_stream_events_pushes_on_change_and_clears(self):
         """草稿事件流：订阅后 put/clear 唤醒推快照；游标对齐后不重复推。"""
         import threading, time as _time
@@ -406,29 +368,6 @@ class CoreTest(unittest.TestCase):
             server.server_close()
             self.ctx.runtime.stream_clear(key)
 
-    def test_agent_process_is_killed_on_cancel(self):
-        """打断要真停：外部 agent 进程被 kill，能在秒级收尾，不拖到自然跑完。"""
-        cfg = self.ctx.cfg.setdefault("llm", {})
-        keep = dict(cfg)
-        cfg["mode"] = "agent"
-        cfg["agent"] = {"command": ["python3", "-c", "import time; time.sleep(30)"],
-                        "timeout": 40}
-        now = self.ctx.api.call("clock.now", {})["ts"]
-        gate = {"id": "cancel-probe", "since": now}
-        # 模拟"有人按了打断"：打断位比本轮开始时间更晚
-        self.ctx.runtime._cancel["cancel-probe"] = now + 5
-        try:
-            started = __import__("time").time()
-            r = self._run("llm-chat", {"messages": [{"role": "user", "content": "跑个长任务"}],
-                                       "cancel": gate})["result"]
-            spent = __import__("time").time() - started
-            self.assertEqual(r.get("killed"), "cancelled", "被打断的进程要报 cancelled: %s" % r)
-            self.assertLess(spent, 5, "打断应在秒级生效，实际 %.1fs" % spent)
-        finally:
-            self.ctx.runtime._cancel.pop("cancel-probe", None)
-            cfg.clear()
-            cfg.update(keep)
-
     def test_runtime_stop_cancels_and_joins_running_thread(self):
         """purge 硬删会话前：stop 置打断位、等线程收尾，再从运行表摘除，定稿不会写回。"""
         import threading, time as _time
@@ -458,29 +397,6 @@ class CoreTest(unittest.TestCase):
             _time.sleep(0.02)
         self.assertNotIn(key, self.ctx.runtime._runs, "跑完后运行表应自清，死线程条目不残留")
         self.assertNotIn(key, self.ctx.runtime._cancel)
-
-    def test_agent_backend_runs_external_command(self):
-        """agent 模式：对话拼成一段话交给外部进程，收回 stdout 当答复。
-
-        外部 agent 自带工具闭环，所以返回里没有 tool_calls，ReAct 一轮即可收口。
-        """
-        cfg = self.ctx.cfg.setdefault("llm", {})
-        keep = dict(cfg)
-        cfg["mode"] = "agent"
-        cfg["agent"] = {"command": [sys.executable, "-c",
-                        "import sys; d=sys.stdin.read(); print('AGENT-ANSWER:' + str(len(d)))"],
-                        "timeout": 20}
-        try:
-            r = self._run("llm-chat", {"messages": [
-                {"role": "system", "content": "你是测试"}, {"role": "user", "content": "继续"}]})
-            out = r["result"]
-            self.assertTrue(out.get("ok", True), "agent 后端应成功返回: %s" % out)
-            self.assertIn("AGENT-ANSWER:", out.get("content") or "")
-            self.assertEqual(out.get("tool_calls") or [], [], "外部 agent 不该回工具调用")
-            self.assertEqual(out.get("backend"), "agent")
-        finally:
-            cfg.clear()
-            cfg.update(keep)
 
     def test_artifacts_roundtrip_and_escape(self):
         self._run("artifacts-write", {"layer": "ticket", "project": "p1", "ticket": "T-1",
@@ -589,13 +505,11 @@ class CoreTest(unittest.TestCase):
 
     def test_project_lifecycle(self):
         """项目：建 → 列表露出字段 → 归档 → 彻底删除（纯形状解包不能漏层）。"""
-        created = self._run("projects-create", {"name": "proj-test",
-                                                "default_backend": "deepseek-chat"})["result"]
+        created = self._run("projects-create", {"name": "proj-test"})["result"]
         self.assertTrue(created["id"])
         self.assertEqual(created["name"], "proj-test")
         self.assertFalse(created["archived"])
         self.assertTrue(created["created"])
-        self.assertEqual(created["default_backend"], "deepseek-chat")
 
         pid = created["id"]
         rec = self.ctx.api.call("store.read", {"module": "agent/projects",

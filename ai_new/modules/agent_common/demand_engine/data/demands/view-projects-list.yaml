@@ -28,7 +28,6 @@ view:
       note: "{row.counts.open} 进行中 · {row.counts.closed} 已结单"
     meta:
     - {label: 建, value: row.project.created, format: when}
-    - {label: 后端, value: row.project.default_backend, hide_if_empty: true}
     actions:
     - {label: 改名, modal: project.rename}
     - {label: 归档, demand: projects-archive, params: {id: row.project.id},

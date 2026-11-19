@@ -19,20 +19,10 @@ view:
       label: 项目名称
       placeholder: 例如：官网重构
       required: true
-    - name: default_backend
-      label: 默认执行后端
-      kind: select
-      options: &id001
-      - value: api
-        label: API 模式（直连模型接口）
-      - value: agent
-        label: Agent 模式（交给外部 agent）
-      value: '{project.default_backend}'
     submit:
       demand: projects-create
       params:
         name: $name
-        default_backend: $default_backend
       ok: 创建项目
       flash: 已建项目：{name}
       then:
@@ -46,17 +36,11 @@ view:
       label: 项目名称
       value: '{project.name}'
       required: true
-    - name: default_backend
-      label: 默认执行后端
-      kind: select
-      options: *id001
-      value: '{project.default_backend}'
     submit:
       demand: projects-rename
       params:
         id: '{project.id}'
         name: $name
-        default_backend: $default_backend
       ok: 保存
       flash: 已改名：{name}
       then:
@@ -91,11 +75,6 @@ view:
     - name: parent
       label: 父工单（可选）
       placeholder: 父工单 ID
-    - name: backend
-      label: 执行后端（留空跟随项目）
-      kind: select
-      options: *id001
-      required: false
     submit:
       demand: ticket-create
       params:
@@ -104,7 +83,6 @@ view:
         project: '{project.id}'
         kind: $kind
         parent: $parent
-        backend: $backend
       ok: 创建工单
       flash: 已建工单：$title
       then:

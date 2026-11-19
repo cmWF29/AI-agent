@@ -17,14 +17,14 @@ routes:
     caller: http-gate
     reason: 静态资源落到页面之前判定是否需要登录；未登录直接 302 到登录页，不让前端兜底跳转。
   exec.run:
-    caller: llm-agent
-    reason: agent 后端要跑外部 agent 进程；进程能力只对 llm 的内部分派开放，不对外。
+    caller: internal
+    reason: 拆包拉装依赖与受限工具起进程；进程能力只在进程内调用，不对外。
   hooks.points:
     caller: http-inspect
     reason: 前端与巡检读取已声明的 hook 点清单；只读可见性面。
   runtime.stream:
     caller: view
-    reason: 视图轮询读运行期草稿（内存面，不落盘）；外部 agent 逐行吐正文时给前端看增量。
+    reason: 视图轮询读运行期草稿（内存面，不落盘）；模型逐行吐正文时给前端看增量。
   runtime.stream_events:
     caller: http-sse
     reason: SSE 长流门面，订阅运行期草稿槽变化，事件驱动推草稿快照；内存面不落盘，替代高频轮询。

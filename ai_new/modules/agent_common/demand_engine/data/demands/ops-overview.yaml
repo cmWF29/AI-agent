@@ -38,8 +38,6 @@ do:
   with:
     id:
       lit: projects-list
-- call: agents.backends
-  as: agents
 - call: demand_engine.list
   as: demands
 - call: ops.assemble
@@ -58,8 +56,6 @@ do:
       get: library
     projects:
       get: projects
-    agents:
-      get: agents
     demands:
       get: demands
   as: overview
@@ -74,7 +70,6 @@ expect:
   - demand_engine.run
   - demand_engine.run
   - demand_engine.run
-  - agents.backends
   - demand_engine.list
   - ops.assemble
   payload: {}

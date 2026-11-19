@@ -95,8 +95,6 @@ do:
           get: input.id
         since:
           get: now.ts
-      mode:
-        get: row.value.backend
       path:
         get: sp2.path
   as: out

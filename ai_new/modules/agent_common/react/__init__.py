@@ -107,16 +107,13 @@ def _route_run(ctx, payload):
     archive = list(payload.get("messages") or [])
     path = payload.get("path") or ""
     summary = session.get("summary") or ""
-    mode = payload.get("mode")
     view = ctx.api.call("react.context_view",
                         {"messages": archive, "summary": summary}, caller=None)
-    # 结构化收口协议只给 api 后端；agent 外部进程走纯文本，不强加 JSON 壳。
-    if mode != "agent":
-        proto_row = ctx.api.call("store.read_text", {
-            "module": "agent_common/react", "path": "prompts/final-format.md"}, caller=None)
-        view = ctx.api.call("react.attach_protocol", {
-            "messages": view.get("messages") or [],
-            "protocol": proto_row.get("value") or ""}, caller=None)
+    proto_row = ctx.api.call("store.read_text", {
+        "module": "agent_common/react", "path": "prompts/final-format.md"}, caller=None)
+    view = ctx.api.call("react.attach_protocol", {
+        "messages": view.get("messages") or [],
+        "protocol": proto_row.get("value") or ""}, caller=None)
     messages = list(view.get("messages") or [])
     new_msgs = []
     new_summary = summary
@@ -141,10 +138,9 @@ def _route_run(ctx, payload):
                       "base_url": payload.get("base_url"),
                       "api_key": payload.get("api_key"),
                       "model": payload.get("model"),
-                      "mode": payload.get("mode"),
                       "cancel": gate,
                       "messages": messages,
-                      "tools": [] if (payload.get("mode") == "agent") else schemas})
+                      "tools": schemas})
         answer = resp or {}
         if answer.get("ok") is False:
             # 后端没交答复（报错或被打断）：这一轮没有可交付的内容，不写半截消息

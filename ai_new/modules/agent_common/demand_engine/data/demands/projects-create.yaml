@@ -12,8 +12,6 @@ do:
   with:
     name:
       get: input.name
-    default_backend:
-      get: input.default_backend
   as: out
 - call: runtime.apply
   with:

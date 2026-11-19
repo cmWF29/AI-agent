@@ -33,9 +33,6 @@ COPY_WHITELIST = {
     # asr：本地离线引擎/模型安装与音频解析诊断
     ("agent/asr/private/_engine.py", "_load_model"),
     ("agent/asr/private/_engine.py", "transcribe"),
-    # agents：内置后端身份枚举与后端不存在诊断
-    ("agent/agents/private/_backends.py", "backends"),
-    ("agent/agents/private/_backends.py", "pick"),
 }
 
 

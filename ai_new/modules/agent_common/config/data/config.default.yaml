@@ -14,16 +14,11 @@ server:
     cert: ''
     key: ''
 llm:
-  mode: api              # api=走 HTTP 对话接口；agent=交给外部 agent 进程
   base_url: ''
   api_key: ''
   model: ''
   timeout: 120
   temperature: 0.3
-  agent:
-    command: []          # argv 数组；含 {prompt} 就替换进去，否则用 stdin 喂
-    cwd: ''
-    timeout: 600
 sessions:
   max_concurrent: 8
   max_steps: 60
@@ -54,13 +49,6 @@ tickets:
     glob: 'tickets/T-*/ticket.yaml'
     ticket_glob: '*/ticket.yaml'
     root: 'tickets'
-agents:
-  default: api
-  guard:
-    min_free_mem_mb: 1024
-    max_load_ratio: 1.5
-    max_claude_procs: 3
-    on_insufficient: reject
 knowledge:
   max_inject_chars: 20000
   search_limit: 10        # 检索命中默认条数

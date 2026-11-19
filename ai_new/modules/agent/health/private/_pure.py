@@ -27,6 +27,5 @@ def assemble(p):
         "knowledge": p.get("knowledge") or {},
         "artifacts": p.get("artifacts") or {},
         "library": {"counts": library_inner.get("counts")},
-        "agents": p.get("agents") or {},
         "disk": disk,
     }

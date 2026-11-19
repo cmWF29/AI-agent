@@ -34,8 +34,6 @@ do:
   with:
     id:
       lit: library-summary
-- call: agents.backends
-  as: agents
 - call: host.info
   as: host
 - call: clock.now
@@ -52,8 +50,6 @@ do:
       get: artifacts
     library:
       get: library
-    agents:
-      get: agents
     host:
       get: host
     now:
@@ -68,7 +64,6 @@ expect:
   - demand_engine.run
   - demand_engine.run
   - demand_engine.run
-  - agents.backends
   - host.info
   - clock.now
   - health.assemble

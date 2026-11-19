@@ -65,7 +65,6 @@ server:
   auth:
     enabled: false        # false=本地免鉴权；对外打开需见 3.3
 llm:
-  mode: api
   base_url: "https://你的模型网关/v1"
   api_key: "sk-..."
   model: "模型名"
