@@ -72,11 +72,34 @@ async def _read_status(reader):
     return status, headers
 
 
+async def _read_chunked(reader):
+    """按 HTTP/1.1 chunked 编码逐块解码，直到 0 长度块。"""
+    chunks = []
+    while True:
+        line = await reader.readline()
+        if not line:
+            break
+        size_text = line.decode("utf-8", "replace").strip().split(";")[0].strip()
+        try:
+            size = int(size_text, 16)
+        except ValueError:
+            size = 0
+        if size == 0:
+            break
+        data = await reader.readexactly(size)
+        chunks.append(data)
+        await reader.readline()  # 块尾 CRLF
+    return b"".join(chunks)
+
+
 async def _read_body(reader, headers):
+    te = (headers.get("transfer-encoding") or "").lower()
+    if "chunked" in te:
+        return await _read_chunked(reader)
     length = headers.get("content-length")
     if length and length.isdigit():
         return await reader.readexactly(int(length))
-    # 无 Content-Length（chunked/close）：读到流结束。
+    # 无 Content-Length 且非 chunked：读到流结束。
     return await reader.read()
 
 
@@ -99,7 +122,7 @@ async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None
             writer.write(payload)
             await writer.drain()
             status, resp_headers = await _read_status(reader)
-            raw = await _read_body(reader, resp_headers)
+            raw = await asyncio.wait_for(_read_body(reader, resp_headers), timeout=limit)
             return {"ok": True, "status": status,
                     "headers": resp_headers, "text": raw.decode("utf-8", "replace")}
         except Exception as exc:  # noqa: BLE001 —— 能力层不外抛

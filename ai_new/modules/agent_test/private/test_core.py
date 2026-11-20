@@ -369,6 +369,40 @@ class CoreTest(unittest.TestCase):
             server.server_close()
             self.ctx.runtime.stream_clear(key)
 
+    def test_net_request_decodes_chunked_body(self):
+        """非流响应 chunked 编码：按块解码还原完整 JSON，不被 keep-alive 挂住。"""
+        import http.server
+        import threading
+        from ai_new.modules.agent_common.net.private import _client as net_client
+
+        body = '{"answer":"chunked-ok"}'.encode("utf-8")
+        b1, b2 = body[:7], body[7:]
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Transfer-Encoding", "chunked")
+                self.end_headers()
+                self.wfile.write(("%x\r\n" % len(b1)).encode() + b1 + b"\r\n")
+                self.wfile.write(("%x\r\n" % len(b2)).encode() + b2 + b"\r\n")
+                self.wfile.write(b"0\r\n\r\n")
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            url = "http://127.0.0.1:%d/v1/chat/completions" % server.server_address[1]
+            resp = net_client.request(self.ctx, url=url, method="GET", timeout=10)
+            self.assertTrue(resp.get("ok"), resp)
+            dec = self.ctx.api.call("codec.json_decode", {"text": resp["text"]})
+            self.assertEqual(dec["value"]["answer"], "chunked-ok")
+        finally:
+            server.shutdown()
+            server.server_close()
+
     def test_runtime_stop_cancels_and_joins_running_task(self):
         """purge 硬删会话前：stop 置打断位、等后台任务收尾，再从运行表摘除，定稿不会写回。"""
         import concurrent.futures, time as _time
