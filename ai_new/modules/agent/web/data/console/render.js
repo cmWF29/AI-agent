@@ -300,6 +300,24 @@ function itemHtml(it) {
   if (!text) return "";
   return `<div class="bubble-body md">${renderMarkdown(m.content)}</div>`;
 }
+/* 一条发言里的工具往返收成一个折叠块：群聊只看到「工具调用 ×N」，点开才是明细 */
+function toolGroupHtml(items) {
+  const cards = items.map((it) => (it.kind === "call" ? toolCallCard(it) : toolBodyHtml(it.m))).join("");
+  const fails = items.filter((it) => it.kind === "call" && it.result && !toolBrief(it.result).ok).length;
+  const title = "工具调用 ×" + items.length + (fails ? " · " + fails + " 失败" : "");
+  return `<details class="tool-group"><summary>${esc(title)}</summary><div class="tool-group-body">${cards}</div></details>`;
+}
+function groupBody(g) {
+  const calls = [];
+  const texts = [];
+  for (const it of g.items) {
+    if (it.kind === "call" || it.kind === "tool") { calls.push(it); continue; }
+    const html = itemHtml(it);
+    if (html) texts.push(html);
+  }
+  return (calls.length ? toolGroupHtml(calls) : "") + texts.join("");
+}
+
 function renderBubbles(msgs, roles) {
   const groups = [];
   for (const it of pairItems(msgs)) {
@@ -316,7 +334,7 @@ function renderBubbles(msgs, roles) {
       return g.items.map((it) => `<div class="msg system"><div class="sys-body md">${renderMarkdown((it.m || {}).content == null ? "" : it.m.content)}</div></div>`).join("");
     }
     const side = g.cls === "user" ? "right" : "left";
-    const bodies = g.items.map(itemHtml).join("");
+    const bodies = groupBody(g);
     if (!bodies) return "";
     const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
     const ts = clockText((g.items[g.items.length - 1] || {}).at);
