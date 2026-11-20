@@ -1,5 +1,5 @@
 # 消息契约：本模块每条能力收什么、回什么。
-# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# 字段来自三处：代码静态抽取（handler 读/回的键）、需求 with 键、需求里消费的 as.字段；
 # api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
 module: sessions
 routes:
@@ -131,6 +131,9 @@ routes:
       role_system:
         type: any
         req: false
+    out:
+      effects:
+        type: any
   sessions.appendmsg:
     in:
       now:
@@ -142,6 +145,9 @@ routes:
       text:
         type: any
         req: false
+    out:
+      id:
+        type: any
   sessions.compact:
     in:
       keep:
@@ -182,6 +188,9 @@ routes:
       tools:
         type: any
         req: false
+    out:
+      id:
+        type: any
   sessions.flow_plan:
     in:
       exhausted_text:
@@ -211,6 +220,9 @@ routes:
       ticket:
         type: any
         req: false
+    out:
+      effects:
+        type: any
   sessions.gone:
     in:
       now:
@@ -230,6 +242,9 @@ routes:
       roles:
         type: any
         req: false
+    out:
+      messages:
+        type: any
   sessions.machine_apply:
     in:
       contract:
@@ -249,6 +264,9 @@ routes:
       status:
         type: any
         req: false
+    out:
+      id:
+        type: any
   sessions.present:
     in:
       id:
@@ -268,6 +286,9 @@ routes:
       paths:
         type: any
         req: false
+    out:
+      path:
+        type: any
   sessions.refresh_constraint_message:
     in:
       constraint:
@@ -276,6 +297,9 @@ routes:
       messages:
         type: any
         req: false
+    out:
+      messages:
+        type: any
   sessions.reply:
     in:
       id:
@@ -292,6 +316,9 @@ routes:
       role:
         type: any
         req: false
+    out:
+      name:
+        type: any
   sessions.screen:
     in:
       rows:

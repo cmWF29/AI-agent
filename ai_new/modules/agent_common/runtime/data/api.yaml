@@ -1,5 +1,5 @@
 # 消息契约：本模块每条能力收什么、回什么。
-# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# 字段来自：代码静态抽取（handler 读/回的键，含一层转调）、需求 with 键、需求里消费的 as.字段；
 # api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
 module: runtime
 routes:
@@ -50,6 +50,13 @@ routes:
       key:
         type: any
         req: false
+    out:
+      text:
+        type: any
+      running:
+        type: any
+      at:
+        type: any
   runtime.stream_events:
     doc: SSE 长流：阻塞等待草稿槽变化，事件驱动推草稿快照（内存面，不落盘）
     in:
@@ -59,3 +66,10 @@ routes:
       key:
         type: any
         req: false
+    out:
+      items:
+        type: any
+      cursor:
+        type: any
+      blocked:
+        type: any

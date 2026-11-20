@@ -340,6 +340,34 @@ class StructureTest(unittest.TestCase):
         legacy = module_dir("agent_common", "api") / "data" / "rules" / "calls.yaml"
         self.assertFalse(legacy.exists(), "calls.yaml 又出现了：接线关系只能写在需求 do 树里")
 
+    def test_demand_payload_fields_are_declared_in_contracts(self):
+        """需求里传的每个字段都必须在契约里声明：字段名只许出现在数据里，不许只在代码里。"""
+        contracts = {}
+        for path in sorted(MODULES.glob("*/*/data/api.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            for route, spec in (rec.get("routes") or {}).items():
+                contracts[route] = spec or {}
+        demands = (module_dir("agent_common", "demand_engine") / "data" / "demands")
+        problems = []
+        for path in sorted(demands.glob("*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            for stmt in rec.get("do") or []:
+                route = stmt.get("call") or stmt.get("send") if isinstance(stmt, dict) else None
+                if not route:
+                    continue
+                payload = stmt.get("with") or {}
+                if not isinstance(payload, dict):
+                    continue
+                spec = contracts.get(route)
+                if spec is None:
+                    problems.append("%s 调了没有契约的路由 %s" % (rec.get("id"), route))
+                    continue
+                declared = set((spec.get("in") or {}).keys())
+                stray = sorted(set(payload.keys()) - declared)
+                if stray:
+                    problems.append("%s 给 %s 传了未声明字段 %s" % (rec.get("id"), route, stray))
+        self.assertEqual(problems, [], "需求字段没在契约里声明: %s" % problems)
+
     def test_every_route_declares_contract_file(self):
         """每个模块的 data/api.yaml 必须是合法结构：module 名与目录一致，routes 是字典。"""
         bad = []

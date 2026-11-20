@@ -1,5 +1,5 @@
 # 消息契约：本模块每条能力收什么、回什么。
-# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# 字段来自：代码静态抽取（handler 读/回的键，含一层转调）、需求 with 键、需求里消费的 as.字段；
 # api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
 module: tickets
 routes:
@@ -75,6 +75,8 @@ routes:
         req: false
     out:
       updated:
+        type: any
+      id:
         type: any
   tickets.build:
     in:
@@ -169,6 +171,8 @@ routes:
         type: bool
       status:
         type: int
+      effects:
+        type: any
   tickets.closefin:
     in:
       accepted_text:
@@ -244,6 +248,9 @@ routes:
       title:
         type: any
         req: false
+    out:
+      effects:
+        type: any
   tickets.err:
     in:
       code:
@@ -319,6 +326,8 @@ routes:
     out:
       updated:
         type: any
+      id:
+        type: any
   tickets.paths:
     in:
       items:
@@ -351,6 +360,15 @@ routes:
       tpl:
         type: any
         req: false
+    out:
+      ok:
+        type: any
+      code:
+        type: any
+      status:
+        type: any
+      error:
+        type: any
   tickets.rebind:
     doc: 项目改名后把工单改挂到新项目 id
     in:
@@ -465,6 +483,8 @@ routes:
         type: bool
       status:
         type: int
+      effects:
+        type: any
   tickets.stale:
     in:
       idle_seconds:
@@ -494,6 +514,9 @@ routes:
       max_per_scan:
         type: any
         req: false
+    out:
+      effects:
+        type: any
   tickets.thread:
     in:
       id:
@@ -511,6 +534,23 @@ routes:
       thread:
         type: any
         req: false
+    out:
+      ticket:
+        type: any
+      thread:
+        type: any
+      roles:
+        type: any
+      members:
+        type: any
+      ok:
+        type: any
+      code:
+        type: any
+      status:
+        type: any
+      error:
+        type: any
   tickets.touch:
     in:
       now:

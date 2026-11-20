@@ -1,5 +1,5 @@
 # 消息契约：本模块每条能力收什么、回什么。
-# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# 字段来自三处：代码静态抽取（handler 读/回的键）、需求 with 键、需求里消费的 as.字段；
 # api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
 module: config
 routes:

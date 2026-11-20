@@ -1,5 +1,5 @@
 # 消息契约：本模块每条能力收什么、回什么。
-# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# 字段来自三处：代码静态抽取（handler 读/回的键）、需求 with 键、需求里消费的 as.字段；
 # api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
 module: codec
 routes:
@@ -9,6 +9,9 @@ routes:
       text:
         type: any
         req: false
+    out:
+      data:
+        type: any
   codec.decode_hex:
     doc: hex → utf8 文本，非 utf8 退 base64
     in:
@@ -21,6 +24,13 @@ routes:
       size:
         type: any
         req: false
+    out:
+      encoding:
+        type: any
+      text:
+        type: any
+      truncated:
+        type: any
   codec.digest:
     doc: 内容摘要
   codec.hex_from_base64:
@@ -33,6 +43,9 @@ routes:
       value:
         type: any
         req: false
+    out:
+      text:
+        type: any
   codec.nonce:
     doc: 安全随机令牌
   codec.sse_decode:

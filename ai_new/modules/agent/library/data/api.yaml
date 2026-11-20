@@ -1,5 +1,5 @@
 # 消息契约：本模块每条能力收什么、回什么。
-# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# 字段来自三处：代码静态抽取（handler 读/回的键）、需求 with 键、需求里消费的 as.字段；
 # api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
 module: library
 routes:
@@ -50,6 +50,9 @@ routes:
       skills:
         type: any
         req: false
+    out:
+      ids:
+        type: any
   library.flow_context:
     in:
       active:
@@ -64,6 +67,9 @@ routes:
       flow:
         type: any
         req: false
+    out:
+      flow:
+        type: any
   library.get:
     in:
       id:
@@ -78,11 +84,17 @@ routes:
       user:
         type: any
         req: false
+    out:
+      item:
+        type: any
   library.kind_file:
     in:
       kind:
         type: any
         req: false
+    out:
+      path:
+        type: any
   library.list:
     in:
       kind:
@@ -128,6 +140,9 @@ routes:
       user:
         type: any
         req: false
+    out:
+      items:
+        type: any
   library.prompt_blocks:
     in:
       forbidden:
@@ -139,6 +154,9 @@ routes:
       text:
         type: any
         req: false
+    out:
+      system:
+        type: any
   library.prompt_path:
     in:
       file:
@@ -147,6 +165,11 @@ routes:
       rec:
         type: any
         req: false
+    out:
+      module:
+        type: any
+      path:
+        type: any
   library.review:
     in:
       max_retries:
@@ -158,6 +181,13 @@ routes:
       retries:
         type: any
         req: false
+    out:
+      missing_text:
+        type: any
+      retries:
+        type: any
+      verdict:
+        type: any
   library.role_prompt:
     in:
       rec:
@@ -177,6 +207,9 @@ routes:
       user:
         type: any
         req: false
+    out:
+      value:
+        type: any
   library.skill_status:
     in:
       id:
@@ -208,6 +241,15 @@ routes:
       tools:
         type: any
         req: false
+    out:
+      flows:
+        type: any
+      roles:
+        type: any
+      skills:
+        type: any
+      tools:
+        type: any
   library.skills_list:
     in:
       disabled:
@@ -239,6 +281,9 @@ routes:
       states:
         type: any
         req: false
+    out:
+      states:
+        type: any
   library.stage_conditions:
     in:
       active:
@@ -256,6 +301,9 @@ routes:
       stage:
         type: any
         req: false
+    out:
+      missing:
+        type: any
   library.stage_contract:
     in:
       checks:
@@ -273,6 +321,13 @@ routes:
       states:
         type: any
         req: false
+    out:
+      checks:
+        type: any
+      initial:
+        type: any
+      states:
+        type: any
   library.stage_gaps:
     in:
       active:
@@ -290,6 +345,9 @@ routes:
       stage_alert:
         type: any
         req: false
+    out:
+      missing:
+        type: any
   library.stage_refs:
     in:
       flows:
@@ -298,6 +356,9 @@ routes:
       seed:
         type: any
         req: false
+    out:
+      refs:
+        type: any
   library.stage_tools:
     in:
       active:
@@ -312,6 +373,9 @@ routes:
       stage:
         type: any
         req: false
+    out:
+      items:
+        type: any
   library.stage_transition:
     in:
       active:
