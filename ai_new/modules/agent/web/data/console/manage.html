@@ -199,6 +199,7 @@ textarea{min-height:72px;resize:vertical}
 .chat-head-title strong{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-head-meta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .chat-head-meta i{font-style:normal;color:var(--line)}
+.chat-head-meta .badge{flex:none}
 /* 成员头像行：点击弹成员卡 */
 .members{display:flex;align-items:center;margin-left:auto;flex:none;padding-left:10px}
 .av-chip{position:relative;width:32px;height:32px;padding:0;margin-left:-8px;border-radius:12px;border:2px solid var(--card);background:var(--av);color:#fff;font-weight:600;font-size:12.5px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:transform .12s,box-shadow .12s}
@@ -256,7 +257,7 @@ textarea{min-height:72px;resize:vertical}
 .msg.event{align-self:center;max-width:78%}
 .msg.event .sys-body{display:block;background:var(--line-2);border-radius:12px;padding:6px 12px;font-size:12.5px;color:var(--fg-2);text-align:center;line-height:1.6}
 .msg.event .ev-line{display:block}
-.msg.event .sys-body.clamp .ev-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.msg.event .sys-body.clamp .ev-text{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .msg.event .sys-body.clamp{cursor:pointer}
 .msg.event .sys-body.clamp:hover{background:var(--line)}
 .msg.event .ev-label{font-weight:600;color:var(--fg-2);margin-right:6px}
@@ -329,16 +330,20 @@ textarea{min-height:72px;resize:vertical}
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
 @media (max-width: 720px) {
   .sidebar{width:280px}
-  main{padding:12px 14px 32px}
-  .crumb{min-width:0;overflow:hidden}
-  .crumb .now{max-width:60vw}
-  .view-head{flex-wrap:wrap;gap:8px}
-  .ticket-grid{grid-template-columns:1fr;gap:12px;height:auto}
+  main{padding:12px 14px 20px}
+  /* 手机上一屏只有群聊：面包屑与页面大标题合并，去掉一层重复 */
+  .crumb{display:none}
+  .view-head{padding:2px 2px 8px;gap:6px}
+  .view-head h2{font-size:17px}
+  .view-head .desc{display:none}
+  .ticket-grid{grid-template-columns:1fr;gap:10px;height:auto}
   .lane-left>.vsec[data-kind="chat"]{flex:none}
-  .chat-card{height:calc(100dvh - 210px);max-height:none;min-height:320px}
+  .chat-card{height:calc(100dvh - 196px);max-height:none;min-height:300px;border-radius:14px}
   .chat{max-height:none}
-  .chat-head{padding:11px 13px}
-  .chat{padding:14px 13px}
+  .chat-head{padding:10px 12px;flex-wrap:nowrap}
+  .chat-head-meta{flex-wrap:nowrap;overflow:hidden}
+  .chat-head-meta>span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+  .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
   .cards{grid-template-columns:1fr}
   .tbl-wrap{overflow-x:auto}
