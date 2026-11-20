@@ -222,7 +222,7 @@ function chatHtml(sec, ctx) {
   const title = sec.heading ? `<div class="chat-head-title"><strong>${esc(fill(sec.heading, ctx))}</strong></div>` : "";
   const metaBits = (sec.meta || []).map((x) => fill(x, ctx)).filter((x) => String(x == null ? "" : x).trim());
   const meta = (badge || metaBits.length)
-    ? `<div class="chat-head-meta">${badge}${metaBits.map((x) => `<span>${esc(x)}</span>`).join("<i>·</i>")}</div>` : "";
+    ? `<div class="chat-head-meta">${badge}${metaBits.map((x, i) => `<span>${i ? "<i>·</i>" : ""}${esc(x)}</span>`).join("")}</div>` : "";
   const headMain = (title || meta) ? `<div class="chat-head-main">${title}${meta}</div>` : "";
   const chips = arr(roles).map((r, i) => `<button class="av-chip st-${statusKind(r.status)}" data-member="${i}"
       style="--av:${avatarColor(r.display || r.role)}" title="${esc(r.display || r.role)} · ${statusText(r.status)}">${initial(r.display || r.role)}<i class="dot"></i></button>`).join("");
