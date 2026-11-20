@@ -211,21 +211,22 @@ function groupEvents(events) {
     if (last && last.event === h.event) last.items.push(h);
     else groups.push({ event: h.event, items: [h] });
   }
+  // 合并事件按发生时刻排：取组内首条，保证「派角色 ×3」落在三个角色干活之前
   return groups.map((g) => ({
     kind: "event", event: g.event, items: g.items,
-    at: atSeconds((g.items[g.items.length - 1] || {}).at),
+    at: atSeconds((g.items[0] || {}).at),
   }));
 }
 function eventGroupHtml(g) {
   const n = g.items.length;
-  const last = g.items[n - 1] || {};
   const label = eventLabel(g.event);
   const cnt = n > 1 ? ` ×${n}` : "";
+  const first = g.items[0] || {};
   const text = eventText(g);
   const long = text.length > 60;
   const shown = long ? text.slice(0, 58) + "…" : text;
   const fold = long ? ` data-expand data-full="${esc(text)}" data-short="${esc(shown)}"` : "";
-  return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(last.at))}</span></div></div>`;
+  return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(first.at))}</span></div></div>`;
 }
 
 /* 工具调用与它自己的结果合并成一张卡：assistant.tool_calls + 对应 tool_call_id 的回填 */
