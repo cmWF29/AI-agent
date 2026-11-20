@@ -117,6 +117,9 @@ def _route_reply(ctx, payload):
         "channel": payload.get("channel")}, caller=None)
     messages = list(history.get("messages") or [])
     messages.append({"role": "user", "content": payload.get("content")})
+    # 同步兼容轨：本路由挂在 defer hook 上，响应已写出，阻塞只占后台派发线程、不堵前台；
+    # llm-chat 已是协程路由，call 经 api-loop 桥接等待。翻协程轨需先把 hook 派发改 adispatch
+    # 异步轨（engine 已备 adispatch/arun_callable），此处随编排一并改 acall。
     reply = ctx.runtime.call("llm-chat", {"messages": messages})
     answer = reply or {}
     if answer.get("ok") is False:

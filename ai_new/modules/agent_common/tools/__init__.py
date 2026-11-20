@@ -227,6 +227,7 @@ def _route_install_missing(ctx, payload):
     if plan["pip"]:
         exe = ctx.api.call("host.executable", {}, caller=None).get("path") or "python"
         for pkg in plan["pip"]:
+            # 同步兼容轨：装包低频运维，exec.run 协程路由经桥接等待子进程收尾。
             r = ctx.api.call("exec.run",
                              {"argv": [exe, "-m", "pip", "install", pkg],
                               "timeout": 300}, caller=None)
