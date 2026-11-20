@@ -67,6 +67,9 @@ main .crumb{margin-bottom:14px}
 .view-head .spacer{margin-left:auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
 .vsec{margin-bottom:16px}
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:80px 20px;color:var(--muted);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---- 项目卡片 ---- */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px}
@@ -332,7 +335,7 @@ textarea{min-height:72px;resize:vertical}
     <div id="banner"></div>
     <main>
       <div class="crumb" id="crumb"></div>
-      <div id="view-body"></div>
+      <div id="view-body"><div class="loading"><span class="spinner"></span>加载中…</div></div>
     </main>
   </div>
 </div>
