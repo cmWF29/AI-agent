@@ -341,8 +341,9 @@ textarea{min-height:72px;resize:vertical}
   .chat-card{height:calc(100dvh - 196px);max-height:none;min-height:300px;border-radius:14px}
   .chat{max-height:none}
   .chat-head{padding:10px 12px;flex-wrap:nowrap}
-  .chat-head-meta{flex-wrap:nowrap;overflow:hidden}
-  .chat-head-meta>span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+  .chat-head-meta{flex-wrap:wrap;gap:4px 8px}
+  .chat-head-meta>span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:150px}
+  .chat-head-meta>span:nth-of-type(2){display:none} /* 项目名在抽屉与会话里都有，手机上不重复占位 */
   .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
   .cards{grid-template-columns:1fr}

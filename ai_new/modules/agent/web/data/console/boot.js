@@ -35,7 +35,12 @@ document.addEventListener("click", (e) => {
     return closeMemberCard();
   }
   const foldEl = e.target.closest("[data-expand]");
-  if (foldEl) return foldEl.classList.toggle("clamp");
+  if (foldEl) {
+    const folded = foldEl.classList.toggle("clamp");
+    const t = foldEl.querySelector(".ev-text");
+    if (t) t.textContent = folded ? (foldEl.dataset.short || "") : (foldEl.dataset.full || "");
+    return;
+  }
   if (!e.target.closest("#popover")) closeMemberCard();
 });
 document.addEventListener("scroll", () => closeMemberCard(), true);
