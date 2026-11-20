@@ -15,6 +15,8 @@
 
 语句：
     {"call": "module.fn", "with": {"k": 表达式}, "as": "变量"}   调服务，结果可留作变量
+    {"send": "module.fn", "with": {"k": 表达式}}                单向通知，不取结果
+                                                              （内存通道只认这一种）
 
 解释器对失败零容忍但不外溢：任何一条语句出错只记结果，不影响触发它的模块。
 """
@@ -70,6 +72,8 @@ def routes_of(node):
     if isinstance(node, dict):
         if isinstance(node.get("call"), str):
             found.append(node["call"])
+        if isinstance(node.get("send"), str):
+            found.append(node["send"])
         for value in node.values():
             found.extend(routes_of(value))
     elif isinstance(node, list):
@@ -124,6 +128,16 @@ def _run_one(stmt, scope, api, ctx, demand_id, results):
         results.append({"demand": demand_id, "call": route, "ok": True, "result": result})
         return
 
+    if "send" in stmt:
+        route = stmt["send"]
+        payload = dict(scope.get("event") or {})
+        for key, expr in (stmt.get("with") or {}).items():
+            payload[key] = eval_expr(expr, scope)
+        result = api.notify(route, payload, caller=scope.get("caller"))
+        results.append({"demand": demand_id, "call": route, "send": True,
+                        "ok": True, "result": result})
+        return
+
     raise ValueError("未知语句: %s" % sorted(stmt.keys()))
 
 
@@ -144,6 +158,16 @@ async def _arun_one(stmt, scope, api, ctx, demand_id, results):
         if stmt.get("as"):
             scope[stmt["as"]] = result
         results.append({"demand": demand_id, "call": route, "ok": True, "result": result})
+        return
+
+    if "send" in stmt:
+        route = stmt["send"]
+        payload = dict(scope.get("event") or {})
+        for key, expr in (stmt.get("with") or {}).items():
+            payload[key] = eval_expr(expr, scope)
+        result = api.notify(route, payload, caller=scope.get("caller"))
+        results.append({"demand": demand_id, "call": route, "send": True,
+                        "ok": True, "result": result})
         return
 
     raise ValueError("未知语句: %s" % sorted(stmt.keys()))

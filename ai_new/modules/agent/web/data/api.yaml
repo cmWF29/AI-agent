@@ -1,0 +1,62 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: web
+routes:
+  web.console_path:
+    in:
+      paths:
+        type: dict
+        req: false
+      path:
+        type: str
+        req: false
+    out:
+      path:
+        type: str
+  web.gate:
+    in:
+      path:
+        type: str
+        req: false
+    out:
+      public:
+        type: bool
+      to:
+        type: str
+  web.info:
+    in:
+      console:
+        type: dict
+        req: false
+      routes:
+        type: list
+        req: false
+      demands:
+        type: list
+        req: false
+    out:
+      name:
+        type: str
+      console:
+        type: dict
+      routes:
+        type: list
+      demands:
+        type: list
+  web.mime:
+    in:
+      path:
+        type: str
+        req: false
+    out:
+      type:
+        type: str
+  web.rel:
+    in:
+      path:
+        type: str
+        req: false
+    out:
+      path:
+        type: str

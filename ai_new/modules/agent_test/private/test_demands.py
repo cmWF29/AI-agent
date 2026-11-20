@@ -115,6 +115,11 @@ class _Api:
             raise RuntimeError("需求调用了未注册的服务: %s" % route)
         return handler(payload, caller)
 
+    def notify(self, route, payload, caller=None):
+        """单向投递：记一笔调用，回执只说明"已投递"。"""
+        self.calls.append({"route": route, "payload": payload, "caller": caller})
+        return {"transport": "memory", "queued": route}
+
 
 class _Storage:
     """读真实 data/demands，写落在内存覆盖层（用例不碰用户数据，但下线要真生效）。"""
@@ -210,7 +215,7 @@ class DemandContractTest(unittest.TestCase):
                 hit = control & set(stmt.keys())
                 if hit:
                     problems.append("%s 出现控制流语句 %s" % (rec.get("id"), sorted(hit)))
-                if not ({"call"} & set(stmt.keys())):
+                if not ({"call", "send"} & set(stmt.keys())):
                     problems.append("%s 有未知语句: %s" % (rec.get("id"), sorted(stmt.keys())))
         self.assertEqual(problems, [], "需求树仍有控制流: %s" % problems)
 

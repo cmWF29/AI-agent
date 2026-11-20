@@ -1,0 +1,58 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: logs
+routes:
+  logs.group:
+    doc: 日志清单按公共/项目/工单三级分组成形；纯分组不读正文
+    in:
+      entries:
+        type: any
+        req: false
+      tickets:
+        type: any
+        req: false
+  logs.purge:
+    doc: 剔除清单归属前缀（或单文件路径）下的条目；返回写清单效果
+    in:
+      path:
+        type: any
+        req: false
+      paths:
+        type: any
+        req: false
+      prefix:
+        type: any
+        req: false
+    out:
+      effects:
+        type: list
+  logs.record:
+    doc: 登记一条日志清单条目：成形→合并清单→返回写清单效果
+    in:
+      kind:
+        type: any
+        req: false
+      layer:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+      path:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      source:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+    out:
+      effects:
+        type: list
+      entry:
+        type: any

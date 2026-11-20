@@ -1,0 +1,247 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: react
+routes:
+  react.args:
+    in:
+      value:
+        type: any
+        req: false
+  react.assistant:
+    in:
+      at:
+        type: any
+        req: true
+      content:
+        type: any
+        req: false
+      tool_calls:
+        type: any
+        req: false
+      wire:
+        type: any
+        req: false
+  react.attach_protocol:
+    in:
+      messages:
+        type: any
+        req: false
+      protocol:
+        type: any
+        req: false
+    out:
+      messages:
+        type: any
+  react.checkpoint:
+    in:
+      messages:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      steps:
+        type: any
+        req: false
+      summary:
+        type: any
+        req: false
+    out:
+      messages:
+        type: any
+      steps:
+        type: any
+      summary:
+        type: any
+      updated:
+        type: any
+  react.classify_tool:
+    in:
+      content:
+        type: any
+        req: false
+      threshold:
+        type: any
+        req: false
+    out:
+      large:
+        type: any
+      size:
+        type: any
+      threshold:
+        type: any
+  react.context_view:
+    in:
+      messages:
+        type: any
+        req: false
+      summary:
+        type: any
+        req: false
+    out:
+      messages:
+        type: any
+  react.extract_json:
+    in:
+      text:
+        type: any
+        req: false
+    out:
+      text:
+        type: any
+  react.parse_final:
+    in:
+      content:
+        type: any
+        req: false
+      obj:
+        type: any
+        req: false
+    out:
+      reply:
+        type: any
+      stage:
+        type: any
+      structured:
+        type: bool
+      summary:
+        type: any
+  react.result:
+    in:
+      cancelled:
+        type: any
+        req: false
+      failed:
+        type: any
+        req: false
+      messages:
+        type: any
+        req: false
+      new_messages:
+        type: any
+        req: false
+      stage:
+        type: any
+        req: false
+      steps:
+        type: any
+        req: false
+      summary:
+        type: any
+        req: false
+      summary_by_model:
+        type: any
+        req: false
+    out:
+      cancelled:
+        type: any
+      failed:
+        type: any
+      last:
+        type: any
+      messages:
+        type: any
+      new_messages:
+        type: any
+      stage:
+        type: any
+      steps:
+        type: any
+      summary:
+        type: any
+      summary_by_model:
+        type: any
+  react.run:
+    doc: ReAct 循环：模型→工具→再模型，闭环在能力内
+    in:
+      api_key:
+        type: any
+        req: false
+      base_url:
+        type: any
+        req: false
+      cancel:
+        type: any
+        req: false
+      extra:
+        type: any
+        req: false
+      max_steps:
+        type: any
+        req: false
+      messages:
+        type: any
+        req: false
+      model:
+        type: any
+        req: false
+      path:
+        type: any
+        req: false
+      session:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+      mode:
+        type: any
+        req: false
+  react.schemas:
+    in:
+      tools:
+        type: any
+        req: false
+  react.strip_fence:
+    in:
+      text:
+        type: any
+        req: false
+    out:
+      text:
+        type: any
+  react.summarize:
+    in:
+      by_model:
+        type: any
+        req: false
+      chars:
+        type: any
+        req: false
+      messages:
+        type: any
+        req: false
+      summary:
+        type: any
+        req: false
+      title:
+        type: any
+        req: false
+    out:
+      fallback:
+        type: bool
+      summary:
+        type: any
+  react.toolmsg:
+    in:
+      at:
+        type: any
+        req: true
+      content:
+        type: any
+        req: false
+      id:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+  react.toolnames:
+    in:
+      tool_calls:
+        type: any
+        req: false

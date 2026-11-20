@@ -1,0 +1,142 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: knowledge
+routes:
+  knowledge.save:
+    doc: 写知识：归一→算路径→append/覆盖→回执
+    in:
+      content:
+        type: any
+        req: false
+      layer:
+        type: any
+        req: false
+      mode:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+  knowledge.compose:
+    in:
+      max_chars:
+        type: any
+        req: false
+      prefixes:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+  knowledge.doc:
+    in:
+      name:
+        type: any
+        req: false
+      paths:
+        type: any
+        req: false
+      prefix:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+  knowledge.index:
+    in:
+      rows:
+        type: any
+        req: false
+      tickets:
+        type: any
+        req: false
+  knowledge.overview:
+    in:
+      rows:
+        type: any
+        req: false
+  knowledge.present:
+    in:
+      content:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+      path:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+  knowledge.project_dir:
+    in:
+      paths:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+  knowledge.project_prefix:
+    in:
+      paths:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+  knowledge.removed:
+    in:
+      project:
+        type: any
+        req: false
+      removed:
+        type: any
+        req: false
+  knowledge.scope:
+    in:
+      layer:
+        type: any
+        req: false
+      paths:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+  knowledge.screen:
+    in:
+      layer:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+  knowledge.search:
+    in:
+      limit:
+        type: any
+        req: false
+      query:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+      snippet_chars:
+        type: any
+        req: false
+  knowledge.view: {}

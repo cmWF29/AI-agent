@@ -1,0 +1,40 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: config
+routes:
+  config.get:
+    doc: 读取脱敏配置
+    out:
+      key:
+        type: any
+      value:
+        type: any
+    in:
+      key:
+        type: any
+        req: true
+  config.set_value:
+    doc: 按点号路径写配置并落盘
+    out:
+      code:
+        type: str
+      error:
+        type: str
+      key:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: int
+      value:
+        type: any
+      written:
+        type: bool
+    in:
+      key:
+        type: any
+        req: true
+      value:
+        type: any
+        req: true

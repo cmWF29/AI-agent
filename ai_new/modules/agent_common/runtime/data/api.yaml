@@ -1,0 +1,61 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: runtime
+routes:
+  runtime.apply:
+    doc: 执行能力交出的效果清单（写盘/删除/追加/打包/驱动需求）
+    out:
+      applied:
+        type: any
+      count:
+        type: any
+      ok:
+        type: bool
+      skipped:
+        type: any
+    in:
+      echo:
+        type: any
+        req: false
+      effect:
+        type: any
+        req: false
+  runtime.dispatch:
+    doc: 后台跑一条需求：同一把钥匙已在跑，就先置打断、等它退出、再以新输入重跑
+    out:
+      code:
+        type: str
+      interrupted:
+        type: any
+      key:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: str
+    in:
+      demand:
+        type: any
+        req: false
+      input:
+        type: any
+        req: false
+      key:
+        type: any
+        req: false
+  runtime.stream:
+    doc: 读运行期草稿（内存面，不落盘）：视图轮询看模型逐行吐出的正文
+    in:
+      key:
+        type: any
+        req: false
+  runtime.stream_events:
+    doc: SSE 长流：阻塞等待草稿槽变化，事件驱动推草稿快照（内存面，不落盘）
+    in:
+      cursor:
+        type: any
+        req: false
+      key:
+        type: any
+        req: false

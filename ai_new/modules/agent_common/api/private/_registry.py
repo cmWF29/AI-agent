@@ -1,20 +1,17 @@
 """API 注册表实现。
 
 - 路由名约定 "module.fn"；
-- 跨模块调用必须命中 data/rules/calls.json 的矩阵（caller → 允许的路由列表）；
-- 由 http/tests/组合根发起的调用 caller=None，视为系统调用，直接放行；
+- 跨模块调用只对需求开放（caller 为 None 或 "demand_engine"），模块自己不伸手；
 - handler 统一签名 fn(ctx, payload)；
-- **调用走哪条通道不在这里定**：交给 Transport（直连 / 内存 / 网络，绑定由脚本生成）。
-
-调用矩阵 **懒加载**：装配期 config 还没装填 cfg，此时读数据目录会拿到错误路径。
+- **调用走哪条通道不在这里定**：交给 Transport（直连 / 内存 / 网络，绑定由编译生成）；
+- **消息结构是数据**：每条路由的入参/出参契约写在模块自己的 `data/api.yaml`，
+  本表只负责装载、校验、露出（`routes()` 带契约键清单）。
 """
 from __future__ import annotations
 
 import asyncio
 import concurrent.futures
 import threading
-
-import yaml
 
 from . import _transport
 
@@ -23,7 +20,9 @@ class Registry:
     def __init__(self, ctx):
         self.ctx = ctx
         self._routes = {}
-        self._matrix = None      # 首次真正调用时再读，见 _rules()
+        self._contracts = None      # 懒加载，见 _load_contracts()
+        self._contracts_seen = -1   # 缓存对应的已装模块数
+        self._warned = []           # 契约告警（warn 模式不失败，只留证据）
         self.transport = _transport.Transport(ctx)
         self._loop = None
         self._loop_lock = threading.Lock()
@@ -35,6 +34,12 @@ class Registry:
             return int(rt.get(key) or default)
         except (TypeError, ValueError):
             return default
+
+    def _cfg_str(self, section, key, default):
+        cfg = getattr(self.ctx, "cfg", None) or {}
+        sec = cfg.get(section) or {}
+        value = sec.get(key)
+        return str(value) if value not in (None, "") else default
 
     def _ensure_loop(self):
         """进程级事件循环：惰性建在专属守护线程上，供同步壳桥接异步路由。
@@ -88,27 +93,78 @@ class Registry:
         return name
 
     def routes(self):
-        return [
-            {"name": name, "doc": r["doc"], "module": r["module"], "stream": r["stream"]}
-            for name, r in sorted(self._routes.items())
-            if not r.get("internal")
-        ]
+        contracts = self._load_contracts()
+        items = []
+        for name, r in sorted(self._routes.items()):
+            if r.get("internal"):
+                continue
+            spec = contracts.get(name) or {}
+            items.append({"name": name, "doc": r["doc"], "module": r["module"],
+                          "stream": r["stream"],
+                          "in": sorted((spec.get("in") or {}).keys()),
+                          "out": sorted((spec.get("out") or {}).keys())})
+        return items
 
     def route(self, name):
         """按名取一条路由（不存在返回 None）。"""
         return self._routes.get(name)
 
-    def _rules(self):
-        """矩阵是通信层的装配参数，不经过"存储→编解码"的服务链：
-        那条链本身要靠矩阵放行，绕回去就是环。"""
-        if self._matrix is None:
-            md = self.ctx.storage.own(__file__)
-            text = md.read_text("calls.yaml") if md.exists("calls.yaml") else "{}"
-            self._matrix = yaml.safe_load(text or "{}")
-        return self._matrix
+    # ---- 契约（消息结构是数据，不是代码里的零散字段）----
+    def _load_contracts(self):
+        """逐模块读 `data/api.yaml`：谁提供能力，谁声明它收发什么。"""
+        loaded = getattr(self.ctx, "loaded", None) or {}
+        # 装配是逐步进行的：早期调用只能看到已装好的一部分模块，缓存会残缺。
+        # 所以缓存的"有效期"绑在已装模块数上，装配完成后再读一次就补齐。
+        if self._contracts is not None and self._contracts_seen == len(loaded):
+            return self._contracts
+        found = {}
+        if True:
+            for name, mod in sorted(loaded.items()):
+                try:
+                    md = self.ctx.storage.own(mod.__file__)
+                except Exception:  # noqa: BLE001 —— 装配早期 storage 可能还没装填
+                    continue
+                try:
+                    if not md.exists("api.yaml"):
+                        continue
+                    raw = md.read_text("api.yaml")
+                except Exception:  # noqa: BLE001
+                    continue
+                rec = self.ctx.codec.yaml_decode(raw or "{}")["value"] or {}
+                for route, spec in (rec.get("routes") or {}).items():
+                    found[route] = spec or {}
+            # 装配早期 storage/codec 可能还没装填，读不到就当没读，不缓存空表
+            if found or not loaded:
+                self._contracts = found
+                self._contracts_seen = len(loaded)
+        return self._contracts or {}
 
-    def matrix(self):
-        return self._rules()
+    def reload_contracts(self):
+        self._contracts = None
+        self._contracts_seen = -1
+
+    def contract(self, name):
+        return self._load_contracts().get(name) or {}
+
+    def warn_log(self):
+        return list(self._warned)
+
+    def _check(self, name, payload):
+        """按契约校验入参。warn 模式只留证据，enforce 模式缺必填直接拒。"""
+        spec = self.contract(name).get("in") or {}
+        if not spec:
+            return
+        got = set((payload or {}).keys())
+        missing = sorted([k for k, v in spec.items()
+                          if isinstance(v, dict) and v.get("req") and k not in got])
+        if not missing:
+            return
+        if self._cfg_str("api", "contract_mode", "warn") == "enforce":
+            raise self.ctx.ApiError(
+                "路由 %s 缺少必填字段: %s" % (name, ", ".join(missing)),
+                code="bad_payload", status=400)
+        if len(self._warned) < 200:
+            self._warned.append({"route": name, "missing": missing})
 
     def _route(self, name, caller):
         if name not in self._routes:
@@ -120,29 +176,36 @@ class Registry:
                 code="module_call_forbidden", status=403)
         return self._routes[name]
 
-    def call(self, name, payload=None, caller=None):
-        """同步入口：异步路由经进程级 loop 桥接，同步路由走传输通道。"""
+    def call(self, name, payload=None, caller=None, direct=False):
+        """同步入口：异步路由经进程级 loop 桥接，同步路由走传输通道。
+
+        direct=True 用于"外部请求到达本进程的边界"（HTTP / SSE 入口）：报文已经落到
+        这台机器上，再按绑定往外发就是绕回自己，边界必须就地执行。
+        """
+        self._check(name, payload)
         route = self._route(name, caller)
         handler = route["fn"]
         if route["is_async"]:
             fut = asyncio.run_coroutine_threadsafe(
                 handler(self.ctx, payload or {}), self._ensure_loop())
             return fut.result()
+        if direct:
+            return handler(self.ctx, payload or {})
         return self.transport.send(name, payload, handler, caller=caller)
 
-    async def acall(self, name, payload=None, caller=None):
+    async def acall(self, name, payload=None, caller=None, direct=False):
         """异步入口：异步路由直接 await；同步路由丢默认执行器桥接。"""
+        self._check(name, payload)
         route = self._route(name, caller)
         handler = route["fn"]
         if route["is_async"]:
             return await handler(self.ctx, payload or {})
+        if direct:
+            return handler(self.ctx, payload or {})
         return await self._ensure_loop().run_in_executor(
-            None, handler, self.ctx, payload or {})
+            None, self.transport.send, name, payload or {}, handler, caller)
 
-
-def _match(name, allowed):
-    import fnmatch
-    for pattern in allowed:
-        if pattern == "*" or fnmatch.fnmatchcase(name, pattern):
-            return True
-    return False
+    def notify(self, name, payload=None, caller=None):
+        """单向投递：不取返回值（通知这类语义走异步通道才合法）。"""
+        route = self._route(name, caller)
+        return self.transport.notify(name, payload, route["fn"], caller=caller)

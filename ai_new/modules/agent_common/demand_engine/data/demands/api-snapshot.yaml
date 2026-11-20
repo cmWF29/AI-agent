@@ -1,0 +1,18 @@
+id: api-snapshot
+title: 通信通道与消息契约现状：谁走直连/内存/网络，每条路由收发什么字段
+description: "通道绑定是部署意图编出来的数据；契约是模块自己声明的数据。快照只读，不改绑定。"
+tags: [core]
+enabled: true
+callable: true
+'on': []
+do:
+- call: api.snapshot
+  with: {}
+  as: out
+expect:
+ given:
+  input: {}
+ calls:
+ - api.snapshot
+ payload: {}
+ promise: 通道与契约都是装配数据，快照只读

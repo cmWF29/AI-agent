@@ -1,0 +1,17 @@
+id: api-notify
+title: 通道自检：单向通知（send）只承诺"已投递"，不取返回值
+description: "单向通道（内存队列 / 远端 HTTP）没有回头值，需求里必须写 send；写 call 会被通道显式拒绝。"
+tags: [core]
+enabled: true
+callable: true
+'on': []
+do:
+- send: api.snapshot
+  with: {}
+expect:
+  given:
+    input: {}
+  calls:
+  - api.snapshot
+  payload: {}
+  promise: 单向投递不取返回值，语义由需求语句写死

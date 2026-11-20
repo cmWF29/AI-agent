@@ -1,0 +1,548 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: tickets
+routes:
+  tickets.archive_transcript:
+    in:
+      pm:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      roles:
+        type: any
+        req: false
+    out:
+      transcript:
+        type: dict
+  tickets.bindchild:
+    in:
+      child:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+    out:
+      updated:
+        type: any
+  tickets.bindpm:
+    in:
+      now:
+        type: any
+        req: false
+      pm_text:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      session:
+        type: any
+        req: false
+    out:
+      pm:
+        type: any
+      updated:
+        type: any
+  tickets.bindrole:
+    in:
+      display:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      role:
+        type: any
+        req: false
+      session:
+        type: any
+        req: false
+      task:
+        type: any
+        req: false
+    out:
+      updated:
+        type: any
+  tickets.build:
+    in:
+      auto_retrospective:
+        type: any
+        req: false
+      default_title:
+        type: any
+        req: false
+      goal:
+        type: any
+        req: false
+      id:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      parent:
+        type: any
+        req: false
+      pm:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      title:
+        type: any
+        req: false
+    out:
+      auto_retrospective:
+        type: any
+      children:
+        type: list
+      closed:
+        type: str
+      created:
+        type: any
+      goal:
+        type: any
+      history:
+        type: list
+      id:
+        type: any
+      kind:
+        type: any
+      meta:
+        type: any
+      parent:
+        type: any
+      pm:
+        type: any
+      project:
+        type: any
+      roles:
+        type: list
+      status:
+        type: str
+      summary:
+        type: str
+      title:
+        type: any
+      updated:
+        type: any
+      verdict:
+        type: str
+  tickets.close:
+    doc: 结单：子单守卫→关闭→落盘→通知父单 PM
+    in:
+      id:
+        type: any
+        req: false
+      summary:
+        type: any
+        req: false
+      verdict:
+        type: any
+        req: false
+    out:
+      code:
+        type: str
+      error:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: int
+  tickets.closefin:
+    in:
+      accepted_text:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      rejected_text:
+        type: any
+        req: false
+      summary:
+        type: any
+        req: false
+      verdict:
+        type: any
+        req: false
+    out:
+      closed:
+        type: any
+      status:
+        type: str
+      summary:
+        type: any
+      updated:
+        type: any
+      verdict:
+        type: any
+  tickets.collect_session_ids:
+    in:
+      rec:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+    out:
+      sids:
+        type: any
+  tickets.create:
+    doc: 建工单：校验项目→造记录→拉 PM→落盘
+    in:
+      auto_retrospective:
+        type: any
+        req: false
+      goal:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      n:
+        type: any
+        req: false
+      parent:
+        type: any
+        req: false
+      pm_max_steps:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      task:
+        type: any
+        req: false
+      title:
+        type: any
+        req: false
+  tickets.err:
+    in:
+      code:
+        type: any
+        req: false
+      message:
+        type: any
+        req: false
+      status:
+        type: any
+        req: false
+    out:
+      code:
+        type: any
+      error:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: any
+  tickets.files_filter:
+    in:
+      items:
+        type: any
+        req: false
+      pattern:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+    out:
+      items:
+        type: any
+      ticket:
+        type: any
+  tickets.msg:
+    in:
+      fallback:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+      vars:
+        type: any
+        req: false
+    out:
+      text:
+        type: any
+  tickets.newid:
+    in:
+      n:
+        type: any
+        req: false
+      today:
+        type: any
+        req: false
+    out:
+      id:
+        type: any
+  tickets.note:
+    in:
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+    out:
+      updated:
+        type: any
+  tickets.paths:
+    in:
+      items:
+        type: any
+        req: false
+    out:
+      paths:
+        type: any
+  tickets.pick:
+    in:
+      rec:
+        type: any
+        req: false
+      target:
+        type: any
+        req: false
+    out:
+      role:
+        type: any
+      session:
+        type: any
+  tickets.present:
+    in:
+      id:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+  tickets.rebind:
+    doc: 项目改名后把工单改挂到新项目 id
+    in:
+      from:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      to:
+        type: any
+        req: false
+    out:
+      effects:
+        type: any
+      from:
+        type: any
+      tickets:
+        type: any
+      to:
+        type: any
+  tickets.record_path:
+    in:
+      id:
+        type: any
+        req: false
+      paths:
+        type: any
+        req: false
+    out:
+      path:
+        type: any
+  tickets.resolve_target:
+    in:
+      rec:
+        type: any
+        req: false
+      target:
+        type: any
+        req: false
+    out:
+      role:
+        type: str
+      session:
+        type: any
+  tickets.review_mark:
+    in:
+      exhausted_text:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      pass_text:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      repush_text:
+        type: any
+        req: false
+      verdict:
+        type: any
+        req: false
+    out:
+      updated:
+        type: any
+  tickets.roles:
+    in:
+      rec:
+        type: any
+        req: false
+    out:
+      items:
+        type: any
+  tickets.screen:
+    in:
+      project:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+      status:
+        type: any
+        req: false
+    out:
+      items:
+        type: any
+  tickets.split:
+    doc: 拆子单：守上限→逐个建单并挂链接
+    in:
+      children:
+        type: any
+        req: false
+      force:
+        type: any
+        req: false
+      id:
+        type: any
+        req: false
+      max_children:
+        type: any
+        req: false
+    out:
+      code:
+        type: str
+      error:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: int
+  tickets.stale:
+    in:
+      idle_seconds:
+        type: any
+        req: false
+      limit_seconds:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+    out:
+      stale:
+        type: bool
+  tickets.stall_scan:
+    doc: 停滞扫描：遍历在途→判定→开审计单
+    in:
+      create_audit:
+        type: any
+        req: false
+      enabled:
+        type: any
+        req: false
+      idle_minutes:
+        type: any
+        req: false
+      max_per_scan:
+        type: any
+        req: false
+  tickets.thread:
+    in:
+      id:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+      role_threads:
+        type: any
+        req: false
+      thread:
+        type: any
+        req: false
+  tickets.touch:
+    in:
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+    out:
+      updated:
+        type: any
+  tickets.validate_project:
+    in:
+      project:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+    out:
+      code:
+        type: str
+      error:
+        type: any
+      ok:
+        type: bool
+      project:
+        type: any
+      status:
+        type: int
+  tickets.view:
+    in:
+      rec:
+        type: any
+        req: false

@@ -1,0 +1,157 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: channel
+routes:
+  channel.channels:
+    in:
+      rows:
+        type: any
+        req: false
+    out:
+      channels:
+        type: any
+  channel.make:
+    in:
+      channel:
+        type: any
+        req: false
+      content:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      role:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+      ts:
+        type: any
+        req: false
+    out:
+      channel:
+        type: any
+      content:
+        type: any
+      id:
+        type: any
+      meta:
+        type: any
+      role:
+        type: any
+      seq:
+        type: any
+      ts:
+        type: any
+  channel.post:
+    doc: 发消息：读历史→拼消息→追加→emit
+    in:
+      channel:
+        type: any
+        req: false
+      content:
+        type: any
+        req: false
+      role:
+        type: any
+        req: false
+    out:
+      effects:
+        type: any
+  channel.read_since:
+    doc: 按游标取新消息（遍历在能力内）
+    in:
+      channel:
+        type: any
+        req: false
+      cursor:
+        type: any
+        req: false
+  channel.read_tail:
+    doc: 取最近 N 条（遍历在能力内）
+    in:
+      channel:
+        type: any
+        req: false
+      default_limit:
+        type: any
+        req: false
+      limit:
+        type: any
+        req: false
+      max_limit:
+        type: any
+        req: false
+  channel.reply:
+    doc: 网页消息→对话→回复写回同一频道
+    in:
+      channel:
+        type: any
+        req: false
+      content:
+        type: any
+        req: false
+      role:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+      skipped:
+        type: bool
+  channel.since:
+    in:
+      cursor:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+    out:
+      cursor:
+        type: any
+      items:
+        type: any
+  channel.split:
+    in:
+      text:
+        type: any
+        req: false
+    out:
+      lines:
+        type: any
+  channel.tail:
+    in:
+      channel:
+        type: any
+        req: false
+      default_limit:
+        type: any
+        req: false
+      limit:
+        type: any
+        req: false
+      max_limit:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+    out:
+      channel:
+        type: any
+      cursor:
+        type: any
+      messages:
+        type: any
+  channel.watch:
+    in:
+      channel:
+        type: any
+        req: false
+      cursor:
+        type: any
+        req: false

@@ -95,7 +95,7 @@ def _make_handler(ctx):
             public = path == "/api/health" or path == "/api/health/live" or path.startswith("/api/auth/") or (
                 path == "/api/rpc/demand_engine/run" and body.get("id") == "auth-login")
             if not public:
-                verdict = ctx.api.call("auth.verify", {"token": _extract_token(self)})
+                verdict = ctx.api.call("auth.verify", {"token": _extract_token(self)}, direct=True)
                 if not verdict.get("allow"):
                     self._json_error(ctx.ApiError("未登录或会话已失效",
                                                   code="unauthorized", status=401))
@@ -130,7 +130,7 @@ def _make_handler(ctx):
                 self._json_error(ctx.ApiError("该能力不对外: %s" % name,
                                               code="internal_route", status=403))
                 return
-            result = ctx.api.call(name, payload)
+            result = ctx.api.call(name, payload, direct=True)
             if rpc:
                 self._json_ok({"result": result})
             else:
@@ -176,7 +176,7 @@ def _make_handler(ctx):
             self.end_headers()
             try:
                 while True:
-                    result = ctx.api.call(name, payload)
+                    result = ctx.api.call(name, payload, direct=True)
                     for item in (result.get("items") or []):
                         chunk = ctx.codec.yaml_encode_flow(item)
                         self.wfile.write(("data: " + chunk["text"] + "\n\n").encode("utf-8"))
@@ -186,7 +186,7 @@ def _make_handler(ctx):
                     self.wfile.flush()
                     # 事件驱动路由内部已阻塞等待；只有游标门面才需要固定节流。
                     if not result.get("blocked"):
-                        ctx.api.call("clock.sleep", {"seconds": 1}, caller=None)
+                        ctx.api.call("clock.sleep", {"seconds": 1}, caller=None, direct=True)
             except (BrokenPipeError, ConnectionResetError, OSError):
                 return
 
@@ -197,10 +197,10 @@ def _make_handler(ctx):
             不把控制台先发给浏览器再靠前端 401 跳转。
             """
             rel = path.lstrip("/") or "manage.html"
-            gate = ctx.api.call("web.gate", {"path": rel}, caller=None)
+            gate = ctx.api.call("web.gate", {"path": rel}, caller=None, direct=True)
             if not gate.get("public"):
                 verdict = ctx.api.call("auth.verify", {"token": _extract_token(self)},
-                                       caller=None)
+                                       caller=None, direct=True)
                 if not verdict.get("allow"):
                     self.send_response(302)
                     self.send_header("Location", "/" + (gate.get("to") or "login.html"))
@@ -232,7 +232,7 @@ def _make_handler(ctx):
             压缩门限走配置，小响应不白付压缩开销。
             """
             floor = int(ctx.api.call("config.get", {"key": "web.gzip_min_bytes"},
-                                     caller=None).get("value") or 0)
+                                     caller=None, direct=True).get("value") or 0)
             if len(data) < floor:
                 return data, False
             if "gzip" not in (self.headers.get("Accept-Encoding") or "").lower():

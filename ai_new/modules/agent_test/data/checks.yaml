@@ -31,6 +31,8 @@ checks:
   kind: runtime
   enabled: true
   demands:
+  - api-snapshot
+  - api-notify
   - artifacts-list
   - artifacts-read
   - artifacts-stats

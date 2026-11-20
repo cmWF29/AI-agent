@@ -1,0 +1,68 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: health
+routes:
+  health.assemble:
+    in:
+      artifacts:
+        type: any
+        req: false
+      host:
+        type: any
+        req: false
+      knowledge:
+        type: any
+        req: false
+      library:
+        type: any
+        req: false
+      modules:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      sessions:
+        type: any
+        req: false
+      started:
+        type: any
+        req: false
+      tickets:
+        type: any
+        req: false
+    out:
+      artifacts:
+        type: any
+      disk:
+        type: any
+      knowledge:
+        type: any
+      library:
+        type: dict
+      modules:
+        type: any
+      ok:
+        type: bool
+      sessions:
+        type: any
+      tickets:
+        type: dict
+      uptime:
+        type: any
+  health.live:
+    in:
+      now:
+        type: any
+        req: false
+      started:
+        type: any
+        req: false
+    out:
+      name:
+        type: str
+      ok:
+        type: bool
+      uptime:
+        type: any

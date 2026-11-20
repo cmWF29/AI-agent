@@ -138,18 +138,47 @@ class TransportTest(unittest.TestCase):
             server.shutdown()
 
     def test_memory_queues_and_delivers_later(self):
+        """内存通道是单向的：只认 notify（send 要返回值，必须显式报错）。"""
         ctx = _Ctx({"default": {"kind": "direct"},
                     "routes": {"ops.*": {"kind": "memory"}}})
         t = _transport.Transport(ctx)
         seen = []
         handler = lambda c, p: seen.append(p)   # noqa: E731
-        ack = t.send("ops.record", {"n": 2}, handler)
+        ack = t.notify("ops.record", {"n": 2}, handler)
         self.assertEqual(ack["transport"], "memory")
+        with self.assertRaises(ctx.ApiError) as caught:
+            t.send("ops.record", {"n": 3}, handler)
+        self.assertEqual(getattr(caught.exception, "code", ""), "bad_transport")
         for _ in range(50):
             if seen:
                 break
             time.sleep(0.02)
         self.assertEqual(seen[0]["n"], 2)
+
+    def test_notify_on_direct_runs_and_returns_ack(self):
+        ctx = _Ctx()
+        t = _transport.Transport(ctx)
+        seen = []
+        ack = t.notify("ops.record", {"n": 4}, lambda c, p: seen.append(p))
+        self.assertEqual(ack, {"transport": "direct", "sent": "ops.record"})
+        self.assertEqual(seen[0]["n"], 4)
+
+    def test_route_level_binding_overrides_module(self):
+        """单条能力可以单独换通道：模块级 module.* 之上再用 routes 精确覆盖。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy = Path(tmp) / "deploy.yaml"
+            deploy.write_text(yaml.safe_dump({
+                "default": "direct",
+                "nodes": {"w": "http://127.0.0.1:8790"},
+                "modules": {"ops": {"kind": "memory"}},
+                "routes": {"ops.record": {"kind": "http", "node": "w"},
+                           "ops.list": {"kind": "direct"}},
+            }, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
+            record = _gen.build(ROOT, deploy)
+        self.assertEqual(record["routes"]["ops.*"], {"kind": "memory"})
+        self.assertEqual(record["routes"]["ops.record"],
+                         {"kind": "http", "base": "http://127.0.0.1:8790"})
+        self.assertEqual(record["routes"]["ops.list"], {"kind": "direct"})
 
     def test_unknown_channel_is_loud(self):
         ctx = _Ctx({"default": {"kind": "direct"},

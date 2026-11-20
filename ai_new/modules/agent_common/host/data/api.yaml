@@ -1,0 +1,15 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: host
+routes:
+  host.env:
+    doc: 读一个环境变量
+  host.executable:
+    doc: 当前 Python 解释器路径
+  host.importable:
+    doc: 探测 Python 包当前解释器可否导入
+  host.info:
+    doc: 内存/磁盘/负载读数
+  host.which:
+    doc: 探测 CLI 命令是否在 PATH

@@ -1,0 +1,345 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: library
+routes:
+  library.bind_tools:
+    in:
+      disabled:
+        type: any
+        req: false
+      items:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+  library.check:
+    in:
+      contents:
+        type: any
+        req: false
+      files:
+        type: any
+        req: false
+      flow:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+  library.design:
+    in:
+      fields:
+        type: any
+        req: false
+      id:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      record:
+        type: any
+        req: false
+  library.disabled_skills:
+    in:
+      skills:
+        type: any
+        req: false
+  library.flow_context:
+    in:
+      active:
+        type: any
+        req: false
+      checks:
+        type: any
+        req: false
+      contract:
+        type: any
+        req: false
+      flow:
+        type: any
+        req: false
+  library.get:
+    in:
+      id:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+      seed:
+        type: any
+        req: false
+      user:
+        type: any
+        req: false
+  library.kind_file:
+    in:
+      kind:
+        type: any
+        req: false
+  library.list:
+    in:
+      kind:
+        type: any
+        req: false
+      seed:
+        type: any
+        req: false
+      user:
+        type: any
+        req: false
+  library.position:
+    in:
+      flow:
+        type: any
+        req: false
+      id:
+        type: any
+        req: false
+      prompt_text:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+  library.positions:
+    in:
+      disabled_roles:
+        type: any
+        req: false
+      flows:
+        type: any
+        req: false
+      seed:
+        type: any
+        req: false
+      skills:
+        type: any
+        req: false
+      user:
+        type: any
+        req: false
+  library.prompt_blocks:
+    in:
+      forbidden:
+        type: any
+        req: false
+      must_dos:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+  library.prompt_path:
+    in:
+      file:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+  library.review:
+    in:
+      max_retries:
+        type: any
+        req: false
+      missing:
+        type: any
+        req: false
+      retries:
+        type: any
+        req: false
+  library.role_prompt:
+    in:
+      rec:
+        type: any
+        req: false
+      role:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+  library.save_record:
+    in:
+      rec:
+        type: any
+        req: false
+      user:
+        type: any
+        req: false
+  library.skill_status:
+    in:
+      id:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      record:
+        type: any
+        req: false
+      status:
+        type: any
+        req: false
+  library.skill_uninstall:
+    in:
+      flows:
+        type: any
+        req: false
+      id:
+        type: any
+        req: false
+      roles:
+        type: any
+        req: false
+      skills:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+  library.skills_list:
+    in:
+      disabled:
+        type: any
+        req: false
+      flows:
+        type: any
+        req: false
+      roles:
+        type: any
+        req: false
+      skills:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+  library.stage_apply_overrides:
+    in:
+      add:
+        type: any
+        req: false
+      edges:
+        type: any
+        req: false
+      remove:
+        type: any
+        req: false
+      states:
+        type: any
+        req: false
+  library.stage_conditions:
+    in:
+      active:
+        type: any
+        req: false
+      contents:
+        type: any
+        req: false
+      contract:
+        type: any
+        req: false
+      files:
+        type: any
+        req: false
+      stage:
+        type: any
+        req: false
+  library.stage_contract:
+    in:
+      checks:
+        type: any
+        req: false
+      machine:
+        type: any
+        req: false
+      refs:
+        type: any
+        req: false
+      stages:
+        type: any
+        req: false
+      states:
+        type: any
+        req: false
+  library.stage_gaps:
+    in:
+      active:
+        type: any
+        req: false
+      base:
+        type: any
+        req: false
+      contract:
+        type: any
+        req: false
+      stage:
+        type: any
+        req: false
+      stage_alert:
+        type: any
+        req: false
+  library.stage_refs:
+    in:
+      flows:
+        type: any
+        req: false
+      seed:
+        type: any
+        req: false
+  library.stage_tools:
+    in:
+      active:
+        type: any
+        req: false
+      contract:
+        type: any
+        req: false
+      items:
+        type: any
+        req: false
+      stage:
+        type: any
+        req: false
+  library.stage_transition:
+    in:
+      active:
+        type: any
+        req: false
+      contents:
+        type: any
+        req: false
+      contract:
+        type: any
+        req: false
+      files:
+        type: any
+        req: false
+      notes:
+        type: any
+        req: false
+      nxt:
+        type: any
+        req: false
+      prev:
+        type: any
+        req: false
+  library.summary:
+    in:
+      seed:
+        type: any
+        req: false
+      user:
+        type: any
+        req: false

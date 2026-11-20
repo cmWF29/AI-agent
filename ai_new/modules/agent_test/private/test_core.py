@@ -89,6 +89,33 @@ class CoreTest(unittest.TestCase):
 
     # ---- 架构不变量 ----
 
+    def test_every_registered_route_declares_contract(self):
+        """消息结构是数据：注册的每条路由都要在模块 data/api.yaml 里声明收发字段。"""
+        contracts = self.ctx.api._load_contracts()
+        missing = sorted(name for name in self.ctx.api._routes if name not in contracts)
+        self.assertEqual(missing, [], "这些路由没有消息契约（去补模块 data/api.yaml）: %s" % missing)
+        dead = sorted(r for r in contracts if r not in self.ctx.api._routes)
+        self.assertEqual(dead, [], "契约里写了没注册的路由（发出去了就是死名）: %s" % dead)
+
+    def test_contract_enforces_required_fields(self):
+        """enforce 模式下缺必填字段直接拒；warn 模式只留证据，不改变行为。"""
+        route = self.ctx.api._routes["store.read"]
+        handler = route["fn"]
+        ctx = self.ctx
+        # warn（默认）：缺字段照跑，但留证据
+        ctx.api._warned.clear()
+        payload = {"module": "agent", "path": "not-exist.yaml"}
+        ctx.api.call("store.read", payload, caller=None, direct=True)
+        self.assertEqual(ctx.api._warned, [], "这条路由不该有必填字段告警")
+        # enforce：造一个缺失必填的调用，确认门禁会拒
+        ctx.cfg.setdefault("api", {})["contract_mode"] = "enforce"
+        try:
+            with self.assertRaises(ctx.ApiError) as caught:
+                ctx.api._check("store.read", {})
+            self.assertEqual(getattr(caught.exception, "code", ""), "bad_payload")
+        finally:
+            ctx.cfg["api"]["contract_mode"] = "warn"
+
     def test_all_modules_loaded(self):
         expect = {"config", "store", "hooks", "demand_engine", "api", "tools", "llm", "react",
                   "knowledge", "artifacts", "library", "sessions", "projects",

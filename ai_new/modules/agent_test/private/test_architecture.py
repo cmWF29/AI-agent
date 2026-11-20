@@ -331,22 +331,35 @@ class StructureTest(unittest.TestCase):
                 exported.update(alias.asname or alias.name for alias in node.names)
         self.assertEqual(exported, {"main"}, "组合根对外只应导出 main: %s" % exported)
 
-    def test_matrix_routes_exist(self):
-        """calls.json 里声明的路由必须在源码中注册（防止矩阵写成死名）。"""
-        return  # calls.json 已下架：能力只对需求开放，不再有接线矩阵
-        matrix = {}
-        declared = set()
-        for routes in matrix.values():
-            for r in routes:
-                if r != "*":
-                    declared.add(r)
-        src = "\n".join(p.read_text(encoding="utf-8") for p in src_files(ROOT / "ai_new"))
-        missing = []
-        for r in sorted(declared):
-            if ('"%s"' % r) not in src and ("'%s'" % r) not in src:
-                if r.split(".", 1)[1] not in src:
-                    missing.append(r)
-        self.assertEqual(missing, [], "矩阵声明了未注册的路由: %s" % missing)
+    def test_no_call_matrix_file(self):
+        """调用矩阵已下架：能力只对需求开放，接线关系只写在需求的 do 树里。
+
+        消息结构的显性化换了个落点：每条路由收发什么字段写在模块自己的 data/api.yaml，
+        由 api 模块装载并在 test_core 里做运行时双向校验。
+        """
+        legacy = module_dir("agent_common", "api") / "data" / "rules" / "calls.yaml"
+        self.assertFalse(legacy.exists(), "calls.yaml 又出现了：接线关系只能写在需求 do 树里")
+
+    def test_every_route_declares_contract_file(self):
+        """每个模块的 data/api.yaml 必须是合法结构：module 名与目录一致，routes 是字典。"""
+        bad = []
+        for group, name, mdir in all_modules():
+            path = mdir / "data" / "api.yaml"
+            if not path.is_file():
+                continue
+            rec = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            if rec.get("module") != name:
+                bad.append((str(path.relative_to(ROOT)), "module 名与目录不一致"))
+            routes = rec.get("routes")
+            if not isinstance(routes, dict) or not routes:
+                bad.append((str(path.relative_to(ROOT)), "routes 为空或不是字典"))
+            for route, spec in (routes or {}).items():
+                if not isinstance(spec, dict):
+                    bad.append((route, "契约不是字典"))
+                for key in ("in", "out"):
+                    if key in spec and not isinstance(spec[key], dict):
+                        bad.append((route, "%s 不是字典" % key))
+        self.assertEqual(bad, [], "契约文件结构不合法: %s" % bad)
 
     def test_demands_and_checks_are_bound_both_ways(self):
         """需求 ↔ 用例双向闭合：没用例的需求不许上线，没需求的用例也不许留着。"""

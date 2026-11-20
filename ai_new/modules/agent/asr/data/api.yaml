@@ -1,0 +1,16 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: asr
+routes:
+  asr.transcribe:
+    doc: 语音转写：校验音频 → 离线模型识别 → 文本成形
+    in:
+      audio:
+        type: any
+        req: false
+      mime:
+        type: any
+        req: false
+  asr.present: {}
+  asr.validate: {}

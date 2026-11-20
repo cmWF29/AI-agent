@@ -1,0 +1,236 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: store
+routes:
+  store.append_text:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+      text:
+        type: any
+        req: true
+    out:
+      appended:
+        type: bool
+  store.archive:
+    in:
+      module:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+      scripts:
+        type: any
+        req: false
+    out:
+      archive:
+        type: any
+      files:
+        type: any
+  store.exists:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      exists:
+        type: any
+  store.glob:
+    in:
+      module:
+        type: any
+        req: false
+      pattern:
+        type: any
+        req: false
+      root:
+        type: any
+        req: false
+    out:
+      items:
+        type: list
+  store.id:
+    in:
+      value:
+        type: any
+        req: false
+    out:
+      id:
+        type: any
+  store.next_seq:
+    in:
+      baseline:
+        type: any
+        req: false
+      bucket:
+        type: any
+        req: false
+    out:
+      seq:
+        type: any
+  store.read:
+    in:
+      fallback:
+        type: any
+        req: false
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      bad:
+        type: bool
+      exists:
+        type: bool
+      value:
+        type: any
+  store.read_bytes:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      exists:
+        type: bool
+      hex:
+        type: str
+      size:
+        type: int
+      value:
+        type: str
+  store.read_text:
+    in:
+      fallback:
+        type: any
+        req: false
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      exists:
+        type: bool
+      value:
+        type: any
+  store.remove:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      removed:
+        type: bool
+  store.remove_dir:
+    in:
+      module:
+        type: any
+        req: false
+      path:
+        type: any
+        req: false
+    out:
+      removed:
+        type: bool
+  store.walk:
+    in:
+      module:
+        type: any
+        req: false
+      pattern:
+        type: any
+        req: false
+      root:
+        type: any
+        req: false
+    out:
+      rows:
+        type: list
+  store.walk_text:
+    in:
+      module:
+        type: any
+        req: false
+      pattern:
+        type: any
+        req: false
+      root:
+        type: any
+        req: false
+    out:
+      rows:
+        type: list
+  store.write:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+      value:
+        type: any
+        req: true
+    out:
+      path:
+        type: any
+      written:
+        type: bool
+  store.write_bytes:
+    in:
+      hex:
+        type: any
+        req: false
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+      value:
+        type: any
+        req: false
+      data:
+        type: any
+        req: true
+    out:
+      bytes:
+        type: any
+      path:
+        type: any
+      written:
+        type: bool
+  store.write_text:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+      text:
+        type: any
+        req: true
+    out:
+      path:
+        type: any
+      written:
+        type: bool

@@ -1,11 +1,19 @@
 """通信是抽象：直接调用 / 内存队列 / 网络，同一份模板代码，不同运行时。
 
 模块里写的永远是 `ctx.api.call(route, payload, caller)`。这条调用走哪条通道，
-不由代码决定，由**脚本生成的** `data/gen/bindings.json` 决定：
+不由代码决定，由**编译出来的** `data/gen/bindings.yaml` 决定：
 
-    tools/gen_transport.py  读调用图 + data/deploy.json  →  data/gen/bindings.json
+    部署意图 data/deploy.yaml  ──编译──▶  data/gen/bindings.yaml
 
-于是"代码是模板，真的运行是另一套代码"成了结构：模板不动，换部署拓扑只重跑生成器。
+编译是 api 模块自己的能力：装配期自动编一次（boot），也可以 `--compile-transport`
+在装配之前编，或运行中调 `api.transport_compile`。于是"代码是模板，真的运行是另一套
+绑定"成了结构：模板不动，换部署拓扑只重跑编译。
+
+三条通道的语义要显式区分，不能混：
+    direct  同进程直连，有返回值 —— 单机默认
+    memory  同进程共享内存队列，**单向**：调用方拿到的是"已入队"，不是结果
+    http    本地 / 跨机网络 RPC，有返回值 —— 多机部署的同一套绑定
+
 没有绑定文件时默认全直连 —— 单进程里跑，和以前完全一样。
 """
 from __future__ import annotations
@@ -44,29 +52,48 @@ class Transport:
     def describe(self):
         routes = self.bindings().get("routes") or {}
         return {"default": (self.bindings().get("default") or {}).get("kind") or "direct",
-                "routes": len(routes),
+                "routes": routes,
                 "source": "data/gen/bindings.yaml" if self.bindings() else "未生成，全直连"}
 
-    # ---- 派发 ----
+    def _timeout(self):
+        api = (getattr(self.ctx, "cfg", None) or {}).get("api") or {}
+        try:
+            return int(api.get("transport_timeout") or 10)
+        except (TypeError, ValueError):
+            return 10
+
+    # ---- 派发：要返回值 ----
     def send(self, route, payload, handler, caller=None):
         kind, base = self.kind_for(route)
         if kind == "direct":
             return handler(self.ctx, payload or {})
-        if kind == "memory":
-            return self._enqueue(route, payload, handler)
         if kind == "http":
             return self._http(route, payload, base)
+        if kind == "memory":
+            raise self.ctx.ApiError(
+                "内存通道是单向的（%s 要返回值）：需求里改用 send，或把该模块绑回 direct/http" % route,
+                code="bad_transport", status=500)
         raise self.ctx.ApiError("未知通信通道: %s (route %s)" % (kind, route),
                                 code="bad_transport", status=500)
 
-    # 通道一：内存 —— 异步投递，调用方拿到的是"已入队"
-    def _enqueue(self, route, payload, handler):
-        self._queue.put((route, dict(payload or {}), handler))
-        if self._worker is None:
-            self._worker = threading.Thread(target=self._drain, daemon=True,
-                                            name="api-memory-transport")
-            self._worker.start()
-        return {"transport": "memory", "queued": route}
+    # ---- 派发：单向通知（不要返回值）----
+    def notify(self, route, payload, handler, caller=None):
+        kind, base = self.kind_for(route)
+        if kind == "direct":
+            handler(self.ctx, payload or {})
+            return {"transport": "direct", "sent": route}
+        if kind == "memory":
+            self._queue.put((route, dict(payload or {}), handler))
+            if self._worker is None:
+                self._worker = threading.Thread(target=self._drain, daemon=True,
+                                                name="api-memory-transport")
+                self._worker.start()
+            return {"transport": "memory", "queued": route}
+        if kind == "http":
+            self._http(route, payload, base, notify=True)
+            return {"transport": "http", "sent": route}
+        raise self.ctx.ApiError("未知通信通道: %s (route %s)" % (kind, route),
+                                code="bad_transport", status=500)
 
     def _drain(self):
         while True:
@@ -79,7 +106,7 @@ class Transport:
                 self._queue.task_done()
 
     # 通道二：网络 —— 同步 RPC，走 /api/rpc/<module>/<fn>（返回未包装的原始结果）
-    def _http(self, route, payload, base):
+    def _http(self, route, payload, base, notify=False):
         if not base:
             raise self.ctx.ApiError("通道 http 缺少 base: %s" % route,
                                     code="bad_transport", status=500)
@@ -87,13 +114,11 @@ class Transport:
         body = self.ctx.codec.yaml_encode_flow(payload or {})["text"].encode("utf-8")
         req = urllib.request.Request(url, data=body, method="POST",
                                      headers={"Content-Type": "application/yaml"})
-        token = (self.ctx.cfg.get("server") or {}).get("token") or ""
+        token = (getattr(self.ctx, "cfg", None) or {}).get("server", {}).get("token") or ""
         if token:
             req.add_header("X-Auth-Token", token)
         try:
-            wait = self.ctx.api.call("config.get", {"key": "api.transport_timeout"},
-                                     caller=None).get("value")
-            with urllib.request.urlopen(req, timeout=int(wait or 10)) as resp:
+            with urllib.request.urlopen(req, timeout=self._timeout()) as resp:
                 rec = self.ctx.codec.yaml_decode(resp.read().decode("utf-8"))["value"]
         except (urllib.error.URLError, Exception) as exc:
             raise self.ctx.ApiError("远程调用失败: %s (%s)" % (route, exc),
@@ -101,4 +126,4 @@ class Transport:
         if not rec.get("ok"):
             raise self.ctx.ApiError("远程调用被拒: %s %s" % (route, rec.get("error")),
                                     code="remote_error", status=502)
-        return rec.get("result")
+        return {"transport": "http", "sent": route} if notify else rec.get("result")

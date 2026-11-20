@@ -1,0 +1,84 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: tools
+routes:
+  tools.deps:
+    doc: 依赖盘点：分类汇总在位/缺失依赖、工具就绪统计与待装计划（只读）
+    in:
+      disabled:
+        type: any
+        req: false
+      external:
+        type: any
+        req: false
+  tools.execute:
+    doc: 执行工具：注册表命中直跑；未命中按公共登记回退占位，项目禁用工具不执行
+    in:
+      args:
+        type: any
+        req: false
+      defer:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+      session:
+        type: any
+        req: false
+      tool:
+        type: any
+        req: false
+  tools.external_run:
+    doc: 外部工具占位执行：后端未接入前回显登记与依赖提示
+    in:
+      args:
+        type: any
+        req: false
+      tool:
+        type: any
+        req: false
+  tools.install_missing:
+    doc: 安装缺失的 Python 包；cli/env/config 只列待人工处理
+    out:
+      installs:
+        type: any
+      plan:
+        type: any
+      ready:
+        type: any
+    in:
+      disabled:
+        type: any
+        req: false
+      external:
+        type: any
+        req: false
+  tools.list:
+    doc: 工具清单：内置 ∪ 外部登记，附依赖就绪状态
+    in:
+      disabled:
+        type: any
+        req: false
+      disabled_names:
+        type: any
+        req: false
+      external:
+        type: any
+        req: false
+      scope:
+        type: any
+        req: false
+  tools.pick:
+    doc: 岗位工具名单：内置注册表 ∪ 公共外部登记，按名单/类型与项目禁用裁剪
+    in:
+      kind:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false

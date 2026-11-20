@@ -1,0 +1,24 @@
+# 部署意图：决定"模块间消息"实际走哪条通道。
+#
+# 代码里只有逻辑调用（ctx.api.call / ctx.api.notify），走哪条通道由这份文件编出来：
+#   python agent_start.py --compile-transport    # 装配之前就能编
+#   POST /api/rpc/api/transport_compile          # 运行中重编
+# 产物：api/data/gen/bindings.yaml（进程启动时自动重编一次）
+#
+# 三条通道（语义不同，不能混用）：
+#   direct  同进程直连，有返回值。单机默认；也是唯一"零拷贝"的通道
+#   memory  同进程共享内存队列，单向。需求里必须写 send（写 call 会在运行时报 bad_transport）
+#   http    本地/跨机网络 RPC，有返回值。多机部署就是给不同模块不同的 node
+default: direct
+
+# 多机部署的节点地址（HTTP 通道用）
+nodes: {}
+
+# 模块级绑定：module.* 全匹配，单条路由见 routes
+#   ops:     {kind: http, node: worker-a}
+#   channel: {kind: memory}
+modules: {}
+
+# 路由级绑定：精确到 module.fn，覆盖模块级
+#   logs.record: {kind: memory}
+routes: {}

@@ -78,17 +78,31 @@ def build(root, deploy_path=None):
 
     nodes = deploy.get("nodes") or {}
     routes = {}
-    for module, spec in sorted((deploy.get("modules") or {}).items()):
+
+    def _bind(label, spec, known):
         spec = spec or {}
-        if module not in modules:
-            raise ValueError("deploy.yaml 里的模块不存在: %s" % module)
         kind = spec.get("kind") or "direct"
         if kind not in KINDS:
-            raise ValueError("模块 %s 的通道非法: %s（可选 %s）" % (module, kind, KINDS))
+            raise ValueError("%s 的通道非法: %s（可选 %s）" % (label, kind, KINDS))
         base = nodes.get(spec.get("node")) if spec.get("node") else spec.get("base")
         if kind == "http" and not base:
-            raise ValueError("模块 %s 走 http 但没给 base/node" % module)
-        routes[module + ".*"] = {"kind": kind, **({"base": base} if base else {})}
+            raise ValueError("%s 走 http 但没给 base/node" % label)
+        if kind == "memory" and spec.get("base"):
+            raise ValueError("%s 走 memory 不能带 base（内存通道只在同进程内）" % label)
+        return {"kind": kind, **({"base": base} if base else {})}
+
+    # 模块级：整组路由换通道
+    for module, spec in sorted((deploy.get("modules") or {}).items()):
+        if module not in modules:
+            raise ValueError("deploy.yaml 里的模块不存在: %s" % module)
+        routes[module + ".*"] = _bind("模块 " + module, spec, modules)
+
+    # 路由级：单条能力换通道（同名时覆盖模块级）
+    for route, spec in sorted((deploy.get("routes") or {}).items()):
+        module, _, fn = route.partition(".")
+        if not fn or module not in modules:
+            raise ValueError("deploy.yaml 里的路由不存在: %s" % route)
+        routes[route] = _bind("路由 " + route, spec, modules)
 
     default_kind = deploy.get("default") or "direct"
     if default_kind not in KINDS:

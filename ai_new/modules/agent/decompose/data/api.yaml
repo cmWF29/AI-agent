@@ -1,0 +1,185 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: decompose
+routes:
+  decompose.install:
+    doc: 拆解入库：产物有效才合并四库并产出落盘 effects；无效回空 effects 不落盘
+    in:
+      draft:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      source:
+        type: any
+        req: false
+    out:
+      effects:
+        type: list
+      error:
+        type: any
+      ok:
+        type: bool
+      parts:
+        type: any
+  decompose.install_parts:
+    in:
+      draft:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      source:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+    out:
+      code:
+        type: str
+      error:
+        type: any
+      flow:
+        type: any
+      ok:
+        type: bool
+      role:
+        type: any
+      skill:
+        type: any
+      status:
+        type: int
+      tools:
+        type: any
+  decompose.parse:
+    in:
+      draft:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      pip:
+        type: any
+        req: false
+      scripts:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+    out:
+      draft:
+        type: any
+      dropped:
+        type: any
+      meta:
+        type: any
+      tools:
+        type: any
+  decompose.parse_skill_doc:
+    in:
+      requirements:
+        type: any
+        req: false
+      scripts:
+        type: any
+        req: false
+      skill_md:
+        type: any
+        req: false
+    out:
+      body:
+        type: any
+      meta:
+        type: dict
+      pip:
+        type: any
+      scripts:
+        type: any
+  decompose.promptize:
+    in:
+      body:
+        type: any
+        req: true
+      meta:
+        type: any
+        req: false
+      pip:
+        type: any
+        req: true
+      scripts:
+        type: any
+        req: true
+      system:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+    out:
+      messages:
+        type: any
+  decompose.run:
+    doc: 拆解闭环：解析包内容→取工具名单→拼提示→ReAct 拉装→模型→解码→成形入库记录
+    in:
+      api_key:
+        type: any
+        req: false
+      base_url:
+        type: any
+        req: false
+      cancel:
+        type: any
+        req: false
+      max_steps:
+        type: any
+        req: false
+      mode:
+        type: any
+        req: false
+      model:
+        type: any
+        req: false
+      requirements:
+        type: any
+        req: false
+      scripts:
+        type: any
+        req: false
+      session:
+        type: any
+        req: false
+      skill_md:
+        type: any
+        req: false
+      system:
+        type: any
+        req: false
+      url:
+        type: any
+        req: false
+    out:
+      code:
+        type: str
+      error:
+        type: any
+      failed:
+        type: any
+      ok:
+        type: bool
+      raw:
+        type: any

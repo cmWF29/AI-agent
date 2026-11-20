@@ -1,0 +1,327 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: sessions
+routes:
+  sessions.by_ticket:
+    doc: 按工单归集全部会话视图：PM 与角色会话同一群聊流
+    in:
+      ticket:
+        type: any
+        req: false
+    out:
+      items:
+        type: any
+  sessions.emit_finished:
+    doc: 一轮收尾落盘后触发 finished 钩子，后续业务由需求编排
+    in:
+      rec:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+  sessions.resume:
+    doc: 启动续跑：遍历残留 running → 分类成形落盘/派发效果清单
+    in:
+      enabled:
+        type: any
+        req: false
+      max:
+        type: any
+        req: false
+      resume_text:
+        type: any
+        req: false
+      stale_text:
+        type: any
+        req: false
+    out:
+      effects:
+        type: any
+      resumed:
+        type: any
+      stale:
+        type: any
+  sessions.scan_stuck:
+    doc: 自愈扫描：僵死/停滞超阈值的 running 会话复位 idle，落盘效果交 apply
+    in:
+      enabled:
+        type: any
+        req: false
+      idle_minutes:
+        type: any
+        req: false
+      stale_text:
+        type: any
+        req: false
+    out:
+      effects:
+        type: any
+      keep:
+        type: any
+      stuck:
+        type: any
+  sessions.spawn:
+    doc: 造会话：取人设与知识拼记录，写入算成效果交出去
+    in:
+      active:
+        type: any
+        req: false
+      constraint:
+        type: any
+        req: false
+      flow:
+        type: any
+        req: false
+      injected:
+        type: any
+        req: false
+      intro:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+      machine:
+        type: any
+        req: false
+      max_steps:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      role:
+        type: any
+        req: false
+      role_prompt:
+        type: any
+        req: false
+      seq:
+        type: any
+        req: false
+      stage:
+        type: any
+        req: false
+      stages:
+        type: any
+        req: false
+      task:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+      project_overrides:
+        type: any
+        req: false
+      role_readonly:
+        type: any
+        req: false
+      role_system:
+        type: any
+        req: false
+  sessions.appendmsg:
+    in:
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+  sessions.compact:
+    in:
+      keep:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+  sessions.finish:
+    in:
+      cancelled_text:
+        type: any
+        req: false
+      latest:
+        type: any
+        req: false
+      no_reply_text:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      out:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      result_chars:
+        type: any
+        req: false
+      stage_check:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+  sessions.flow_plan:
+    in:
+      exhausted_text:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      repush_text:
+        type: any
+        req: false
+      retrospect_default:
+        type: any
+        req: false
+      retrospect_enabled:
+        type: any
+        req: false
+      retrospect_text:
+        type: any
+        req: false
+      review:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+  sessions.gone:
+    in:
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+  sessions.inject_assigned_message:
+    in:
+      heading:
+        type: any
+        req: false
+      messages:
+        type: any
+        req: false
+      roles:
+        type: any
+        req: false
+  sessions.machine_apply:
+    in:
+      contract:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+  sessions.mark:
+    in:
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      status:
+        type: any
+        req: false
+  sessions.present:
+    in:
+      id:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+  sessions.record_path:
+    in:
+      id:
+        type: any
+        req: false
+      paths:
+        type: any
+        req: false
+  sessions.refresh_constraint_message:
+    in:
+      constraint:
+        type: any
+        req: false
+      messages:
+        type: any
+        req: false
+  sessions.reply:
+    in:
+      id:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+  sessions.role_name:
+    in:
+      id:
+        type: any
+        req: false
+      role:
+        type: any
+        req: false
+  sessions.screen:
+    in:
+      rows:
+        type: any
+        req: false
+      status:
+        type: any
+        req: false
+  sessions.statsp:
+    in:
+      items:
+        type: any
+        req: false
+      max:
+        type: any
+        req: false
+  sessions.view:
+    in:
+      rec:
+        type: any
+        req: false
+  sessions.wire_at:
+    in:
+      rec:
+        type: any
+        req: false
+      seq:
+        type: any
+        req: false
+  sessions.active_same_role: {}
+  sessions.build: {}
+  sessions.resume_plan: {}
+  sessions.stuck_plan: {}

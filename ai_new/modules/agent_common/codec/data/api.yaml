@@ -1,0 +1,41 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自两处：代码静态抽取（handler 读的键）+ 需求里显式写出的 with 键；
+# api 模块装配后据此校验入参（config api.contract_mode），架构闸据此断言路由必须有契约。
+module: codec
+routes:
+  codec.base64_decode_bytes:
+    doc: base64 → 原始字节
+    in:
+      text:
+        type: any
+        req: false
+  codec.decode_hex:
+    doc: hex → utf8 文本，非 utf8 退 base64
+    in:
+      hex:
+        type: any
+        req: false
+      max_bytes:
+        type: any
+        req: false
+      size:
+        type: any
+        req: false
+  codec.digest:
+    doc: 内容摘要
+  codec.hex_from_base64:
+    doc: base64 → hex
+  codec.json_decode:
+    doc: JSON 文本 → 对象
+  codec.json_encode:
+    doc: 对象 → JSON 文本
+    in:
+      value:
+        type: any
+        req: false
+  codec.nonce:
+    doc: 安全随机令牌
+  codec.sse_decode:
+    doc: SSE 文本 → 事件对象列表
+  codec.wave_decode:
+    doc: WAV(PCM) 字节 → PCM 帧/采样率
