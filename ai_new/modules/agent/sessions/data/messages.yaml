@@ -1,6 +1,7 @@
 # 会话面系统提示文案模板。纯文案数据，填参与拼装归模块，需求层读取后传入纯函数。
 resume_interrupted: '进程重启前卡在运行中，已自动重新驱动'
 stale_interrupted: '进程重启前卡在运行中，已复位等待重新驱动'
+stuck_scan_reset: '运行期扫描发现会话卡死或停滞超时，已复位等待重新驱动'
 cancelled_summary: '（已打断）'
 backend_no_reply: '后端未答复'
 session_missing: '会话不存在: {id}'

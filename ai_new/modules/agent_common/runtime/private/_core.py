@@ -79,6 +79,11 @@ class Runtime:
         except Exception:  # noqa: BLE001
             pass
 
+    def active_keys(self):
+        """当前仍在跑的后台任务钥匙集合；供自愈扫描区分僵死记录与在途任务。"""
+        with self._lock:
+            return {k for k, f in self._runs.items() if not f.done()}
+
     # ---- 运行期草稿：内存面，不落盘。进程边跑边吐的正文先攒在这里，定稿后清掉 ----
 
     def stream_put(self, key, text):

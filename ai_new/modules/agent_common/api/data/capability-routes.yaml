@@ -176,6 +176,13 @@ capabilities:
     - store.read
     - clock.now
     - sessions.resume_plan
+  sessions.scan_stuck:
+    calls:
+    - store.glob
+    - store.read
+    - clock.since
+    - clock.now
+    - sessions.stuck_plan
   tickets.split:
     calls:
     - store.read

@@ -30,6 +30,7 @@ def setup(ctx):
         ("sessions.statsp", _run_pure.statsp),
         ("sessions.flow_plan", _run_pure.flow_plan),
         ("sessions.resume_plan", _run_pure.resume_plan),
+        ("sessions.stuck_plan", _run_pure.stuck_plan),
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="sessions")
@@ -41,6 +42,9 @@ def setup(ctx):
                      "按工单归集全部会话视图：PM 与角色会话同一群聊流", module="sessions")
     ctx.api.register("sessions.resume", _route_resume,
                      "启动续跑：遍历残留 running → 分类成形落盘/派发效果清单", module="sessions")
+    ctx.api.register("sessions.scan_stuck", _route_scan_stuck,
+                     "自愈扫描：僵死/停滞超阈值的 running 会话复位 idle，落盘效果交 apply",
+                     module="sessions")
     return True
 
 
@@ -85,6 +89,38 @@ def _route_resume(ctx, payload):
     return {"effects": effects,
             "resumed": [i["id"] for i in plan.get("resume") or []],
             "stale": [i["id"] for i in plan.get("stale") or []]}
+
+
+def _route_scan_stuck(ctx, payload):
+    """自愈扫描闭环：对照运行表活跃任务与停滞阈值，僵死/超阈值的 running 会话复位 idle。
+
+    遍历读盘、时钟换算在能力内；复位写盘交需求 runtime.apply。只复位不重跑，
+    续跑交启动 resume 或人工触发。
+    """
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/logs",
+        "pattern": _cfg_logs(ctx).get("session_glob") or ""}, caller=None)
+    rows = []
+    for rel in listed.get("items") or []:
+        row = ctx.api.call("store.read", {"module": "agent/logs", "path": rel}, caller=None)
+        rec = row.get("value")
+        if not rec:
+            continue
+        idle = ctx.api.call("clock.since", {"iso": rec.get("updated")}, caller=None)
+        rows.append({"path": rel, "rec": rec, "idle_seconds": idle.get("seconds") or 0})
+    now = ctx.api.call("clock.now", {}, caller=None)
+    enabled = payload.get("enabled")
+    enabled = True if enabled is None else bool(enabled)
+    plan = ctx.api.call("sessions.stuck_plan", {
+        "rows": rows, "active": list(ctx.runtime.active_keys()),
+        "now": now.get("ts"), "enabled": enabled,
+        "idle_seconds": int(payload.get("idle_minutes") or 0) * 60,
+        "stale_text": payload.get("stale_text")}, caller=None)
+    effects = [{"kind": "write", "module": "agent/logs",
+                "path": i["path"], "value": i["rec"]} for i in plan.get("stuck") or []]
+    return {"effects": effects,
+            "stuck": [i["id"] for i in plan.get("stuck") or []],
+            "keep": plan.get("keep") or []}
 
 
 def _route_by_ticket(ctx, payload):

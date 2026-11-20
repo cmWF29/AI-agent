@@ -102,6 +102,7 @@ checks:
   - session-machine
   - session-run
   - session-resume
+  - session-stuck-scan
   - session-send
   - session-spawn
   - session-state

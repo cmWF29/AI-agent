@@ -36,6 +36,9 @@ sessions:
     tool_output_chars: 1000   # 工具输出正文超此字符数即落盘 ticket 层，上下文只回路径
     resume_on_boot: true      # 进程重启后自动把残留 running 会话重新驱动一轮
     resume_max: 5             # 单次启动最多自动续跑的会话数，防止启动风暴
+  stuck_check:
+    enabled: true           # 运行期自愈扫描：僵死/停滞超阈值的 running 会话复位 idle
+    idle_minutes: 30        # 在途任务距上次更新超过该分钟数判停滞（卡死保守复位）
 tickets:
   max_roles: 8
   max_children: 8

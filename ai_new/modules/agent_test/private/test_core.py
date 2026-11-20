@@ -914,6 +914,23 @@ class CoreTest(unittest.TestCase):
                          "进程重启前卡在运行中，已自动重新驱动")
         self.assertEqual({d["input"]["id"] for d in dispatches}, {"rs-1", "rs-2"})
 
+    def test_session_stuck_scan_demand_forms_effects(self):
+        """自愈扫描需求：无在途任务的 running 会话被复位 idle，成形 write 效果交 apply。"""
+        self.ctx.api.call("store.write", {"module": "agent/logs",
+            "path": "sessions/ss-1.yaml",
+            "value": {"id": "ss-1", "kind": "role", "role": "developer",
+                      "ticket": "T-1", "status": "running", "messages": [],
+                      "meta": {}, "updated": 0}})
+        r = self._run("session-stuck-scan", {})
+        self.assertTrue(r["ok"])
+        writes = [e for e in r["result"]["effects"] if e.get("kind") == "write"]
+        self.assertEqual(len(writes), 1)
+        self.assertEqual(writes[0]["value"]["status"], "idle")
+        self.assertEqual(writes[0]["value"]["meta"]["last_error"]["code"],
+                         "stuck_missing_task")
+        self.assertEqual(writes[0]["value"]["meta"]["last_error"]["error"],
+                         "运行期扫描发现会话卡死或停滞超时，已复位等待重新驱动")
+
     def test_react_non_structured_keeps_old_summary(self):
         """T2 非结构化收口不清空滚动摘要；旧摘要跨轮保留。"""
         import json as _json
@@ -1603,6 +1620,40 @@ class CoreTest(unittest.TestCase):
         allr = sess_run.resume_plan({"rows": rows2, "now": now, "enabled": True, "max": 0,
                                     "resume_text": "续跑提示", "stale_text": "复位提示"})
         self.assertEqual(len(allr["resume"]), 3)
+
+    def test_session_stuck_plan_classifies_missing_and_stalled(self):
+        """自愈扫描：任务丢失 / 停滞超阈值复位 idle；在途新鲜会话保留；非 running 不碰。"""
+        now = 1000000
+        rows = [
+            {"path": "dead.yaml", "rec": {"id": "dead", "status": "running"}, "idle_seconds": 3},
+            {"path": "stalled.yaml", "rec": {"id": "stalled", "status": "running"}, "idle_seconds": 99999},
+            {"path": "live.yaml", "rec": {"id": "live", "status": "running"}, "idle_seconds": 5},
+            {"path": "idle.yaml", "rec": {"id": "idle", "status": "idle"}, "idle_seconds": 1},
+        ]
+        plan = sess_run.stuck_plan({"rows": rows, "active": ["stalled", "live"], "now": now,
+                                    "enabled": True, "idle_seconds": 30 * 60,
+                                    "stale_text": "卡死复位提示"})
+        self.assertEqual([i["id"] for i in plan["stuck"]], ["dead", "stalled"])
+        self.assertEqual(plan["keep"], ["live"])
+        dead = plan["stuck"][0]["rec"]
+        self.assertEqual(dead["status"], "idle")
+        self.assertEqual(dead["meta"]["last_error"]["code"], "stuck_missing_task")
+        self.assertEqual(dead["updated"], now)
+        stalled = plan["stuck"][1]["rec"]
+        self.assertEqual(stalled["meta"]["last_error"]["code"], "stuck_stalled")
+        self.assertEqual(stalled["meta"]["last_error"]["error"], "卡死复位提示")
+        # 关开关：一律保留不复位
+        off = sess_run.stuck_plan({"rows": rows, "active": [], "now": now,
+                                   "enabled": False, "idle_seconds": 30 * 60,
+                                   "stale_text": "x"})
+        self.assertEqual(off["stuck"], [])
+        self.assertEqual(len(off["keep"]), 3)
+        # 不设停滞阈值：在途会话不按 stalled 复位，仅任务丢失的复位
+        nolimit = sess_run.stuck_plan({"rows": rows, "active": ["stalled", "live"], "now": now,
+                                        "enabled": True, "idle_seconds": 0,
+                                        "stale_text": "x"})
+        self.assertEqual([i["id"] for i in nolimit["stuck"]], ["dead"])
+        self.assertEqual(nolimit["keep"], ["stalled", "live"])
 
     def test_skill_unit_pure_functions(self):
         # install_parts：流程拆不出 → flow=null、skill.flow 留空；岗位/工具带同一 skill 归属

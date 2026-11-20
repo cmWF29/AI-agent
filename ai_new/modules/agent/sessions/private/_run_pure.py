@@ -131,6 +131,42 @@ def resume_plan(p):
     return {"resume": resume, "stale": stale}
 
 
+def stuck_plan(p):
+    """运行期自愈扫描：把卡在 running 但已无在途任务、或停滞超阈值的会话复位 idle。
+
+    - missing_task：运行表已无对应未完成任务（任务收尾/异常丢失，记录没复位）；
+    - stalled：仍在运行表，但距上次更新已超停滞阈值，按卡死保守复位。
+    复位只落盘为 idle，不自动重跑；续跑交启动 resume 或人工触发。纯比较定型，
+    时间换算与落盘交编排/能力层。
+    """
+    enabled = bool(p.get("enabled", True))
+    active = set(p.get("active") or [])
+    idle_limit = int(p.get("idle_seconds") or 0)
+    stale_text = p.get("stale_text") or ""
+    now = p.get("now") or ""
+    stuck, keep = [], []
+    for item in p.get("rows") or []:
+        rec = dict((item or {}).get("rec") or {})
+        sid = rec.get("id")
+        if rec.get("status") != "running":
+            continue
+        in_active = sid in active
+        idle = int((item or {}).get("idle_seconds") or 0)
+        missing_task = not in_active
+        stalled = in_active and idle_limit > 0 and idle >= idle_limit
+        if enabled and (missing_task or stalled):
+            meta = dict(rec.get("meta") or {})
+            code = "stuck_missing_task" if missing_task else "stuck_stalled"
+            meta["last_error"] = {"code": code, "error": stale_text}
+            rec["meta"] = meta
+            rec["status"] = "idle"
+            rec["updated"] = now
+            stuck.append({"path": (item or {}).get("path"), "rec": rec, "id": sid})
+        else:
+            keep.append(sid)
+    return {"stuck": stuck, "keep": keep}
+
+
 def reply(p):
     rec = p.get("rec") or {}
     msgs = rec.get("messages") or []

@@ -1,0 +1,55 @@
+id: session-stuck-scan
+title: 自愈扫描：读配置与文案 → 对照活跃任务/停滞阈值 → 复位僵死 running 并落盘
+description: 运行期兜底：遍历在途会话，对照运行表活跃任务与停滞阈值，把任务丢失或停滞超时的 running 会话复位 idle；判定归模块，落盘交 apply。只复位不重跑，续跑交启动 resume 或人工触发
+tags:
+- session
+- write
+- async
+enabled: true
+callable: true
+'on': []
+do:
+- call: config.get
+  with:
+    key:
+      lit: sessions.stuck_check.enabled
+  as: cfg_enabled
+- call: config.get
+  with:
+    key:
+      lit: sessions.stuck_check.idle_minutes
+  as: cfg_idle
+- call: store.read
+  with:
+    module:
+      lit: agent/sessions
+    path:
+      lit: messages.yaml
+  as: tpl
+- call: sessions.scan_stuck
+  with:
+    enabled:
+      get: cfg_enabled.value
+    idle_minutes:
+      get: cfg_idle.value
+    stale_text:
+      get: tpl.value.stuck_scan_reset
+  as: plan
+- call: runtime.apply
+  with:
+    effect:
+      get: plan.effects
+    echo:
+      get: plan
+  as: applied
+expect:
+  given:
+    input: {}
+  calls:
+  - config.get
+  - config.get
+  - store.read
+  - sessions.scan_stuck
+  - runtime.apply
+  payload: {}
+  promise: 活跃对照与停滞判定归模块，复位写盘交 apply；只复位不自动重跑
