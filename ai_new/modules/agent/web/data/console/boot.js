@@ -107,7 +107,8 @@ function machineHtml(m) {
     return `<span class="st-pill ${cls}" title="${esc(st.desc || st.id)}">${esc(st.cn || st.id)}</span>`;
   }).join(`<span class="st-arrow">→</span>`);
   const cur = states.find((st) => st.id === mc.stage) || {};
-  const acts = active.map((id) => (states.find((st) => st.id === id) || {}).cn || id);
+  const acts = active.filter((id) => id !== mc.stage)
+    .map((id) => (states.find((st) => st.id === id) || {}).cn || id);
   return `<div class="p-row"><span>流程</span><div>
     <div class="p-flow">${esc((mc.flow || {}).cn || (mc.flow || {}).id || "—")}</div>
     <div class="st-chain">${chain}</div>

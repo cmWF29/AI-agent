@@ -373,7 +373,8 @@ function roleBoardHtml(roles) {
     const mc = r.machine || {};
     const states = mc.states || [];
     const cur = states.find((s) => s.id === mc.stage) || {};
-    const acts = (mc.active || []).map((id) => (states.find((s) => s.id === id) || {}).cn || id);
+    const acts = (mc.active || []).filter((id) => id !== mc.stage)
+      .map((id) => (states.find((s) => s.id === id) || {}).cn || id);
     const idx = arr(roles).indexOf(r);
     return `<button class="role-mini st-${statusKind(r.status)}" data-member="${idx}" title="${esc((mc.flow || {}).cn || "")}">
       <i class="rm-dot"></i><b>${esc(r.display || r.role)}</b>
