@@ -177,11 +177,9 @@ def _role_guard(ctx, payload):
     ov = payload.get("project_overrides") or {}
     if role not in set(ov.get("roles") or []):
         return ""
-    seed = ctx.api.call("store.read", {
-        "module": "agent/library", "path": "seed.yaml"}, caller=None)
-    for rec in (seed.get("value") or {}).get("roles") or []:
-        if rec.get("id") == role and (rec.get("system") or rec.get("readonly")):
-            return ""
+    # 内置系统/只读岗位恒定受保护：岗位属性由编排层从契约里取出传进来，模块不读库。
+    if payload.get("role_system") or payload.get("role_readonly"):
+        return ""
     tpl = _msg_tpl(ctx).get("role_disabled") or ""
     return tpl.format(role=role, project=project) if tpl else ""
 

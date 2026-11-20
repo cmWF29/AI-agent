@@ -182,6 +182,10 @@ do:
       get: input.project
     project_overrides:
       get: proj.value.overrides
+    role_system:
+      get: rec.item.system
+    role_readonly:
+      get: rec.item.readonly
     role:
       get: input.role
     max_steps:
