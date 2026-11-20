@@ -2429,16 +2429,43 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(by_sid["role-1"]["task"], "任务 x")
 
     def test_spawn_refuses_role_disabled_by_project(self):
-        """项目里禁用岗位必须联动到派单：禁掉的岗位不能再被拉起，内置只读岗位不受影响。"""
+        """项目里禁用岗位必须联动到派单：禁掉的岗位不能再被拉起，且拒绝原因要显形。
+
+        走需求入口而不是直连能力：项目档案由编排层读出并作为 project_overrides 传给能力，
+        sessions 不自己碰 projects 目录；引擎把失败那一步（sessions.spawn）连带 ApiError 文案带出来。
+        """
         self.ctx.api.call("store.write", {"module": "agent/projects", "path": "p-demo.yaml",
             "value": {"id": "p-demo", "name": "p-demo",
-                      "overrides": {"roles": ["developer", "pm"]}}}, caller=None)
-        with self.assertRaises(self.ctx.ApiError) as caught:
-            self.ctx.api.call("sessions.spawn", {"kind": "role", "role": "developer",
-                "project": "p-demo", "ticket": "T-x", "name": "x"}, caller=None)
-        self.assertEqual(caught.exception.code, "role_disabled")
+                      "overrides": {"roles": ["developer"]}}}, caller=None)
+        res = self.ctx.api.call("demand_engine.run", {"id": "session-spawn", "input": {
+            "kind": "role", "role": "developer", "project": "p-demo",
+            "ticket": "T-x", "name": "x"}}, caller=None)
+        self.assertFalse(res.get("ok"))
+        failed = res.get("failed") or {}
+        self.assertEqual(failed.get("call"), "sessions.spawn")
+        self.assertIn("已被禁用", failed.get("error", ""))
+        self.assertIn("p-demo", failed.get("error", ""))
         self.ctx.api.call("store.remove", {"module": "agent/projects",
             "path": "p-demo.yaml"}, caller=None)
+
+    def test_thread_carries_wire_brief_and_wire_at_reads_raw(self):
+        """报文原文不再随群聊流下发：视图只带摘要与序位，原文按需回读同一条消息。"""
+        from ai_new.modules.agent.tickets.private import _pure as ticket_pure
+        from ai_new.modules.agent.sessions.private import _pure as session_pure
+        raw = {"url": "http://x/v1/chat/completions", "model": "m", "status": 200,
+               "stream": True, "request": '{"messages":[]}', "response": "data: {\"a\":1}"}
+        stamped = ticket_pure._stamp([{"role": "assistant", "content": "hi", "wire": raw}],
+                                     "s1", "pm", 1.0)
+        brief = stamped[0]["wire"]
+        self.assertEqual(brief["seq"], 0)
+        self.assertEqual(brief["req_len"], len(raw["request"]))
+        self.assertNotIn("request", brief)
+        got = session_pure.wire_at({"rec": {"id": "s1", "messages": [
+            {"role": "assistant", "wire": raw}]}, "seq": 0})
+        self.assertTrue(got["ok"])
+        self.assertEqual(got["wire"]["request"], raw["request"])
+        miss = session_pure.wire_at({"rec": {"id": "s1", "messages": []}, "seq": 0})
+        self.assertFalse(miss["ok"])
 
     def test_llm_wire_masks_secret_and_keeps_raw(self):
         """网络报文要能原样回查：请求体与响应原文保留，密钥类头打码。"""

@@ -156,6 +156,22 @@ def _todo_brief(rec):
             "current": ((doing[0] or {}).get("text") or "") if doing else ""}
 
 
+def _wire_brief(w, seq):
+    """网络报文只留"这一轮真发过什么"的壳：请求体与响应原文是几 KB 的重字段，
+    塞进群聊流会把首屏撑到兆级；原文按需用 message-wire 回读，视图只带定位与摘要。"""
+    if not isinstance(w, dict) or not w.get("url"):
+        return None
+    def _len(v):
+        if v is None:
+            return 0
+        return len(v) if isinstance(v, str) else len(str(v))
+    return {"url": w.get("url") or "", "method": w.get("method") or "POST",
+            "model": w.get("model") or "", "status": w.get("status"),
+            "stream": bool(w.get("stream")),
+            "req_len": _len(w.get("request")), "res_len": _len(w.get("response")),
+            "seq": seq}
+
+
 def _stamp(msgs, sid, actor, base):
     """给合并进群聊的消息打发言者与时间：缺 at 的用会话起始时刻加序位偏移兜底。"""
     out = []
@@ -164,6 +180,11 @@ def _stamp(msgs, sid, actor, base):
         mm = dict(m, session=sid, actor=actor)
         if not mm.get("at"):
             mm["at"] = start + i * 1e-4
+        brief = _wire_brief(mm.get("wire"), i)
+        if brief is None:
+            mm.pop("wire", None)
+        else:
+            mm["wire"] = brief
         out.append(mm)
     return out
 

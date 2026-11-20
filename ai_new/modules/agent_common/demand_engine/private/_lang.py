@@ -86,6 +86,7 @@ def run(stmts, scope, api, ctx, demand_id="", results=None):
             _run_one(stmt, scope, api, ctx, demand_id, results)
         except Exception as exc:  # noqa: BLE001 —— 需求出错不许外溢
             results.append({"demand": demand_id, "ok": False,
+                            "call": stmt.get("call") if isinstance(stmt, dict) else None,
                             "error": "%s: %s" % (type(exc).__name__, exc)})
     return results
 
@@ -98,6 +99,7 @@ async def arun(stmts, scope, api, ctx, demand_id="", results=None):
             await _arun_one(stmt, scope, api, ctx, demand_id, results)
         except Exception as exc:  # noqa: BLE001 —— 需求出错不许外溢
             results.append({"demand": demand_id, "ok": False,
+                            "call": stmt.get("call") if isinstance(stmt, dict) else None,
                             "error": "%s: %s" % (type(exc).__name__, exc)})
     return results
 

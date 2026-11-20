@@ -318,7 +318,7 @@ function groupBody(g) {
   return (calls.length ? toolGroupHtml(calls) : "") + texts.join("");
 }
 
-function renderBubbles(msgs, roles) {
+function renderBubbles(msgs, roles, wireDemand) {
   const groups = [];
   for (const it of pairItems(msgs)) {
     const m = it.owner || it.m || {};
@@ -341,13 +341,13 @@ function renderBubbles(msgs, roles) {
     return `<div class="msg ${side}">${side === "left" ? av : ""}
       <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
       <div class="bubble-stack">${bodies}</div>${ts ? `<div class="msg-ts">${esc(ts)}</div>` : ""}
-      ${wireHtml(g.items)}
+      ${wireHtml(g.items, wireDemand)}
       ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), "原文")}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
 }
 
 /* 消息与工单历程事件按时间穿插：同一时刻先消息后事件，无时间戳的排最前保序 */
-function streamHtml(msgs, events, roles) {
+function streamHtml(msgs, events, roles, wireDemand) {
   const stream = [];
   msgs.forEach((m, i) => stream.push({ kind: "m", at: atSeconds(m.at), i, m }));
   events.forEach((e, i) => stream.push({ kind: "e", at: e.at, i: msgs.length + i, e }));
@@ -355,7 +355,7 @@ function streamHtml(msgs, events, roles) {
   const out = [];
   let buf = [];
   const flush = () => {
-    if (buf.length) { out.push(renderBubbles(buf, roles)); buf = []; }
+    if (buf.length) { out.push(renderBubbles(buf, roles, wireDemand)); buf = []; }
   };
   for (const s of stream) {
     if (s.kind === "m") { buf.push(s.m); continue; }
@@ -398,23 +398,20 @@ function todoBoardHtml(todos) {
   return `<details class="todo-board"><summary>待办 ${done}/${list.length}${doing ? ` · 正在做：${esc(doing.text || "")}` : ""}</summary><div class="td-list">${rows}</div></details>`;
 }
 
-/* 网络报文：这一轮真实发出去/收回来的东西，请求体与响应原文，不是渲染结果 */
-function wireHtml(items) {
-  const w = arr(items).map((it) => ((it.owner || it.m) || {}).wire).find((x) => x && x.url);
-  if (!w) return "";
-  const cut = (v) => {
-    const t = typeof v === "string" ? v : JSON.stringify(v, null, 1);
-    return t.length > 3200 ? t.slice(0, 3200) + "\n…（截断，共 " + t.length + " 字符）" : t;
-  };
-  return `<details class="raw-box wire-box"><summary>网络报文 · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))}</summary>
-    <pre>POST ${esc(w.url)}
-模型：${esc(w.model || "—")} · 流式：${w.stream ? "是" : "否"}
-
-▸ 请求体
-${esc(cut(w.request))}
-
-▸ 响应原文
-${esc(cut(w.response))}</pre></details>`;
+/* 网络报文：这一轮真实发出去/收回来的东西。视图只带摘要（模型、状态、字节量），
+   请求体与响应原文在展开时按会话与序位回读 message-wire，不随首屏下发。 */
+function wireHtml(items, demand) {
+  const hit = arr(items).find((it) => {
+    const w = ((it.owner || it.m) || {}).wire;
+    return w && w.url;
+  });
+  if (!hit) return "";
+  const m = hit.owner || hit.m || {};
+  const w = m.wire;
+  const size = (v) => (typeof v === "number" && v > 0 ? `${v} 字符` : "—");
+  if (!demand) return "";
+  return `<details class="raw-box wire-box" data-demand="${esc(demand)}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary>网络报文 · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · 请求 ${esc(size(w.req_len))} / 响应 ${esc(size(w.res_len))}</summary>
+    <pre class="wire-body">展开即读原文…</pre></details>`;
 }
 
 /* 结构化原文：所有通信都是结构化对象，原样吐出看得到字段，不用猜 */
@@ -456,7 +453,7 @@ function chatHtml(sec, ctx) {
   const hiddenEvents = sec.hide_events || [];
   const events = groupEvents(sec.history_source ? ref(sec.history_source, ctx) : undefined)
     .filter((g) => !hiddenEvents.includes(g.event));
-  const stream = streamHtml(msgs, events, roles);
+  const stream = streamHtml(msgs, events, roles, sec.wire_demand || "");
   const hiddenMsgs = arr(src.messages).filter((m) => hidden.includes(m.role || ""));
   const inject = hiddenMsgs.length
     ? `<div class="inject">${rawHtml(hiddenMsgs, "系统注入 ×" + hiddenMsgs.length)}</div>` : "";

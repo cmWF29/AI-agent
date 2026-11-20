@@ -64,12 +64,24 @@ do:
     user:
       get: flows.value
   as: flow
+- call: config.get
+  with:
+    key:
+      lit: projects.paths
+  as: p_paths
+- call: projects.record_path
+  with:
+    paths:
+      get: p_paths.value
+    id:
+      get: input.project
+  as: p_rec
 - call: store.read
   with:
     module:
       lit: agent/projects
     path:
-      get: input.project
+      get: p_rec.path
   as: proj
 - call: library.stage_apply_overrides
   with:
@@ -168,6 +180,8 @@ do:
       get: input.ticket
     project:
       get: input.project
+    project_overrides:
+      get: proj.value.overrides
     role:
       get: input.role
     max_steps:
@@ -218,6 +232,8 @@ expect:
   - library.get
   - store.read
   - library.get
+  - config.get
+  - projects.record_path
   - store.read
   - library.stage_apply_overrides
   - library.stage_refs

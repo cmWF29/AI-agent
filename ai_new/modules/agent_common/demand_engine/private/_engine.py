@@ -84,8 +84,17 @@ class Engine:
             # 能力结果可以是任意形状（清单类返回列表），只有 dict 才看 ok 字段。
             ok = (bool(out.get("ok", True)) if isinstance(out, dict) else True) \
                 and all(r.get("ok") for r in results)
-            return {"ok": ok, "demand": demand_id, "result": out,
-                    "calls": [r.get("call") for r in results]}
+            res = {"ok": ok, "demand": demand_id, "result": out,
+                   "calls": [r.get("call") for r in results]}
+            # 失败步不吞：最后一步往往只是"无事可做"的空结果，真正被拒的原因在中间某一步，
+            # 不外显的话调用方只看到 ok:false 而拿不到 code/文案。
+            bad = next((r for r in results if not r.get("ok")), None)
+            if bad is not None:
+                res["failed"] = {"call": bad.get("call"),
+                                 "result": bad.get("result"),
+                                 "error": bad.get("error") or "",
+                                 "code": bad.get("code") or ""}
+            return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 
     def dispatch(self, hook, envelope):
@@ -115,8 +124,15 @@ class Engine:
             out = last.get("result")
             ok = (bool(out.get("ok", True)) if isinstance(out, dict) else True) \
                 and all(r.get("ok") for r in results)
-            return {"ok": ok, "demand": demand_id, "result": out,
-                    "calls": [r.get("call") for r in results]}
+            res = {"ok": ok, "demand": demand_id, "result": out,
+                   "calls": [r.get("call") for r in results]}
+            bad = next((r for r in results if not r.get("ok")), None)
+            if bad is not None:
+                res["failed"] = {"call": bad.get("call"),
+                                 "result": bad.get("result"),
+                                 "error": bad.get("error") or "",
+                                 "code": bad.get("code") or ""}
+            return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 
     async def adispatch(self, hook, envelope):

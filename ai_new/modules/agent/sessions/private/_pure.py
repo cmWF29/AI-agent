@@ -212,6 +212,31 @@ def record_path(p):
     return {"path": t.format(id=sid) if t else sid}
 
 
+def wire_at(p):
+    """按会话与消息序位取那一条的真实网络报文原文（请求体/响应原文）。
+
+    群聊视图只带 wire 摘要，原文在这条需求上按需回读：seq 是会话 messages 的原始索引，
+    与群聊里 brief 携带的 seq 同源，所以前端点开就能精确落到同一条。
+    """
+    rec = p.get("rec") or {}
+    msgs = rec.get("messages") or []
+    try:
+        seq = int(p.get("seq"))
+    except (TypeError, ValueError):
+        seq = -1
+    if seq < 0 or seq >= len(msgs):
+        return {"ok": False, "code": "not_found", "status": 404,
+                "error": p.get("tpl") or ""}
+    m = msgs[seq] or {}
+    w = m.get("wire")
+    if not isinstance(w, dict) or not w.get("url"):
+        return {"ok": False, "code": "no_wire", "status": 404,
+                "error": p.get("tpl") or ""}
+    return {"ok": True, "session": rec.get("id") or "", "seq": seq,
+            "role": m.get("role") or "", "at": m.get("at") or "",
+            "wire": w}
+
+
 def role_name(p):
     """角色会话名：岗位标识 - 工单 id，纯拼装。"""
     return {"name": "%s-%s" % (p.get("role") or "", p.get("id") or "")}

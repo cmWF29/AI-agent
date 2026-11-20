@@ -47,6 +47,7 @@ view:
     - system
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.members
+    wire_demand: message-wire
   - kind: composer
     lane: left
     placeholder: 发给 PM 的消息，Enter 发送

@@ -1,0 +1,41 @@
+id: message-wire
+title: 会话某条消息的 LLM 网络报文原文回读
+description: 群聊只带报文摘要，请求体与响应原文在这条需求上按会话与消息序位按需回读，首屏不下载大字段
+tags:
+- session
+- read
+- llm
+enabled: true
+callable: true
+'on': []
+do:
+- call: sessions.record_path
+  with:
+    id:
+      get: input.session
+  as: sp
+- call: store.read
+  with:
+    module:
+      lit: agent/logs
+    path:
+      get: sp.path
+  as: row
+- call: sessions.wire_at
+  with:
+    rec:
+      get: row.value
+    seq:
+      get: input.seq
+  as: out
+expect:
+  given:
+    input:
+      session: demo
+      seq: 0
+  calls:
+  - sessions.record_path
+  - store.read
+  - sessions.wire_at
+  payload: {}
+  promise: 原文按需回读，视图只带摘要，首屏不下载请求体与响应

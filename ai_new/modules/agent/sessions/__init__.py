@@ -32,6 +32,7 @@ def setup(ctx):
         ("sessions.resume_plan", _run_pure.resume_plan),
         ("sessions.stuck_plan", _run_pure.stuck_plan),
         ("sessions.active_same_role", _run_pure.active_same_role),
+        ("sessions.wire_at", _pure.wire_at),
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="sessions")
@@ -172,11 +173,8 @@ def _role_guard(ctx, payload):
     project = payload.get("project") or ""
     if not role or not project or (payload.get("kind") or "role") != "role":
         return ""
-    row = ctx.api.call("store.read", {
-        "module": "agent/projects", "path": project + ".yaml"}, caller=None)
-    if not row.get("value"):
-        return ""
-    ov = ctx.api.call("projects.override_parts", {"rec": row.get("value")}, caller=None)
+    # 项目档案由编排层读好传进来（sessions 不越权去碰 projects 目录），这里只做裁决。
+    ov = payload.get("project_overrides") or {}
     if role not in set(ov.get("roles") or []):
         return ""
     seed = ctx.api.call("store.read", {

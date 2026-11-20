@@ -74,6 +74,7 @@ checks:
   - library-role-prompt
   - library-summary
   - llm-chat
+  - message-wire
   - llm-chat-stream
   - logs-index
   - ops-export

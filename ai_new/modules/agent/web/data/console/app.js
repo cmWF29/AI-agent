@@ -316,3 +316,34 @@ function renderCrumb(spec, ctx) {
     return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
   }).join("");
 }
+
+/* 网络报文按需回读：视图只带摘要，展开时才去取请求体与响应原文。
+   toggle 不冒泡，必须捕获阶段监听。 */
+function wireText(w) {
+  const cut = (v) => {
+    const t = typeof v === "string" ? v : JSON.stringify(v == null ? "" : v, null, 1);
+    return t.length > 8000 ? t.slice(0, 8000) + "\n…（截断，共 " + t.length + " 字符）" : t;
+  };
+  return "POST " + (w.url || "") + "\n模型：" + (w.model || "—") + " · 流式：" + (w.stream ? "是" : "否") +
+    "\n\n▸ 请求体\n" + cut(w.request) + "\n\n▸ 响应原文\n" + cut(w.response);
+}
+document.addEventListener("toggle", async (e) => {
+  const box = e.target;
+  if (!box || !box.classList || !box.classList.contains("wire-box")) return;
+  const pre = box.querySelector(".wire-body");
+  if (!pre || !box.open) return;
+  if (pre.getAttribute("data-loaded")) return;
+  pre.textContent = "读取中…";
+  try {
+    const demand = box.getAttribute("data-demand") || "";
+    if (!demand) { pre.textContent = "这条消息没有声明报文回读入口"; return; }
+    const out = await run(demand, {
+      session: box.getAttribute("data-session") || "",
+      seq: Number(box.getAttribute("data-seq") || -1)
+    });
+    pre.textContent = wireText(out.wire || {});
+    pre.setAttribute("data-loaded", "1");
+  } catch (err) {
+    pre.textContent = "读取失败：" + (err && err.message ? err.message : err);
+  }
+}, true);
