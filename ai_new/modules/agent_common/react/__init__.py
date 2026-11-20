@@ -45,6 +45,24 @@ def _logs_paths(ctx):
     return row.get("value") or {}
 
 
+def _exec_tool(ctx, fn, targs, session):
+    """单条工具执行：注册表命中直跑；占位需求回退；工具报错归一成观察结果，不掀翻整轮。
+
+    在工具池线程内跑（阻塞子进程/外部调用都不占会话线程）；只负责取回结果，
+    写盘与消息回填由会话线程串行收口。
+    """
+    try:
+        out = ctx.api.call("tools.execute", {
+            "name": fn.get("name"), "args": targs, "defer": True,
+            "session": session}, caller=None)
+        if isinstance(out, dict) and out.get("deferred"):
+            out = ctx.runtime.call(out.get("demand"), out.get("input") or {})
+        return out
+    except ctx.ApiError as exc:
+        # 工具报错要作为观察结果回给模型，让它自己纠错，不能掀翻整轮
+        return {"ok": False, "error": exc.message, "code": exc.code}
+
+
 def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
     """工具输出分级：超限先落 ticket 层日志，回路径与读取提示；落盘失败兜底全文回填。"""
     cls = ctx.api.call("react.classify_tool",
@@ -178,21 +196,19 @@ def _route_run(ctx, payload):
             continue
         # 工具步：先把这条带 tool_calls 的 assistant 落检查点，崩溃后存档不丢这一步
         _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
+        # 同一轮的多条工具执行先全部提交到独立工具池并发跑，再按原顺序收口回填；
+        # 工具在池线程内并发阻塞，写盘/消息组装仍在会话线程串行，避免并发落盘竞争。
+        jobs = []
         tool_idx = 0
         for call in amsg.get("tool_calls") or []:
             tool_idx += 1
             fn = (call or {}).get("function") or {}
             raw = ctx.api.call("codec.json_decode", {"text": fn.get("arguments")}, caller=None)
             targs = ctx.api.call("react.args", {"value": raw.get("value")}, caller=None)
-            try:
-                out = ctx.api.call("tools.execute", {
-                    "name": fn.get("name"), "args": targs, "defer": True,
-                    "session": session}, caller=None)
-                if isinstance(out, dict) and out.get("deferred"):
-                    out = ctx.runtime.call(out.get("demand"), out.get("input") or {})
-            except ctx.ApiError as exc:
-                # 工具报错要作为观察结果回给模型，让它自己纠错，不能掀翻整轮
-                out = {"ok": False, "error": exc.message, "code": exc.code}
+            fut = ctx.runtime.submit_tool(_exec_tool, ctx, fn, targs, session)
+            jobs.append((call, fn, tool_idx, fut))
+        for call, fn, tool_idx, fut in jobs:
+            out = fut.result()
             enc = ctx.api.call("codec.json_encode", {"value": out}, caller=None)
             stamp = "%d-%d" % (steps, tool_idx)
             stash = _stash_tool_output(ctx, session, (call or {}).get("id"),

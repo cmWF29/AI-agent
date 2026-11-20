@@ -224,3 +224,11 @@ class Runtime:
     def _run_demand(self, demand, data):
         return self.ctx.api.call("demand_engine.run",
                                  {"id": demand, "input": data}, caller=None)
+
+    def submit_tool(self, fn, *args, **kwargs):
+        """把一条工具/子进程执行提交到独立工具池，返回 future；与会话调度池互不占坑。
+
+        并发模型：调用方先把同一轮的多条工具执行全部 submit，再逐个收 future 回填，
+        工具在工具池线程内并发跑；写盘/回填仍由会话线程串行收口，避免并发落盘竞争。
+        """
+        return self._tool_pool.submit(fn, *args, **kwargs)

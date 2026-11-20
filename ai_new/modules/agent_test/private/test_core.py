@@ -811,6 +811,49 @@ class CoreTest(unittest.TestCase):
             self.ctx.runtime.apply = orig_apply
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 
+    def test_react_tool_calls_run_concurrently(self):
+        """同一轮多个 tool_call 并发提交工具池：总耗时≈max(单工具) 而非 sum；回填按原序。"""
+        import time as _time
+        starts = []
+
+        def slow_tool(ctx, payload):
+            starts.append(_time.perf_counter())
+            _time.sleep(0.15)
+            return {"ok": True, "content": "done:" + str(payload.get("name"))}
+
+        self.ctx.api.substitute("tools.execute", slow_tool)
+        state = {"n": 0}
+
+        def stub_net(ctx, payload):
+            state["n"] += 1
+            if state["n"] == 1:
+                return {"ok": True, "status": 200, "headers": {}, "items": [{
+                    "choices": [{"delta": {"tool_calls": [
+                        {"index": 0, "id": "c1", "function": {"name": "t1", "arguments": "{}"}},
+                        {"index": 1, "id": "c2", "function": {"name": "t2", "arguments": "{}"}}]},
+                        "finish_reason": "tool_calls"}]}]}
+            return {"ok": True, "status": 200, "headers": {}, "items": [{
+                "choices": [{"delta": {"content": '{"reply":"完成","summary":""}',
+                                      "finish_reason": "stop"}}]}]}
+
+        self.ctx.api.substitute("net.request_stream", stub_net)
+        try:
+            t0 = _time.perf_counter()
+            res = self._run("react-run", {
+                "session": {"id": "cc-1", "summary": ""},
+                "messages": [{"role": "user", "content": "并行跑两个"}],
+                "tools": [], "path": "", "cancel": {"id": "cc-1", "since": 0}})
+            elapsed = _time.perf_counter() - t0
+            self.assertEqual(len(starts), 2, "两条工具都应被执行")
+            msgs = res["result"]["messages"]
+            tool_msgs = [m for m in msgs if m.get("role") == "tool"]
+            self.assertEqual([m.get("tool_call_id") for m in tool_msgs],
+                             ["c1", "c2"], "工具回填应保持模型给出的原顺序")
+            # 串行两条 0.15 应为 ≈0.30；并发应明显低于串行阈值。
+            self.assertLess(elapsed, 0.28, "两条工具应并发执行，总耗时≈max 而非 sum")
+        finally:
+            self.ctx.api.substitute("net.request_stream", self.fake_net)
+
     def test_session_resume_demand_forms_effects(self):
         """启动续跑需求：读配置/文案 → 能力分类残留 running → 成形 write+dispatch 效果清单。
 
