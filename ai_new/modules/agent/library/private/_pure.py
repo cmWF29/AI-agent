@@ -43,14 +43,16 @@ def _records(p):
     user = p.get("user") or {}
     kind = p.get("kind") or "roles"
     seed_recs = seed.get(kind) or []
-    system_ids = {r.get("id") for r in seed_recs if r.get("system")}
+    # 种子定义的条目恒以种子为准，用户覆盖层同名副本不挤掉种子契约；
+    # 覆盖层只登记运行时新增的自建条目。
+    protected = {r.get("id") for r in seed_recs if r.get("id")}
     out = {rid: dict(rec) for rid, rec in user.items()}
     for rec in seed_recs:
         rid = rec.get("id")
         if not rid:
             continue
-        if rid in out and rid not in system_ids:
-            continue  # 非系统内置允许用户库覆盖；系统内置恒定以种子为准
+        if rid in out and rid not in protected:
+            continue  # 非种子自建条目允许用户库覆盖；种子条目恒定以种子为准
         out[rid] = dict(rec, builtin=True)
     return out
 
@@ -76,28 +78,37 @@ def _check_desc(c, tpl):
 
 
 def _position(rec, flow, prompt_text="", tpl=None):
-    """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 代码性流程规范 + 产出约束。
+    """岗位 = 系统提示词引用 + 红线/必做 + 工具清单；流程规范独立挂在绑定的流程实体上。
 
+    岗位只持人格/职责/边界，不内嵌状态机；状态集/转移/验收来自绑定流程记录。
     正文取提示词文件内容；提示词归属模块由记录 prompt_module 标注。
     """
     tpl = tpl or {}
     flow = flow or {}
     checks = [dict(c, desc=_check_desc(c, tpl)) for c in (flow.get("checks") or [])]
+    stages = flow.get("states") or flow.get("stages") or []
+    must_outputs = []
+    for c in checks:
+        must_outputs.extend(c.get("paths") or [])
+    flow_id = rec.get("flow") or flow.get("id") or ""
     return {"id": rec.get("id"), "cn": rec.get("cn"),
             "prompt_file": rec.get("prompt_file"),
             "prompt_module": rec.get("prompt_module") or "agent/library",
             "prompt": prompt_text or "",
-            "must_outputs": rec.get("must_outputs") or [],
+            "must_outputs": must_outputs,
             "forbidden": rec.get("forbidden") or [],
             "must_dos": rec.get("must_dos") or [],
             "tools": rec.get("tools") or [],
-            "stages": rec.get("states") or rec.get("stages") or [],
+            "flow_id": flow_id,
+            "stages": stages,
             "skill": rec.get("skill") or "",
             "builtin": bool(rec.get("builtin")),
             "readonly": bool(rec.get("readonly")),
             "system": bool(rec.get("system")),
-            "flow": {"id": (flow or {}).get("id") or rec.get("id"),
-                     "checks": checks}}
+            "flow": {"id": flow.get("id") or flow_id,
+                     "cn": flow.get("cn") or "",
+                     "checks": checks,
+                     "states": stages}}
 
 
 def reviewp(p):
@@ -405,6 +416,58 @@ def stage_blockp(p):
     return {"system": "\n".join(lines)}
 
 
+def flow_contextp(p):
+    """把流程契约定形成独立结构化约束块：流程标识/状态全集/当前活跃态/可转移/验收标准。
+
+    data 部分（flow/active/states/checks）存档供后端与前端；content 是渲染后的可读文本，
+    进 LLM 上下文。纯数据成形，文案来自模板，不读盘不取时钟。
+    """
+    tpl = p.get("tpl") or {}
+    contract = p.get("contract") or {}
+    by = contract.get("by_id") or {}
+    active = _active_list(p) or [str(contract.get("initial") or "")]
+    flow = p.get("flow") or {}
+    states = []
+    for path, rec in by.items():
+        states.append({"id": path, "cn": rec.get("cn") or path,
+                       "desc": rec.get("desc") or "",
+                       "next": rec.get("next") or [],
+                       "terminal": bool(rec.get("terminal"))})
+    checks = [dict(c, desc=_check_desc(c, tpl)) for c in (p.get("checks") or [])]
+    lines = []
+    head = tpl.get("heading_flow_context") or tpl.get("heading_stage") or ""
+    if head:
+        lines.append(head)
+    flow_cn = flow.get("cn") or ""
+    flow_name_tpl = tpl.get("flow_name") or ""
+    if flow.get("id") and flow_name_tpl:
+        lines.append(flow_name_tpl.format(cn=flow_cn, id=flow.get("id")))
+    for path in active:
+        rec = by.get(path) or {}
+        cur = (tpl.get("stage_current") or "").format(cn=rec.get("cn") or path, id=path)
+        if cur:
+            lines.append(cur)
+        desc = rec.get("desc") or ""
+        if desc:
+            lines.append((tpl.get("stage_desc") or "").format(desc=desc))
+        nxt = rec.get("next") or []
+        if nxt:
+            nxt_cn = [by.get(x, {}).get("cn") or x for x in nxt]
+            lines.append((tpl.get("stage_next") or "").format(next="、".join(nxt_cn)))
+        elif rec.get("terminal"):
+            lines.append(tpl.get("stage_terminal") or "")
+    checks_head = tpl.get("heading_checks") or ""
+    if checks:
+        if checks_head:
+            lines.append(checks_head)
+        for c in checks:
+            lines.append("- " + (c.get("desc") or ""))
+    return {"kind": "flow-context",
+            "flow": {"id": flow.get("id") or "", "cn": flow_cn},
+            "active": active, "states": states, "checks": checks,
+            "content": "\n".join(lines)}
+
+
 def stage_gapsp(p):
     """把状态约束并入产物缺口：任一活跃状态非终态、非法跳转各成一条；无契约直通。"""
     tpl = p.get("tpl") or {}
@@ -497,7 +560,8 @@ def positionsp(p):
         sk = rec.get("skill")
         if sk and sk in disabled:
             continue
-        row = _position(rec, flows.get(rid) or {}, "", tpl)
+        flow_id = rec.get("flow") or rid
+        row = _position(rec, flows.get(flow_id) or {}, "", tpl)
         locked = bool(rec.get("system") or rec.get("readonly"))
         row["disabled"] = (rid in disabled_roles) and not locked
         if row["disabled"]:

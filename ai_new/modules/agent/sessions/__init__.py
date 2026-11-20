@@ -13,7 +13,7 @@ def setup(ctx):
     ctx.hooks.point("sessions.finished", ("id", "kind", "role", "ticket"), defer=True)
     pairs = [
         ("sessions.build", _pure.build),
-        ("sessions.refresh_stage_message", _pure.refresh_stage_message),
+        ("sessions.refresh_constraint_message", _pure.refresh_constraint_message),
         ("sessions.inject_assigned_message", _pure.inject_assigned_message),
         ("sessions.view", _pure.view),
         ("sessions.present", _pure.present),
@@ -211,6 +211,8 @@ def _route_spawn(ctx, payload):
         meta["tools"] = payload.get("tools")
     if payload.get("machine"):
         meta["machine"] = payload.get("machine")
+    if payload.get("flow"):
+        meta["flow"] = payload.get("flow")
     if payload.get("active"):
         meta["active"] = payload.get("active")
     if payload.get("stages"):
@@ -223,6 +225,7 @@ def _route_spawn(ctx, payload):
         "role": payload.get("role"), "project": payload.get("project"),
         "max_steps": payload.get("max_steps"), "meta": meta,
         "prompt": role_prompt,
+        "constraint": payload.get("constraint"),
         "injected": payload.get("injected") or "",
         "prefix": tpl.get("common_prompt") or "", "task": payload.get("task"), "intro": payload.get("intro"),
         "now": now.get("ts")}, caller=None)

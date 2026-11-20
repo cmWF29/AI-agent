@@ -2,15 +2,36 @@
 from __future__ import annotations
 
 
-def _seed(system, intro):
-    """会话开局消息：system 人设在前；原始需求作为第一条 user 消息在后。
+def _seed(system, intro, constraint=None):
+    """会话开局消息：system 人设在前；流程约束独立成结构化消息；原始需求作为首条 user 在后。
 
     PM 一句话没说时，会话里也必须看得见"用户到底要什么"，否则工单是个空壳。
     """
     msgs = [{"role": "system", "content": system}]
+    if constraint:
+        msgs.append({"role": "system", "kind": "flow-context",
+                     "constraint": constraint,
+                     "content": constraint.get("content") or ""})
     if intro:
         msgs.append({"role": "user", "content": intro})
     return msgs
+
+
+def refresh_constraint_message(p):
+    """用最新流程约束块替换独立的 flow-context 消息；人设 system 与其余消息保留不动。
+
+    约束块的结构化字段（constraint）与渲染文本（content）一并刷新；纯数据成形。
+    """
+    msgs = list(p.get("messages") or [])
+    constraint = p.get("constraint") or {}
+    if not constraint:
+        return {"messages": msgs}
+    content = constraint.get("content") or ""
+    for i, m in enumerate(msgs):
+        if m.get("kind") == "flow-context":
+            msgs[i] = dict(m, constraint=constraint, content=content)
+            break
+    return {"messages": msgs}
 
 
 def refresh_stage_message(p):
@@ -85,7 +106,7 @@ def build(p):
         "max_steps": p.get("max_steps"),
         "meta": p.get("meta") or {},
         "summary": "",
-        "messages": _seed(system, intro),
+        "messages": _seed(system, intro, p.get("constraint")),
     }
 
 

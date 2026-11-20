@@ -65,19 +65,26 @@ do:
     items:
       get: pt.result.items
   as: run_tools
-- call: library.stage_block
+- call: library.flow_context
   with:
     contract:
       get: contract
+    flow:
+      id:
+        get: row.value.meta.flow.id
+      cn:
+        get: row.value.meta.flow.cn
+    checks:
+      get: contract.checks
     active:
       get: row.value.meta.active
-  as: stblk
-- call: sessions.refresh_stage_message
+  as: fctx
+- call: sessions.refresh_constraint_message
   with:
     messages:
       get: row.value.messages
-    stage:
-      get: stblk.system
+    constraint:
+      get: fctx
   as: fresh_msgs
 - call: store.read
   with:
@@ -257,8 +264,8 @@ expect:
   - library.stage_contract
   - demand_engine.run
   - library.stage_tools
-  - library.stage_block
-  - sessions.refresh_stage_message
+  - library.flow_context
+  - sessions.refresh_constraint_message
   - store.read
   - tickets.record_path
   - store.read

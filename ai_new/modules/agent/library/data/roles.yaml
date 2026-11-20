@@ -2,9 +2,6 @@ architect:
   id: architect
   cn: 架构
   prompt_file: roles/architect.md
-  must_outputs:
-  - docs/**/*architect*
-  - docs/**/*架构*
   must_dos:
   - 输出结构设计文档（模块划分、接口、数据流、规则变更）并落到任务指定路径
   forbidden:
@@ -18,44 +15,12 @@ architect:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
-  states:
-  - id: study
-    cn: 研读
-    desc: 读现有代码、知识与需求，摸清约束与依据
-    tools:
-    - artifact_read
-    - knowledge_read
-    - knowledge_search
-    - ticket_read_doc
-    next:
-    - design
-  - id: design
-    cn: 结构设计
-    desc: 出模块划分、接口、数据流与规则变更的结构设计文档
-    tools:
-    - artifact_write
-    - knowledge_write
-    - ticket_note
-    next:
-    - study
-    - deliver
-  - id: deliver
-    cn: 交付
-    desc: 设计文档落档并交代依据
-    tools:
-    - ticket_note
-    next: []
-    terminal: true
   builtin: true
+  flow: architect
 developer:
   id: developer
   cn: 开发
   prompt_file: roles/developer.md
-  must_outputs:
-  - '**/*.py'
-  - '**/*.js'
-  - '**/*.go'
-  - '**/*.sh'
   must_dos:
   - 按验收标准实现并交付代码产物
   - 改完自己跑一遍验证，写明验证命令与结果
@@ -71,43 +36,12 @@ developer:
   - ticket_read_doc
   - ticket_note
   - shell
-  states:
-  - id: understand
-    cn: 理解
-    desc: 读懂验收标准与现有实现，明确改动范围
-    tools:
-    - artifact_read
-    - knowledge_read
-    - knowledge_search
-    - ticket_read_doc
-    next:
-    - implement
-  - id: implement
-    cn: 实现
-    desc: 按验收标准写代码并落盘产物
-    tools:
-    - artifact_write
-    - knowledge_write
-    - ticket_note
-    next:
-    - understand
-    - verify
-  - id: verify
-    cn: 自验交付
-    desc: 自己跑一遍验证，写明命令与结果后交付
-    tools:
-    - ticket_note
-    - shell
-    next: []
-    terminal: true
   builtin: true
+  flow: developer
 reviewer:
   id: reviewer
   cn: 评审
   prompt_file: roles/reviewer.md
-  must_outputs:
-  - docs/**/*review*
-  - docs/**/*评审*
   must_dos:
   - 逐条对照验收标准给出评审结论并落文档
   forbidden:
@@ -118,39 +52,12 @@ reviewer:
   - knowledge_read
   - ticket_read_doc
   - ticket_note
-  states:
-  - id: study
-    cn: 研读
-    desc: 读交付件与验收标准，逐条对照
-    tools:
-    - artifact_read
-    - knowledge_read
-    - ticket_read_doc
-    next:
-    - review
-  - id: review
-    cn: 逐条评审
-    desc: 给出通过项、缺口项与修复建议
-    tools:
-    - ticket_note
-    next:
-    - study
-    - deliver
-  - id: deliver
-    cn: 结论交付
-    desc: 评审结论落文档并交付
-    tools:
-    - ticket_note
-    next: []
-    terminal: true
   builtin: true
+  flow: reviewer
 tester:
   id: tester
   cn: 测试
   prompt_file: roles/tester.md
-  must_outputs:
-  - tests/**/*.py
-  - tests/**/*.md
   must_dos:
   - 交付测试用例或脚本并跑通，记录结果
   forbidden:
@@ -164,41 +71,12 @@ tester:
   - ticket_read_doc
   - ticket_note
   - shell
-  states:
-  - id: design
-    cn: 用例设计
-    desc: 依据验收标准设计测试用例或脚本
-    tools:
-    - artifact_read
-    - knowledge_read
-    - ticket_read_doc
-    - artifact_write
-    next:
-    - run
-  - id: run
-    cn: 执行
-    desc: 跑通用例或脚本，记录通过/失败数量与原因
-    tools:
-    - ticket_note
-    - shell
-    next:
-    - design
-    - report
-  - id: report
-    cn: 测试报告
-    desc: 汇总结果形成测试报告并交付
-    tools:
-    - artifact_write
-    - ticket_note
-    next: []
-    terminal: true
   builtin: true
+  flow: tester
 ops:
   id: ops
   cn: 运维
   prompt_file: roles/ops.md
-  must_outputs:
-  - docs/**/*.md
   must_dos:
   - 给出部署或恢复方案文档
   forbidden:
@@ -208,40 +86,12 @@ ops:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
-  states:
-  - id: diagnose
-    cn: 诊断
-    desc: 查服务状态、日志与停滞工单，定位现象与根因
-    tools:
-    - artifact_read
-    - knowledge_read
-    - knowledge_search
-    - ticket_read_doc
-    next:
-    - plan
-  - id: plan
-    cn: 方案
-    desc: 给出部署或恢复方案与恢复标准
-    tools:
-    - knowledge_read
-    - ticket_read_doc
-    next:
-    - diagnose
-    - deliver
-  - id: deliver
-    cn: 交付
-    desc: 方案文档落档并交付
-    tools:
-    - ticket_read_doc
-    next: []
-    terminal: true
   builtin: true
+  flow: ops
 researcher:
   id: researcher
   cn: 调研
   prompt_file: roles/researcher.md
-  must_outputs:
-  - docs/**/*.md
   must_dos:
   - 输出调研结论文档并标注来源
   forbidden:
@@ -251,40 +101,12 @@ researcher:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
-  states:
-  - id: scope
-    cn: 界定边界
-    desc: 明确调研问题边界与待答结论
-    tools:
-    - knowledge_read
-    - ticket_read_doc
-    next:
-    - search
-  - id: search
-    cn: 检索调研
-    desc: 多来源查证，结论附证据来源
-    tools:
-    - knowledge_search
-    - artifact_read
-    - knowledge_read
-    next:
-    - scope
-    - deliver
-  - id: deliver
-    cn: 结论交付
-    desc: 调研结论文档落档并标注来源
-    tools:
-    - artifact_read
-    - knowledge_read
-    next: []
-    terminal: true
   builtin: true
+  flow: researcher
 writer:
   id: writer
   cn: 文案
   prompt_file: roles/writer.md
-  must_outputs:
-  - docs/**/*.md
   must_dos:
   - 交付对应文案文档
   forbidden:
@@ -294,39 +116,12 @@ writer:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
-  states:
-  - id: gather
-    cn: 读素材
-    desc: 读需求与现有素材，明确文案对象与格式
-    tools:
-    - artifact_read
-    - knowledge_read
-    - ticket_read_doc
-    next:
-    - draft
-  - id: draft
-    cn: 撰写
-    desc: 按要求格式撰写文案
-    tools:
-    - artifact_write
-    next:
-    - gather
-    - deliver
-  - id: deliver
-    cn: 文案交付
-    desc: 文案文档落档并交付
-    tools:
-    - artifact_write
-    next: []
-    terminal: true
   builtin: true
+  flow: writer
 process:
   id: process
   cn: 流程专家
   prompt_file: roles/process.md
-  must_outputs:
-  - docs/**/*.yaml
-  - docs/**/*.md
   must_dos:
   - 输出流程或规则配置文档
   forbidden:
@@ -336,39 +131,12 @@ process:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
-  states:
-  - id: survey
-    cn: 梳理现状
-    desc: 读现有流程与规则，摸清节点与校验项
-    tools:
-    - artifact_read
-    - knowledge_read
-    - ticket_read_doc
-    next:
-    - design
-  - id: design
-    cn: 流程配置
-    desc: 产出节点、边、校验项与触发条件的流程配置
-    tools:
-    - artifact_write
-    next:
-    - survey
-    - deliver
-  - id: deliver
-    cn: 交付
-    desc: 流程规则文档落档并交付
-    tools:
-    - artifact_write
-    next: []
-    terminal: true
   builtin: true
+  flow: process
 skill-decomposer:
   id: skill-decomposer
   cn: 拆解者
   prompt_file: roles/skill-decomposer.md
-  must_outputs:
-  - docs/**/*拆解*
-  - docs/**/*.yaml
   must_dos:
   - 把外部 Skill.md 包拆成岗位角色、引用工具、流程规则三要素
   - 工具只引用注册表已有项，名单外的不写
@@ -382,30 +150,5 @@ skill-decomposer:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
-  states:
-  - id: inspect
-    cn: 读包
-    desc: 读外部 Skill.md 包，摸清岗位、工具与规则三要素
-    tools:
-    - artifact_read
-    - knowledge_read
-    - knowledge_search
-    - ticket_read_doc
-    next:
-    - split
-  - id: split
-    cn: 拆三要素
-    desc: 拆成岗位角色、引用工具、流程规则，依赖如实标注
-    tools:
-    - ticket_note
-    next:
-    - inspect
-    - deliver
-  - id: deliver
-    cn: 入库交付
-    desc: 三要素归同一标识入库交付
-    tools:
-    - ticket_note
-    next: []
-    terminal: true
   builtin: true
+  flow: skill-decomposer

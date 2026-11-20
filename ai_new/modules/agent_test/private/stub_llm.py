@@ -48,7 +48,7 @@ class StubPolicy:
 
     def __init__(self, script=None, tool_rate=0.0, spawn_rate=0.0, delay_base=0.0,
                  delay_jitter=0.0, close_rate=0.0, fail_code=0, fail_rate=0.0, token_limit=0,
-                 pm_roles=None, role_rounds=1, filler_words=120, max_role_steps=0):
+                 pm_roles=None, role_rounds=1, filler_words=120):
         self.script = list(script or [])
         self.tool_rate = float(tool_rate)
         self.spawn_rate = float(spawn_rate)
@@ -62,8 +62,6 @@ class StubPolicy:
         self.pm_roles = list(pm_roles or ["developer", "tester", "reviewer"])
         self.role_rounds = int(role_rounds or 1)
         self.filler_words = int(filler_words or 120)
-        # 角色单轮最多连续工具步（0 不限，兼容压测全序列；演示设小值快速收口）。
-        self.max_role_steps = int(max_role_steps or 0)
 
 
 def _tool_frame(call_id, name, arguments):
@@ -150,6 +148,32 @@ def _filler(tool, words):
         out += extras[i % len(extras)]
         i += 1
     return out[:words]
+
+
+def _checks_paths(checks):
+    paths = []
+    for c in checks or []:
+        paths.extend(c.get("paths") or [])
+    return paths
+
+
+def _write_path(patterns):
+    """把验收 glob 模式落成一个可命中该模式的具体路径；桩模拟用，规则以后端契约为准。"""
+    for pat in patterns:
+        if not pat:
+            continue
+        segs = [s for s in pat.split("/") if s and s != "**"]
+        out = []
+        for s in segs:
+            if "*" in s or "?" in s:
+                out.append(re.sub(r"[*?]+", "", s) or "item")
+            else:
+                out.append(s)
+        path = "/".join(out)
+        if "." not in path.rsplit("/", 1)[-1]:
+            path += ".md"
+        return path
+    return "docs/feature.md"
 
 
 def _sse_payload(frames):
@@ -280,9 +304,10 @@ class _Handler(BaseHTTPRequestHandler):
         def _args(tool):
             filler = _filler(tool, policy.filler_words)
             if tool == "artifact_write":
-                return {"layer": "ticket", "path": "docs/feature.md", "content": filler}
+                return {"layer": "ticket", "path": _write_path(_checks_paths(checks)),
+                        "content": filler}
             if tool == "artifact_read":
-                return {"layer": "ticket", "path": "docs/feature.md"}
+                return {"layer": "ticket", "path": _write_path(_checks_paths(checks))}
             if tool == "knowledge_write":
                 return {"layer": "ticket", "name": "round-note", "content": filler}
             if tool == "knowledge_read":
@@ -293,14 +318,17 @@ class _Handler(BaseHTTPRequestHandler):
                 return {"text": filler}
             return {}
 
-        # 从 system 提示识别岗位与当前状态（压测桩脚本化模拟；正式流程以后端契约为准）。
+        # 结构化流程约束块优先（spawn/run 落盘的 flow-context 消息）；文本正则兜底。
+        ctx = next((m.get("constraint") for m in msgs
+                    if m.get("kind") == "flow-context" and m.get("constraint")), None) or {}
         sys_text = " ".join(m.get("content") or "" for m in msgs if m.get("role") == "system")
-        role = ""
+        role = (ctx.get("flow") or {}).get("id") or ""
         # 先按角色 id 直接命中，再回退中文称谓；id 与称谓均来自 roles.yaml 契约。
-        for rid in _ROLE_NEXT:
-            if rid in sys_text:
-                role = rid
-                break
+        if not role:
+            for rid in _ROLE_NEXT:
+                if rid in sys_text:
+                    role = rid
+                    break
         if not role:
             for kw, rid in (("开发角色", "developer"), ("测试角色", "tester"),
                              ("评审角色", "reviewer"), ("架构", "architect"),
@@ -309,17 +337,19 @@ class _Handler(BaseHTTPRequestHandler):
                     role = rid
                     break
         cur = ""
-        mcur = re.search(r"当前阶段：[^（(]*（([a-z_]+)", sys_text)
-        if mcur:
-            cur = mcur.group(1)
+        if ctx.get("active"):
+            cur = ctx["active"][0]
+        if not cur:
+            mcur = re.search(r"当前阶段：[^（(]*（([a-z_]+)", sys_text)
+            if mcur:
+                cur = mcur.group(1)
+        checks = ctx.get("checks") or []
 
-        if role:
+        if role in _ROLE_NEXT:
             chain = _ROLE_NEXT.get(role) or []
             steps = [t for t in _ROLE_STEPS if t in by_name]
             if policy.role_rounds > 1:
                 steps = steps * policy.role_rounds
-            if policy.max_role_steps > 0:
-                steps = steps[:policy.max_role_steps]
             # 已回填的工具结果条数即已走完的工具步；未走完则继续回下一步工具，
             # 让角色按状态链逐态推进、产出多轮多消息，走完工具序列后再收口。
             tool_n = sum(1 for m in msgs if m.get("role") == "tool")

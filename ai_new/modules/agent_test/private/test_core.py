@@ -986,6 +986,17 @@ class CoreTest(unittest.TestCase):
         names = {t["name"] for t in sp["result"].get("meta", {}).get("tools") or []}
         self.assertIn("artifact_read", names)
         self.assertNotIn("role_spawn", names)
+        # 流程约束独立成结构化消息：流程标识/当前态/状态全集/验收标准随消息落盘
+        ctx_msg = next((m for m in sp["result"]["messages"]
+                        if m.get("kind") == "flow-context"), None)
+        self.assertIsNotNone(ctx_msg, "应落独立流程约束消息")
+        c = ctx_msg["constraint"]
+        self.assertEqual(c["flow"]["id"], "developer")
+        self.assertIn("understand", c["active"])
+        self.assertEqual([s["id"] for s in c["states"]],
+                         ["understand", "implement", "verify"])
+        self.assertTrue(c["checks"])
+        self.assertEqual(sp["result"]["meta"]["flow"]["id"], "developer")
         self._run("session-send", {"id": sid, "text": "开始"})
         # 收口步桩返回严格 JSON：reply 进气泡，summary 拆出存滚动摘要
         import json as _json

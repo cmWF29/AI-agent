@@ -58,7 +58,7 @@ do:
     kind:
       lit: flows
     id:
-      get: input.role
+      get: rec.item.flow
     seed:
       get: seed.value
     user:
@@ -74,7 +74,7 @@ do:
 - call: library.stage_apply_overrides
   with:
     states:
-      get: rec.item.states
+      get: flow.item.states
     remove:
       get: proj.value.overrides.states
   as: ov
@@ -117,13 +117,20 @@ do:
     items:
       get: tools.result.items
   as: stools
-- call: library.stage_block
+- call: library.flow_context
   with:
     contract:
       get: contract
+    flow:
+      id:
+        get: flow.item.id
+      cn:
+        get: flow.item.cn
+    checks:
+      get: flow.item.checks
     active:
     - get: contract.initial
-  as: stblk
+  as: fctx
 - call: library.prompt_blocks
   with:
     text:
@@ -132,8 +139,6 @@ do:
       get: rec.item.must_dos
     forbidden:
       get: rec.item.forbidden
-    stage:
-      get: stblk.system
   as: blocks
 - call: knowledge.project_prefix
   with:
@@ -185,6 +190,10 @@ do:
       get: input.intro
     role_prompt:
       get: blocks.system
+    constraint:
+      get: fctx
+    flow:
+      get: fctx.flow
     injected:
       get: know.result.text
   as: out
@@ -215,7 +224,7 @@ expect:
   - library.stage_contract
   - demand_engine.run
   - library.stage_tools
-  - library.stage_block
+  - library.flow_context
   - library.prompt_blocks
   - knowledge.project_prefix
   - demand_engine.run

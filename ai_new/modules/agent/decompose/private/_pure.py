@@ -315,10 +315,11 @@ def install_parts(p):
                    "must_dos": role.get("must_dos") or [],
                    "forbidden": role.get("forbidden") or [],
                    "tools": role_tools,
+                   "flow": rid,
                    "prompt_file": "",
                    "skill": rid, "builtin": False}
 
-    flow_record = {"id": rid, "role": rid, "skill": rid}
+    flow_record = {"id": rid, "skill": rid}
     flow_id = ""
     if flow.get("checks"):
         flow_record["checks"] = flow.get("checks")

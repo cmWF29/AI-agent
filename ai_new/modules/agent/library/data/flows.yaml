@@ -1,6 +1,5 @@
 architect:
   id: architect
-  role: architect
   checks:
   - kind: glob
     paths:
@@ -11,7 +10,6 @@ architect:
   builtin: true
 developer:
   id: developer
-  role: developer
   checks:
   - kind: glob
     paths:
@@ -24,7 +22,6 @@ developer:
   builtin: true
 reviewer:
   id: reviewer
-  role: reviewer
   checks:
   - kind: glob
     paths:
@@ -35,7 +32,6 @@ reviewer:
   builtin: true
 tester:
   id: tester
-  role: tester
   checks:
   - kind: glob
     paths:
@@ -46,7 +42,6 @@ tester:
   builtin: true
 ops:
   id: ops
-  role: ops
   checks:
   - kind: glob
     paths:
@@ -56,7 +51,6 @@ ops:
   builtin: true
 researcher:
   id: researcher
-  role: researcher
   checks:
   - kind: glob
     paths:
@@ -66,7 +60,6 @@ researcher:
   builtin: true
 writer:
   id: writer
-  role: writer
   checks:
   - kind: glob
     paths:
@@ -76,7 +69,6 @@ writer:
   builtin: true
 process:
   id: process
-  role: process
   checks:
   - kind: glob
     paths:
@@ -87,7 +79,6 @@ process:
   builtin: true
 skill-decomposer:
   id: skill-decomposer
-  role: skill-decomposer
   checks:
   - kind: glob
     paths:
@@ -101,17 +92,23 @@ requirement-owner:
   kind: process
   states:
   - id: req.intake
-    next: [req.structure]
+    next:
+    - req.structure
   - id: req.structure
-    next: [req.plan]
+    next:
+    - req.plan
   - id: req.plan
-    next: [req.split]
+    next:
+    - req.split
   - id: req.split
-    next: [req.execute]
+    next:
+    - req.execute
   - id: req.execute
-    next: [req.accept]
+    next:
+    - req.accept
   - id: req.accept
-    next: [req.close]
+    next:
+    - req.close
   - id: req.close
     next: []
     terminal: true
@@ -121,15 +118,20 @@ ticket-health:
   kind: process
   states:
   - id: scan.run
-    next: [scan.judge]
+    next:
+    - scan.judge
   - id: scan.judge
-    next: [scan.audit]
+    next:
+    - scan.audit
   - id: scan.audit
-    next: [ops.diagnose]
+    next:
+    - ops.diagnose
   - id: ops.diagnose
-    next: [ops.recover]
+    next:
+    - ops.recover
   - id: ops.recover
-    next: [audit.close]
+    next:
+    - audit.close
   - id: audit.close
     next: []
     terminal: true

@@ -19,7 +19,7 @@ def setup(ctx):
         ("library.stage_contract", _pure.stage_contractp),
         ("library.stage_transition", _pure.stage_transitionp),
         ("library.stage_tools", _pure.stage_toolsp),
-        ("library.stage_block", _pure.stage_blockp),
+        ("library.flow_context", _pure.flow_contextp),
         ("library.stage_gaps", _pure.stage_gapsp),
         ("library.stage_conditions", _pure.stage_conditionsp),
         ("library.stage_apply_overrides", _pure.stage_apply_overridesp),
