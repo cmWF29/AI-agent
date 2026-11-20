@@ -243,7 +243,7 @@ function pairItems(msgs) {
     for (const tc of m.tool_calls || []) {
       const fn = (tc && tc.function) || {};
       const call = { kind: "call", name: fn.name || "", args: fn.arguments || "", result: null,
-                     at: atSeconds(m.at) };
+                     at: atSeconds(m.at), owner: m };
       items.push(call);
       if (tc && tc.id) pending[tc.id] = call;
     }
@@ -262,6 +262,7 @@ function toolBrief(m) {
   }
   const bits = [];
   for (const k of TOOL_META_ORDER) {
+    if (k === "demand") continue;
     let v = o[k];
     if (v == null || v === "" || typeof v === "object") continue;
     if (typeof v === "boolean") v = v ? "是" : "否";
@@ -295,7 +296,7 @@ function itemHtml(it) {
 function renderBubbles(msgs, roles) {
   const groups = [];
   for (const it of pairItems(msgs)) {
-    const m = it.m || {};
+    const m = it.owner || it.m || {};
     const cls = it.kind === "tool" ? "tool" : bubbleClass(m);
     const who = cls === "system" ? "" : speakerOf(m, roles);
     const key = cls + "|" + who;
@@ -359,7 +360,9 @@ function chatHtml(sec, ctx) {
   const draftHtml = draftBubbleHtml(draft, roles);
   const summary = (src.summary || "").trim();
   const summaryHtml = summary ? `<details class="chat-summary"><summary>上下文摘要</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
-  const events = groupEvents(sec.history_source ? ref(sec.history_source, ctx) : undefined);
+  const hiddenEvents = sec.hide_events || [];
+  const events = groupEvents(sec.history_source ? ref(sec.history_source, ctx) : undefined)
+    .filter((g) => !hiddenEvents.includes(g.event));
   const stream = streamHtml(msgs, events, roles);
   const body = (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">

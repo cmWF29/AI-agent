@@ -39,6 +39,10 @@ view:
     - '{thread.ticket.project|project_name}'
     - '更新 {thread.ticket.updated|when}'
     history_source: thread.ticket.history
+    # 回催与备注在消息流里已有原文气泡/工具卡，历程事件不再重复一遍
+    hide_events:
+    - repush
+    - note
     hide_roles:
     - system
     empty: 还没有消息，PM 正在准备…
