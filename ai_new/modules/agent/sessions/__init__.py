@@ -163,6 +163,31 @@ def _seq_of(kind, items):
     return best + 1
 
 
+def _role_guard(ctx, payload):
+    """项目覆盖层禁用岗位就不许再拉这条线：岗位启停必须与派单联动，否则禁用只是展示。
+
+    内置只读/系统岗位恒定受保护，项目禁用标记对它们无效。
+    """
+    role = payload.get("role") or ""
+    project = payload.get("project") or ""
+    if not role or not project or (payload.get("kind") or "role") != "role":
+        return ""
+    row = ctx.api.call("store.read", {
+        "module": "agent/projects", "path": project + ".yaml"}, caller=None)
+    if not row.get("value"):
+        return ""
+    ov = ctx.api.call("projects.override_parts", {"rec": row.get("value")}, caller=None)
+    if role not in set(ov.get("roles") or []):
+        return ""
+    seed = ctx.api.call("store.read", {
+        "module": "agent/library", "path": "seed.yaml"}, caller=None)
+    for rec in (seed.get("value") or {}).get("roles") or []:
+        if rec.get("id") == role and (rec.get("system") or rec.get("readonly")):
+            return ""
+    tpl = _msg_tpl(ctx).get("role_disabled") or ""
+    return tpl.format(role=role, project=project) if tpl else ""
+
+
 def _route_spawn(ctx, payload):
     """造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。
 
@@ -171,6 +196,9 @@ def _route_spawn(ctx, payload):
     """
     kind = payload.get("kind") or "role"
     tpl = _msg_tpl(ctx)
+    guard = _role_guard(ctx, payload)
+    if guard:
+        raise ctx.ApiError(guard, code="role_disabled", status=403)
     logs_paths = _cfg_logs(ctx)
     prompt_paths = _cfg_prompt(ctx)
     listed = ctx.api.call("store.glob", {

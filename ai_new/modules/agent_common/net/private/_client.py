@@ -161,6 +161,7 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
     limit = float(timeout or 60)
     runtime = getattr(ctx, "runtime", None)
     items = []
+    raw_lines = []
     last = None
     for attempt in range(max(0, retries) + 1):
         reader = writer = None
@@ -188,11 +189,14 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
                 if not isinstance(obj, dict):
                     continue
                 items.append(obj)
+                if len(raw_lines) < 4000:
+                    raw_lines.append(line)
                 delta = (obj.get("choices") or [{}])[0].get("delta") or {}
                 piece = delta.get("content")
                 if piece and stream_key and runtime is not None:
                     runtime.stream_put(stream_key, piece)
-            return {"ok": True, "status": status, "items": items}
+            return {"ok": True, "status": status, "items": items,
+                    "raw": "\n".join(raw_lines)}
         except Exception as exc:  # noqa: BLE001 —— 读帧阶段失败不外抛
             code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
             last = {"ok": False, "status": 0, "error": str(exc), "code": code}

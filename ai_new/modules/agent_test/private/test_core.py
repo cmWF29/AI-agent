@@ -2428,6 +2428,33 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(by_sid["pm-1"]["task"], "把需求做完")
         self.assertEqual(by_sid["role-1"]["task"], "任务 x")
 
+    def test_spawn_refuses_role_disabled_by_project(self):
+        """项目里禁用岗位必须联动到派单：禁掉的岗位不能再被拉起，内置只读岗位不受影响。"""
+        self.ctx.api.call("store.write", {"module": "agent/projects", "path": "p-demo.yaml",
+            "value": {"id": "p-demo", "name": "p-demo",
+                      "overrides": {"roles": ["developer", "pm"]}}}, caller=None)
+        with self.assertRaises(self.ctx.ApiError) as caught:
+            self.ctx.api.call("sessions.spawn", {"kind": "role", "role": "developer",
+                "project": "p-demo", "ticket": "T-x", "name": "x"}, caller=None)
+        self.assertEqual(caught.exception.code, "role_disabled")
+        self.ctx.api.call("store.remove", {"module": "agent/projects",
+            "path": "p-demo.yaml"}, caller=None)
+
+    def test_llm_wire_masks_secret_and_keeps_raw(self):
+        """网络报文要能原样回查：请求体与响应原文保留，密钥类头打码。"""
+        from ai_new.modules.agent_common.llm.private import _client as llm_client
+        wire = llm_client.wire({"url": "http://x/v1/chat/completions",
+            "headers": {"Content-Type": "application/json", "Authorization": "Bearer sk-1",
+                        "X-Api-Key": "sk-2"},
+            "request": '{"model":"m","messages":[]}',
+            "status": 200, "response": 'data: {"choices":[]}', "model": "m", "stream": True})
+        self.assertEqual(wire["headers"]["Authorization"], "***")
+        self.assertEqual(wire["headers"]["X-Api-Key"], "***")
+        self.assertEqual(wire["headers"]["Content-Type"], "application/json")
+        self.assertIn('"model"', wire["request"])
+        self.assertTrue(wire["response"].startswith("data:"))
+        self.assertTrue(wire["stream"])
+
     def test_todo_ops_crud_and_patch(self):
         """待办是模型自排计划的工具：增删查改都走同一条能力，改过才回会话补丁。"""
         from ai_new.modules.agent.todos.private import _pure as todo_pure

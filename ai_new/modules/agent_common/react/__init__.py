@@ -134,13 +134,12 @@ async def _route_run(ctx, payload):
     view = ctx.api.call("react.attach_protocol", {
         "messages": view.get("messages") or [],
         "protocol": proto_row.get("value") or ""}, caller=None)
-    # 会话待办（模型自排的计划）每轮附一条 system 注记，避免它改完就忘；
-    # 流程状态机的阶段约束由 flow-context 消息承担，两者不混。
-    todo_note = ctx.api.call("todos.context", {
-        "todos": session.get("todos") or []}, caller=None)
+    # 额外系统注记（如会话待办、阶段提醒）由编排层算好传进来：react 不认识任何业务概念，
+    # 只负责把它接到本轮视图尾部；没有就给空。
     messages = list(view.get("messages") or [])
-    if (todo_note or {}).get("message"):
-        messages = messages + [todo_note["message"]]
+    extra = payload.get("extra")
+    if isinstance(extra, dict) and (extra.get("content") or "").strip():
+        messages = messages + [extra]
     new_msgs = []
     new_summary = summary
     new_stage = ""
@@ -190,6 +189,7 @@ async def _route_run(ctx, payload):
         amsg = ctx.api.call("react.assistant", {
             "content": parsed["reply"],
             "tool_calls": calls,
+            "wire": answer.get("wire"),
             "at": ctx.api.call("clock.now", {}, caller=None).get("ts")}, caller=None)
         messages = messages + [amsg]
         new_msgs.append(amsg)

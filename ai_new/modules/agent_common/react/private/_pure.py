@@ -26,12 +26,16 @@ def schemas(p):
 
 
 def assistant(p):
+    """助手消息成形：正文 + 工具调用 + 时刻；带了上游网络报文就一并挂上，方便回查原文。"""
     msg = {"role": "assistant", "content": p.get("content") or ""}
     calls = p.get("tool_calls") or []
     if calls:
         msg["tool_calls"] = calls
     if p.get("at"):
         msg["at"] = p["at"]
+    wire = p.get("wire")
+    if isinstance(wire, dict) and wire:
+        msg["wire"] = wire
     return msg
 
 

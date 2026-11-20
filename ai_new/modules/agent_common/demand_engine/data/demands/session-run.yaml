@@ -65,6 +65,11 @@ do:
     items:
       get: pt.result.items
   as: run_tools
+- call: todos.context
+  with:
+    todos:
+      get: row.value.todos
+  as: todo_ctx
 - call: library.flow_context
   with:
     contract:
@@ -165,6 +170,8 @@ do:
           get: now.ts
       path:
         get: sp2.path
+      extra:
+        get: todo_ctx.message
   as: out
 - call: sessions.record_path
   with:
@@ -266,6 +273,7 @@ expect:
   - library.stage_contract
   - demand_engine.run
   - library.stage_tools
+  - todos.context
   - library.flow_context
   - sessions.refresh_constraint_message
   - store.read

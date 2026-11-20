@@ -86,3 +86,19 @@ def decode_sse(items):
                                             "arguments": part["args"] or "{}"}})
     return {"ok": True, "content": "".join(content), "tool_calls": tool_calls or None,
             "finish": finish, "usage": None}
+
+def wire(p):
+    """网络报文成形：请求体、响应原文与连接事实，密钥类头一律打码，只留可回查的东西。
+
+    纯数据，不做 I/O；留存由调用方决定（当前随会话消息一并存档，原文可在前端展开）。
+    """
+    headers = dict(p.get("headers") or {})
+    for key in list(headers):
+        low = str(key).lower()
+        if "key" in low or "auth" in low or "token" in low:
+            headers[key] = "***"
+    return {"url": p.get("url") or "", "method": p.get("method") or "POST",
+            "headers": headers, "model": p.get("model") or "",
+            "request": p.get("request") or "",
+            "status": p.get("status"), "response": p.get("response") or "",
+            "stream": bool(p.get("stream"))}

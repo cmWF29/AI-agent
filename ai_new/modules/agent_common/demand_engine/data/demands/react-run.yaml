@@ -29,6 +29,8 @@ do:
       get: input.mode
     path:
       get: input.path
+    extra:
+      get: input.extra
   as: out
 expect:
   given:

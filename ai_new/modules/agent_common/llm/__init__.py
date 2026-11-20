@@ -72,6 +72,17 @@ def _fail(ctx, resp):
     return {"ok": False, "error": detail, "code": code}
 
 
+def _wire(ctx, enc, resp, body, stream):
+    """上游网络报文：url/头/请求体/状态/响应原文；模型名从载荷里取，别处不再猜。"""
+    return _client.wire({
+        "url": enc.get("url"), "headers": enc.get("headers"),
+        "request": (body or {}).get("text") or "",
+        "model": (enc.get("payload") or {}).get("model"),
+        "status": resp.get("status"),
+        "response": resp.get("raw") or resp.get("text") or resp.get("error") or "",
+        "stream": stream})
+
+
 async def _route_chat(ctx, payload):
     enc = _encode_call(ctx, payload, True)
     if not enc.get("ok"):
@@ -82,9 +93,15 @@ async def _route_chat(ctx, payload):
         "url": enc.get("url"), "method": "POST",
         "headers": enc.get("headers"), "body": body.get("text"),
         "timeout": payload.get("timeout"), "stream_key": stream_key}, caller=None)
+    wire = _wire(ctx, enc, resp, body, True)
     if not resp.get("ok"):
-        return _fail(ctx, resp)
-    return ctx.api.call("llm.decode_sse", {"items": resp.get("items") or []}, caller=None)
+        out = _fail(ctx, resp)
+        out["wire"] = wire
+        return out
+    out = ctx.api.call("llm.decode_sse", {"items": resp.get("items") or []}, caller=None)
+    if isinstance(out, dict):
+        out["wire"] = wire
+    return out
 
 
 async def _route_chat_stream(ctx, payload):
@@ -96,12 +113,18 @@ async def _route_chat_stream(ctx, payload):
         "url": enc.get("url"), "method": "POST",
         "headers": enc.get("headers"), "body": body.get("text"),
         "timeout": payload.get("timeout")}, caller=None)
+    wire = _wire(ctx, enc, resp, body, True)
     if not resp.get("ok"):
-        return _fail(ctx, resp)
+        out = _fail(ctx, resp)
+        out["wire"] = wire
+        return out
     ev = ctx.api.call("codec.sse_decode", {"text": resp.get("text")}, caller=None)
     if not ev.get("ok"):
         return ev
-    return ctx.api.call("llm.decode_sse", {"items": ev.get("items")}, caller=None)
+    out = ctx.api.call("llm.decode_sse", {"items": ev.get("items")}, caller=None)
+    if isinstance(out, dict):
+        out["wire"] = wire
+    return out
 
 
 # ---- 纯函数面（给不需要路由的内部调用，仍然不含任何 I/O） ----

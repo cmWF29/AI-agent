@@ -341,6 +341,7 @@ function renderBubbles(msgs, roles) {
     return `<div class="msg ${side}">${side === "left" ? av : ""}
       <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
       <div class="bubble-stack">${bodies}</div>${ts ? `<div class="msg-ts">${esc(ts)}</div>` : ""}
+      ${wireHtml(g.items)}
       ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), "原文")}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
 }
@@ -395,6 +396,25 @@ function todoBoardHtml(todos) {
     return `<div class="td-row"><i class="td-dot ${esc(st)}"></i><span class="td-id">${esc(t.id || "")}</span><span class="td-text ${st === "done" ? "off" : ""}">${esc(t.text || "")}</span><em>${esc(st === "done" ? "完成" : st === "doing" ? "在做" : "待办")}</em></div>`;
   }).join("");
   return `<details class="todo-board"><summary>待办 ${done}/${list.length}${doing ? ` · 正在做：${esc(doing.text || "")}` : ""}</summary><div class="td-list">${rows}</div></details>`;
+}
+
+/* 网络报文：这一轮真实发出去/收回来的东西，请求体与响应原文，不是渲染结果 */
+function wireHtml(items) {
+  const w = arr(items).map((it) => ((it.owner || it.m) || {}).wire).find((x) => x && x.url);
+  if (!w) return "";
+  const cut = (v) => {
+    const t = typeof v === "string" ? v : JSON.stringify(v, null, 1);
+    return t.length > 3200 ? t.slice(0, 3200) + "\n…（截断，共 " + t.length + " 字符）" : t;
+  };
+  return `<details class="raw-box wire-box"><summary>网络报文 · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))}</summary>
+    <pre>POST ${esc(w.url)}
+模型：${esc(w.model || "—")} · 流式：${w.stream ? "是" : "否"}
+
+▸ 请求体
+${esc(cut(w.request))}
+
+▸ 响应原文
+${esc(cut(w.response))}</pre></details>`;
 }
 
 /* 结构化原文：所有通信都是结构化对象，原样吐出看得到字段，不用猜 */
