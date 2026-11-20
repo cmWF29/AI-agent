@@ -357,10 +357,14 @@ def _route_stall_scan(ctx, payload):
         tpl_title = _msg_tpl(ctx).get("audit_title") or ""
         tpl_goal = _msg_tpl(ctx).get("audit_goal") or ""
         for tid in hot[:max_per_scan]:
-            ctx.runtime.call("ticket-create", {
-                "title": tpl_title.format(id=tid) if tpl_title else "",
-                "goal": tpl_goal.format(id=tid) if tpl_goal else "",
-                "kind": "stall-audit", "auto_retrospective": False})
+            # 审计单后台派发：扫描线程不占线等嵌套需求收口，避免执行器线程被回投 loop 阻塞。
+            ctx.runtime.dispatch({
+                "demand": "ticket-create",
+                "key": "audit-" + str(tid),
+                "input": {
+                    "title": tpl_title.format(id=tid) if tpl_title else "",
+                    "goal": tpl_goal.format(id=tid) if tpl_goal else "",
+                    "kind": "stall-audit", "auto_retrospective": False}})
     return ctx.api.call("ops.assemble", {"parts": {"scan": hot, "at": now.get("ts")}},
                         caller=None)
 
