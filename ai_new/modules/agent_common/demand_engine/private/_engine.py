@@ -81,7 +81,74 @@ class Engine:
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 
     # ---- 运行 ----
+    # ---- 链路 span：一次需求执行/一次派发 = 一棵子树 ----
+    def _span(self, name, attrs=None):
+        try:
+            return self.ctx.api.call("trace.open", {
+                "name": name, "caller": "demand_engine", "attrs": attrs or {}},
+                caller="demand_engine")
+        except Exception:
+            return {}
+
+    def _span_close(self, span, status="ok", code=""):
+        sid = (span or {}).get("span") or ""
+        if not sid:
+            return
+        try:
+            self.ctx.api.call("trace.close", {
+                "span": sid, "status": status, "code": code}, caller="demand_engine")
+        except Exception:
+            pass
+
     def run_callable(self, demand_id, inputs=None):
+        sp = self._span("demand:" + str(demand_id))
+        status, code = "ok", ""
+        try:
+            return self._run_callable(demand_id, inputs)
+        except Exception as exc:
+            status = "error"
+            code = getattr(exc, "code", "") or type(exc).__name__
+            raise
+        finally:
+            self._span_close(sp, status, code)
+
+    async def arun_callable(self, demand_id, inputs=None):
+        sp = self._span("demand:" + str(demand_id))
+        status, code = "ok", ""
+        try:
+            return await self._arun_callable(demand_id, inputs)
+        except Exception as exc:
+            status = "error"
+            code = getattr(exc, "code", "") or type(exc).__name__
+            raise
+        finally:
+            self._span_close(sp, status, code)
+
+    def dispatch(self, hook, envelope):
+        sp = self._span("dispatch:" + str(hook), {"on": str(hook)})
+        status, code = "ok", ""
+        try:
+            return self._dispatch(hook, envelope)
+        except Exception as exc:
+            status = "error"
+            code = getattr(exc, "code", "") or type(exc).__name__
+            raise
+        finally:
+            self._span_close(sp, status, code)
+
+    async def adispatch(self, hook, envelope):
+        sp = self._span("dispatch:" + str(hook), {"on": str(hook)})
+        status, code = "ok", ""
+        try:
+            return await self._adispatch(hook, envelope)
+        except Exception as exc:
+            status = "error"
+            code = getattr(exc, "code", "") or type(exc).__name__
+            raise
+        finally:
+            self._span_close(sp, status, code)
+
+    def _run_callable(self, demand_id, inputs=None):
         """按名跑一段"编排需求"（不挂在点上），返回最后一次调用的结果。"""
         for rec in self._load():
             if rec["id"] != demand_id:
@@ -145,7 +212,7 @@ class Engine:
         except Exception:
             pass
 
-    def dispatch(self, hook, envelope):
+    def _dispatch(self, hook, envelope):
         results = []
         digest = self._event_digest(hook, envelope)
         for rec in self._load():
@@ -165,7 +232,7 @@ class Engine:
                          code=(bad or {}).get("code") or (bad or {}).get("error") or "")
         return results
 
-    async def arun_callable(self, demand_id, inputs=None):
+    async def _arun_callable(self, demand_id, inputs=None):
         """异步轨：按名跑一段编排需求（不挂在点上），返回最后一次调用的结果。"""
         for rec in self._load():
             if rec["id"] != demand_id:
@@ -194,7 +261,7 @@ class Engine:
             return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 
-    async def adispatch(self, hook, envelope):
+    async def _adispatch(self, hook, envelope):
         results = []
         digest = self._event_digest(hook, envelope)
         for rec in self._load():

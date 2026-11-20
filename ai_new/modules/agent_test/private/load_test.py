@@ -72,7 +72,7 @@ def clean_business(root, agent_subdir="agent"):
     return removed
 
 
-def assemble(stub_url, data_root=None, clean=False, source=False):
+def assemble(stub_url, data_root=None, clean=False, source=False, trace_sample=1.0):
     """装配 ctx：llm 指桩，审计单检查关闭。
 
     source=True  落在源码树模块数据目录（与常驻进程同根）：不设外部镜像根、不重拷种子；
@@ -109,6 +109,7 @@ def assemble(stub_url, data_root=None, clean=False, source=False):
     ctx = Context(root)
     build(ctx)
     # 桩地址注入内存配置；source 模式不落盘，避免覆盖源码树既有配置。
+    ctx.cfg.setdefault("trace", {})["sample"] = float(trace_sample)
     ctx.cfg.setdefault("llm", {})["base_url"] = stub_url
     ctx.cfg["llm"]["api_key"] = "stub"
     ctx.cfg["llm"]["model"] = "stub"
@@ -233,6 +234,13 @@ def main(argv=None):
     ap.add_argument("--pm-roles", default="developer,tester,reviewer,architect,researcher",
                     help="PM 依次分派的角色，逗号分隔；默认覆盖开发/测试/评审/架构/调研多岗")
     ap.add_argument("--role-rounds", type=int, default=1, help="角色读→写→备注重复遍数")
+    ap.add_argument("--rounds", type=int, default=0,
+                    help="每工单目标对话轮次（含系统请求/LLM 请求/工具执行）；"
+                         ">0 时按角色数与每遍 2 次 LLM 折算 role-rounds")
+    ap.add_argument("--shard", default="",
+                    help="分片 i/n（1 起），只跑 index%%n==i-1 的项目，配合 --data-root 续跑")
+    ap.add_argument("--trace-sample", type=float, default=0.02,
+                    help="压测期 trace 采样率，默认 0.02（1 万工单下全量落盘不可行）")
     ap.add_argument("--filler-words", type=int, default=120, help="桩每段正文字数")
     # 随机网络故障注入：默认全关，保持干净网络压测口径；压测时按比例叠加断连/故障码/上下文超限。
     ap.add_argument("--close-rate", type=float, default=0.0,
@@ -247,6 +255,21 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     pm_roles = [r.strip() for r in args.pm_roles.split(",") if r.strip()]
+    if args.rounds > 0:
+        # 角色每遍走完整工具链（8 步 ≈ 8 次 LLM），PM 自身约 7 轮；按实测步数折算，
+        # 不再按"每遍 2 次"估算，否则 100 轮目标会跑出 250 轮。
+        # 实测：角色一遍（读→写→备注全链）在桩上落约 21 个 assistant 步。
+        steps_per_round = 21
+        pm_rounds = 7 * len(pm_roles)
+        args.role_rounds = max(1, (args.rounds - pm_rounds) // steps_per_round)
+        print("== 轮次目标 %d/工单 → 角色 %s × %d 遍（每遍约 %d 步）"
+              % (args.rounds, pm_roles, args.role_rounds, steps_per_round))
+    shard_i = shard_n = 0
+    if args.shard:
+        a, _, b = args.shard.partition("/")
+        shard_i, shard_n = int(a), int(b)
+        if not (1 <= shard_i <= shard_n):
+            raise SystemExit("--shard 需形如 1/4，且 1<=i<=n")
     print("== 启动本地打桩服务（不接真实 API）")
     stub, stub_thread, stub_url = start_stub(
         args.tool_rate, args.delay, args.delay_jitter, args.spawn_rate,
@@ -276,7 +299,12 @@ def main(argv=None):
         t0 = time.perf_counter()
         projects = []
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            futs = {pool.submit(make_project, ctx, i): i for i in range(args.projects)}
+            idx_list = [i for i in range(args.projects)
+                        if not shard_n or i % shard_n == shard_i - 1]
+            if shard_n:
+                print("   分片 %d/%d：项目 %d 个（总 %d）"
+                      % (shard_i, shard_n, len(idx_list), args.projects))
+            futs = {pool.submit(make_project, ctx, i): i for i in idx_list}
             for fut in as_completed(futs):
                 r = fut.result()
                 if r["ok"]:
@@ -362,10 +390,18 @@ def main(argv=None):
         pm_sessions, role_sessions = [], []
         role_kinds, role_closed, role_with_tool = {}, 0, 0
         pm_msgs = role_msgs = 0
+        rounds_by_ticket = {}
+        sys_msgs = tool_msgs = 0
         for rel in sess_items:
             row = ctx.api.call("store.read", {"module": "agent/logs",
                               "path": rel})["value"]
             msgs = row.get("messages") or []
+            ast = sum(1 for m in msgs if m.get("role") == "assistant")
+            sys_msgs += sum(1 for m in msgs if m.get("role") == "system")
+            tool_msgs += sum(1 for m in msgs if m.get("role") == "tool")
+            tid = row.get("ticket") or ""
+            if tid:
+                rounds_by_ticket[tid] = rounds_by_ticket.get(tid, 0) + ast
             if row.get("kind") == "pm":
                 pm_sessions.append(row)
                 pm_msgs += len(msgs)
@@ -394,6 +430,15 @@ def main(argv=None):
         per_ticket = (total_msgs / n_ticket) if n_ticket else 0.0
         print("   消息: 合计 %d（PM %d | 角色 %d）| 单工单均值 %.1f 条"
               % (total_msgs, pm_msgs, role_msgs, per_ticket))
+        r_vals = [rounds_by_ticket[k] for k in disk_tickets if k in rounds_by_ticket]
+        if r_vals:
+            low = sorted(r_vals)[:max(1, len(r_vals) // 20)]
+            print("   轮次: 工单均值 %.1f | 最小 %d | P5 %d | 覆盖≥目标 %d/%d"
+                  % (sum(r_vals) / len(r_vals), min(r_vals),
+                     low[-1], sum(1 for v in r_vals if v >= args.rounds) if args.rounds else 0,
+                     len(r_vals)))
+        print("   请求面: 系统消息 %d | 工具结果 %d | 桩 LLM 调用 %d"
+              % (sys_msgs, tool_msgs, stub.stats.calls))
         print("   工单: 提交 %d 次 | 塌缩/覆盖 %d | 唯一编号 %d | 落盘 %d | 丢失 %d"
               % (ticket_ok, ticket_ok - len(submitted_tickets),
                  len(submitted_tickets), n_ticket, len(lost_tickets)))

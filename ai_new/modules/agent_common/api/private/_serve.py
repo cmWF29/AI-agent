@@ -77,6 +77,13 @@ class Server:
             return self._encode({"ok": False, "error": "令牌不匹配", "code": "unauthorized"})
         route = str(rec.get("route") or "")
         payload = rec.get("payload") or {}
+        tid = str(rec.get("trace") or "")
+        if tid:
+            try:
+                self.ctx.api.call("trace.attach", {"trace": tid},
+                                  caller="platform:api-server", direct=True)
+            except Exception:
+                pass
         if not route:
             return self._encode({"ok": False, "error": "缺 route", "code": "bad_request"})
         try:

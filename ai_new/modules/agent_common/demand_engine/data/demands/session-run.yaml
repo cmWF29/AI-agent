@@ -193,7 +193,7 @@ do:
       lit: ticket-files
     input:
       id:
-        get: input.id
+        get: row.value.ticket
   as: listed
 - call: tickets.paths
   with:

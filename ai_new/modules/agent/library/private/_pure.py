@@ -159,7 +159,7 @@ def _collect_ids(nodes, prefix, refs, alias):
         nid = node.get("id")
         if not nid:
             continue
-        path = nid if not prefix else prefix + "." + nid
+        path = node.get("path") or (nid if not prefix else prefix + "." + nid)
         alias[nid] = path
         sub = node.get("children")
         if node.get("ref") and refs:
@@ -176,7 +176,7 @@ def _flatten_states(nodes, prefix, depth, refs, out, parents, children, depths):
         nid = node.get("id")
         if not nid:
             continue
-        path = nid if not prefix else prefix + "." + nid
+        path = node.get("path") or (nid if not prefix else prefix + "." + nid)
         rec = dict(node)
         rec["path"] = path
         ref_id = node.get("ref")

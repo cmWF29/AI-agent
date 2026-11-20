@@ -217,7 +217,7 @@ class StructureTest(unittest.TestCase):
         以及装配期的 boot/api/config/net/http。
         """
         owners = {"clock", "codec", "store", "host", "net", "http", "exec",
-                  "boot", "api", "config"}
+                  "boot", "api", "config", "trace"}
         banned = ("import time", "from time import", "import datetime",
                   "from datetime import", "import json", "from json import", "import yaml", "from yaml import",
                   "import base64", "import binascii", "import hashlib",

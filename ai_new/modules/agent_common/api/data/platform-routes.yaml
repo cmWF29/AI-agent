@@ -43,3 +43,21 @@ routes:
   store.sweep:
     caller: capability
     reason: 回收扫描租约过期仍未结算的记录，按标记交人工处置。
+  trace.attach:
+    caller: registry/http
+    reason: 外部请求或跨通道报文带来的 trace 身份注入当前上下文；埋点平台原语。
+  trace.open:
+    caller: registry
+    reason: 每次路由调用开一个 span（需求派发、会话、工具都通过它成树）。
+  trace.close:
+    caller: registry
+    reason: 路由返回/异常时关 span 并落盘；埋点平台原语。
+  trace.get:
+    caller: view/ops
+    reason: 按 trace 读回调用树，供控制台与排障查询。
+  trace.list:
+    caller: view
+    reason: 列出某天的 trace 摘要，供控制台链路列表。
+  trace.slow:
+    caller: view
+    reason: 按名字聚合 p50/p95/max，供慢调用榜。

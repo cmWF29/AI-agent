@@ -93,6 +93,10 @@ class Registry:
         """
         if name in self._routes:
             raise ValueError("route already registered: " + name)
+        if name == "trace.open":
+            self._trace_open = self._adapt(fn)
+        elif name == "trace.close":
+            self._trace_close = self._adapt(fn)
         self._routes[name] = {"fn": self._adapt(fn),
                               "owner": module or name.split(".")[0],
                               "is_async": asyncio.iscoroutinefunction(fn),
@@ -262,20 +266,62 @@ class Registry:
         return self._routes[name]
 
     # ---- 作用域包装：handler 执行期间把"谁在调"写进 contextvar ----
-    def _scoped(self, route, ctx, payload):
-        token = _SCOPE.set(route["owner"])
+
+    # ---- 链路埋点：一次路由调用 = 一个 span（trace 自己的两条原语不埋，避免递归）----
+    def _span_open(self, name, caller=""):
+        fn = getattr(self, "_trace_open", None)
+        if fn is None:
+            return ""
         try:
-            return route["fn"](ctx, payload)
+            return str(fn(self.ctx, {"name": name, "caller": caller}).get("span") or "")
+        except Exception:
+            return ""
+
+    def _span_close(self, span, status="ok", code="", attrs=None):
+        if not span:
+            return
+        fn = getattr(self, "_trace_close", None)
+        if fn is None:
+            return
+        try:
+            fn(self.ctx, {"span": span, "status": status, "code": code,
+                          "attrs": attrs or {}})
+        except Exception:
+            pass
+
+    def _scoped(self, route, ctx, payload, name=""):
+        token = _SCOPE.set(route["owner"])
+        traced = route.get("module") != "trace"
+        span = self._span_open("call:" + (name or route.get("module") or ""),
+                               str(route.get("module") or "")) if traced else ""
+        try:
+            out = route["fn"](ctx, payload)
+            if traced:
+                self._span_close(span, "ok")
+            return out
+        except Exception as exc:
+            if traced:
+                self._span_close(span, "error", code=type(exc).__name__)
+            raise
         finally:
             _SCOPE.reset(token)
 
-    async def _ascoped(self, route, ctx, payload):
+    async def _ascoped(self, route, ctx, payload, name=""):
         token = _SCOPE.set(route["owner"])
+        traced = route.get("module") != "trace"
+        span = self._span_open("call:" + (name or route.get("module") or ""),
+                               str(route.get("module") or "")) if traced else ""
         try:
             out = route["fn"](ctx, payload)
             if inspect.isawaitable(out):
                 out = await out
+            if traced:
+                self._span_close(span, "ok")
             return out
+        except Exception as exc:
+            if traced:
+                self._span_close(span, "error", code=type(exc).__name__)
+            raise
         finally:
             _SCOPE.reset(token)
 
@@ -294,10 +340,10 @@ class Registry:
             if kind != "direct":
                 return self.transport.send(name, payload, handler, caller=caller)
             fut = asyncio.run_coroutine_threadsafe(
-                self._ascoped(route, self.ctx, payload or {}), self._ensure_loop())
+                self._ascoped(route, self.ctx, payload or {}, name), self._ensure_loop())
             return fut.result()
         if direct:
-            return self._scoped(route, self.ctx, payload or {})
+            return self._scoped(route, self.ctx, payload or {}, name)
         return self.transport.send(name, payload, handler, caller=caller)
 
     async def acall(self, name, payload=None, caller=None, direct=False):
@@ -310,9 +356,9 @@ class Registry:
             if kind != "direct":
                 return await self._ensure_loop().run_in_executor(
                     None, self.transport.send, name, payload or {}, handler, caller)
-            return await self._ascoped(route, self.ctx, payload or {})
+            return await self._ascoped(route, self.ctx, payload or {}, name)
         if direct:
-            return self._scoped(route, self.ctx, payload or {})
+            return self._scoped(route, self.ctx, payload or {}, name)
         return await self._ensure_loop().run_in_executor(
             None, self.transport.send, name, payload or {}, handler, caller)
 
@@ -322,6 +368,6 @@ class Registry:
         route = self._route(name, caller)
         kind, _addr = self.transport.kind_for(name)
         if kind == "direct":
-            self._scoped(route, self.ctx, payload or {})
+            self._scoped(route, self.ctx, payload or {}, name)
             return {"transport": "direct", "sent": name}
         return self.transport.notify(name, payload, route["fn"], caller=caller)

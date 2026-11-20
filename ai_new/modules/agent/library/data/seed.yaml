@@ -20,6 +20,7 @@ roles:
   - ticket_close
   - ticket_read_doc
   - ticket_note
+  - artifact_write
   - todo
   builtin: true
   readonly: true

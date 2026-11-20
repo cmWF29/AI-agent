@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 import threading
@@ -87,12 +88,15 @@ def _structured_frames(obj):
 
 
 def _session_key(req):
-    """从 system 文本提取工单 id 作为会话键；发模型的上下文视图会裁掉历史往返，
-    桩不能靠历史 assistant 消息去重，需按工单在桩侧缓存已分派角色。"""
-    sys_text = " ".join(m.get("content") or "" for m in req.get("messages") or []
-                         if m.get("role") == "system")
-    m = re.search(r"T-\d{8}-\d+", sys_text)
-    return m.group(0) if m else sys_text[:32]
+    """工单 id 作会话键：工单号在首条 user 指令里（system 只有公共规则与流程段）。
+    只扫 system 会让所有工单共享同一前缀键，桩侧的"已派角色/已写计划"跨单串扰。"""
+    msgs = req.get("messages") or []
+    text = " ".join(m.get("content") or "" for m in msgs)
+    m = re.search(r"T-\d{8}-\d+", text)
+    if m:
+        return m.group(0)
+    sys_text = " ".join(m.get("content") or "" for m in msgs if m.get("role") == "system")
+    return sys_text[:32]
 
 
 # 角色一轮内的工具步进：读依据 → 写产出 → 落备注；运行时再按当前上下文可用工具过滤。
@@ -329,6 +333,17 @@ class _Handler(BaseHTTPRequestHandler):
         sys_text = " ".join(m.get("content") or "" for m in msgs if m.get("role") == "system")
         role = (ctx.get("flow") or {}).get("id") or ""
         # 先按角色 id 直接命中，再回退中文称谓；id 与称谓均来自 roles.yaml 契约。
+        # 身份判定优先级：结构化 flow.id > 协调者专属工具（裁剪后仍可见）> 流程行文本
+        # > 角色 id/称谓字样。PM 提示词会提到执行岗名称，任何反向顺序都会把协调轮次
+        # 误跑成执行轮次，一条工单凭空多出几十轮 LLM 调用。
+        if not role and any(n in by_name for n in ("role_spawn", "ticket_split", "ticket_close")):
+            role = "pm"
+        if not role:
+            mflow = re.search(r"流程：[^（(]*（([a-z_]+)）", sys_text)
+            if mflow and mflow.group(1):
+                role = mflow.group(1)
+        if not role and ("PM" in sys_text or "项目经理" in sys_text):
+            role = "pm"
         if not role:
             for rid in _ROLE_NEXT:
                 if rid in sys_text:
@@ -350,6 +365,13 @@ class _Handler(BaseHTTPRequestHandler):
                 cur = mcur.group(1)
         checks = ctx.get("checks") or []
 
+        if not checks:
+            # 约束块在上下文压缩后可能只剩渲染文本：从"交付件路径命中…"一行回抽 glob，
+            # 否则桩只会落到默认路径，验收条件永不达标、状态门禁原地卡死。
+            mm = re.search(r"交付件路径命中以下任一模式即可：([^；;\n]+)", sys_text)
+            if mm:
+                bits = [b.strip() for b in re.split(r"[、,，]", mm.group(1)) if b.strip()]
+                checks = [{"kind": "glob", "paths": bits}]
         if role in _ROLE_NEXT:
             chain = _ROLE_NEXT.get(role) or []
             steps = [t for t in _ROLE_STEPS if t in by_name]
@@ -403,6 +425,19 @@ class _Handler(BaseHTTPRequestHandler):
                             done.add(json.loads(fn.get("arguments") or "{}").get("role"))
                         except Exception:  # noqa: BLE001 —— 坏参数跳过，不计入已派
                             pass
+            # 源态交付件门禁：PM 从 owner 出发必须先落 docs/pm/plan.md（checks min_bytes 80），
+            # 否则 library.stage_transition 判 condition_unmet，状态原地不动、每轮被动续跑成空转。
+            key2 = _session_key(req)
+            wrote = self.server.pm_plan.get(key2)
+            if not wrote and "artifact_write" in by_name:
+                self.server.pm_plan[key2] = True
+                filler = _filler("artifact_write", max(policy.filler_words, 80))
+                with stats.lock:
+                    stats.tool_calls += 1
+                return [_tool_frame("call_%d" % stats.calls, "artifact_write",
+                                    json.dumps({"layer": "ticket",
+                                                "path": _write_path(_checks_paths(checks)),
+                                                "content": filler}, ensure_ascii=False))]
             pending = [r for r in policy.pm_roles if r not in done]
             if pending:
                 role = pending[0]
@@ -415,8 +450,11 @@ class _Handler(BaseHTTPRequestHandler):
                 return [_tool_frame("call_%d" % stats.calls, "role_spawn", args)]
             with stats.lock:
                 stats.text += 1
+            # 分派收口直报容器态唯一的合法出边 owner→owner.req.close（终态），
+            # 交给 stage_contract 校验后会话停止续跑；交付件已在上面落盘。
             return _structured_frames({
-                "reply": "（stub）PM 已分派各角色并确认分工，工单进入执行、测试与评审阶段。",
+                "reply": "（stub）PM 已分派各角色并确认分工，对照验收标准核对交付，工单闭环结单。",
+                "stage": "owner.req.close",
                 "summary": "协同推进，依据工单验收标准交付，依据与缺口记入备注。"})
 
         # analyze 态：先读工单需求，下一轮自报进入编排阶段。
@@ -440,6 +478,7 @@ def start_stub(policy=None):
     server.stats = StubStats()
     server.step_idx = 0
     server.spawned = {}
+    server.pm_plan = {}
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]

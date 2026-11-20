@@ -137,3 +137,8 @@ logs:
     tool: 'projects/{project}/tickets/{ticket}/tool/{fid}.txt'
     channel: 'channels/{id}.jsonl'
     hook_queue: 'hook-queue.yaml'
+
+# 链路追踪：默认全开；压测时用 sample 降采样（0~1）
+trace:
+  enabled: true
+  sample: 1.0

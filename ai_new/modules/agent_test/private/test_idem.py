@@ -155,6 +155,10 @@ class _DispatchApi:
             return _idem._route_claim(CTX, payload)
         if route == "store.settle":
             return _idem._route_settle(CTX, payload)
+        if route == "trace.open":
+            return {"ok": True, "result": {"span": "s-1", "trace": "t-1"}}
+        if route == "trace.close":
+            return {"ok": True, "result": {"written": True}}
         self.n += 1
         return {"ok": True}
 

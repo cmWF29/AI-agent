@@ -1,0 +1,52 @@
+module: trace
+routes:
+  trace.attach:
+    in:
+      trace: {type: any, req: false}
+    out:
+      trace: {type: any}
+  trace.open:
+    in:
+      name: {type: any, req: true}
+      trace: {type: any, req: false}
+      parent: {type: any, req: false}
+      caller: {type: any, req: false}
+      attrs: {type: any, req: false}
+    out:
+      trace: {type: any}
+      span: {type: any}
+      parent: {type: any}
+  trace.close:
+    in:
+      span: {type: any, req: true}
+      status: {type: any, req: false}
+      code: {type: any, req: false}
+      attrs: {type: any, req: false}
+    out:
+      written: {type: bool}
+      dur_ms: {type: any}
+  trace.get:
+    in:
+      trace: {type: any, req: true}
+      date: {type: any, req: false}
+    out:
+      trace: {type: any}
+      spans: {type: any}
+      count: {type: any}
+      total_ms: {type: any}
+  trace.list:
+    in:
+      date: {type: any, req: false}
+      limit: {type: any, req: false}
+    out:
+      date: {type: any}
+      total: {type: any}
+      items: {type: any}
+  trace.slow:
+    in:
+      date: {type: any, req: false}
+      limit: {type: any, req: false}
+    out:
+      date: {type: any}
+      items: {type: any}
+      spans: {type: any}

@@ -444,9 +444,26 @@ def resolve_target(p):
     return pick(p)
 
 
+def _rel_to_ticket(path, ticket):
+    """交付件清单基准归到工单目录：artifacts 落的是 projects/<p>/tickets/<t>/<rel>，
+    流程 checks 写的是工单内相对 glob（docs/pm/plan.md），不剥前缀永远匹配不上。
+    纯字符串比较（工单号大小写不一致也算同一单）。"""
+    marker = "/tickets/%s/" % str(ticket or "")
+    low = path.lower()
+    idx = low.find(marker.lower())
+    if idx >= 0 and ticket:
+        return path[idx + len(marker):]
+    return path
+
+
 def files_filter(p):
+    if not p.get("ticket"):
+        # 无工单号（对话型会话）不能把清单基准退化成全库：空单号当作"无交付件"。
+        return {"ticket": p.get("ticket") or "", "items": []}
     items = p.get("items") or []
     pattern = p.get("pattern") or "**/*"
+    items = [dict(it, path=_rel_to_ticket(it.get("path") or "", p.get("ticket")))
+             for it in items]
     if pattern != "**/*":
         items = [it for it in items if _glob(it.get("path") or "", pattern)]
     return {"ticket": p.get("ticket"), "items": items}
