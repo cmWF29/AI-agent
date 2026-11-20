@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import gzip
 import ssl
 import threading
 import urllib.parse
@@ -212,8 +213,12 @@ def _make_handler(ctx):
                 self._json_error(e)
                 return
             data = str(asset.get("content") or "").encode("utf-8")
+            data, zipped = self._zip(data)
             self.send_response(200)
             self.send_header("Content-Type", asset.get("content_type") or "text/plain; charset=utf-8")
+            if zipped:
+                self.send_header("Content-Encoding", "gzip")
+                self.send_header("Vary", "Accept-Encoding")
             self.send_header("Content-Length", str(len(data)))
             suffix = Path(rel).suffix
             self.send_header("Cache-Control",
@@ -221,11 +226,23 @@ def _make_handler(ctx):
             self.end_headers()
             self.wfile.write(data)
 
+        def _zip(self, data):
+            """传输编码不是业务：客户端说能收 gzip 就把大响应压了再发，页面首屏才跟得上。"""
+            if len(data) < 1024:
+                return data, False
+            if "gzip" not in (self.headers.get("Accept-Encoding") or "").lower():
+                return data, False
+            return gzip.compress(data, 6), True
+
         def _json_ok(self, obj):
             out = ctx.codec.yaml_encode_flow({"ok": True, **obj} if isinstance(obj, dict) else obj)
             data = out["text"].encode("utf-8")
+            data, zipped = self._zip(data)
             self.send_response(200)
             self.send_header("Content-Type", "application/yaml; charset=utf-8")
+            if zipped:
+                self.send_header("Content-Encoding", "gzip")
+                self.send_header("Vary", "Accept-Encoding")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
