@@ -10,6 +10,7 @@ def setup(ctx):
         ("library.get", _pure.getp),
         ("library.positions", _pure.positionsp),
         ("library.position", _pure.positionp),
+        ("library.bind_tools", _pure.bind_tools),
         ("library.design", _pure.designp),
         ("library.summary", _pure.summaryp),
         ("library.role_prompt", _pure.promptp),

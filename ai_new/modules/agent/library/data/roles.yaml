@@ -15,6 +15,7 @@ architect:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
+  - todo
   builtin: true
   flow: architect
 developer:
@@ -36,6 +37,7 @@ developer:
   - ticket_read_doc
   - ticket_note
   - shell
+  - todo
   builtin: true
   flow: developer
 reviewer:
@@ -52,6 +54,7 @@ reviewer:
   - knowledge_read
   - ticket_read_doc
   - ticket_note
+  - todo
   builtin: true
   flow: reviewer
 tester:
@@ -71,6 +74,7 @@ tester:
   - ticket_read_doc
   - ticket_note
   - shell
+  - todo
   builtin: true
   flow: tester
 ops:
@@ -86,6 +90,7 @@ ops:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
+  - todo
   builtin: true
   flow: ops
 researcher:
@@ -101,6 +106,7 @@ researcher:
   - knowledge_read
   - knowledge_search
   - ticket_read_doc
+  - todo
   builtin: true
   flow: researcher
 writer:
@@ -116,6 +122,7 @@ writer:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
+  - todo
   builtin: true
   flow: writer
 process:
@@ -131,6 +138,7 @@ process:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
+  - todo
   builtin: true
   flow: process
 skill-decomposer:
@@ -150,5 +158,6 @@ skill-decomposer:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
+  - todo
   builtin: true
   flow: skill-decomposer

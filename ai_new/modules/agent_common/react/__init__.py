@@ -134,7 +134,13 @@ async def _route_run(ctx, payload):
     view = ctx.api.call("react.attach_protocol", {
         "messages": view.get("messages") or [],
         "protocol": proto_row.get("value") or ""}, caller=None)
+    # 会话待办（模型自排的计划）每轮附一条 system 注记，避免它改完就忘；
+    # 流程状态机的阶段约束由 flow-context 消息承担，两者不混。
+    todo_note = ctx.api.call("todos.context", {
+        "todos": session.get("todos") or []}, caller=None)
     messages = list(view.get("messages") or [])
+    if (todo_note or {}).get("message"):
+        messages = messages + [todo_note["message"]]
     new_msgs = []
     new_summary = summary
     new_stage = ""
@@ -213,6 +219,12 @@ async def _route_run(ctx, payload):
         outs = await asyncio.gather(*[_exec_tool(ctx, fn, targs, session)
                                       for _, fn, _, targs in jobs])
         for (call, fn, tool_idx, _), out in zip(jobs, outs):
+            # 工具可声明会话补丁（如 todo 的新清单）：由主循环并入会话快照随检查点落盘，
+            # 工具本身不伸手写盘；补丁不回填给模型，避免它把补丁当业务数据再解析一遍。
+            patch = out.get("session_patch") if isinstance(out, dict) else None
+            if isinstance(patch, dict):
+                session.update(patch)
+                out = {k: v for k, v in out.items() if k != "session_patch"}
             enc = ctx.api.call("codec.json_encode", {"value": out}, caller=None)
             stamp = "%d-%d" % (steps, tool_idx)
             stash = _stash_tool_output(ctx, session, (call or {}).get("id"),

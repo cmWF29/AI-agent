@@ -97,7 +97,7 @@ def _session_key(req):
 
 # 角色一轮内的工具步进：读依据 → 写产出 → 落备注；运行时再按当前上下文可用工具过滤。
 _ROLE_STEPS = [
-    "knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read",
+    "todo", "knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read",
     "artifact_write", "knowledge_write", "ticket_note",
 ]
 # 压测桩内置岗位状态链（与 roles.yaml 契约对齐；正式流程以后端契约为准）。
@@ -316,6 +316,11 @@ class _Handler(BaseHTTPRequestHandler):
                 return {"query": "工单要点 验收标准 既有方案"}
             if tool == "ticket_note":
                 return {"text": filler}
+            if tool == "todo":
+                return {"action": "replace",
+                        "items": [{"id": "t1", "text": "读需求与既有方案", "status": "done"},
+                                  {"id": "t2", "text": "按验收标准实现并自验", "status": "doing"},
+                                  {"id": "t3", "text": "留存结论与缺口", "status": "pending"}]}
             return {}
 
         # 结构化流程约束块优先（spawn/run 落盘的 flow-context 消息）；文本正则兜底。
@@ -374,6 +379,16 @@ class _Handler(BaseHTTPRequestHandler):
 
         # PM 上下文：analyze 先读需求并自报进 plan，plan 态依次分派角色，全部分派后收口。
         if "role_spawn" in by_name or "role_task" in by_name or "ticket_split" in by_name:
+            # PM 先自己排一份分步计划（todo 工具），再读需求、派角色：演示"计划是模型自己写的"
+            if "todo" in by_name and done < 1:
+                with stats.lock:
+                    stats.tool_calls += 1
+                plan = {"action": "replace",
+                        "items": [{"id": "t1", "text": "读工单需求与验收标准", "status": "doing"},
+                                  {"id": "t2", "text": "拆解分工并派角色", "status": "pending"},
+                                  {"id": "t3", "text": "对照验收标准闭环结单", "status": "pending"}]}
+                return [_tool_frame("call_%d" % stats.calls, "todo",
+                                    json.dumps(plan, ensure_ascii=False))]
             # 去重按工单在桩侧缓存：发模型的上下文视图会裁掉历史往返，历史 assistant 的
             # role_spawn 不一定可见，不能只靠历史计数；同轮可见的调用仍补进缓存。
             key = _session_key(req)

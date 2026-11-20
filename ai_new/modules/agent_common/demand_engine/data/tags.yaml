@@ -2,6 +2,7 @@ comment: 需求标签清单：标签只能从这里取，避免各写各的。�
 tags:
 - {id: project, name: 项目, group: 业务域, color: indigo}
 - {id: ticket, name: 工单, group: 业务域, color: indigo}
+- {id: todo, name: 待办, group: 业务域, color: indigo}
 - {id: session, name: 会话, group: 业务域, color: indigo}
 - {id: channel, name: 频道, group: 业务域, color: indigo}
 - {id: knowledge, name: 知识, group: 业务域, color: indigo}

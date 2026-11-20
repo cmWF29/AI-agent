@@ -20,6 +20,7 @@ roles:
   - ticket_close
   - ticket_read_doc
   - ticket_note
+  - todo
   builtin: true
   readonly: true
   system: true
@@ -40,6 +41,7 @@ roles:
   - knowledge_search
   - ticket_read_doc
   - ticket_note
+  - todo
   builtin: true
   flow: architect
 - id: developer
@@ -60,6 +62,7 @@ roles:
   - ticket_read_doc
   - ticket_note
   - shell
+  - todo
   builtin: true
   flow: developer
 - id: reviewer
@@ -76,6 +79,7 @@ roles:
   - ticket_read_doc
   - ticket_note
   - artifact_write
+  - todo
   builtin: true
   flow: reviewer
 - id: tester
@@ -94,6 +98,7 @@ roles:
   - ticket_read_doc
   - ticket_note
   - shell
+  - todo
   builtin: true
   flow: tester
 - id: ops
@@ -109,6 +114,7 @@ roles:
   - knowledge_search
   - ticket_read_doc
   - artifact_write
+  - todo
   builtin: true
   flow: ops
 - id: researcher
@@ -124,6 +130,7 @@ roles:
   - knowledge_search
   - ticket_read_doc
   - artifact_write
+  - todo
   builtin: true
   flow: researcher
 - id: writer
@@ -138,6 +145,7 @@ roles:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
+  - todo
   builtin: true
   flow: writer
 - id: process
@@ -152,6 +160,7 @@ roles:
   - artifact_write
   - knowledge_read
   - ticket_read_doc
+  - todo
   builtin: true
   flow: process
 - id: skill-decomposer
@@ -171,6 +180,7 @@ roles:
   - ticket_read_doc
   - ticket_note
   - artifact_write
+  - todo
   builtin: true
   flow: skill-decomposer
 flows:
@@ -207,6 +217,7 @@ flows:
     - knowledge_read
     - knowledge_search
     - ticket_read_doc
+    - todo
     next:
     - design
   - id: design
@@ -216,6 +227,7 @@ flows:
     - artifact_write
     - knowledge_write
     - ticket_note
+    - todo
     next:
     - study
     - deliver
@@ -224,6 +236,7 @@ flows:
     desc: 设计文档落档并交代依据
     tools:
     - ticket_note
+    - todo
     next: []
     terminal: true
 - id: developer
@@ -246,6 +259,7 @@ flows:
     - knowledge_read
     - knowledge_search
     - ticket_read_doc
+    - todo
     next:
     - implement
   - id: implement
@@ -255,6 +269,7 @@ flows:
     - artifact_write
     - knowledge_write
     - ticket_note
+    - todo
     next:
     - understand
     - verify
@@ -264,6 +279,7 @@ flows:
     tools:
     - ticket_note
     - shell
+    - todo
     next: []
     terminal: true
 - id: reviewer
@@ -283,6 +299,7 @@ flows:
     - artifact_read
     - knowledge_read
     - ticket_read_doc
+    - todo
     next:
     - review
   - id: review
@@ -290,6 +307,7 @@ flows:
     desc: 给出通过项、缺口项与修复建议
     tools:
     - ticket_note
+    - todo
     next:
     - study
     - deliver
@@ -299,6 +317,7 @@ flows:
     tools:
     - ticket_note
     - artifact_write
+    - todo
     next: []
     terminal: true
 - id: tester
@@ -319,6 +338,7 @@ flows:
     - knowledge_read
     - ticket_read_doc
     - artifact_write
+    - todo
     next:
     - run
   - id: run
@@ -327,6 +347,7 @@ flows:
     tools:
     - ticket_note
     - shell
+    - todo
     next:
     - design
     - report
@@ -336,6 +357,7 @@ flows:
     tools:
     - artifact_write
     - ticket_note
+    - todo
     next: []
     terminal: true
 - id: ops
@@ -368,6 +390,7 @@ flows:
     tools:
     - knowledge_read
     - ticket_read_doc
+    - todo
     next:
     - search
   - id: search
@@ -377,6 +400,7 @@ flows:
     - knowledge_search
     - artifact_read
     - knowledge_read
+    - todo
     next:
     - scope
     - deliver
@@ -387,6 +411,7 @@ flows:
     - artifact_read
     - knowledge_read
     - artifact_write
+    - todo
     next: []
     terminal: true
 - id: writer
@@ -405,6 +430,7 @@ flows:
     - artifact_read
     - knowledge_read
     - ticket_read_doc
+    - todo
     next:
     - draft
   - id: draft
@@ -412,6 +438,7 @@ flows:
     desc: 按要求格式撰写文案
     tools:
     - artifact_write
+    - todo
     next:
     - gather
     - deliver
@@ -420,6 +447,7 @@ flows:
     desc: 文案文档落档并交付
     tools:
     - artifact_write
+    - todo
     next: []
     terminal: true
 - id: process
@@ -439,6 +467,7 @@ flows:
     - artifact_read
     - knowledge_read
     - ticket_read_doc
+    - todo
     next:
     - design
   - id: design
@@ -446,6 +475,7 @@ flows:
     desc: 产出节点、边、校验项与触发条件的流程配置
     tools:
     - artifact_write
+    - todo
     next:
     - survey
     - deliver
@@ -454,6 +484,7 @@ flows:
     desc: 流程规则文档落档并交付
     tools:
     - artifact_write
+    - todo
     next: []
     terminal: true
 - id: skill-decomposer
@@ -474,6 +505,7 @@ flows:
     - knowledge_read
     - knowledge_search
     - ticket_read_doc
+    - todo
     next:
     - split
   - id: split
@@ -481,6 +513,7 @@ flows:
     desc: 拆成岗位角色、引用工具、流程规则，依赖如实标注
     tools:
     - ticket_note
+    - todo
     next:
     - inspect
     - deliver
@@ -490,6 +523,7 @@ flows:
     tools:
     - ticket_note
     - artifact_write
+    - todo
     next: []
     terminal: true
 - id: requirement-owner
@@ -501,6 +535,7 @@ flows:
     tools:
     - ticket_read_doc
     - ticket_note
+    - todo
     next:
     - req.structure
   - id: req.structure
@@ -509,6 +544,7 @@ flows:
     tools:
     - ticket_read_doc
     - ticket_note
+    - todo
     next:
     - req.plan
   - id: req.plan
@@ -519,6 +555,7 @@ flows:
     - role_task
     - ticket_read_doc
     - ticket_note
+    - todo
     next:
     - req.split
   - id: req.split
@@ -528,6 +565,7 @@ flows:
     - role_spawn
     - ticket_split
     - ticket_note
+    - todo
     next:
     - req.execute
   - id: req.execute
@@ -536,6 +574,7 @@ flows:
     tools:
     - ticket_read_doc
     - ticket_note
+    - todo
     next:
     - req.accept
   - id: req.accept
@@ -544,6 +583,7 @@ flows:
     tools:
     - ticket_read_doc
     - ticket_note
+    - todo
     next:
     - req.close
   - id: req.close
@@ -552,6 +592,7 @@ flows:
     tools:
     - ticket_close
     - ticket_note
+    - todo
     next: []
     terminal: true
 - id: ticket-health
@@ -564,6 +605,7 @@ flows:
     - artifact_read
     - knowledge_search
     - ticket_read_doc
+    - todo
     next:
     - scan.judge
   - id: scan.judge
@@ -572,6 +614,7 @@ flows:
     tools:
     - knowledge_read
     - ticket_read_doc
+    - todo
     next:
     - scan.audit
   - id: scan.audit
@@ -580,6 +623,7 @@ flows:
     tools:
     - ticket_read_doc
     - ticket_note
+    - todo
     next:
     - ops.diagnose
   - id: ops.diagnose
@@ -589,6 +633,7 @@ flows:
     - artifact_read
     - knowledge_read
     - ticket_read_doc
+    - todo
     next:
     - ops.recover
   - id: ops.recover
@@ -598,6 +643,7 @@ flows:
     - knowledge_read
     - ticket_read_doc
     - artifact_write
+    - todo
     next:
     - audit.close
   - id: audit.close
@@ -606,5 +652,6 @@ flows:
     tools:
     - ticket_read_doc
     - artifact_write
+    - todo
     next: []
     terminal: true

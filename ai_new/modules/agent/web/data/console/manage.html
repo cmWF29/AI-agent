@@ -209,7 +209,7 @@ textarea{min-height:72px;resize:vertical}
 .av-chip .dot{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;border:2px solid var(--card);background:var(--ok)}
 .av-chip.st-busy .dot{background:var(--accent)}
 .av-chip.st-offline .dot{background:var(--muted)}
-.popover{position:fixed;z-index:60;width:min(260px,calc(100vw - 24px));background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(16,24,40,.22);padding:14px 16px;font-size:13px}
+.popover{position:fixed;z-index:60;width:min(330px,calc(100vw - 24px));background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(16,24,40,.22);padding:14px 16px;font-size:13px}
 .popover[hidden]{display:none}
 .popover h4{margin:0 0 3px;font-size:14px;display:flex;align-items:center;gap:8px}
 .popover .p-role{color:var(--muted);font-size:12px}
@@ -373,6 +373,55 @@ textarea{min-height:72px;resize:vertical}
   .modal-card{padding:16px}
   #banner{margin:0 14px}
 }
+
+/* 角色状态板：一行看全组谁在哪个阶段，破折号换成点互斥；点开复用成员卡 */
+.role-board{display:flex;gap:8px;overflow-x:auto;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--line);scrollbar-width:none}
+.role-board::-webkit-scrollbar{display:none}
+.role-mini{display:inline-flex;align-items:center;gap:6px;flex:none;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;color:var(--fg-2);cursor:pointer;max-width:100%}
+.role-mini:hover{border-color:var(--accent);background:var(--accent-weak)}
+.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
+.rm-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.role-mini.st-busy .rm-dot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+.role-mini.st-err .rm-dot{background:#f53f3f}
+.role-mini.st-done .rm-dot{background:#00b42a}
+.rm-stage{color:var(--accent);font-weight:600}
+.rm-active{color:var(--muted);border-left:1px solid var(--line);padding-left:6px;font-size:11.5px}
+/* 原报文：结构化对象原样展开，谁都别猜字段 */
+.raw-box{margin-top:4px;font-size:11.5px}
+.raw-box summary{cursor:pointer;color:var(--muted);list-style:none;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:6px}
+.raw-box summary:hover{color:var(--fg-2);background:var(--line-2)}
+.raw-box summary::-webkit-details-marker{display:none}
+.raw-box summary::before{content:"▸";font-size:10px}
+.raw-box[open] summary::before{content:"▾"}
+.raw-box pre{margin:4px 0 0;padding:9px 11px;background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:11px;line-height:1.55;color:var(--fg-2);white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto}
+.inject{padding:6px 4px 0}
+.inject .raw-box{margin:0}
+/* 成员卡里的流程链 */
+.p-flow{font-size:12px;color:var(--muted);margin-bottom:5px}
+.st-chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.st-pill{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--line-2);color:var(--fg-2);border:1px solid transparent;white-space:nowrap}
+.st-pill.cur{background:var(--accent-weak);color:var(--accent);border-color:rgba(47,107,255,.3);font-weight:600}
+.st-pill.on{color:var(--fg);font-weight:600;border-color:var(--line)}
+.st-pill.term{color:var(--muted)}
+.st-arrow{color:var(--muted);font-size:11px}
+
+/* 待办板：模型自排计划，和岗位流程状态机分开看 */
+.todo-board{margin:8px 4px 0;font-size:12px}
+.todo-board summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--fg-2)}
+.todo-board summary::-webkit-details-marker{display:none}
+.todo-board summary::before{content:"▸";font-size:10px;color:var(--muted)}
+.todo-board[open] summary::before{content:"▾"}
+.todo-board summary b{color:var(--fg)}
+.td-list{margin-top:6px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card)}
+.td-row{display:flex;align-items:center;gap:7px;padding:3px 0;color:var(--fg-2)}
+.td-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.td-dot.doing{background:var(--accent)}
+.td-dot.done{background:#00b42a}
+.td-id{font-size:11px;color:var(--muted);min-width:22px}
+.td-text{flex:1;min-width:0;overflow-wrap:anywhere}
+.td-text.off{text-decoration:line-through;color:var(--muted)}
+.td-row em{font-size:11px;color:var(--muted);font-style:normal}
+
 </style>
 </head>
 <body>

@@ -551,6 +551,34 @@ def prompt_blocks(p):
     return {"system": "\n\n".join(parts)}
 
 
+def bind_tools(p):
+    """岗位×流程×工具三级绑定成形：给每个岗位打上"哪些工具在本项目可用"。
+
+    项目覆盖层只存禁用名，公共库只存岗位工具名单；绑定关系在这里显性摊开，
+    视图才能一行看清"这个岗位走哪条流程、手里有哪几件工具、哪件被本项目关了"。
+    """
+    disabled = set(p.get("disabled") or [])
+    kind = p.get("kind") or ""
+    items = []
+    for row in p.get("items") or []:
+        rec = dict(row)
+        names = [str(n) for n in (rec.get("tools") or [])]
+        bound = [{"name": n, "enabled": (n not in disabled),
+                  "source": "builtin"} for n in names]
+        live = [b["name"] for b in bound if b["enabled"]]
+        rec["bound_tools"] = bound
+        rec["tools_enabled"] = live
+        rec["tools_disabled"] = [b["name"] for b in bound if not b["enabled"]]
+        rec["tools_sum"] = "%d/%d" % (len(live), len(names))
+        rec["tools_text"] = "、".join(live) if live else ""
+        states = rec.get("stages") or []
+        rec["stage_text"] = " → ".join(str((s or {}).get("cn") or (s or {}).get("id") or "")
+                                       for s in states if isinstance(s, dict))
+        rec["kind"] = kind
+        items.append(rec)
+    return {"items": items}
+
+
 def positionp(p):
     """单条岗位：岗位记录 + 关联流程规范合并成形。"""
     rec = p.get("rec") or {}

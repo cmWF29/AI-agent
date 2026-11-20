@@ -10,7 +10,7 @@ view:
   key: position
   crumb: [岗位库, "{position.cn}"]
   heading: "{position.cn}"
-  subheading: 岗位 = 系统提示词 + 流程规范；主会话条目只读，不可被派单实例化
+  subheading: 岗位 = 系统提示词 + 流程状态机 + 工具名单；三者同屏，主会话条目只读
   data:
   - {as: position, demand: position-get, params: {id: "{route.position}"}}
   sections:
@@ -27,6 +27,17 @@ view:
       value: "row.flow.checks|count"
       suffix: 项
       muted: true
+  - kind: table
+    source: position.stages
+    heading: 流程状态机（岗位预定，模型必须照着走）
+    hide_when_empty: true
+    columns:
+    - {label: 状态, value: row.cn, fallback: row.id}
+    - {label: 标识, value: row.id, muted: true}
+    - {label: 做什么, value: row.desc, fallback: "—"}
+    - {label: 此状态可用工具, value: row.tools, fallback: 全量}
+    - {label: 下一状态, value: row.next, fallback: "—", muted: true}
+    - {label: 终态, value: row.terminal, fallback: "—", muted: true}
   - kind: doc
     source: position.prompt
     heading: 提示词正文

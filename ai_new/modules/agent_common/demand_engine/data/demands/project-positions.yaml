@@ -68,6 +68,15 @@ do:
       get: sk.value
     disabled_roles:
       get: ov.roles
+  as: pos
+- call: library.bind_tools
+  with:
+    items:
+      get: pos.items
+    disabled:
+      get: ov.tools
+    kind:
+      lit: roles
   as: out
 expect:
   given:
@@ -83,5 +92,6 @@ expect:
   - store.read
   - store.read
   - library.positions
+  - library.bind_tools
   payload: {}
   promise: 公共库唯一事实源、岗位成形与禁用摘除归模块，项目覆盖层只打标记，取数归需求

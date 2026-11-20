@@ -94,7 +94,7 @@ class CoreTest(unittest.TestCase):
                   "knowledge", "artifacts", "library", "sessions", "projects",
                   "tickets", "health", "ops", "web", "http",
                   "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec",
-                  "decompose", "asr", "logs"}
+                  "decompose", "asr", "logs", "todos"}
         self.assertEqual(set(self.loaded), expect)
 
     def test_modules_have_no_log_capability(self):
@@ -2427,6 +2427,102 @@ class CoreTest(unittest.TestCase):
         by_sid = {m["session"]: m for m in out["members"]}
         self.assertEqual(by_sid["pm-1"]["task"], "把需求做完")
         self.assertEqual(by_sid["role-1"]["task"], "任务 x")
+
+    def test_todo_ops_crud_and_patch(self):
+        """待办是模型自排计划的工具：增删查改都走同一条能力，改过才回会话补丁。"""
+        from ai_new.modules.agent.todos.private import _pure as todo_pure
+        st = {"todos": []}
+        for action, kw in [("add", {"text": "读需求", "status": "doing"}),
+                           ("add", {"text": "写代码"})]:
+            out = todo_pure.apply_ops({"todos": st["todos"], "args": dict(action=action, **kw)})
+            self.assertTrue(out["ok"])
+            st["todos"] = out["todos"]
+        self.assertEqual([t["id"] for t in st["todos"]], ["t1", "t2"])
+        self.assertEqual(st["todos"][1]["status"], "pending")
+        upd = todo_pure.apply_ops({"todos": st["todos"],
+                                   "args": {"action": "update", "id": "t2", "status": "done"}})
+        self.assertEqual(upd["counts"], {"total": 2, "pending": 0, "doing": 1, "done": 1})
+        gone = todo_pure.apply_ops({"todos": upd["todos"],
+                                    "args": {"action": "remove", "id": "t1"}})
+        self.assertEqual([t["id"] for t in gone["todos"]], ["t2"])
+        bad = todo_pure.apply_ops({"todos": gone["todos"],
+                                   "args": {"action": "update", "id": "t9", "status": "done"}})
+        self.assertFalse(bad["ok"])
+        self.assertEqual(bad["code"], "not_found")
+        rep = todo_pure.apply_ops({"todos": gone["todos"],
+                                   "args": {"action": "replace",
+                                            "items": [{"text": "甲", "status": "todo"},
+                                                      {"text": "乙", "status": "done"}]}})
+        self.assertEqual([t["status"] for t in rep["todos"]], ["pending", "done"])
+        self.assertEqual(todo_pure.apply_ops({"todos": rep["todos"],
+                                              "args": {"action": "clear"}})["todos"], [])
+
+    def test_todo_apply_declares_session_patch_only_when_changed(self):
+        """落盘是会话检查点的事：只有改动才回补丁，查询不产生写盘。"""
+        out = self.ctx.api.call("todos.apply", {
+            "todos": [{"id": "t1", "text": "甲", "status": "doing"}],
+            "args": {"action": "add", "text": "乙"}}, caller=None)
+        self.assertIn("session_patch", out)
+        self.assertEqual(len(out["session_patch"]["todos"]), 2)
+        ro = self.ctx.api.call("todos.apply", {
+            "todos": out["todos"], "args": {"action": "list"}}, caller=None)
+        self.assertNotIn("session_patch", ro)
+
+    def test_todo_tool_is_demand_bound(self):
+        """待办的增删查改必须是工具，且工具只是需求身份，不持有实现、不自己写盘。"""
+        item = self.ctx.tools._tools.get("todo")
+        self.assertIsNotNone(item)
+        self.assertEqual(item["demand"], "todo-write")
+        self.assertIsNone(item["fn"])
+
+    def test_stage_tool_whitelists_keep_todo(self):
+        """阶段裁剪按状态 tools 白名单走：漏了 todo 就会把待办工具裁掉，数据契约必须齐。"""
+        seed = self.ctx.api.call("store.read", {
+            "module": "agent/library", "path": "seed.yaml"}, caller=None)["value"]
+        misses = []
+        for flow in seed.get("flows") or []:
+            for stage in flow.get("states") or []:
+                names = stage.get("tools")
+                if isinstance(names, list) and "todo" not in names:
+                    misses.append("%s/%s" % (flow.get("id"), stage.get("id")))
+        self.assertEqual(misses, [], "这些状态白名单没有 todo: %s" % misses)
+
+    def test_bind_tools_marks_project_disabled(self):
+        """岗位↔流程↔项目工具绑定要能一行摊开：可用数、禁用名与状态链都在行上。"""
+        items = [{"id": "developer", "tools": ["artifact_read", "shell", "todo"],
+                  "stages": [{"id": "understand", "cn": "研读"},
+                             {"id": "implement", "cn": "实现"}]}]
+        out = lib_pure.bind_tools({"items": items, "disabled": ["shell"], "kind": "roles"})
+        row = out["items"][0]
+        self.assertEqual(row["tools_sum"], "2/3")
+        self.assertEqual(row["tools_disabled"], ["shell"])
+        self.assertEqual(row["stage_text"], "研读 → 实现")
+
+    def test_thread_members_carry_machine(self):
+        """状态机可视化要显式看见每个角色在哪个阶段，members 必须带流程链与活跃集合。"""
+        ticket = {"id": "T-1", "goal": "把需求做完",
+                  "roles": [{"session": "role-1", "role": "developer", "display": "探针"}],
+                  "transcript": {}}
+        stage = {"id": "implement", "cn": "实现", "desc": "按方案落地",
+                 "next": ["verify"], "tools": ["read"], "terminal": False}
+        thread = {"id": "pm-1", "name": "pm-t-1", "status": "busy", "role": "",
+                  "updated": 1, "meta": {"tools": []}, "messages": [],
+                  "flow": {"id": "pm", "cn": "PM 流程"}, "stage": "analyze",
+                  "active": ["analyze", "plan"], "stages": [stage]}
+        role_threads = [{"id": "role-1", "role": "developer", "name": "探针",
+                         "status": "running", "messages": [], "stage": "implement",
+                         "active": ["implement"], "stages": [stage]}]
+        out = ticket_pure.threadp({"ticket": ticket, "thread": thread,
+                                   "role_threads": role_threads})
+        by_sid = {m["session"]: m for m in out["members"]}
+        pm = by_sid["pm-1"]["machine"]
+        self.assertEqual(pm["stage"], "analyze")
+        self.assertEqual(pm["active"], ["analyze", "plan"])
+        self.assertEqual(pm["flow"]["cn"], "PM 流程")
+        role = by_sid["role-1"]["machine"]
+        self.assertEqual(role["stage"], "implement")
+        self.assertEqual(role["states"][0]["cn"], "实现")
+        self.assertNotIn("tools", role["states"][0])
 
     def test_thread_does_not_duplicate_pm_session(self):
         """by_ticket 会把 PM 主会话一并归集；线程视图不得把它当角色二次并入成员与消息流。"""

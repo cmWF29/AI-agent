@@ -121,6 +121,35 @@ def archive_transcript(p):
     return rec
 
 
+def _state_brief(rec):
+    """会话状态机快照：只带可视化要的字段（阶段链与活跃集合），不带工具清单等重字段。"""
+    rec = rec or {}
+    raw = rec.get("stages") or rec.get("machine", {}).get("states") or []
+    states = []
+    for st in raw:
+        if not isinstance(st, dict):
+            continue
+        states.append({"id": st.get("id") or "",
+                       "cn": st.get("cn") or st.get("id") or "",
+                       "desc": st.get("desc") or "",
+                       "next": st.get("next") or [],
+                       "terminal": bool(st.get("terminal"))})
+    return {"flow": rec.get("flow") or {},
+            "stage": rec.get("stage") or "",
+            "initial": rec.get("initial") or "",
+            "active": rec.get("active") or [],
+            "states": states}
+
+
+def _todo_brief(rec):
+    """会话待办摘要：模型自排计划的条数与进行项，视图一行看得到，不摊整表。"""
+    items = (rec or {}).get("todos") or []
+    done = len([x for x in items if (x or {}).get("status") == "done"])
+    doing = [x for x in items if (x or {}).get("status") == "doing"]
+    return {"total": len(items), "done": done,
+            "current": ((doing[0] or {}).get("text") or "") if doing else ""}
+
+
 def _stamp(msgs, sid, actor, base):
     """给合并进群聊的消息打发言者与时间：缺 at 的用会话起始时刻加序位偏移兜底。"""
     out = []
@@ -162,7 +191,9 @@ def threadp(p):
     archived_by_sid = {(r or {}).get("session"): r for r in (transcript.get("roles") or [])}
 
     members = [{"session": pm_sid, "role": "pm", "display": "PM",
-                "status": status, "kind": "pm", "task": ticket.get("goal") or ""}]
+                "status": status, "kind": "pm", "task": ticket.get("goal") or "",
+                "machine": _state_brief(thread),
+                "todos": _todo_brief(thread)}]
     roles_out = []
     seen = {pm_sid}
 
@@ -180,7 +211,9 @@ def threadp(p):
             rstatus = "gone"
         members.append({"session": sid, "role": actor, "display": display,
                         "status": rstatus, "kind": (live or {}).get("kind") or "role",
-                        "task": (reg or {}).get("task") or ""})
+                        "task": (reg or {}).get("task") or "",
+                        "machine": _state_brief(live or archived),
+                        "todos": _todo_brief(live or archived)})
         roles_out.append({"session": sid, "role": actor, "display": display,
                           "status": rstatus, "task": (reg or {}).get("task") or ""})
         msgs = (live or {}).get("messages") or (archived or {}).get("messages") or []
@@ -197,7 +230,7 @@ def threadp(p):
         "thread": {"id": pm_sid, "name": thread.get("name") or "", "status": status,
                    "role": "pm",
                    "updated": thread.get("updated") or "", "meta": thread.get("meta") or {},
-                   "messages": merged},
+                   "todos": thread.get("todos") or [], "messages": merged},
         "roles": roles_out,
         "members": members,
     }

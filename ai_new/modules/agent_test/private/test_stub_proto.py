@@ -19,7 +19,7 @@ from ai_new.modules.agent_test.private import stub_llm  # noqa: E402
 
 ROLE_TOOLS = [
     {"function": {"name": n, "parameters": {"type": "object"}}}
-    for n in ["knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read",
+    for n in ["todo", "knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read",
               "artifact_write", "knowledge_write", "ticket_note"]
 ]
 PM_TOOLS = [

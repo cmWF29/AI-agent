@@ -1,0 +1,9 @@
+text_required: 新增待办要给 text。
+id_missing: 没有这条待办 id。
+action_unknown: 认不出这个 action，只支持 list/add/update/remove/clear/replace。
+heading: 你的会话待办（自维护计划，改它只能调 todo 工具）
+row: "- {id} [{status}] {text}"
+todo_tool_desc: 会话待办清单（你自己的分步计划）：增删查改都走这里，状态存会话快照、重启后仍在；随时可查当前进度。
+todo_tool_action: "动作：list 查 / add 增 / update 改 / remove 删 / clear 清空 / replace 整表覆盖"
+todo_tool_items: "整表覆盖时的条目数组：[{text, status}]，status 取 pending/doing/done"
+todowrite_tip: 待办已更新；做完一项就标 done，别让清单和实际进度脱节。

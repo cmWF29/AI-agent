@@ -32,10 +32,13 @@ view:
     heading: 项目岗位
     summarize: true
     title: 项目岗位
-    count_note: "{data.positions.items.length} 个岗位（引用公共岗位库；可在本项目单独禁用）"
+    count_note: "{data.positions.items.length} 个岗位（岗位 ↔ 流程 ↔ 工具绑定在此一行看全；可在本项目单独禁用岗位或工具）"
     columns:
     - {label: 岗位, value: row.cn, fallback: row.id, sub: row.prompt_file}
-    - {label: 工具, value: "row.tools|count", suffix: 项, muted: true}
+    - {label: 绑定流程, value: row.flow.cn, fallback: row.flow_id}
+    - {label: 流程状态链, value: row.stage_text, muted: true}
+    - {label: 可用工具, value: row.tools_sum, sub: row.tools_text, muted: true}
+    - {label: 项目内禁用, value: row.tools_disabled, fallback: "—", muted: true}
     - {label: 门禁检查, value: "row.flow.checks|count", suffix: 项, muted: true}
     - {label: 状态, badge: row.disabled_text}
     actions:

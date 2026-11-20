@@ -139,3 +139,5 @@ checks:
   - skill-disable
   - skill-enable
   - skill-uninstall
+  - todo-write
+  - todo-context

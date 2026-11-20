@@ -340,7 +340,8 @@ function renderBubbles(msgs, roles) {
     const ts = clockText((g.items[g.items.length - 1] || {}).at);
     return `<div class="msg ${side}">${side === "left" ? av : ""}
       <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
-      <div class="bubble-stack">${bodies}</div>${ts ? `<div class="msg-ts">${esc(ts)}</div>` : ""}</div>${side === "right" ? av : ""}</div>`;
+      <div class="bubble-stack">${bodies}</div>${ts ? `<div class="msg-ts">${esc(ts)}</div>` : ""}
+      ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), "原文")}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
 }
 
@@ -362,6 +363,52 @@ function streamHtml(msgs, events, roles) {
   }
   flush();
   return out.join("");
+}
+
+/* 角色状态条：每个角色当前阶段与活跃状态，点开是同一个人（data-member 复用成员卡） */
+function roleBoardHtml(roles) {
+  const rows = arr(roles).filter((r) => r && ((r.machine || {}).states || []).length);
+  if (!rows.length) return "";
+  const cells = rows.map((r) => {
+    const mc = r.machine || {};
+    const states = mc.states || [];
+    const cur = states.find((s) => s.id === mc.stage) || {};
+    const acts = (mc.active || []).map((id) => (states.find((s) => s.id === id) || {}).cn || id);
+    const idx = arr(roles).indexOf(r);
+    return `<button class="role-mini st-${statusKind(r.status)}" data-member="${idx}" title="${esc((mc.flow || {}).cn || "")}">
+      <i class="rm-dot"></i><b>${esc(r.display || r.role)}</b>
+      <span class="rm-stage">${esc(cur.cn || "—")}</span>
+      ${acts.length ? `<span class="rm-active">${esc(acts.join("/"))}</span>` : ""}
+    </button>`;
+  }).join("");
+  return `<div class="role-board">${cells}</div>`;
+}
+/* 待办板：模型自己排的分步计划，和岗位流程状态机不是一回事，单独一条 */
+function todoBoardHtml(todos) {
+  const list = arr(todos);
+  if (!list.length) return "";
+  const done = list.filter((t) => (t.status || "") === "done").length;
+  const doing = list.find((t) => (t.status || "") === "doing");
+  const rows = list.map((t) => {
+    const st = t.status || "pending";
+    return `<div class="td-row"><i class="td-dot ${esc(st)}"></i><span class="td-id">${esc(t.id || "")}</span><span class="td-text ${st === "done" ? "off" : ""}">${esc(t.text || "")}</span><em>${esc(st === "done" ? "完成" : st === "doing" ? "在做" : "待办")}</em></div>`;
+  }).join("");
+  return `<details class="todo-board"><summary>待办 ${done}/${list.length}${doing ? ` · 正在做：${esc(doing.text || "")}` : ""}</summary><div class="td-list">${rows}</div></details>`;
+}
+
+/* 结构化原文：所有通信都是结构化对象，原样吐出看得到字段，不用猜 */
+function rawHtml(objs, label, limit) {
+  const list = arr(objs);
+  if (!list.length) return "";
+  let text = "";
+  try {
+    text = jsyaml.dump(list, { noRefs: true, lineWidth: 140, sortKeys: false });
+  } catch (e) {
+    try { text = JSON.stringify(list, null, 2); } catch (e2) { text = String(list); }
+  }
+  const cap = limit || 6000;
+  const cut = text.length > cap ? text.slice(0, cap) + "\n…（已截断，共 " + text.length + " 字符）" : text;
+  return `<details class="raw-box"><summary>${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
 }
 
 function chatHtml(sec, ctx) {
@@ -389,10 +436,15 @@ function chatHtml(sec, ctx) {
   const events = groupEvents(sec.history_source ? ref(sec.history_source, ctx) : undefined)
     .filter((g) => !hiddenEvents.includes(g.event));
   const stream = streamHtml(msgs, events, roles);
-  const body = (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
+  const hiddenMsgs = arr(src.messages).filter((m) => hidden.includes(m.role || ""));
+  const inject = hiddenMsgs.length
+    ? `<div class="inject">${rawHtml(hiddenMsgs, "系统注入 ×" + hiddenMsgs.length)}</div>` : "";
+  const body = inject + todoBoardHtml(src.todos) +
+    (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
     ${headMain || chips ? `<div class="chat-head">${headMain}<div class="members">${chips}</div></div>` : ""}
     ${summaryHtml}
+    ${roleBoardHtml(roles)}
     <div class="chat">${body}</div>
   </section>`;
 }

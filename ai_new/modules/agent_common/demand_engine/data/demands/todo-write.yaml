@@ -1,0 +1,46 @@
+id: todo-write
+title: 会话待办增删查改：读会话现表 → 纯变换 → 回会话补丁
+description: "会话待办：模型自排的分步计划，增删查改都经这条需求。现表从会话快照读，变换归 todos 模块纯函数，补丁由会话检查点随快照落盘；工具本身不写盘"
+tags: [todo, session, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: config.get
+  with:
+    key:
+      lit: logs.paths
+  as: lp
+- call: sessions.record_path
+  with:
+    paths:
+      get: lp.value
+    id:
+      get: input.session
+  as: sp
+- call: store.read
+  with:
+    module:
+      lit: agent/logs
+    path:
+      get: sp.path
+  as: sess
+- call: todos.apply
+  with:
+    todos:
+      get: sess.value.todos
+    args:
+      get: input
+  as: out
+expect:
+  given:
+    input:
+      session: role-1
+      action: list
+  calls:
+  - config.get
+  - sessions.record_path
+  - store.read
+  - todos.apply
+  payload: {}
+  promise: 现表归会话快照，变换归模块纯函数，落盘归会话检查点

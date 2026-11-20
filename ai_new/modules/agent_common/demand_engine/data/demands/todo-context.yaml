@@ -1,0 +1,22 @@
+id: todo-context
+title: 待办上下文段：当前清单拼成一条 system 消息
+description: "ReAct 每轮把会话待办附成一条 system 注记，模型看得到自己排的计划，改完不会立刻忘；空表不回"
+tags: [todo, session, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: todos.context
+  with:
+    todos:
+      get: input.todos
+  as: out
+expect:
+  given:
+    input:
+      todos:
+      - {id: t1, text: 读需求, status: doing}
+  calls:
+  - todos.context
+  payload: {}
+  promise: 待办只做展示注记，不参与流程状态判定

@@ -96,12 +96,33 @@ function closeMemberCard() {
   const pop = $("popover");
   if (pop) { pop.hidden = true; pop.innerHTML = ""; }
 }
+function machineHtml(m) {
+  const mc = (m || {}).machine || {};
+  const states = mc.states || [];
+  if (!states.length) return "";
+  const active = mc.active || [];
+  const chain = states.map((st) => {
+    const cls = [st.id === mc.stage ? "cur" : "", active.indexOf(st.id) >= 0 ? "on" : "", st.terminal ? "term" : ""]
+      .filter(Boolean).join(" ");
+    return `<span class="st-pill ${cls}" title="${esc(st.desc || st.id)}">${esc(st.cn || st.id)}</span>`;
+  }).join(`<span class="st-arrow">→</span>`);
+  const cur = states.find((st) => st.id === mc.stage) || {};
+  const acts = active.map((id) => (states.find((st) => st.id === id) || {}).cn || id);
+  return `<div class="p-row"><span>流程</span><div>
+    <div class="p-flow">${esc((mc.flow || {}).cn || (mc.flow || {}).id || "—")}</div>
+    <div class="st-chain">${chain}</div>
+    <div class="p-flow">当前 ${esc(cur.cn || mc.stage || "—")}${acts.length ? " · 活跃 " + esc(acts.join("/")) : ""}</div>
+  </div></div>`;
+}
+
 function openMemberCard(el) {
   const pop = $("popover");
   const m = (window.RENDER_MEMBERS || [])[Number(el.dataset.member)];
   if (!pop || !m) return;
   pop.innerHTML = `<h4><span class="avatar" style="--av:${avatarColor(m.display || m.role)}">${initial(m.display || m.role)}</span>${esc(m.display || m.role)}</h4>
     <div class="p-role">${esc(m.role || "")} · ${statusText(m.status)}</div>
+    ${machineHtml(m)}
+    ${(m.todos || {}).total ? `<div class="p-row"><span>待办</span><div>${(m.todos || {}).done}/${(m.todos || {}).total}${(m.todos || {}).current ? " · " + esc((m.todos || {}).current) : ""}</div></div>` : ""}
     ${m.task ? `<div class="p-row"><span>任务</span><div>${esc(m.task)}</div></div>` : ""}
     ${m.session ? `<div class="p-row"><span>会话</span><div>${esc(m.session)}</div></div>` : ""}`;
   pop.hidden = false;
