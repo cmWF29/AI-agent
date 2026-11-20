@@ -1,9 +1,16 @@
 default:
   kind: direct
 generated_by: ai_new/modules/agent_common/api/private/_gen.py
+listen:
+  shm:
+    dir: /dev/shm/ai_new
+  tcp:
+    host: 127.0.0.1
+    port: 0
+  unix: {}
 routes: {}
 stats:
   bound: 0
   modules: 31
-  route_literals: 274
+  route_literals: 275
 
