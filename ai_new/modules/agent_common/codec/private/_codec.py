@@ -10,6 +10,11 @@ import wave
 
 import yaml
 
+# 优先 C 扩展 Loader/Dumper（libyaml），解析/序列化大报文约快一个数量级；
+# 环境无 C 扩展时回退纯 Python Safe 版本，语义同为安全子集。
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+_YAML_DUMPER = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
+
 
 def json_encode(value):
     try:
@@ -26,8 +31,8 @@ def json_decode(text):
 
 def yaml_encode(value):
     try:
-        text = yaml.safe_dump(value, allow_unicode=True, sort_keys=False,
-                              default_flow_style=False)
+        text = yaml.dump(value, Dumper=_YAML_DUMPER, allow_unicode=True,
+                         sort_keys=False, default_flow_style=False)
         return {"ok": True, "text": text}
     except (TypeError, ValueError, yaml.YAMLError) as exc:
         return {"ok": False, "error": str(exc), "code": "encode_failed"}
@@ -36,8 +41,8 @@ def yaml_encode(value):
 def yaml_encode_flow(value):
     """报文/SSE 用：YAML flow 单行，保持现有分帧与 Content-Length。"""
     try:
-        text = yaml.safe_dump(value, allow_unicode=True, sort_keys=False,
-                              default_flow_style=True)
+        text = yaml.dump(value, Dumper=_YAML_DUMPER, allow_unicode=True,
+                         sort_keys=False, default_flow_style=True)
         return {"ok": True, "text": text.strip()}
     except (TypeError, ValueError, yaml.YAMLError) as exc:
         return {"ok": False, "error": str(exc), "code": "encode_failed"}
@@ -45,7 +50,7 @@ def yaml_encode_flow(value):
 
 def yaml_decode(text):
     try:
-        return {"ok": True, "value": yaml.safe_load(text or "null")}
+        return {"ok": True, "value": yaml.load(text or "null", Loader=_YAML_LOADER)}
     except yaml.YAMLError as exc:
         return {"ok": False, "error": str(exc), "code": "decode_failed"}
 

@@ -492,24 +492,23 @@ def _route_exists(payload):
     return {"exists": _p(payload.get("module"), payload.get("path")).exists()}
 
 
-def _route_read(payload):
-    import yaml
+def _route_read(ctx, payload):
     path = _p(payload.get("module"), payload.get("path"))
     fallback = payload.get("fallback")
     if not path.is_file():
         return {"value": fallback, "exists": False}
-    try:
-        return {"value": yaml.safe_load(path.read_text(encoding="utf-8")), "exists": True}
-    except yaml.YAMLError:
+    out = ctx.codec.yaml_decode(path.read_text(encoding="utf-8"))
+    if not out.get("ok"):
         return {"value": fallback, "exists": True, "bad": True}
+    return {"value": out["value"], "exists": True}
 
 
-def _route_write(payload):
-    import yaml
+def _route_write(ctx, payload):
     path = _p(payload.get("module"), payload.get("path"))
-    body = yaml.safe_dump(payload.get("value"), allow_unicode=True,
-                    sort_keys=False, default_flow_style=False)
-    _files.write_text_atomic(path, body)
+    out = ctx.codec.yaml_encode(payload.get("value"))
+    if not out.get("ok"):
+        raise ValueError("YAML 编码失败: %s" % out.get("error"))
+    _files.write_text_atomic(path, out["text"])
     return {"written": True, "path": str(path)}
 
 def _route_remove(payload):
@@ -533,8 +532,7 @@ def _route_glob(payload):
                             for i in base.glob(pattern) if i.is_file())}
 
 
-def _route_walk(payload):
-    import yaml
+def _route_walk(ctx, payload):
     base = _p(payload.get("module"), payload.get("root"))
     if not base.is_dir():
         return {"rows": []}
@@ -542,10 +540,9 @@ def _route_walk(payload):
     for item in sorted(base.rglob(str(payload.get("pattern") or "*/**/*"))):
         if not item.is_file():
             continue
-        try:
-            rows.append(yaml.safe_load(item.read_text(encoding="utf-8")))
-        except yaml.YAMLError:
-            continue
+        out = ctx.codec.yaml_decode(item.read_text(encoding="utf-8"))
+        if out.get("ok"):
+            rows.append(out["value"])
     return {"rows": rows}
 
 def _route_walk_text(payload):
