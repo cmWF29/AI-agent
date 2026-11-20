@@ -7,6 +7,18 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: sessions.summary_fallback_chars
+  as: cfg_fb
+- call: store.read
+  with:
+    module:
+      lit: agent_common/react
+    path:
+      lit: messages.yaml
+  as: rtpl
 - call: react.run
   with:
     messages:
@@ -32,10 +44,46 @@ do:
     extra:
       get: input.extra
   as: out
+- call: react.summarize
+  with:
+    summary:
+      get: out.summary
+    messages:
+      get: out.new_messages
+    by_model:
+      get: out.summary_by_model
+    chars:
+      get: cfg_fb.value
+    title:
+      get: rtpl.value.fallback_summary
+  as: summ
+- call: react.result
+  with:
+    messages:
+      get: out.messages
+    steps:
+      get: out.steps
+    cancelled:
+      get: out.cancelled
+    failed:
+      get: out.failed
+    summary:
+      get: summ.summary
+    summary_by_model:
+      get: out.summary_by_model
+    new_messages:
+      get: out.new_messages
+    stage:
+      get: out.stage
+  as: fin
 expect:
   given:
     input: {}
   calls:
+  - config.get
+  - store.read
   - react.run
+  - react.summarize
+  - react.result
   payload: {}
   promise: 轮次循环、终止条件、工具回填都在能力内部

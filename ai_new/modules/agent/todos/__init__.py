@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from .private import _pure
 
-LIMIT = 40
+def _limit(ctx):
+    """待办上限只有一处来源：配置；读不到就按 0 处理（等于不收新条目），不在这里写死。"""
+    v = ctx.api.call("config.get", {"key": "todos.max_items"}, caller=None).get("value")
+    return int(v or 0)
 
 
 def _msg_tpl(ctx):
@@ -48,7 +51,7 @@ def _route_apply(ctx, payload):
         # 工具经需求进来时入参就是工具参数本身，直接当动作参数用
         payload["args"] = payload
     payload["tpl"] = _msg_tpl(ctx)
-    payload["limit"] = LIMIT
+    payload["limit"] = _limit(ctx)
     out = _pure.apply_ops(payload)
     if out.get("ok") and out.get("changed"):
         out["session_patch"] = {"todos": out["todos"]}
@@ -60,6 +63,6 @@ def _route_context(ctx, payload):
     """待办上下文：拼成 system 消息；空表回 None 让编排跳过。"""
     payload = dict(payload or {})
     payload["tpl"] = _msg_tpl(ctx)
-    payload["limit"] = LIMIT
+    payload["limit"] = _limit(ctx)
     return _pure.context(payload)
 

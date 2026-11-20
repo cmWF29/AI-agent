@@ -91,7 +91,9 @@ class Transport:
         if token:
             req.add_header("X-Auth-Token", token)
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            wait = self.ctx.api.call("config.get", {"key": "api.transport_timeout"},
+                                     caller=None).get("value")
+            with urllib.request.urlopen(req, timeout=int(wait or 10)) as resp:
                 rec = self.ctx.codec.yaml_decode(resp.read().decode("utf-8"))["value"]
         except (urllib.error.URLError, Exception) as exc:
             raise self.ctx.ApiError("远程调用失败: %s (%s)" % (route, exc),

@@ -66,6 +66,8 @@ def result(p):
     return {"steps": p.get("steps") or 0, "messages": msgs,
             "last": msgs[-1] if msgs else None, "cancelled": bool(p.get("cancelled")),
             "failed": p.get("failed"), "summary": p.get("summary"),
+            "summary_by_model": bool(p.get("summary_by_model")),
+            "new_messages": p.get("new_messages") or [],
             "stage": p.get("stage") or ""}
 
 
@@ -183,6 +185,41 @@ def parse_final(p):
                 "summary": _textify(obj.get("summary")),
                 "stage": _textify(obj.get("stage"))}
     return {"structured": False, "reply": content, "summary": "", "stage": ""}
+
+
+def summarize(p):
+    """滚动摘要收口：模型给了就听模型的，没给就把本轮工具往返压成一段系统兜底。
+
+    为什么必须有：发往上游的上下文只带 system + 滚动摘要 + 最后一条用户指令，
+    本轮工具结果不会自动进下一轮载荷。模型没交 summary（步数耗尽/被打断）时，
+    这一轮就等于白干，所以按显式字符上限补一段，并标明是系统兜底，避免模型误当自己的结论。
+    """
+    base = (p.get("summary") or "").strip()
+    if p.get("by_model"):
+        return {"summary": base, "fallback": False}
+    msgs = p.get("messages") or []
+    cap = int(p.get("chars") or 0)
+    title = p.get("title") or ""
+    lines = []
+    for m in msgs:
+        role = (m or {}).get("role") or ""
+        if role == "assistant" and (m or {}).get("tool_calls"):
+            names = []
+            for c in m.get("tool_calls") or []:
+                fn = (c or {}).get("function") or {}
+                arg = (fn.get("arguments") or "").strip()
+                names.append("%s(%s)" % (fn.get("name") or "?", arg[:60]))
+            lines.append("- 调用: " + "; ".join(names))
+        elif role == "tool":
+            body = ((m or {}).get("content") or "").strip().replace("\n", " ")
+            lines.append("- 结果: " + body[:160])
+    if not lines:
+        return {"summary": base, "fallback": False}
+    text = (title + "\n" if title else "") + "\n".join(lines)
+    if cap > 0 and len(text) > cap:
+        text = text[:cap] + "…"
+    merged = (base + "\n\n" + text).strip() if base else text
+    return {"summary": merged, "fallback": True}
 
 
 def attach_protocol(p):

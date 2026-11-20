@@ -25,6 +25,7 @@ def setup(ctx):
         ("react.checkpoint", _pure.checkpoint),
         ("react.classify_tool", _pure.classify_tool),
         ("react.parse_final", _pure.parse_final),
+        ("react.summarize", _pure.summarize),
         ("react.strip_fence", _pure.strip_fence),
         ("react.extract_json", _pure.extract_json),
         ("react.attach_protocol", _pure.attach_protocol),
@@ -142,10 +143,13 @@ async def _route_run(ctx, payload):
         messages = messages + [extra]
     new_msgs = []
     new_summary = summary
+    summary_by_model = False
     new_stage = ""
     steps = 0
     done = False
-    cap = 200
+    cap = ctx.api.call("config.get", {"key": "sessions.react_cap"},
+                       caller=None).get("value")
+    cap = int(cap or 0)
     if (payload.get("max_steps") or 0) > 0:
         cap = payload.get("max_steps")
     threshold = _tool_threshold(ctx, payload)
@@ -199,6 +203,7 @@ async def _route_run(ctx, payload):
         if not amsg.get("tool_calls") or not names:
             if str(parsed.get("summary") or "").strip():
                 new_summary = parsed["summary"]
+                summary_by_model = True
             if str(parsed.get("stage") or "").strip():
                 new_stage = parsed["stage"]
             _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
@@ -243,4 +248,6 @@ async def _route_run(ctx, payload):
                                           "cancelled": cancelled,
                                           "failed": failed,
                                           "summary": new_summary,
+                                          "summary_by_model": summary_by_model,
+                                          "new_messages": new_msgs,
                                           "stage": new_stage}, caller=None)

@@ -77,8 +77,15 @@ class Runtime:
             self._persist_hooks_locked()
         return True
 
-    def claim_hooks(self, limit=10):
+    def _cfg_int(self, key, default):
+        """运行期阈值一律先问配置：唯一来源在 config，缺配置才用构建默认兜底。"""
+        v = self.ctx.api.call("config.get", {"key": key}, caller=None).get("value")
+        return int(v) if v not in (None, "") else default
+
+    def claim_hooks(self, limit=None):
         """认领一批待派发事件：锁内摘除并落盘剩余，避免重复派发。"""
+        if limit is None:
+            limit = self._cfg_int("runtime.hook_batch", 10)
         with self._lock:
             batch = self._hook_queue[:limit]
             del self._hook_queue[:len(batch)]
@@ -138,7 +145,7 @@ class Runtime:
     def _await_future(self, fut):
         """等后台任务收尾；等待失败不掀翻删除链路。"""
         try:
-            fut.result(timeout=30)
+            fut.result(timeout=self._cfg_int("runtime.future_timeout", 30))
         except Exception:  # noqa: BLE001
             pass
 
@@ -195,8 +202,10 @@ class Runtime:
             if lst and ev in lst:
                 lst.remove(ev)
 
-    def stream_events(self, key, cursor=None, timeout=15):
+    def stream_events(self, key, cursor=None, timeout=None):
         """阻塞等待草稿槽变化：先对齐当前快照，无变化再阻塞等事件；醒后回最新快照。"""
+        if timeout is None:
+            timeout = self._cfg_int("runtime.stream_timeout", 15)
         key = str(key or "")
         ev = self.stream_subscribe(key)
         try:

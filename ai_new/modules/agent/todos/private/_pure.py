@@ -69,7 +69,7 @@ def apply_ops(p):
 
     纯数据变换：不动盘、不取时钟；越界或参数缺失只回错误码，不改原表。
     """
-    items = _norm(p.get("todos") or [], int(p.get("limit") or 40))
+    items = _norm(p.get("todos") or [], int(p.get("limit")))
     args = p.get("args") or {}
     action = str(args.get("action") or "list").strip().lower()
     if action in ("list", "show", "read", "get"):
@@ -79,7 +79,7 @@ def apply_ops(p):
         return {"ok": True, "action": "clear", "changed": bool(items),
                 "todos": [], "counts": counts([])}
     if action in ("replace", "write", "set"):
-        new = _norm(args.get("items") or args.get("todos") or [], int(p.get("limit") or 40))
+        new = _norm(args.get("items") or args.get("todos") or [], int(p.get("limit")))
         return {"ok": True, "action": "replace", "changed": True,
                 "todos": new, "counts": counts(new)}
     if action in ("add", "append", "create"):
@@ -92,7 +92,7 @@ def apply_ops(p):
                "note": str(args.get("note") or "").strip()}
         if any(x["id"] == rec["id"] for x in items):
             rec["id"] = _next_id(items)
-        new = _norm(items + [rec], int(p.get("limit") or 40))
+        new = _norm(items + [rec], int(p.get("limit")))
         return {"ok": True, "action": "add", "changed": True,
                 "todos": new, "counts": counts(new)}
     if action in ("update", "edit", "set_status", "patch"):
@@ -142,7 +142,7 @@ def brief(p):
 
 def context(p):
     """上下文段：把当前待办拼成一条 system 消息，模型每轮看得到自己的计划。"""
-    items = _norm(p.get("todos") or [], int(p.get("limit") or 40))
+    items = _norm(p.get("todos") or [], int(p.get("limit")))
     tpl = p.get("tpl") or {}
     if not items:
         return {"message": None}

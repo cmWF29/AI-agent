@@ -62,10 +62,12 @@ def transcribe(ctx, audio):
         return {"ok": False, "code": "engine_unavailable", "status": 503,
                 "error": "语音识别引擎未安装：%s" % exc}
     rec = KaldiRecognizer(model, rate)
+    step = int(ctx.api.call("config.get", {"key": "asr.chunk_shorts"},
+                            caller=None).get("value") or 0)
     rec.SetWords(False)
     chunks = []
     while pcm:
-        block, pcm = pcm[:4000], pcm[4000:]
+        block, pcm = pcm[:step], pcm[step:]
         if rec.AcceptWaveform(block):
             part = _decode_json(ctx, rec.Result()).get("text") or ""
             if part:

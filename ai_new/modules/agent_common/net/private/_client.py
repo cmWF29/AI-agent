@@ -149,6 +149,9 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
     tool_calls / finish / usage 的语义归一仍由 llm.decode_sse 完成。
     仅连接阶段的瞬时故障/5xx 短退避重试；流一旦开始读帧就不再重试，避免草稿槽重复累积。
     """
+    # 原文保留条数属于传输策略，不在代码里写死：读不到配置就按 0 处理（不保留原文）
+    line_cap = int(ctx.api.call("config.get", {"key": "net.stream_lines"},
+                                caller=None).get("value") or 0)
     if not url:
         return {"ok": False, "error": "缺少 url", "code": "bad_request"}
     if body is not None and not isinstance(body, str):
@@ -189,7 +192,7 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
                 if not isinstance(obj, dict):
                     continue
                 items.append(obj)
-                if len(raw_lines) < 4000:
+                if line_cap > 0 and len(raw_lines) < line_cap:
                     raw_lines.append(line)
                 delta = (obj.get("choices") or [{}])[0].get("delta") or {}
                 piece = delta.get("content")

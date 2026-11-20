@@ -227,8 +227,13 @@ def _make_handler(ctx):
             self.wfile.write(data)
 
         def _zip(self, data):
-            """传输编码不是业务：客户端说能收 gzip 就把大响应压了再发，页面首屏才跟得上。"""
-            if len(data) < 1024:
+            """传输编码不是业务：客户端说能收 gzip 就把大响应压了再发，页面首屏才跟得上。
+
+            压缩门限走配置，小响应不白付压缩开销。
+            """
+            floor = int(ctx.api.call("config.get", {"key": "web.gzip_min_bytes"},
+                                     caller=None).get("value") or 0)
+            if len(data) < floor:
                 return data, False
             if "gzip" not in (self.headers.get("Accept-Encoding") or "").lower():
                 return data, False

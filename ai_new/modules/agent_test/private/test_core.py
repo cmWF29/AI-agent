@@ -2467,6 +2467,26 @@ class CoreTest(unittest.TestCase):
         miss = session_pure.wire_at({"rec": {"id": "s1", "messages": []}, "seq": 0})
         self.assertFalse(miss["ok"])
 
+    def test_react_summarize_falls_back_only_without_model_summary(self):
+        """逐轮压缩：模型给了摘要就听模型的；没给（步数耗尽/中断）才由系统按上限补工具往返。"""
+        from ai_new.modules.agent_common.react.private import _pure as react_pure
+        new = [{"role": "assistant", "tool_calls": [
+                    {"function": {"name": "artifact_read", "arguments": "{\"path\":\"docs/a.md\"}"}}]},
+               {"role": "tool", "content": "文件正文前 20 字…"}]
+        by_model = react_pure.summarize({"summary": "本轮已定稿", "messages": new,
+                                         "by_model": True, "chars": 600, "title": "兜底"})
+        self.assertEqual(by_model["summary"], "本轮已定稿")
+        self.assertFalse(by_model["fallback"])
+        fb = react_pure.summarize({"summary": "旧摘要", "messages": new,
+                                   "by_model": False, "chars": 600, "title": "兜底"})
+        self.assertTrue(fb["fallback"])
+        self.assertIn("旧摘要", fb["summary"])
+        self.assertIn("artifact_read", fb["summary"])
+        self.assertIn("文件正文", fb["summary"])
+        capped = react_pure.summarize({"summary": "", "messages": new,
+                                       "by_model": False, "chars": 40, "title": "兜底"})
+        self.assertLessEqual(len(capped["summary"]), 41)
+
     def test_llm_wire_masks_secret_and_keeps_raw(self):
         """网络报文要能原样回查：请求体与响应原文保留，密钥类头打码。"""
         from ai_new.modules.agent_common.llm.private import _client as llm_client
@@ -2488,33 +2508,33 @@ class CoreTest(unittest.TestCase):
         st = {"todos": []}
         for action, kw in [("add", {"text": "读需求", "status": "doing"}),
                            ("add", {"text": "写代码"})]:
-            out = todo_pure.apply_ops({"todos": st["todos"], "args": dict(action=action, **kw)})
+            out = todo_pure.apply_ops({"todos": st["todos"], "limit": 40, "args": dict(action=action, **kw)})
             self.assertTrue(out["ok"])
             st["todos"] = out["todos"]
         self.assertEqual([t["id"] for t in st["todos"]], ["t1", "t2"])
         self.assertEqual(st["todos"][1]["status"], "pending")
-        upd = todo_pure.apply_ops({"todos": st["todos"],
+        upd = todo_pure.apply_ops({"todos": st["todos"], "limit": 40,
                                    "args": {"action": "update", "id": "t2", "status": "done"}})
         self.assertEqual(upd["counts"], {"total": 2, "pending": 0, "doing": 1, "done": 1})
-        gone = todo_pure.apply_ops({"todos": upd["todos"],
+        gone = todo_pure.apply_ops({"todos": upd["todos"], "limit": 40,
                                     "args": {"action": "remove", "id": "t1"}})
         self.assertEqual([t["id"] for t in gone["todos"]], ["t2"])
-        bad = todo_pure.apply_ops({"todos": gone["todos"],
+        bad = todo_pure.apply_ops({"todos": gone["todos"], "limit": 40,
                                    "args": {"action": "update", "id": "t9", "status": "done"}})
         self.assertFalse(bad["ok"])
         self.assertEqual(bad["code"], "not_found")
-        rep = todo_pure.apply_ops({"todos": gone["todos"],
+        rep = todo_pure.apply_ops({"todos": gone["todos"], "limit": 40,
                                    "args": {"action": "replace",
                                             "items": [{"text": "甲", "status": "todo"},
                                                       {"text": "乙", "status": "done"}]}})
         self.assertEqual([t["status"] for t in rep["todos"]], ["pending", "done"])
-        self.assertEqual(todo_pure.apply_ops({"todos": rep["todos"],
+        self.assertEqual(todo_pure.apply_ops({"todos": rep["todos"], "limit": 40,
                                               "args": {"action": "clear"}})["todos"], [])
 
     def test_todo_apply_declares_session_patch_only_when_changed(self):
         """落盘是会话检查点的事：只有改动才回补丁，查询不产生写盘。"""
         out = self.ctx.api.call("todos.apply", {
-            "todos": [{"id": "t1", "text": "甲", "status": "doing"}],
+            "todos": [{"id": "t1", "text": "甲", "status": "doing"}], "limit": 40,
             "args": {"action": "add", "text": "乙"}}, caller=None)
         self.assertIn("session_patch", out)
         self.assertEqual(len(out["session_patch"]["todos"]), 2)

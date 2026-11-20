@@ -25,10 +25,17 @@ do:
     path:
       get: sp.path
   as: sess
+- call: config.get
+  with:
+    key:
+      lit: todos.max_items
+  as: cfg_max
 - call: todos.apply
   with:
     todos:
       get: sess.value.todos
+    limit:
+      get: cfg_max.value
     args:
       get: input
   as: out
@@ -41,6 +48,7 @@ expect:
   - config.get
   - sessions.record_path
   - store.read
+  - config.get
   - todos.apply
   payload: {}
   promise: 现表归会话快照，变换归模块纯函数，落盘归会话检查点

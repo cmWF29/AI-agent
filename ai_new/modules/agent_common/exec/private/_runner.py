@@ -93,7 +93,9 @@ async def _arun(ctx, payload):
     if killed:
         result["killed"] = killed
     if not ok:
-        result["error"] = (err or out or "进程退出码 %s" % code).strip()[:400]
+        cap = int(ctx.api.call("config.get", {"key": "exec.error_chars"},
+                               caller=None).get("value") or 0)
+        result["error"] = (err or out or "进程退出码 %s" % code).strip()[:cap]
     return result
 
 

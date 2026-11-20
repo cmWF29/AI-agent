@@ -13,6 +13,8 @@ server:
     enabled: false
     cert: ''
     key: ''
+api:
+  transport_timeout: 10  # 进程内 HTTP 桥接超时秒数
 llm:
   base_url: ''
   api_key: ''
@@ -20,14 +22,21 @@ llm:
   timeout: 120
   temperature: 0.3
   stub: false          # 演示/测试桩模式：外壳起本地桩并把 base_url 指到桩；生产保持 false 走真实上游
+net:
+  stream_lines: 4000     # SSE 原文保留行数上限（网络报文回查，0=不保留）
 runtime:
   session_workers: 8     # 后台会话调度并发上限（有界池复用，不再一会话一裸线程）
   tool_workers: 8       # 工具调用/子进程执行并发上限（独立于会话调度池）
   api_workers: 32       # api-loop 桥接同步路由的执行器线程上限（留并发建单+嵌套回投余量，防循环等待）
+  hook_batch: 10        # 单次认领的待派发事件条数
+  future_timeout: 30    # 等后台任务收尾的秒数
+  stream_timeout: 15    # 草稿槽长轮询等待秒数
 sessions:
   max_concurrent: 8
   max_steps: 60
+  react_cap: 200        # 未指定 max_steps 时 ReAct 单轮步数硬上限
   summary_keep: 10       # 上下文裁剪保留的最近普通消息条数（system 消息全部保留）
+  summary_fallback_chars: 600  # 未收口轮次的系统兜底摘要字符上限（0=不兜底）
   result_chars: 500      # 落盘结果摘要（失败原因/回复正文）截断字符数
   secretary_scenario: prompts/secretary.md
   pm_scenario: prompts/pm.md
@@ -57,6 +66,12 @@ tickets:
     glob: 'tickets/T-*/ticket.yaml'
     ticket_glob: '*/ticket.yaml'
     root: 'tickets'
+exec:
+  error_chars: 400       # 子进程失败原因截断字符数
+asr:
+  chunk_shorts: 4000     # 语音识别一次喂给识别器的采样点数
+todos:
+  max_items: 40          # 会话待办条数上限，超出的新条目不收
 knowledge:
   max_inject_chars: 20000
   search_limit: 10        # 检索命中默认条数
@@ -86,6 +101,7 @@ auth:
   paths:
     session: 'sessions/{token}.yaml'
 web:
+  gzip_min_bytes: 1024  # 响应体超过该字节数才压缩（客户端声明可接收时）
   paths:
     console: 'console/{rel}'
 artifacts:
