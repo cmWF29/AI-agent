@@ -369,34 +369,33 @@ class CoreTest(unittest.TestCase):
             server.server_close()
             self.ctx.runtime.stream_clear(key)
 
-    def test_runtime_stop_cancels_and_joins_running_thread(self):
-        """purge 硬删会话前：stop 置打断位、等线程收尾，再从运行表摘除，定稿不会写回。"""
-        import threading, time as _time
+    def test_runtime_stop_cancels_and_joins_running_task(self):
+        """purge 硬删会话前：stop 置打断位、等后台任务收尾，再从运行表摘除，定稿不会写回。"""
+        import concurrent.futures, time as _time
         box = {"done": False}
         def work():
             _time.sleep(0.05)
             box["done"] = True
-        th = threading.Thread(target=work, daemon=True)
-        th.start()
-        self.ctx.runtime._runs["stop-probe"] = th
+        fut = concurrent.futures.ThreadPoolExecutor(max_workers=1).submit(work)
+        self.ctx.runtime._runs["stop-probe"] = fut
         self.ctx.runtime.stop("stop-probe")
         self.assertNotIn("stop-probe", self.ctx.runtime._runs)
         self.assertNotIn("stop-probe", self.ctx.runtime._cancel)
         self.assertFalse(self.ctx.runtime.cancelled("stop-probe", 0))
-        self.assertTrue(box["done"], "stop 应 join 等线程收尾后再返回")
+        self.assertTrue(box["done"], "stop 应等任务收尾后再返回")
 
     def test_runtime_dispatch_clears_run_slot_after_finish(self):
-        """后台线程跑完（正常/报错/被接管作废）即自清运行表，死 Thread 条目不随工单数堆积。"""
+        """后台任务跑完（正常/报错/被接管作废）即自清运行表，死任务条目不随工单数堆积。"""
         import time as _time
         key = "rt-cleanup-probe"
         self.ctx.runtime.dispatch({"demand": "projects-list", "key": key, "input": {}})
         deadline = _time.perf_counter() + 5
         while _time.perf_counter() < deadline:
             th = self.ctx.runtime._runs.get(key)
-            if th is None or not th.is_alive():
+            if th is None or th.done():
                 break
             _time.sleep(0.02)
-        self.assertNotIn(key, self.ctx.runtime._runs, "跑完后运行表应自清，死线程条目不残留")
+        self.assertNotIn(key, self.ctx.runtime._runs, "跑完后运行表应自清，死任务条目不残留")
         self.assertNotIn(key, self.ctx.runtime._cancel)
 
     def test_artifacts_roundtrip_and_escape(self):

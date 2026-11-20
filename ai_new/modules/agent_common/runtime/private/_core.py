@@ -1,11 +1,16 @@
-"""运行设施实现：效果执行 + 后台驱动。
+"""运行设施实现：效果执行 + 后台调度（有界池复用）。
 
 两条不变量：
 1. 只有这里写盘。能力交出 effect，需求调 apply，落到 store 的写路由。
 2. 只有这里驱动别的需求。能力交出 demand effect，同样由 apply 执行。
+
+并发模型：后台会话任务提交到有界会话池（线程复用），阻塞的同步需求链在
+池线程内跑；工具/子进程执行走独立工具池，与会话调度池分离，互不占坑。
+容量由 config.runtime.session_workers / tool_workers 显性声明。
 """
 from __future__ import annotations
 
+import concurrent.futures
 import threading
 
 STORE_ROUTES = {
@@ -22,33 +27,57 @@ STORE_ROUTES = {
 class Runtime:
     def __init__(self, ctx):
         self.ctx = ctx
-        self._runs = {}
+        self._runs = {}      # key -> concurrent.futures.Future（后台会话任务）
         self._cancel = {}
         self._stream = {}
         self._subs = {}   # 草稿槽订阅：key -> [threading.Event]，槽变化即唤醒等待方
         self._lock = threading.Lock()
+        self._session_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self._cfg_int("session_workers", 8),
+            thread_name_prefix="session")
+        self._tool_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self._cfg_int("tool_workers", 8),
+            thread_name_prefix="tool")
 
+    # ---- 配置（容量显性读入，不在代码里藏默认）----
+    def _cfg_int(self, key, default):
+        cfg = getattr(self.ctx, "cfg", None) or {}
+        rt = cfg.get("runtime") or {}
+        try:
+            return int(rt.get(key) or default)
+        except (TypeError, ValueError):
+            return default
+
+    # ---- 打断位 ----
     def cancelled(self, key, since):
         """同一把钥匙上，since 之后有没有人置过打断位。"""
         return (self._cancel.get(str(key or "")) or 0) > (since or 0)
 
     def stop(self, key):
-        """置打断位并等同一把钥匙上的后台线程收尾；不在跑就直接返回。
+        """置打断位并等同一把钥匙上的后台任务收尾；不在跑就直接返回。
 
-        硬删会话文件前先 stop：等线程退出后再落删除 effect，避免定稿落盘把文件写回。
+        硬删会话文件前先 stop：等任务退出后再落删除 effect，避免定稿落盘把文件写回。
         """
         key = str(key or "")
         if not key:
             return {"ok": False, "code": "no_key"}
         with self._lock:
             self._cancel[key] = self._now()
-            thread = self._runs.get(key)
-        if thread and thread.is_alive():
-            thread.join()
+            fut = self._runs.get(key)
+        if fut is not None and not fut.done():
+            fut.cancel()
+            self._await_future(fut)
         with self._lock:
             self._runs.pop(key, None)
             self._cancel.pop(key, None)
         return {"ok": True, "key": key}
+
+    def _await_future(self, fut):
+        """等后台任务收尾；等待失败不掀翻删除链路。"""
+        try:
+            fut.result(timeout=30)
+        except Exception:  # noqa: BLE001
+            pass
 
     # ---- 运行期草稿：内存面，不落盘。进程边跑边吐的正文先攒在这里，定稿后清掉 ----
 
@@ -82,7 +111,7 @@ class Runtime:
             ev.set()
 
     def stream_subscribe(self, key):
-        """登记一个等待事件；返回 Event，槽变化时被唤醒。"""
+        """登记一个等待事件；返回 Event，槽变化时被唤醒等待方。"""
         if not key:
             return None
         ev = threading.Event()
@@ -115,14 +144,14 @@ class Runtime:
         finally:
             self.stream_unsubscribe(key, ev)
 
+    def _now(self):
+        return (self.ctx.api.call("clock.now", {}, caller=None) or {}).get("ts") or 0
+
     def call(self, demand, data=None):
         """同步跑一条需求并拿结果：能力的批量动作里，单次动作仍是一条需求。"""
         resp = self.ctx.api.call("demand_engine.run",
                                  {"id": demand, "input": data or {}}, caller=None) or {}
         return resp.get("result") or {}
-
-    def _now(self):
-        return (self.ctx.api.call("clock.now", {}, caller=None) or {}).get("ts") or 0
 
     def apply(self, payload):
         """照单执行：单个 effect、或一串 effect，空则什么都不做。"""
@@ -164,28 +193,34 @@ class Runtime:
         data = (payload or {}).get("input") or {}
         with self._lock:
             prev = self._runs.get(key)
-        interrupted = bool(prev and prev.is_alive())
+        interrupted = bool(prev and not prev.done())
         slot = {}
-
-        def work():
-            try:
-                if prev and prev.is_alive():
-                    self._cancel[key] = self._now()
-                    prev.join()
-                with self._lock:
-                    if self._runs.get(key) is not slot.get("t"):
-                        return          # 后面又有人接管，这一棒作废，避免并发跑两轮
-                self.ctx.api.call("demand_engine.run", {"id": demand, "input": data}, caller=None)
-            finally:
-                # 本棒收尾（跑完/报错/被接管作废）即自清；已被新线程接管则不动其条目。
-                with self._lock:
-                    if self._runs.get(key) is slot.get("t"):
-                        self._runs.pop(key, None)
-                        self._cancel.pop(key, None)
-
-        thread = threading.Thread(target=work, name="rt-%s" % key, daemon=True)
-        slot["t"] = thread
+        fut = self._session_pool.submit(self._work, key, slot, prev, demand, data)
+        slot["t"] = fut
         with self._lock:
-            self._runs[key] = thread
-        thread.start()
+            self._runs[key] = fut
         return {"ok": True, "key": key, "status": "running", "interrupted": interrupted}
+
+    def _work(self, key, slot, prev, demand, data):
+        """池线程内跑一棒：先等上一棒真正收尾，再判接管作废，最后跑需求；收尾自清。"""
+        try:
+            if prev and not prev.done():
+                self._cancel[key] = self._now()
+                try:
+                    prev.result(timeout=30)
+                except Exception:  # noqa: BLE001 —— 上一棒失败不掀翻本棒
+                    pass
+            with self._lock:
+                if self._runs.get(key) is not slot.get("t"):
+                    return      # 后面又有人接管，这一棒作废，避免并发跑两轮
+            self._run_demand(demand, data)
+        finally:
+            # 本棒收尾（跑完/报错/被接管作废）即自清；已被新任务接管则不动其条目。
+            with self._lock:
+                if self._runs.get(key) is slot.get("t"):
+                    self._runs.pop(key, None)
+                    self._cancel.pop(key, None)
+
+    def _run_demand(self, demand, data):
+        return self.ctx.api.call("demand_engine.run",
+                                 {"id": demand, "input": data}, caller=None)

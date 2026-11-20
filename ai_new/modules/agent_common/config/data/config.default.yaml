@@ -19,6 +19,9 @@ llm:
   model: ''
   timeout: 120
   temperature: 0.3
+runtime:
+  session_workers: 8     # 后台会话调度并发上限（有界池复用，不再一会话一裸线程）
+  tool_workers: 8       # 工具调用/子进程执行并发上限（独立于会话调度池）
 sessions:
   max_concurrent: 8
   max_steps: 60
