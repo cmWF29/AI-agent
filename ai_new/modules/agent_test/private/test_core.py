@@ -199,6 +199,11 @@ class CoreTest(unittest.TestCase):
         return self.ctx.api.call("demand_engine.run",
                                  {"id": demand, "input": input or {}})
 
+    def _clean_hooks(self):
+        """用例隔离：先 drain 消化前序残留 defer，再清空队列，避免跨用例串扰污染计数。"""
+        self.ctx.hooks.drain()
+        self.ctx.hooks.clear()
+
     def _glob(self, module, pattern):
         return self.ctx.api.call("store.glob",
                                  {"module": module, "pattern": pattern})["items"]
@@ -286,7 +291,7 @@ class CoreTest(unittest.TestCase):
         channel.posted 是延迟点：发消息的请求只入队，响应写完（drain）之后才跑模型。
         """
         key = "rt-chat"
-        self.ctx.hooks.clear()
+        self._clean_hooks()
         before = self.fake_net.calls
         self._run("channel-post", {"channel": key, "role": "user", "content": "在吗"})
         self.assertEqual(self.fake_net.calls, before, "发消息的请求里不该等模型")
@@ -302,7 +307,7 @@ class CoreTest(unittest.TestCase):
     def test_chat_drain_async_dispatches_reply(self):
         """异步轨收尾：drain_async 经 adispatch/arun/acall 直连事件循环，回复照常落盘。"""
         import asyncio
-        self.ctx.hooks.clear()
+        self._clean_hooks()
         key = "rt-chat-async"
         self._run("channel-post", {"channel": key, "role": "user", "content": "异步在吗"})
         self.assertEqual(self.ctx.hooks.pending(), 1, "应该有一个延迟派发在排队")
