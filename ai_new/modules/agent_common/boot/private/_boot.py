@@ -74,6 +74,12 @@ def _build(ctx, module_dirs=None):
         loaded.append(name)
         timings.append({"module": name, "ms": round((time.perf_counter() - started_at) * 1000, 2)})
 
+    # 部署意图在装配末尾编成通信绑定：换拓扑只改 api/data/deploy.yaml，重启即生效。
+    # 编译是纯路径推导（不依赖服务），放在这里就不会出现"改了配置但跑的还是旧绑定"。
+    api_module = ctx.loaded.get("api")
+    if api_module is not None:
+        api_module.compile_transport(ctx)
+
     # 钩子机制此时才就位（hooks 在装配序列里）。组合根声明自己的点：
     # 名字必须写字面量，静态扫描靠这几行才能把 boot 的诊断也算进需求图。
     # 第二段：只有导出 start(ctx) 的模块需要，此时全体都已就位

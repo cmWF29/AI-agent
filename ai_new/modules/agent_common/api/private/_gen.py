@@ -40,7 +40,10 @@ KINDS = ("direct", "http", "memory")
 
 
 def groups_of(root):
+    """模块组：优先按给定 root 找；root 不是仓库布局（如测试的临时数据根）时退回源码树。"""
     base = Path(root) / MODULES_DIR
+    if not base.is_dir():
+        base = Path(__file__).resolve().parents[3]
     return sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith("__"))
 
 
