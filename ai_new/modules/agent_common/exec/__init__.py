@@ -10,7 +10,13 @@ from __future__ import annotations
 from .private import _runner
 
 
+async def _route_run(ctx, payload):
+    """进程执行走异步轨：阻塞的 subprocess 实现经执行器桥接，不占事件循环线程。"""
+    loop = ctx.api._ensure_loop()
+    return await loop.run_in_executor(None, _runner.run, ctx, payload)
+
+
 def setup(ctx):
-    ctx.api.register("exec.run", _runner.run, "跑外部进程：argv+stdin → 退出码+输出",
+    ctx.api.register("exec.run", _route_run, "跑外部进程：argv+stdin → 退出码+输出",
                      module="exec", internal=True)
     return True

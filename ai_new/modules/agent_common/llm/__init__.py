@@ -72,13 +72,13 @@ def _fail(ctx, resp):
     return {"ok": False, "error": detail, "code": code}
 
 
-def _route_chat(ctx, payload):
+async def _route_chat(ctx, payload):
     enc = _encode_call(ctx, payload, True)
     if not enc.get("ok"):
         return enc
     body = ctx.api.call("codec.json_encode", {"value": enc.get("payload")}, caller=None)
     stream_key = (payload.get("cancel") or {}).get("id") or ""
-    resp = ctx.api.call("net.request_stream", {
+    resp = await ctx.api.acall("net.request_stream", {
         "url": enc.get("url"), "method": "POST",
         "headers": enc.get("headers"), "body": body.get("text"),
         "timeout": payload.get("timeout"), "stream_key": stream_key}, caller=None)
@@ -87,12 +87,12 @@ def _route_chat(ctx, payload):
     return ctx.api.call("llm.decode_sse", {"items": resp.get("items") or []}, caller=None)
 
 
-def _route_chat_stream(ctx, payload):
+async def _route_chat_stream(ctx, payload):
     enc = _encode_call(ctx, payload, True)
     if not enc.get("ok"):
         return enc
     body = ctx.api.call("codec.json_encode", {"value": enc.get("payload")}, caller=None)
-    resp = ctx.api.call("net.request", {
+    resp = await ctx.api.acall("net.request", {
         "url": enc.get("url"), "method": "POST",
         "headers": enc.get("headers"), "body": body.get("text"),
         "timeout": payload.get("timeout")}, caller=None)

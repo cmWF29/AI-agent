@@ -16,27 +16,27 @@ def setup(ctx):
     return True
 
 
-def _route_request(ctx, payload):
-    return _client.request(
-        ctx,
+async def _route_request(ctx, payload):
+    loop = ctx.api._ensure_loop()
+    return await loop.run_in_executor(
+        None, _client.request, ctx,
         payload.get("url"),
         method=payload.get("method") or "GET",
         headers=payload.get("headers") or {},
         body=payload.get("body"),
-        timeout=payload.get("timeout"),
-    )
+        timeout=payload.get("timeout"))
 
 
-def _route_request_stream(ctx, payload):
-    return _client.request_stream(
-        ctx,
+async def _route_request_stream(ctx, payload):
+    loop = ctx.api._ensure_loop()
+    return await loop.run_in_executor(
+        None, _client.request_stream, ctx,
         payload.get("url"),
         method=payload.get("method") or "POST",
         headers=payload.get("headers") or {},
         body=payload.get("body"),
         timeout=payload.get("timeout"),
-        stream_key=payload.get("stream_key") or "",
-    )
+        stream_key=payload.get("stream_key") or "")
 
 
 def request(ctx, url, method="GET", headers=None, body=None, timeout=None):
