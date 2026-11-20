@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import threading
 
 import yaml
@@ -27,12 +28,27 @@ class Registry:
         self._loop = None
         self._loop_lock = threading.Lock()
 
+    def _cfg_int(self, key, default):
+        cfg = getattr(self.ctx, "cfg", None) or {}
+        rt = cfg.get("runtime") or {}
+        try:
+            return int(rt.get(key) or default)
+        except (TypeError, ValueError):
+            return default
+
     def _ensure_loop(self):
-        """进程级事件循环：惰性建在专属守护线程上，供同步壳桥接异步路由。"""
+        """进程级事件循环：惰性建在专属守护线程上，供同步壳桥接异步路由。
+
+        桥接同步路由的执行器用有界池，容量由 config.runtime.api_workers 显性声明；
+        避免默认池线程被并发建单占满、嵌套协程回投 loop 时无人跑同步子能力形成循环等待。
+        """
         if self._loop is None:
             with self._loop_lock:
                 if self._loop is None:
                     loop = asyncio.new_event_loop()
+                    workers = self._cfg_int("api_workers", 32)
+                    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(
+                        max_workers=workers, thread_name_prefix="api"))
                     t = threading.Thread(target=loop.run_forever, daemon=True,
                                          name="api-loop")
                     t.start()

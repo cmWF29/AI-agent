@@ -103,6 +103,20 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(hasattr(self.ctx, "bus"), "ctx 不该有总线能力")
         self.assertTrue(hasattr(self.ctx, "hooks"), "ctx 应该有 hooks 能力")
 
+    def test_api_executor_pool_capacity_is_configured(self):
+        """api-loop 桥接执行器是有界池，容量由 config.runtime.api_workers 显性声明。
+
+        并发建单在执行器线程内回投 loop 跑嵌套需求；池容量必须留足并发+嵌套余量，
+        否则执行器线程被占满、嵌套协程拿不到线程形成循环等待。
+        """
+        import concurrent.futures
+        loop = self.ctx.api._ensure_loop()
+        executor = loop._default_executor
+        self.assertIsInstance(executor, concurrent.futures.ThreadPoolExecutor)
+        expect = self.ctx.api._cfg_int("api_workers", 32)
+        self.assertEqual(executor._max_workers, expect)
+        self.assertGreaterEqual(expect, 16)
+
     def test_runtime_hook_points_match_static_scan(self):
         """运行期的点必须等于静态扫描出来的点：否则静态图就是在骗人。"""
         from ai_new.modules.agent_common.boot.private._boot import _plan

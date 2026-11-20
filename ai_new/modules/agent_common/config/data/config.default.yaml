@@ -22,6 +22,7 @@ llm:
 runtime:
   session_workers: 8     # 后台会话调度并发上限（有界池复用，不再一会话一裸线程）
   tool_workers: 8       # 工具调用/子进程执行并发上限（独立于会话调度池）
+  api_workers: 32       # api-loop 桥接同步路由的执行器线程上限（留并发建单+嵌套回投余量，防循环等待）
 sessions:
   max_concurrent: 8
   max_steps: 60
