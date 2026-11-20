@@ -113,15 +113,18 @@ def build(p):
 def _machine_brief(rec):
     """流程状态机快照：阶段链与活跃集合，形状与 tickets 的 machine 一致，不带重字段。"""
     rec = rec or {}
+    meta = rec.get("meta") or {}
     out = []
-    for st in (rec.get("stages") or []):
+    for st in (rec.get("stages") or meta.get("stages") or []):
         if not isinstance(st, dict):
             continue
         out.append({"id": st.get("id") or "", "cn": st.get("cn") or st.get("id") or "",
                     "desc": st.get("desc") or "", "next": st.get("next") or [],
                     "terminal": bool(st.get("terminal"))})
-    return {"flow": rec.get("flow") or {}, "stage": rec.get("stage") or "",
-            "initial": rec.get("initial") or "", "active": rec.get("active") or [],
+    return {"flow": rec.get("flow") or meta.get("flow") or {},
+            "stage": rec.get("stage") or meta.get("stage") or "",
+            "initial": rec.get("initial") or (meta.get("machine") or {}).get("initial") or "",
+            "active": rec.get("active") or meta.get("active") or [],
             "states": out}
 
 

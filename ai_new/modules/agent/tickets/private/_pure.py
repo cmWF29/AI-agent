@@ -129,7 +129,8 @@ def _state_brief(rec):
         return {"flow": pre.get("flow") or {}, "stage": pre.get("stage") or "",
                 "initial": pre.get("initial") or "", "active": pre.get("active") or [],
                 "states": pre.get("states") or []}
-    raw = rec.get("stages") or []
+    meta = rec.get("meta") or {}
+    raw = rec.get("stages") or meta.get("stages") or []
     states = []
     for st in raw:
         if not isinstance(st, dict):
@@ -139,10 +140,10 @@ def _state_brief(rec):
                        "desc": st.get("desc") or "",
                        "next": st.get("next") or [],
                        "terminal": bool(st.get("terminal"))})
-    return {"flow": rec.get("flow") or {},
-            "stage": rec.get("stage") or "",
-            "initial": rec.get("initial") or "",
-            "active": rec.get("active") or [],
+    return {"flow": rec.get("flow") or meta.get("flow") or {},
+            "stage": rec.get("stage") or meta.get("stage") or "",
+            "initial": rec.get("initial") or (meta.get("machine") or {}).get("initial") or "",
+            "active": rec.get("active") or meta.get("active") or [],
             "states": states}
 
 
