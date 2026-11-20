@@ -124,7 +124,12 @@ def archive_transcript(p):
 def _state_brief(rec):
     """会话状态机快照：只带可视化要的字段（阶段链与活跃集合），不带工具清单等重字段。"""
     rec = rec or {}
-    raw = rec.get("stages") or rec.get("machine", {}).get("states") or []
+    pre = rec.get("machine")
+    if isinstance(pre, dict) and pre.get("states"):
+        return {"flow": pre.get("flow") or {}, "stage": pre.get("stage") or "",
+                "initial": pre.get("initial") or "", "active": pre.get("active") or [],
+                "states": pre.get("states") or []}
+    raw = rec.get("stages") or []
     states = []
     for st in raw:
         if not isinstance(st, dict):
