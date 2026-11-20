@@ -16,6 +16,7 @@ server:
 api:
   transport_timeout: 10  # 跨进程通道超时秒数（direct 不走网络，不读它）
   contract_mode: enforce  # 入参契约校验：enforce 缺必填报 bad_payload；warn 只记证据
+  internal_call_mode: enforce  # 跨模块直调：warn 只记证据，enforce 未登记即拒（internal-calls.yaml）
 llm:
   base_url: ''
   api_key: ''

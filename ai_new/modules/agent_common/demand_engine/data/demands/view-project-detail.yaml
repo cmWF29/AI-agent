@@ -8,6 +8,8 @@ callable: false
 do: []
 view:
   key: project
+  params: [project]
+  nav: projects
   crumb: [项目, "{project.name}"]
   heading: "{project.name}"
   subheading: "建 {project.created|when}"

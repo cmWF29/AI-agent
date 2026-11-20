@@ -77,11 +77,6 @@ class Runtime:
             self._persist_hooks_locked()
         return True
 
-    def _cfg_int(self, key, default):
-        """运行期阈值一律先问配置：唯一来源在 config，缺配置才用构建默认兜底。"""
-        v = self.ctx.api.call("config.get", {"key": key}, caller=None).get("value")
-        return int(v) if v not in (None, "") else default
-
     def claim_hooks(self, limit=None):
         """认领一批待派发事件：锁内摘除并落盘剩余，避免重复派发。"""
         if limit is None:
@@ -111,10 +106,16 @@ class Runtime:
 
     # ---- 配置（容量显性读入，不在代码里藏默认）----
     def _cfg_int(self, key, default):
+        """运行期阈值一律先问配置：唯一来源在 config，缺配置才用构建默认兜底。
+
+        key 既接受 "hook_batch" 也接受 "runtime.hook_batch"——后者是本模块历史写法，
+        统一在入口剥掉命名空间，避免同一份配置出现两套寻址。
+        """
+        name = key.split(".")[-1]
         cfg = getattr(self.ctx, "cfg", None) or {}
         rt = cfg.get("runtime") or {}
         try:
-            return int(rt.get(key) or default)
+            return int(rt.get(name) or default)
         except (TypeError, ValueError):
             return default
 

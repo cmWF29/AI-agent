@@ -37,9 +37,12 @@ modules/<组>/<模块>/
   private/...            实现；文件名随便取（私有由目录表达，不靠 _ 前缀）
 ```
 
-- **模块之间不 import**：运行时唯一通道是 `ctx.api.call("module.fn", payload, caller=...)`，
-  并受 `data/rules/calls.yaml` 矩阵约束；资源面（`ctx.api / ctx.hooks / ctx.demand_engine /
-  ctx.tools / ctx.cfg / ctx.storage / ctx.http / ctx.llm / ctx.react`）由装配器注入后直连。
+- **模块之间不 import**：运行时唯一通道是 `ctx.api.call("module.fn", payload, caller=...)`。
+  调用方身份由注册表判定：需求引擎（`caller="demand_engine"`）、平台件（`platform:<组件>`）、
+  模块（`module:<模块>`，只能调自己模块，或 `api/data/internal-calls.yaml` 登记过的目标模块）。
+  未登记的跨模块直调在 `api.internal_call_mode=enforce` 下直接拒。
+  资源面（`ctx.api / ctx.hooks / ctx.demand_engine / ctx.tools / ctx.cfg / ctx.storage /
+  ctx.http / ctx.llm / ctx.react`）由装配器注入后直连。
 - **单向可见**：审计者可以看被审计对象，反过来不行。所以 `agent_test` 可以 import 运行时模块，
   运行时模块却连自己的兄弟都不许 import。
 - **模块不做有政策含义的事**：不写日志、不发通知、不直接订阅回调。它只在功能前后预留
@@ -94,8 +97,13 @@ modules/<组>/<模块>/
 | 通道 | 语义 | 适合 |
 |---|---|---|
 | `direct` | 同进程同步调用，返回值就是服务返回值 | 默认，单进程 |
-| `memory` | 进程内队列异步投递，调用方只拿到"已入队" | 不关心结果的服务 |
-| `http` | 网络同步 RPC：`POST <base>/api/rpc/<module>/<fn>`，返回未包装的原始结果 | 模块在别的进程/机器 |
+| `unix` | 本地 socket（AF_UNIX 文件路径，权限 0600） | 同机跨进程，权限收得最紧 |
+| `tcp` | 网络 socket（AF_INET，只绑回环） | 同机跨进程/预演多机 |
+| `shm` | 共享内存信箱（mmap + flock，请求/应答各一份） | 大报文、低延迟 |
+
+四条通道共用一份报文协议（`api/private/_wire.py`）：4 字节长度前缀 + UTF-8 flow 报文，
+带协议版本 `v`；请求 `{v, token, route, payload}`，应答 `{ok, result}` 或 `{ok, error, code}`。
+`send` 一定等回包，`notify` 不取返回值。异步路由同样服从绑定：绑了非直连通道时同样发出去。
 
 - 意图写在 `data/deploy.yaml`（可选），产物是 `data/gen/bindings.yaml`。
 - 编译是 **api 模块的能力**，不是根目录脚本：装配之前 `python agent_start.py --compile-transport`
@@ -105,15 +113,15 @@ modules/<组>/<模块>/
 ## 五、业务是结构化语言，引擎负责让它跑
 
 - 模块 = 能力（服务 + 预留扩展点）。**需求 = 一段可插拔的业务**，写在
-  `modules/agent_common/demand_engine/data/demands/*.yaml`（当前为空）：
+  `modules/agent_common/demand_engine/data/demands/*.yaml`（当前 113 条）：
 
 ```json
 {
   "id": "<需求 id>",
   "on": ["sessions.done", "knowledge.written"],
   "do": [
-    {"let": "evt", "eq": {"get": "event.hook"}},
-    {"call": "ops.record", "with": {"hook": {"get": "evt"}}}
+    {"call": "ops.record", "with": {"hook": {"get": "event.hook"},
+                                    "data": {"get": "event.data"}}}
   ],
   "expect": {
     "given": {"on": "knowledge.written",
@@ -125,8 +133,9 @@ modules/<组>/<模块>/
 }
 ```
 
-- 语法（`demand_engine/private/_lang.py`）：表达式 `get / lit / op(==,!=,in,and,or,not,len,+,>,<)`；
-  语句只有 `call`（可带 `with` 映射参数、`as` 存结果）、`let`（绑定）、`fail`（显式中止）。
+- 语法（`demand_engine/private/_lang.py`）：表达式只有 `get`（点号路径）与 `lit`（字面量）；
+  语句只有 `call`（可带 `with` 映射参数、`as` 存结果）与 `send`（单向通知）。
+  **没有 `let` / `fail` / 运算符 / 分支 / 循环**——路径拼接、命名、比较、遍历全部下沉模块纯函数。
 - **需求树只允许顺序执行**：分支、遍历、循环、等待都在模块功能函数内部完成。
   需求里出现 `when / each / until / wait` 由静态禁令闸直接判失败（`test_demands`）。
 - 引擎 `demand_engine` 只做装载、路由、解释执行，不认识任何业务名词。
@@ -193,7 +202,7 @@ modules/<组>/<模块>/
 | boot | 组合根：扫描装配图、按剖面动态装配（唯一没有 setup 的模块） |
 | config | 配置合并/读取/落盘/脱敏（含环境变量部署覆盖）；`get(key)` 给真值，不带 key 才返回脱敏视图 |
 | store | 运行时文件系统：目录/原子 JSON/文本/字节/glob/walk/打包/safe_id/时间（`ctx.storage`） |
-| api | 路由注册、跨模块调用矩阵、通信通道编译（`ctx.api`） |
+| api | 路由注册与调用方身份判定（需求/平台/模块台账）、通信通道编译（`ctx.api`） |
 | hooks | 扩展点：声明点、触发点；不装订阅者，派发给需求引擎 |
 | demand_engine | 需求装载与解释执行（`ctx.demand_engine`） |
 | tools | 工具注册/执行；不隐式落盘，留存由需求编排 |
@@ -216,7 +225,6 @@ modules/<组>/<模块>/
 | projects | 项目档案 |
 | tickets | 工单、分单、PM 工具、通知、停滞审计 |
 | health | 存活与自检 |
-| skills | 技能卡与数据驱动执行 |
 | web | 控制台与消息面板：自己的静态资源（`data/console/`），通过 `web.asset` 供给 http |
 | channel | 消息收发：`post/tail/watch/list`；`watch` 标 `stream`，被 http 当 SSE 读 |
 
@@ -233,7 +241,7 @@ modules/<组>/<模块>/
 ```
 modules/agent_common/config/data/        config.default.yaml · config.yaml
 modules/agent_common/boot/data/          profiles.yaml（装配剖面）
-modules/agent_common/api/data/           calls.yaml（调用矩阵）· deploy.yaml · platform-routes.yaml（平台入口清单）· gen/bindings.yaml
+modules/agent_common/api/data/           deploy.yaml · platform-routes.yaml（平台入口清单）· internal-calls.yaml（跨模块直调台账）· gen/bindings.yaml
 modules/agent_common/demand_engine/data/ demands/*.yaml（一段业务一个文件）
 modules/agent_common/ops/data/           logs/app.jsonl · exports/
 modules/agent/library/data/              seed.yaml · roles.yaml · prompts/roles/*.md
@@ -242,7 +250,13 @@ modules/agent/tickets/data/              tickets/<id>/ticket.yaml · messages.ya
 modules/agent/knowledge/data/            public/ · projects/ · tickets/
 modules/agent/artifacts/data/            public/ · projects/
 modules/agent/projects/data/             <id>.yaml
-modules/agent/web/data/console/          index.html
+modules/agent/logs/data/                 日志与工具输出的归类索引
+modules/agent/asr/data/                  语音转写模型目录（运行时填充）
+modules/agent/decompose/data/            拆分规则与样例
+modules/agent/auth/data/                 令牌与登录态
+modules/agent/todos/data/                待办
+modules/agent/channel/data/              频道消息与游标
+modules/agent/web/data/console/          manage.html · login.html · *.js
 modules/agent_test/data/                 checks.yaml
 ```
 
@@ -255,24 +269,31 @@ modules/agent_test/data/                 checks.yaml
   `agent_test` 这种"组即模块"的就是 `<根>/agent_test/`）。"数据在哪"是部署问题，
   不是每个模块各自拍脑袋的问题。
 
-### 控制台不认识业务
+### 控制台不认识业务，只认规格
 
-`web` 是模块，页面是`data/console/index.html` 里的**通用渲染器**：只读 api 注册表、
-hook 点、需求清单、日志、健康检查，没有任何"工单/知识/会话"页签。要操作某个能力，
-就在"调用"里选一条路由、填一段 JSON —— 业务各不相同，控制台不必知道它们是什么。
-静态字节由 `http` 通过 `web.asset` 取（`http` 不知道页面放在哪）。
+`web` 是模块，`data/console/manage.html` + `app.js / spec.js / render.js / recorder.js /
+actions.js / boot.js` 是**规格驱动的通用渲染器**：
+
+- 视图清单来自需求 `views-list`（`demand_engine.list` 里带 `view` 的条目），`boot()` 把
+  `view.key / params / nav / parent / default / labels / forms / data` 装进 `VIEWS / FORMS`；
+- URL 只由规格 `params` 生成，旧链接按"参数匹配最全的视图"推导，不写死视图名；
+- 渲染只认 12 种原语（`call / cards / chat / composer / doc / kv / m / note / table / tool /
+  tree / demand`），不认识"工单/知识/会话"这些名词；
+- 事件词表（如工单历程的中文标签）由视图规格的 `labels` 提供，页面自身没有业务词表。
+- 静态字节由 `http` 通过 `web.asset` 取（`http` 不知道页面放在哪）。
 
 ## 八、验收
 
 `python test_start.py`（清单在 `data/checks.yaml`）：
 
 1. structure —— 模块根只有 `__init__.py`、实现在 `private/`、运行时无跨模块 import、
-   运行时无 `ctx.log`/`ctx.bus`、平台模块无业务词、代码无提示词、矩阵路由存在、
-   根目录只有两个脚本；没有公共 data 桶（每个模块只用 `own(__file__)`）。
+   运行时无 `ctx.log`/`ctx.bus`、平台模块无业务词、代码无提示词、
+   注册路由 ∈ 需求 do 树 ∪ 平台清单、写路由受管辖、根目录只有两个脚本；
+   没有公共 data 桶（每个模块只用 `own(__file__)`）。
 2. assembly —— DAG 无环、覆盖全部模块、顺序满足每条边、可复现、监听只在 start 阶段、
    hook 点与需求闭合（触发必声明、声明必有用、需求调的服务必存在）。
-3. language —— 需求语言求值、守卫、循环、插拔、失败不外溢。
-4. transport —— 绑定编译可复现、直连/内存/网络三种通道、编译产物路径。
+3. language —— 需求语言求值、顺序编排、插拔、失败不外溢。
+4. transport —— 绑定编译可复现、直连/本地 socket/网络 socket/共享内存四种通道、编译产物路径。
 5. behaviour —— 临时数据目录真实装配 + 真 HTTP：知识/交付件/工单/会话/矩阵/鉴权/RPC，
    以及"没有需求就什么也不发生"（到点无动作、不自动写日志）。
 6. demands —— 需求契约：每条需求都有预期（given/calls/payload）、预期与语句树一致、

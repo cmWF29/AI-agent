@@ -20,7 +20,9 @@ import struct
 import time
 from pathlib import Path
 
-HDR = struct.Struct("!ii")
+from . import _wire
+
+HDR = _wire.HDR
 
 
 class Transport:
@@ -111,10 +113,7 @@ class Transport:
     # ---- 报文 ----
     def _pack(self, route, payload):
         token = ((getattr(self.ctx, "cfg", None) or {}).get("server") or {}).get("token") or ""
-        rec = {"route": route, "payload": payload or {}}
-        if token:
-            rec["token"] = token
-        return self.ctx.codec.yaml_encode_flow(rec)["text"].encode("utf-8")
+        return _wire.pack(self.ctx.codec, route, payload, token)
 
     def _unpack(self, route, text):
         rec = self.ctx.codec.yaml_decode(text)["value"] or {}
@@ -157,22 +156,12 @@ class Transport:
             conn.close()
 
     def _roundtrip(self, conn, route, body, expect):
-        conn.sendall(struct.pack("!i", len(body)) + body)
+        _wire.send_frame(conn, body)
         if not expect:
             return None
-        head = b""
-        while len(head) < 4:
-            chunk = conn.recv(4 - len(head))
-            if not chunk:
-                raise self.ctx.ApiError("远端提前断开: %s" % route, code="remote_error", status=502)
-            head += chunk
-        length = struct.unpack("!i", head)[0]
-        data = b""
-        while len(data) < length:
-            chunk = conn.recv(length - len(data))
-            if not chunk:
-                raise self.ctx.ApiError("远端提前断开: %s" % route, code="remote_error", status=502)
-            data += chunk
+        data = _wire.read_frame(conn)
+        if data is None:
+            raise self.ctx.ApiError("远端提前断开: %s" % route, code="remote_error", status=502)
         return self._unpack(route, data.decode("utf-8", "replace"))
 
     # ---- 共享内存信箱 ----

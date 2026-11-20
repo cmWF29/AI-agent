@@ -67,23 +67,11 @@ async function executeVoice(binding, btn) {
   } catch (err) { banner(gateMessage(err), "err"); }
 }
 
-function resolveView(target, c) {  const params = fill(target.params || {}, c);
-  const view = target.view;
-  if (view === "projects") return { view: "projects" };
-  if (view === "project") return { view: "project", project: params.project || "" };
-  if (view === "ticket") return { view: "ticket", project: params.project || "", ticket: params.ticket || "" };
-  if (view === "tools") return { view: "tools" };
-  if (view === "skills") return { view: "skills" };
-  if (view === "positions") return { view: "positions" };
-  if (view === "position") return { view: "position", position: params.position || "" };
-  if (view === "knowledge") return { view: "knowledge" };
-  if (view === "logs") return { view: "logs" };
-  if (view === "artifacts") return { view: "artifacts" };
-  if (view === "user") return { view: "user" };
-  if (view === "knowledge-doc") return { view: "knowledge-doc",
-    layer: params.layer || "", name: params.name || "",
-    project: params.project || "", ticket: params.ticket || "" };
-  return { view: view };
+function resolveView(target, c) {
+  const params = fill(target.params || {}, c);
+  const next = { view: target.view };
+  for (const p of viewParams(target.view)) next[p] = params[p] || "";
+  return next;
 }
 
 

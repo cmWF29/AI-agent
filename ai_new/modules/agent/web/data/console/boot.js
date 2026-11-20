@@ -60,10 +60,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 function navTarget(view) {
-  if (view === "project" || view === "ticket") return "projects";
-  if (view === "position") return "positions";
-  if (view === "knowledge-doc") return "knowledge";
-  return view;
+  return viewSpec(view).nav || view;
 }
 function highlightNav() {
   const cur = navTarget(state.view);

@@ -8,6 +8,9 @@ callable: false
 do: []
 view:
   key: position
+  params: [position]
+  nav: positions
+  parent: {view: positions}
   crumb: [岗位库, "{position.cn}"]
   heading: "{position.cn}"
   subheading: 岗位 = 系统提示词 + 流程状态机 + 工具名单；三者同屏，主会话条目只读

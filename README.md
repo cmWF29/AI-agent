@@ -22,8 +22,10 @@ ai_new/modules/     agent_common（公共能力）/ agent（业务能力）/ age
 1. **模块 = 一个公开文件 + 一个 private 目录**：`modules/<组>/<模块>/__init__.py`
    只有 `setup(ctx)` / 可选 `start(ctx)` / 少量公共函数；实现全在 `private/`。
    **私有由目录表达**，文件名不再承担语义（不靠 `_` 前缀）。
-2. **模块之间不 import**：唯一通道是 `ctx.api.call("module.fn", payload, caller=...)`，
-   受 `data/rules/calls.yaml` 矩阵约束。审计者单向可见：`agent_test` 可以 import 运行时模块，反之不行。
+2. **模块之间不 import**：唯一通道是 `ctx.api.call("module.fn", payload, caller=...)`。
+   调用方身份由注册表判定（需求引擎 / 平台件 / 模块），模块跨模块直调必须在
+   `api/data/internal-calls.yaml` 登记，否则 `internal_call_mode=enforce` 直接拒。
+   审计者单向可见：`agent_test` 可以 import 运行时模块，反之不行。
 3. **模块不做有政策含义的事**：不写日志、不发通知、不直接订阅回调。它只在功能前后预留 hook 点。
    **先有需求，才有扩展点**：需求写在 `data/demands/*.yaml`，没有需求订阅的点会被扫描器点名删掉；
    需求整条上线/下线，点与调用跟着走。
@@ -80,7 +82,7 @@ python test_start.py --smoke    # 额外真的执行 agent_start.py，核对模�
 - assembly：DAG 无环、覆盖全部模块、顺序满足每条边、可复现、监听只在 start 阶段、
   hook 点与需求闭合。
 - language：需求语言求值、守卫、循环、插拔、失败不外溢。
-- transport：绑定编译可复现、三种通道、编译产物路径。
+- transport：绑定编译可复现、四种通道（direct/unix/tcp/shm）、编译产物路径。
 - behaviour：临时 data 目录真实装配 25 个模块 + 真 HTTP，覆盖知识/交付件/工单/会话/矩阵/
   鉴权/RPC；需求清空后额外断言"到点无动作、模块不自己写日志"。
 - demands：需求契约 —— 每条需求自带 `expect`（在哪个点、什么输入、调哪些服务、参数长什么样），
@@ -96,7 +98,7 @@ python test_start.py --smoke    # 额外真的执行 agent_start.py，核对模�
 demand_engine · tools · llm · react · http · ops · net（出站网络） · host（主机资源） · codec（JSON/SSE/编码） · clock（时间）
 
 **agent（业务能力）**：knowledge · artifacts · library · sessions · projects · tickets ·
-agents · health · skills · web · channel
+asr · auth · decompose · todos · logs · health · web · channel
 
 **agent_test（评审者）**：按 `data/checks.yaml` 跑验收（不在 `agent` 装配里，因为 profile 没写它）
 
@@ -105,7 +107,7 @@ agents · health · skills · web · channel
 ```
 modules/agent_common/config/data/      config.default.yaml · config.yaml
 modules/agent_common/boot/data/        profiles.yaml（装配剖面）
-modules/agent_common/api/data/         calls.yaml（调用矩阵）· deploy.yaml · platform-routes.yaml · gen/bindings.yaml
+modules/agent_common/api/data/         deploy.yaml · platform-routes.yaml · internal-calls.yaml · gen/bindings.yaml
 modules/agent_common/demand_engine/data/demands/*.yaml   需求（一段业务一个文件）
 modules/agent_common/ops/data/         logs/app.jsonl · exports/
 modules/agent/library/data/            seed.yaml · roles.yaml · prompts/（角色提示词）

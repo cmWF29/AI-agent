@@ -11,9 +11,21 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextvars
+import inspect
 import threading
 
 from . import _transport
+
+# 调用方身份：handler 执行期间由注册表写入，供模块内部欠声明 caller 的调用自动补齐。
+# 这样"模块直调他人能力"从"不传 caller 就放行"变成"身份可判定、必须登记"。
+_SCOPE = contextvars.ContextVar("api_caller_scope", default="")
+
+# 公共能力件：任何模块都可用（配置、时钟、编解码、存储、路由表、主机读数…）。
+# 台账只管"业务模块之间"的直调，平台件不该让台账变成一锅粥。
+PLATFORM_UTILS = frozenset((
+    "config", "clock", "codec", "store", "api", "host", "net", "exec", "react",
+    "llm", "runtime", "hooks", "demand_engine", "tools", "ops"))
 
 
 class Registry:
@@ -23,6 +35,9 @@ class Registry:
         self._contracts = None      # 懒加载，见 _load_contracts()
         self._contracts_seen = -1   # 缓存对应的已装模块数
         self._warned = []           # 契约告警（warn 模式不失败，只留证据）
+        self._calls = None          # 跨模块直调台账（internal-calls.yaml）
+        self._calls_seen = -1
+        self._violations = []       # 未登记的直调证据（warn 模式收集）
         self.transport = _transport.Transport(ctx)
         self._loop = None
         self._loop_lock = threading.Lock()
@@ -79,6 +94,7 @@ class Registry:
         if name in self._routes:
             raise ValueError("route already registered: " + name)
         self._routes[name] = {"fn": self._adapt(fn),
+                              "owner": module or name.split(".")[0],
                               "is_async": asyncio.iscoroutinefunction(fn),
                               "doc": doc, "module": module or name.split(".")[0],
                               "stream": bool(stream), "internal": bool(internal)}
@@ -166,46 +182,146 @@ class Registry:
         if len(self._warned) < 200:
             self._warned.append({"route": name, "missing": missing})
 
+    # ---- 调用方身份与授权 ----
+    def _group_of(self, owner):
+        """模块属于哪个组：agent_common 是平台件，其余组是业务件。"""
+        mod = (getattr(self.ctx, "loaded", None) or {}).get(owner)
+        segs = str(getattr(mod, "__file__", "") or "").replace("\\", "/").split("/")
+        if "modules" in segs:
+            i = segs.index("modules")
+            if len(segs) > i + 2:
+                return segs[i + 1]
+        return ""
+
+    def _implicit_caller(self):
+        """没显式传 caller 时：按当前 handler 的所属模块判定。
+
+        平台件（agent_common）归 platform:*，业务件归 module:*，装配期归 platform:anonymous。
+        """
+        owner = _SCOPE.get()
+        if not owner:
+            return "platform:anonymous"
+        return ("platform:" + owner) if self._group_of(owner) == "agent_common" else ("module:" + owner)
+
+    def _internal_calls(self):
+        """跨模块直调台账：caller 模块 -> 允许的目标模块集合（intenal-calls.yaml）。"""
+        loaded = len(getattr(self.ctx, "loaded", None) or {})
+        if self._calls is not None and self._calls_seen == loaded:
+            return self._calls
+        found = {}
+        try:
+            md = self.ctx.storage.own(__file__)
+            raw = md.read_text("internal-calls.yaml") if md.exists("internal-calls.yaml") else ""
+            rec = self.ctx.codec.yaml_decode(raw or "{}")["value"] or {}
+            for row in rec.get("calls") or []:
+                found[row.get("caller") or ""] = tuple(row.get("targets") or ())
+        except Exception:  # noqa: BLE001 —— 装配早期读不到台账，按空表收口
+            found = {}
+        if found or not loaded:
+            self._calls = found
+            self._calls_seen = loaded
+        return self._calls or {}
+
+    def violations(self):
+        """warn 模式下收集到的未登记直调证据（caller 模块 + 目标路由）。"""
+        return list(self._violations)
+
+    def _authorize(self, name, caller):
+        """身份规则：需求引擎与平台件放行；模块只能调自己或在台账里登记的目标。"""
+        caller = caller or self._implicit_caller()
+        if caller in ("demand_engine", "boot", "platform:anonymous"):
+            return
+        if caller.startswith("platform:"):
+            return
+        if caller.startswith("module:"):
+            owner = caller.split(":", 1)[1]
+            if owner == "agent_test":
+                return
+            target = name.split(".", 1)[0]
+            if owner == target:
+                return
+            if target in PLATFORM_UTILS:
+                return
+            if target in self._internal_calls().get(owner, ()):
+                return
+            if self._cfg_str("api", "internal_call_mode", "warn") == "enforce":
+                raise self.ctx.ApiError(
+                    "模块 %s 直调他人能力未登记: %s（先在 internal-calls.yaml 登记，或改写成需求编排）"
+                    % (owner, name), code="internal_call_unregistered", status=403)
+            if len(self._violations) < 400:
+                self._violations.append({"caller": owner, "route": name})
+            return
+        raise self.ctx.ApiError(
+            "能力只能由需求调用: %s -> %s" % (caller, name),
+            code="module_call_forbidden", status=403)
+
     def _route(self, name, caller):
         if name not in self._routes:
             raise self.ctx.ApiError("API 不存在: %s" % name, code="no_route", status=404)
-        if caller and caller != "demand_engine":
-            # 能力只对需求开放：模块自己不许伸手，组合一律写成需求
-            raise self.ctx.ApiError(
-                "能力只能由需求调用: %s -> %s" % (caller, name),
-                code="module_call_forbidden", status=403)
+        self._authorize(name, caller)
         return self._routes[name]
 
-    def call(self, name, payload=None, caller=None, direct=False):
-        """同步入口：异步路由经进程级 loop 桥接，同步路由走传输通道。
+    # ---- 作用域包装：handler 执行期间把"谁在调"写进 contextvar ----
+    def _scoped(self, route, ctx, payload):
+        token = _SCOPE.set(route["owner"])
+        try:
+            return route["fn"](ctx, payload)
+        finally:
+            _SCOPE.reset(token)
 
-        direct=True 用于"外部请求到达本进程的边界"（HTTP / SSE 入口）：报文已经落到
-        这台机器上，再按绑定往外发就是绕回自己，边界必须就地执行。
+    async def _ascoped(self, route, ctx, payload):
+        token = _SCOPE.set(route["owner"])
+        try:
+            out = route["fn"](ctx, payload)
+            if inspect.isawaitable(out):
+                out = await out
+            return out
+        finally:
+            _SCOPE.reset(token)
+
+    def call(self, name, payload=None, caller=None, direct=False):
+        """同步入口：先服从通道绑定，再按"同步/异步"决定怎么执行。
+
+        direct=True 只用于"外部请求已经落到本进程的边界"（HTTP / SSE / 远端服务端）：
+        报文已经在这台机器上，再按绑定往外发就是绕回自己，边界必须就地执行。
+        异步路由不再无条件本地跑——绑了 unix/tcp/shm 时同样要发出去。
         """
         self._check(name, payload)
         route = self._route(name, caller)
         handler = route["fn"]
         if route["is_async"]:
+            kind, _addr = ("direct", None) if direct else self.transport.kind_for(name)
+            if kind != "direct":
+                return self.transport.send(name, payload, handler, caller=caller)
             fut = asyncio.run_coroutine_threadsafe(
-                handler(self.ctx, payload or {}), self._ensure_loop())
+                self._ascoped(route, self.ctx, payload or {}), self._ensure_loop())
             return fut.result()
         if direct:
-            return handler(self.ctx, payload or {})
+            return self._scoped(route, self.ctx, payload or {})
         return self.transport.send(name, payload, handler, caller=caller)
 
     async def acall(self, name, payload=None, caller=None, direct=False):
-        """异步入口：异步路由直接 await；同步路由丢默认执行器桥接。"""
+        """异步入口：与 call 同一套通道判定，异步路由直接 await。"""
         self._check(name, payload)
         route = self._route(name, caller)
         handler = route["fn"]
         if route["is_async"]:
-            return await handler(self.ctx, payload or {})
+            kind, _addr = ("direct", None) if direct else self.transport.kind_for(name)
+            if kind != "direct":
+                return await self._ensure_loop().run_in_executor(
+                    None, self.transport.send, name, payload or {}, handler, caller)
+            return await self._ascoped(route, self.ctx, payload or {})
         if direct:
-            return handler(self.ctx, payload or {})
+            return self._scoped(route, self.ctx, payload or {})
         return await self._ensure_loop().run_in_executor(
             None, self.transport.send, name, payload or {}, handler, caller)
 
     def notify(self, name, payload=None, caller=None):
-        """单向投递：不取返回值（通知这类语义走异步通道才合法）。"""
+        """单向投递：不取返回值。本机直连时立刻执行，跨机时只承诺"已发出"。"""
+        self._check(name, payload)
         route = self._route(name, caller)
+        kind, _addr = self.transport.kind_for(name)
+        if kind == "direct":
+            self._scoped(route, self.ctx, payload or {})
+            return {"transport": "direct", "sent": name}
         return self.transport.notify(name, payload, route["fn"], caller=caller)

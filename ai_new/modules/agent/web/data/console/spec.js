@@ -1,4 +1,5 @@
-/* spec：规格取值表达式（route/row/data/cache/field/result 与变换）
+/* spec：规格取值表达式（含视图声明的业务词表 LABELS，页面自身不带业务名词）
+（route/row/data/cache/field/result 与变换）
    规格里出现的取值写法（只这三种，不含业务知识）：
    - {route.x}       路由参数
    - {row.x.y}       当前数据行
@@ -9,6 +10,8 @@
    后缀变换： |when  时间格式化   |count  计数   |count(a!=b) 条件计数
              |project_name  id 转项目名
 */
+let LABELS = {};
+function eventLabel(event) { return LABELS[event] || event || ""; }
 function dig(obj, path) {
   if (!path) return obj;
   let cur = obj;
@@ -98,14 +101,10 @@ function fill(tpl, ctx) {
   }
   return s;
 }
-const EVENT_LABELS = { created: "建单", pm_start: "PM 开工", role_spawn: "派角色",
-  child_split: "拆子单", repush: "回催缺口", review_pass: "评审达标", exhausted: "卡点",
-  note: "备注", closed: "结单" };
 function fmtVal(item, ctx) {
   let v = fill(item.value, ctx);
   if (item.format === "when") v = when(v);
   else if (item.format === "project_name") v = projectName(v, ctx);
-  else if (item.format === "event_label") v = EVENT_LABELS[String(v || "")] || String(v || "");
   return v;
 }
 function truthy(v) {

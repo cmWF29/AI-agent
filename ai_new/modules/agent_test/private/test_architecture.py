@@ -433,5 +433,44 @@ class StructureTest(unittest.TestCase):
         self.assertTrue((ROOT / "test_start.py").is_file())
 
 
+DEAD_DOC_CONCEPTS = (
+    "data/rules/calls.yaml",
+    "三种通道",
+    "| `memory` |",
+)
+
+
+class TestDocsMatchImplementation(unittest.TestCase):
+    """文档在这个仓里是契约，写错了就是契约失真：已下线的东西不许还留在文档里。"""
+
+    def test_architecture_doc_has_no_dead_concepts(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[4]
+        for name in ("ARCHITECTURE.md", "README.md"):
+            text = (root / name).read_text(encoding="utf-8")
+            for dead in DEAD_DOC_CONCEPTS:
+                self.assertNotIn(dead, text, "%s 仍在描述已下线的东西：%s" % (name, dead))
+
+    def test_readme_module_list_matches_tree(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[4]
+        import re
+        text = (root / "README.md").read_text(encoding="utf-8")
+        lines = text.splitlines()
+        head = [i for i, l in enumerate(lines) if l.startswith("**agent（业务能力）**")][0]
+        chunk = []
+        for l in lines[head:]:
+            if not l.strip():
+                break
+            chunk.append(l)
+        listed = set()
+        for part in re.split("·", " ".join(chunk)):
+            mod = re.sub(r"[^a-z0-9_]", "", part.split("：")[-1])
+            if mod:
+                listed.add(mod)
+        actual = {p.name for p in (root / "ai_new" / "modules" / "agent").iterdir() if p.is_dir()}
+        self.assertEqual(listed, actual)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

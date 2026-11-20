@@ -1,0 +1,101 @@
+comment: 业务模块跨模块直调台账（技术债）：新增直调必须先登记，目标是逐步迁回需求编排。平台件（agent_common）走 platform:* 身份，不进本表。
+calls:
+- caller: artifacts
+  targets:
+  - clock
+  - codec
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: asr
+  targets:
+  - codec
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: auth
+  targets:
+  - clock
+  - codec
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: channel
+  targets:
+  - clock
+  - codec
+  - config
+  - logs
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: decompose
+  targets:
+  - codec
+  - exec
+  - host
+  - library
+  - net
+  - react
+  - store
+  - tools
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: knowledge
+  targets:
+  - clock
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: library
+  targets:
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: logs
+  targets:
+  - clock
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: projects
+  targets:
+  - clock
+  - config
+  - logs
+  - store
+  - tickets
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: sessions
+  targets:
+  - clock
+  - config
+  - logs
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: tickets
+  targets:
+  - clock
+  - config
+  - logs
+  - ops
+  - projects
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: todos
+  targets:
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: tools
+  targets:
+  - config
+  - exec
+  - host
+  - library
+  - projects
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: web
+  targets:
+  - config
+  - store
+  reason: 存量直调：待迁移为「能力产 effect，需求 apply」

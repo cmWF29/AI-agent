@@ -21,7 +21,9 @@ import threading
 import time
 from pathlib import Path
 
-HDR = struct.Struct("!ii")   # (length, seq)
+from . import _wire
+
+HDR = _wire.HDR               # (length, seq)；与客户端共用一份
 SHM_SIZE = 512 * 1024
 
 
@@ -78,7 +80,7 @@ class Server:
         if not route:
             return self._encode({"ok": False, "error": "缺 route", "code": "bad_request"})
         try:
-            result = self.ctx.api.call(route, payload, caller=None, direct=True)
+            result = self.ctx.api.call(route, payload, caller="platform:api-server", direct=True)
             return self._encode({"ok": True, "result": result})
         except Exception as exc:  # noqa: BLE001 —— 远端错误原样回头
             return self._encode({"ok": False, "error": "%s: %s" % (type(exc).__name__, exc),
@@ -130,20 +132,11 @@ class Server:
         try:
             with conn:
                 conn.settimeout(30)
-                head = conn.recv(4)
-                if len(head) < 4:
+                body = _wire.read_frame(conn)
+                if body is None:
                     return
-                length = struct.unpack("!i", head)[0]
-                if length <= 0 or length > SHM_SIZE:
-                    return
-                body = b""
-                while len(body) < length:
-                    chunk = conn.recv(length - len(body))
-                    if not chunk:
-                        return
-                    body += chunk
                 reply = self.handle(body.decode("utf-8", "replace")).encode("utf-8")
-                conn.sendall(struct.pack("!i", len(reply)) + reply)
+                _wire.send_frame(conn, reply)
         except OSError:
             return
 

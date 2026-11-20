@@ -97,6 +97,29 @@ class CoreTest(unittest.TestCase):
         dead = sorted(r for r in contracts if r not in self.ctx.api._routes)
         self.assertEqual(dead, [], "契约里写了没注册的路由（发出去了就是死名）: %s" % dead)
 
+    def test_call_identity_is_judged_by_ledger(self):
+        """调用方身份不是自报的：handler 执行期按所属模块判定；跨模块直调必须登记。"""
+        from ai_new.modules.agent_common.api.private import _registry as reg
+        ctx = self.ctx
+        token = reg._SCOPE.set("probe")
+        try:
+            # 未登记：业务模块越界直调，enforce 下拒绝
+            with self.assertRaises(Exception) as caught:
+                ctx.api.call("health.live", {}, caller=None, direct=True)
+            self.assertEqual(getattr(caught.exception, "code", ""),
+                             "internal_call_unregistered")
+            # 登记后放行：台账是显式的，不是后门
+            ctx.api._calls = {"probe": ("health",)}
+            ctx.api._calls_seen = len(ctx.loaded)
+            self.assertTrue(ctx.api.call("health.live", {}, caller=None, direct=True)["ok"])
+        finally:
+            reg._SCOPE.reset(token)
+            ctx.api._calls = None
+            ctx.api._calls_seen = -1
+        # 平台身份（远端服务端/HTTP 闸）不受台账限制
+        self.assertTrue(ctx.api.call("health.live", {}, caller="platform:test",
+                                     direct=True)["ok"])
+
     def test_contract_enforces_required_fields(self):
         """enforce 模式下缺必填字段直接拒；warn 模式只留证据，不改变行为。"""
         route = self.ctx.api._routes["store.read"]

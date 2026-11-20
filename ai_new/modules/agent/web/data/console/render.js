@@ -163,7 +163,6 @@ function draftBubbleHtml(draft, roles) {
         <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`;
 }
 /* 工单历程 → 系统事件气泡：连续同类事件合并计数，长文本折行折叠 */
-function eventLabel(event) { return EVENT_LABELS[event] || event || ""; }
 /* role_spawn 的事件正文是「角色: 任务」，合并后只报角色名，任务统一在一句里 */
 function roleOf(text) {
   const s = String(text || "");

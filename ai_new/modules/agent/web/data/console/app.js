@@ -121,46 +121,48 @@ function when(ts) {
 
 
 /* ---- 路由与视图 ---- */
-let VIEWS = {}, FORMS = {}, state = { view: "projects" };
+let VIEWS = {}, FORMS = {}, state = { view: "" };
 let ACTS = [], FILTER = null, modalSubmit = null, MODAL_CTX = null;
 
+function viewSpec(view) { return VIEWS[view] || {}; }
+function viewParams(view) { return viewSpec(view).params || []; }
+function defaultView() {
+  const keys = Object.keys(VIEWS);
+  const marked = keys.find((k) => VIEWS[k] && VIEWS[k].default);
+  return marked || keys[0] || "";
+}
+/* URL 只由规格驱动：视图声明 params，前端不认识任何具体视图名。 */
 function qsOf(s) {
   const q = new URLSearchParams();
-  if (s.view === "tools") q.set("view", "tools");
-  else if (s.view === "skills") q.set("view", "skills");
-  else if (s.view === "positions") q.set("view", "positions");
-  else if (s.view === "position") { q.set("view", "position"); q.set("position", s.position || ""); }
-  else if (s.view === "knowledge") q.set("view", "knowledge");
-  else if (s.view === "logs") q.set("view", "logs");
-  else if (s.view === "artifacts") q.set("view", "artifacts");
-  else if (s.view === "user") q.set("view", "user");
-  else if (s.view === "knowledge-doc") {
-    q.set("view", "knowledge-doc"); q.set("layer", s.layer || ""); q.set("name", s.name || "");
-    q.set("project", s.project || ""); q.set("ticket", s.ticket || "");
-  }
-  else if (s.ticket) { q.set("project", s.project || ""); q.set("ticket", s.ticket); }
-  else if (s.project) q.set("project", s.project);
+  const ps = viewParams(s.view);
+  const isDefault = s.view === defaultView() && !ps.some((p) => s[p]);
+  if (!isDefault) q.set("view", s.view);
+  for (const p of ps) { const v = s[p]; if (v != null && v !== "") q.set(p, v); }
   const str = q.toString();
   return str ? "/manage.html?" + str : "/manage.html";
 }
 function parseURL() {
   const q = new URLSearchParams(location.search);
-  if (q.get("view") === "tools") return { view: "tools" };
-  if (q.get("view") === "skills") return { view: "skills" };
-  if (q.get("view") === "positions") return { view: "positions" };
-  if (q.get("view") === "position") return { view: "position", position: q.get("position") || "" };
-  if (q.get("view") === "knowledge") return { view: "knowledge" };
-  if (q.get("view") === "logs") return { view: "logs" };
-  if (q.get("view") === "artifacts") return { view: "artifacts" };
-  if (q.get("view") === "user") return { view: "user" };
-  if (q.get("view") === "knowledge-doc") return { view: "knowledge-doc",
-    layer: q.get("layer") || "", name: q.get("name") || "",
-    project: q.get("project") || "", ticket: q.get("ticket") || "" };
-  const p = q.get("project") || "";
-  const t = q.get("ticket") || "";
-  if (t) return { view: "ticket", project: p, ticket: t };
-  if (p) return { view: "project", project: p };
-  return { view: "projects" };
+  const v = q.get("view") || "";
+  if (v && VIEWS[v]) {
+    const s = { view: v };
+    for (const p of viewParams(v)) s[p] = q.get(p) || "";
+    return s;
+  }
+  // 旧链接兼容：挑"参数匹配最全"的视图（参数多的优先），不写死视图名。
+  let best = null;
+  for (const k of Object.keys(VIEWS)) {
+    const ps = viewParams(k);
+    if (!ps.length) continue;
+    const got = ps.filter((p) => q.get(p));
+    if (got.length === ps.length && (!best || ps.length > best.n)) best = { k, n: ps.length };
+  }
+  if (best) {
+    const s = { view: best.k };
+    for (const p of viewParams(best.k)) s[p] = q.get(p) || "";
+    return s;
+  }
+  return { view: defaultView() };
 }
 async function go(next, push) {
   state = next;
@@ -174,9 +176,10 @@ async function boot() {
     const v = it && it.view;
     if (!v) continue;
     if (v.key) VIEWS[v.key] = v;
+    if (v.labels) Object.assign(LABELS, v.labels);
     for (const f of v.forms || []) FORMS[f.id] = f;
   }
-  if (!VIEWS.projects) throw new Error("没有 projects 视图规格，页面无法启动");
+  if (!Object.keys(VIEWS).length) throw new Error("没有任何视图规格，页面无法启动");
   state = parseURL();
   await render();
 }
@@ -283,7 +286,7 @@ async function loadData(spec, ctx) {
 }
 
 async function render(opts) {
-  const spec = VIEWS[state.view] || VIEWS.projects;
+  const spec = VIEWS[state.view] || VIEWS[defaultView()];
   const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
   await loadData(spec, ctx);
   if (!(opts && opts.keepBanner)) banner("");
@@ -302,10 +305,9 @@ async function render(opts) {
 }
 
 function crumbUp() {
-  if (state.view === "ticket") return { view: "project", project: state.project || "" };
-  if (state.view === "position") return { view: "positions" };
-  if (state.view === "knowledge-doc") return { view: "knowledge" };
-  return { view: "projects" };
+  const spec = viewSpec(state.view);
+  if (spec.parent) return resolveView(spec.parent, { route: state, data: {}, cache: {}, fields: {} });
+  return { view: defaultView() };
 }
 function renderCrumb(spec, ctx) {
   const parts = (spec.crumb || []).map((x) => fill(x, ctx)).filter(Boolean);

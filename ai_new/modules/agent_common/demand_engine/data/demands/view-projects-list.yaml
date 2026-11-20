@@ -8,6 +8,7 @@ callable: false
 do: []
 view:
   key: projects
+  default: true
   crumb: [项目]
   heading: 项目
   subheading: 选一个项目进去看它的工单

@@ -158,11 +158,29 @@ class _Storage:
         self.json_write(rel, obj)
 
 
+class _Nested:
+    """嵌套 run 桩：引擎对 `demand_engine.run` 走 run_callable 直连，不经过 api.call，
+    这里补记一笔，让 expect.calls 能看见这一跳（否则预期永远无法被验证）。"""
+
+    def __init__(self, api):
+        self.api = api
+
+    def run_callable(self, demand_id, input=None):
+        self.api.calls.append({"route": "demand_engine.run",
+                               "payload": {"id": demand_id, "input": input or {}},
+                               "caller": None})
+        return {}
+
+    async def arun_callable(self, demand_id, input=None):
+        return self.run_callable(demand_id, input)
+
+
 class _Ctx:
     def __init__(self, api, storage):
         self.api = api
         self.storage = storage
         self.ApiError = RuntimeError
+        self.demand_engine = _Nested(api)
 
 
 class DemandContractTest(unittest.TestCase):
@@ -205,7 +223,8 @@ class DemandContractTest(unittest.TestCase):
         分支、遍历、循环、等待都必须下沉到模块功能函数内部；
         需求层再出现这些键，就等于把控制流又搬回了编排里。
         """
-        control = {"when", "each", "until", "wait"}
+        control = {"when", "each", "until", "wait", "retry",
+                   "parallel", "compensate", "branch"}
         problems = []
         for rec in load_all():
             for stmt in rec.get("do") or []:

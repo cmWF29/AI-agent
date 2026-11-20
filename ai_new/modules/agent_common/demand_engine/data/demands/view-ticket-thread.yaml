@@ -11,6 +11,11 @@ callable: false
 do: []
 view:
   key: ticket
+  labels: {created: 建单, pm_start: PM 开工, role_spawn: 派角色, child_split: 拆子单,
+           repush: 回催缺口, review_pass: 评审达标, exhausted: 卡点, note: 备注, closed: 结单}
+  params: [project, ticket]
+  nav: projects
+  parent: {view: project, params: {project: "{route.project}"}}
   crumb:
   - 项目
   - '{thread.ticket.project|project_name}'
