@@ -10,6 +10,9 @@
 """
 from __future__ import annotations
 
+import asyncio
+import threading
+
 import yaml
 
 from . import _transport
@@ -21,6 +24,20 @@ class Registry:
         self._routes = {}
         self._matrix = None      # 首次真正调用时再读，见 _rules()
         self.transport = _transport.Transport(ctx)
+        self._loop = None
+        self._loop_lock = threading.Lock()
+
+    def _ensure_loop(self):
+        """进程级事件循环：惰性建在专属守护线程上，供同步壳桥接异步路由。"""
+        if self._loop is None:
+            with self._loop_lock:
+                if self._loop is None:
+                    loop = asyncio.new_event_loop()
+                    t = threading.Thread(target=loop.run_forever, daemon=True,
+                                         name="api-loop")
+                    t.start()
+                    self._loop = loop
+        return self._loop
 
     def _adapt(self, fn):
         """传输层统一以 handler(ctx, payload) 调用；单参新签名在这里包成两参。"""
@@ -40,7 +57,9 @@ class Registry:
         """
         if name in self._routes:
             raise ValueError("route already registered: " + name)
-        self._routes[name] = {"fn": self._adapt(fn), "doc": doc, "module": module or name.split(".")[0],
+        self._routes[name] = {"fn": self._adapt(fn),
+                              "is_async": asyncio.iscoroutinefunction(fn),
+                              "doc": doc, "module": module or name.split(".")[0],
                               "stream": bool(stream), "internal": bool(internal)}
         return name
 
@@ -48,7 +67,8 @@ class Registry:
         """替换同一条路由的实现（契约不变）：通信方式可换，调用方无感。"""
         if name not in self._routes:
             raise ValueError("route not registered: " + name)
-        self._routes[name]["fn"] = fn
+        self._routes[name]["fn"] = self._adapt(fn)
+        self._routes[name]["is_async"] = asyncio.iscoroutinefunction(fn)
         return name
 
     def routes(self):
@@ -74,7 +94,7 @@ class Registry:
     def matrix(self):
         return self._rules()
 
-    def call(self, name, payload=None, caller=None):
+    def _route(self, name, caller):
         if name not in self._routes:
             raise self.ctx.ApiError("API 不存在: %s" % name, code="no_route", status=404)
         if caller and caller != "demand_engine":
@@ -82,7 +102,26 @@ class Registry:
             raise self.ctx.ApiError(
                 "能力只能由需求调用: %s -> %s" % (caller, name),
                 code="module_call_forbidden", status=403)
-        return self.transport.send(name, payload, self._routes[name]["fn"], caller=caller)
+        return self._routes[name]
+
+    def call(self, name, payload=None, caller=None):
+        """同步入口：异步路由经进程级 loop 桥接，同步路由走传输通道。"""
+        route = self._route(name, caller)
+        handler = route["fn"]
+        if route["is_async"]:
+            fut = asyncio.run_coroutine_threadsafe(
+                handler(self.ctx, payload or {}), self._ensure_loop())
+            return fut.result()
+        return self.transport.send(name, payload, handler, caller=caller)
+
+    async def acall(self, name, payload=None, caller=None):
+        """异步入口：异步路由直接 await；同步路由丢默认执行器桥接。"""
+        route = self._route(name, caller)
+        handler = route["fn"]
+        if route["is_async"]:
+            return await handler(self.ctx, payload or {})
+        return await self._ensure_loop().run_in_executor(
+            None, handler, self.ctx, payload or {})
 
 
 def _match(name, allowed):
