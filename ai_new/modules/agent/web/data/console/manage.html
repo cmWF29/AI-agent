@@ -330,7 +330,7 @@ textarea{min-height:72px;resize:vertical}
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
 @media (max-width: 720px) {
   .sidebar{width:280px}
-  main{padding:12px 14px 20px}
+  main{padding:10px 12px 12px}
   /* 手机上一屏只有群聊：面包屑与页面大标题合并，去掉一层重复 */
   .crumb{display:none}
   .view-head{padding:2px 2px 8px;gap:6px}
@@ -338,12 +338,12 @@ textarea{min-height:72px;resize:vertical}
   .view-head .desc{display:none}
   .ticket-grid{grid-template-columns:1fr;gap:10px;height:auto}
   .lane-left>.vsec[data-kind="chat"]{flex:none}
-  .chat-card{height:calc(100dvh - 196px);max-height:none;min-height:300px;border-radius:14px}
+  .chat-card{height:calc(100dvh - 238px);max-height:none;min-height:280px;border-radius:14px}
   .chat{max-height:none}
   .chat-head{padding:10px 12px;flex-wrap:nowrap}
   .chat-head-meta{flex-wrap:wrap;gap:4px 8px}
   .chat-head-meta>span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:150px}
-  .chat-head-meta>span:nth-of-type(2){display:none} /* 项目名在抽屉与会话里都有，手机上不重复占位 */
+  .chat-head-meta>span:nth-of-type(3){display:none} /* 项目名在抽屉与会话里都有，手机上不重复占位 */
   .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
   .cards{grid-template-columns:1fr}
