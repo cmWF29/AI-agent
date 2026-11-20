@@ -33,9 +33,12 @@ from ai_new.modules.agent_test.private import stub_llm  # noqa: E402
 
 
 def start_stub(tool_rate, delay, delay_jitter=0.0, spawn_rate=0.0,
-               pm_roles=None, role_rounds=1, filler_words=120):
+               pm_roles=None, role_rounds=1, filler_words=120,
+               close_rate=0.0, fail_code=0, fail_rate=0.0, token_limit=0):
     policy = stub_llm.StubPolicy(tool_rate=tool_rate, spawn_rate=spawn_rate,
                                  delay_base=delay, delay_jitter=delay_jitter,
+                                 close_rate=close_rate, fail_code=fail_code,
+                                 fail_rate=fail_rate, token_limit=token_limit,
                                  pm_roles=pm_roles, role_rounds=role_rounds,
                                  filler_words=filler_words)
     return stub_llm.start_stub(policy)
@@ -182,24 +185,32 @@ def mem_snapshot(ctx):
     }
 
 
+def _alive_futures(ctx):
+    """当前尚未收尾的后台会话任务 Future（异步运行时双池口径）。"""
+    return [f for f in ctx.runtime._runs.values() if not f.done()]
+
+
 def join_background(ctx, timeout):
-    """等后台 session-run 线程收敛；回催会再 dispatch 同 key，轮询到无存活线程。
+    """等后台会话任务收敛；回催会再 dispatch 同 key，轮询到无在途 Future。
 
     finished 是 defer 钩子：首轮收尾只入队，必须由主线程 drain 派发，闭环才会二次
-    驱动；线程归零后再 drain 一轮，避免错过首轮结束后才入队、刚起的新线程。
+    驱动；任务归零后再 drain 一轮，避免错过首轮结束后才入队、刚起的新任务。
     """
     deadline = time.perf_counter() + timeout
     while time.perf_counter() < deadline:
         ctx.hooks.drain()
-        alive = [t for t in ctx.runtime._runs.values() if t.is_alive()]
+        alive = _alive_futures(ctx)
         if not alive:
             ctx.hooks.drain()
-            if not [t for t in ctx.runtime._runs.values() if t.is_alive()]:
+            if not _alive_futures(ctx):
                 return [], time.perf_counter()
         time.sleep(0.2)
-        for t in alive:
-            t.join(timeout=1.0)
-    return [t for t in ctx.runtime._runs.values() if t.is_alive()], time.perf_counter()
+        for fut in alive:
+            try:
+                fut.result(timeout=1.0)
+            except Exception:  # noqa: BLE001 —— 任务自身失败已落盘，不等掀翻压测
+                pass
+    return _alive_futures(ctx), time.perf_counter()
 
 
 def main(argv=None):
@@ -219,20 +230,39 @@ def main(argv=None):
     ap.add_argument("--source-data", action="store_true",
                     help="直接落在源码树模块数据目录（与常驻进程同根），不落外部镜像根")
     ap.add_argument("--clean", action="store_true", help="建单前清空存量业务档案")
-    ap.add_argument("--pm-roles", default="developer,tester,reviewer",
-                    help="PM 依次分派的角色，逗号分隔")
+    ap.add_argument("--pm-roles", default="developer,tester,reviewer,architect,researcher",
+                    help="PM 依次分派的角色，逗号分隔；默认覆盖开发/测试/评审/架构/调研多岗")
     ap.add_argument("--role-rounds", type=int, default=1, help="角色读→写→备注重复遍数")
     ap.add_argument("--filler-words", type=int, default=120, help="桩每段正文字数")
+    # 随机网络故障注入：默认全关，保持干净网络压测口径；压测时按比例叠加断连/故障码/上下文超限。
+    ap.add_argument("--close-rate", type=float, default=0.0,
+                    help="断连概率 0~1：命中直接关连接（net_error/unreachable）")
+    ap.add_argument("--fail-rate", type=float, default=0.0,
+                    help="HTTP 故障码命中概率 0~1，需配合 --fail-code")
+    ap.add_argument("--fail-code", type=int, default=0,
+                    help="故障 HTTP 状态码（如 429/500/503），0 表示不注入故障码")
+    ap.add_argument("--token-limit", type=int, default=0,
+                    help="消息条数阈值：入参 messages 超过阈值返上下文超限错误，0 关闭")
     ap.add_argument("--keep-data", action="store_true", help="保留临时 data 目录供排查")
     args = ap.parse_args(argv)
 
     pm_roles = [r.strip() for r in args.pm_roles.split(",") if r.strip()]
     print("== 启动本地打桩服务（不接真实 API）")
-    stub, stub_thread, stub_url = start_stub(args.tool_rate, args.delay,
-                                            args.delay_jitter, args.spawn_rate,
-                                            pm_roles, args.role_rounds, args.filler_words)
-    print("   桩地址: %s | roles=%s rounds=%d words=%d delay=%.2fs"
-          % (stub_url, pm_roles, args.role_rounds, args.filler_words, args.delay))
+    stub, stub_thread, stub_url = start_stub(
+        args.tool_rate, args.delay, args.delay_jitter, args.spawn_rate,
+        pm_roles, args.role_rounds, args.filler_words,
+        close_rate=args.close_rate, fail_code=args.fail_code,
+        fail_rate=args.fail_rate, token_limit=args.token_limit)
+    fault_desc = []
+    if args.close_rate > 0:
+        fault_desc.append("断连 %.0f%%" % (args.close_rate * 100))
+    if args.fail_rate > 0 and args.fail_code:
+        fault_desc.append("故障码 %d %.0f%%" % (args.fail_code, args.fail_rate * 100))
+    if args.token_limit:
+        fault_desc.append("上下文超限 >%d 条" % args.token_limit)
+    print("   桩地址: %s | roles=%s rounds=%d words=%d delay=%.2fs | 故障: %s"
+          % (stub_url, pm_roles, args.role_rounds, args.filler_words, args.delay,
+             "、".join(fault_desc) if fault_desc else "关闭"))
 
     ctx = root = tmp = None
     failures = []
@@ -304,7 +334,7 @@ def main(argv=None):
         t2 = time.perf_counter()
         leftover, t_join = join_background(ctx, args.join_timeout)
         t_wait = t_join - t2
-        print("== 后台线程: 残留 %d，等待 %.2fs" % (len(leftover), t_wait))
+        print("== 后台任务: 残留 %d，等待 %.2fs" % (len(leftover), t_wait))
         m2 = mem_snapshot(ctx)
         gc.collect()
         m3 = mem_snapshot(ctx)
@@ -376,8 +406,10 @@ def main(argv=None):
             print("   丢失工单抽样: %s" % sorted(lost_tickets)[:10])
         if orphan_sessions:
             print("   孤儿会话抽样: %s" % sorted(orphan_sessions)[:10])
-        print("   桩调用: 总 %d | 纯文本 %d | tool_calls %d | 错误 %d"
-              % (st.calls, st.text, st.tool_calls, st.errors))
+        print("   桩调用: 总 %d | 纯文本 %d | tool_calls %d | 错误 %d | 断连 %d"
+              % (st.calls, st.text, st.tool_calls, st.errors, st.closed))
+        if st.by_code:
+            print("   故障码分布: %s" % dict(sorted(st.by_code.items())))
         print("   耗时: 建项目 %.2fs | 建工单 %.2fs | 等后台 %.2fs | 总计 %.2fs"
               % (t_proj, t_ticket, t_wait, total_sec))
         if t_ticket > 0:

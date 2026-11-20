@@ -96,6 +96,12 @@ _ROLE_NEXT = {
     "developer": ["understand", "implement", "verify"],
     "tester": ["design", "run", "report"],
     "reviewer": ["study", "review", "deliver"],
+    "architect": ["study", "design", "deliver"],
+    "ops": ["diagnose", "plan", "deliver"],
+    "researcher": ["scope", "search", "deliver"],
+    "writer": ["gather", "draft", "deliver"],
+    "process": ["survey", "design", "deliver"],
+    "skill-decomposer": ["inspect", "split", "deliver"],
 }
 _ROLE_READ = {"knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read"}
 _ROLE_WRITE = {"artifact_write", "knowledge_write"}
@@ -120,11 +126,18 @@ _FILLER = {
 
 def _filler(tool, words):
     base = _FILLER.get(tool, "按岗位职责完成本轮处理，记录结论与依据。")
-    extra = ("复核前后结论是否一致，检查交付件路径、命名与归属是否正确；"
-             "补充必要的上下文说明，确保下游角色能据此继续，不留模糊假设。")
+    extras = [
+        "复核前后结论是否一致，检查交付件路径、命名与归属是否正确；补充必要的上下文说明，确保下游角色能据此继续，不留模糊假设。",
+        "对照验收标准逐条核对已覆盖项与遗留缺口，未达标部分明确标注卡点与下一步建议，不把未完成项记为通过。",
+        "记录本轮引用的依据来源、适用条件与边界限制；存疑处单独列出，避免把不相关或过期条目当成本轮依据。",
+        "梳理本轮产出与上下游岗位的衔接：输入是否齐备、交付物是否可被测试/评审直接使用，衔接断点在备注里交代清楚。",
+        "汇总本轮关键决策、取舍理由与未决事项，结论与交付件保持一致；措辞如实，不夸大完成度，缺口与风险显式标注。",
+    ]
     out = base
+    i = 0
     while len(out) < words:
-        out += extra
+        out += extras[i % len(extras)]
+        i += 1
     return out[:words]
 
 
@@ -272,10 +285,18 @@ class _Handler(BaseHTTPRequestHandler):
         # 从 system 提示识别岗位与当前状态（压测桩脚本化模拟；正式流程以后端契约为准）。
         sys_text = " ".join(m.get("content") or "" for m in msgs if m.get("role") == "system")
         role = ""
-        for kw, rid in (("开发角色", "developer"), ("测试角色", "tester"), ("评审角色", "reviewer")):
-            if kw in sys_text:
+        # 先按角色 id 直接命中，再回退中文称谓；id 与称谓均来自 roles.yaml 契约。
+        for rid in _ROLE_NEXT:
+            if rid in sys_text:
                 role = rid
                 break
+        if not role:
+            for kw, rid in (("开发角色", "developer"), ("测试角色", "tester"),
+                             ("评审角色", "reviewer"), ("架构", "architect"),
+                             ("诊断", "ops"), ("调研", "researcher"), ("撰稿", "writer")):
+                if kw in sys_text:
+                    role = rid
+                    break
         cur = ""
         mcur = re.search(r"当前阶段：[^（(]*（([a-z_]+)", sys_text)
         if mcur:
@@ -286,12 +307,15 @@ class _Handler(BaseHTTPRequestHandler):
             steps = [t for t in _ROLE_STEPS if t in by_name]
             if policy.role_rounds > 1:
                 steps = steps * policy.role_rounds
-            already_tool = any(m.get("role") == "tool" for m in msgs)
-            if steps and not already_tool:
+            # 已回填的工具结果条数即已走完的工具步；未走完则继续回下一步工具，
+            # 让角色按状态链逐态推进、产出多轮多消息，走完工具序列后再收口。
+            tool_n = sum(1 for m in msgs if m.get("role") == "tool")
+            if steps and tool_n < len(steps):
+                nxt_tool = steps[tool_n]
                 with stats.lock:
                     stats.tool_calls += 1
-                return [_tool_frame("call_%d" % stats.calls, steps[0],
-                                    json.dumps(_args(steps[0]), ensure_ascii=False))]
+                return [_tool_frame("call_%d" % stats.calls, nxt_tool,
+                                    json.dumps(_args(nxt_tool), ensure_ascii=False))]
             nxt = ""
             if cur in chain:
                 idx = chain.index(cur)
