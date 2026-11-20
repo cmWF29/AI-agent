@@ -159,7 +159,7 @@ class Registry:
                           if isinstance(v, dict) and v.get("req") and k not in got])
         if not missing:
             return
-        if self._cfg_str("api", "contract_mode", "warn") == "enforce":
+        if self._cfg_str("api", "contract_mode", "enforce") == "enforce":
             raise self.ctx.ApiError(
                 "路由 %s 缺少必填字段: %s" % (name, ", ".join(missing)),
                 code="bad_payload", status=400)

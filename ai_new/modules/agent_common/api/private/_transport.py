@@ -1,35 +1,33 @@
-"""通信是抽象：直接调用 / 内存队列 / 网络，同一份模板代码，不同运行时。
+"""通信是抽象：同一份模板代码，换部署只重编绑定。
 
-模块里写的永远是 `ctx.api.call(route, payload, caller)`。这条调用走哪条通道，
-不由代码决定，由**编译出来的** `data/gen/bindings.yaml` 决定：
+模块里写的永远是 `ctx.api.call(route, payload, caller)`（或 `notify` 单向投递）。这条调用
+走哪条通道，不由代码决定，由 `data/deploy.yaml` 编译出的 `data/gen/bindings.yaml` 决定：
 
-    部署意图 data/deploy.yaml  ──编译──▶  data/gen/bindings.yaml
+    direct  同进程直连（单机默认，唯一零拷贝）
+    unix    本地 socket（AF_UNIX，同机跨进程）
+    tcp     网络 socket（AF_INET，本机 127.0.0.1；跨机不在本轮范围）
+    shm     共享内存信箱（mmap + flock，同机跨进程，大块报文不复制）
 
-编译是 api 模块自己的能力：装配期自动编一次（boot），也可以 `--compile-transport`
-在装配之前编，或运行中调 `api.transport_compile`。于是"代码是模板，真的运行是另一套
-绑定"成了结构：模板不动，换部署拓扑只重跑编译。
-
-三条通道的语义要显式区分，不能混：
-    direct  同进程直连，有返回值 —— 单机默认
-    memory  同进程共享内存队列，**单向**：调用方拿到的是"已入队"，不是结果
-    http    本地 / 跨机网络 RPC，有返回值 —— 多机部署的同一套绑定
-
-没有绑定文件时默认全直连 —— 单进程里跑，和以前完全一样。
+四条通道都是"消息"：统一 4 字节长度前缀 + UTF-8 YAML flow 报文。
+没有绑定文件时默认全直连——单进程里跑，和以前完全一样。
 """
 from __future__ import annotations
 
-import queue
-import threading
-import urllib.error
-import urllib.request
+import fcntl
+import mmap
+import socket
+import struct
+import time
+from pathlib import Path
+
+HDR = struct.Struct("!ii")
 
 
 class Transport:
     def __init__(self, ctx):
         self.ctx = ctx
         self._bindings = None
-        self._queue = queue.Queue()
-        self._worker = None
+        self._seq = 0
 
     # ---- 绑定（懒加载：装配早期还没有 storage）----
     def bindings(self):
@@ -42,88 +40,185 @@ class Transport:
     def reload(self):
         self._bindings = None
 
+    def listen(self):
+        return self.bindings().get("listen") or {}
+
     def kind_for(self, route):
+        """返回 (通道, 地址)。地址从 listen 段取：同机通道只有一个入口，换端口改部署意图。"""
         routes = self.bindings().get("routes") or {}
         item = routes.get(route) or routes.get(route.split(".")[0] + ".*")
-        if item is None:
-            return (self.bindings().get("default") or {}).get("kind") or "direct", None
-        return item.get("kind") or "direct", item.get("base")
+        spec = item or (self.bindings().get("default") or {})
+        kind = spec.get("kind") or "direct"
+        listen = self.listen()
+        if kind == "direct":
+            return kind, None
+        if kind == "unix":
+            return kind, (listen.get("unix") or {}).get("path")
+        if kind == "tcp":
+            row = listen.get("tcp") or {}
+            if not row.get("port"):
+                return kind, None
+            return kind, "%s:%s" % (row.get("host") or "127.0.0.1", row["port"])
+        if kind == "shm":
+            return kind, (listen.get("shm") or {}).get("dir")
+        raise self.ctx.ApiError("未知通信通道: %s (route %s)" % (kind, route),
+                                code="bad_transport", status=500)
 
     def describe(self):
-        routes = self.bindings().get("routes") or {}
         return {"default": (self.bindings().get("default") or {}).get("kind") or "direct",
-                "routes": routes,
+                "routes": self.bindings().get("routes") or {},
+                "listen": self.listen(),
                 "source": "data/gen/bindings.yaml" if self.bindings() else "未生成，全直连"}
 
     def _timeout(self):
         api = (getattr(self.ctx, "cfg", None) or {}).get("api") or {}
         try:
-            return int(api.get("transport_timeout") or 10)
+            return float(api.get("transport_timeout") or 10)
         except (TypeError, ValueError):
-            return 10
+            return 10.0
 
-    # ---- 派发：要返回值 ----
+    # ---- 派发 ----
     def send(self, route, payload, handler, caller=None):
-        kind, base = self.kind_for(route)
+        kind, addr = self.kind_for(route)
         if kind == "direct":
             return handler(self.ctx, payload or {})
-        if kind == "http":
-            return self._http(route, payload, base)
-        if kind == "memory":
-            raise self.ctx.ApiError(
-                "内存通道是单向的（%s 要返回值）：需求里改用 send，或把该模块绑回 direct/http" % route,
-                code="bad_transport", status=500)
-        raise self.ctx.ApiError("未知通信通道: %s (route %s)" % (kind, route),
-                                code="bad_transport", status=500)
+        body = self._pack(route, payload)
+        if kind == "unix":
+            return self._unix(addr, route, body, expect=True)
+        if kind == "tcp":
+            return self._tcp(addr, route, body, expect=True)
+        if kind == "shm":
+            return self._shm(addr, route, body, expect=True)
+        raise self.ctx.ApiError("未知通信通道: %s" % kind, code="bad_transport", status=500)
 
-    # ---- 派发：单向通知（不要返回值）----
     def notify(self, route, payload, handler, caller=None):
-        kind, base = self.kind_for(route)
+        """单向投递：不解析应答，只承诺"已发出"。"""
+        kind, addr = self.kind_for(route)
         if kind == "direct":
             handler(self.ctx, payload or {})
             return {"transport": "direct", "sent": route}
-        if kind == "memory":
-            self._queue.put((route, dict(payload or {}), handler))
-            if self._worker is None:
-                self._worker = threading.Thread(target=self._drain, daemon=True,
-                                                name="api-memory-transport")
-                self._worker.start()
-            return {"transport": "memory", "queued": route}
-        if kind == "http":
-            self._http(route, payload, base, notify=True)
-            return {"transport": "http", "sent": route}
-        raise self.ctx.ApiError("未知通信通道: %s (route %s)" % (kind, route),
-                                code="bad_transport", status=500)
+        body = self._pack(route, payload)
+        if kind == "unix":
+            self._unix(addr, route, body, expect=False)
+        elif kind == "tcp":
+            self._tcp(addr, route, body, expect=False)
+        elif kind == "shm":
+            self._shm(addr, route, body, expect=False)
+        else:
+            raise self.ctx.ApiError("未知通信通道: %s" % kind, code="bad_transport", status=500)
+        return {"transport": kind, "sent": route}
 
-    def _drain(self):
-        while True:
-            route, payload, handler = self._queue.get()
-            try:
-                handler(self.ctx, payload)
-            except Exception:  # noqa: BLE001 —— 投递失败不改变发起方状态
-                pass
-            finally:
-                self._queue.task_done()
-
-    # 通道二：网络 —— 同步 RPC，走 /api/rpc/<module>/<fn>（返回未包装的原始结果）
-    def _http(self, route, payload, base, notify=False):
-        if not base:
-            raise self.ctx.ApiError("通道 http 缺少 base: %s" % route,
-                                    code="bad_transport", status=500)
-        url = base.rstrip("/") + "/api/rpc/" + route.replace(".", "/")
-        body = self.ctx.codec.yaml_encode_flow(payload or {})["text"].encode("utf-8")
-        req = urllib.request.Request(url, data=body, method="POST",
-                                     headers={"Content-Type": "application/yaml"})
-        token = (getattr(self.ctx, "cfg", None) or {}).get("server", {}).get("token") or ""
+    # ---- 报文 ----
+    def _pack(self, route, payload):
+        token = ((getattr(self.ctx, "cfg", None) or {}).get("server") or {}).get("token") or ""
+        rec = {"route": route, "payload": payload or {}}
         if token:
-            req.add_header("X-Auth-Token", token)
-        try:
-            with urllib.request.urlopen(req, timeout=self._timeout()) as resp:
-                rec = self.ctx.codec.yaml_decode(resp.read().decode("utf-8"))["value"]
-        except (urllib.error.URLError, Exception) as exc:
-            raise self.ctx.ApiError("远程调用失败: %s (%s)" % (route, exc),
-                                    code="remote_error", status=502)
+            rec["token"] = token
+        return self.ctx.codec.yaml_encode_flow(rec)["text"].encode("utf-8")
+
+    def _unpack(self, route, text):
+        rec = self.ctx.codec.yaml_decode(text)["value"] or {}
         if not rec.get("ok"):
-            raise self.ctx.ApiError("远程调用被拒: %s %s" % (route, rec.get("error")),
+            raise self.ctx.ApiError("远端调用被拒: %s %s" % (route, rec.get("error")),
+                                    code=rec.get("code") or "remote_error", status=502)
+        return rec.get("result")
+
+    # ---- unix socket ----
+    def _unix(self, addr, route, body, expect=True):
+        if not addr:
+            raise self.ctx.ApiError("通道 unix 缺少 listen.unix.path: %s" % route,
+                                    code="bad_transport", status=500)
+        conn = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        conn.settimeout(self._timeout())
+        try:
+            conn.connect(str(addr))
+            return self._roundtrip(conn, route, body, expect)
+        except OSError as exc:
+            raise self.ctx.ApiError("本地 socket 调用失败: %s (%s)" % (route, exc),
                                     code="remote_error", status=502)
-        return {"transport": "http", "sent": route} if notify else rec.get("result")
+        finally:
+            conn.close()
+
+    # ---- tcp socket ----
+    def _tcp(self, addr, route, body, expect=True):
+        if not addr:
+            raise self.ctx.ApiError("通道 tcp 缺少 listen.tcp: %s" % route,
+                                    code="bad_transport", status=500)
+        host, _, port = str(addr).partition(":")
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.settimeout(self._timeout())
+        try:
+            conn.connect((host, int(port)))
+            return self._roundtrip(conn, route, body, expect)
+        except OSError as exc:
+            raise self.ctx.ApiError("网络 socket 调用失败: %s (%s)" % (route, exc),
+                                    code="remote_error", status=502)
+        finally:
+            conn.close()
+
+    def _roundtrip(self, conn, route, body, expect):
+        conn.sendall(struct.pack("!i", len(body)) + body)
+        if not expect:
+            return None
+        head = b""
+        while len(head) < 4:
+            chunk = conn.recv(4 - len(head))
+            if not chunk:
+                raise self.ctx.ApiError("远端提前断开: %s" % route, code="remote_error", status=502)
+            head += chunk
+        length = struct.unpack("!i", head)[0]
+        data = b""
+        while len(data) < length:
+            chunk = conn.recv(length - len(data))
+            if not chunk:
+                raise self.ctx.ApiError("远端提前断开: %s" % route, code="remote_error", status=502)
+            data += chunk
+        return self._unpack(route, data.decode("utf-8", "replace"))
+
+    # ---- 共享内存信箱 ----
+    def _next_seq(self):
+        self._seq = (self._seq + 1) % 0x7FFFFFFF
+        return self._seq or 1
+
+    def _shm(self, addr, route, body, expect=True):
+        if not addr:
+            raise self.ctx.ApiError("通道 shm 缺少 listen.shm.dir: %s" % route,
+                                    code="bad_transport", status=500)
+        req = Path(addr) / "req.bin"
+        resp = Path(addr) / "resp.bin"
+        seq = self._next_seq()
+        try:
+            with open(req, "r+b") as fh:
+                mm = mmap.mmap(fh.fileno(), 0)
+                fcntl.flock(fh, fcntl.LOCK_EX)
+                try:
+                    HDR.pack_into(mm, 0, len(body), seq)
+                    mm[8:8 + len(body)] = body
+                finally:
+                    fcntl.flock(fh, fcntl.LOCK_UN)
+                    mm.close()
+        except OSError as exc:
+            raise self.ctx.ApiError("共享内存写失败: %s (%s)" % (route, exc),
+                                    code="remote_error", status=502)
+        if not expect:
+            return None
+        deadline = time.time() + self._timeout()
+        while time.time() < deadline:
+            try:
+                with open(resp, "r+b") as fh:
+                    mm = mmap.mmap(fh.fileno(), 0)
+                    fcntl.flock(fh, fcntl.LOCK_EX)
+                    try:
+                        ln, rseq = HDR.unpack_from(mm, 0)
+                        text = mm[8:8 + ln].decode("utf-8", "replace") if rseq == seq and ln > 0 else None
+                    finally:
+                        fcntl.flock(fh, fcntl.LOCK_UN)
+                        mm.close()
+            except OSError as exc:
+                raise self.ctx.ApiError("共享内存读失败: %s (%s)" % (route, exc),
+                                        code="remote_error", status=502)
+            if text is not None:
+                return self._unpack(route, text)
+            time.sleep(0.002)
+        raise self.ctx.ApiError("共享内存应答超时: %s" % route,
+                                code="remote_timeout", status=504)

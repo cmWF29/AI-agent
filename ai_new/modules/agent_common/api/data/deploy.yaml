@@ -2,23 +2,33 @@
 #
 # 代码里只有逻辑调用（ctx.api.call / ctx.api.notify），走哪条通道由这份文件编出来：
 #   python agent_start.py --compile-transport    # 装配之前就能编
-#   POST /api/rpc/api/transport_compile          # 运行中重编
-# 产物：api/data/gen/bindings.yaml（进程启动时自动重编一次）
+#   POST /api/rpc/api/transport_compile          # 运行中重编（仅进程内）
+# 产物：api/data/gen/bindings.yaml（每次装配末尾自动重编，重启即生效）
 #
-# 三条通道（语义不同，不能混用）：
-#   direct  同进程直连，有返回值。单机默认；也是唯一"零拷贝"的通道
-#   memory  同进程共享内存队列，单向。需求里必须写 send（写 call 会在运行时报 bad_transport）
-#   http    本地/跨机网络 RPC，有返回值。多机部署就是给不同模块不同的 node
+# 四条通道，都是"消息"，同一份 4 字节长度前缀 + UTF-8 报文协议：
+#   direct  同进程直连（单机默认，唯一零拷贝）
+#   unix    本地 socket（AF_UNIX，文件路径，权限 0600）
+#   tcp     网络 socket（AF_INET，只绑 127.0.0.1；跨机不在本轮范围）
+#   shm     共享内存信箱（mmap + flock，大块报文不复制）
 default: direct
 
-# 多机部署的节点地址（HTTP 通道用）
-nodes: {}
+# 本机通道的监听入口：用到哪条就配哪条，没配就编译报错（不许静默直连）
+listen:
+  unix: {}
+  # unix: {path: /tmp/ai_new_api.sock}
+  tcp:
+    host: 127.0.0.1
+    port: 0
+  # tcp: {host: 127.0.0.1, port: 8790}
+  shm:
+    dir: /dev/shm/ai_new
+  # shm: {dir: /dev/shm/ai_new}
 
 # 模块级绑定：module.* 全匹配，单条路由见 routes
-#   ops:     {kind: http, node: worker-a}
-#   channel: {kind: memory}
+#   ops:     {kind: unix}
+#   logs:    {kind: shm}
 modules: {}
 
 # 路由级绑定：精确到 module.fn，覆盖模块级
-#   logs.record: {kind: memory}
+#   logs.record: {kind: tcp}
 routes: {}

@@ -36,7 +36,7 @@ def data_dir():
     module = Path(__file__).resolve().parents[1]
     external = os.environ.get("AI_NEW_DATA")
     return Path(external) / module.parent.name / module.name if external else module / "data"
-KINDS = ("direct", "http", "memory")
+KINDS = ("direct", "unix", "tcp", "shm")
 
 
 def groups_of(root):
@@ -79,33 +79,35 @@ def build(root, deploy_path=None):
     deploy_file = Path(deploy_path) if deploy_path else data_dir() / DEFAULT_DEPLOY
     deploy = yaml.safe_load(deploy_file.read_text(encoding="utf-8")) if deploy_file.is_file() else {}
 
-    nodes = deploy.get("nodes") or {}
     routes = {}
 
-    def _bind(label, spec, known):
+    listen = deploy.get("listen") or {}
+
+    def _bind(label, spec):
         spec = spec or {}
         kind = spec.get("kind") or "direct"
         if kind not in KINDS:
             raise ValueError("%s 的通道非法: %s（可选 %s）" % (label, kind, KINDS))
-        base = nodes.get(spec.get("node")) if spec.get("node") else spec.get("base")
-        if kind == "http" and not base:
-            raise ValueError("%s 走 http 但没给 base/node" % label)
-        if kind == "memory" and spec.get("base"):
-            raise ValueError("%s 走 memory 不能带 base（内存通道只在同进程内）" % label)
-        return {"kind": kind, **({"base": base} if base else {})}
+        if kind == "unix" and not (listen.get("unix") or {}).get("path"):
+            raise ValueError("%s 走 unix 但 deploy.yaml 没给 listen.unix.path" % label)
+        if kind == "tcp" and not (listen.get("tcp") or {}).get("port"):
+            raise ValueError("%s 走 tcp 但 deploy.yaml 没给 listen.tcp" % label)
+        if kind == "shm" and not (listen.get("shm") or {}).get("dir"):
+            raise ValueError("%s 走 shm 但 deploy.yaml 没给 listen.shm.dir" % label)
+        return {"kind": kind}
 
     # 模块级：整组路由换通道
     for module, spec in sorted((deploy.get("modules") or {}).items()):
         if module not in modules:
             raise ValueError("deploy.yaml 里的模块不存在: %s" % module)
-        routes[module + ".*"] = _bind("模块 " + module, spec, modules)
+        routes[module + ".*"] = _bind("模块 " + module, spec)
 
     # 路由级：单条能力换通道（同名时覆盖模块级）
     for route, spec in sorted((deploy.get("routes") or {}).items()):
         module, _, fn = route.partition(".")
         if not fn or module not in modules:
             raise ValueError("deploy.yaml 里的路由不存在: %s" % route)
-        routes[route] = _bind("路由 " + route, spec, modules)
+        routes[route] = _bind("路由 " + route, spec)
 
     default_kind = deploy.get("default") or "direct"
     if default_kind not in KINDS:
@@ -114,6 +116,7 @@ def build(root, deploy_path=None):
     return {
         "generated_by": "ai_new/modules/agent_common/api/private/_gen.py",
         "default": {"kind": default_kind},
+        "listen": listen,
         "routes": routes,
         "stats": {"modules": len(modules),
                   "route_literals": len(route_literals(root, modules)),

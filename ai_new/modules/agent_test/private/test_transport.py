@@ -1,21 +1,21 @@
-"""通信抽象：生成器 + 通道（直连 / 内存 / 网络）。
+"""通信抽象：通道（直连 / 本地 socket / 网络 socket / 共享内存）+ 绑定编译。
 
 代码里只有逻辑调用；走哪条通道由 api 模块编译出的绑定决定。
-网络通道的端到端在 test_core 里用真实 HTTP 服务验证，这里测生成器与直连/内存。
+这里用真实监听验证三条跨进程通道的往返，不再用假 socket。
 """
-import yaml
+import socket
 import sys
 import tempfile
-import threading
 import time
 import unittest
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT))
 
-from ai_new.modules.agent_common.api.private import _gen, _transport  # noqa: E402
+from ai_new.modules.agent_common.api.private import _gen, _serve, _transport  # noqa: E402
 from ai_new.modules.agent_common.codec.private import _codec  # noqa: E402
 
 
@@ -30,10 +30,26 @@ class _Storage:
         return self.record is not None
 
     def read_text(self, rel):
-        return yaml.safe_dump(self.record if self.record is not None else {}, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        return yaml.safe_dump(self.record if self.record is not None else {}, allow_unicode=True,
+                              sort_keys=False, default_flow_style=False)
 
     def own(self, anchor):
         return self
+
+
+class _Api:
+    """最小 api：只有注册表和 call，够通道服务端转调。"""
+
+    def __init__(self, routes=None):
+        self.routes = routes or {}
+        self.calls = []
+
+    def call(self, name, payload=None, caller=None, direct=False):
+        self.calls.append(name)
+        fn = self.routes.get(name)
+        if fn is None:
+            raise LookupError("路由未注册: %s" % name)
+        return fn(payload or {})
 
 
 class _Ctx:
@@ -45,9 +61,18 @@ class _Ctx:
 
     def __init__(self, bindings=None):
         self.storage = _Storage(bindings)
-        self.cfg = {"server": {"token": ""}}
+        self.cfg = {"server": {"token": ""}, "api": {"transport_timeout": 3}}
         self.root = ROOT
         self.codec = _codec
+        self.api = _Api()
+
+
+def _free_port():
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
 
 
 class GeneratorTest(unittest.TestCase):
@@ -74,23 +99,38 @@ class GeneratorTest(unittest.TestCase):
             deploy = Path(tmp) / "deploy.yaml"
             deploy.write_text(yaml.safe_dump({
                 "default": "direct",
-                "nodes": {"worker": "http://127.0.0.1:8790"},
-                "modules": {"ops": {"kind": "http", "node": "worker"},
-                            "tickets": {"kind": "memory"}},
+                "listen": {"unix": {"path": str(Path(tmp) / "a.sock")},
+                           "tcp": {"host": "127.0.0.1", "port": 8790},
+                           "shm": {"dir": str(Path(tmp) / "shm")}},
+                "modules": {"ops": {"kind": "unix"},
+                            "tickets": {"kind": "shm"},
+                            "knowledge": {"kind": "tcp"}},
             }, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
             record = _gen.build(ROOT, deploy)
-        self.assertEqual(record["routes"]["ops.*"],
-                         {"kind": "http", "base": "http://127.0.0.1:8790"})
-        self.assertEqual(record["routes"]["tickets.*"], {"kind": "memory"})
+        self.assertEqual(record["routes"]["ops.*"], {"kind": "unix"})
+        self.assertEqual(record["routes"]["tickets.*"], {"kind": "shm"})
+        self.assertEqual(record["routes"]["knowledge.*"], {"kind": "tcp"})
+        self.assertEqual(record["listen"]["tcp"]["port"], 8790)
 
     def test_rejects_unknown_module_and_bad_channel(self):
         with tempfile.TemporaryDirectory() as tmp:
             deploy = Path(tmp) / "deploy.yaml"
             for payload in ({"modules": {"nope": {"kind": "direct"}}},
                             {"modules": {"ops": {"kind": "carrier-pigeon"}}}):
-                deploy.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
+                deploy.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False,
+                                                 default_flow_style=False), encoding="utf-8")
                 with self.assertRaises(ValueError):
                     _gen.build(ROOT, deploy)
+
+    def test_channel_without_listen_is_loud(self):
+        """绑了跨进程通道却没给监听入口：编译就报错，不许静默退回直连。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy = Path(tmp) / "deploy.yaml"
+            deploy.write_text(yaml.safe_dump({"modules": {"ops": {"kind": "unix"}}},
+                                             allow_unicode=True, sort_keys=False,
+                                             default_flow_style=False), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                _gen.build(ROOT, deploy)
 
 
 class TransportTest(unittest.TestCase):
@@ -100,61 +140,6 @@ class TransportTest(unittest.TestCase):
         handler = lambda c, p: {"got": p.get("n")}   # noqa: E731
         self.assertEqual(t.send("ops.record", {"n": 1}, handler), {"got": 1})
 
-    def test_http_channel_speaks_rpc(self):
-        """http 通道：POST /api/rpc/<module>/<fn>，带 token，取回未包装的结果。"""
-        seen = {}
-
-        class _Handler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
-                seen["path"] = self.path
-                seen["token"] = self.headers.get("X-Auth-Token")
-                length = int(self.headers.get("Content-Length") or 0)
-                seen["body"] = yaml.safe_load(self.rfile.read(length).decode("utf-8"))
-                body = yaml.safe_dump({"ok": True, "result": {"content": "来自远端"}}, allow_unicode=True, sort_keys=False, default_flow_style=True).strip().encode()
-                self.send_response(200)
-                self.send_header("Content-Type", "application/yaml")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-
-            def log_message(self, *args):
-                pass
-
-        server = ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        port = server.server_address[1]
-        try:
-            ctx = _Ctx({"default": {"kind": "direct"},
-                        "routes": {"knowledge.*": {"kind": "http",
-                                                   "base": "http://127.0.0.1:%d" % port}}})
-            ctx.cfg = {"server": {"token": "t"}}
-            t = _transport.Transport(ctx)
-            result = t.send("knowledge.read", {"name": "x"}, lambda c, p: {"content": "本地"})
-            self.assertEqual(result, {"content": "来自远端"})
-            self.assertEqual(seen["path"], "/api/rpc/knowledge/read")
-            self.assertEqual(seen["token"], "t")
-            self.assertEqual(seen["body"], {"name": "x"})
-        finally:
-            server.shutdown()
-
-    def test_memory_queues_and_delivers_later(self):
-        """内存通道是单向的：只认 notify（send 要返回值，必须显式报错）。"""
-        ctx = _Ctx({"default": {"kind": "direct"},
-                    "routes": {"ops.*": {"kind": "memory"}}})
-        t = _transport.Transport(ctx)
-        seen = []
-        handler = lambda c, p: seen.append(p)   # noqa: E731
-        ack = t.notify("ops.record", {"n": 2}, handler)
-        self.assertEqual(ack["transport"], "memory")
-        with self.assertRaises(ctx.ApiError) as caught:
-            t.send("ops.record", {"n": 3}, handler)
-        self.assertEqual(getattr(caught.exception, "code", ""), "bad_transport")
-        for _ in range(50):
-            if seen:
-                break
-            time.sleep(0.02)
-        self.assertEqual(seen[0]["n"], 2)
-
     def test_notify_on_direct_runs_and_returns_ack(self):
         ctx = _Ctx()
         t = _transport.Transport(ctx)
@@ -163,22 +148,106 @@ class TransportTest(unittest.TestCase):
         self.assertEqual(ack, {"transport": "direct", "sent": "ops.record"})
         self.assertEqual(seen[0]["n"], 4)
 
-    def test_route_level_binding_overrides_module(self):
-        """单条能力可以单独换通道：模块级 module.* 之上再用 routes 精确覆盖。"""
+    # ---- 三条本机 IPC 通道：真实监听，同步往返 ----
+    def test_unix_socket_roundtrip(self):
         with tempfile.TemporaryDirectory() as tmp:
-            deploy = Path(tmp) / "deploy.yaml"
-            deploy.write_text(yaml.safe_dump({
-                "default": "direct",
-                "nodes": {"w": "http://127.0.0.1:8790"},
-                "modules": {"ops": {"kind": "memory"}},
-                "routes": {"ops.record": {"kind": "http", "node": "w"},
-                           "ops.list": {"kind": "direct"}},
-            }, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
-            record = _gen.build(ROOT, deploy)
-        self.assertEqual(record["routes"]["ops.*"], {"kind": "memory"})
-        self.assertEqual(record["routes"]["ops.record"],
-                         {"kind": "http", "base": "http://127.0.0.1:8790"})
-        self.assertEqual(record["routes"]["ops.list"], {"kind": "direct"})
+            path = str(Path(tmp) / "api.sock")
+            server_ctx = _Ctx()
+            server_ctx.api.routes = {"ops.ping": lambda p: {"pong": p.get("n"), "via": "unix"}}
+            server = _serve.Server(server_ctx)
+            server.start({"unix": {"path": path}}, {"unix"})
+            try:
+                client = _transport.Transport(_Ctx(
+                    {"default": {"kind": "unix"},
+                     "listen": {"unix": {"path": path}},
+                     "routes": {"ops.*": {"kind": "unix"}}}))
+                self.assertEqual(client.send("ops.ping", {"n": 7}, lambda c, p: {"local": 1}),
+                                 {"pong": 7, "via": "unix"})
+                self.assertEqual(server_ctx.api.calls, ["ops.ping"])
+            finally:
+                server.stop()
+
+    def test_tcp_socket_roundtrip(self):
+        port = _free_port()
+        server_ctx = _Ctx()
+        server_ctx.api.routes = {"ops.ping": lambda p: {"pong": p.get("n"), "via": "tcp"}}
+        server = _serve.Server(server_ctx)
+        server.start({"tcp": {"host": "127.0.0.1", "port": port}}, {"tcp"})
+        try:
+            client = _transport.Transport(_Ctx(
+                {"default": {"kind": "direct"},
+                 "listen": {"tcp": {"host": "127.0.0.1", "port": port}},
+                 "routes": {"ops.*": {"kind": "tcp"}}}))
+            self.assertEqual(client.send("ops.ping", {"n": 9}, lambda c, p: {"local": 1}),
+                             {"pong": 9, "via": "tcp"})
+        finally:
+            server.stop()
+
+    def test_shared_memory_roundtrip(self):
+        """共享内存信箱：请求/应答两个 mmap 文件 + flock，不走 socket。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = str(Path(tmp) / "shm")
+            server_ctx = _Ctx()
+            server_ctx.api.routes = {"ops.ping": lambda p: {"pong": p.get("n"), "via": "shm"}}
+            server = _serve.Server(server_ctx)
+            server.start({"shm": {"dir": directory}}, {"shm"})
+            try:
+                client = _transport.Transport(_Ctx(
+                    {"default": {"kind": "direct"},
+                     "listen": {"shm": {"dir": directory}},
+                     "routes": {"ops.*": {"kind": "shm"}}}))
+                self.assertEqual(client.send("ops.ping", {"n": 11}, lambda c, p: {"local": 1}),
+                                 {"pong": 11, "via": "shm"})
+                self.assertTrue((Path(directory) / "req.bin").is_file())
+            finally:
+                server.stop()
+
+    def test_notify_over_socket_does_not_wait_for_reply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = str(Path(tmp) / "api.sock")
+            server_ctx = _Ctx()
+            server_ctx.api.routes = {"ops.record": lambda p: {"stored": p.get("n")}}
+            server = _serve.Server(server_ctx)
+            server.start({"unix": {"path": path}}, {"unix"})
+            try:
+                client = _transport.Transport(_Ctx(
+                    {"default": {"kind": "unix"},
+                     "listen": {"unix": {"path": path}},
+                     "routes": {}}))
+                ack = client.notify("ops.record", {"n": 12}, lambda c, p: None)
+                self.assertEqual(ack, {"transport": "unix", "sent": "ops.record"})
+                for _ in range(100):
+                    if server_ctx.api.calls:
+                        break
+                    time.sleep(0.01)
+                self.assertEqual(server_ctx.api.calls, ["ops.record"])
+            finally:
+                server.stop()
+
+    def test_remote_error_is_raised_verbatim(self):
+        """远端拒绝（缺字段/不识路由）不打成假成功：原样带 code 回来。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = str(Path(tmp) / "api.sock")
+            server_ctx = _Ctx()
+            server_ctx.api.routes = {"ops.ping": lambda p: (_ for _ in ()).throw(
+                server_ctx.ApiError("缺 n", code="bad_payload", status=400))}
+            server = _serve.Server(server_ctx)
+            server.start({"unix": {"path": path}}, {"unix"})
+            try:
+                client_ctx = _Ctx({"default": {"kind": "unix"},
+                                   "listen": {"unix": {"path": path}}})
+                client = _transport.Transport(client_ctx)
+                with self.assertRaises(client_ctx.ApiError) as caught:
+                    client.send("ops.ping", {}, lambda c, p: None)
+                self.assertEqual(caught.exception.code, "bad_payload")
+            finally:
+                server.stop()
+
+    def test_missing_listen_is_loud(self):
+        ctx = _Ctx({"default": {"kind": "direct"},
+                    "routes": {"ops.*": {"kind": "shm"}}})
+        with self.assertRaises(ctx.ApiError):
+            _transport.Transport(ctx).send("ops.record", {}, lambda c, p: None)
 
     def test_unknown_channel_is_loud(self):
         ctx = _Ctx({"default": {"kind": "direct"},
@@ -186,6 +255,26 @@ class TransportTest(unittest.TestCase):
         t = _transport.Transport(ctx)
         with self.assertRaises(ctx.ApiError):
             t.send("ops.record", {}, lambda c, p: None)
+
+
+class BindingTest(unittest.TestCase):
+    def test_route_level_binding_overrides_module(self):
+        """单条能力可以单独换通道：模块级 module.* 之上再用 routes 精确覆盖。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            deploy = Path(tmp) / "deploy.yaml"
+            deploy.write_text(yaml.safe_dump({
+                "default": "direct",
+                "listen": {"unix": {"path": str(Path(tmp) / "a.sock")},
+                           "tcp": {"host": "127.0.0.1", "port": 8790},
+                           "shm": {"dir": str(Path(tmp) / "shm")}},
+                "modules": {"ops": {"kind": "shm"}},
+                "routes": {"ops.record": {"kind": "tcp"},
+                           "ops.list": {"kind": "direct"}},
+            }, allow_unicode=True, sort_keys=False, default_flow_style=False), encoding="utf-8")
+            record = _gen.build(ROOT, deploy)
+        self.assertEqual(record["routes"]["ops.*"], {"kind": "shm"})
+        self.assertEqual(record["routes"]["ops.record"], {"kind": "tcp"})
+        self.assertEqual(record["routes"]["ops.list"], {"kind": "direct"})
 
 
 if __name__ == "__main__":

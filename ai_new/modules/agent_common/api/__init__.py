@@ -1,7 +1,9 @@
 """API 模块：路由注册 + 跨模块消息 + 消息契约 + 通信通道编译。无任何业务。"""
 from __future__ import annotations
 
-from .private import _gen, _registry
+import atexit
+
+from .private import _gen, _registry, _serve
 from .private._errors import ApiError
 
 
@@ -16,6 +18,22 @@ def setup(ctx):
                      "按部署意图 data/deploy.yaml 重编通信绑定（只在进程内可调）",
                      module="api", internal=True)
     return ctx.api
+
+
+def start(ctx):
+    """装配末尾（绑定已编好）：按绑定里实际用到的通道起本机 IPC 监听。
+
+    默认全直连时什么都不开——单机就是单进程，不额外占端口和 socket 文件。
+    """
+    bindings = ctx.api.transport.bindings()
+    kinds = _serve.kinds_in(bindings)
+    if not kinds:
+        return []
+    server = _serve.Server(ctx)
+    started = server.start(bindings.get("listen") or {}, kinds)
+    atexit.register(server.stop)
+    ctx.api.server = server
+    return started
 
 
 def _route_snapshot(ctx, payload):
