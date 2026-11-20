@@ -236,3 +236,98 @@ routes:
         type: any
       written:
         type: bool
+  store.claim:
+    in:
+      module:
+        type: any
+        req: true
+      bucket:
+        type: any
+        req: true
+      key:
+        type: any
+        req: true
+      route:
+        type: any
+        req: false
+      scope:
+        type: any
+        req: false
+      lease_seconds:
+        type: any
+        req: false
+    out:
+      claimed:
+        type: bool
+      status:
+        type: any
+      attempt:
+        type: any
+      result_digest:
+        type: any
+  store.renew:
+    in:
+      module:
+        type: any
+        req: true
+      bucket:
+        type: any
+        req: true
+      key:
+        type: any
+        req: true
+      lease_seconds:
+        type: any
+        req: false
+    out:
+      renewed:
+        type: bool
+      status:
+        type: any
+      lease_until:
+        type: any
+  store.settle:
+    in:
+      module:
+        type: any
+        req: true
+      bucket:
+        type: any
+        req: true
+      key:
+        type: any
+        req: true
+      status:
+        type: any
+        req: true
+      result_digest:
+        type: any
+        req: false
+      error_code:
+        type: any
+        req: false
+    out:
+      settled:
+        type: bool
+      status:
+        type: any
+      attempt:
+        type: any
+  store.sweep:
+    in:
+      module:
+        type: any
+        req: true
+      bucket:
+        type: any
+        req: true
+      mark:
+        type: any
+        req: false
+    out:
+      expired:
+        type: any
+      checked:
+        type: any
+      marked:
+        type: any

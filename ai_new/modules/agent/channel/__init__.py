@@ -54,6 +54,18 @@ def _read_rows(ctx, channel_id):
 
 
 def _route_post(ctx, payload):
+    key = payload.get("idem_key")
+    if key:
+        claim = ctx.api.call("store.claim", {
+            "module": "agent/channel", "bucket": "post", "key": key,
+            "route": "channel.post", "scope": str(payload.get("channel") or ""),
+            "lease_seconds": 60}, caller=None)
+        if not claim.get("claimed"):
+            if claim.get("status") == "done":
+                return {"channel": payload.get("channel"), "reused": True,
+                        "digest": claim.get("result_digest") or ""}
+            raise ctx.ApiError("消息已投递过或正在投递", code="idem_" + str(claim.get("status")),
+                               status=409)
     cid = ctx.api.call("store.id", {"value": payload.get("channel")}, caller=None)
     rows = _read_rows(ctx, cid.get("id"))
     now = ctx.api.call("clock.now", {}, caller=None)
@@ -71,10 +83,15 @@ def _route_post(ctx, payload):
         "project": "", "ticket": "", "name": cid.get("id")}, caller=None)
     effects = [body_effect] + (log_rec.get("effects") or [])
     posted = {"channel": rec.get("channel"), "role": rec.get("role"),
-              "content": rec.get("content")}
+              "content": rec.get("content"), "seq": rec.get("seq"), "id": rec.get("id")}
     if getattr(ctx, "hooks", None) is not None:
         ctx.hooks.emit("channel.posted", posted)
     rec["effects"] = effects
+    if key:
+        ctx.api.call("store.settle", {
+            "module": "agent/channel", "bucket": "post", "key": key,
+            "status": "done", "result_digest": "%s|%s" % (cid.get("id"), rec.get("seq"))},
+            caller=None)
     return rec
 
 

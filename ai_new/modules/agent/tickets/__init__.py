@@ -111,6 +111,62 @@ def _ticket_path(ctx, ticket_id):
 
 
 def _route_create(ctx, payload):
+    """建单：幂等键 = 项目 + 标题 + 目标。重放直接回原单，不建第二张。
+
+    键里没有时间戳，也没有随机数，所以"同一件事重投/崩溃重放"算出来的键必然相同；
+    想真的再建一张，改标题或目标即可（那本来就是另一件事）。
+    """
+    sig = "\n".join([str(payload.get("project") or ""), str(payload.get("title") or ""),
+                      str(payload.get("goal") or "")])
+    key = str(ctx.api.call("codec.digest", {"text": sig}, caller=None).get("hex") or "")[:40]
+    claim = ctx.api.call("store.claim", {
+        "module": "agent/tickets", "bucket": "create", "key": key,
+        "route": "tickets.create", "scope": str(payload.get("project") or ""),
+        "lease_seconds": 600}, caller=None)
+    if not claim.get("claimed"):
+        status = claim.get("status") or ""
+        if status == "done":
+            view = _reuse_created(ctx, claim.get("result_digest") or "")
+            if view:
+                return view
+            raise ctx.ApiError("原单已不在，需人工核对", code="idem_ghost", status=409)
+        if status == "abandoned":
+            raise ctx.ApiError("建单已中止，需人工处置", code="idem_abandoned", status=409)
+        raise ctx.ApiError("同一建单请求正在进行", code="idem_in_flight", status=409)
+    try:
+        view = _create(ctx, payload)
+    except Exception as exc:
+        ctx.api.call("store.settle", {
+            "module": "agent/tickets", "bucket": "create", "key": key,
+            "status": "failed", "error_code": type(exc).__name__}, caller=None)
+        raise
+    ok = not (isinstance(view, dict) and view.get("ok") is False)
+    tid = str((view or {}).get("id") or (view or {}).get("ticket") or "")
+    ctx.api.call("store.settle", {
+        "module": "agent/tickets", "bucket": "create", "key": key,
+        "status": "done" if (ok and tid) else "failed",
+        "result_digest": tid if (ok and tid) else "",
+        "error_code": "" if (ok and tid) else str((view or {}).get("code") or "unresolved")},
+        caller=None)
+    return view
+
+
+def _reuse_created(ctx, ticket_id):
+    """重放：按票据 id 读回原单并出视图，不再落盘、不再派发。"""
+    if not ticket_id:
+        return None
+    row = ctx.api.call("store.read", {
+        "module": "agent/tickets", "path": _ticket_path(ctx, ticket_id)}, caller=None)
+    rec = row.get("value")
+    if not rec:
+        return None
+    view = ctx.api.call("tickets.view", {"rec": rec}, caller=None)
+    view["reused"] = True
+    view["effects"] = []
+    return view
+
+
+def _create(ctx, payload):
     """建单闭环：项目守卫、查档、造记录、拉 PM、落盘。分岔与派发都在能力内部。"""
     skip_pm = payload.get("kind") == "stall-audit"
     paths = _cfg_paths(ctx)

@@ -108,7 +108,12 @@ class _Api:
     def register(self, route, fn, description=""):
         self.handlers[route] = fn
 
+    IDEM = ("store.claim", "store.renew", "store.settle", "store.sweep")
+
     def call(self, route, payload, caller=None, **_):
+        # 幂等台账是引擎的每次派发都会碰的平台原语，不算业务调用，不进 calls。
+        if route in self.IDEM:
+            return {"claimed": True, "status": "claimed", "settled": True, "renewed": True}
         self.calls.append({"route": route, "payload": payload, "caller": caller})
         handler = self.handlers.get(route)
         if handler is None:

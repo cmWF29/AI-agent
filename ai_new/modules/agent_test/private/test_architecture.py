@@ -424,6 +424,8 @@ class StructureTest(unittest.TestCase):
         entries = {p.name for p in ROOT.iterdir()}
         allowed = {"ai_new", "agent_start.py", "test_start.py",
                    "README.md", "ARCHITECTURE.md", "install_skill.md", "scripts",
+                   # 审视与方案文档：文档在这个仓里是契约的一部分
+                   "AUDIT-2026-11-21.md", "IDEMPOTENCY.md", "ROADMAP.md",
                    "agent_start.out.log", "agent_start.err.log",
                    # VCS 元数据；部署副本运行期产物（TLS 材料目录、运行日志）
                    ".git", ".gitignore", "certs", "run.log"}

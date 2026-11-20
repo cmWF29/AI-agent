@@ -185,6 +185,26 @@ def _role_guard(ctx, payload):
 
 
 def _route_spawn(ctx, payload):
+    """造会话：幂等键只做互斥闸（同工单同岗同类型在并发时只放一个进去），
+    重复/重放交给下面 `_spawn` 自带的在途复用判定，不在这里丢弃工作。"""
+    sig = "|".join([str(payload.get("ticket") or ""), str(payload.get("role") or ""),
+                    str(payload.get("kind") or "role")])
+    key = str(ctx.api.call("codec.digest", {"text": sig}, caller=None).get("hex") or "")[:40]
+    claim = ctx.api.call("store.claim", {
+        "module": "agent/sessions", "bucket": "spawn", "key": key,
+        "route": "sessions.spawn", "scope": str(payload.get("ticket") or ""),
+        "lease_seconds": 300}, caller=None)
+    if not claim.get("claimed") and claim.get("status") == "abandoned":
+        raise ctx.ApiError("会话创建已中止，需人工处置", code="idem_abandoned", status=409)
+    rec = _spawn(ctx, payload)
+    if claim.get("claimed"):
+        ctx.api.call("store.settle", {
+            "module": "agent/sessions", "bucket": "spawn", "key": key,
+            "status": "done", "result_digest": str(rec.get("id") or "")}, caller=None)
+    return rec
+
+
+def _spawn(ctx, payload):
     """造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。
 
     幂等收口：同工单同岗已有在途会话（queued/running/stalled）时复用已有会话，

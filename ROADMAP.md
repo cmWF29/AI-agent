@@ -41,7 +41,7 @@ P0 trace（可观测）  ──►  P1 数据库（存储与并发）  ──►
 
 | 表 | 解决什么 | 迁自 |
 |---|---|---|
-| `idem` | 幂等占位与结果复用（见幂等键方案） | 文件 `idem/` |
+| `idem` | 幂等占位与结果复用（见幂等键方案）——**文件版已完成（2026-11-21）**，待迁表 | 文件 `idem/` |
 | `seq` | 单一序列分配器（`channel` 撞号、`sessions` 无号） | `store.next_seq` 进程内计数 |
 | `messages` | 频道消息按 `(ticket, seq)` 索引，消灭 `since` 全量读 | 频道消息 yaml |
 | `sessions` | 会话按 `(ticket, role, state)` 索引，消灭 spawn 前的 glob 扫描 | 会话目录 |

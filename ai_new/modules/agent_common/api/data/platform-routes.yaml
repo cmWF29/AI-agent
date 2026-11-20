@@ -31,3 +31,15 @@ routes:
   api.transport_compile:
     caller: internal
     reason: 换通道只改部署意图并重编，属运维动作：只在进程内可调，不对外暴露。
+  store.claim:
+    caller: capability
+    reason: 业务能力在执行副作用前占位（幂等台账是平台原语，不由需求编排）。
+  store.renew:
+    caller: capability
+    reason: 执行体续租，避免进程存活但被误判为过期而重复执行。
+  store.settle:
+    caller: capability
+    reason: 执行结束结算状态与结果摘要，供重放时复用。
+  store.sweep:
+    caller: capability
+    reason: 回收扫描租约过期仍未结算的记录，按标记交人工处置。

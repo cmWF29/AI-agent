@@ -5,12 +5,14 @@
 """
 from __future__ import annotations
 
-from .private import _files, _panel
+from .private import _files, _idem, _panel
 
 
 def setup(ctx):
-    """装配入口：把存储面板挂到 ctx.storage。"""
-    return _panel.setup(ctx)
+    """装配入口：把存储面板挂到 ctx.storage，并挂上幂等台账的四个原语。"""
+    ok = _panel.setup(ctx)
+    _idem.register(ctx)
+    return ok
 
 
 def ensure_dir(path):

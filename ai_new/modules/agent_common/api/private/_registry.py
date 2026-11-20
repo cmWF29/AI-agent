@@ -196,11 +196,11 @@ class Registry:
     def _implicit_caller(self):
         """没显式传 caller 时：按当前 handler 的所属模块判定。
 
-        平台件（agent_common）归 platform:*，业务件归 module:*，装配期归 platform:anonymous。
+        平台件（agent_common）归 platform:*，业务件归 module:*，装配期归 platform:boot。
         """
         owner = _SCOPE.get()
         if not owner:
-            return "platform:anonymous"
+            return "platform:boot"
         return ("platform:" + owner) if self._group_of(owner) == "agent_common" else ("module:" + owner)
 
     def _internal_calls(self):
@@ -229,7 +229,7 @@ class Registry:
     def _authorize(self, name, caller):
         """身份规则：需求引擎与平台件放行；模块只能调自己或在台账里登记的目标。"""
         caller = caller or self._implicit_caller()
-        if caller in ("demand_engine", "boot", "platform:anonymous"):
+        if caller in ("demand_engine", "boot"):
             return
         if caller.startswith("platform:"):
             return

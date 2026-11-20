@@ -201,3 +201,18 @@ Temporal 的 Workflow ID + Run ID + Activity 幂等、Kafka 的 producer idempot
 - 写放大：每个副作用多 2–3 次小文件写（claim / settle / 可选 lease 续租）。按当前 QPS 可忽略；SQLite 后合并为一次事务。
 - 复杂度：每个接入点都要定义"键锚点"和"错误分类"，这是真正的工作量，也是唯一不能偷懒的部分。
 - 风险：键算错比不做幂等更糟（会吞活）。所以每批接入必须配"同键两次副作用计数 = 1"和"不同事实键必须不等"两条测试。
+
+## 九、已落地（2026-11-21，开发阶段一次铺完）
+
+**原语**（`store/private/_idem.py`，四条都登记在 `api/data/platform-routes.yaml`）：`store.claim / store.renew / store.settle / store.sweep`。文件布局 `<module>/data/idem/<桶>/<键前两位>/<键>.json`，读改写在 flock 内完成（同机跨进程有效），写入走原子替换。状态机与租约按第三、五节实现：失败可接管（attempt+1），`abandoned` 不接管。
+
+**接入点（四个，已全部接上）**
+
+1. **需求派发**（`demand_engine`）：键 = `hook|demand_id|事件摘要`。事件摘要用 `codec.digest` 对规范化事件求值（键按字典序递归，同一事实重放必得同键）。同事件同需求再来一次直接 `skipped`，不再执行；失败则记 `failed`，允许重试。
+2. **会话创建**（`sessions.spawn`）：键 = `ticket|role|kind`，只当**并发互斥闸**；重复与重放交给能力自带的"同岗在途会话复用"判定，避免把"上一轮结束后重开"误当重复吞掉。
+3. **建单**（`tickets.create`）：键 = `project|title|goal`。重放按票据 id 读回原单，返回 `reused: true`，不落盘、不再派发；想真建第二张就改标题或目标——那本来就是另一件事。
+4. **发消息**（`channel.post`）：可选 `idem_key`。给了就 claim/settle，重复返回 `{reused: true, digest}`；不给则保持"每次都发"，避免把同角色同文本的两条合法消息吞掉。`channel.posted` 事件现在带 `seq` 与 `id`，让派发键能区分两条同文本消息。
+
+**测试**（`agent_test/private/test_idem.py`，11 条）：首次占位唯一、`done` 复用不重跑、`failed` 接管 attempt+1、`abandoned` 不接管、租约过期接管、续租生效、`sweep` 列出并可标记、非法键不逃逸目录、8 线程并发只有一个拿到执行权、同一事件只跑一次、不同事件各跑一次。
+
+**本阶段刻意没做**：子进程 `os._exit` 的崩溃重放自动化用例（要有跨进程注入才真验，排进 P0 trace 之后）；`sweep` 的定时触发（能力已就位，触发交给运维或后续 runtime 定时）。

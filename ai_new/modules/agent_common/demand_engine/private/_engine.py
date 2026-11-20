@@ -13,6 +13,22 @@ from __future__ import annotations
 from . import _lang
 
 
+def _canon(value):
+    """稳定文本：键按字典序、值递归，保证同一事实两次算出的摘要相同。"""
+    if isinstance(value, dict):
+        return "{" + ",".join("%s:%s" % (k, _canon(value[k])) for k in sorted(value)) + "}"
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(_canon(v) for v in value) + "]"
+    if isinstance(value, str):
+        return '"%s"' % value
+    return repr(value)
+
+
+IDEM_MODULE = "agent_common/demand_engine"
+IDEM_BUCKET = "hooks"
+IDEM_LEASE = 120
+
+
 class Engine:
     def __init__(self, ctx):
         self.ctx = ctx
@@ -97,13 +113,56 @@ class Engine:
             return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 
+
+    # ---- 派发幂等：一条事件 + 一条需求 = 一个键 ----
+    def _event_digest(self, hook, envelope):
+        raw = _canon({"hook": hook, "event": envelope or {}})
+        try:
+            got = self.ctx.api.call("codec.digest", {"text": raw}, caller="demand_engine")
+        except Exception:
+            got = {}
+        return str(got.get("hex") or _canon(raw)[:40])[:40]
+
+    def _claim(self, hook, demand_id, digest):
+        """拿执行权。台账不可用时宁可执行一次，也不丢活（fail-open 但留证据）。"""
+        try:
+            return self.ctx.api.call("store.claim", {
+                "module": IDEM_MODULE, "bucket": IDEM_BUCKET,
+                "key": "%s|%s|%s" % (hook, demand_id, digest),
+                "route": demand_id, "scope": hook,
+                "lease_seconds": IDEM_LEASE}, caller="demand_engine")
+        except Exception:
+            return {"claimed": True, "status": "claimed", "degraded": True}
+
+    def _settle(self, hook, demand_id, digest, ok, code=""):
+        try:
+            self.ctx.api.call("store.settle", {
+                "module": IDEM_MODULE, "bucket": IDEM_BUCKET,
+                "key": "%s|%s|%s" % (hook, demand_id, digest),
+                "status": "done" if ok else "failed",
+                "result_digest": demand_id if ok else "",
+                "error_code": "" if ok else (code or "failed")}, caller="demand_engine")
+        except Exception:
+            pass
+
     def dispatch(self, hook, envelope):
         results = []
+        digest = self._event_digest(hook, envelope)
         for rec in self._load():
             if not rec.get("enabled", True) or hook not in rec["on"]:
                 continue
+            claim = self._claim(hook, rec["id"], digest)
+            if not claim.get("claimed"):
+                results.append({"demand": rec["id"], "ok": True, "call": None,
+                                "skipped": claim.get("status") or "in_flight",
+                                "reused": bool(claim.get("reused"))})
+                continue
             scope = {"event": envelope or {}, "hook": hook, "caller": None}
-            results.extend(_lang.run(rec.get("do"), scope, self.ctx.api, self.ctx, rec["id"]))
+            rows = _lang.run(rec.get("do"), scope, self.ctx.api, self.ctx, rec["id"])
+            results.extend(rows)
+            bad = next((r for r in rows if not r.get("ok")), None)
+            self._settle(hook, rec["id"], digest, bad is None,
+                         code=(bad or {}).get("code") or (bad or {}).get("error") or "")
         return results
 
     async def arun_callable(self, demand_id, inputs=None):
@@ -137,11 +196,34 @@ class Engine:
 
     async def adispatch(self, hook, envelope):
         results = []
+        digest = self._event_digest(hook, envelope)
         for rec in self._load():
             if not rec.get("enabled", True) or hook not in rec["on"]:
                 continue
+            claim = await self.ctx.api.acall("store.claim", {
+                "module": IDEM_MODULE, "bucket": IDEM_BUCKET,
+                "key": "%s|%s|%s" % (hook, rec["id"], digest),
+                "route": rec["id"], "scope": hook,
+                "lease_seconds": IDEM_LEASE}, caller="demand_engine")
+            if not claim.get("claimed"):
+                results.append({"demand": rec["id"], "ok": True, "call": None,
+                                "skipped": claim.get("status") or "in_flight",
+                                "reused": bool(claim.get("reused"))})
+                continue
             scope = {"event": envelope or {}, "hook": hook, "caller": None}
-            results.extend(await _lang.arun(rec.get("do"), scope, self.ctx.api, self.ctx, rec["id"]))
+            rows = await _lang.arun(rec.get("do"), scope, self.ctx.api, self.ctx, rec["id"])
+            results.extend(rows)
+            bad = next((r for r in rows if not r.get("ok")), None)
+            try:
+                await self.ctx.api.acall("store.settle", {
+                    "module": IDEM_MODULE, "bucket": IDEM_BUCKET,
+                    "key": "%s|%s|%s" % (hook, rec["id"], digest),
+                    "status": "done" if bad is None else "failed",
+                    "result_digest": rec["id"] if bad is None else "",
+                    "error_code": "" if bad is None else ((bad or {}).get("code") or "failed")},
+                    caller="demand_engine")
+            except Exception:
+                pass
         return results
 
 
