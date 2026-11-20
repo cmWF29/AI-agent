@@ -161,7 +161,33 @@ function draftBubbleHtml(draft, roles) {
         <div class="msg-main"><div class="msg-name">${esc(who)}</div>
         <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`;
 }
-/* 工单历程 → 系统事件气泡：连续同类事件合并计数，避免备注刷屏 */
+/* 工单历程 → 系统事件气泡：连续同类事件合并计数，长文本折行折叠 */
+function eventLabel(event) { return EVENT_LABELS[event] || event || ""; }
+/* role_spawn 的事件正文是「角色: 任务」，合并后只报角色名，任务统一在一句里 */
+function roleOf(text) {
+  const s = String(text || "");
+  const i = s.indexOf(":");
+  return i > 0 ? s.slice(0, i).trim() : s.trim();
+}
+function taskOf(text) {
+  const s = String(text || "");
+  const i = s.indexOf(":");
+  return i > 0 ? s.slice(i + 1).trim() : "";
+}
+function eventText(group) {
+  const items = group.items;
+  if (group.event === "role_spawn") {
+    if (items.length === 1) {
+      const one = items[0];
+      const task = taskOf(one.text);
+      return task ? roleOf(one.text) + " · " + task : roleOf(one.text) + " 已派出";
+    }
+    const roles = items.map((h) => roleOf(h.text)).filter(Boolean);
+    return roles.length ? roles.join("、") + " 已派出" : "";
+  }
+  const last = items[items.length - 1] || {};
+  return String(last.text || "");
+}
 function eventBubbles(events) {
   const groups = [];
   for (const h of arr(events)) {
@@ -173,10 +199,11 @@ function eventBubbles(events) {
   return groups.map((g) => {
     const n = g.items.length;
     const last = g.items[n - 1] || {};
-    const label = EVENT_LABELS[g.event] || g.event || "";
-    const text = String(last.text || "");
+    const label = eventLabel(g.event);
     const cnt = n > 1 ? ` ×${n}` : "";
-    return `<div class="msg event"><div class="sys-body"><span class="ev-label">${esc(label + cnt)}</span>${text ? `<span class="ev-text">${esc(text)}</span>` : ""}<span class="ev-ts">${esc(when(last.at))}</span></div></div>`;
+    const text = eventText(g);
+    const long = text.length > 90;
+    return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${long ? " data-expand" : ""}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${text ? `<span class="ev-text">${esc(text)}</span>` : ""}</span><span class="ev-ts">${esc(when(last.at))}</span></div></div>`;
   }).join("");
 }
 

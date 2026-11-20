@@ -34,6 +34,8 @@ document.addEventListener("click", (e) => {
     if ($("popover").hidden) return openMemberCard(memberEl);
     return closeMemberCard();
   }
+  const foldEl = e.target.closest("[data-expand]");
+  if (foldEl) return foldEl.classList.toggle("clamp");
   if (!e.target.closest("#popover")) closeMemberCard();
 });
 document.addEventListener("scroll", () => closeMemberCard(), true);

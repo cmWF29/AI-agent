@@ -33,7 +33,6 @@ view:
   - kind: chat
     lane: left
     source: thread.thread
-    heading: '{thread.ticket.title}'
     badge: '{thread.ticket.status}'
     meta:
     - '{thread.ticket.id}'
