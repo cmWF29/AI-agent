@@ -116,3 +116,4 @@ logs:
     transcript: 'projects/{project}/tickets/{ticket}/transcript.yaml'
     tool: 'projects/{project}/tickets/{ticket}/tool/{fid}.txt'
     channel: 'channels/{id}.jsonl'
+    hook_queue: 'hook-queue.yaml'

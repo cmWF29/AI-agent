@@ -109,18 +109,18 @@ def _msg_tpl(ctx):
     return row.get("value") or {}
 
 
-def _route_reply(ctx, payload):
-    """网页回复闭环：只回复用户消息，取历史、跑对话编排、把结果写回同一频道。"""
+async def _route_reply(ctx, payload):
+    """网页回复闭环：只回复用户消息，取历史、跑对话编排、把结果写回同一频道。
+
+    协程轨：llm-chat 直连事件循环 await，read_tail/post 同步路由经执行器桥接。
+    """
     if payload.get("role") != "user":
         return {"ok": True, "skipped": True}
-    history = ctx.api.call("channel.read_tail", {
+    history = await ctx.api.acall("channel.read_tail", {
         "channel": payload.get("channel")}, caller=None)
     messages = list(history.get("messages") or [])
     messages.append({"role": "user", "content": payload.get("content")})
-    # 同步兼容轨：本路由挂在 defer hook 上，响应已写出，阻塞只占后台派发线程、不堵前台；
-    # llm-chat 已是协程路由，call 经 api-loop 桥接等待。翻协程轨需先把 hook 派发改 adispatch
-    # 异步轨（engine 已备 adispatch/arun_callable），此处随编排一并改 acall。
-    reply = ctx.runtime.call("llm-chat", {"messages": messages})
+    reply = await ctx.runtime.acall("llm-chat", {"messages": messages})
     answer = reply or {}
     if answer.get("ok") is False:
         t = _msg_tpl(ctx).get("llm_failed") or ""
@@ -128,6 +128,6 @@ def _route_reply(ctx, payload):
         role, content = "system", t.format(error=err) if t else ""
     else:
         role, content = "assistant", answer.get("content") or ""
-    return ctx.api.call("channel.post", {
+    return await ctx.api.acall("channel.post", {
         "channel": payload.get("channel"), "role": role, "content": content}, caller=None)
 

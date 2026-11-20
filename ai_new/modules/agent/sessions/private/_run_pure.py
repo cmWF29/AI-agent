@@ -9,6 +9,9 @@ ADVANCE_TOOLS = {
 # 后台自动会话类型：由工单/编排派生、自主推进，不等用户插话；waiting 闸门只拦对话型会话。
 AUTO_KINDS = {"pm", "role"}
 
+# 在途（未空闲）状态：已排队/运行中/停滞待自愈。同岗已有在途会话时不重复 spawn。
+ACTIVE_STATUSES = {"queued", "running", "stalled"}
+
 
 def appendmsg(p):
     rec = dict(p.get("rec") or {})
@@ -182,6 +185,24 @@ def statsp(p):
         statuses[key] = statuses.get(key, 0) + 1
     return {"active": sum(1 for it in (p.get("items") or []) if it.get("status") == "running"),
             "max_concurrent": int(p.get("max") or 0), "statuses": statuses}
+
+
+def active_same_role(p):
+    """同工单同岗在途查重：筛出同 ticket、同 role 且状态在途的已有会话。
+
+    纯形状判定，不读盘、不取时钟；ticket 或 role 任一为空时不并线，返回空。
+    编排重试/重复触发时，spawn 据此复用已有在途会话，避免同岗并发两条线。
+    """
+    ticket = p.get("ticket") or ""
+    role = p.get("role") or ""
+    if not ticket or not role:
+        return {"items": []}
+    dups = [rec for rec in (p.get("records") or [])
+            if isinstance(rec, dict)
+            and rec.get("ticket") == ticket
+            and rec.get("role") == role
+            and rec.get("status") in ACTIVE_STATUSES]
+    return {"items": dups}
 
 
 def waitingp(p):

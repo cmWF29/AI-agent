@@ -48,7 +48,7 @@ def _as_handler(fn):
     return handler
 
 
-def _tool_fetch(ctx, args, session=None):
+async def _tool_fetch(ctx, args, session=None):
     """拆解期只读拉取 http(s) 文档文本；非 http(s) 直接拒，不走任意地址。"""
     tpl = _msg_tpl(ctx)
     url = str((args or {}).get("url") or "").strip()
@@ -56,23 +56,21 @@ def _tool_fetch(ctx, args, session=None):
         return {"ok": False, "error": tpl.get("missing_url") or "", "code": "bad_request"}
     if not (url.startswith("http://") or url.startswith("https://")):
         return {"ok": False, "error": tpl.get("bad_url") or "", "code": "bad_url"}
-    # 同步兼容轨：拆解装配低频路径，net.request 已是协程路由，call 经 api-loop 桥接等待。
-    resp = ctx.api.call("net.request",
+    resp = await ctx.api.acall("net.request",
                         {"url": url, "method": "GET", "timeout": 30}, caller=None)
     if not isinstance(resp, dict) or resp.get("ok") is False:
         return resp or {"ok": False, "error": tpl.get("fetch_failed") or "", "code": "fetch_failed"}
     return {"ok": True, "url": url, "text": resp.get("text") or ""}
 
 
-def _tool_pip(ctx, args, session=None):
+async def _tool_pip(ctx, args, session=None):
     """拆解期白名单装单个 pip 包：包名先过纯函数校验，固定 argv 直传，不经 shell。"""
     tpl = _msg_tpl(ctx)
     check = _pure.safe_pkg((args or {}).get("pkg"), tpl)
     if not check.get("ok"):
         return {"ok": False, "error": check.get("error"), "code": "bad_pkg"}
     exe = (ctx.api.call("host.executable", {}, caller=None) or {}).get("path") or "python"
-    # 同步兼容轨：装包低频运维动作，exec.run 已是协程路由，call 桥接等待子进程收尾。
-    resp = ctx.api.call("exec.run",
+    resp = await ctx.api.acall("exec.run",
                         {"argv": [exe, "-m", "pip", "install", check["pkg"]],
                          "timeout": 300}, caller=None)
     out = {"ok": bool(resp.get("ok")), "pkg": check["pkg"]}
@@ -114,7 +112,7 @@ def _route_install(ctx, payload):
 
 
 
-def _route_run(ctx, payload):
+async def _route_run(ctx, payload):
     """拆解闭环在能力内部：模型没交答复或回的不是 JSON，都短路成错误形状，不写半截记录。
 
     包正文两种来源：直接粘贴的 skill_md，或给一个网页链接经 net 拉回正文；
@@ -124,8 +122,7 @@ def _route_run(ctx, payload):
     url = str(payload.get("url") or "").strip()
     tpl = _msg_tpl(ctx)
     if url:
-        # 同步兼容轨：拆解装配低频，net.request 协程路由经桥接等待。
-        fetched = ctx.api.call("net.request",
+        fetched = await ctx.api.acall("net.request",
                                {"url": url, "method": "GET", "timeout": 30}, caller=None)
         if not isinstance(fetched, dict) or fetched.get("ok") is False:
             return fetched or {"ok": False, "code": "fetch_failed",
@@ -148,8 +145,7 @@ def _route_run(ctx, payload):
         "system": payload.get("system"), "meta": doc.get("meta"),
         "body": doc.get("body"), "pip": doc.get("pip"),
         "scripts": doc.get("scripts"), "tools": tools}, caller=None)
-    # 同步兼容轨：拆解装配闭环，react.run 协程路由经桥接等待整轮 ReAct 收尾。
-    react = ctx.api.call("react.run", {
+    react = await ctx.api.acall("react.run", {
         "messages": prompt.get("messages"),
         "tools": _pure.tool_defs(),
         "base_url": payload.get("base_url"),

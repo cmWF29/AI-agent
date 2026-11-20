@@ -285,7 +285,52 @@ class CoreTest(unittest.TestCase):
         self.ctx.hooks.drain()   # assistant 落盘也会触发一次点，需求自己按 role 跳过
         self.assertEqual(self.fake_net.calls, before + 1, "assistant 消息不能再触发模型（会自激）")
 
-    def test_internal_routes_are_not_reachable_over_http(self):
+    def test_chat_drain_async_dispatches_reply(self):
+        """异步轨收尾：drain_async 经 adispatch/arun/acall 直连事件循环，回复照常落盘。"""
+        import asyncio
+        self.ctx.hooks.clear()
+        key = "rt-chat-async"
+        self._run("channel-post", {"channel": key, "role": "user", "content": "异步在吗"})
+        self.assertEqual(self.ctx.hooks.pending(), 1, "应该有一个延迟派发在排队")
+        loop = self.ctx.api._ensure_loop()
+        asyncio.run_coroutine_threadsafe(self.ctx.hooks.drain_async(), loop).result(timeout=10)
+        rows = self._run("channel-tail", {"channel": key, "limit": 10})["result"]["messages"]
+        self.assertEqual(rows[-1]["role"], "assistant")
+        self.assertIn("测试", rows[-1]["content"])
+        self.ctx.hooks.drain()
+
+    def test_defer_queue_persists_and_replays_after_restart(self):
+        """延迟事件落盘：入队即持久化；新 Runtime 从盘回填；认领/清空后盘上摘除。"""
+        from ai_new.modules.agent_common.runtime.private import _core
+        rt = self.ctx.runtime
+        rt.clear_hooks()
+        rt.enqueue_hook("channel.posted",
+            {"level": "info", "data": {"channel": "persist-ch", "role": "user"}})
+        rt.enqueue_hook("sessions.finished",
+            {"level": "info", "data": {"session": "persist-sess"}})
+        self.assertEqual(rt.pending_hooks(), 2)
+        row = self.ctx.api.call("store.read",
+            {"module": "agent/logs", "path": "hook-queue.yaml", "fallback": {}})
+        self.assertTrue(row.get("exists"), "队列文件应已落盘")
+        items = (row.get("value") or {}).get("items") or []
+        self.assertEqual([i["hook"] for i in items], ["channel.posted", "sessions.finished"])
+
+        # 模拟进程重启：新 Runtime 从盘上残留回填待派发事件
+        rebooted = _core.Runtime(self.ctx)
+        self.assertEqual(rebooted.pending_hooks(), 2, "重启后应回填两条待派发事件")
+
+        # 逐条认领：摘除并同步落盘剩余
+        batch = rt.claim_hooks(1)
+        self.assertEqual(len(batch), 1)
+        self.assertEqual(rt.pending_hooks(), 1)
+        rt.clear_hooks()
+        self.assertEqual(rt.pending_hooks(), 0)
+        row2 = self.ctx.api.call("store.read",
+            {"module": "agent/logs", "path": "hook-queue.yaml", "fallback": {}})
+        items2 = (row2.get("value") or {}).get("items") or []
+        self.assertEqual(items2, [], "清空后盘上不应残留事件")
+
+
         """起进程这类能力只给进程内用：HTTP 通道一律 403，不给远程执行留口子。"""
         body = self.ctx.codec.yaml_encode({"argv": ["python3", "-c", "print(1)"]}).get("text") or ""
         req = urllib.request.Request(
@@ -946,6 +991,30 @@ class CoreTest(unittest.TestCase):
         finally:
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 
+    def test_spawn_reuses_active_same_role_no_duplicate(self):
+        """重复触发同岗：已有在途会话时复用，不并出第二条同岗线。"""
+        sp1 = self._run("session-spawn", {"kind": "role", "role": "developer",
+                                          "name": "dev", "ticket": "T-IDEM"})["result"]
+        sid1 = sp1["id"]
+        # 模拟后台已接手：置在途并回写落盘
+        path = "sessions/%s.yaml" % sid1
+        rec = self.ctx.api.call("store.read", {"module": "agent/logs",
+                                               "path": path}).get("value") or {}
+        rec = self.ctx.api.call("sessions.mark", {"rec": rec, "status": "running"})
+        self.ctx.api.call("store.write", {"module": "agent/logs", "path": path, "value": rec})
+        # 第二次同工单同岗触发：复用已有在途会话，不新建
+        sp2 = self._run("session-spawn", {"kind": "role", "role": "developer",
+                                          "name": "dev", "ticket": "T-IDEM"})["result"]
+        self.assertEqual(sp2["id"], sid1, "在途同岗会话应被复用，不新建")
+        self.assertTrue(sp2.get("reused"), "复用分支应带 reused 标记")
+        # 落盘上该工单的 developer 会话仍只有一条
+        rows = [self.ctx.api.call("store.read", {"module": "agent/logs", "path": p}).get("value") or {}
+                for p in self._glob("agent/logs", "sessions/*.yaml")]
+        dev = [r for r in rows if r.get("ticket") == "T-IDEM" and r.get("role") == "developer"]
+        self.assertEqual(len(dev), 1)
+        self.ctx.api.call("store.remove", {"module": "agent/logs",
+                                           "path": "sessions/%s.yaml" % sid1})
+
     def test_react_stash_tool_output_branches(self):
         """T1 大输出分级：阈值内全文；落盘成功回日志路径；apply 失败兜底全文回填。"""
         from ai_new.modules.agent_common import react as react_mod
@@ -1084,6 +1153,10 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(writes[0]["value"]["meta"]["last_error"]["error"],
                          "进程重启前卡在运行中，已自动重新驱动")
         self.assertEqual({d["input"]["id"] for d in dispatches}, {"rs-1", "rs-2"})
+        # 清理本用例写入的残留会话，避免盘上 running 状态污染后续 spawn 查重
+        for sid in ("rs-1", "rs-2"):
+            self.ctx.api.call("store.remove", {"module": "agent/logs",
+                                               "path": "sessions/%s.yaml" % sid})
 
     def test_session_stuck_scan_demand_forms_effects(self):
         """自愈扫描需求：无在途任务的 running 会话被复位 idle，成形 write 效果交 apply。"""
@@ -1101,6 +1174,8 @@ class CoreTest(unittest.TestCase):
                          "stuck_missing_task")
         self.assertEqual(writes[0]["value"]["meta"]["last_error"]["error"],
                          "运行期扫描发现会话卡死或停滞超时，已复位等待重新驱动")
+        self.ctx.api.call("store.remove", {"module": "agent/logs",
+                                           "path": "sessions/ss-1.yaml"})
 
     def test_react_non_structured_keeps_old_summary(self):
         """T2 非结构化收口不清空滚动摘要；旧摘要跨轮保留。"""
@@ -1825,6 +1900,26 @@ class CoreTest(unittest.TestCase):
                                         "stale_text": "x"})
         self.assertEqual([i["id"] for i in nolimit["stuck"]], ["dead"])
         self.assertEqual(nolimit["keep"], ["stalled", "live"])
+
+    def test_active_same_role_idempotent_dedupe(self):
+        """同工单同岗在途查重：只并在途（queued/running/stalled），排除空闲/终态/异岗异单。"""
+        records = [
+            {"id": "role-1", "ticket": "T-1", "role": "developer", "status": "running"},
+            {"id": "role-2", "ticket": "T-1", "role": "developer", "status": "idle"},
+            {"id": "role-3", "ticket": "T-1", "role": "designer", "status": "running"},
+            {"id": "role-4", "ticket": "T-2", "role": "developer", "status": "queued"},
+            {"id": "role-5", "ticket": "T-1", "role": "developer", "status": "stalled"},
+        ]
+        dup = sess_run.active_same_role({"ticket": "T-1", "role": "developer", "records": records})
+        self.assertEqual([r["id"] for r in dup["items"]], ["role-1", "role-5"])
+        # 异岗：designer 的在途会话不进 developer 结果；独立查 designer 命中自身
+        idle = sess_run.active_same_role({"ticket": "T-1", "role": "designer", "records": records})
+        self.assertEqual([r["id"] for r in idle["items"]], ["role-3"])
+        # ticket / role 任一为空不并线，避免误合
+        self.assertEqual(
+            sess_run.active_same_role({"ticket": "", "role": "developer", "records": records})["items"], [])
+        self.assertEqual(
+            sess_run.active_same_role({"ticket": "T-1", "role": "", "records": records})["items"], [])
 
     def test_skill_unit_pure_functions(self):
         # install_parts：流程拆不出 → flow=null、skill.flow 留空；岗位/工具带同一 skill 归属

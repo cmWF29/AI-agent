@@ -109,6 +109,9 @@ capabilities:
     - store.read_text
     - clock.now
     - store.next_seq
+    - store.glob
+    - store.read
+    - sessions.active_same_role
     - sessions.build
     - store.write
     - logs.record

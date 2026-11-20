@@ -1,6 +1,7 @@
 """HTTP 服务实现：stdlib ThreadingHTTPServer。"""
 from __future__ import annotations
 
+import asyncio
 import ssl
 import threading
 import urllib.parse
@@ -59,14 +60,22 @@ def _make_handler(ctx):
                 self._drain_hooks()
 
         def _drain_hooks(self):
-            """响应已经写出：把延迟 hook 点派发掉，用户不必等它跑完。"""
-            drain = getattr(getattr(ctx, "hooks", None), "drain", None)
-            if drain is None:
+            """响应已写出：延迟 hook 派发交后台，不占请求线程等长 IO。
+
+            优先把 drain_async 协程提交到进程事件循环后台跑（协程路由直连、不回桥接）；
+            提交失败再回退同步轨。收尾任何异常都不影响已写出的响应。
+            """
+            hooks = getattr(ctx, "hooks", None)
+            if hooks is None or not getattr(hooks, "pending", lambda: 0)():
                 return
             try:
-                drain()
-            except Exception:  # noqa: BLE001 — 收尾失败不能影响已写出的响应
-                pass
+                loop = ctx.api._ensure_loop()
+                asyncio.run_coroutine_threadsafe(hooks.drain_async(), loop)
+            except Exception:  # noqa: BLE001 — 异步提交失败回退同步轨
+                try:
+                    hooks.drain()
+                except Exception:  # noqa: BLE001
+                    pass
 
         def _api(self, method, path, parsed):
             payload = {}

@@ -211,10 +211,10 @@ def _route_deps(ctx, payload):
     return _pure.deps_report({"tools": merged["items"], "snapshot": snapshot})
 
 
-def _route_install_missing(ctx, payload):
+async def _route_install_missing(ctx, payload):
     """安装闭环：合并清单 → 在位快照 → 安装计划 → 逐条装缺失 pip 包。
 
-    装包是起进程的 effect，经 exec.run；cli/env/config 不在此自动处理，只随计划返回。
+    装包是起进程的 effect，经 exec.run 协程轨；cli/env/config 不在此自动处理，只随计划返回。
     已禁用 Skill 的工具不参与安装计划。
     """
     builtin = ctx.tools.list_tools()
@@ -227,8 +227,7 @@ def _route_install_missing(ctx, payload):
     if plan["pip"]:
         exe = ctx.api.call("host.executable", {}, caller=None).get("path") or "python"
         for pkg in plan["pip"]:
-            # 同步兼容轨：装包低频运维，exec.run 协程路由经桥接等待子进程收尾。
-            r = ctx.api.call("exec.run",
+            r = await ctx.api.acall("exec.run",
                              {"argv": [exe, "-m", "pip", "install", pkg],
                               "timeout": 300}, caller=None)
             installs.append({"pkg": pkg, "ok": bool(r.get("ok")),

@@ -23,6 +23,9 @@ STORE_ROUTES = {
     "write_bytes": "store.write_bytes",
 }
 
+# 待派发 defer 事件队列上限：崩溃残留累积时淘汰最旧，避免队列无限滚雪球。
+HOOK_QUEUE_LIMIT = 200
+
 
 class Runtime:
     def __init__(self, ctx):
@@ -32,12 +35,72 @@ class Runtime:
         self._stream = {}
         self._subs = {}   # 草稿槽订阅：key -> [threading.Event]，槽变化即唤醒等待方
         self._lock = threading.Lock()
+        self._hook_queue = []   # 待派发 defer 事件：内存面 + 落盘持久化，重启后回填重放
         self._session_pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=self._cfg_int("session_workers", 8),
             thread_name_prefix="session")
         self._tool_pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=self._cfg_int("tool_workers", 8),
             thread_name_prefix="tool")
+        self._restore_hooks()
+
+    # ---- defer 事件队列（持久化）----
+    def _queue_path(self):
+        cfg = getattr(self.ctx, "cfg", None) or {}
+        paths = (cfg.get("logs") or {}).get("paths") or {}
+        return paths.get("hook_queue") or "hook-queue.yaml"
+
+    def _restore_hooks(self):
+        """启动期把盘上残留的待派发事件回填内存；读不到按空队列收口。"""
+        try:
+            row = self.ctx.api.call("store.read", {
+                "module": "agent/logs", "path": self._queue_path()}, caller=None)
+            items = (row.get("value") or {}).get("items") or []
+            with self._lock:
+                self._hook_queue = list(items)
+        except Exception:  # noqa: BLE001 — 恢复失败不掀翻启动
+            with self._lock:
+                self._hook_queue = []
+
+    def enqueue_hook(self, hook, envelope):
+        """登记一条待派发 defer 事件：入内存并落盘，进程重启后不丢。
+
+        队列有界：超上限淘汰最旧事件（FIFO），防止崩溃残留无限累积。
+        """
+        item = {"hook": hook,
+                "level": (envelope or {}).get("level", "info"),
+                "data": (envelope or {}).get("data") or {}}
+        with self._lock:
+            self._hook_queue.append(item)
+            if len(self._hook_queue) > HOOK_QUEUE_LIMIT:
+                del self._hook_queue[:len(self._hook_queue) - HOOK_QUEUE_LIMIT]
+            self._persist_hooks_locked()
+        return True
+
+    def claim_hooks(self, limit=10):
+        """认领一批待派发事件：锁内摘除并落盘剩余，避免重复派发。"""
+        with self._lock:
+            batch = self._hook_queue[:limit]
+            del self._hook_queue[:len(batch)]
+            self._persist_hooks_locked()
+        return batch
+
+    def pending_hooks(self):
+        with self._lock:
+            return len(self._hook_queue)
+
+    def clear_hooks(self):
+        with self._lock:
+            self._hook_queue = []
+            self._persist_hooks_locked()
+
+    def _persist_hooks_locked(self):
+        try:
+            self.ctx.api.call("store.write", {
+                "module": "agent/logs", "path": self._queue_path(),
+                "value": {"items": self._hook_queue}}, caller=None)
+        except Exception:  # noqa: BLE001 — 队列落盘失败不掀翻派发链
+            pass
 
     # ---- 配置（容量显性读入，不在代码里藏默认）----
     def _cfg_int(self, key, default):

@@ -31,6 +31,7 @@ def setup(ctx):
         ("sessions.flow_plan", _run_pure.flow_plan),
         ("sessions.resume_plan", _run_pure.resume_plan),
         ("sessions.stuck_plan", _run_pure.stuck_plan),
+        ("sessions.active_same_role", _run_pure.active_same_role),
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="sessions")
@@ -163,11 +164,35 @@ def _seq_of(kind, items):
 
 
 def _route_spawn(ctx, payload):
-    """造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。"""
+    """造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。
+
+    幂等收口：同工单同岗已有在途会话（queued/running/stalled）时复用已有会话，
+    不重复建档、不落盘新记录；重复触发/编排重试不会并出第二条同岗线。
+    """
     kind = payload.get("kind") or "role"
     tpl = _msg_tpl(ctx)
     logs_paths = _cfg_logs(ctx)
     prompt_paths = _cfg_prompt(ctx)
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/logs",
+        "pattern": logs_paths.get("session_glob") or ""}, caller=None)
+    records = []
+    for rel in listed.get("items") or []:
+        row = ctx.api.call("store.read", {"module": "agent/logs",
+                                          "path": rel}, caller=None)
+        if row.get("value"):
+            records.append(row["value"])
+    dups = ctx.api.call("sessions.active_same_role", {
+        "ticket": payload.get("ticket"), "role": payload.get("role"),
+        "records": records}, caller=None).get("items") or []
+    if dups:
+        rec = dups[0]
+        view = ctx.api.call("sessions.view", {"rec": rec}, caller=None)
+        view["rec"] = rec
+        view["reused"] = True
+        view["duplicate"] = True
+        view["effects"] = []
+        return view
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
     tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
     role_prompt = payload.get("role_prompt") or None
@@ -177,9 +202,6 @@ def _route_spawn(ctx, payload):
             "module": "agent/sessions",
             "path": pt.format(kind=kind) if pt else kind}, caller=None)
         role_prompt = row.get("value") or ""
-    listed = ctx.api.call("store.glob", {
-        "module": "agent/logs",
-        "pattern": logs_paths.get("session_glob") or ""}, caller=None)
     baseline = _seq_of(kind, listed.get("items")) - 1
     seq = payload.get("seq") or ctx.api.call("store.next_seq", {
         "bucket": "session:" + kind, "baseline": baseline}, caller=None).get("seq")
