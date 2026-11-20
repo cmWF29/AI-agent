@@ -32,8 +32,14 @@ def _route_compile(ctx, payload):
 
 
 def compile_transport(ctx, out=None, deploy=None):
-    """把部署意图 data/deploy.yaml 编译成 data/gen/bindings.yaml（模板代码不变，换拓扑只重编）。"""
-    return _gen.compile_transport(ctx, out=out, deploy=deploy)
+    """把部署意图 data/deploy.yaml 编译成 data/gen/bindings.yaml（模板代码不变，换拓扑只重编）。
+
+    编译完立刻让运输层丢掉旧绑定缓存，否则装配早期读过一次就把旧通道钉死到进程结束。
+    """
+    record = _gen.compile_transport(ctx, out=out, deploy=deploy)
+    if getattr(ctx, "api", None) is not None:
+        ctx.api.transport.reload()
+    return record
 
 
 def register(ctx, name, fn, doc="", module=None, stream=False):
