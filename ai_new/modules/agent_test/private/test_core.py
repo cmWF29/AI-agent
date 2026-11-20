@@ -1177,6 +1177,28 @@ class CoreTest(unittest.TestCase):
             self.ctx.api.call("store.remove", {"module": "agent/logs",
                                                "path": "sessions/%s.yaml" % sid})
 
+    def test_runtime_call_nested_demand_skips_loop_bridge(self):
+        """能力内同步壳嵌套需求直接走同步引擎，不经 demand_engine.run async 路由回投 loop。
+
+        经 async 路由会在执行器线程占线等嵌套协程收口，并发占满池后循环等待；
+        同步轨递归在当前线程跑完即返回，断掉池线程 ↔ loop 等待环。
+        """
+        routed = []
+        orig_call = self.ctx.api.call
+
+        def spy(name, payload=None, caller=None):
+            if name == "demand_engine.run":
+                routed.append(name)
+            return orig_call(name, payload, caller=caller)
+
+        self.ctx.api.call = spy
+        try:
+            res = self.ctx.runtime.call("session-resume", {})
+        finally:
+            self.ctx.api.call = orig_call
+        self.assertEqual(routed, [], "同步壳嵌套需求不应回投 loop 跑 async 需求")
+        self.assertIsInstance(res, dict)
+
     def test_session_stuck_scan_demand_forms_effects(self):
         """自愈扫描需求：无在途任务的 running 会话被复位 idle，成形 write 效果交 apply。"""
         self.ctx.api.call("store.write", {"module": "agent/logs",

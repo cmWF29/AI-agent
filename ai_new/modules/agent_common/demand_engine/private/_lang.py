@@ -111,7 +111,12 @@ def _run_one(stmt, scope, api, ctx, demand_id, results):
         payload = dict(scope.get("event") or {})
         for key, expr in (stmt.get("with") or {}).items():
             payload[key] = eval_expr(expr, scope)
-        result = api.call(route, payload, caller=scope.get("caller"))
+        if route == "demand_engine.run":
+            # 嵌套需求在同步轨内递归跑完，不回投事件循环占线等待。
+            result = ctx.demand_engine.run_callable(
+                payload.get("id"), payload.get("input") or {})
+        else:
+            result = api.call(route, payload, caller=scope.get("caller"))
         if stmt.get("as"):
             scope[stmt["as"]] = result
         results.append({"demand": demand_id, "call": route, "ok": True, "result": result})
@@ -129,7 +134,11 @@ async def _arun_one(stmt, scope, api, ctx, demand_id, results):
         payload = dict(scope.get("event") or {})
         for key, expr in (stmt.get("with") or {}).items():
             payload[key] = eval_expr(expr, scope)
-        result = await api.acall(route, payload, caller=scope.get("caller"))
+        if route == "demand_engine.run":
+            result = await ctx.demand_engine.arun_callable(
+                payload.get("id"), payload.get("input") or {})
+        else:
+            result = await api.acall(route, payload, caller=scope.get("caller"))
         if stmt.get("as"):
             scope[stmt["as"]] = result
         results.append({"demand": demand_id, "call": route, "ok": True, "result": result})

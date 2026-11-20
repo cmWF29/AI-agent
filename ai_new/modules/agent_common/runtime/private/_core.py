@@ -216,15 +216,18 @@ class Runtime:
         return (self.ctx.api.call("clock.now", {}, caller=None) or {}).get("ts") or 0
 
     def call(self, demand, data=None):
-        """同步跑一条需求并拿结果：能力的批量动作里，单次动作仍是一条需求。"""
-        resp = self.ctx.api.call("demand_engine.run",
-                                 {"id": demand, "input": data or {}}, caller=None) or {}
+        """同步跑一条需求并拿结果：在当前线程同步轨执行，不回投事件循环等待。
+
+        能力内嵌套的需求链由同步纯能力编排而成；若经 async 路由回投 loop，执行器
+        线程会占线等嵌套协程收口，并发占满池后形成循环等待。这里直接走同步引擎，
+        当前线程跑完即返回，断掉"池线程 ↔ loop"的等待环。
+        """
+        resp = self.ctx.demand_engine.run_callable(demand, data or {}) or {}
         return resp.get("result") or {}
 
     async def acall(self, demand, data=None):
         """异步轨跑一条需求并拿结果：协程内 await，结果收口到能力面。"""
-        resp = await self.ctx.api.acall("demand_engine.run",
-                                        {"id": demand, "input": data or {}}, caller=None) or {}
+        resp = await self.ctx.demand_engine.arun_callable(demand, data or {}) or {}
         return resp.get("result") or {}
 
     def apply(self, payload):
