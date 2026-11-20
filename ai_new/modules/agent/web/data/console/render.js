@@ -134,13 +134,14 @@ function speakerOf(msg, roles) {
 }
 function bubbleClass(msg) {
   if (msg.kind === "note") return "system";
-  const role = msg.role || "assistant";
-  if (role === "user") return "user";
-  if (role === "system") return "system";
-  if (role === "tool") return "tool";
-  const actor = msg.actor || role;
-  if (actor === "pm" || actor === "assistant") return "assistant";
-  return "role";
+  if (msg.role === "tool") return "tool";
+  if (msg.role === "system") return "system";
+  // 左右按发言人不按 role：PM 与各角色都是群成员（左），只有真人输入在右。
+  // 会话装配会把工单简介等注入消息 role 记为 user，靠 actor 才不会让同一个人左右横跳。
+  const actor = msg.actor || msg.role || "assistant";
+  if (actor === "user") return "user";
+  if (actor === "system") return "system";
+  return "member";
 }
 function avatarColor(name) {
   const key = String(name || "").trim();
@@ -255,22 +256,27 @@ function toolBrief(m) {
   const raw = String((m && m.content) == null ? "" : m.content);
   let o = null;
   try { o = JSON.parse(raw); } catch (e) {}
-  if (!o || typeof o !== "object") return { ok: true, text: raw.slice(0, 92) };
+  if (!o || typeof o !== "object") return { ok: true, text: raw.replace(/\s+/g, " ").slice(0, 92) };
   if (o.ok === false) return { ok: false, text: String(o.error || raw).slice(0, 120) };
+  const res = (o.result && typeof o.result === "object") ? o.result : o;
   for (const k of ["text", "content", "summary", "message"]) {
-    const v = o[k];
-    if (typeof v === "string" && v.trim()) return { ok: true, text: v.trim().replace(/\s+/g, " ").slice(0, 92) };
+    for (const src of [res, o]) {
+      const v = src[k];
+      if (typeof v === "string" && v.trim()) return { ok: true, text: v.trim().replace(/\s+/g, " ").slice(0, 92) };
+    }
   }
+  if (res.size === 0) return { ok: true, text: "空文件（0 字节）" };
   const bits = [];
+  const items = Array.isArray(o.items) ? o.items : (Array.isArray(res.items) ? res.items : null);
+  if (items) bits.push(items.length + " 项");
   for (const k of TOOL_META_ORDER) {
     if (k === "demand") continue;
-    let v = o[k];
+    let v = res[k];
     if (v == null || v === "" || typeof v === "object") continue;
     if (typeof v === "boolean") v = v ? "是" : "否";
     bits.push((TOOL_META_LABELS[k] || k) + " " + v);
     if (bits.length >= 3) break;
   }
-  if (Array.isArray(o.items)) bits.unshift(o.items.length + " 项");
   return { ok: true, text: bits.join(" · ") || "完成" };
 }
 function toolCallCard(it) {
