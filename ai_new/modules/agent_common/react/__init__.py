@@ -50,8 +50,8 @@ def _logs_paths(ctx):
 async def _exec_tool(ctx, fn, targs, session):
     """单条工具执行：注册表命中直跑；占位需求回退；工具报错归一成观察结果，不掀翻整轮。
 
-    协程内 await 工具路由；阻塞子进程/外部调用由工具路由经执行器桥接，不占事件循环。
-    只负责取回结果，写盘与消息组装由主循环串行收口。
+    协程内 await 工具路由；子进程/外部调用走异步子进程与流，等待期挂起事件循环
+    而不占线程。只负责取回结果，写盘与消息组装由主循环串行收口。
     """
     try:
         out = await ctx.api.acall("tools.execute", {

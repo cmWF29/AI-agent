@@ -1,6 +1,8 @@
 """工具注册表与输出策略。"""
 from __future__ import annotations
 
+import asyncio
+
 
 class ToolRegistry:
     def __init__(self, ctx):
@@ -55,7 +57,7 @@ class ToolRegistry:
             "module": "agent_common/tools", "path": "messages.yaml"}, caller=None)
         return row.get("value") or {}
 
-    def execute(self, name, args, session=None, defer=False):
+    async def execute(self, name, args, session=None, defer=False):
         tpl = self._tpl()
         if name not in self._tools:
             t = tpl.get("tool_missing") or ""
@@ -80,9 +82,13 @@ class ToolRegistry:
                 return {"ok": True, "deferred": True, "demand": t["demand"],
                         "input": args}
             args.setdefault("tool", t["name"])
-            result = self.ctx.runtime.call(t["demand"], args)
+            result = await self.ctx.runtime.acall(t["demand"], args)
         else:
-            result = t["fn"](self.ctx, args or {}, session=session)
+            fn = t["fn"]
+            if asyncio.iscoroutinefunction(fn):
+                result = await fn(self.ctx, args or {}, session=session)
+            else:
+                result = fn(self.ctx, args or {}, session=session)
         # 落盘是有副作用的业务动作：工具注册表不隐式写盘；
         # 大输出要不要留存、存到哪、怎么存，由需求显式调 store 能力决定。
         return result

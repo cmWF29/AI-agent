@@ -70,21 +70,21 @@ def register(ctx, name, desc, params, fn, module=None, kinds=None, deps=None):
                               kinds=kinds, deps=deps)
 
 
-def _tool_shell(ctx, args, session=None):
+async def _tool_shell(ctx, args, session=None):
     """通用命令执行：argv 数组直传 exec.run，不经 shell；超时与打断复用进程通道。"""
     argv = [str(a) for a in (args or {}).get("argv") or []]
     if not argv:
         return {"ok": False, "error": _msg_tpl(ctx).get("argv_required") or "",
                 "code": "bad_request"}
-    return ctx.api.call("exec.run", {
+    return await ctx.api.acall("exec.run", {
         "argv": argv,
         "cwd": (args or {}).get("cwd") or "",
         "timeout": (args or {}).get("timeout") or 300}, caller=None)
 
 
-def execute(ctx, name, args, session=None):
+async def execute(ctx, name, args, session=None):
     """执行工具；注册表不隐式落盘，留存由需求编排。"""
-    return ctx.tools.execute(name, args, session=session)
+    return await ctx.tools.execute(name, args, session=session)
 
 
 def list_tools(ctx):
@@ -124,7 +124,7 @@ def _route_pick(ctx, payload):
                         "disabled": disabled_names})
 
 
-def _route_execute(ctx, payload):
+async def _route_execute(ctx, payload):
     """执行工具：注册表命中直跑；项目禁用工具拦截；未命中按公共登记回退占位，仍无则报 no_tool。"""
     name = payload.get("name")
     session = payload.get("session")
@@ -133,8 +133,8 @@ def _route_execute(ctx, payload):
         tpl = _msg_tpl(ctx).get("tool_disabled") or ""
         raise ctx.ApiError(tpl.format(name=name) if tpl else "", code="no_tool", status=404)
     if ctx.tools.has(name):
-        return ctx.tools.execute(name, payload.get("args"), session=session,
-                                 defer=bool(payload.get("defer")))
+        return await ctx.tools.execute(name, payload.get("args"), session=session,
+                                       defer=bool(payload.get("defer")))
     rec = external.get(name)
     if not isinstance(rec, dict):
         tpl = _msg_tpl(ctx).get("tool_missing") or ""

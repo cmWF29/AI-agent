@@ -942,7 +942,8 @@ class CoreTest(unittest.TestCase):
                             demand="tool-external-run", module="external", builtin=False)
         self.assertTrue(reg.has("probe_ext_img"))
         self.assertNotIn("probe_ext_img", {t["name"] for t in reg.list_tools()})
-        out = reg.execute("probe_ext_img", {"prompt": "一只猫"})
+        out = self.ctx.api.call("tools.execute",
+                                {"name": "probe_ext_img", "args": {"prompt": "一只猫"}})
         self.assertFalse(out.get("ok", True))
         self.assertEqual(out.get("code"), "external_pending")
         self.assertEqual(out.get("tool"), "probe_ext_img")
