@@ -202,8 +202,8 @@ function eventBubbles(events) {
     const label = eventLabel(g.event);
     const cnt = n > 1 ? ` ×${n}` : "";
     const text = eventText(g);
-    const long = text.length > 88;
-    const shown = long ? text.slice(0, 88) + "…" : text;
+    const long = text.length > 60;
+    const shown = long ? text.slice(0, 58) + "…" : text;
     const fold = long ? ` data-expand data-full="${esc(text)}" data-short="${esc(shown)}"` : "";
     return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(last.at))}</span></div></div>`;
   }).join("");
