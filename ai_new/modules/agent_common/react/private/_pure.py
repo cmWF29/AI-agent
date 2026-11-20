@@ -30,6 +30,8 @@ def assistant(p):
     calls = p.get("tool_calls") or []
     if calls:
         msg["tool_calls"] = calls
+    if p.get("at"):
+        msg["at"] = p["at"]
     return msg
 
 
@@ -43,8 +45,11 @@ def args(p):
 
 
 def toolmsg(p):
-    return {"role": "tool", "tool_call_id": p.get("id") or "call_0",
-            "name": p.get("name") or "", "content": p.get("content") or "{}"}
+    msg = {"role": "tool", "tool_call_id": p.get("id") or "call_0",
+           "name": p.get("name") or "", "content": p.get("content") or "{}"}
+    if p.get("at"):
+        msg["at"] = p["at"]
+    return msg
 
 
 def step(p):

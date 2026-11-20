@@ -188,7 +188,22 @@ function eventText(group) {
   const last = items[items.length - 1] || {};
   return String(last.text || "");
 }
-function eventBubbles(events) {
+function atSeconds(at) {
+  if (at == null || at === "") return -Infinity;
+  if (typeof at === "number") return isFinite(at) ? at : -Infinity;
+  const n = Number(at);
+  if (isFinite(n) && n > 0) return n;
+  const d = Date.parse(at);
+  return isFinite(d) ? d / 1000 : -Infinity;
+}
+function clockText(at) {
+  const t = atSeconds(at);
+  if (!isFinite(t)) return "";
+  const d = new Date(t * 1000);
+  return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+}
+/* 连续同类事件合并：派角色合并成「A、B 已派出」，其余取最后一条正文 */
+function groupEvents(events) {
   const groups = [];
   for (const h of arr(events)) {
     if (!h) continue;
@@ -196,17 +211,131 @@ function eventBubbles(events) {
     if (last && last.event === h.event) last.items.push(h);
     else groups.push({ event: h.event, items: [h] });
   }
+  return groups.map((g) => ({
+    kind: "event", event: g.event, items: g.items,
+    at: atSeconds((g.items[g.items.length - 1] || {}).at),
+  }));
+}
+function eventGroupHtml(g) {
+  const n = g.items.length;
+  const last = g.items[n - 1] || {};
+  const label = eventLabel(g.event);
+  const cnt = n > 1 ? ` ×${n}` : "";
+  const text = eventText(g);
+  const long = text.length > 60;
+  const shown = long ? text.slice(0, 58) + "…" : text;
+  const fold = long ? ` data-expand data-full="${esc(text)}" data-short="${esc(shown)}"` : "";
+  return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(last.at))}</span></div></div>`;
+}
+
+/* 工具调用与它自己的结果合并成一张卡：assistant.tool_calls + 对应 tool_call_id 的回填 */
+function pairItems(msgs) {
+  const pending = {};
+  const items = [];
+  for (const m of msgs) {
+    if (m.role === "tool") {
+      const call = m.tool_call_id ? pending[m.tool_call_id] : null;
+      if (call && !call.result) { call.result = m; continue; }
+      items.push({ kind: "tool", m, at: atSeconds(m.at) });
+      continue;
+    }
+    items.push({ kind: "msg", m, at: atSeconds(m.at) });
+    for (const tc of m.tool_calls || []) {
+      const fn = (tc && tc.function) || {};
+      const call = { kind: "call", name: fn.name || "", args: fn.arguments || "", result: null,
+                     at: atSeconds(m.at) };
+      items.push(call);
+      if (tc && tc.id) pending[tc.id] = call;
+    }
+  }
+  return items;
+}
+function toolBrief(m) {
+  const raw = String((m && m.content) == null ? "" : m.content);
+  let o = null;
+  try { o = JSON.parse(raw); } catch (e) {}
+  if (!o || typeof o !== "object") return { ok: true, text: raw.slice(0, 92) };
+  if (o.ok === false) return { ok: false, text: String(o.error || raw).slice(0, 120) };
+  for (const k of ["text", "content", "summary", "message"]) {
+    const v = o[k];
+    if (typeof v === "string" && v.trim()) return { ok: true, text: v.trim().replace(/\s+/g, " ").slice(0, 92) };
+  }
+  const bits = [];
+  for (const k of TOOL_META_ORDER) {
+    let v = o[k];
+    if (v == null || v === "" || typeof v === "object") continue;
+    if (typeof v === "boolean") v = v ? "是" : "否";
+    bits.push((TOOL_META_LABELS[k] || k) + " " + v);
+    if (bits.length >= 3) break;
+  }
+  if (Array.isArray(o.items)) bits.unshift(o.items.length + " 项");
+  return { ok: true, text: bits.join(" · ") || "完成" };
+}
+function toolCallCard(it) {
+  const args = String(it.args || "").trim();
+  const argsHtml = args && args !== "{}"
+    ? `<span class="tool-call-args">${esc(args.length > 72 ? args.slice(0, 72) + "…" : args)}</span>` : "";
+  let line = `<div class="tool-line pending">执行中…</div>`;
+  let raw = "";
+  if (it.result) {
+    const brief = toolBrief(it.result);
+    line = `<div class="tool-line ${brief.ok ? "" : "err"}">${esc(brief.text)}</div>`;
+    raw = `<details class="tool-raw"><summary>原始数据</summary><pre>${esc(String(it.result.content == null ? "" : it.result.content))}</pre></details>`;
+  }
+  return `<div class="tool-call"><div class="tool-call-head"><span class="tool-call-name">${esc(it.name)}</span>${argsHtml}</div>${line}${raw}</div>`;
+}
+function itemHtml(it) {
+  if (it.kind === "call") return toolCallCard(it);
+  if (it.kind === "tool") return toolBodyHtml(it.m);
+  const m = it.m;
+  const text = String(m.content == null ? "" : m.content).trim();
+  if (!text) return "";
+  return `<div class="bubble-body md">${renderMarkdown(m.content)}</div>`;
+}
+function renderBubbles(msgs, roles) {
+  const groups = [];
+  for (const it of pairItems(msgs)) {
+    const m = it.m || {};
+    const cls = it.kind === "tool" ? "tool" : bubbleClass(m);
+    const who = cls === "system" ? "" : speakerOf(m, roles);
+    const key = cls + "|" + who;
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push(it);
+    else groups.push({ key, cls, who, items: [it] });
+  }
   return groups.map((g) => {
-    const n = g.items.length;
-    const last = g.items[n - 1] || {};
-    const label = eventLabel(g.event);
-    const cnt = n > 1 ? ` ×${n}` : "";
-    const text = eventText(g);
-    const long = text.length > 60;
-    const shown = long ? text.slice(0, 58) + "…" : text;
-    const fold = long ? ` data-expand data-full="${esc(text)}" data-short="${esc(shown)}"` : "";
-    return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(last.at))}</span></div></div>`;
+    if (g.cls === "system") {
+      return g.items.map((it) => `<div class="msg system"><div class="sys-body md">${renderMarkdown((it.m || {}).content == null ? "" : it.m.content)}</div></div>`).join("");
+    }
+    const side = g.cls === "user" ? "right" : "left";
+    const bodies = g.items.map(itemHtml).join("");
+    if (!bodies) return "";
+    const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
+    const ts = clockText((g.items[g.items.length - 1] || {}).at);
+    return `<div class="msg ${side}">${side === "left" ? av : ""}
+      <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
+      <div class="bubble-stack">${bodies}</div>${ts ? `<div class="msg-ts">${esc(ts)}</div>` : ""}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
+}
+
+/* 消息与工单历程事件按时间穿插：同一时刻先消息后事件，无时间戳的排最前保序 */
+function streamHtml(msgs, events, roles) {
+  const stream = [];
+  msgs.forEach((m, i) => stream.push({ kind: "m", at: atSeconds(m.at), i, m }));
+  events.forEach((e, i) => stream.push({ kind: "e", at: e.at, i: msgs.length + i, e }));
+  stream.sort((a, b) => (a.at === b.at ? a.i - b.i : (a.at < b.at ? -1 : 1)));
+  const out = [];
+  let buf = [];
+  const flush = () => {
+    if (buf.length) { out.push(renderBubbles(buf, roles)); buf = []; }
+  };
+  for (const s of stream) {
+    if (s.kind === "m") { buf.push(s.m); continue; }
+    flush();
+    out.push(eventGroupHtml(s.e));
+  }
+  flush();
+  return out.join("");
 }
 
 function chatHtml(sec, ctx) {
@@ -230,21 +359,14 @@ function chatHtml(sec, ctx) {
   const draftHtml = draftBubbleHtml(draft, roles);
   const summary = (src.summary || "").trim();
   const summaryHtml = summary ? `<details class="chat-summary"><summary>上下文摘要</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
-  const events = eventBubbles(sec.history_source ? ref(sec.history_source, ctx) : undefined);
-  const body = events + (msgs.length ? renderBubbles(msgs, roles) : (events ? "" : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`)) + draftHtml;
+  const events = groupEvents(sec.history_source ? ref(sec.history_source, ctx) : undefined);
+  const stream = streamHtml(msgs, events, roles);
+  const body = (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
     ${headMain || chips ? `<div class="chat-head">${headMain}<div class="members">${chips}</div></div>` : ""}
     ${summaryHtml}
     <div class="chat">${body}</div>
   </section>`;
-}
-function toolCallHtml(call) {
-  const fn = (call && call.function) || {};
-  const name = fn.name || "";
-  let args = fn.arguments || "";
-  try { args = JSON.stringify(JSON.parse(args)); } catch (e) {}
-  if (args && args.length > 200) args = args.slice(0, 200) + "…";
-  return `<div class="tool-call"><span class="tool-call-name">${esc(name)}</span>${args ? `<span class="tool-call-args">${esc(args)}</span>` : ""}</div>`;
 }
 const TOOL_META_LABELS = { path: "路径", id: "ID", title: "标题", status: "状态", project: "项目",
   kind: "类型", layer: "层", size: "字节", chars: "字符", query: "关键词", truncated: "截断",
@@ -321,41 +443,6 @@ function toolBodyHtml(m) {
   if (o && typeof o === "object") return toolResultHtml(o, raw);
   return `<div class="bubble-body tool md">${renderMarkdown(raw)}</div>`;
 }
-function renderBubbles(msgs, roles) {
-  const groups = [];
-  for (const m of msgs) {
-    const cls = bubbleClass(m);
-    const who = cls === "system" ? "" : speakerOf(m, roles);
-    const key = cls + "|" + who;
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) last.msgs.push(m);
-    else groups.push({ key, cls, who, msgs: [m] });
-  }
-  return groups.map((g) => {
-    if (g.cls === "system") {
-      return g.msgs.map((m) => `<div class="msg system"><div class="sys-body md">${renderMarkdown(m.content == null ? "" : m.content)}</div></div>`).join("");
-    }
-    if (g.cls === "tool") {
-      const bodies = g.msgs.map(toolBodyHtml).join("");
-      return `<div class="msg left tool-msg"><div class="avatar avatar-ph"></div>
-        <div class="msg-main"><div class="msg-name">${esc(g.who)}</div><div class="bubble-stack">${bodies}</div></div></div>`;
-    }
-    const side = g.cls === "user" ? "right" : "left";
-    const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
-    const bodies = g.msgs.map((m) => {
-      const calls = (m.tool_calls || []).map(toolCallHtml).join("");
-      const body = String(m.content || "").trim()
-        ? `<div class="bubble-body md">${renderMarkdown(m.content)}</div>` : "";
-      return calls + body;
-    }).join("");
-    const last = g.msgs[g.msgs.length - 1];
-    const ts = last.ts ? `<div class="msg-ts">${when(last.ts)}</div>` : "";
-    return `<div class="msg ${side}">${side === "left" ? av : ""}
-      <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
-      <div class="bubble-stack">${bodies}</div>${ts}</div>${side === "right" ? av : ""}</div>`;
-  }).join("");
-}
-
 function treeDocHtml(doc, sec, ctx) {
   const c = { ...ctx, row: doc };
   const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;

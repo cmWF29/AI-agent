@@ -121,6 +121,18 @@ def archive_transcript(p):
     return rec
 
 
+def _stamp(msgs, sid, actor, base):
+    """给合并进群聊的消息打发言者与时间：缺 at 的用会话起始时刻加序位偏移兜底。"""
+    out = []
+    start = float(base or 0)
+    for i, m in enumerate(msgs):
+        mm = dict(m, session=sid, actor=actor)
+        if not mm.get("at"):
+            mm["at"] = start + i * 1e-4
+        out.append(mm)
+    return out
+
+
 def threadp(p):
     """工单群聊线程视图：工单档案 + PM/角色会话合并消息流 + 成员与角色实例清单。
 
@@ -140,7 +152,10 @@ def threadp(p):
     if ticket.get("status") == "closed" and not status:
         status = "gone"
 
-    merged = [dict(m, session=pm_sid, actor="pm") for m in pm_messages]
+    # 消息时间轴：新消息自带 at；历史落盘没有时间戳的，用会话创建时刻 + 序位补齐，
+    # 保证同一会话内单调递增，视图才能把工单历程事件按时间插进消息流而不是全堆在最前面。
+    merged = _stamp(pm_messages, pm_sid, "pm",
+                    thread.get("created") or thread.get("updated"))
 
     reg_by_sid = {(r or {}).get("session"): r for r in ticket.get("roles") or []}
     live_by_sid = {(r or {}).get("id"): r for r in role_threads}
@@ -169,11 +184,8 @@ def threadp(p):
         roles_out.append({"session": sid, "role": actor, "display": display,
                           "status": rstatus, "task": (reg or {}).get("task") or ""})
         msgs = (live or {}).get("messages") or (archived or {}).get("messages") or []
-        for m in msgs:
-            mm = dict(m)
-            mm["session"] = sid
-            mm["actor"] = actor
-            merged.append(mm)
+        merged.extend(_stamp(msgs, sid, actor,
+                             (live or archived or {}).get("created")))
 
     for sid, live in live_by_sid.items():
         add_role(sid, reg_by_sid.get(sid), live, archived_by_sid.get(sid))

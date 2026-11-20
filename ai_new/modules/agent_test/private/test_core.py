@@ -2396,6 +2396,25 @@ class CoreTest(unittest.TestCase):
         out = ticket_pure.threadp({"ticket": {"id": "T-1", "roles": []}, "thread": thread})
         self.assertEqual(out["thread"]["meta"], {"tools": []})
 
+    def test_thread_messages_carry_at(self):
+        """群聊按时间穿插表征：历史消息缺时间戳时用会话起始时刻补，且同会话单调递增。"""
+        ticket = {"id": "T-1", "roles": [{"session": "role-1", "role": "developer"}],
+                  "transcript": {}}
+        thread = {"id": "pm-1", "name": "pm", "status": "idle", "role": "", "created": 100,
+                  "updated": 200, "meta": {}, "messages": [{"role": "user", "content": "a"},
+                                                            {"role": "assistant", "content": "b"}]}
+        live = [{"id": "role-1", "role": "developer", "status": "busy", "created": 150,
+                 "messages": [{"role": "assistant", "content": "c"},
+                              {"role": "assistant", "content": "d", "at": 190}]}]
+        out = ticket_pure.threadp({"ticket": ticket, "thread": thread, "role_threads": live})
+        ats = [m.get("at") for m in out["thread"]["messages"]]
+        self.assertTrue(all(isinstance(a, (int, float)) for a in ats), ats)
+        pm_ats = [m["at"] for m in out["thread"]["messages"] if m["session"] == "pm-1"]
+        self.assertEqual(pm_ats, sorted(pm_ats))
+        role_ats = [m["at"] for m in out["thread"]["messages"] if m["session"] == "role-1"]
+        self.assertEqual(role_ats, sorted(role_ats))
+        self.assertEqual(role_ats[-1], 190)
+
     def test_thread_members_carry_task(self):
         """成员卡要展示职责，members 必须自带 task，前端不得回查 roles 补字段。"""
         ticket = {"id": "T-1", "goal": "把需求做完",

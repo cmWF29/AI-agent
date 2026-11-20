@@ -183,7 +183,8 @@ async def _route_run(ctx, payload):
                 "obj": raw.get("value"), "content": answer.get("content")}, caller=None)
         amsg = ctx.api.call("react.assistant", {
             "content": parsed["reply"],
-            "tool_calls": calls}, caller=None)
+            "tool_calls": calls,
+            "at": ctx.api.call("clock.now", {}, caller=None).get("ts")}, caller=None)
         messages = messages + [amsg]
         new_msgs.append(amsg)
         steps += 1
@@ -218,7 +219,8 @@ async def _route_run(ctx, payload):
                                        enc.get("text") or "", threshold, stamp)
             tmsg = ctx.api.call("react.toolmsg", {
                 "id": (call or {}).get("id"), "name": fn.get("name"),
-                "content": stash["content"]}, caller=None)
+                "content": stash["content"],
+                "at": ctx.api.call("clock.now", {}, caller=None).get("ts")}, caller=None)
             messages = messages + [tmsg]
             new_msgs.append(tmsg)
             _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
