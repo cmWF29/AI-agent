@@ -19,6 +19,7 @@ llm:
   model: ''
   timeout: 120
   temperature: 0.3
+  stub: false          # 演示/测试桩模式：外壳起本地桩并把 base_url 指到桩；生产保持 false 走真实上游
 runtime:
   session_workers: 8     # 后台会话调度并发上限（有界池复用，不再一会话一裸线程）
   tool_workers: 8       # 工具调用/子进程执行并发上限（独立于会话调度池）

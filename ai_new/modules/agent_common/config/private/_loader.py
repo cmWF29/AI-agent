@@ -13,7 +13,12 @@ import yaml
 import os
 from pathlib import Path
 
-ENV_OVERRIDES = {"AI_NEW_PORT": ("server", "port")}
+# 环境覆写表：env 名 -> (配置段, 键, 类型)。部署/演示用环境变量覆盖实例配置，
+# 不必改入库模板。llm.base_url 允许被本地桩地址覆写（演示桩模式）。
+ENV_OVERRIDES = {
+    "AI_NEW_PORT": ("server", "port", "int"),
+    "AI_NEW_LLM_BASE_URL": ("llm", "base_url", "str"),
+}
 
 
 def _data_dir():
@@ -38,13 +43,13 @@ def setup(ctx):
 
 
 def _apply_env(cfg):
-    for name, path in ENV_OVERRIDES.items():
+    for name, (section, key, kind) in ENV_OVERRIDES.items():
         value = os.environ.get(name)
         if not value:
             continue
-        if path == ("server", "port"):
+        if kind == "int":
             value = int(value)
-        cfg.setdefault(path[0], {})[path[1]] = value
+        cfg.setdefault(section, {})[key] = value
 
 
 def get(ctx, key, default=None):

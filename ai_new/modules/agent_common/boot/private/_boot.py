@@ -14,6 +14,8 @@
 from __future__ import annotations
 
 import importlib
+import signal
+import threading
 import yaml
 import os
 import sys
@@ -100,9 +102,36 @@ def main(argv=None):
               % (record["stats"]["modules"], record["stats"]["route_literals"]))
         return 0
     try:
-        loaded = _build(ctx)
+        _build(ctx)
+        _await_serve(ctx)
         return 0
     except Exception:
         # 组合根不做"记录失败"这种业务，失败就原样打到 stderr 让进程退出码说话
         traceback.print_exc()
         return 1
+
+
+def _await_serve(ctx):
+    """常驻模式：装配完成后主线程驻留，直到收到终止信号。
+
+    HTTP 服务跑在非 daemon 后台线程。若 main 直接返回，主线程结束会触发解释器
+    关闭序列：atexit 先把各桥接线程池关闭，后台线程随后接到的请求再向已关闭的
+    执行器提交任务，就抛 "cannot schedule new futures after interpreter
+    shutdown"。主线程驻留才能让解释器保持存活；收到 SIGINT/SIGTERM 后再优雅
+    关停服务。
+    """
+    server = getattr(ctx, "http", None)
+    if server is None:
+        return
+    stopped = threading.Event()
+
+    def _stop(signum, frame):  # noqa: ARG001 —— 信号处理器签名固定
+        stopped.set()
+
+    signal.signal(signal.SIGINT, _stop)
+    signal.signal(signal.SIGTERM, _stop)
+    stopped.wait()
+    try:
+        server.shutdown()
+    finally:
+        server.server_close()
