@@ -1739,6 +1739,32 @@ class CoreTest(unittest.TestCase):
         miss = lib_pure.stage_conditionsp({"contract": cc2, "active": ["s1"],
                                            "files": [], "contents": {}, "tpl": lib_tpl})
         self.assertEqual(len(miss["missing"]), 1)
+        # 结论型检查：note 备注达标放行；无备注/仅系统事件记缺口
+        cc_note = lib_pure.stage_contractp({"states": [
+            {"id": "n1", "next": ["n2"], "checks": [{"kind": "note"}]},
+            {"id": "n2", "terminal": True}]})
+        nmiss = lib_pure.stage_transitionp({"contract": cc_note, "prev": "n1", "nxt": "n2",
+                                            "files": [], "contents": {}, "notes": []})
+        self.assertFalse(nmiss["ok"])
+        self.assertEqual(nmiss["code"], "condition_unmet")
+        hist_sys = [{"event": "pm_start", "text": "PM 会话已拉起"},
+                    {"event": "role_spawn", "text": "x"}]
+        nmiss2 = lib_pure.stage_transitionp({"contract": cc_note, "prev": "n1", "nxt": "n2",
+                                             "files": [], "contents": {}, "notes": hist_sys})
+        self.assertFalse(nmiss2["ok"])
+        hist_note = hist_sys + [{"event": "note", "text": "评审通过，缺口已补齐"}]
+        nok = lib_pure.stage_transitionp({"contract": cc_note, "prev": "n1", "nxt": "n2",
+                                          "files": [], "contents": {}, "notes": hist_note})
+        self.assertTrue(nok["ok"])
+        cmiss = lib_pure.stage_conditionsp({"contract": cc_note, "active": ["n1"],
+                                            "files": [], "contents": {}, "notes": [],
+                                            "tpl": lib_tpl})
+        self.assertEqual(len(cmiss["missing"]), 1)
+        cp = lib_pure.checkp({"rec": {"checks": [{"kind": "note"}]},
+                              "notes": [{"event": "note", "text": "结论"}]})
+        self.assertEqual(cp["missing"], [])
+        cp2 = lib_pure.checkp({"rec": {"checks": [{"kind": "note"}]}, "notes": []})
+        self.assertEqual(len(cp2["missing"]), 1)
         # 旧流程 nodes/edges 归一为状态机 states：边转 next 邻接，末态标 terminal
         fs = lib_pure.flow_to_statesp({"nodes": ["n1", "n2"], "edges": [["n1", "n2"]]})
         self.assertEqual(fs["states"][0]["next"], ["n2"])
@@ -1766,6 +1792,25 @@ class CoreTest(unittest.TestCase):
         app2 = sess_pure.machine_applyp({"rec": {"meta": {"active": ["ghost"]}},
                                          "contract": contract2})
         self.assertEqual(app2["meta"]["active"], ["a"])
+
+    def test_seed_flow_refs_wired(self):
+        """种子岗位流程经 ref 复用公共子流程：契约展开子链全路径与终态。"""
+        seed = yaml.safe_load((ROOT /
+            "ai_new/modules/agent/library/data/seed.yaml").read_text(encoding="utf-8"))
+        refs = lib_pure.stage_refsp({"seed": seed, "flows": {}})["refs"]
+        flows = lib_pure._records({"seed": seed, "user": {}, "kind": "flows"})
+        pm = lib_pure.stage_contractp({"states": flows["pm"]["states"], "refs": refs,
+                                       "checks": flows["pm"].get("checks")})
+        self.assertEqual(pm["initial"], "owner")
+        self.assertEqual(pm["terminals"], ["owner.req.close"])
+        self.assertIn("owner.req.intake", [s["path"] for s in pm["states"]])
+        ops = lib_pure.stage_contractp({"states": flows["ops"]["states"], "refs": refs,
+                                        "checks": flows["ops"].get("checks")})
+        self.assertEqual(ops["initial"], "health")
+        self.assertEqual(ops["terminals"], ["health.audit.close"])
+        self.assertIn("health.ops.diagnose", [s["path"] for s in ops["states"]])
+        self.assertIn("requirement-owner", refs)
+        self.assertIn("ticket-health", refs)
 
     def test_react_context_pure_functions(self):
         # 发往视图：system 保留，历史往返剔除，摘要占位 + 本轮指令保留

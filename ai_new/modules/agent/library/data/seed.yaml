@@ -177,35 +177,12 @@ flows:
 - id: pm
   cn: PM
   states:
-  - id: analyze
-    cn: 需求分析
-    desc: 澄清需求、定成可逐条核对的验收规格
-    tools:
-    - ticket_read_doc
-    - ticket_note
+  - id: owner
+    cn: 需求主流程
+    desc: 受理→澄清→计划→分派→执行→验收→结单（复用需求归属子流程）
+    ref: requirement-owner
     next:
-    - plan
-  - id: plan
-    cn: 作业编排
-    desc: 拆结构化计划、派角色、返工缺口与组织验收
-    tools:
-    - role_spawn
-    - role_task
-    - ticket_split
-    - ticket_read_doc
-    - ticket_note
-    next:
-    - analyze
-    - verify
-  - id: verify
-    cn: 判断结单
-    desc: 对照验收标准闭环结单
-    tools:
-    - ticket_close
-    - ticket_read_doc
-    - ticket_note
-    next: []
-    terminal: true
+    - owner.req.close
   checks:
   - kind: glob
     paths:
@@ -362,41 +339,20 @@ flows:
     next: []
     terminal: true
 - id: ops
+  cn: 运维
+  states:
+  - id: health
+    cn: 健康处置流程
+    desc: 巡检→判定→审计→诊断→恢复→归档（复用健康巡检子流程）
+    ref: ticket-health
+    next:
+    - health.audit.close
   checks:
   - kind: glob
     paths:
     - docs/**/*.md
     match: any
     min_bytes: 80
-  cn: 运维
-  states:
-  - id: diagnose
-    cn: 诊断
-    desc: 查服务状态、日志与停滞工单，定位现象与根因
-    tools:
-    - artifact_read
-    - knowledge_read
-    - knowledge_search
-    - ticket_read_doc
-    next:
-    - plan
-  - id: plan
-    cn: 方案
-    desc: 给出部署或恢复方案与恢复标准
-    tools:
-    - knowledge_read
-    - ticket_read_doc
-    next:
-    - diagnose
-    - deliver
-  - id: deliver
-    cn: 交付
-    desc: 方案文档落档并交付
-    tools:
-    - ticket_read_doc
-    - artifact_write
-    next: []
-    terminal: true
 - id: researcher
   checks:
   - kind: glob
@@ -540,44 +496,115 @@ flows:
   kind: process
   states:
   - id: req.intake
+    cn: 需求受理
+    desc: 接收工单、澄清目标与边界，记录待核对要点
+    tools:
+    - ticket_read_doc
+    - ticket_note
     next:
     - req.structure
   - id: req.structure
+    cn: 规格澄清
+    desc: 把诉求整理成可逐条核对的验收规格
+    tools:
+    - ticket_read_doc
+    - ticket_note
     next:
     - req.plan
   - id: req.plan
+    cn: 编排计划
+    desc: 拆结构化计划、明确分工与交付节奏
+    tools:
+    - role_spawn
+    - role_task
+    - ticket_read_doc
+    - ticket_note
     next:
     - req.split
   - id: req.split
+    cn: 分派拆分
+    desc: 按计划分派角色、拆分并行子任务
+    tools:
+    - role_spawn
+    - ticket_split
+    - ticket_note
     next:
     - req.execute
   - id: req.execute
+    cn: 执行跟踪
+    desc: 跟踪各角色执行进度，回收产出与缺口
+    tools:
+    - ticket_read_doc
+    - ticket_note
     next:
     - req.accept
   - id: req.accept
+    cn: 验收核对
+    desc: 对照验收标准逐项核对交付件与结论
+    tools:
+    - ticket_read_doc
+    - ticket_note
     next:
     - req.close
   - id: req.close
+    cn: 闭环结单
+    desc: 验收通过后闭环结单，沉淀结论
+    tools:
+    - ticket_close
+    - ticket_note
     next: []
     terminal: true
 - id: ticket-health
   kind: process
   states:
   - id: scan.run
+    cn: 巡检扫描
+    desc: 扫描服务状态、日志与停滞工单，定位异常线索
+    tools:
+    - artifact_read
+    - knowledge_search
+    - ticket_read_doc
     next:
     - scan.judge
   - id: scan.judge
+    cn: 异常判定
+    desc: 判定线索是否构成停滞或故障，区分待审计项
+    tools:
+    - knowledge_read
+    - ticket_read_doc
     next:
     - scan.audit
   - id: scan.audit
+    cn: 停滞审计
+    desc: 复核停滞工单现象、根因与影响范围
+    tools:
+    - ticket_read_doc
+    - ticket_note
     next:
     - ops.diagnose
   - id: ops.diagnose
+    cn: 根因诊断
+    desc: 查日志与资源，定位根因并给出处置方向
+    tools:
+    - artifact_read
+    - knowledge_read
+    - ticket_read_doc
     next:
     - ops.recover
   - id: ops.recover
+    cn: 处置恢复
+    desc: 执行恢复或规避措施，达到恢复标准
+    tools:
+    - knowledge_read
+    - ticket_read_doc
+    - artifact_write
     next:
     - audit.close
   - id: audit.close
+    cn: 闭环归档
+    desc: 处置结论落档，闭环归档审计记录
+    tools:
+    - ticket_read_doc
+    - artifact_write
     next: []
     terminal: true

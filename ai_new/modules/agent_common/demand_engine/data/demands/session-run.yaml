@@ -207,6 +207,8 @@ do:
       get: paths.paths
     contents:
       lit: {}
+    notes:
+      get: trow.value.history
   as: check
 - call: sessions.finish
   with:

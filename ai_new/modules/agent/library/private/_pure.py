@@ -57,6 +57,23 @@ def _records(p):
     return out
 
 
+def _note_ok(notes, min_len):
+    """结论备注达标：存在至少一条达到最小长度的非空备注。
+
+    条目可为纯文本；dict 条目按 event 过滤（event 存在且非 note 的系统事件不计）。
+    """
+    for n in notes or []:
+        if isinstance(n, dict):
+            if n.get("event") and n.get("event") != "note":
+                continue
+            txt = str(n.get("text") or "")
+        else:
+            txt = str(n or "")
+        if len(txt.strip()) >= int(min_len or 1):
+            return True
+    return False
+
+
 def _check_desc(c, tpl):
     """单条流程检查规则翻成可读中文；形状来自 flows 记录，缺字段不报错。"""
     tpl = tpl or {}
@@ -66,6 +83,8 @@ def _check_desc(c, tpl):
     minb = c.get("min_bytes")
     if kind == "contains":
         head = (tpl.get("check_contains") or "").format(text=c.get("text") or "")
+    elif kind == "note":
+        head = tpl.get("check_note") or ""
     else:
         match = c.get("match") or "all"
         if match == "any":
@@ -191,10 +210,11 @@ def _active_list(p):
     return [stage] if stage else []
 
 
-def _check_missing(checks, files, contents, tpl):
-    """单状态交付件条件判定：复用 glob/contains 规则，返回未达标项。
+def _check_missing(checks, files, contents, tpl, notes=None):
+    """单状态交付件条件判定：复用 glob/contains/note 规则，返回未达标项。
 
     只校验交付件是否落盘达标，不做任何语义判断；规则形状来自流程记录。
+    notes 为本轮结论备注条目（dict 含 text 或字符串），供 note 类检查依据。
     """
     missing = []
     for c in checks:
@@ -215,6 +235,10 @@ def _check_missing(checks, files, contents, tpl):
             if not any(text and text in (contents.get(f) or "") for f in files):
                 missing.append({"kind": kind, "text": text,
                                 "reason": tpl.get("missing_contains") or ""})
+        elif kind == "note":
+            if not _note_ok(notes, c.get("min_len")):
+                missing.append({"kind": kind,
+                                "reason": tpl.get("missing_note") or ""})
     return missing
 
 
@@ -292,11 +316,12 @@ def stage_conditionsp(p):
     tpl = p.get("tpl") or {}
     files = p.get("files") or []
     contents = p.get("contents") or {}
+    notes = p.get("notes") or []
     missing = []
-    missing.extend(_check_missing(contract.get("checks") or [], files, contents, tpl))
+    missing.extend(_check_missing(contract.get("checks") or [], files, contents, tpl, notes))
     for path in active:
         rec = by.get(path) or {}
-        missing.extend(_check_missing(rec.get("checks") or [], files, contents, tpl))
+        missing.extend(_check_missing(rec.get("checks") or [], files, contents, tpl, notes))
     return {"missing": missing}
 
 
@@ -350,10 +375,11 @@ def stage_transitionp(p):
     # 源状态交付件条件：有源将离开其 checks 须落盘达标；原地停留不强制。
     files = p.get("files") or []
     contents = p.get("contents") or {}
+    notes = p.get("notes") or []
     for x in prev:
         if any(t != x for t in targets):
             rec = by.get(x) or {}
-            if _check_missing(rec.get("checks") or [], files, contents, tpl):
+            if _check_missing(rec.get("checks") or [], files, contents, tpl, notes):
                 return {"ok": False, "code": "condition_unmet",
                         "stage": cur, "active": prev}
     kept = [x for x in prev if not (by.get(x) or {}).get("terminal")]
@@ -632,12 +658,13 @@ def promptp(p):
 
 
 def checkp(p):
-    """files: [路径]；contents: {路径: 文本}；checks 来自流程记录。"""
+    """files: [路径]；contents: {路径: 文本}；notes: 本轮结论备注；checks 来自流程记录。"""
     tpl = p.get("tpl") or {}
     rec = p.get("rec") or {}
     checks = rec.get("checks") or []
     files = p.get("files") or []
     contents = p.get("contents") or {}
+    notes = p.get("notes") or []
     missing = []
     for c in checks:
         kind = c.get("kind")
@@ -656,6 +683,9 @@ def checkp(p):
             text = c.get("text")
             if not any(text and text in (contents.get(f) or "") for f in files):
                 missing.append({"kind": kind, "text": text, "reason": tpl.get("missing_contains") or ""})
+        elif kind == "note":
+            if not _note_ok(notes, c.get("min_len")):
+                missing.append({"kind": kind, "reason": tpl.get("missing_note") or ""})
     return {"flow": p.get("flow") or "", "missing": missing, "checked": len(checks)}
 
 
