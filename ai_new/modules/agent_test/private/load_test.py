@@ -313,7 +313,7 @@ def main(argv=None):
                     failures.append(("project", futs[fut], r["err"]))
         t_proj = time.perf_counter() - t0
         print("== 项目: 成功 %d / 失败 %d，耗时 %.2fs"
-              % (len(projects), args.projects - len(projects), t_proj))
+              % (len(projects), len(idx_list) - len(projects), t_proj))
 
         if not projects:
             print("!! 没有项目建成，终止压测")
@@ -351,7 +351,7 @@ def main(argv=None):
                         ticket_errs.append((futs[fut], r["err"]))
         t_ticket = time.perf_counter() - t1
         m1 = mem_snapshot(ctx)
-        total = args.projects * args.tickets
+        total = len(idx_list) * args.tickets
         print("== 工单: 成功 %d / 失败 %d（撞号 %d），共 %d，耗时 %.2fs"
               % (ticket_ok, ticket_fail, conflict, total, t_ticket))
         if ticket_errs:
