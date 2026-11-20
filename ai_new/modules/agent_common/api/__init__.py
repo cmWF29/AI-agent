@@ -20,11 +20,11 @@ def setup(ctx):
     return ctx.api
 
 
-def start(ctx):
-    """装配末尾（绑定已编好）：按绑定里实际用到的通道起本机 IPC 监听。
+_STARTED = False
 
-    默认全直连时什么都不开——单机就是单进程，不额外占端口和 socket 文件。
-    """
+
+def _open_listen(ctx):
+    """按当前绑定起本机 IPC 监听；全直连时什么都不开（不占端口和 socket 文件）。"""
     bindings = ctx.api.transport.bindings()
     kinds = _serve.kinds_in(bindings)
     if not kinds:
@@ -34,6 +34,22 @@ def start(ctx):
     atexit.register(server.stop)
     ctx.api.server = server
     return started
+
+
+def _restart_listen(ctx):
+    """运行中重编后换拓扑：先收旧监听，再按新绑定起。"""
+    server = getattr(ctx.api, "server", None)
+    if server is not None:
+        server.stop()
+        ctx.api.server = None
+    return _open_listen(ctx)
+
+
+def start(ctx):
+    """装配末尾（绑定已编好）：按绑定里实际用到的通道起本机 IPC 监听。"""
+    global _STARTED
+    _STARTED = True
+    return _open_listen(ctx)
 
 
 def _route_snapshot(ctx, payload):
@@ -57,6 +73,8 @@ def compile_transport(ctx, out=None, deploy=None):
     record = _gen.compile_transport(ctx, out=out, deploy=deploy)
     if getattr(ctx, "api", None) is not None:
         ctx.api.transport.reload()
+        if _STARTED:
+            record["listen"] = _restart_listen(ctx)
     return record
 
 
