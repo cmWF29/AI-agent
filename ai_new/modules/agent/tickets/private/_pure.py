@@ -147,7 +147,7 @@ def threadp(p):
     archived_by_sid = {(r or {}).get("session"): r for r in (transcript.get("roles") or [])}
 
     members = [{"session": pm_sid, "role": "pm", "display": "PM",
-                "status": status, "kind": "pm"}]
+                "status": status, "kind": "pm", "task": ticket.get("goal") or ""}]
     roles_out = []
     seen = {pm_sid}
 
@@ -164,7 +164,8 @@ def threadp(p):
         if ticket.get("status") == "closed":
             rstatus = "gone"
         members.append({"session": sid, "role": actor, "display": display,
-                        "status": rstatus, "kind": (live or {}).get("kind") or "role"})
+                        "status": rstatus, "kind": (live or {}).get("kind") or "role",
+                        "task": (reg or {}).get("task") or ""})
         roles_out.append({"session": sid, "role": actor, "display": display,
                           "status": rstatus, "task": (reg or {}).get("task") or ""})
         msgs = (live or {}).get("messages") or (archived or {}).get("messages") or []

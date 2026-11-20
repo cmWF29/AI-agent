@@ -1,6 +1,6 @@
 id: view-ticket-thread
-title: 工单会话视图：主会话按群聊渲染，工单属性与操作在右栏
-description: "工单会话视图：主会话按群聊渲染，工单属性与操作在右栏。会话视图只声明区块，数据源走需求"
+title: 工单会话视图：工单信息、历程与成员全部并入群聊，头像弹成员卡
+description: "工单会话视图：工单信息、历程与成员全部并入群聊，头像弹成员卡。会话视图只声明区块，数据源走需求"
 tags:
 - view
 - web
@@ -34,66 +34,16 @@ view:
     lane: left
     source: thread.thread
     heading: '{thread.ticket.title}'
+    badge: '{thread.ticket.status}'
+    meta:
+    - '{thread.ticket.id}'
+    - '{thread.ticket.project|project_name}'
+    - '更新 {thread.ticket.updated|when}'
+    history_source: thread.ticket.history
     hide_roles:
     - system
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.members
-  - kind: kv
-    lane: right
-    source: thread.ticket
-    heading: 工单
-    rows:
-    - label: 工单号
-      value: row.id
-    - label: 状态
-      badge: row.status
-    - label: 类型
-      value: row.kind
-      fallback: normal
-    - label: 所属项目
-      value: row.project
-      format: project_name
-    - label: 创建
-      value: row.created
-      format: when
-    - label: 更新
-      value: row.updated
-      format: when
-    - label: 父工单
-      value: row.parent
-      fallback: —
-    - label: 最近错误
-      value: thread.thread.meta.last_error.error
-      fallback: 无
-  - kind: table
-    lane: right
-    source: thread.roles
-    heading: 角色实例
-    hide_when_empty: true
-    columns:
-    - label: 角色
-      value: row.display
-      fallback: row.role
-    - label: 任务
-      value: row.task
-      fallback: —
-    - label: 状态
-      badge: row.status
-  - kind: table
-    lane: right
-    source: thread.ticket.history
-    heading: 工单历程
-    hide_when_empty: true
-    columns:
-    - label: 时间
-      value: row.at
-      format: when
-    - label: 事件
-      value: row.event
-      format: event_label
-    - label: 说明
-      value: row.text
-      fallback: —
   - kind: composer
     lane: left
     placeholder: 发给 PM 的消息，Enter 发送

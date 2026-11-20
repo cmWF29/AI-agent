@@ -28,7 +28,15 @@ document.addEventListener("click", (e) => {
   const navEl = e.target.closest("[data-nav]");
   if (navEl) { closeDrawer(); return go({ view: navEl.dataset.nav }, true); }
   if (e.target.closest("[data-crumb]")) return go(crumbUp(), true);
+  const memberEl = e.target.closest("[data-member]");
+  if (memberEl) {
+    e.stopPropagation();
+    if ($("popover").hidden) return openMemberCard(memberEl);
+    return closeMemberCard();
+  }
+  if (!e.target.closest("#popover")) closeMemberCard();
 });
+document.addEventListener("scroll", () => closeMemberCard(), true);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { closeDrawer(); return; }
   if (e.key !== "Enter" && e.key !== " ") return;
@@ -63,8 +71,41 @@ function closeDrawer() {
   $("drawer").classList.remove("open");
   $("scrim").classList.remove("open");
 }
+/* 桌面侧栏收起：记忆偏好；手机不受影响（样式只作用于宽屏） */
+function setRail(on) {
+  $("drawer").classList.toggle("collapsed", on);
+  document.body.classList.toggle("rail", on);
+  try { localStorage.setItem("hive.rail", on ? "1" : "0"); } catch (e) {}
+  closeMemberCard();
+}
 $("menu-btn").onclick = openDrawer;
 $("scrim").onclick = closeDrawer;
+$("side-collapse").onclick = () => setRail(true);
+$("rail-open").onclick = () => setRail(false);
+try { if (localStorage.getItem("hive.rail") === "1") setRail(true); } catch (e) {}
+
+/* ---- 成员卡浮层：点头像弹显示岗位职责 ---- */
+function closeMemberCard() {
+  const pop = $("popover");
+  if (pop) { pop.hidden = true; pop.innerHTML = ""; }
+}
+function openMemberCard(el) {
+  const pop = $("popover");
+  const m = (window.RENDER_MEMBERS || [])[Number(el.dataset.member)];
+  if (!pop || !m) return;
+  pop.innerHTML = `<h4><span class="avatar" style="--av:${avatarColor(m.display || m.role)}">${initial(m.display || m.role)}</span>${esc(m.display || m.role)}</h4>
+    <div class="p-role">${esc(m.role || "")} · ${statusText(m.status)}</div>
+    ${m.task ? `<div class="p-row"><span>任务</span><div>${esc(m.task)}</div></div>` : ""}
+    ${m.session ? `<div class="p-row"><span>会话</span><div>${esc(m.session)}</div></div>` : ""}`;
+  pop.hidden = false;
+  const r = el.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  let left = Math.min(Math.max(8, r.right - w), window.innerWidth - w - 8);
+  let top = r.bottom + 8;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+  pop.style.left = left + "px";
+  pop.style.top = top + "px";
+}
 $("logout").onclick = async () => {
   try { await run("auth-logout", { token: token() }); } catch (e) {}
   clearToken(); location.href = "/login.html";

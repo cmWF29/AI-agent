@@ -2396,6 +2396,19 @@ class CoreTest(unittest.TestCase):
         out = ticket_pure.threadp({"ticket": {"id": "T-1", "roles": []}, "thread": thread})
         self.assertEqual(out["thread"]["meta"], {"tools": []})
 
+    def test_thread_members_carry_task(self):
+        """成员卡要展示职责，members 必须自带 task，前端不得回查 roles 补字段。"""
+        ticket = {"id": "T-1", "goal": "把需求做完",
+                  "roles": [{"session": "role-1", "role": "developer",
+                             "display": "探针", "task": "任务 x"}],
+                  "transcript": {}}
+        thread = {"id": "pm-1", "name": "pm-t-1", "status": "idle",
+                  "role": "", "updated": 1, "meta": {"tools": []}, "messages": []}
+        out = ticket_pure.threadp({"ticket": ticket, "thread": thread})
+        by_sid = {m["session"]: m for m in out["members"]}
+        self.assertEqual(by_sid["pm-1"]["task"], "把需求做完")
+        self.assertEqual(by_sid["role-1"]["task"], "任务 x")
+
     def test_thread_does_not_duplicate_pm_session(self):
         """by_ticket 会把 PM 主会话一并归集；线程视图不得把它当角色二次并入成员与消息流。"""
         intro = "工单 T-1\n\n标题：测试\n\n需求原文：\n\n测试链路是否Ok"

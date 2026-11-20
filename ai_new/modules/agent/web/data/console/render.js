@@ -161,22 +161,49 @@ function draftBubbleHtml(draft, roles) {
         <div class="msg-main"><div class="msg-name">${esc(who)}</div>
         <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`;
 }
+/* 工单历程 → 系统事件气泡：连续同类事件合并计数，避免备注刷屏 */
+function eventBubbles(events) {
+  const groups = [];
+  for (const h of arr(events)) {
+    if (!h) continue;
+    const last = groups[groups.length - 1];
+    if (last && last.event === h.event) last.items.push(h);
+    else groups.push({ event: h.event, items: [h] });
+  }
+  return groups.map((g) => {
+    const n = g.items.length;
+    const last = g.items[n - 1] || {};
+    const label = EVENT_LABELS[g.event] || g.event || "";
+    const text = String(last.text || "");
+    const cnt = n > 1 ? ` ×${n}` : "";
+    return `<div class="msg event"><div class="sys-body"><span class="ev-label">${esc(label + cnt)}</span>${text ? `<span class="ev-text">${esc(text)}</span>` : ""}<span class="ev-ts">${esc(when(last.at))}</span></div></div>`;
+  }).join("");
+}
+
 function chatHtml(sec, ctx) {
   const src = ref(sec.source, ctx) || {};
   const roles = ref(sec.roles_source, ctx) || [];
+  window.RENDER_MEMBERS = roles;
   const hidden = sec.hide_roles || [];
   const msgs = arr(src.messages).filter((m) => {
     if (hidden.includes(m.role || "")) return false;
     return true;
   });
-  const headTitle = sec.heading ? `<div class="chat-title">${esc(fill(sec.heading, ctx))}</div>` : "";
+  const title = sec.heading ? `<div class="chat-head-title"><strong>${esc(fill(sec.heading, ctx))}</strong>${sec.badge ? badgeHtml(fill(sec.badge, ctx), ctx) : ""}</div>` : "";
+  const metaBits = (sec.meta || []).map((x) => fill(x, ctx)).filter((x) => String(x == null ? "" : x).trim());
+  const meta = metaBits.length
+    ? `<div class="chat-head-meta">${metaBits.map((x) => `<span>${esc(x)}</span>`).join("<i>·</i>")}</div>` : "";
+  const headMain = (title || meta) ? `<div class="chat-head-main">${title}${meta}</div>` : "";
+  const chips = arr(roles).map((r, i) => `<button class="av-chip st-${statusKind(r.status)}" data-member="${i}"
+      style="--av:${avatarColor(r.display || r.role)}" title="${esc(r.display || r.role)} · ${statusText(r.status)}">${initial(r.display || r.role)}<i class="dot"></i></button>`).join("");
   const draft = (ctx.data && ctx.data.draft) || {};
   const draftHtml = draftBubbleHtml(draft, roles);
   const summary = (src.summary || "").trim();
   const summaryHtml = summary ? `<details class="chat-summary"><summary>上下文摘要</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
-  const body = (msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
+  const events = eventBubbles(sec.history_source ? ref(sec.history_source, ctx) : undefined);
+  const body = events + (msgs.length ? renderBubbles(msgs, roles) : (events ? "" : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`)) + draftHtml;
   return `<section class="chat-card card">
-    ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip st-${statusKind(r.status)}"><i class="dot"></i><span class="chip-name">${esc(r.display || r.role)}</span> · ${statusText(r.status)}</span>`).join("")}</div></div>` : ""}
+    ${headMain || chips ? `<div class="chat-head">${headMain}<div class="members">${chips}</div></div>` : ""}
     ${summaryHtml}
     <div class="chat">${body}</div>
   </section>`;
@@ -412,9 +439,11 @@ function renderView(spec, ctx) {
   }
   let body = single.join("");
   if (left.length || right.length) {
-    body = `<div class="ticket-grid">
+    // 单侧有内容就占满整行：空的那一列不占位，避免留下大片空白
+    const twoSided = left.length && right.length;
+    body = `<div class="ticket-grid${twoSided ? "" : " solo"}">
       <div class="lane lane-left">${left.join("")}</div>
-      <div class="lane lane-right">${right.join("")}</div>
+      ${twoSided ? `<div class="lane lane-right">${right.join("")}</div>` : ""}
     </div>`;
   }
   $("view-body").innerHTML = head + body;
