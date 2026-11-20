@@ -403,7 +403,178 @@ class CoreTest(unittest.TestCase):
             server.shutdown()
             server.server_close()
 
-    def test_runtime_stop_cancels_and_joins_running_task(self):
+    def test_net_unreachable_returns_error_code(self):
+        """连接不可达：非流与流都归 unreachable 失败结果，不外抛；retries=0 不拖退避。"""
+        from ai_new.modules.agent_common.net.private import _client as net_client
+        req = net_client.request(self.ctx, url="http://127.0.0.1:1/nope",
+                                 timeout=2, retries=0)
+        self.assertFalse(req["ok"])
+        self.assertEqual(req["code"], "unreachable")
+        stream = net_client.request_stream(self.ctx, url="http://127.0.0.1:1/nope",
+                                           method="POST", body="{}", timeout=2, retries=0)
+        self.assertFalse(stream["ok"])
+        self.assertEqual(stream["code"], "unreachable")
+
+    def test_net_passes_through_4xx_status(self):
+        """4xx 是请求本身问题：传输成功即透传状态码，不当瞬时故障重试。"""
+        import http.server
+        import threading
+        from ai_new.modules.agent_common.net.private import _client as net_client
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(404)
+                self.send_header("Content-Length", len(b"not found"))
+                self.end_headers()
+                self.wfile.write(b"not found")
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            url = "http://127.0.0.1:%d/missing" % server.server_address[1]
+            resp = net_client.request(self.ctx, url=url, method="GET", timeout=10, retries=0)
+            self.assertTrue(resp["ok"])
+            self.assertEqual(resp["status"], 404)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    def test_net_passes_through_5xx_status(self):
+        """5xx 响应体正常读出：状态码透传，业务层据状态判定；读阶段异常才走重试。"""
+        import http.server
+        import threading
+        from ai_new.modules.agent_common.net.private import _client as net_client
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(500)
+                self.send_header("Content-Length", len(b"boom"))
+                self.end_headers()
+                self.wfile.write(b"boom")
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            url = "http://127.0.0.1:%d/err" % server.server_address[1]
+            resp = net_client.request(self.ctx, url=url, method="GET", timeout=10, retries=0)
+            self.assertTrue(resp["ok"])
+            self.assertEqual(resp["status"], 500)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    def test_net_stream_skips_bad_frames_and_stops_on_done(self):
+        """坏 JSON / 非对象帧被跳过，合法帧保留；[DONE] 提前结束读取。"""
+        import json
+        import http.server
+        import threading
+        from ai_new.modules.agent_common.net.private import _client as net_client
+
+        body = "data: {not-json\n\n"
+        body += "data: %s\n\n" % json.dumps({"choices": [{"delta": {"content": "保留"}}]},
+                                              ensure_ascii=False)
+        body += "data: [DONE]\n\n"
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.end_headers()
+                self.wfile.write(body.encode("utf-8"))
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        key = "sse-bad"
+        try:
+            url = "http://127.0.0.1:%d/v1/chat/completions" % server.server_address[1]
+            resp = net_client.request_stream(self.ctx, url=url, method="POST",
+                                              headers={}, body="{}", timeout=10,
+                                              stream_key=key, retries=0)
+            self.assertTrue(resp["ok"], resp)
+            self.assertEqual(len(resp["items"]), 1)
+            self.assertEqual(self.ctx.runtime.stream_get(key)["text"], "保留")
+        finally:
+            server.shutdown()
+            server.server_close()
+            self.ctx.runtime.stream_clear(key)
+
+    def test_net_stream_eof_keeps_received_frames(self):
+        """流中途断线：已收到的帧保留返回，不当失败（草稿槽不回滚）。"""
+        import json
+        import http.server
+        import threading
+        from ai_new.modules.agent_common.net.private import _client as net_client
+
+        body = "data: %s\n\n" % json.dumps({"choices": [{"delta": {"content": "半条"}}]},
+                                            ensure_ascii=False)
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.end_headers()
+                self.wfile.write(body.encode("utf-8"))
+                # 不发 [DONE]，返回即关连接，模拟上游断线
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        key = "sse-eof"
+        try:
+            url = "http://127.0.0.1:%d/v1/chat/completions" % server.server_address[1]
+            resp = net_client.request_stream(self.ctx, url=url, method="POST",
+                                              headers={}, body="{}", timeout=10,
+                                              stream_key=key, retries=0)
+            self.assertTrue(resp["ok"], resp)
+            self.assertEqual(len(resp["items"]), 1)
+            self.assertEqual(self.ctx.runtime.stream_get(key)["text"], "半条")
+        finally:
+            server.shutdown()
+            server.server_close()
+            self.ctx.runtime.stream_clear(key)
+
+    def test_net_stream_read_timeout_returns_error(self):
+        """连接建立后上游不吐帧：读帧超时归 unreachable，流已连上不重试。"""
+        import time
+        import http.server
+        import threading
+        from ai_new.modules.agent_common.net.private import _client as net_client
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.end_headers()
+                time.sleep(3)  # 保持连接但不发任何帧
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            url = "http://127.0.0.1:%d/v1/chat/completions" % server.server_address[1]
+            resp = net_client.request_stream(self.ctx, url=url, method="POST",
+                                              headers={}, body="{}", timeout=1,
+                                              retries=0)
+            self.assertFalse(resp["ok"])
+            self.assertEqual(resp["code"], "unreachable")
+        finally:
+            server.shutdown()
+            server.server_close()
+
+
         """purge 硬删会话前：stop 置打断位、等后台任务收尾，再从运行表摘除，定稿不会写回。"""
         import concurrent.futures, time as _time
         box = {"done": False}
