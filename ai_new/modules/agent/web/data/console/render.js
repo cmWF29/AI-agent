@@ -115,6 +115,13 @@ function tableHtml(sec, ctx) {
 }
 
 const AVATAR_PALETTE = ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"];
+/* 角色固定配色：同名同色，跨会话一致；未命中回退哈希取色 */
+const ROLE_COLOR = {
+  "pm": "#2f6bff", "PM": "#2f6bff",
+  "developer": "#722ed1", "tester": "#0fc6c2", "reviewer": "#ff7d00",
+  "user": "#00b42a", "用户": "#00b42a",
+  "tool": "#86909c", "工具": "#86909c", "系统": "#86909c"
+};
 function speakerOf(msg, roles) {
   if (msg.kind === "note") return "系统";
   const actor = msg.actor || msg.role || "assistant";
@@ -136,8 +143,10 @@ function bubbleClass(msg) {
   return "role";
 }
 function avatarColor(name) {
+  const key = String(name || "").trim();
+  if (ROLE_COLOR[key]) return ROLE_COLOR[key];
   let h = 0;
-  for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 function initial(name) {
@@ -167,7 +176,7 @@ function chatHtml(sec, ctx) {
   const summaryHtml = summary ? `<details class="chat-summary"><summary>上下文摘要</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
   const body = (msgs.length ? renderBubbles(msgs, roles) : `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
-    ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip st-${statusKind(r.status)}"><i class="dot"></i>${esc(r.display || r.role)} · ${statusText(r.status)}</span>`).join("")}</div></div>` : ""}
+    ${headTitle ? `<div class="chat-head">${headTitle}<div class="spacer" style="margin-left:auto"></div><div class="chips">${arr(roles).map((r) => `<span class="chip st-${statusKind(r.status)}"><i class="dot"></i><span class="chip-name">${esc(r.display || r.role)}</span> · ${statusText(r.status)}</span>`).join("")}</div></div>` : ""}
     ${summaryHtml}
     <div class="chat">${body}</div>
   </section>`;
