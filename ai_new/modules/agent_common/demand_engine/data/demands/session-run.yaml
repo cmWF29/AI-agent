@@ -13,6 +13,11 @@ do:
     key:
       lit: sessions.result_chars
   as: cfg_chars
+- call: config.get
+  with:
+    key:
+      lit: sessions.max_steps
+  as: cfg_steps
 - call: store.read
   with:
     module:
@@ -139,7 +144,7 @@ do:
       tools:
         get: run_tools.items
       max_steps:
-        get: input.max_steps
+        get: cfg_steps.value
       base_url:
         get: input.base_url
       api_key:

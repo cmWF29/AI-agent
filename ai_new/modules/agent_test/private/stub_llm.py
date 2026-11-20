@@ -48,7 +48,7 @@ class StubPolicy:
 
     def __init__(self, script=None, tool_rate=0.0, spawn_rate=0.0, delay_base=0.0,
                  delay_jitter=0.0, close_rate=0.0, fail_code=0, fail_rate=0.0, token_limit=0,
-                 pm_roles=None, role_rounds=1, filler_words=120):
+                 pm_roles=None, role_rounds=1, filler_words=120, max_role_steps=0):
         self.script = list(script or [])
         self.tool_rate = float(tool_rate)
         self.spawn_rate = float(spawn_rate)
@@ -62,6 +62,8 @@ class StubPolicy:
         self.pm_roles = list(pm_roles or ["developer", "tester", "reviewer"])
         self.role_rounds = int(role_rounds or 1)
         self.filler_words = int(filler_words or 120)
+        # 角色单轮最多连续工具步（0 不限，兼容压测全序列；演示设小值快速收口）。
+        self.max_role_steps = int(max_role_steps or 0)
 
 
 def _tool_frame(call_id, name, arguments):
@@ -84,6 +86,15 @@ def _text_frames(text):
 def _structured_frames(obj):
     """收口步结构化输出：reply 进气泡，stage/summary 随 JSON 一并交被测侧解析。"""
     return _text_frames(json.dumps(obj, ensure_ascii=False))
+
+
+def _session_key(req):
+    """从 system 文本提取工单 id 作为会话键；发模型的上下文视图会裁掉历史往返，
+    桩不能靠历史 assistant 消息去重，需按工单在桩侧缓存已分派角色。"""
+    sys_text = " ".join(m.get("content") or "" for m in req.get("messages") or []
+                         if m.get("role") == "system")
+    m = re.search(r"T-\d{8}-\d+", sys_text)
+    return m.group(0) if m else sys_text[:32]
 
 
 # 角色一轮内的工具步进：读依据 → 写产出 → 落备注；运行时再按当前上下文可用工具过滤。
@@ -307,6 +318,8 @@ class _Handler(BaseHTTPRequestHandler):
             steps = [t for t in _ROLE_STEPS if t in by_name]
             if policy.role_rounds > 1:
                 steps = steps * policy.role_rounds
+            if policy.max_role_steps > 0:
+                steps = steps[:policy.max_role_steps]
             # 已回填的工具结果条数即已走完的工具步；未走完则继续回下一步工具，
             # 让角色按状态链逐态推进、产出多轮多消息，走完工具序列后再收口。
             tool_n = sum(1 for m in msgs if m.get("role") == "tool")
@@ -331,9 +344,10 @@ class _Handler(BaseHTTPRequestHandler):
 
         # PM 上下文：analyze 先读需求并自报进 plan，plan 态依次分派角色，全部分派后收口。
         if "role_spawn" in by_name or "role_task" in by_name or "ticket_split" in by_name:
-            # 去重依据取本会话历史 assistant 已发出的 role_spawn 调用（确定性、不依赖
-            # 滞后注入的 system 已分派段）；按 pm_roles 顺序轮转，避免重复前序角色、漏掉末位。
-            spawned = []
+            # 去重按工单在桩侧缓存：发模型的上下文视图会裁掉历史往返，历史 assistant 的
+            # role_spawn 不一定可见，不能只靠历史计数；同轮可见的调用仍补进缓存。
+            key = _session_key(req)
+            done = self.server.spawned.setdefault(key, set())
             for m in msgs:
                 if m.get("role") != "assistant":
                     continue
@@ -341,12 +355,13 @@ class _Handler(BaseHTTPRequestHandler):
                     fn = t.get("function") or {}
                     if fn.get("name") == "role_spawn":
                         try:
-                            spawned.append(json.loads(fn.get("arguments") or "{}").get("role"))
+                            done.add(json.loads(fn.get("arguments") or "{}").get("role"))
                         except Exception:  # noqa: BLE001 —— 坏参数跳过，不计入已派
                             pass
-            pending = [r for r in policy.pm_roles if r not in spawned]
+            pending = [r for r in policy.pm_roles if r not in done]
             if pending:
                 role = pending[0]
+                done.add(role)
                 args = json.dumps({"role": role, "display": role,
                                    "task": "按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。"},
                                   ensure_ascii=False)
@@ -379,6 +394,7 @@ def start_stub(policy=None):
     server.policy = policy or StubPolicy()
     server.stats = StubStats()
     server.step_idx = 0
+    server.spawned = {}
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]

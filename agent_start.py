@@ -24,7 +24,7 @@ def _maybe_start_stub():
     from ai_new.modules.agent_test.private import stub_llm
 
     policy = stub_llm.StubPolicy(tool_rate=1.0, spawn_rate=1.0, delay_base=0.01,
-                                 role_rounds=1, filler_words=120)
+                                 role_rounds=1, filler_words=120, max_role_steps=2)
     server, _thread, url = stub_llm.start_stub(policy)
     os.environ["AI_NEW_LLM_BASE_URL"] = url
     return server
