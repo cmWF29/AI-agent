@@ -1,6 +1,8 @@
 """ReAct 模块：只提供消息/工具形状的纯计算。循环在 react-run 需求里。"""
 from __future__ import annotations
 
+import asyncio
+
 from .private import _pure
 
 
@@ -45,18 +47,18 @@ def _logs_paths(ctx):
     return row.get("value") or {}
 
 
-def _exec_tool(ctx, fn, targs, session):
+async def _exec_tool(ctx, fn, targs, session):
     """单条工具执行：注册表命中直跑；占位需求回退；工具报错归一成观察结果，不掀翻整轮。
 
-    在工具池线程内跑（阻塞子进程/外部调用都不占会话线程）；只负责取回结果，
-    写盘与消息回填由会话线程串行收口。
+    协程内 await 工具路由；阻塞子进程/外部调用由工具路由经执行器桥接，不占事件循环。
+    只负责取回结果，写盘与消息组装由主循环串行收口。
     """
     try:
-        out = ctx.api.call("tools.execute", {
+        out = await ctx.api.acall("tools.execute", {
             "name": fn.get("name"), "args": targs, "defer": True,
             "session": session}, caller=None)
         if isinstance(out, dict) and out.get("deferred"):
-            out = ctx.runtime.call(out.get("demand"), out.get("input") or {})
+            out = await ctx.runtime.acall(out.get("demand"), out.get("input") or {})
         return out
     except ctx.ApiError as exc:
         # 工具报错要作为观察结果回给模型，让它自己纠错，不能掀翻整轮
@@ -115,7 +117,7 @@ def _checkpoint(ctx, session, path, messages, summary, steps):
         pass
 
 
-def _route_run(ctx, payload):
+async def _route_run(ctx, payload):
     """ReAct 闭环：轮次循环、终止判断、工具回填都在能力内部，需求树只留一次调用。
 
     存档 messages 全量保留；发往上游的上下文视图只带 system + 滚动摘要 + 本轮指令，
@@ -152,14 +154,15 @@ def _route_run(ctx, payload):
             break
         if gate:
             ctx.runtime.stream_clear(gate.get("id"))
-        resp = ctx.runtime.call("llm-chat", {
-                      "base_url": payload.get("base_url"),
-                      "api_key": payload.get("api_key"),
-                      "model": payload.get("model"),
-                      "cancel": gate,
-                      "messages": messages,
-                      "tools": schemas})
-        answer = resp or {}
+        answer = await ctx.runtime.acall("llm-chat", {
+            "base_url": payload.get("base_url"),
+            "api_key": payload.get("api_key"),
+            "model": payload.get("model"),
+            "cancel": gate,
+            "messages": messages,
+            "tools": schemas})
+        if not isinstance(answer, dict):
+            answer = {}
         if answer.get("ok") is False:
             # 后端没交答复（报错或被打断）：这一轮没有可交付的内容，不写半截消息
             failed = answer
@@ -196,8 +199,8 @@ def _route_run(ctx, payload):
             continue
         # 工具步：先把这条带 tool_calls 的 assistant 落检查点，崩溃后存档不丢这一步
         _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
-        # 同一轮的多条工具执行先全部提交到独立工具池并发跑，再按原顺序收口回填；
-        # 工具在池线程内并发阻塞，写盘/消息组装仍在会话线程串行，避免并发落盘竞争。
+        # 同一轮的多条工具协程并发跑（gather），再按模型原顺序收口回填；
+        # 工具在异步轨并发阻塞，写盘/消息组装仍在主循环串行，避免并发落盘竞争。
         jobs = []
         tool_idx = 0
         for call in amsg.get("tool_calls") or []:
@@ -205,10 +208,10 @@ def _route_run(ctx, payload):
             fn = (call or {}).get("function") or {}
             raw = ctx.api.call("codec.json_decode", {"text": fn.get("arguments")}, caller=None)
             targs = ctx.api.call("react.args", {"value": raw.get("value")}, caller=None)
-            fut = ctx.runtime.submit_tool(_exec_tool, ctx, fn, targs, session)
-            jobs.append((call, fn, tool_idx, fut))
-        for call, fn, tool_idx, fut in jobs:
-            out = fut.result()
+            jobs.append((call, fn, tool_idx, targs))
+        outs = await asyncio.gather(*[_exec_tool(ctx, fn, targs, session)
+                                      for _, fn, _, targs in jobs])
+        for (call, fn, tool_idx, _), out in zip(jobs, outs):
             enc = ctx.api.call("codec.json_encode", {"value": out}, caller=None)
             stamp = "%d-%d" % (steps, tool_idx)
             stash = _stash_tool_output(ctx, session, (call or {}).get("id"),
@@ -227,4 +230,3 @@ def _route_run(ctx, payload):
                                           "failed": failed,
                                           "summary": new_summary,
                                           "stage": new_stage}, caller=None)
-

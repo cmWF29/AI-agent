@@ -97,6 +97,37 @@ class Engine:
             results.extend(_lang.run(rec.get("do"), scope, self.ctx.api, self.ctx, rec["id"]))
         return results
 
+    async def arun_callable(self, demand_id, inputs=None):
+        """异步轨：按名跑一段编排需求（不挂在点上），返回最后一次调用的结果。"""
+        for rec in self._load():
+            if rec["id"] != demand_id:
+                continue
+            if not rec.get("enabled", True):
+                return {"ok": False, "error": "需求已下线", "code": "disabled", "demand": demand_id}
+            if not rec.get("callable"):
+                raise self.ctx.ApiError("需求不按名调用: %s" % demand_id,
+                                        code="not_callable", status=400)
+            scope = {"input": inputs or {}, "caller": None}
+            results = await _lang.arun(rec.get("do"), scope, self.ctx.api, self.ctx, demand_id)
+            last = next((r for r in reversed(results) if r.get("call")), None)
+            if last is None:
+                return {"ok": False, "error": "没有任何调用", "code": "empty", "demand": demand_id}
+            out = last.get("result")
+            ok = (bool(out.get("ok", True)) if isinstance(out, dict) else True) \
+                and all(r.get("ok") for r in results)
+            return {"ok": ok, "demand": demand_id, "result": out,
+                    "calls": [r.get("call") for r in results]}
+        raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
+
+    async def adispatch(self, hook, envelope):
+        results = []
+        for rec in self._load():
+            if not rec.get("enabled", True) or hook not in rec["on"]:
+                continue
+            scope = {"event": envelope or {}, "hook": hook, "caller": None}
+            results.extend(await _lang.arun(rec.get("do"), scope, self.ctx.api, self.ctx, rec["id"]))
+        return results
+
 
 def _as_hooks(value):
     if isinstance(value, str):

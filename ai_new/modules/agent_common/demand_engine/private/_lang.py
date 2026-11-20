@@ -79,11 +79,23 @@ def routes_of(node):
 
 
 def run(stmts, scope, api, ctx, demand_id="", results=None):
-    """跑一段语句树，返回每条服务调用的结果（不抛异常）。"""
+    """同步轨：跑一段语句树，返回每条服务调用的结果（不抛异常）。"""
     results = [] if results is None else results
     for stmt in stmts or []:
         try:
             _run_one(stmt, scope, api, ctx, demand_id, results)
+        except Exception as exc:  # noqa: BLE001 —— 需求出错不许外溢
+            results.append({"demand": demand_id, "ok": False,
+                            "error": "%s: %s" % (type(exc).__name__, exc)})
+    return results
+
+
+async def arun(stmts, scope, api, ctx, demand_id="", results=None):
+    """异步轨：逐条 await 语句服务调用，返回每条结果（不抛异常）。"""
+    results = [] if results is None else results
+    for stmt in stmts or []:
+        try:
+            await _arun_one(stmt, scope, api, ctx, demand_id, results)
         except Exception as exc:  # noqa: BLE001 —— 需求出错不许外溢
             results.append({"demand": demand_id, "ok": False,
                             "error": "%s: %s" % (type(exc).__name__, exc)})
@@ -100,6 +112,24 @@ def _run_one(stmt, scope, api, ctx, demand_id, results):
         for key, expr in (stmt.get("with") or {}).items():
             payload[key] = eval_expr(expr, scope)
         result = api.call(route, payload, caller=scope.get("caller"))
+        if stmt.get("as"):
+            scope[stmt["as"]] = result
+        results.append({"demand": demand_id, "call": route, "ok": True, "result": result})
+        return
+
+    raise ValueError("未知语句: %s" % sorted(stmt.keys()))
+
+
+async def _arun_one(stmt, scope, api, ctx, demand_id, results):
+    if not isinstance(stmt, dict):
+        raise ValueError("语句必须是对象: %r" % (stmt,))
+
+    if "call" in stmt:
+        route = stmt["call"]
+        payload = dict(scope.get("event") or {})
+        for key, expr in (stmt.get("with") or {}).items():
+            payload[key] = eval_expr(expr, scope)
+        result = await api.acall(route, payload, caller=scope.get("caller"))
         if stmt.get("as"):
             scope[stmt["as"]] = result
         results.append({"demand": demand_id, "call": route, "ok": True, "result": result})

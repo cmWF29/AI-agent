@@ -153,6 +153,12 @@ class Runtime:
                                  {"id": demand, "input": data or {}}, caller=None) or {}
         return resp.get("result") or {}
 
+    async def acall(self, demand, data=None):
+        """异步轨跑一条需求并拿结果：协程内 await，结果收口到能力面。"""
+        resp = await self.ctx.api.acall("demand_engine.run",
+                                        {"id": demand, "input": data or {}}, caller=None) or {}
+        return resp.get("result") or {}
+
     def apply(self, payload):
         """照单执行：单个 effect、或一串 effect，空则什么都不做。"""
         raw = (payload or {}).get("effect")

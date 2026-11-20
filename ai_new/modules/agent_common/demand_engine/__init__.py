@@ -12,11 +12,15 @@ from __future__ import annotations
 from .private import _engine
 
 
+async def _route_run(ctx, payload):
+    return await ctx.demand_engine.arun_callable(
+        payload.get("id"), payload.get("input") or {})
+
+
 def setup(ctx):
     """装配入口：装填 ctx.demand_engine（需求装载 + 解释执行）。"""
     ctx.demand_engine = _engine.Engine(ctx)
-    ctx.api.register("demand_engine.run", lambda c, p: ctx.demand_engine.run_callable(
-        p.get("id"), p.get("input") or {}), "按名跑一段编排需求", module="demand_engine")
+    ctx.api.register("demand_engine.run", _route_run, "按名跑一段编排需求", module="demand_engine")
     ctx.api.register("demand_engine.list", lambda c, p: ctx.demand_engine.items(),
                      "当前需求（on/do/enabled）", module="demand_engine")
     return ctx.demand_engine
