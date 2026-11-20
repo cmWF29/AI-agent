@@ -1000,6 +1000,24 @@ class CoreTest(unittest.TestCase):
         self.assertNotIn("shell", picked("reviewer"))
         self.assertNotIn("shell", picked("researcher"))
 
+    def test_exec_runs_real_subprocess_and_captures_output(self):
+        """异步子进程核心：起真实解释器，收 stdout/stderr 与退出码。"""
+        code = "import sys; sys.stdout.write('out-ok'); sys.stderr.write('err-ok')"
+        res = self.ctx.api.call("exec.run", {"argv": [sys.executable, "-c", code]})
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["code"], 0)
+        self.assertIn("out-ok", res["out"])
+        self.assertIn("err-ok", res["err"])
+
+    def test_exec_kills_on_timeout(self):
+        """超时打断：长睡眠进程被 kill，killed=timeout。"""
+        res = self.ctx.api.call(
+            "exec.run",
+            {"argv": [sys.executable, "-c", "import time; time.sleep(5)"], "timeout": 0.3})
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["killed"], "timeout")
+        self.assertNotEqual(res["code"], 0)
+
     def test_project_skills_and_tools_list(self):
         """项目技能/工具清单取数：直读公共库并按覆盖层打标记，成行字段齐全。"""
         created = self._run("projects-create", {"name": "清单项目"})["result"]

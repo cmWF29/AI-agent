@@ -11,9 +11,8 @@ from .private import _runner
 
 
 async def _route_run(ctx, payload):
-    """进程执行走异步轨：阻塞的 subprocess 实现经执行器桥接，不占事件循环线程。"""
-    loop = ctx.api._ensure_loop()
-    return await loop.run_in_executor(None, _runner.run, ctx, payload)
+    """进程执行走异步轨：asyncio 子进程协程，等待期间挂起事件循环而不占线程。"""
+    return await _runner._arun(ctx, payload)
 
 
 def setup(ctx):

@@ -1,13 +1,17 @@
-"""进程执行：起进程、喂输入、收输出，超时与打断都能停。"""
+"""进程执行：起进程、喂输入、收输出，超时与打断都能停。
+
+异步核心走 ``asyncio.create_subprocess_exec``：stdout/stderr 由协程逐行泵出，
+等待子进程期间挂起事件循环而不占线程；另留同步壳桥接到进程级事件循环，
+供同步内部调用与兼容路径使用。
+"""
 from __future__ import annotations
 
+import asyncio
 import shutil
-import subprocess
-import threading
 import time
 
 
-def run(ctx, payload):
+async def _arun(ctx, payload):
     payload = payload or {}
     argv = [str(a) for a in (payload.get("argv") or []) if str(a) != ""]
     if not argv:
@@ -19,42 +23,49 @@ def run(ctx, payload):
     cancel = payload.get("cancel") or {}
     stream_key = payload.get("stream_key") or ""
     runtime = getattr(ctx, "runtime", None)
+    stdin_text = str(payload.get("stdin") or "")
+
     try:
-        proc = subprocess.Popen(
-            argv,
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, cwd=(payload.get("cwd") or None),
+        proc = await asyncio.create_subprocess_exec(
+            *argv,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=(payload.get("cwd") or None),
         )
     except OSError as exc:
         return {"ok": False, "code": "spawn_failed", "error": str(exc)}
 
     try:
-        proc.stdin.write(str(payload.get("stdin") or ""))
+        if stdin_text:
+            proc.stdin.write(stdin_text.encode("utf-8", "replace"))
+            await proc.stdin.drain()
         proc.stdin.close()
-    except OSError:
+    except (OSError, BrokenPipeError):
         pass
 
     buf = {"out": [], "err": []}
 
-    def pump(stream, key):
+    async def pump(stream, key):
         try:
             # 逐行读：块读会在管道没填满、没到 EOF 时一直阻塞，流式增量就看不到
-            for line in iter(lambda: stream.readline(), ""):
+            while True:
+                raw = await stream.readline()
+                if not raw:
+                    break
+                line = raw.decode("utf-8", "replace")
                 buf[key].append(line)
                 # 正文逐行吐进运行期草稿；stderr 不算答复，不进缓冲
                 if key == "out" and stream_key and runtime is not None:
                     runtime.stream_put(stream_key, line)
-        except Exception:  # noqa: BLE001 — 进程被 kill 时读线程收尾即可
+        except Exception:  # noqa: BLE001 — 进程被 kill 时泵协程收尾即可
             pass
 
-    readers = [threading.Thread(target=pump, args=(proc.stdout, "out"), daemon=True),
-               threading.Thread(target=pump, args=(proc.stderr, "err"), daemon=True)]
-    for t in readers:
-        t.start()
+    pump_task = asyncio.gather(pump(proc.stdout, "out"), pump(proc.stderr, "err"))
 
     start = time.time()
     killed = None
-    while proc.poll() is None:
+    while proc.returncode is None:
         if time.time() - start > limit:
             killed = "timeout"
             proc.kill()
@@ -64,13 +75,18 @@ def run(ctx, payload):
                 killed = "cancelled"
                 proc.kill()
                 break
-        time.sleep(0.1)
-    for t in readers:
-        t.join(timeout=2)
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=0.1)
+        except asyncio.TimeoutError:
+            pass
+    try:
+        await pump_task
+    except Exception:  # noqa: BLE001
+        pass
 
     out = "".join(buf["out"])
     err = "".join(buf["err"])
-    code = proc.poll()
+    code = proc.returncode
     ok = (code == 0 and killed is None)
     result = {"ok": ok, "code": code, "out": out, "err": err,
               "seconds": round(time.time() - start, 2)}
@@ -79,3 +95,9 @@ def run(ctx, payload):
     if not ok:
         result["error"] = (err or out or "进程退出码 %s" % code).strip()[:400]
     return result
+
+
+def run(ctx, payload):
+    """同步壳：桥接异步核心到进程级事件循环，供同步内部调用与兼容路径使用。"""
+    loop = ctx.api._ensure_loop()
+    return asyncio.run_coroutine_threadsafe(_arun(ctx, payload), loop).result()

@@ -1,9 +1,13 @@
-"""HTTP(S) 出站实现（纯 stdlib）。失败是结果、不是异常：返回 {ok:false, error}。"""
+"""HTTP(S) 出站实现（纯 stdlib，协程流）。失败是结果、不是异常：返回 {ok:false, error}。
+
+阻塞的 urllib 不再使用：请求/连接经 asyncio 流收发，协程内真非阻塞等待；
+连接类瞬时故障与 5xx 短退避重试，4xx 是请求本身问题不重试。
+"""
 from __future__ import annotations
 
-import time
-import urllib.error
-import urllib.request
+import asyncio
+import ssl
+from urllib.parse import urlparse
 
 # 连接类瞬时故障与 5xx 值得短退避重试；4xx 是请求本身问题，不重试。
 _RETRYABLE_CODES = {"unreachable", "net_error"}
@@ -19,45 +23,103 @@ def _retryable(code, status):
 
 
 def _backoff(attempt):
-    time.sleep(min(2.0, 0.5 * (attempt + 1)))
+    return asyncio.sleep(min(2.0, 0.5 * (attempt + 1)))
 
 
-def request(ctx, url, method="GET", headers=None, body=None, timeout=None, retries=2):
+def _split_url(url):
+    pr = urlparse(str(url))
+    host = pr.hostname or ""
+    port = pr.port or (443 if pr.scheme == "https" else 80)
+    path = pr.path or "/"
+    if pr.query:
+        path = path + "?" + pr.query
+    return pr.scheme, host, port, path
+
+
+def _build_request(method, host, path, headers, body):
+    hdrs = dict(headers or {})
+    hdrs["Host"] = host
+    if body is not None:
+        hdrs["Content-Length"] = str(len(body.encode("utf-8")))
+    lines = ["%s %s HTTP/1.1" % (method, path)]
+    for k, v in hdrs.items():
+        lines.append("%s: %s" % (k, v))
+    head = ("\r\n".join(lines) + "\r\n\r\n").encode("utf-8")
+    if body is not None:
+        head += body.encode("utf-8")
+    return head
+
+
+async def _open(scheme, host, port, timeout):
+    ssl_ctx = ssl.create_default_context() if scheme == "https" else False
+    return await asyncio.wait_for(
+        asyncio.open_connection(host, port, ssl=ssl_ctx), timeout=timeout)
+
+
+async def _read_status(reader):
+    status_line = await reader.readline()
+    if not status_line:
+        raise IOError("连接被关闭")
+    parts = status_line.decode("utf-8", "replace").split()
+    status = int(parts[1]) if len(parts) > 1 else 0
+    headers = {}
+    while True:
+        line = await reader.readline()
+        if line in (b"\r\n", b"\n", b""):
+            break
+        k, _, v = line.decode("utf-8", "replace").partition(":")
+        headers[k.strip().lower()] = v.strip()
+    return status, headers
+
+
+async def _read_body(reader, headers):
+    length = headers.get("content-length")
+    if length and length.isdigit():
+        return await reader.readexactly(int(length))
+    # 无 Content-Length（chunked/close）：读到流结束。
+    return await reader.read()
+
+
+async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None, retries=2):
     if not url:
         return {"ok": False, "error": "缺少 url", "code": "bad_request"}
-    data = None
-    hdrs = dict(headers or {})
-    if body is not None:
-        if not isinstance(body, str):
-            return {"ok": False, "error": "body 必须是文本（对象先经 codec.json_encode）",
-                    "code": "bad_body"}
-        data = body.encode("utf-8")
+    if body is not None and not isinstance(body, str):
+        return {"ok": False, "error": "body 必须是文本（对象先经 codec.json_encode）",
+                "code": "bad_body"}
+    scheme, host, port, path = _split_url(url)
+    if not host:
+        return {"ok": False, "error": "缺少 url", "code": "bad_request"}
     limit = float(timeout or 60)
+    payload = _build_request(method, host, path, headers, body)
     last = None
     for attempt in range(max(0, retries) + 1):
-        req = urllib.request.Request(str(url), data=data, headers=hdrs, method=str(method or "GET"))
+        reader = writer = None
         try:
-            with urllib.request.urlopen(req, timeout=limit) as resp:
-                raw = resp.read()
-                return {"ok": True, "status": resp.status,
-                        "headers": dict(resp.headers), "text": raw.decode("utf-8", "replace")}
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", "replace")[:600]
-            last = {"ok": False, "status": exc.code, "error": detail, "code": "http_%s" % exc.code}
-            if not _retryable(last["code"], exc.code) or attempt == retries:
-                return last
-        except urllib.error.URLError as exc:
-            last = {"ok": False, "status": 0, "error": str(exc.reason), "code": "unreachable"}
-            if attempt == retries:
-                return last
+            reader, writer = await _open(scheme, host, port, limit)
+            writer.write(payload)
+            await writer.drain()
+            status, resp_headers = await _read_status(reader)
+            raw = await _read_body(reader, resp_headers)
+            return {"ok": True, "status": status,
+                    "headers": resp_headers, "text": raw.decode("utf-8", "replace")}
         except Exception as exc:  # noqa: BLE001 —— 能力层不外抛
-            return {"ok": False, "status": 0, "error": str(exc), "code": "net_error"}
-        _backoff(attempt)
+            code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
+            last = {"ok": False, "status": 0, "error": str(exc), "code": code}
+            if not _retryable(code, 0) or attempt == retries:
+                return last
+        finally:
+            if writer is not None:
+                try:
+                    writer.close()
+                    await writer.wait_closed()
+                except Exception:  # noqa: BLE001
+                    pass
+        await _backoff(attempt)
     return last
 
 
-def request_stream(ctx, url, method="POST", headers=None, body=None, timeout=None,
-                   stream_key="", retries=2):
+async def arequest_stream(ctx, url, method="POST", headers=None, body=None, timeout=None,
+                          stream_key="", retries=2):
     """SSE 流式出站：逐帧读响应，正文增量推入运行期草稿槽，事件对象汇总后返回。
 
     net 只做传输与帧切分；正文文本接入通用草稿槽（与 exec 把进程 stdout 行当正文同构），
@@ -66,59 +128,78 @@ def request_stream(ctx, url, method="POST", headers=None, body=None, timeout=Non
     """
     if not url:
         return {"ok": False, "error": "缺少 url", "code": "bad_request"}
-    data = None
-    hdrs = dict(headers or {})
-    if body is not None:
-        if not isinstance(body, str):
-            return {"ok": False, "error": "body 必须是文本（对象先经 codec.json_encode）",
-                    "code": "bad_body"}
-        data = body.encode("utf-8")
-    req = urllib.request.Request(str(url), data=data, headers=hdrs, method=str(method or "POST"))
+    if body is not None and not isinstance(body, str):
+        return {"ok": False, "error": "body 必须是文本（对象先经 codec.json_encode）",
+                "code": "bad_body"}
+    scheme, host, port, path = _split_url(url)
+    if not host:
+        return {"ok": False, "error": "缺少 url", "code": "bad_request"}
+    payload = _build_request(method, host, path, headers, body)
     limit = float(timeout or 60)
     runtime = getattr(ctx, "runtime", None)
     items = []
     last = None
     for attempt in range(max(0, retries) + 1):
+        reader = writer = None
+        connected = False
         try:
-            resp = urllib.request.urlopen(req, timeout=limit)
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", "replace")[:600]
-            last = {"ok": False, "status": exc.code, "error": detail,
-                    "code": "http_%s" % exc.code}
-            if not _retryable(last["code"], exc.code) or attempt == retries:
-                return last
-            _backoff(attempt)
-            continue
-        except urllib.error.URLError as exc:
-            last = {"ok": False, "status": 0, "error": str(exc.reason), "code": "unreachable"}
-            if attempt == retries:
-                return last
-            _backoff(attempt)
-            continue
-        except Exception as exc:  # noqa: BLE001 —— 能力层不外抛
-            return {"ok": False, "status": 0, "error": str(exc), "code": "net_error"}
-        # 连接已建立：读帧阶段出错不重试，防止已推送的正文在草稿槽里重复。
-        try:
-            with resp:
-                for raw in iter(resp.readline, b""):
-                    line = raw.decode("utf-8", "replace").strip()
-                    if not line or not line.startswith("data:"):
-                        continue
-                    chunk = line[5:].strip()
-                    if chunk == "[DONE]":
-                        break
-                    dec = ctx.api.call("codec.json_decode", {"text": chunk}, caller=None)
-                    if not dec.get("ok"):
-                        continue
-                    obj = dec.get("value")
-                    if not isinstance(obj, dict):
-                        continue
-                    items.append(obj)
-                    delta = (obj.get("choices") or [{}])[0].get("delta") or {}
-                    piece = delta.get("content")
-                    if piece and stream_key and runtime is not None:
-                        runtime.stream_put(stream_key, piece)
-            return {"ok": True, "status": resp.status, "items": items}
+            reader, writer = await _open(scheme, host, port, limit)
+            writer.write(payload)
+            await writer.drain()
+            status, _ = await _read_status(reader)
+            connected = True
+            while True:
+                raw = await asyncio.wait_for(reader.readline(), timeout=limit)
+                if not raw:
+                    break
+                line = raw.decode("utf-8", "replace").strip()
+                if not line or not line.startswith("data:"):
+                    continue
+                chunk = line[5:].strip()
+                if chunk == "[DONE]":
+                    break
+                dec = ctx.api.call("codec.json_decode", {"text": chunk}, caller=None)
+                if not dec.get("ok"):
+                    continue
+                obj = dec.get("value")
+                if not isinstance(obj, dict):
+                    continue
+                items.append(obj)
+                delta = (obj.get("choices") or [{}])[0].get("delta") or {}
+                piece = delta.get("content")
+                if piece and stream_key and runtime is not None:
+                    runtime.stream_put(stream_key, piece)
+            return {"ok": True, "status": status, "items": items}
         except Exception as exc:  # noqa: BLE001 —— 读帧阶段失败不外抛
-            return {"ok": False, "status": 0, "error": str(exc), "code": "net_error"}
+            code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
+            last = {"ok": False, "status": 0, "error": str(exc), "code": code}
+            if connected or attempt == retries or not _retryable(code, 0):
+                return last
+        finally:
+            if writer is not None:
+                try:
+                    writer.close()
+                    await writer.wait_closed()
+                except Exception:  # noqa: BLE001
+                    pass
+        await _backoff(attempt)
     return last
+
+
+def request(ctx, url, method="GET", headers=None, body=None, timeout=None, retries=2):
+    """同步壳：桥接异步核心到进程级事件循环，供同步内部调用与测试直调。"""
+    loop = ctx.api._ensure_loop()
+    return asyncio.run_coroutine_threadsafe(
+        arequest(ctx, url, method=method, headers=headers, body=body,
+                 timeout=timeout, retries=retries), loop).result()
+
+
+def request_stream(ctx, url, method="POST", headers=None, body=None, timeout=None,
+                   stream_key="", retries=2):
+    """同步壳：桥接异步核心到进程级事件循环，供同步内部调用与测试直调。"""
+    loop = ctx.api._ensure_loop()
+    return asyncio.run_coroutine_threadsafe(
+        arequest_stream(ctx, url, method=method, headers=headers, body=body,
+                        timeout=timeout, stream_key=stream_key, retries=retries),
+        loop).result()
+
