@@ -286,8 +286,16 @@ async function boot() {
   applyShell(shell);
   renderMenus((shell && shell.menus && shell.menus.length) ? shell.menus : menusFromViews());
   state = parseURL();
-  // 服务端算的那页和 URL 解析出来的一致就直接用，省掉第二次取数
-  await render({ pre: (page.view === state.view) ? page : null });
+  let pre = page || null;
+  if (page && page.view && state.view !== page.view) {
+    // 服务端已经退回默认页（链接里的视图不认识）：同一次往返的数据就是这页的，
+    // 把地址改成它，直接渲染，不再补第二次取数。
+    state = Object.assign({}, state, { view: page.view });
+    history.replaceState(state, "", qsOf(state));
+  } else if (q.get("view") && !VIEWS[q.get("view")]) {
+    history.replaceState(state, "", qsOf(state));   // 地址里的视图不认识：换成真实页，别留死链
+  }
+  await render({ pre });
   openInvalidate();
 }
 function adoptViews(items) {

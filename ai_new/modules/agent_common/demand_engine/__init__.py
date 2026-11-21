@@ -168,12 +168,21 @@ async def _route_resolve(ctx, payload):
     if not view_key:
         view_key = next((k for k in order if specs[k].get("default")), order[0] if order else "")
     spec = specs.get(view_key)
+    requested, fell_back = view_key, False
     if spec is None:
-        raise ctx.ApiError("视图不存在：" + (view_key or "（空）"), code="no_view", status=404)
+        # 链接里带了不认识的视图（旧书签、写错的参数）：退回默认页，并在同一次往返里
+        # 把清单与外壳一起给前端，不留"报错 → 再补两次请求"的路径。
+        view_key = next((k for k in order if specs[k].get("default")), order[0] if order else "")
+        spec = specs.get(view_key)
+        if spec is None:
+            raise ctx.ApiError("视图不存在：" + (requested or "（空）"), code="no_view", status=404)
+        fell_back = True
 
     route = dict(params)
     out = {"view": view_key, "data": {}, "cache": {},
            "missing": [k for k in (spec.get("require") or []) if not route.get(k)]}
+    if fell_back:
+        out["fallback_from"] = requested
     if want_shell:
         out["views"] = list(views or [])
         out["shell"] = shell or {}
