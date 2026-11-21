@@ -21,7 +21,7 @@ view:
     rows:
     - {label: 状态, value: "data.machine.click_machine.states|count", note: 个状态}
     - {label: 可点种类, value: "data.machine.click_machine.kinds|count", note: 种控件}
-    - {label: 迁移起点, value: "data.machine.click_machine.transitions|count", note: 个状态各有出边}
+    - {label: 迁移规则, value: "data.machine.click_machine.edges", note: 条允许的转移}
   - kind: table
     as: machine
     source: machine.click_machine.states

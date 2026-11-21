@@ -230,7 +230,10 @@ async def _route_resolve(ctx, payload):
 async def _route_click_machine(ctx, payload):
     """点击状态机规格：前端按它做门禁，架构页按它显示，测试按它做全覆盖。"""
     shell = ctx.demand_engine.console() or {}
-    return {"click_machine": shell.get("click_machine") or {}}
+    spec = dict(shell.get("click_machine") or {})
+    # 边数是迁移表自己算出来的，不手工维护：加一条迁移，展示页的数字自动跟着变
+    spec["edges"] = sum(len(v or []) for v in (spec.get("transitions") or {}).values())
+    return {"click_machine": spec}
 
 
 async def _noop():

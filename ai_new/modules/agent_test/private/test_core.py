@@ -305,6 +305,11 @@ class CoreTest(unittest.TestCase):
             for fld in ("enter", "exit"):
                 if k.get(fld):
                     self.assertIn(k[fld], states, "种类 %s 的 %s 指向未声明状态" % (k["key"], fld))
+        # 展示页的数字必须是算出来的，不能手写死
+        view = (root / "ai_new/modules/agent_common/demand_engine/data/demands/view-click-machine.yaml") \
+            .read_text(encoding="utf-8")
+        self.assertIn("click_machine.edges", view, "展示页的迁移条数必须取后端算出的 edges")
+        self.assertIn("edges", (root / "ai_new/modules/agent_common/demand_engine/__init__.py").read_text(encoding="utf-8"))
         for now, nxt in spec["transitions"].items():
             self.assertIn(now, states, "迁移表源状态未声明: %s" % now)
             self.assertTrue(set(nxt) <= states, "迁移目标未声明: %s" % nxt)
