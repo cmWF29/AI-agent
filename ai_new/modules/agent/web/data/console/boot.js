@@ -255,7 +255,7 @@ function deckLayout(d) {
   if (open) {
     stage.style.height = "";
     cards.forEach((c) => {
-      c.style.removeProperty("--pos"); c.style.removeProperty("transform");
+      c.style.removeProperty("--pos"); c.style.removeProperty("transform"); c.style.removeProperty("height");
       delete c.dataset.far; delete c.dataset.front;
     });
     return;
@@ -266,6 +266,9 @@ function deckLayout(d) {
   const vis = Math.min(n, 4);
   const m = deckMetrics(d);
   const h = cards[front].offsetHeight;   // 先量高度，再写位移：少一次强制重排
+  // 所有牌统一成前卡的高度：后层内容不画、宽度又少 8px，不管就会比前卡矮一截，
+  // 叠起来后完全被前卡盖住，看不出"下面还有牌"
+  cards.forEach((c) => { c.style.height = h + "px"; });
   cards.forEach((c, i) => {
     const p = (i - front + n) % n;
     const far = p >= vis;
