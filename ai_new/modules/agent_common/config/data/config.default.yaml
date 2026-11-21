@@ -110,6 +110,9 @@ web:
   gzip_min_bytes: 1024  # 响应体超过该字节数才压缩（客户端声明可接收时）
   paths:
     console: 'console/{rel}'
+  bundle:               # 控制台首屏把六个脚本合成一个响应：少六次握手就是少六次往返
+  - out: console.js
+    parts: [assets/js-yaml.min.js, app.js, spec.js, render.js, recorder.js, actions.js, boot.js]
 artifacts:
   max_bytes: 262144      # 交付件读取截断字节上限（256 KiB）
   paths:

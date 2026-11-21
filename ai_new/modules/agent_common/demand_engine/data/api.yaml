@@ -17,6 +17,15 @@ routes:
     out:
       result:
         type: any
+  demand_engine.batch:
+    doc: 同层多条需求一次往返（控制台翻页把 RTT 收到一次）
+    in:
+      calls:
+        type: any
+        req: false
+    out:
+      items:
+        type: any
   demand_engine.manifest:
     doc: 全量需求的可视化形状（执行链 + 树节点）
     out:

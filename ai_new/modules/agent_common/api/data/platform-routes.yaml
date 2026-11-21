@@ -10,6 +10,9 @@ routes:
   channel.watch:
     caller: http-sse
     reason: SSE 长流门面，按游标委托 channel-since 需求回 {items, cursor}。
+  demand_engine.batch:
+    caller: http-frontend
+    reason: 控制台一个视图要几份数据，同层的合到一次 HTTP 往返；前端直接点名要哪几条，不构成业务编排。
   clock.sleep:
     caller: engine
     reason: 需求语言 wait 语句与 SSE 轮询直接调用；平台计时等待，不是业务能力。

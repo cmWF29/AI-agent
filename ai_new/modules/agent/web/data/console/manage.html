@@ -721,12 +721,7 @@ textarea{min-height:72px;resize:vertical}
   </div>
 </div>
 
-<script defer src="/assets/js-yaml.min.js"></script>
-<script defer src="/app.js"></script>
-<script defer src="/spec.js"></script>
-<script defer src="/render.js"></script>
-<script defer src="/recorder.js"></script>
-<script defer src="/actions.js"></script>
-<script defer src="/boot.js"></script>
+<!-- 六个脚本由服务端按 web.bundle 清单合成一个响应：首屏只剩一次脚本往返 -->
+<script defer src="/console.js"></script>
 </body>
 </html>

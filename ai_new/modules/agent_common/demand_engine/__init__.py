@@ -17,10 +17,35 @@ async def _route_run(ctx, payload):
         payload.get("id"), payload.get("input") or {})
 
 
+async def _route_batch(ctx, payload):
+    """一次往返跑多条需求：控制台每翻一页要好几份数据，跨公网每条一个 RTT 就是几秒。
+
+    calls 是同层可并行的 [{id, input}]；同一层的依赖关系由调用方（前端）算好，
+    这里只负责并发跑、按序回。任一条失败只把那条标错，不拖垮同批其它数据。
+    """
+    import asyncio
+
+    calls = payload.get("calls") or []
+    if not isinstance(calls, list):
+        raise ctx.ApiError("calls 必须是列表", code="bad_calls", status=400)
+
+    async def one(call):
+        try:
+            out = await ctx.demand_engine.arun_callable(
+                (call or {}).get("id"), (call or {}).get("input") or {})
+            return {"ok": True, "result": out}
+        except Exception as exc:  # noqa: BLE001 — 单条失败单独回报
+            return {"ok": False, "error": str(exc), "code": getattr(exc, "code", "") or "demand_fail"}
+
+    items = await asyncio.gather(*[one(c) for c in calls])
+    return {"items": list(items)}
+
+
 def setup(ctx):
     """装配入口：装填 ctx.demand_engine（需求装载 + 解释执行）。"""
     ctx.demand_engine = _engine.Engine(ctx)
     ctx.api.register("demand_engine.run", _route_run, "按名跑一段编排需求", module="demand_engine")
+    ctx.api.register("demand_engine.batch", _route_batch, "同层多条需求一次往返", module="demand_engine")
     ctx.api.register("demand_engine.list", lambda c, p: ctx.demand_engine.items(),
                      "当前需求（on/do/enabled）", module="demand_engine")
     ctx.api.register("demand_engine.manifest", lambda c, p: ctx.demand_engine.manifest(),

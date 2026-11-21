@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import gzip
 import ssl
+import zlib
 import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -221,17 +222,28 @@ def _make_handler(ctx):
             except ctx.ApiError as e:
                 self._json_error(e)
                 return
-            data = str(asset.get("content") or "").encode("utf-8")
-            data, zipped = self._zip(data)
+            raw = str(asset.get("content") or "").encode("utf-8")
+            # 合成包路径不变、内容会变：只能靠校验。ETag 按未压缩字节算，
+            # 命中就回 304，客户端不用重下几 KB，也不至于拿到旧 JS。
+            etag = '"%x-%x"' % (zlib.crc32(raw), len(raw))
+            cache = ("no-cache" if (asset.get("no_cache") or Path(rel).suffix == ".html")
+                     else "public, max-age=300")
+            if self.headers.get("If-None-Match") == etag:
+                self.send_response(304)
+                self.send_header("ETag", etag)
+                self.send_header("Cache-Control", cache)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            data, zipped = self._zip(raw)
             self.send_response(200)
             self.send_header("Content-Type", asset.get("content_type") or "text/plain; charset=utf-8")
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", cache)
             if zipped:
                 self.send_header("Content-Encoding", "gzip")
                 self.send_header("Vary", "Accept-Encoding")
             self.send_header("Content-Length", str(len(data)))
-            suffix = Path(rel).suffix
-            self.send_header("Cache-Control",
-                             "no-cache" if suffix == ".html" else "public, max-age=300")
             self.end_headers()
             self.wfile.write(data)
 

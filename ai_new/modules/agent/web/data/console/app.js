@@ -152,6 +152,36 @@ async function run(demand, input) {
   return inner;
 }
 
+/* 同层多条需求一次往返：跨公网一条一个 RTT，翻一页发四五条就是四五次等待。
+   calls = [{id, input}]；返回按顺序的 [{ok, data, error}]，单条失败不拖垮同批。 */
+async function runBatch(calls) {
+  let resp, body;
+  try {
+    resp = await fetch("/api/rpc/demand_engine/batch", {
+      method: "POST", headers: headers(),
+      body: yamlBody({ calls: calls.map((c) => ({ id: c.id, input: c.input || {} })) })
+    });
+    body = await readYaml(resp).catch(() => ({ ok: false, error: uiText("bad_yaml"), code: "bad_yaml" }));
+  } catch (e) {
+    throw Object.assign(new Error(uiText("net_fail", e.message)), { status: 0, code: "network" });
+  }
+  if (!body.ok) {
+    if (resp.status === 401 || body.code === "unauthorized") { clearToken(); location.href = "/login.html"; return []; }
+    throw Object.assign(new Error(body.error || ("HTTP " + resp.status)),
+      { status: resp.status, code: body.code });
+  }
+  // /batch 直接回 {items}；/run 会多套一层 result.result，两种形状都认
+  const payload = body.result || {};
+  const items = payload.items || ((payload.result || {}).items) || [];
+  return calls.map((c, i) => {
+    const it = items[i] || {};
+    const inner = (it.result && it.result.result) || {};
+    if (!it.ok) return { ok: false, data: {}, error: it.error || uiText("demand_fail") };
+    if (inner && inner.ok === false) return { ok: false, data: {}, error: inner.error || inner.code || uiText("demand_fail") };
+    return { ok: true, data: inner || {} };
+  });
+}
+
 function banner(msg, kind) {
   const el = $("banner");
   if (!msg) { el.style.display = "none"; el.textContent = ""; el.className = ""; return; }
@@ -223,7 +253,10 @@ async function go(next, push) {
 
 async function boot() {
   // 视图规格与外壳词表各取一次、并行拿：页面自己不存任何业务字或菜单
-  const [items, shell] = await Promise.all([run("views-list", {}), run("console-shell", {})]);
+  const [viewsRes, shellRes] = await runBatch([
+    { id: "views-list", input: {} }, { id: "console-shell", input: {} }]);
+  if (!viewsRes.ok) throw new Error(viewsRes.error || uiText("no_views"));
+  const items = viewsRes.data, shell = shellRes.ok ? shellRes.data : {};
   applyShell(shell);
   for (const it of items) {
     const v = it && it.view;
@@ -319,10 +352,12 @@ function paramRefs(obj, acc) {
   if (typeof obj === "string") {
     const re = /\{([^{}]+)\}/g; let m;
     while ((m = re.exec(obj))) {
-      let p = m[1].split("|")[0].trim();
-      if (p.startsWith("data.")) p = p.slice(5);
-      else if (p.startsWith("cache.")) p = p.slice(6);
-      const head = p.split(".")[0];
+      // 只有 {data.x}/{cache.x} 才是"要等别的数据源"的依赖；
+      // {route.x}/{row.x}/{fields.x} 上手就有，不能算依赖——
+      // 算了会让每个数据源都"缺依赖"，被兜底逻辑串成一层一条，白等好几个 RTT。
+      const p = m[1].split("|")[0].trim();
+      if (!p.startsWith("data.") && !p.startsWith("cache.")) continue;
+      const head = p.replace(/^(data|cache)\./, "").split(".")[0];
       if (head) acc.add(head);
     }
   } else if (Array.isArray(obj)) obj.forEach((x) => paramRefs(x, acc));
@@ -343,12 +378,14 @@ async function loadData(spec, ctx) {
       else wait.push(src);
     }
     if (!ready.length) ready.push(wait.shift());  // 环或缺依赖兜底：串行先跑一个
-    await Promise.all(ready.map(async (src) => {
-      const params = fill(src.params || {}, ctx);
-      const res = await run(src.demand, params);
-      ctx.data[src.as] = res;
-      if (src.cache) ctx.cache[src.cache] = res;
-    }));
+    const calls = ready.map((src) => ({ src, id: src.demand, input: fill(src.params || {}, ctx) }));
+    const out = await runBatch(calls);
+    calls.forEach((c, i) => {
+      const r = out[i] || {};
+      if (!r.ok) throw Object.assign(new Error(r.error || uiText("demand_fail")), { code: "demand_fail" });
+      ctx.data[c.src.as] = r.data || {};
+      if (c.src.cache) ctx.cache[c.src.cache] = r.data || {};
+    });
     ready.forEach((s) => done.add(s.as));
     pending = wait;
   }
