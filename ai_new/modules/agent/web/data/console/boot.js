@@ -1,12 +1,67 @@
 /* boot：事件总线与启动
    只有一条：点到的按钮 -> 动作表 -> 执行器。
 */
-document.addEventListener("click", (e) => {
-  // 刚刚是滑动换牌，不是点卡片：吃掉这一次点击（只吞紧跟拖动的这一下，600ms 后自然失效）
-  if (DECK_SUPPRESS && performance.now() - DECK_SUPPRESS < 600) {
-    DECK_SUPPRESS = 0;
-    e.stopPropagation(); e.preventDefault(); return;
+/* ---- 点击状态机：全页只有一条点击入口 ----
+   状态：idle（正常）/ drag（手势进行中）/ swallow（拖动结束吞掉紧随的一次点击）/
+        busy（一个动作在飞，重复点击直接丢）/ modal（弹窗开着，只认弹窗自己的按钮）。
+   任何分支都不再自己判断"此刻能不能点"，判断只发生在这里。
+*/
+const UIS = {
+  state: "idle",
+  at: 0,
+  why: "boot",
+  swallowUntil: 0,
+  violations: 0,
+};
+const UIS_NEXT = {
+  idle: ["drag", "busy", "modal"],
+  drag: ["idle", "busy", "swallow"],
+  swallow: ["idle", "busy", "drag"],   // 吞点击的窗口里再滑，手势优先
+  busy: ["idle", "modal", "swallow"],
+  modal: ["idle"],
+};
+function uiTo(next, why) {
+  if (next === UIS.state) { UIS.why = why || ""; return UIS.state; }   // 同状态只更新原因
+  if (!UIS_NEXT[UIS.state] || UIS_NEXT[UIS.state].indexOf(next) < 0) {
+    // 迁移不合理说明某处漏了收尾：记一次并强制回 idle，别让页面卡在错的状态里
+    UIS.violations += 1;
+    UIS.lastBad = UIS.state + "->" + next + " (" + (why || "") + ")";
+    UIS.state = "idle";
   }
+  UIS.state = next;
+  UIS.why = why || "";
+  UIS.at = performance.now();
+  return UIS.state;
+}
+function uiBusy() { return UIS.state === "busy"; }
+/* 收尾看"这次动作自己的 promise"，包成函数再调用：
+   直接传 promise 会在设 busy 之前就把 execute 跑起来，弹窗抢先把状态改成 modal。 */
+function uiRun(fn, why) {
+  if (uiBusy()) return null;
+  uiTo("busy", why);
+  const done = () => { if (UIS.state === "busy") uiTo("idle", why + ":done"); };
+  let p;
+  try { p = fn(); } catch (err) { done(); throw err; }
+  Promise.resolve(p).then(done, done);
+  return p;
+}
+function uiModal(open) {
+  if (open) { if (UIS.state !== "modal") uiTo("modal", "modal:open"); return; }
+  if (UIS.state === "modal") uiTo("idle", "modal:close");
+}
+window.uiSnapshot = () => ({ state: UIS.state, why: UIS.why, violations: UIS.violations,
+  lastBad: UIS.lastBad || "" });
+
+function consumeSwallow() {
+  if (UIS.state !== "swallow") return false;
+  if (performance.now() <= UIS.swallowUntil) { uiTo("idle", "swallow:once"); return true; }
+  uiTo("idle", "swallow:expired");
+  return false;
+}
+
+function handleClick(e) {
+  if (consumeSwallow()) { e.stopPropagation(); e.preventDefault(); return; }
+  if (UIS.state === "modal") return;          // 弹窗里的事件由弹窗自己管
   const deckBtn = e.target.closest("[data-deck-open]");
   if (deckBtn) {
     const d = deckBtn.closest("[data-deck]");
@@ -16,9 +71,10 @@ document.addEventListener("click", (e) => {
   }
   const btn = e.target.closest("[data-act]");
   if (btn && !btn.disabled) {
-    const binding = ACTS[Number(btn.dataset.act)];
-    if (!binding) return;
-    if (binding.voice) return executeVoice(binding, btn);
+    if (uiBusy()) return;                    // 动作还没回来：重复点击不排队
+    const binding = ACTS.get(String(btn.dataset.act));
+    if (!binding) return;                    // 绑定表里没有：这次渲染已作废，页面该重取
+    if (binding.voice) return uiRun(() => executeVoice(binding, btn), "voice");
     if (binding.composer && !binding.act.modal) {
       const box = $("view-body").querySelector(".composer textarea");
       const text = (box && box.value || "").trim();
@@ -26,20 +82,29 @@ document.addEventListener("click", (e) => {
         banner(uiText("composer_empty") || binding.act.empty_hint || "请先输入内容", "err");
         return;
       }
-      return execute(binding, { text });
+      return uiRun(() => execute(binding, { text }), "composer");
     }
-    return execute(binding, {});
+    return uiRun(() => execute(binding, {}), "act");
   }
   const filterBtn = e.target.closest("[data-filter]");
   if (filterBtn) { FILTER = filterBtn.dataset.filter; return render(); }
   const goEl = e.target.closest("[data-go]");
   if (goEl) {
-    const binding = ACTS[Number(goEl.dataset.go)];
-    if (binding) return execute(binding, {});
+    if (uiBusy()) return;
+    const binding = ACTS.get(String(goEl.dataset.go));
+    if (binding) return uiRun(() => execute(binding, {}), "go");
+    return;
   }
   const navEl = e.target.closest("[data-nav]");
-  if (navEl) { closeDrawer(); return go({ view: navEl.dataset.nav }, true); }
-  if (e.target.closest("[data-crumb]")) return go(crumbUp(), true);
+  if (navEl) {
+    if (uiBusy()) return;
+    closeDrawer();
+    return uiRun(() => go({ view: navEl.dataset.nav }, true), "nav");
+  }
+  if (e.target.closest("[data-crumb]")) {
+    if (uiBusy()) return;
+    return uiRun(() => go(crumbUp(), true), "crumb");
+  }
   const memberEl = e.target.closest("[data-member]");
   if (memberEl) {
     e.stopPropagation();
@@ -54,7 +119,9 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (!e.target.closest("#popover")) closeMemberCard();
-});
+}
+document.addEventListener("click", handleClick);
+
 document.addEventListener("scroll", () => closeMemberCard(), true);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { closeDrawer(); return; }
@@ -73,10 +140,8 @@ document.addEventListener("keydown", (e) => {
 
 /* ---- 卡片堆叠（deck）：收缩时叠着放，左右滑动换牌；展开时铺成列表 ----
    位置由 --pos 决定（0=最上面那张），拖动只用 --dx 做临时位移，松手后重排。 ---- */
-let DECK_SUPPRESS = 0;   // 拖动结束的时间戳：只吞紧跟拖动的这一下点击。
 /* 真机触摸拖动后浏览器不会派发 click（pointermove 被 preventDefault 了），
-   所以这里不能当成"等一个 click 来清"的布尔锁——那样第二次滑动会被
-   pointerdown 里的判断挡掉，表现为"滑一张就滑不动了"。 */
+   吞点击的窗口交给上面 UI 状态机的 swallow，这里只记手势本身。 */
 let DECK_DRAG = null;
 
 function deckCards(d) { return [...d.querySelectorAll(".deck-stage > .pcard")]; }
@@ -132,11 +197,13 @@ function mountDecks() {
 
 document.addEventListener("pointerdown", (e) => {
   if (e.button > 0) return;
+  if (UIS.state !== "idle" && UIS.state !== "swallow") return;   // 动作在飞 / 弹窗开着，手势不接管
   const stage = e.target.closest && e.target.closest(".deck-stage");
   const d = stage && stage.closest("[data-deck]");
   if (!d || d.dataset.open === "1") return;
   if (e.target.closest("button")) return;
   DECK_DRAG = { d, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, moved: false, cards: deckCards(d) };
+  uiTo("drag", "deck");
 });
 /* 一帧只写一次 transform：触屏的 pointermove 可能比屏幕帧率还密，
    每次都写会让浏览器白算样式；攒到 rAF 里一起写，草稿留在 g.pending。 */
@@ -151,7 +218,7 @@ document.addEventListener("pointermove", (e) => {
   const dx = e.clientX - g.x, dy = e.clientY - g.y;
   if (!g.moved) {
     if (Math.abs(dx) < 10) return;
-    if (Math.abs(dx) <= Math.abs(dy)) { DECK_DRAG = null; return; }  // 纵向手势还给页面滚动
+    if (Math.abs(dx) <= Math.abs(dy)) { DECK_DRAG = null; uiTo("idle", "deck:scroll"); return; }  // 纵向手势还给页面滚动
     g.moved = true;
     g.d.dataset.dragging = "1";
     const front0 = g.cards[Number(g.d.dataset.pos) || 0];
@@ -173,7 +240,12 @@ function deckRelease(e) {
     const n = g.cards.length, cur = Number(g.d.dataset.pos) || 0;
     g.d.dataset.pos = String(((g.dx < 0 ? cur + 1 : cur - 1) + n) % n);
   }
-  DECK_SUPPRESS = g.moved ? performance.now() : 0;
+  if (g.moved) {   // 拖动后紧跟的那一下 click 属于松手，不算点击
+    uiTo("swallow", "deck:release");
+    UIS.swallowUntil = performance.now() + 600;
+  } else {
+    uiTo("idle", "deck:release");
+  }
   deckLayout(g.d);
 }
 document.addEventListener("pointerup", deckRelease);

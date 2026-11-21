@@ -242,6 +242,36 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(stray, [],
                          "控制台硬编码了业务需求 id，外壳又存了一份需求清单: %s" % stray)
 
+    def test_console_click_bindings_are_stable_ids(self):
+        """点击绑定必须是"单调 id 表 + 保活带走"，不许用数组下标。
+
+        下标在下次渲染/换页时会被改写；保活页拿回来的 DOM 还指着旧下标，
+        结果就是"第一次能点，回来再点没反应"。判据三条：
+        1. 生成属性走 id（`data-act="${id}"`），没有 `${ACTS.length - 1}` 这类序号；
+        2. 派发端按 id 查表（`ACTS.get(...)`），不是 `ACTS[Number(...)]`；
+        3. 保活实例保存并在恢复时接管这张表。
+        """
+        console = ROOT / "ai_new/modules/agent/web/data/console"
+        render = (console / "render.js").read_text(encoding="utf-8")
+        boot = (console / "boot.js").read_text(encoding="utf-8")
+        app = (console / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn("ACTS.length - 1", render, "点击绑定又退回数组下标了")
+        self.assertIn("ACTS.set(id", render, "缺少 id 绑定表写入")
+        self.assertIn("ACTS.get(", boot, "派发端必须按 id 查表")
+        self.assertNotIn("ACTS[Number(", boot, "派发端退回下标查表")
+        self.assertIn("acts: ACTS", app, "保活实例没有带上绑定表")
+        self.assertIn("ACTS = k.acts", app, "恢复时没有接管这一页的绑定表")
+
+    def test_console_clicks_have_one_entry_and_state_machine(self):
+        """所有点击只有一个入口：handleClick + 显式状态迁移表。"""
+        console = ROOT / "ai_new/modules/agent/web/data/console"
+        boot = (console / "boot.js").read_text(encoding="utf-8")
+        self.assertEqual(boot.count('document.addEventListener("click"'), 1,
+                         "点击入口必须唯一，别处不许再挂 click")
+        self.assertIn("const UIS_NEXT", boot, "缺少点击状态迁移表")
+        for state in ("idle", "drag", "swallow", "busy", "modal"):
+            self.assertIn('"%s"' % state, boot, "状态机缺状态: %s" % state)
+
     def test_console_shell_is_backend_driven(self):
         """导航、品牌、字与配色都只存后端一份：页面改了后端也跟着变，反过来也一样。
 

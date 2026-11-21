@@ -1,21 +1,28 @@
 /* render：规格 -> DOM（只认原语 cards/table/chat/kv/composer/empty）
    只认识原语（cards / table / chat / kv / composer / empty），不认识业务。
 */
+/* 点击绑定用"单调 id 表"，不用数组下标：
+   下标会被下一次渲染/别的页面改写，保活页拿回来的 DOM 就会点到别人身上（或点空）。 */
+function regAct(binding) {
+  ACT_SEQ += 1;
+  const id = "a" + ACT_SEQ;
+  ACTS.set(id, binding);
+  return id;
+}
 function actIndex(act, ctx) {
-  ACTS.push({ act, ctx });
-  return ACTS.length - 1;
+  return regAct({ act, ctx });
 }
 function buttonHtml(act, ctx, opts) {
   opts = opts || {};
   const binding = { act, ctx };
   if (opts.composer) binding.composer = true;
-  ACTS.push(binding);
+  const id = regAct(binding);
   const disabled = opts.disabled === true
     || (act.disabled_when != null && condOf(act.disabled_when, ctx));
   const hint = act.disabled_hint || opts.hint || "";
   const title = disabled && hint ? ` title="${esc(hint)}"` : "";
   const cls = act.tone === "primary" ? "primary" : (act.tone === "danger" ? "danger" : "");
-  return `<button class="${cls}" data-act="${ACTS.length - 1}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
+  return `<button class="${cls}" data-act="${id}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
 }
 function badgeHtml(value, ctx) {
   const s = String(value == null ? "" : value);
@@ -764,13 +771,11 @@ function docHtml(sec, ctx) {
 function composerHtml(sec, ctx) {
   const disabled = sec.disabled_when != null && condOf(sec.disabled_when, ctx);
   const submit = sec.submit || {};
-  ACTS.push({ act: submit, ctx, composer: true });
-  const submitIdx = ACTS.length - 1;
+  const submitId = regAct({ act: submit, ctx, composer: true });
   const voice = sec.voice || null;
-  let voiceIdx = -1;
+  let voiceId = "";
   if (voice) {
-    ACTS.push({ act: voice, ctx, composer: true, voice: true });
-    voiceIdx = ACTS.length - 1;
+    voiceId = regAct({ act: voice, ctx, composer: true, voice: true });
   }
   const hint = disabled ? (sec.disabled_hint || "") : "";
   const gate = disabled ? ` disabled${hint ? ` title="${esc(hint)}"` : ""}` : "";
@@ -779,14 +784,14 @@ function composerHtml(sec, ctx) {
   const busyVal = sec.busy_from ? String(fill(sec.busy_from, ctx) || "") : "";
   const busy = !disabled && busyVal && busyVal === (sec.busy_when || "running");
   const voiceBtn = voice && !disabled
-    ? `<button class="voice" data-act="${voiceIdx}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
+    ? `<button class="voice" data-act="${voiceId}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
     : "";
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
       <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
       ${acts}
       ${voiceBtn}
-      <button class="primary" data-act="${submitIdx}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
+      <button class="primary" data-act="${submitId}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
     </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
     ${busy ? `<div class="composer-hint busy">${esc(fill(sec.busy_text || "", ctx))}</div>` : ""}
@@ -853,7 +858,7 @@ function headHtml(spec, ctx) {
 }
 
 function renderView(spec, ctx) {
-  ACTS = [];
+  ACTS = new Map();   // 每页一份绑定表：旧页面的表由保活实例自己留着
   const head = headHtml(spec, ctx);
   const left = [], right = [], single = [];
   (spec.sections || []).forEach((sec, i) => {

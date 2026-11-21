@@ -123,6 +123,7 @@ function openForm(form, ctx) {
   $("modal-ok").textContent = fill((form.submit || {}).ok || uiText("ok"), ctx);
   $("modal-ok").disabled = false;
   $("modal").hidden = false;
+  if (typeof uiModal === "function") uiModal(true);
   const first = $("modal-form").querySelector("input:not([readonly]),textarea,select");
   if (first) first.focus();
   modalSubmit = async (fd) => {
@@ -143,7 +144,10 @@ function openForm(form, ctx) {
     await render({ keepBanner: true });
   };
 }
-function closeModal() { $("modal").hidden = true; modalSubmit = null; MODAL_CTX = null; }
+function closeModal() {
+  $("modal").hidden = true; modalSubmit = null; MODAL_CTX = null;
+  if (typeof uiModal === "function") uiModal(false);
+}
 function modalError(msg) {
   $("modal-err").className = "modal-err on";
   $("modal-err").textContent = msg;

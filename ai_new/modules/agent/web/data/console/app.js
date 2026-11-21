@@ -203,7 +203,7 @@ function when(ts) {
 
 /* ---- 路由与视图 ---- */
 let VIEWS = {}, FORMS = {}, state = { view: "" };
-let ACTS = [], FILTER = null, modalSubmit = null, MODAL_CTX = null;
+let ACTS = new Map(), ACT_SEQ = 0, FILTER = null, modalSubmit = null, MODAL_CTX = null;
 
 function viewSpec(view) { return VIEWS[view] || {}; }
 function viewParams(view) { return viewSpec(view).params || []; }
@@ -462,16 +462,19 @@ function keepPage(ctx) {
   PAGE_KEEP.set(key, {
     view: state.view, params: Object.assign({}, state),
     html: body.innerHTML, crumb: $("crumb").innerHTML,
-    scroll: scroll ? scroll.scrollTop : 0, ctx
+    scroll: scroll ? scroll.scrollTop : 0, ctx, acts: ACTS
   });
   while (PAGE_KEEP.size > KEEP_MAX) PAGE_KEEP.delete(PAGE_KEEP.keys().next().value);
 }
 function restorePage(k) {
+  DECK_DRAG = null;                       // 上一页没收尾的手势不能带进来
+  if (typeof uiTo === "function") uiTo("idle", "keep:restore");
   $("crumb").innerHTML = k.crumb || "";
   $("view-body").innerHTML = k.html;
   const scroll = document.querySelector("#view-body .view-scroll");
   if (scroll && k.scroll) scroll.scrollTop = k.scroll;
   LAST_CTX = k.ctx;
+  ACTS = k.acts || new Map();   // 接管这一页自己的绑定表，按钮才点得动
   const th = (k.ctx.data.thread && k.ctx.data.thread.thread) || {};
   LAST_STATUS = th.status || "";
   LAST_DRAFT_RUNNING = !!(k.ctx.data.draft && k.ctx.data.draft.running);
@@ -550,8 +553,19 @@ async function refreshAs(list) {
   }
   if (typeof mountDecks === "function") mountDecks();
   if (typeof expandFolds === "function") expandFolds();
+  pruneActs();
   keepPage(ctx);
   doneRefresh();
+}
+/* 局部刷新替换了区块，旧区块的 id 会留在表里：按 DOM 反查删掉，表不会越用越大 */
+function pruneActs() {
+  if (typeof ACTS === "undefined" || !ACTS || !ACTS.forEach) return;
+  const alive = new Set();
+  document.querySelectorAll("#view-body [data-act], #view-body [data-go]").forEach((n) => {
+    if (n.dataset.act) alive.add(n.dataset.act);
+    if (n.dataset.go) alive.add(n.dataset.go);
+  });
+  for (const id of Array.from(ACTS.keys())) if (!alive.has(id)) ACTS.delete(id);
 }
 function doneRefresh() {
   INV_BUSY = false;
