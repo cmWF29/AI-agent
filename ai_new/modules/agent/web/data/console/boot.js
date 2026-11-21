@@ -2,6 +2,15 @@
    只有一条：点到的按钮 -> 动作表 -> 执行器。
 */
 document.addEventListener("click", (e) => {
+  // 刚刚是滑动换牌，不是点卡片：吃掉这一次点击
+  if (DECK_SUPPRESS) { DECK_SUPPRESS = false; e.stopPropagation(); e.preventDefault(); return; }
+  const deckBtn = e.target.closest("[data-deck-open]");
+  if (deckBtn) {
+    const d = deckBtn.closest("[data-deck]");
+    d.dataset.open = d.dataset.open === "1" ? "0" : "1";
+    deckLayout(d);
+    return;
+  }
   const btn = e.target.closest("[data-act]");
   if (btn && !btn.disabled) {
     const binding = ACTS[Number(btn.dataset.act)];
@@ -58,6 +67,88 @@ document.addEventListener("keydown", (e) => {
     }
   }
 });
+
+/* ---- 卡片堆叠（deck）：收缩时叠着放，左右滑动换牌；展开时铺成列表 ----
+   位置由 --pos 决定（0=最上面那张），拖动只用 --dx 做临时位移，松手后重排。 ---- */
+let DECK_SUPPRESS = false;   // 拖动结束的那一下点击不算点击
+let DECK_DRAG = null;
+
+function deckCards(d) { return [...d.querySelectorAll(".deck-stage > .pcard")]; }
+
+function deckLayout(d) {
+  const cards = deckCards(d), n = cards.length;
+  const stage = d.querySelector(".deck-stage");
+  const btn = d.querySelector("[data-deck-open]");
+  const posEl = d.querySelector(".deck-pos");
+  const open = d.dataset.open === "1";
+  if (btn) btn.textContent = open ? uiText("deck_collapse") : uiText("deck_expand", n);
+  if (posEl) {
+    posEl.style.display = open ? "none" : "";
+    posEl.textContent = uiText("deck_pos", (Number(d.dataset.pos) || 0) + 1, n);
+  }
+  if (!n || !stage) return;
+  if (open) {
+    stage.style.height = "";
+    cards.forEach((c) => {
+      c.style.removeProperty("--pos"); c.style.removeProperty("--dx");
+      delete c.dataset.far; delete c.dataset.front;
+    });
+    return;
+  }
+  const front = Number(d.dataset.pos) || 0;
+  const vis = Math.min(n, 4);
+  const step = 13;   // 与 css 的 --oy 一致，只用来算容器高度
+  cards.forEach((c, i) => {
+    const p = (i - front + n) % n;
+    c.style.setProperty("--pos", String(p >= vis ? 0 : p));
+    if (p >= vis) c.dataset.far = "1"; else delete c.dataset.far;
+    if (p === 0) c.dataset.front = "1"; else delete c.dataset.front;
+  });
+  stage.style.height = (cards[front].offsetHeight + step * (vis - 1)) + "px";
+}
+
+function mountDecks() {
+  document.querySelectorAll("#view-body [data-deck]").forEach(deckLayout);
+}
+
+document.addEventListener("pointerdown", (e) => {
+  if (DECK_SUPPRESS || e.button > 0) return;
+  const stage = e.target.closest && e.target.closest(".deck-stage");
+  const d = stage && stage.closest("[data-deck]");
+  if (!d || d.dataset.open === "1") return;
+  if (e.target.closest("button")) return;
+  DECK_DRAG = { d, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, moved: false, cards: deckCards(d) };
+});
+document.addEventListener("pointermove", (e) => {
+  const g = DECK_DRAG;
+  if (!g || e.pointerId !== g.id) return;
+  const dx = e.clientX - g.x, dy = e.clientY - g.y;
+  if (!g.moved) {
+    if (Math.abs(dx) < 10) return;
+    if (Math.abs(dx) <= Math.abs(dy)) { DECK_DRAG = null; return; }  // 纵向手势还给页面滚动
+    g.moved = true;
+  }
+  g.dx = dx;
+  const front = g.cards[Number(g.d.dataset.pos) || 0];
+  if (front) { front.style.transition = "none"; front.style.setProperty("--dx", dx + "px"); }
+  if (e.cancelable) e.preventDefault();
+}, { passive: false });
+function deckRelease(e) {
+  const g = DECK_DRAG;
+  if (!g) return;
+  DECK_DRAG = null;
+  const front = g.cards[Number(g.d.dataset.pos) || 0];
+  if (front) { front.style.removeProperty("transition"); front.style.removeProperty("--dx"); }
+  if (g.moved && Math.abs(g.dx) >= 56) {
+    const n = g.cards.length, cur = Number(g.d.dataset.pos) || 0;
+    g.d.dataset.pos = String(((g.dx < 0 ? cur + 1 : cur - 1) + n) % n);
+  }
+  DECK_SUPPRESS = !!g.moved;
+  deckLayout(g.d);
+}
+document.addEventListener("pointerup", deckRelease);
+document.addEventListener("pointercancel", deckRelease);
+window.addEventListener("resize", mountDecks);
 
 function navTarget(view) {
   return viewSpec(view).nav || view;

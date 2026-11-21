@@ -17,6 +17,7 @@ view:
   sections:
   - kind: cards
     source: list.items
+    layout: deck
     title: row.cn
     meta:
     - {label: 提示词, value: row.prompt_file}

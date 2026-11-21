@@ -55,7 +55,8 @@ view:
   - kind: cards
     source: positions.items
     heading: 项目岗位
-    note: "{data.positions.items.length} 个岗位 · 点卡进岗位详情；可在本项目单独启停"
+    layout: deck
+    note: "{data.positions.items.length} 个岗位 · 左右滑动换卡；点卡进岗位详情，可在本项目单独启停"
     title: row.cn
     badge: {when: row.disabled == true, text: 本项目已禁用}
     stat: {count: "row.flow.checks|count", label: 项门禁检查, note: "流程 {row.flow.cn}"}
@@ -84,7 +85,8 @@ view:
   - kind: cards
     source: skills.items
     heading: 项目技能
-    note: "{data.skills.items|count} 个技能 · 引用公共技能库，可在本项目单独禁用"
+    layout: deck
+    note: "{data.skills.items|count} 个技能 · 左右滑动换卡；可在本项目单独禁用"
     title: row.cn
     badge: {when: row.disabled_project == true, text: 本项目已禁用}
     meta:
@@ -112,7 +114,8 @@ view:
   - kind: cards
     source: ptools.items
     heading: 项目工具
-    note: "{data.ptools.items|count} 个工具 · 内置 ∪ 公共外部登记，可在本项目单独禁用"
+    layout: deck
+    note: "{data.ptools.items|count} 个工具 · 左右滑动换卡；可在本项目单独禁用"
     title: row.name
     meta:
     - {label: 模块, value: row.module}

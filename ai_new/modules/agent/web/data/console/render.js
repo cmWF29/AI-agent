@@ -41,7 +41,9 @@ function emptyHtml(block) {
 function cardsHtml(sec, ctx) {
   const rows = arr(ref(sec.source, ctx));
   if (!rows.length) return emptyHtml(sec.empty);
-  const cards = rows.map((row) => {
+  // layout: deck = 卡片堆叠：收缩时叠在一起、左右滑动换牌，点「展开」铺成列表
+  const deck = sec.layout === "deck";
+  const cards = rows.map((row, idx) => {
     const c = { ...ctx, row };
     const archived = sec.archived_when != null && condOf(sec.archived_when, c);
     const acts = (sec.actions || []).map((a) => buttonHtml(a, c)).join("");
@@ -58,7 +60,7 @@ function cardsHtml(sec, ctx) {
     const groups = Array.isArray(sec.chips) ? sec.chips : (sec.chips ? [sec.chips] : []);
     const chips = groups.map((g) => shareChips(g, c)).join("");
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
-    return `<article class="pcard${archived ? " archived" : ""}" ${click >= 0 ? `data-go="${click}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
+    return `<article class="pcard${archived ? " archived" : ""}" ${click >= 0 ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
       <div class="acts">${acts}</div>
       <h3 class="pname">${esc(fill(sec.title, c))}</h3>
       ${badge}${stat}
@@ -67,7 +69,14 @@ function cardsHtml(sec, ctx) {
       <span class="ar">›</span>
     </article>`;
   }).join("");
-  return `<div class="cards">${cards}</div>`;
+  if (!deck) return `<div class="cards">${cards}</div>`;
+  return `<div class="cards deck" data-deck="1" data-open="0" data-pos="0">
+    <div class="deck-bar">
+      <span class="deck-pos">${esc(uiText("deck_pos", 1, rows.length))}</span>
+      <button class="deck-more" data-deck-open="1">${esc(uiText("deck_expand", rows.length))}</button>
+    </div>
+    <div class="deck-stage">${cards}</div>
+  </div>`;
 }
 
 function shareChips(spec, c) {
@@ -860,6 +869,7 @@ function renderView(spec, ctx) {
   $("view-body").innerHTML = head + `<div class="view-scroll">${body}</div>`;
   pruneEmptyCards();
   expandFolds();
+  if (typeof mountDecks === "function") mountDecks();
   // 浏览器标题也由外壳词表拼：视图名走规格，品牌名走后端
   const name = String(fill(spec.heading || spec.heading_from || "", ctx) || "").trim();
   if (BRAND.title_view && name) {

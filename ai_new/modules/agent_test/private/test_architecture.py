@@ -522,6 +522,30 @@ class TestViewPaths(unittest.TestCase):
         self.assertEqual(bad, [], "导航名与页面标题不一致: %s" % bad)
 
 
+class TestViewLayouts(unittest.TestCase):
+    """区块排版也是契约：只允许写已知版式，且只能挂在该版式成立的区块类型上。"""
+
+    LAYOUTS = {"deck": ("cards",)}   # 卡片堆叠只对卡片清单成立
+
+    def test_section_layout_is_known(self):
+        demands = module_dir("agent_common", "demand_engine") / "data" / "demands"
+        bad = []
+        for path in sorted(demands.glob("view-*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            view = rec.get("view") or {}
+            for sec in view.get("sections") or []:
+                layout = sec.get("layout")
+                if not layout:
+                    continue
+                kinds = self.LAYOUTS.get(str(layout))
+                if kinds is None:
+                    bad.append("%s 用了未登记的版式 %r" % (path.name, layout))
+                elif sec.get("kind") not in kinds:
+                    bad.append("%s 把版式 %r 挂到了 %r 区块上"
+                               % (path.name, layout, sec.get("kind")))
+        self.assertEqual(bad, [], "区块版式不合法: %s" % bad)
+
+
 DEAD_DOC_CONCEPTS = (
     "data/rules/calls.yaml",
     "三种通道",
