@@ -29,7 +29,8 @@ view:
       label: 工单
       note: "{row.counts.open} 进行中 · {row.counts.closed} 已结单"
     meta:
-    - {label: 建, value: row.project.created, format: when}
+    - {label: 建, value: "row.project.created|when"}
+    - {label: 最近, value: "row.tickets.0.title", fallback: 这个项目还没有工单}
     actions:
     - {label: 改名, modal: project.rename}
     - {label: 归档, demand: projects-archive, params: {id: row.project.id},

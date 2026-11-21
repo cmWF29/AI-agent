@@ -11,8 +11,24 @@ callable: false
 do: []
 view:
   key: ticket
-  labels: {created: 建单, pm_start: PM 开工, role_spawn: 派角色, child_split: 拆子单,
-           repush: 回催缺口, review_pass: 评审达标, exhausted: 卡点, note: 备注, closed: 结单}
+  # 事件词与状态词同表：事件看历史、状态看徽章，两边都从后端词表取
+  labels:
+    created: 建单
+    pm_start: PM 开工
+    role_spawn: 派角色
+    child_split: 拆子单
+    repush: 回催缺口
+    review_pass: 评审达标
+    exhausted: 卡点
+    note: 备注
+    closed: 已结单
+    queued: 排队中
+    running: 进行中
+    doing: 进行中
+    idle: 等待
+    done: 已完成
+    gone: 已失效
+    error: 异常
   params: [project, ticket]
   nav: projects
   parent: {view: project, params: {project: "{route.project}"}}
@@ -38,7 +54,7 @@ view:
   - kind: chat
     lane: left
     source: thread.thread
-    badge: '{thread.ticket.status}'
+    badge: '{thread.ticket.status|label}'
     meta:
     - '{thread.ticket.id}'
     - '{thread.ticket.project|project_name}'

@@ -7,6 +7,15 @@ callable: false
 'on': []
 do: []
 view:
+  labels:
+    queued: 排队中
+    running: 进行中
+    doing: 进行中
+    idle: 等待
+    done: 已完成
+    closed: 已结单
+    gone: 已失效
+    error: 异常
   key: project
   params: [project]
   nav: projects
@@ -29,20 +38,31 @@ view:
   - {label: ＋ 新建工单, tone: primary, modal: ticket.new,
      disabled_when: "{project.archived}", disabled_hint: 已归档项目不能再建工单}
   sections:
-  - kind: table
+  # 工单排第一：项目最要紧的是"现在有哪些活、干到哪了"
+  - kind: cards
+    source: tickets.items
+    heading: 工单
+    note: "共 {data.tickets.items|count} 条 · 进行中 {data.tickets.items|count(status!=closed)} · 已结单 {data.tickets.items|count(status=closed)}"
+    title: row.title
+    meta:
+    - {label: 工单号, value: row.id}
+    - {label: 状态, value: "row.status|label"}
+    - {label: 更新, value: "row.updated|when"}
+    - {label: PM, value: row.pm, fallback: "—"}
+    on_click: {view: ticket, params: {project: "{route.project}", ticket: row.id}}
+    empty: {text: 这个项目还没有工单，点右上角「＋ 新建工单」}
+  - kind: cards
     source: positions.items
     heading: 项目岗位
-    summarize: true
-    title: 项目岗位
-    count_note: "{data.positions.items.length} 个岗位（岗位 ↔ 流程 ↔ 工具绑定在此一行看全；可在本项目单独禁用岗位或工具）"
-    columns:
-    - {label: 岗位, value: row.cn, fallback: row.id, sub: row.prompt_file}
-    - {label: 绑定流程, value: row.flow.cn, fallback: row.flow_id}
-    - {label: 流程状态链, value: row.stage_text, muted: true}
-    - {label: 可用工具, value: row.tools_sum, sub: row.tools_text, muted: true}
-    - {label: 项目内禁用, value: row.tools_disabled, fallback: "—", muted: true}
-    - {label: 门禁检查, value: "row.flow.checks|count", suffix: 项, muted: true}
-    - {label: 状态, badge: row.disabled_text}
+    note: "{data.positions.items.length} 个岗位 · 点卡进岗位详情；可在本项目单独启停"
+    title: row.cn
+    badge: {when: row.disabled == true, text: 本项目已禁用}
+    stat: {count: "row.flow.checks|count", label: 项门禁检查, note: "流程 {row.flow.cn}"}
+    chips: {label: 状态机, from: row.stages, text: cn}
+    meta:
+    - {label: 提示词, value: row.prompt_file}
+    - {label: 可用工具, value: row.tools_sum}
+    on_click: {view: position, params: {position: row.id}}
     actions:
     - label: 禁用
       demand: project-override-toggle
@@ -55,25 +75,22 @@ view:
     - label: 启用
       demand: project-override-toggle
       params: {project: "{project.id}", kind: roles, id: row.id, enabled: true}
-      disabled_when: "row.locked == true"
-      disabled_hint: 只读岗位不可启停
+      disabled_when: "row.disabled != true || row.locked == true"
+      disabled_hint: 已启用，无需再启用
       flash: 已启用岗位：{row.cn}
       stay: true
-    on_click: {view: position, params: {position: row.id}}
     empty: {text: 这个项目还没有岗位}
-  - kind: table
+  - kind: cards
     source: skills.items
     heading: 项目技能
-    summarize: true
-    title: 项目技能
-    count_note: "{data.skills.items.length} 个技能（引用公共技能库；可在本项目单独禁用）"
-    columns:
-    - {label: 技能, value: row.cn, fallback: row.id}
-    - {label: 岗位, value: row.role_cn, fallback: "—", muted: true}
-    - {label: 流程, value: row.flow_text, fallback: "—", muted: true}
-    - {label: 工具, value: row.tools, muted: true}
-    - {label: 公共状态, badge: row.status_text}
-    - {label: 项目状态, badge: row.disabled_text}
+    note: "{data.skills.items|count} 个技能 · 引用公共技能库，可在本项目单独禁用"
+    title: row.cn
+    badge: {when: row.disabled_project == true, text: 本项目已禁用}
+    meta:
+    - {label: 归属岗位, value: row.role_cn, fallback: "—"}
+    - {label: 流程, value: row.flow_text, fallback: "—"}
+    - {label: 工具, value: row.tools}
+    - {label: 公共状态, value: row.status_text}
     actions:
     - label: 禁用
       demand: project-override-toggle
@@ -91,19 +108,17 @@ view:
       flash: 已启用技能：{row.cn}
       stay: true
     empty: {text: 这个项目还没有技能}
-  - kind: table
+  - kind: cards
     source: ptools.items
     heading: 项目工具
-    summarize: true
-    title: 项目工具
-    count_note: "{data.ptools.items.length} 个工具（内置 ∪ 公共外部登记；可在本项目单独禁用）"
-    columns:
-    - {label: 工具名, value: row.name, sub: row.module}
+    note: "{data.ptools.items|count} 个工具 · 内置 ∪ 公共外部登记，可在本项目单独禁用"
+    title: row.name
+    meta:
+    - {label: 模块, value: row.module}
     - {label: 来源, value: row.source}
     - {label: 说明, value: row.desc}
     - {label: 依赖, value: row.deps}
-    - {label: 状态, badge: row.status_text}
-    - {label: 项目状态, badge: row.disabled_text}
+    - {label: 状态, value: row.status_text}
     actions:
     - label: 禁用
       demand: project-override-toggle
@@ -121,25 +136,6 @@ view:
       flash: 已启用工具：{row.name}
       stay: true
     empty: {text: 这个项目还没有工具}
-  - kind: table
-    source: tickets.items
-    heading: 工单
-    summarize: true
-    title: 工单
-    count_note: "{data.tickets.items.length} 条 / 进行中 {data.tickets.items|count(status!=closed)}"
-    filters:
-    - {key: all, label: 全部}
-    - {key: open, label: 进行中, keep: "status!=closed"}
-    - {key: closed, label: 已结单, keep: "status=closed"}
-    sort: {by: updated, order: desc}
-    columns:
-    - {label: 标题, value: row.title, sub: row.id}
-    - {label: 状态, badge: row.status}
-    - {label: 类型, value: row.kind, fallback: normal, muted: true}
-    - {label: 更新, value: row.updated, format: when, muted: true}
-    - {label: PM, value: row.pm, fallback: "—", muted: true}
-    on_click: {view: ticket, params: {project: "{route.project}", ticket: row.id}}
-    empty: {text: 这个项目还没有工单}
 expect:
   given:
     input: {}

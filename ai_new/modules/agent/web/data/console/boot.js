@@ -62,22 +62,13 @@ document.addEventListener("keydown", (e) => {
 function navTarget(view) {
   return viewSpec(view).nav || view;
 }
-/* 导航完全由后端菜单渲染：侧栏全部项，手机底栏取后端标记 mobile 的前四项 + 更多。
+/* 导航完全由后端菜单渲染：手机只用抽屉里的侧栏，页面底部不再常驻底栏。
    加一个视图 = 视图规格里多一行 menu，这里零改动。 */
 function renderMenus(menus) {
   const side = $("side-nav");
   if (side) {
     side.innerHTML = arr(menus).map((m) =>
       `<button data-nav="${esc(m.key)}">${esc(m.label || m.key)}</button>`).join("");
-  }
-  const bar = $("tab-bar");
-  if (bar) {
-    const mob = arr(menus).filter((m) => m.mobile).slice(0, 4);
-    bar.innerHTML = mob.map((m) =>
-      `<button data-nav="${esc(m.key)}">${esc(m.short || m.label || m.key)}</button>`).join("")
-      + `<button class="tab-more" id="tab-more" data-ui-aria="more">${esc(uiText("more"))}</button>`;
-    const more = $("tab-more");
-    if (more) more.onclick = () => openDrawer();
   }
 }
 function highlightNav() {

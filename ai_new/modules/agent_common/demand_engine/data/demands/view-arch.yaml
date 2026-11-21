@@ -1,6 +1,6 @@
 id: view-arch
-title: 架构视图：需求全景、路由契约与实时链路摊开看
-description: "架构视图：需求全景、路由契约与实时链路摊开看。页面只声明区块，形状归模块与需求"
+title: 架构视图：需求全景、路由契约与实时调用摊开看
+description: "架构视图：需求全景、路由契约与实时调用摊开看。页面只声明区块，形状归模块与需求"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -14,7 +14,7 @@ view:
   heading: 架构
   subheading: 需求是数据、模块是能力、契约是约束；一条需求怎么编译、落到哪条路由、由哪个岗位执行，都在这一页
   actions:
-  - {label: 全部链路, view: traces}
+  - {label: 全部调用, view: traces}
   data:
   - {as: mf, demand: demands-manifest}
   - {as: api, demand: api-snapshot}
@@ -49,9 +49,10 @@ view:
     empty: {text: 暂无需求}
   - kind: table
     source: data.api.items
-    limit: 40
+    limit: 10
     list: true
     fold: {title: "路由与契约"}
+    note: 只列前 10 条；完整清单点右上「全部调用」
     columns:
     - {label: 路由, value: row.name, sub: row.module}
     - {label: 通道, value: row.stream, fallback: 直连, muted: true}
@@ -61,7 +62,8 @@ view:
     empty: {text: 暂无路由}
   - kind: table
     source: data.slow.items
-    heading: 今日慢请求（链路＝一次请求，按 P95 排序）
+    limit: 8
+    heading: 今日慢请求（按 P95 排序）
     columns:
     - {label: 阶段, value: row.name}
     - {label: 次数, value: row.n}

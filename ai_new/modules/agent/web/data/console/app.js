@@ -380,11 +380,16 @@ function crumbUp() {
 }
 function renderCrumb(spec, ctx) {
   const parts = (spec.crumb || []).map((x) => fill(x, ctx)).filter(Boolean);
-  if (!parts.length) { $("crumb").innerHTML = ""; return; }
+  // 只有一级且与页面大标题相同，就别重复印两遍（项目页不该顶着"项目 / 项目"）
+  const head = fill(spec.heading || spec.heading_from || "", ctx);
+  if (parts.length <= 1 && (!parts.length || String(parts[0]) === String(head))) {
+    $("crumb").innerHTML = ""; return;
+  }
+  // 末段=当前页（不可点）；倒数第二段=上一级（点了回上级）；更上面的只是层级标识
   $("crumb").innerHTML = parts.map((text, i) => {
-    const last = i === parts.length - 1;
-    if (last) return `<span class="now">${esc(text)}</span>`;
-    return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
+    if (i === parts.length - 1) return `<span class="now">${esc(text)}</span>`;
+    if (i === parts.length - 2) return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
+    return `<span class="up">${esc(text)}</span><span class="sep">/</span>`;
   }).join("");
 }
 

@@ -48,8 +48,13 @@ function cardsHtml(sec, ctx) {
     const badge = (sec.badge && condOf(sec.badge.when, c))
       ? `<span class="badge archived">${esc(fill(sec.badge.text, c))}</span>` : "";
     const stat = sec.stat ? `<div class="stat"><b>${esc(fill(sec.stat.count, c))}</b> ${esc(fill(sec.stat.label, c))}<span class="muted">· ${esc(fill(sec.stat.note || "", c))}</span></div>` : "";
-    const meta = (sec.meta || []).filter((m) => m.hide_if_empty ? !!fmtVal(m, c) : true)
-      .map((m) => `<span>${esc(fill(m.label, c))} ${esc(fmtVal(m, c))}</span>`).join("");
+    const metaVal = (m) => {
+      const v = fmtVal(m, c);
+      if (v === undefined || v === null || v === "") return m.fallback ? fill(m.fallback, c) : "";
+      return v;
+    };
+    const meta = (sec.meta || []).filter((m) => m.hide_if_empty ? !!metaVal(m) : true)
+      .map((m) => `<span>${esc(fill(m.label, c))} ${esc(metaVal(m))}</span>`).join("");
     const groups = Array.isArray(sec.chips) ? sec.chips : (sec.chips ? [sec.chips] : []);
     const chips = groups.map((g) => shareChips(g, c)).join("");
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
@@ -782,7 +787,7 @@ function composerHtml(sec, ctx) {
 function sectionHtml(sec, ctx) {
   const kind = sec.kind;
   let html = "";
-  if (kind === "cards") html = cardsHtml(sec, ctx);
+  if (kind === "cards") html = secHead(sec, ctx) + cardsHtml(sec, ctx);
   else if (kind === "stats") html = statsHtml(sec, ctx);
   else if (kind === "flow") html = flowHtml(sec, ctx);
   else if (kind === "map") html = mapHtml(sec, ctx);
@@ -809,7 +814,8 @@ function pruneEmptyCards() {
   });
 }
 
-function mountPager() {
+function expandFolds() {
+  // 手机上一页到底：折叠块直接摊开，标题与说明都看得见
   const rail = document.querySelector("#view-body .view-scroll");
   if (!rail) return;
   // 群聊页把双栏合成一张卡，里面的 chat/composer 不是独立页，不参与翻页计数
@@ -820,23 +826,10 @@ function mountPager() {
   if (!cards.length) return;
   // 手机上是纵向卡片堆叠：折叠块默认摊开，免得只看到一行标题不知道这页是什么
   if (getComputedStyle(rail).flexDirection === "column") {
-    cards.forEach((c) => c.querySelectorAll("details").forEach((d) => { d.open = true; }));
+    // 只摊开区块级的折叠（整块内容），组/条目级保持可点，否则一棵树会展开成几万像素
+    cards.forEach((c) => c.querySelectorAll(":scope > details, :scope > .orphans > details")
+      .forEach((d) => { d.open = true; }));
   }
-  if (cards.length < 2) return;
-  const pager = document.createElement("div");
-  pager.className = "view-pager";
-  pager.innerHTML = `<span class="cur">1</span><span class="sep">/</span><span class="all">${cards.length}</span>`;
-  $("view-body").appendChild(pager);
-  const cur = pager.querySelector(".cur");
-  rail.addEventListener("scroll", () => {
-    const edge = rail.getBoundingClientRect().top;
-    let idx = 0, best = Infinity;
-    cards.forEach((c, i) => {
-      const d = Math.abs(c.getBoundingClientRect().top - edge);
-      if (d < best) { best = d; idx = i; }
-    });
-    cur.textContent = String(idx + 1);
-  }, { passive: true });
 }
 
 function renderView(spec, ctx) {
@@ -866,7 +859,7 @@ function renderView(spec, ctx) {
   // 内容区单独包一层：桌面纵向排布，手机变成横滑吸附的卡片轨
   $("view-body").innerHTML = head + `<div class="view-scroll">${body}</div>`;
   pruneEmptyCards();
-  mountPager();
+  expandFolds();
   // 浏览器标题也由外壳词表拼：视图名走规格，品牌名走后端
   const name = String(fill(spec.heading || spec.heading_from || "", ctx) || "").trim();
   if (BRAND.title_view && name) {

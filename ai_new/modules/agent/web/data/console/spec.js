@@ -55,6 +55,7 @@ function applyChain(val, chain, ctx) {
     const t = String(raw).trim();
     if (t === "when") val = when(val);
     else if (t === "count") val = arr(val).length;
+    else if (t === "label") val = (val == null || val === "") ? val : (LABELS[String(val)] || val);
     else if (t === "project_name") val = projectName(val, ctx);
     else if (t.startsWith("count(") && t.endsWith(")")) {
       const cond = t.slice(6, -1);
