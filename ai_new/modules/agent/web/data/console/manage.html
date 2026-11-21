@@ -137,8 +137,8 @@ main .crumb{margin-bottom:14px}
    不会和前卡的文字混成一团（微信那种合并转发的观感） */
 .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"])>*{visibility:hidden}
 /* 露出来的那道边要看得见：底色压深一档，再补一圈内描边 */
-.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){background:var(--line-2);
-  box-shadow:inset 0 0 0 1px var(--line)}
+.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){background:#eef1f6;
+  box-shadow:inset 0 0 0 1px #cfd6e0}
 .deck[data-open="0"] .deck-stage>.pcard[data-front="1"]{box-shadow:0 12px 26px rgba(0,0,0,.11);will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){box-shadow:0 1px 3px rgba(16,24,40,.10)}
 /* 拖动期间收掉大模糊阴影：移动中的卡每帧都要重绘阴影 */
@@ -499,7 +499,7 @@ textarea{min-height:72px;resize:vertical}
   .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
   .cards{display:flex;flex-direction:column;gap:10px}
-  .deck-stage{--ox:8px;--oy:14px}
+  .deck-stage{--ox:8px;--oy:17px}
   .deck[data-open="1"] .deck-stage{display:flex;flex-direction:column;gap:10px}
   /* 手机端不要阴影：层次用边框和底色区分，卡片堆叠也一样 */
   .pcard,.card,.tbl-wrap,.tree-node,.stat-strip,.side-card,.flow-card,.wf,
