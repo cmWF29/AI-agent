@@ -4,6 +4,7 @@ description: 工单交付件清单：artifacts-list 需求 + 模式过滤。过�
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []

@@ -4,6 +4,7 @@ description: "启用 Skill：把 Skill 单元状态翻回 enabled，归属它的
 tags:
 - library
 - write
+touch: [skills-list, project-skills]
 enabled: true
 callable: true
 'on': []

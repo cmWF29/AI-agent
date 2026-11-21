@@ -19,6 +19,7 @@ view:
   - {as: position, demand: position-get, params: {id: "{route.position}"}}
   sections:
   - kind: kv
+    as: position
     source: position
     heading: 岗位信息
     rows:
@@ -32,6 +33,7 @@ view:
       suffix: 项
       muted: true
   - kind: table
+    as: position
     source: position.stages
     heading: 流程状态机（岗位预定，模型必须照着走）
     hide_when_empty: true
@@ -43,28 +45,33 @@ view:
     - {label: 下一状态, value: row.next, fallback: "—", muted: true}
     - {label: 终态, value: row.terminal, fallback: "—", muted: true}
   - kind: doc
+    as: position
     source: position.prompt
     heading: 提示词正文
     hide_when_empty: true
   - kind: table
+    as: position
     source: position.must_dos
     heading: 必须做到
     hide_when_empty: true
     columns:
     - {label: 条目, value: "{row}"}
   - kind: table
+    as: position
     source: position.forbidden
     heading: 禁止事项
     hide_when_empty: true
     columns:
     - {label: 红线, value: "{row}"}
   - kind: table
+    as: position
     source: position.must_outputs
     heading: 产出约束
     hide_when_empty: true
     columns:
     - {label: 路径, value: "{row}"}
   - kind: table
+    as: position
     source: position.flow.checks
     heading: 流程检查规则
     hide_when_empty: true
@@ -75,6 +82,7 @@ view:
     - {label: 最小字节, value: row.min_bytes, fallback: —}
     - {label: 说明, value: row.desc, fallback: —}
   - kind: table
+    as: position
     source: position.tools
     heading: 可见工具
     hide_when_empty: true

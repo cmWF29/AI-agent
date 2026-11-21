@@ -4,6 +4,7 @@ description: "新建项目：闭环在 projects.create 能力内，需求只做�
 tags:
 - project
 - write
+touch: [project-tree, projects-get]
 enabled: true
 callable: true
 'on': []

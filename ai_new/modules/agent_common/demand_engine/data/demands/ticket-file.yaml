@@ -4,6 +4,7 @@ description: 读工单交付件：artifacts-read 需求。读盘归需求
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []

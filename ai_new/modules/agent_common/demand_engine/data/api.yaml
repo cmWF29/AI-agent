@@ -38,6 +38,9 @@ routes:
       shell:
         type: bool
         req: false
+      only:
+        type: any
+        req: false
     out:
       view:
         type: str

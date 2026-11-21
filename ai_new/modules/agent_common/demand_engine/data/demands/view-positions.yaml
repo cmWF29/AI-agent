@@ -16,6 +16,7 @@ view:
   - {as: list, demand: position-list}
   sections:
   - kind: cards
+    as: list
     source: list.items
     layout: deck
     title: row.cn

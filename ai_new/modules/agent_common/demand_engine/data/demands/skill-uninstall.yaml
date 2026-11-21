@@ -4,6 +4,7 @@ description: "卸载 Skill：按 Skill 登记级联摘除其岗位、流程、�
 tags:
 - library
 - write
+touch: [skills-list, project-skills]
 enabled: true
 callable: true
 'on': []

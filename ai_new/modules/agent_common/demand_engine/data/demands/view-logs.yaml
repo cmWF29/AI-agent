@@ -16,6 +16,7 @@ view:
   - {as: idx, demand: logs-index}
   sections:
   - kind: kv
+    as: idx
     source: idx.counts
     heading: 层级统计
     rows:
@@ -26,6 +27,7 @@ view:
     - label: 工单
       value: row.ticket
   - kind: tree
+    as: idx
     source: idx.tree
     empty: {title: 日志为空, text: 流程运行后，系统事件与往来记录会留档到这里。}
 expect:

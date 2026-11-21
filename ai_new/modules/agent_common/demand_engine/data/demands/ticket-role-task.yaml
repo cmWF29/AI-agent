@@ -4,6 +4,7 @@ description: 给角色派活：找会话 → send 需求。找人归模块，发
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []

@@ -46,6 +46,7 @@ view:
   - {as: list, demand: skills-list}
   sections:
   - kind: cards
+    as: list
     source: list.items
     title: row.cn
     meta:

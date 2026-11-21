@@ -4,6 +4,7 @@ description: "删除项目：闭环在 projects.remove 能力内，需求只做�
 tags:
 - project
 - write
+touch: [project-tree, projects-get]
 enabled: true
 callable: true
 'on': []

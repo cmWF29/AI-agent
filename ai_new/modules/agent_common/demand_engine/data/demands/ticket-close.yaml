@@ -4,6 +4,7 @@ description: "结单：闭环在 tickets.close 能力内，需求只做顺序编
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []

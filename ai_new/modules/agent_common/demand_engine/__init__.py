@@ -109,6 +109,9 @@ def _refs(tpl):
     """规格里引用到的数据源名：只有 data./cache. 才是"要等别的数据源"，route/row 上手就有。"""
     acc = set()
     if isinstance(tpl, str):
+        if "{" not in tpl and re.match(r"^[A-Za-z_$][\w$]*(\.[\w$]+)+$", tpl) \
+                and tpl.startswith(("data.", "cache.")):
+            acc.add(tpl.split(".")[1])     # 不带花括号的裸路径同样是依赖
         for m in _REF.findall(tpl):
             p = m.split("|")[0].strip()
             if p.startswith("data.") or p.startswith("cache."):
@@ -145,6 +148,7 @@ async def _route_resolve(ctx, payload):
     view_key = str(payload.get("view") or "")
     params = payload.get("params") or {}
     want_shell = bool(payload.get("shell"))
+    only = {str(x) for x in (payload.get("only") or []) if x}   # 只补其中几份（局部刷新用）
     if not isinstance(params, dict):
         raise ctx.ApiError("params 必须是对象", code="bad_params", status=400)
 
@@ -177,7 +181,10 @@ async def _route_resolve(ctx, payload):
         return out   # 缺必填参数：没有对象的页面不发请求，直接空态
 
     data, cache = {}, {}
-    done, pending = set(), list(spec.get("data") or [])
+    sources = list(spec.get("data") or [])
+    if only:
+        sources = [s for s in sources if str(s.get("as")) in only]
+    done, pending = set(), sources
 
     async def one(src):
         try:

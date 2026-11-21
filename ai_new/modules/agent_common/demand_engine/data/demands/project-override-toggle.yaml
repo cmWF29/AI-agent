@@ -5,6 +5,7 @@ tags:
 - project
 - library
 - write
+touch: [project-positions, project-skills, project-tools]
 enabled: true
 callable: true
 'on': []

@@ -298,7 +298,11 @@ $("logout").onclick = async () => {
   clearToken(); location.href = "/login.html";
 };
 window.addEventListener("popstate", () => {
+  stashPage();     // 先把当前页滚到哪记下来
   state = parseURL();
+  // 返回上一页优先接管保活实例：不重建 DOM、不重新取数、滚动位置原样
+  const kept = PAGE_KEEP.get(keepKey(state));
+  if (kept && !kept.stale) { restorePage(kept); return; }
   render().catch((err) => banner(gateMessage(err), "err"));
 });
 

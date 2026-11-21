@@ -42,6 +42,7 @@ view:
   sections:
   # 工单排第一：项目最要紧的是"现在有哪些活、干到哪了"
   - kind: cards
+    as: tickets
     source: tickets.items
     heading: 工单
     note: "共 {data.tickets.items|count} 条 · 进行中 {data.tickets.items|count(status!=closed)} · 已结单 {data.tickets.items|count(status=closed)}"
@@ -54,6 +55,7 @@ view:
     on_click: {view: ticket, params: {project: "{route.project}", ticket: row.id}}
     empty: {text: 这个项目还没有工单，点右上角「＋ 新建工单」}
   - kind: cards
+    as: positions
     source: positions.items
     heading: 项目岗位
     layout: deck
@@ -84,6 +86,7 @@ view:
       stay: true
     empty: {text: 这个项目还没有岗位}
   - kind: cards
+    as: skills
     source: skills.items
     heading: 项目技能
     layout: deck
@@ -113,6 +116,7 @@ view:
       stay: true
     empty: {text: 这个项目还没有技能}
   - kind: cards
+    as: ptools
     source: ptools.items
     heading: 项目工具
     layout: deck

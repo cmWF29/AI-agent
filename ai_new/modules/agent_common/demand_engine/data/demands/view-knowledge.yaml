@@ -16,6 +16,7 @@ view:
   - {as: idx, demand: knowledge-index}
   sections:
   - kind: kv
+    as: idx
     source: idx.counts
     heading: 层级统计
     rows:
@@ -26,6 +27,7 @@ view:
     - label: 工单
       value: row.ticket
   - kind: tree
+    as: idx
     source: idx.tree
     on_click:
       view: knowledge-doc

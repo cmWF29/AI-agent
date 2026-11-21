@@ -19,16 +19,19 @@ view:
   - {as: t, demand: trace-get, params: {trace: "{route.trace}"}}
   sections:
   - kind: stats
+    as: t
     rows:
     - {label: 总耗时, value: "data.t.total_ms", note: "ms · 墙钟跨度"}
     - {label: 节点, value: "data.t.count", note: "个 span"}
     - {label: 出错, value: "data.t.spans|count(status!=ok)", note: "个异常节点"}
   - kind: waterfall
+    as: t
     source: data.t.spans
     heading: 耗时瀑布
     note: 同一层级按开始时间排；条上的数字是自身耗时，括号里是占本次请求的比例
     empty: {text: 没有采到这个 trace（可能跨天或未采样）}
   - kind: table
+    as: t
     source: data.t.spans
     heading: 节点明细
     columns:

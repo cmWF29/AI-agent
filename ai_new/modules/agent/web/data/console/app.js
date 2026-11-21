@@ -245,9 +245,22 @@ function parseURL() {
   }
   return { view: defaultView() };
 }
+function stashPage() {
+  // 离开前把当前页的滚动位置与最新 DOM 存回实例：回来时连滚到哪儿都一样
+  const p = PAGE_KEEP.get(keepKey(state));
+  if (!p) return;
+  const scroll = document.querySelector("#view-body .view-scroll");
+  if (scroll) p.scroll = scroll.scrollTop;
+  const body = $("view-body");
+  if (body) p.html = body.innerHTML;
+}
+
 async function go(next, push) {
+  stashPage();
   state = next;
   if (push) history.pushState(next, "", qsOf(next));
+  const kept = PAGE_KEEP.get(keepKey(next));
+  if (kept && !kept.stale) { restorePage(kept); return; }
   await render().catch((err) => banner(gateMessage(err), "err"));
 }
 
@@ -275,6 +288,7 @@ async function boot() {
   state = parseURL();
   // 服务端算的那页和 URL 解析出来的一致就直接用，省掉第二次取数
   await render({ pre: (page.view === state.view) ? page : null });
+  openInvalidate();
 }
 function adoptViews(items) {
   for (const it of items || []) {
@@ -366,12 +380,12 @@ function openStream(key) {
 
 /* 整页取数：只报"看哪一页、什么参数"，依赖分层与并发都在服务端按视图规格做。
    前端不再猜哪份数据依赖哪份——那本来就不是前端该有的业务知识。 */
-async function resolvePage(view, params, wantShell) {
+async function resolvePage(view, params, wantShell, only) {
   let resp, body;
   try {
     resp = await fetch("/api/rpc/demand_engine/resolve", {
       method: "POST", headers: headers(),
-      body: yamlBody({ view: view || "", params: params || {}, shell: !!wantShell })
+      body: yamlBody({ view: view || "", params: params || {}, shell: !!wantShell, only: only || [] })
     });
     body = await readYaml(resp).catch(() => ({ ok: false, error: uiText("bad_yaml"), code: "bad_yaml" }));
   } catch (e) {
@@ -424,6 +438,103 @@ async function render(opts) {
   openStream(th.id);
   schedulePoll(spec);
   if (typeof highlightNav === "function") highlightNav();
+  keepPage(ctx);
+}
+
+/* ---- 页面保活：每页留一个实例，离开不销毁，回来直接接管 ---- */
+const PAGE_KEEP = new Map();
+const KEEP_MAX = 8;
+function keepKey(s) { return qsOf(s || state); }
+function keepPage(ctx) {
+  const body = $("view-body");
+  if (!body) return;
+  const scroll = document.querySelector("#view-body .view-scroll");
+  const key = keepKey(state);
+  PAGE_KEEP.delete(key);
+  PAGE_KEEP.set(key, {
+    view: state.view, params: Object.assign({}, state),
+    html: body.innerHTML, crumb: $("crumb").innerHTML,
+    scroll: scroll ? scroll.scrollTop : 0, ctx
+  });
+  while (PAGE_KEEP.size > KEEP_MAX) PAGE_KEEP.delete(PAGE_KEEP.keys().next().value);
+}
+function restorePage(k) {
+  $("crumb").innerHTML = k.crumb || "";
+  $("view-body").innerHTML = k.html;
+  const scroll = document.querySelector("#view-body .view-scroll");
+  if (scroll && k.scroll) scroll.scrollTop = k.scroll;
+  LAST_CTX = k.ctx;
+  const th = (k.ctx.data.thread && k.ctx.data.thread.thread) || {};
+  LAST_STATUS = th.status || "";
+  LAST_DRAFT_RUNNING = !!(k.ctx.data.draft && k.ctx.data.draft.running);
+  openStream(th.id);
+  schedulePoll(viewSpec(k.view));
+  if (typeof mountDecks === "function") mountDecks();
+  if (typeof highlightNav === "function") highlightNav();
+  banner("");
+}
+
+/* ---- 后端失效：只重取受影响的那份数据，只换吃它的那些区块 ---- */
+let INV = null, INV_SEQ = 0, INV_TIMER = null;
+const INV_PENDING = new Set();
+function openInvalidate() {
+  if (INV) return;
+  const q = new URLSearchParams({ key: "console.invalidate", token: token() });
+  try { INV = new EventSource("/api/sse/runtime/stream_events?" + q.toString()); } catch (e) { INV = null; return; }
+  INV.onmessage = (ev) => {
+    let snap, msg;
+    try { snap = jsyaml.load(ev.data) || {}; } catch (e) { return; }
+    try { msg = jsyaml.load(String(snap.text || "")) || {}; } catch (e) { return; }
+    const items = (msg.items || []).filter((x) => Number(x.seq || 0) > INV_SEQ);
+    if (!items.length) return;
+    INV_SEQ = Math.max.apply(null, items.map((x) => Number(x.seq || 0)));
+    for (const it of items) for (const hit of (it.items || [])) hitInvalidate(hit);
+  };
+  INV.onerror = () => { /* 断线自动重连；保活页仍在，不会白屏 */ };
+}
+function hitInvalidate(hit) {
+  if (!hit || !hit.view) return;
+  if (hit.view !== state.view) {
+    for (const p of PAGE_KEEP.values()) if (p.view === hit.view) p.stale = true;
+    return;
+  }
+  if (hit.as) INV_PENDING.add(String(hit.as));
+  if (INV_TIMER) clearTimeout(INV_TIMER);
+  INV_TIMER = setTimeout(() => {
+    const pend = [...INV_PENDING]; INV_PENDING.clear();
+    refreshAs(pend);
+  }, 180);   // 一次写操作可能带动几份数据，合并成一次补取
+}
+async function refreshAs(list) {
+  if (!list || !list.length) return;
+  const spec = viewSpec(state.view);
+  let page;
+  try { page = await resolvePage(state.view, state, false, list); } catch (e) { return; }
+  if (!page || !page.data) return;
+  const ctx = LAST_CTX || { route: state, data: {}, cache: {}, fields: {}, row: null };
+  Object.assign(ctx.data, page.data);
+  Object.assign(ctx.cache, page.cache || {});
+  LAST_CTX = ctx;
+  const head = document.querySelector("#view-body .view-head");
+  if (head) {
+    const t = document.createElement("div");
+    t.innerHTML = headHtml(spec, ctx);
+    if (t.firstElementChild) head.replaceWith(t.firstElementChild);
+  }
+  renderCrumb(spec, ctx);
+  for (const as of list) {
+    document.querySelectorAll('#view-body .vsec[data-as="' + as + '"]').forEach((node) => {
+      const idx = Number(node.getAttribute("data-sec") || 0);
+      const sec = (spec.sections || [])[idx];
+      if (!sec) return;
+      const t = document.createElement("div");
+      t.innerHTML = sectionHtml(sec, ctx, idx);
+      if (t.firstElementChild) node.replaceWith(t.firstElementChild);
+    });
+  }
+  if (typeof mountDecks === "function") mountDecks();
+  if (typeof expandFolds === "function") expandFolds();
+  keepPage(ctx);
 }
 
 function crumbUp() {

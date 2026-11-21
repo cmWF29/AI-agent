@@ -4,6 +4,7 @@ description: 拉角色会话：spawn 需求 → 挂到 roles → 落盘。会话
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []

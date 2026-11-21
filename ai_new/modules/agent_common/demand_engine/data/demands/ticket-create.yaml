@@ -4,6 +4,7 @@ description: "建工单：闭环在 tickets.create 能力内，需求只做顺�
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []

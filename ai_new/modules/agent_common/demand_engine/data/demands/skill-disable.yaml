@@ -4,6 +4,7 @@ description: "禁用 Skill：把 Skill 单元状态翻为 disabled，归属它�
 tags:
 - library
 - write
+touch: [skills-list, project-skills]
 enabled: true
 callable: true
 'on': []

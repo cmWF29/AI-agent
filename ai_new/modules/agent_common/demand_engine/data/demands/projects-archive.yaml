@@ -4,6 +4,7 @@ description: 归档项目：读一次 → 打归档标记（带时间）→ 落�
 tags:
 - project
 - write
+touch: [project-tree, projects-get]
 enabled: true
 callable: true
 'on': []

@@ -40,6 +40,7 @@ view:
     foot: {label: 业务域分布, from: data.mf.groups}
 
   - kind: tree
+    as: mf
     source: data.mf.groups
     list: true
     collapsed: true
@@ -48,6 +49,7 @@ view:
     note: 点开组看需求，再点开需求看 call/send 与 as/with 摘要
     empty: {text: 暂无需求}
   - kind: table
+    as: api
     source: data.api.items
     limit: 10
     list: true
@@ -61,6 +63,7 @@ view:
     - {label: 说明, value: row.doc, muted: true}
     empty: {text: 暂无路由}
   - kind: table
+    as: slow
     source: data.slow.items
     limit: 8
     heading: 今日慢请求（按 P95 排序）

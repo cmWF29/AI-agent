@@ -546,6 +546,54 @@ class TestViewLayouts(unittest.TestCase):
         self.assertEqual(bad, [], "区块版式不合法: %s" % bad)
 
 
+class TestInvalidationDeclarations(unittest.TestCase):
+    """写后失效不是"代码自己猜"：touch 与区块 as 都是需求层的声明，这里守着它们不虚指向。"""
+
+    def _demands(self):
+        root = module_dir("agent_common", "demand_engine") / "data" / "demands"
+        recs = {}
+        for path in sorted(root.glob("*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            recs[rec.get("id")] = rec
+        return recs
+
+    def test_touch_points_at_real_data_source(self):
+        recs = self._demands()
+        views = [r for r in recs.values() if (r.get("view") or {}).get("key")]
+        used = {str(src.get("demand")) for v in views for src in (v["view"].get("data") or [])}
+        bad = []
+        for rid, rec in recs.items():
+            for name in (rec.get("touch") or []):
+                if name not in recs:
+                    bad.append("%s 的 touch 指向不存在的需求 %r" % (rid, name))
+                elif name not in used:
+                    bad.append("%s 的 touch 指向没有任何视图取的数据 %r" % (rid, name))
+                if not rec.get("callable"):
+                    bad.append("%s 声明了 touch 却不可按名调用（失效通知永远等不到它跑）" % rid)
+        self.assertEqual(bad, [], "失效声明不合法: %s" % bad)
+
+    def test_view_params_have_no_transforms(self):
+        """视图取数参数由引擎填：引擎只认 route/data 取值，不认 |when 这类渲染变换。"""
+        bad = []
+        for rid, rec in self._demands().items():
+            for src in (rec.get("view") or {}).get("data") or []:
+                for key, val in (src.get("params") or {}).items():
+                    if isinstance(val, str) and "|" in val:
+                        bad.append("%s 的取数参数 %s 写了变换 %r" % (rid, key, val))
+        self.assertEqual(bad, [], "取数参数应只做取值: %s" % bad)
+
+    def test_section_as_belongs_to_view_data(self):
+        bad = []
+        for rid, rec in self._demands().items():
+            view = rec.get("view") or {}
+            names = {str(src.get("as")) for src in (view.get("data") or [])}
+            for sec in view.get("sections") or []:
+                as_ = sec.get("as")
+                if as_ and str(as_) not in names:
+                    bad.append("%s 的区块声明了视图没取的数据 %r" % (rid, as_))
+        self.assertEqual(bad, [], "区块数据源归属不合法: %s" % bad)
+
+
 DEAD_DOC_CONCEPTS = (
     "data/rules/calls.yaml",
     "三种通道",

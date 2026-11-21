@@ -34,6 +34,7 @@ view:
       flash: 已导出
   sections:
   - kind: stats
+    as: overview
     rows:
     - {label: 会话, value: "data.overview.sessions.result.items|count", note: 个在库会话}
     - {label: 工单, value: "data.overview.tickets.result.items|count", note: 张工单}
@@ -42,6 +43,7 @@ view:
     - {label: 岗位, value: "data.overview.library.result.counts.roles", note: 个岗位}
     - {label: 流程, value: "data.overview.library.result.counts.flows", note: 套流程}
   - kind: kv
+    as: overview
     source: data.overview
     heading: 运行环境
     rows:
@@ -50,6 +52,7 @@ view:
     - {label: 登录校验, value: row.config.server.auth.enabled, format: switch}
     - {label: 模型接入, value: row.config.llm.base_url}
   - kind: table
+    as: logs
     source: data.logs.events
     heading: 运行记录
     columns:

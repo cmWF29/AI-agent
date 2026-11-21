@@ -18,6 +18,7 @@ view:
   - {as: deps, demand: tools-deps}
   sections:
   - kind: kv
+    as: deps
     source: deps
     heading: 依赖盘点
     rows:
@@ -40,6 +41,7 @@ view:
       flash: 依赖安装完成
       after: {view: tools, reload: true}
   - kind: table
+    as: list
     source: list.items
     columns:
     - {label: 工具名, value: row.name, sub: row.module}

@@ -4,6 +4,7 @@ description: "拆子单：闭环在 tickets.split 能力内，需求只做顺序
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []

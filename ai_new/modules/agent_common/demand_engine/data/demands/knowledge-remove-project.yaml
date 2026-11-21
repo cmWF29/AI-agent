@@ -4,6 +4,7 @@ description: 删项目知识：归一 id → 删目录。删目录也是需求�
 tags:
 - knowledge
 - write
+touch: [knowledge-index]
 enabled: true
 callable: true
 'on': []

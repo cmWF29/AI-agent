@@ -16,6 +16,7 @@ view:
   - {as: me, demand: auth-status}
   sections:
   - kind: kv
+    as: me
     source: me
     heading: 账号
     rows:

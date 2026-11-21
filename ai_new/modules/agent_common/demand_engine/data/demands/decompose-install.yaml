@@ -5,6 +5,7 @@ tags:
 - tool
 - llm
 - write
+touch: [tools-list, tools-deps, project-tools]
 enabled: true
 callable: true
 'on': []

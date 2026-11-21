@@ -4,6 +4,7 @@ description: "项目改名：闭环在 projects.rename 能力内，需求只做�
 tags:
 - project
 - write
+touch: [project-tree, projects-get]
 enabled: true
 callable: true
 'on': []

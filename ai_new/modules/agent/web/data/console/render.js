@@ -793,8 +793,10 @@ function composerHtml(sec, ctx) {
   </div>`;
 }
 
-function sectionHtml(sec, ctx) {
+function sectionHtml(sec, ctx, idx) {
   const kind = sec.kind;
+  // data-as：这一块吃哪份数据（规格里声明的）；失效来了只换它吃的那几块
+  const marks = (idx == null ? "" : ` data-sec="${idx}"`) + (sec.as ? ` data-as="${esc(sec.as)}"` : "");
   let html = "";
   if (kind === "cards") html = secHead(sec, ctx) + cardsHtml(sec, ctx);
   else if (kind === "stats") html = statsHtml(sec, ctx);
@@ -810,10 +812,10 @@ function sectionHtml(sec, ctx) {
   else html = emptyHtml({ text: uiText("unknown_kind", kind) });
   if (sec.fold) {
     const title = fill((sec.fold || {}).title || sec.heading || "", ctx);
-    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"><details><summary><strong>${esc(title)}</strong>${
+    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"${marks}><details><summary><strong>${esc(title)}</strong>${
       sec.note ? `<span class="muted">${esc(fill(sec.note, ctx))}</span>` : ""}</summary>${html}</details></div>`;
   }
-  return `<div class="vsec${sec.list ? " vsec-list" : ""}" data-kind="${esc(kind)}">${html}</div>`;
+  return `<div class="vsec${sec.list ? " vsec-list" : ""}" data-kind="${esc(kind)}"${marks}>${html}</div>`;
 }
 
 function pruneEmptyCards() {
@@ -841,21 +843,25 @@ function expandFolds() {
   }
 }
 
-function renderView(spec, ctx) {
-  ACTS = [];
-  const head = `<div class="view-head">
+function headHtml(spec, ctx) {
+  return `<div class="view-head">
       <div style="min-width:0"><h2>${esc(fill(spec.heading || spec.heading_from || "", ctx))}</h2>
       <div class="desc">${esc(fill(spec.subheading || "", ctx))}</div></div>
       <div class="spacer"></div>
       <div class="actions">${(spec.actions || []).map((a) => buttonHtml(a, ctx)).join("")}</div>
     </div>`;
+}
+
+function renderView(spec, ctx) {
+  ACTS = [];
+  const head = headHtml(spec, ctx);
   const left = [], right = [], single = [];
-  for (const sec of spec.sections || []) {
-    const html = sectionHtml(sec, ctx);
+  (spec.sections || []).forEach((sec, i) => {
+    const html = sectionHtml(sec, ctx, i);
     if (sec.lane === "left") left.push(html);
     else if (sec.lane === "right") right.push(html);
     else single.push(html);
-  }
+  })
   let body = single.join("");
   if (left.length || right.length) {
     // 单侧有内容就占满整行：空的那一列不占位，避免留下大片空白

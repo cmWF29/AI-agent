@@ -22,6 +22,7 @@ view:
     - {label: 今日请求, value: "data.list.total", note: "条 trace"}
     - {label: 最慢 P95, value: "data.slow.items.0.p95_ms", note: "ms"}
   - kind: table
+    as: list
     source: data.list.items
     heading: 请求清单
     limit: 20
@@ -34,6 +35,7 @@ view:
     on_click: {view: trace, params: {trace: row.trace}}
     empty: {text: 今天还没有链路采样（config.trace.sample 调高可全采）}
   - kind: table
+    as: slow
     source: data.slow.items
     heading: 按阶段聚合（P95 排序）
     columns:

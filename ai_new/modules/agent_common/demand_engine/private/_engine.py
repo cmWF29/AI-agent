@@ -34,6 +34,8 @@ class Engine:
         self.ctx = ctx
         self._cache = None
         self._sig = None
+        self._badge_seq = 0
+        self._badge_items = []
 
     # ---- 装载 ----
     def _load(self):
@@ -78,6 +80,49 @@ class Engine:
         self._sig = None
 
     # ---- 可见性 ----
+
+    # ---- 失效通知：写操作改的是哪条数据源，由需求自己声明 touch ----
+    def _views_using(self, demand_ids):
+        """反查：哪些视图把某条数据源当 as 用；返回 [{view, as}]。"""
+        hits = []
+        for rec in self._load():
+            view = rec.get("view") or {}
+            key = view.get("key")
+            if not key:
+                continue
+            for src in view.get("data") or []:
+                if str(src.get("demand")) in demand_ids and src.get("as"):
+                    hits.append({"view": key, "as": str(src.get("as"))})
+        return hits
+
+    def notify_write(self, demand_id, rec):
+        """写需求跑完：声明了 touch 就按数据源推失效，没声明就不发（不噪）。"""
+        touch = {str(x) for x in (rec.get("touch") or [])}
+        if not touch:
+            return
+        hits = self._views_using(touch)
+        if not hits:
+            return
+        self._badge_seq += 1
+        self._badge_items = (self._badge_items + [{"seq": self._badge_seq, "demand": demand_id,
+                                                   "items": hits}])[-30:]
+        self._publish_badges()
+
+    def _publish_badges(self):
+        rt = getattr(self.ctx, "runtime", None)
+        if rt is None:
+            return
+        payload = {"seq": self._badge_seq, "items": self._badge_items}
+        try:
+            text = self.ctx.codec.yaml_encode_flow(payload)["text"]
+        except Exception:  # noqa: BLE001 — 编码失败不该拖垮写操作本身
+            return
+        try:
+            rt.stream_clear("console.invalidate")
+            rt.stream_put("console.invalidate", text)
+        except Exception:  # noqa: BLE001
+            return
+
     def items(self):
         return [
             {"id": r["id"], "title": r.get("title", ""),
@@ -122,12 +167,14 @@ class Engine:
             items.append({"id": r["id"], "title": r.get("title", ""),
                           "enabled": bool(r.get("enabled", True)),
                           "tags": list(r.get("tags") or []),
+                          "touch": list(r.get("touch") or []),
                           "on": list(r.get("on") or []),
                           "view": view_key or "", "callable": callable_,
                           "steps": len(leaves), "routes": routes})
+            touch = list(r.get("touch") or [])
             node = {"label": r["id"],
                     "badge": ("可调" if callable_ else ("视图" if view_key else "内置")),
-                    "sub": r.get("title", ""),
+                    "sub": (r.get("title", "") + ("　写后失效：" + ", ".join(touch) if touch else "")),
                     "children": leaves}
             nodes.append(node)
             first_tag = (r.get("tags") or ["core"])[0]
@@ -286,6 +333,8 @@ class Engine:
                                  "result": bad.get("result"),
                                  "error": bad.get("error") or "",
                                  "code": bad.get("code") or ""}
+            if ok and "write" in (rec.get("tags") or []):
+                self.notify_write(demand_id, rec)   # 改完就通知，前端只换受影响的那一块
             return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 
@@ -367,6 +416,8 @@ class Engine:
                                  "result": bad.get("result"),
                                  "error": bad.get("error") or "",
                                  "code": bad.get("code") or ""}
+            if ok and "write" in (rec.get("tags") or []):
+                self.notify_write(demand_id, rec)   # 幂等：同一需求重复通知只是序号前进
             return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 

@@ -19,6 +19,7 @@ view:
   - {as: tree, demand: project-tree}
   sections:
   - kind: cards
+    as: tree
     source: tree.items
     key: row.project.id
     title: row.project.name
@@ -43,6 +44,7 @@ view:
     on_click: {view: project, params: {project: row.project.id}}
     empty: {title: 还没有项目, text: 先建一个项目，工单都挂在项目里。}
   - kind: table
+    as: tree
     source: tree.orphans
     title: 未归属工单
     summarize: true

@@ -4,6 +4,7 @@ description: 写备注：追加一条 history 并落盘。追加归模块
 tags:
 - ticket
 - write
+touch: [ticket-list]
 enabled: true
 callable: true
 'on': []
