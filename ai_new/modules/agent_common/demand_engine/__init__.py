@@ -27,6 +27,8 @@ def setup(ctx):
                      "全量需求的可视化形状（执行链 + 树节点）", module="demand_engine")
     ctx.api.register("demand_engine.console", lambda c, p: ctx.demand_engine.console(),
                      "控制台外壳（品牌、词表、配色、导航菜单）", module="demand_engine")
+    ctx.api.register("demand_engine.chrome", lambda c, p: ctx.demand_engine.chrome(),
+                     "登录页外壳（只回品牌与登录文案，未登录可读）", module="demand_engine")
     return ctx.demand_engine
 
 

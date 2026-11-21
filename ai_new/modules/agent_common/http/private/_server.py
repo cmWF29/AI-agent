@@ -93,7 +93,8 @@ def _make_handler(ctx):
 
             # 公开面：存活探头（只回 ok/uptime，无业务数据）、登录前置、登录换票；其余走鉴权。
             public = path == "/api/health" or path == "/api/health/live" or path.startswith("/api/auth/") or (
-                path == "/api/rpc/demand_engine/run" and body.get("id") == "auth-login")
+                path == "/api/rpc/demand_engine/run"
+                and body.get("id") in ("auth-login", "console-chrome"))
             if not public:
                 verdict = ctx.api.call("auth.verify", {"token": _extract_token(self)}, direct=True)
                 if not verdict.get("allow"):

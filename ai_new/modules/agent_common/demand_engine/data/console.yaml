@@ -15,6 +15,19 @@ brand:
   tagline: 项目 · 工单 · 会话
   title: Hive AI · 项目与工单
   title_view: "{} · {}"                # 进到具体视图时的标题：先视图名，再品牌名
+login:                                 # 登录页（未登录可读，不含导航与业务）
+  title: Hive AI · 登录
+  subtitle: 项目 · 工单 · 会话工作台
+  user_label: 用户名
+  pass_label: 密码
+  submit: 登录
+  note: 登录后使用本地同源 API，会话令牌保存在本机。
+  failed: 登录失败
+  no_token: 登录返回缺少会话令牌
+  open_mode: 当前为开放模式，无需登录。
+  open_enter: 进入控制台
+  net_fail: "网络请求失败：{}"
+  http_code: "（{}）"
 ui:
   loading: 加载中…
   empty: 暂无数据

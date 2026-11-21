@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hive AI · 登录</title>
+<title>控制台</title>
 <style>
 :root{
   color-scheme:light;--fg:#1f2329;--fg-2:#4e5969;--muted:#86909c;
@@ -40,14 +40,14 @@ button.primary:hover{background:#2457e0}
 </head>
 <body>
 <div class="card">
-  <div class="brand"><span class="logo">H</span><div><h1>Hive AI</h1><div class="sub">项目 · 工单 · 会话工作台</div></div></div>
-  <p class="muted">登录后使用本地同源 API，会话令牌保存在本机。</p>
+  <div class="brand"><span class="logo" data-chrome="logo"></span><div><h1 data-chrome="name"></h1><div class="sub" data-chrome="subtitle"></div></div></div>
+  <p class="muted" data-chrome="note"></p>
   <form id="login-form">
-    <label>用户名</label>
+    <label data-chrome="user_label"></label>
     <input id="username" autocomplete="username" required>
-    <label>密码</label>
+    <label data-chrome="pass_label"></label>
     <input id="password" type="password" autocomplete="current-password" required>
-    <button class="primary" type="submit">登录</button>
+    <button class="primary" type="submit" data-chrome="submit"></button>
   </form>
   <div id="banner"></div>
   <div id="open"></div>
@@ -63,6 +63,34 @@ function saveToken(t) {
   document.cookie = "hive_token=" + encodeURIComponent(t) + "; path=/; SameSite=Lax";
 }
 
+/* 外壳：登录页的字也来自后端（console-chrome 未登录可读），页面只留空壳 */
+let CHROME = { brand: {}, login: {} };
+function chrome(key) { return (CHROME.login || {})[key] == null ? "" : String(CHROME.login[key]); }
+function fill(tpl, ...args) {
+  let i = 0;
+  return String(tpl == null ? "" : tpl).replace(/\{\}/g, () => (i < args.length ? String(args[i++]) : ""));
+}
+function applyChrome() {
+  const b = CHROME.brand || {};
+  const words = { logo: b.logo, name: b.name, ...(CHROME.login || {}) };
+  document.querySelectorAll("[data-chrome]").forEach((el) => {
+    const v = words[el.dataset.chrome];
+    if (v != null) el.textContent = String(v);
+  });
+  document.title = chrome("title") || (b.name ? b.name + " · " + chrome("submit") : "");
+}
+async function loadChrome() {
+  try {
+    const resp = await fetch("/api/rpc/demand_engine/run", {
+      method: "POST", headers: { "Content-Type": "application/yaml" },
+      body: yamlBody({ id: "console-chrome", input: {} })
+    });
+    const body = await readYaml(resp);
+    CHROME = ((body.result && body.result.result) || {});
+  } catch (e) { /* 拿不到就留空壳，不挡登录 */ }
+  applyChrome();
+}
+
 async function loadStatus() {
   const r = await fetch("/api/auth/status");
   const body = await readYaml(r).catch(() => ({ ok: false }));
@@ -72,7 +100,12 @@ async function loadStatus() {
     $("login-form").style.display = "none";
     const box = $("open");
     box.style.display = "block";
-    box.innerHTML = "当前为开放模式，无需登录。<button class='primary' onclick=\"location.href='/manage.html'\">进入控制台</button>";
+    box.textContent = chrome("open_mode");
+    const go = document.createElement("button");
+    go.className = "primary";
+    go.textContent = chrome("open_enter");
+    go.onclick = () => { location.href = "/manage.html"; };
+    box.appendChild(go);
   }
 }
 
@@ -89,27 +122,28 @@ $("login-form").onsubmit = async (e) => {
         password: $("password").value
       } })
     });
-    const body = await readYaml(resp).catch(() => ({ ok: false, error: "响应不是 YAML" }));
+    const body = await readYaml(resp).catch(() => ({ ok: false }));
     const inner = (body.result && body.result.result) || {};
     if (!body.ok || inner.ok === false) {
-      banner.textContent = (inner.error || body.error || "登录失败") + "（" + resp.status + "）";
+      banner.textContent = (inner.error || body.error || chrome("failed"))
+        + fill(chrome("http_code"), resp.status);
       banner.style.display = "block";
       return;
     }
     if (!inner.token) {
-      banner.textContent = "登录返回缺少会话令牌";
+      banner.textContent = chrome("no_token");
       banner.style.display = "block";
       return;
     }
     saveToken(inner.token);
     location.href = "/manage.html";
   } catch (err) {
-    banner.textContent = "网络请求失败：" + err.message;
+    banner.textContent = fill(chrome("net_fail"), err.message);
     banner.style.display = "block";
   }
 };
 
-loadStatus();
+loadChrome().then(loadStatus);
 </script>
 </body>
 </html>

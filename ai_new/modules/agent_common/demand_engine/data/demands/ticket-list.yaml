@@ -6,14 +6,19 @@ enabled: true
 callable: true
 'on': []
 do:
+- call: config.get
+  with:
+    key:
+      lit: tickets.paths
+  as: tp
 - call: store.walk
   with:
     module:
       lit: agent/tickets
     root:
-      lit: tickets
+      get: tp.value.walk_root
     pattern:
-      lit: '*/ticket.yaml'
+      get: tp.value.walk_pattern
   as: rows
 - call: tickets.screen
   with:
@@ -28,6 +33,7 @@ expect:
   given:
     input: {}
   calls:
+  - config.get
   - store.walk
   - tickets.screen
   payload: {}

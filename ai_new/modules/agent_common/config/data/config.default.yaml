@@ -63,11 +63,15 @@ tickets:
     max_per_scan: 2        # 单次扫描最多开几张审计单
     create_audit: true     # 命中后是否真开审计单（false 只报告命中）
   paths:
-    record: 'tickets/{id}/ticket.yaml'
+    # 工单落在它所属项目的目录里：一张单 = 一个目录，项目之间不共享路径。
+    record: 'projects/{project}/tickets/{id}/ticket.yaml'
     project_record: '{project}.yaml'
-    glob: 'tickets/T-*/ticket.yaml'
-    ticket_glob: '*/ticket.yaml'
-    root: 'tickets'
+    glob: 'projects/*/tickets/T-*/ticket.yaml'
+    ticket_glob: 'projects/*/tickets/T-*/ticket.yaml'
+    walk_glob: '**/tickets/T-*/ticket.yaml'
+    walk_root: 'projects'
+    walk_pattern: '*/tickets/*/ticket.yaml'
+    root: 'projects'
 exec:
   error_chars: 400       # 子进程失败原因截断字符数
 asr:
@@ -96,9 +100,9 @@ channel:
 projects:
   paths:
     record: '{id}.yaml'
-    ticket_prefix: 'tickets/{seg}'
+    ticket_prefix: 'projects/{project}/tickets/{seg}'
     project_dir: 'projects/{pid}'
-    ticket_glob: 'tickets/T-*/ticket.yaml'
+    ticket_glob: 'projects/*/tickets/T-*/ticket.yaml'
 auth:
   paths:
     session: 'sessions/{token}.yaml'

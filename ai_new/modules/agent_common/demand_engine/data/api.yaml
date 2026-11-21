@@ -32,6 +32,13 @@ routes:
         type: any
       nodes:
         type: any
+  demand_engine.chrome:
+    doc: 登录页外壳（只回品牌与登录文案，未登录可读）
+    out:
+      brand:
+        type: any
+      login:
+        type: any
   demand_engine.console:
     doc: 控制台外壳（品牌、词表、配色、导航菜单）
     out:

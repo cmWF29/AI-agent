@@ -170,6 +170,14 @@ class Engine:
         shell["menus"] = menus
         return shell
 
+    def chrome(self):
+        """登录页要的那点字：品牌 + 登录文案。
+
+        未登录可读，所以只回这一小块——导航、岗位、字段、状态这些结构信息一概不给。
+        """
+        shell = _md(self.ctx).yaml_read("console.yaml", {}) or {}
+        return {"brand": shell.get("brand") or {}, "login": shell.get("login") or {}}
+
     # ---- 插拔 ----
     def set_enabled(self, demand_id, enabled):
         for rec in self._load():

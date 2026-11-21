@@ -77,11 +77,10 @@ def _route_save(ctx, payload):
     tid_raw = payload.get("ticket")
     if layer == "ticket":
         # 归属项目以工单记录为准，不采信模型传入的 project：漏填/错填时不能错位到 projects/item。
-        tpaths = ctx.api.call("config.get", {"key": "tickets.paths"}, caller=None).get("value") or {}
-        tr = tpaths.get("record") or ""
+        tp = ctx.api.call("tickets.record_path", {"id": tid_raw or ""}, caller=None)
         row = ctx.api.call("store.read", {
             "module": "agent/tickets",
-            "path": tr.format(id=tid_raw or "") if tr else (tid_raw or "")}, caller=None)
+            "path": tp.get("path") or ""}, caller=None)
         rec = row.get("value")
         if rec and rec.get("project"):
             pid_raw = rec.get("project")

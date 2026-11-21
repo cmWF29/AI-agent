@@ -107,17 +107,16 @@ def _purge_tickets(ctx, pid):
     listed = ctx.api.call("store.glob", {
         "module": "agent/tickets", "pattern": paths.get("ticket_glob") or ""}, caller=None)
     for rel in listed.get("items") or []:
+        # 路径形状：projects/<project>/tickets/<id>/ticket.yaml
         segs = str(rel).split("/")
-        if len(segs) != 3:
+        if len(segs) != 5:
             continue
-        row = ctx.api.call("store.read", {
-            "module": "agent/tickets", "path": rel}, caller=None)
-        if ((row.get("value") or {}).get("project")) != pid:
+        if segs[1] != pid:
             continue
-        ticket_ids.append(segs[1])
+        ticket_ids.append(segs[3])
         tp = paths.get("ticket_prefix") or ""
         effects.append({"kind": "remove_dir", "module": "agent/tickets",
-                        "path": tp.format(seg=segs[1]) if tp else segs[1]})
+                        "path": tp.format(project=segs[1], seg=segs[3]) if tp else segs[3]})
     return effects, ticket_ids
 
 
@@ -153,11 +152,13 @@ def _purge_sessions(ctx, ticket_ids):
 def _purge_ticket_knowledge(ctx, ticket_ids):
     """清掉被删工单的 ticket 层知识；该层前缀 tickets/<tid>，tid 经 store.id 归一为小写。"""
     effects = []
-    tp = _cfg_paths(ctx).get("ticket_prefix") or ""
+    # 知识层的 ticket 前缀是知识自己的模板，不能拿项目层模板顶替。
+    kp = ctx.api.call("config.get", {"key": "knowledge.paths"}, caller=None).get("value") or {}
+    tp = kp.get("ticket") or ""
     for tid in ticket_ids:
         nid = ctx.api.call("store.id", {"value": tid}, caller=None).get("id")
         effects.append({"kind": "remove_dir", "module": "agent/knowledge",
-                        "path": tp.format(seg=nid) if tp else nid})
+                        "path": tp.format(ticket=nid) if tp else nid})
     return effects
 
 

@@ -499,8 +499,17 @@ def stale(p):
 
 
 def record_path(p):
-    """工单记录落盘相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    """工单记录落盘相对路径：模板由需求层配置表给出，纯函数只填参。
+
+    模板带 `{project}` 时工单落在所属项目目录里；调用方没给项目就退到不带项目
+    前缀的位置——那里迁移后一定是空的，所以读不到别人的单，也不会串档。
+    """
     paths = p.get("paths") or {}
     t = paths.get("record") or ""
     tid = p.get("id") or ""
-    return {"path": t.format(id=tid) if t else tid}
+    if not t:
+        return {"path": tid}
+    pj = str(p.get("project") or "").strip()
+    if "{project}" in t and not pj:
+        return {"path": t.replace("projects/{project}/", "").format(id=tid)}
+    return {"path": t.format(project=pj, id=tid)}

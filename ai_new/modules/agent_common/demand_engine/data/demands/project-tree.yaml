@@ -15,14 +15,19 @@ do:
     pattern:
       lit: '*.yaml'
   as: prows
+- call: config.get
+  with:
+    key:
+      lit: tickets.paths
+  as: tpaths
 - call: store.walk
   with:
     module:
       lit: agent/tickets
     root:
-      lit: tickets
+      get: tpaths.value.walk_root
     pattern:
-      lit: '*/ticket.yaml'
+      get: tpaths.value.walk_pattern
   as: trows
 - call: projects.tree
   with:
@@ -36,6 +41,7 @@ expect:
     input: {}
   calls:
   - store.walk
+  - config.get
   - store.walk
   - projects.tree
   payload: {}

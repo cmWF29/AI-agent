@@ -27,12 +27,12 @@ def setup(ctx):
         ("tickets.resolve_target", _pure.resolve_target),
         ("tickets.files_filter", _pure.files_filter),
         ("tickets.paths", _pure.paths),
-        ("tickets.record_path", _pure.record_path),
         ("tickets.msg", _pure.msg),
         ("tickets.err", _pure.err),
         ("tickets.stale", _pure.stale),
     ]:
         ctx.api.register(name, _as_handler(fn), module="tickets")
+    ctx.api.register("tickets.record_path", _route_record_path, module="tickets")
     ctx.api.register("tickets.close", _route_close, "结单：子单守卫→关闭→落盘→通知父单 PM", module="tickets")
     ctx.api.register("tickets.split", _route_split, "拆子单：守上限→逐个建单并挂链接", module="tickets")
     ctx.api.register("tickets.stall_scan", _route_stall_scan, "停滞扫描：遍历在途→判定→开审计单", module="tickets")
@@ -105,9 +105,51 @@ def _as_handler(fn):
     return handler
 
 
-def _ticket_path(ctx, ticket_id):
-    t = _cfg_paths(ctx).get("record") or ""
-    return t.format(id=ticket_id or "") if t else (ticket_id or "")
+_TICKET_PROJECT = {}   # 工单 id -> 项目；工单只增不换项目，进程内记住即可
+
+
+def _lookup_project(ctx, tid):
+    """按目录反查工单归属：唯一命中才算，多个项目下同时存在就拒绝猜。"""
+    if not tid:
+        return ""
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/tickets",
+        "pattern": "projects/*/tickets/%s/ticket.yaml" % tid}, caller=None)
+    owners = [str(rel).split("/")[1] for rel in (listed.get("items") or [])]
+    if len(owners) > 1:
+        raise ctx.ApiError("工单 %s 同时挂在多个项目下（%s），拒绝按猜测定位"
+                           % (tid, "、".join(sorted(owners))), code="ticket_ambiguous", status=409)
+    if owners:
+        _TICKET_PROJECT[tid] = owners[0]
+        return owners[0]
+    return ""
+
+
+def _ticket_path(ctx, ticket_id, project=None):
+    """工单文件路径：项目目录下的 tickets/<id>/ticket.yaml。
+
+    工单必属项目，路径就带项目。只给 id 时按目录反查归属；反查不到就退到"无项目
+    前缀"的位置——那里迁移后一定是空的，所以读不到别人的单，不会串档。
+    """
+    tid = str(ticket_id or "")
+    pj = str(project or "").strip() or _TICKET_PROJECT.get(tid, "")
+    if not pj:
+        pj = _lookup_project(ctx, tid)
+        if pj:
+            _TICKET_PROJECT[tid] = pj
+    return _pure.record_path({"paths": _cfg_paths(ctx), "id": tid, "project": pj}).get("path") or ""
+
+
+def _route_record_path(ctx, payload):
+    """需求层取路径：给了项目就用，没给就按目录反查（反查不到的路径必然读不到东西）。"""
+    p = dict(payload or {})
+    p.setdefault("paths", _cfg_paths(ctx))
+    tid = str(p.get("id") or "")
+    pj = str(p.get("project") or "").strip()
+    if not pj:
+        pj = _TICKET_PROJECT.get(tid) or _lookup_project(ctx, tid)
+    return _pure.record_path({"paths": p.get("paths") or {},
+                              "id": p.get("id"), "project": pj})
 
 
 def _route_create(ctx, payload):
@@ -188,8 +230,8 @@ def _create(ctx, payload):
     day = str(now.get("iso") or "")[:10].replace("-", "")
     listed = ctx.api.call("store.glob", {
         "module": "agent/tickets", "pattern": paths.get("glob") or ""}, caller=None)
-    ids = [str(i).split("/")[1] for i in (listed.get("items") or [])
-           if str(i).count("/") == 2]
+    ids = [str(i).split("/")[3] for i in (listed.get("items") or [])
+           if str(i).count("/") == 4]
     baseline = _pure.next_n({"ids": ids, "day": day}).get("n") - 1
     n = payload.get("n") or ctx.api.call("store.next_seq", {
         "bucket": "ticket:" + day, "baseline": baseline}, caller=None).get("seq")
@@ -205,7 +247,7 @@ def _create(ctx, payload):
         "now": now.get("ts")}, caller=None)
     if ctx.api.call("store.exists", {
             "module": "agent/tickets",
-            "path": _ticket_path(ctx, rec.get("id"))}, caller=None).get("exists"):
+            "path": _ticket_path(ctx, rec.get("id"), payload.get("project"))}, caller=None).get("exists"):
         tpl_conflict = _msg_tpl(ctx).get("ticket_conflict") or ""
         tid = rec.get("id") or ""
         return ctx.api.call("tickets.err", {
@@ -231,8 +273,9 @@ def _create(ctx, payload):
             "pm_text": _msg_tpl(ctx).get("pm_started") or "",
             "now": now.get("ts")}, caller=None)
     view = ctx.api.call("tickets.view", {"rec": rec}, caller=None)
+    _TICKET_PROJECT[str(rec.get("id") or "")] = str(rec.get("project") or "")
     effects = [{"kind": "write", "module": "agent/tickets",
-                "path": _ticket_path(ctx, rec.get("id")), "value": rec}]
+                "path": _ticket_path(ctx, rec.get("id"), rec.get("project")), "value": rec}]
     # 首轮开工随效果清单后台派发：会话在 spawn 内已落盘，这里只交一把钥匙；审计单无 PM 不派发。
     if pm_id:
         effects.append({"kind": "dispatch", "id": "session-run",
@@ -319,7 +362,7 @@ def _route_close(ctx, payload):
         "rec": closed, "pm": pm_snap, "roles": role_snaps}, caller=None)
     view = ctx.api.call("tickets.view", {"rec": archived}, caller=None)
     effects = [{"kind": "write", "module": "agent/tickets",
-                "path": _ticket_path(ctx, archived.get("id")), "value": archived}]
+                "path": _ticket_path(ctx, archived.get("id"), archived.get("project")), "value": archived}]
     st = _cfg_logs(ctx).get("session") or ""
     removed_paths = [st.format(id=sid) if st else sid for sid in sids]
     for rel in removed_paths:
@@ -361,7 +404,7 @@ def _route_split(ctx, payload):
             "tpl": _msg_tpl(ctx).get("child_split") or "",
             "now": now.get("ts")}, caller=None)
         effects.append({"kind": "write", "module": "agent/tickets",
-                        "path": _ticket_path(ctx, cur.get("id")), "value": cur})
+                        "path": _ticket_path(ctx, cur.get("id"), cur.get("project")), "value": cur})
     view = ctx.api.call("tickets.view", {"rec": cur}, caller=None)
     view["effects"] = effects
     return view
@@ -371,7 +414,7 @@ def _route_rebind(ctx, payload):
     """引用改挂：遍历工单，把指向旧项目 id 的记录改写为新 id。"""
     paths = _cfg_paths(ctx)
     rows = ctx.api.call("store.walk", {"module": "agent/tickets", "root": paths.get("root") or "",
-                                       "pattern": paths.get("ticket_glob") or ""}, caller=None)
+                                       "pattern": paths.get("walk_glob") or ""}, caller=None)
     moved = []
     effects = []
     for rec in rows.get("rows") or []:
@@ -381,8 +424,9 @@ def _route_rebind(ctx, payload):
         cur = dict(rec)
         cur["project"] = payload.get("to")
         cur["updated"] = payload.get("now") or cur.get("updated")
+        _TICKET_PROJECT[str(cur.get("id") or "")] = str(cur.get("project") or "")
         effects.append({"kind": "write", "module": "agent/tickets",
-                        "path": _ticket_path(ctx, cur.get("id")), "value": cur})
+                        "path": _ticket_path(ctx, cur.get("id"), cur.get("project")), "value": cur})
         moved.append(cur.get("id"))
     return {"from": payload.get("from"), "to": payload.get("to"),
             "tickets": moved, "effects": effects}
@@ -396,7 +440,7 @@ def _route_stall_scan(ctx, payload):
                             caller=None)
     paths = _cfg_paths(ctx)
     rows = ctx.api.call("store.walk", {"module": "agent/tickets", "root": paths.get("root") or "",
-                                       "pattern": paths.get("ticket_glob") or ""}, caller=None)
+                                       "pattern": paths.get("walk_glob") or ""}, caller=None)
     limit_seconds = int(payload.get("idle_minutes")) * 60
     max_per_scan = int(payload.get("max_per_scan"))
     create_audit = bool(payload.get("create_audit"))

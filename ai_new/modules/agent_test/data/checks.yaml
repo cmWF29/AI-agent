@@ -33,6 +33,7 @@ checks:
   demands:
   - api-snapshot
   - console-shell
+  - console-chrome
   - demands-manifest
   - trace-slow
   - view-arch

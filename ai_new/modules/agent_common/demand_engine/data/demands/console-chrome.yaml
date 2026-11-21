@@ -1,0 +1,17 @@
+id: console-chrome
+title: 登录页外壳：品牌与登录文案
+description: "登录页外壳：只回品牌名、logo、副标题与登录页文案。未登录可读，不含导航、角色、字段等结构信息"
+tags: [view, web, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.chrome
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.chrome
+  payload: {}
+  promise: 登录页的字也来自后端；未登录只给品牌与登录文案，不泄露结构
