@@ -11,7 +11,7 @@ view:
   key: ops
   crumb: [系统, 运维]
   heading: 运维
-  subheading: 会话、工单、知识、文档、岗位一次总览；运行记录只读，扫描与导出手动触发
+  subheading: 运行记录只读，扫描与导出手动触发
   actions:
   - {label: 扫停滞, demand: ops-scan, confirm: 扫一遍在途工单，命中停滞的按配置开审计单。继续？, flash: 扫描完成}
   - {label: 导出数据, modal: ops.export}

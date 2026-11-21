@@ -32,7 +32,7 @@ view:
     list: true
     collapsed: true
     hide_count: true
-    fold: {title: "需求执行链 · {data.mf.count} 条 / {data.mf.steps} 步"}
+    fold: {title: "需求执行链"}
     note: 点开组看需求，再点开需求看 call/send 与 as/with 摘要
     empty: {text: 暂无需求}
   - kind: flow
@@ -44,8 +44,7 @@ view:
     source: data.api.items
     limit: 40
     list: true
-    fold: {title: "路由与契约 · {data.api.routes} 条"}
-    heading: 路由与契约
+    fold: {title: "路由与契约"}
     columns:
     - {label: 路由, value: row.name, sub: row.module}
     - {label: 通道, value: row.stream, fallback: 直连, muted: true}

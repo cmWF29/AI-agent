@@ -19,9 +19,7 @@ view:
   - kind: stats
     rows:
     - {label: 今日请求, value: "data.list.total", note: "条 trace"}
-    - {label: 本页列出, value: "data.list.items|count", note: "按开始时间倒序"}
-    - {label: 聚合阶段, value: "data.slow.items|count", note: "个不同 span 名"}
-    - {label: 最慢 P95, value: "data.slow.items.0.p95_ms", note: "ms · 见下方表"}
+    - {label: 最慢 P95, value: "data.slow.items.0.p95_ms", note: "ms"}
   - kind: table
     source: data.list.items
     heading: 请求清单

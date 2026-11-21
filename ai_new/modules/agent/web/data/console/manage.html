@@ -69,6 +69,8 @@ main .crumb{margin-bottom:14px}
 .view-head .spacer{margin-left:auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
 .vsec{margin-bottom:16px}
+/* 手机端的分页圆点，桌面版不需要 */
+.view-dots{display:none}
 .loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:80px 20px;color:var(--muted);font-size:13px}
 .spinner{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -354,15 +356,36 @@ textarea{min-height:72px;resize:vertical}
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
 @media (max-width: 720px) {
   .sidebar{width:280px}
-  main{padding:10px 12px 12px}
+  .main-col{height:100dvh;max-height:100dvh;overflow:hidden}
+  main{padding:8px 10px calc(58px + env(safe-area-inset-bottom));flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
   /* 手机上一屏只有群聊：面包屑与页面大标题合并，去掉一层重复 */
   .crumb{display:none}
-  .view-head{padding:2px 2px 8px;gap:6px}
+  .view-head{padding:0 2px 8px;gap:6px;margin-bottom:0;flex:none}
   .view-head h2{font-size:17px}
   .view-head .desc{display:none}
-  .ticket-grid{grid-template-columns:1fr;gap:10px;height:auto}
-  .lane-left>.vsec[data-kind="chat"]{flex:none}
-  .chat-card{height:calc(100dvh - 272px);max-height:none;min-height:260px;border-radius:14px}
+  /* 一屏一页：内容区横向吸附，一块内容一张卡，卡内滚动，整页不纵向长滚 */
+  #view-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .view-scroll{flex:1;min-height:0;display:flex;align-items:flex-start;gap:10px;overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x mandatory;scroll-padding:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .view-scroll::-webkit-scrollbar{display:none}
+  /* 桌面的双栏容器在手机上摊平，两栏的每一节都成为同一轨道的卡片 */
+  .view-scroll>.ticket-grid,.view-scroll>.ticket-grid>.lane{display:contents}
+  /* 卡片自身按内容定高，最长到一屏；内容再多在卡里滚，不把整页拉长 */
+  .view-scroll>.vsec,.view-scroll .lane>.vsec{flex:0 0 100%;width:100%;min-width:0;margin:0;
+    max-height:100%;overflow:hidden;
+    scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column}
+  .view-scroll .vsec>.tree,.view-scroll .vsec>.tbl-wrap,.view-scroll .vsec>.cards,
+  .view-scroll .vsec>.flow-grid,.view-scroll .vsec>.side-card,
+  .view-scroll .vsec>.empty,.view-scroll .vsec>.chat-card{flex:0 1 auto;min-height:0;overflow-y:auto}
+  .view-scroll .vsec>.stat-strip{flex:0 0 auto}
+  /* 手机上统计格压到三列，一行读完，不拉成竖条 */
+  .view-scroll .vsec>.stat-strip{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .view-scroll .vsec .stat-cell{padding:10px 11px;border-left:0}
+  .view-scroll .vsec .stat-cell b{font-size:20px}
+  .view-dots{display:flex;gap:5px;justify-content:center;padding:7px 0 2px;flex:none}
+  .view-dots i{width:6px;height:6px;border-radius:50%;background:var(--line);transition:background .18s}
+  .view-dots i.on{background:var(--accent);width:16px;border-radius:3px}
+  .chat-card{flex:1 1 auto;height:auto;max-height:none;min-height:200px;border-radius:14px}
   .chat{max-height:none}
   .chat-head{padding:10px 12px;flex-wrap:nowrap}
   .chat-head-meta{flex-wrap:wrap;gap:4px 8px}
@@ -371,8 +394,19 @@ textarea{min-height:72px;resize:vertical}
   .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
   .cards{grid-template-columns:1fr}
-  .tbl-wrap{overflow-x:auto}
-  table{min-width:520px}
+  /* 表格折成「字段名 + 值」的行式卡片：不用横向拖表，列不会被裁掉 */
+  .tbl-wrap{overflow-x:visible}
+  .tbl-wrap table{min-width:0;width:100%}
+  .tbl-wrap thead{display:none}
+  .tbl-wrap tbody tr{display:block;padding:8px 12px;border-bottom:1px solid var(--line-2)}
+  .tbl-wrap tbody tr:last-child{border-bottom:0}
+  .tbl-wrap td{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;align-items:baseline;
+    padding:2px 0;border:0;text-align:left;word-break:break-word}
+  .tbl-wrap td::before{content:attr(data-th);color:var(--muted);font-size:12px;flex:none;text-align:left}
+  .tbl-wrap td:first-child{display:block;font-size:14.5px;font-weight:600;text-align:left}
+  .tbl-wrap td:first-child::before{display:none}
+  .tbl-wrap td.actions{display:flex;justify-content:flex-end}
+  .tbl-wrap td>.badge,.tbl-wrap td>span.badge{justify-self:start}
   .msg{max-width:92%}
   .composer{flex-wrap:wrap}
   .composer textarea{flex:1 1 100%;min-width:0}
@@ -506,6 +540,15 @@ textarea{min-height:72px;resize:vertical}
   .stat-cell:nth-child(even){border-left:1px solid var(--line-2)}
   .stat-cell b{font-size:21px}
   .flow-grid{grid-template-columns:1fr}
+  /* 状态机在窄卡里也压成一行，不靠横向拖 */
+  .flow-card{padding:12px 12px}
+  .flow-card header .muted{display:none}
+  .flow-map{gap:2px}
+  .flow-col{min-width:0;flex:1 1 0}
+  .flow-node{padding:5px 7px}
+  .flow-node b{font-size:12px}
+  .flow-node span{font-size:10px;word-break:break-all}
+  .flow-arrow{font-size:11px;padding:11px 0 0}
   .vsec-fold>details>summary{flex-direction:column;align-items:flex-start;gap:3px}
   .wf-row{grid-template-columns:minmax(140px,50%) 1fr;gap:8px}
   .wf-caller{display:none}
@@ -514,7 +557,6 @@ textarea{min-height:72px;resize:vertical}
   .wf-head .wf-label{font-size:11px}
   .wf-label{flex-wrap:wrap;row-gap:1px}
   .wf-meta{width:100%;margin-left:0;order:2;font-size:10.5px}
-  .stat-cell:last-child:nth-child(odd){grid-column:1/-1}
   .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:22;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;box-shadow:0 -2px 10px rgba(16,24,40,.06)}
   .tabbar button{flex:1;border:0;background:transparent;border-radius:10px;padding:7px 2px;font-size:12px;color:var(--muted);line-height:1.3}
   .tabbar button.on{color:var(--accent);font-weight:600;background:var(--accent-weak)}

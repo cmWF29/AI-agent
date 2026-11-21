@@ -99,7 +99,9 @@ function tableHtml(sec, ctx) {
         if (col.sub) val += `<div class="muted">${esc(fill(col.sub, c))}</div>`;
       }
       if (val === "" || val === "undefined") val = esc(col.fallback ? fill(col.fallback, c) : "—");
-      return `<td class="${col.muted ? "muted" : ""}">${val}</td>`;
+      // 列名同时写进单元格：手机端表格会折成「字段 + 值」的行式卡片，靠这个标签对齐
+      const th = esc(fill(col.label || "", c));
+      return `<td class="${col.muted ? "muted" : ""}"${th ? ` data-th="${th}"` : ""}>${val}</td>`;
     }).join("");
     const acts = rowActs.length ? `<td class="actions">${rowActs.map((a) => buttonHtml(a, c)).join("")}</td>` : "";
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
@@ -757,6 +759,34 @@ function sectionHtml(sec, ctx) {
   return `<div class="vsec${sec.list ? " vsec-list" : ""}" data-kind="${esc(kind)}">${html}</div>`;
 }
 
+function pruneEmptyCards() {
+  // hide_when_empty 之类会留下空壳，空壳在手机卡片轨里就是一张白卡，直接剔掉
+  document.querySelectorAll("#view-body .view-scroll .vsec").forEach((s) => {
+    if (!s.textContent.trim() && !s.querySelector("table,img,canvas,svg,input,textarea")) s.remove();
+  });
+}
+
+function mountDots() {
+  const rail = document.querySelector("#view-body .view-scroll");
+  if (!rail) return;
+  const cards = [...rail.querySelectorAll(".vsec")];
+  if (cards.length < 2) return;
+  const dots = document.createElement("div");
+  dots.className = "view-dots";
+  dots.innerHTML = cards.map((_, i) => `<i${i ? "" : ` class="on"`}></i>`).join("");
+  $("view-body").appendChild(dots);
+  rail.addEventListener("scroll", () => {
+    // 卡片宽度不全等于轨宽（右侧故意露一点），按离轨道左缘最近的卡判定当前页
+    const edge = rail.getBoundingClientRect().left;
+    let idx = 0, best = Infinity;
+    cards.forEach((c, i) => {
+      const d = Math.abs(c.getBoundingClientRect().left - edge);
+      if (d < best) { best = d; idx = i; }
+    });
+    [...dots.children].forEach((d, i) => d.classList.toggle("on", i === idx));
+  }, { passive: true });
+}
+
 function renderView(spec, ctx) {
   ACTS = [];
   const head = `<div class="view-head">
@@ -781,7 +811,10 @@ function renderView(spec, ctx) {
       ${twoSided ? `<div class="lane lane-right">${right.join("")}</div>` : ""}
     </div>`;
   }
-  $("view-body").innerHTML = head + body;
+  // 内容区单独包一层：桌面纵向排布，手机变成横滑吸附的卡片轨
+  $("view-body").innerHTML = head + `<div class="view-scroll">${body}</div>`;
+  pruneEmptyCards();
+  mountDots();
   // 浏览器标题也由外壳词表拼：视图名走规格，品牌名走后端
   const name = String(fill(spec.heading || spec.heading_from || "", ctx) || "").trim();
   if (BRAND.title_view && name) {
