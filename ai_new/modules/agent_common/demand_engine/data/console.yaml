@@ -114,20 +114,17 @@ ui:
   wire_resp_body: 响应原文
 click_machine:                          # 点击状态机：前端每一个可点位置都在这里登记种类与门禁
   states:
-  - {key: idle,    label: 空闲,      at: [0.50, 0.10], note: 可以正常点击}
-  - {key: press,   label: 按下,      at: [0.22, 0.40], note: 手指已落下，还没判方向}
-  - {key: busy,    label: 执行中,    at: [0.50, 0.40], note: 有动作在飞，重复点击丢弃}
-  - {key: modal,   label: 弹窗,      at: [0.80, 0.40], note: 只认弹窗内控件}
-  - {key: drag,    label: 横滑,      at: [0.12, 0.76], note: 手势接管，本次不产生点击}
-  - {key: scroll,  label: 纵滚,      at: [0.36, 0.76], note: 纵向手势交还页面滚动，立即回空闲}
-  - {key: swallow, label: 吞一下,    at: [0.68, 0.76], note: 刚松手，紧随的一次点击属于手势}
+  - {key: idle,    label: 空闲,      at: [0.50, 0.14], note: 可以正常点击}
+  - {key: press,   label: 按下,      at: [0.20, 0.42], note: 手指已落下，还没判方向}
+  - {key: busy,    label: 执行中,    at: [0.50, 0.42], note: 有动作在飞，重复点击丢弃}
+  - {key: modal,   label: 弹窗,      at: [0.80, 0.42], note: 只认弹窗内控件}
+  - {key: drag,    label: 横滑,      at: [0.16, 0.76], note: 手势接管，本次不产生点击}
+  - {key: scroll,  label: 纵滚,      at: [0.44, 0.76], note: 纵向手势交还页面滚动，立即回空闲}
+  - {key: swallow, label: 吞一下,    at: [0.74, 0.76], note: 刚松手，紧随的一次点击属于手势}
   edge_notes:                          # 图上的关键边注解（只标容易看错的那几条）
     press>drag: 横滑
     press>scroll: 纵滑
-    drag>swallow: 松手
-    busy>modal: 开弹窗
     modal>busy: 提交
-    drag>idle: 停下
   transitions:                          # 允许的状态迁移：左边 now，右边 next
     idle:    [press, busy, modal]
     press:   [drag, scroll, idle, swallow, busy]

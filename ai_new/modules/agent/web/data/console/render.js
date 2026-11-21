@@ -811,7 +811,10 @@ function clickMachineHtml(sec, ctx) {
   let trans = m.transitions || {};
   if (typeof trans !== "object" || Array.isArray(trans)) trans = {};
   if (!states.length) return emptyHtml(sec.empty);
-  const W = 760, H = 430, NW = 98, NH = 42;
+  // 手机竖排：画布按竖比例给，字号才能在 390 宽下保持可读（横版会被等比缩成蚂蚁字）
+  const W = 380, H = 364, NW = 88, NH = 40;
+  // 边按来源状态着色：20 条边都连到 idle，颜色是分辨"从哪出发"的唯一线索
+  const TONE = { idle: "#5f87dd", press: "#3fae68", drag: "#2aa9a4", scroll: "#6f7fd0", swallow: "#98a2b1", busy: "#dd8f3f", modal: "#9a6adb" };
   const notes = m.edge_notes || {};
   // 坐标由规格给（at 为归一化位置）；没给就退回环形，规格漏了也不会白屏
   const pos = {};
@@ -835,9 +838,13 @@ function clickMachineHtml(sec, ctx) {
     const both = !!(trans[to] || []).includes(from);
     const bend = (both ? (String(from) < String(to) ? 1 : -1) * 16 : 8);
     const qx = mx - uy * bend, qy = my + ux * bend;
+    const tone = TONE[from] || "#a9b6c6";
     const label = notes[from + ">" + to];
-    const tag = label ? `<text class="mch-edge-label" x="${qx.toFixed(1)}" y="${(qy - 4).toFixed(1)}" text-anchor="middle">${esc(label)}</text>` : "";
-    return `<path class="mch-edge" d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" marker-end="url(#mch-arrow)"/>${tag}`;
+    // 标签再往外让 9px，不然会压在弧线或节点边上
+    const lx = Math.min(Math.max(mx - uy * (bend + 9), 26), W - 26);
+    const ly = Math.min(Math.max(my + ux * (bend + 9), 18), H - 12);
+    const tag = label ? `<text class="mch-edge-label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle">${esc(label)}</text>` : "";
+    return `<path class="mch-edge" style="stroke:${tone}" d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" marker-end="url(#mch-arrow-${from})"/>${tag}`;
   };
   const edges = Object.keys(trans).map((from) => arr(trans[from]).map((to) => edge(from, to)).join("")).join("");
   const nodes = states.map((s) => {
@@ -849,8 +856,9 @@ function clickMachineHtml(sec, ctx) {
   }).join("");
   return `<div class="machine-wrap">
     <svg class="mch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(uiText("machine_svg_alt"))}">
-      <defs><marker id="mch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M0,0 L10,5 L0,10 z" class="mch-arrow-head"/></marker></defs>
+      <defs>${states.map((s) => `<marker id="mch-arrow-${esc(s.key)}" viewBox="0 0 10 10" refX="8" refY="5"
+        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="${TONE[s.key] || "#a9b6c6"}"/></marker>`).join("")}</defs>
       ${edges}${nodes}
     </svg>
   </div>`;
