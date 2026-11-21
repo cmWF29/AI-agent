@@ -453,6 +453,10 @@ textarea{min-height:72px;resize:vertical}
   /* 手机端不要阴影：层次用边框和底色区分，卡片堆叠也一样 */
   .pcard,.card,.tbl-wrap,.tree-node,.stat-strip,.side-card,.flow-card,.wf,
   .vsec-fold>details,.chat-card,.composer,.popover,.modal-card{box-shadow:none}
+  /* 堆叠卡按层位写过更具体的阴影，得按同样的选择器压掉，否则叠起来仍是浮的 */
+  .deck[data-open="0"] .deck-stage>.pcard[data-front="1"],
+  .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]),
+  .deck[data-dragging="1"] .deck-stage>.pcard[data-front="1"]{box-shadow:none}
   /* 离屏区块交给浏览器跳过渲染；带卡片堆叠的区块要量高度，不能跳 */
   .view-scroll>.vsec:not(:has([data-deck])){content-visibility:auto;contain-intrinsic-size:auto 220px}
   .view-scroll .vsec>.cards.deck{overflow:visible}
