@@ -39,10 +39,8 @@ do:
   as: now
 - call: decompose.install
   with:
-    draft:
-      get: out.draft
-    meta:
-      get: out.meta
+    run:
+      get: out
     source:
       get: input.source
     now:

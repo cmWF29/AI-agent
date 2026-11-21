@@ -52,6 +52,8 @@ ui:
   record: 记录
   stamp_yes: 是
   stamp_no: 否
+  switch_on: 已开启
+  switch_off: 已关闭
   done_word: 完成
   empty_file: 空文件（0 字节）
   trunc_note: "…（截断，共 {} 字符）"

@@ -296,6 +296,29 @@ class _Handler(BaseHTTPRequestHandler):
             return _text_frames(step.get("reply") or "")
 
         tools = req.get("tools") or []
+        names = {((spec.get("function") or {}).get("name") or spec.get("name"))
+                 for spec in tools}
+        if {"fetch_url", "pip_install"} <= names:
+            # 拆解场景：按拆解者提示词一次性给出岗位/流程/新工具草稿，不再多轮工具。
+            with stats.lock:
+                stats.text += 1
+            return _text_frames(json.dumps({
+                "role": {"cn": "技能拆解员",
+                         "must_dos": ["读包正文", "拆成岗位职责", "登记可执行检查项"],
+                         "forbidden": ["改写原始包正文"],
+                         "tools": []},
+                "flow": {"checks": ["岗位职责覆盖包内步骤", "检查项可执行且可验收"],
+                         "nodes": [{"id": "read", "cn": "读包"},
+                                   {"id": "split", "cn": "拆岗位"},
+                                   {"id": "check", "cn": "自检"}],
+                         "edges": [{"from": "read", "to": "split"},
+                                   {"from": "split", "to": "check"}]},
+                "new_tools": [{"name": "skill_audit",
+                               "desc": "按包正文自检拆解结果",
+                               "params": [{"name": "skill_id", "type": "string",
+                                           "required": True, "desc": "技能标识"}],
+                               "deps": {"pip": [], "scripts": []}}]},
+                ensure_ascii=False))
         by_name = {}
         for spec in tools or []:
             fn = spec.get("function") or {}

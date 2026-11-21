@@ -107,6 +107,7 @@ function fill(tpl, ctx) {
 function fmtVal(item, ctx) {
   let v = fill(item.value, ctx);
   if (item.format === "when") v = when(v);
+  else if (item.format === "switch") v = truthy(v) ? uiText("switch_on") : uiText("switch_off");
   else if (item.format === "project_name") v = projectName(v, ctx);
   return v;
 }

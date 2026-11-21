@@ -157,6 +157,10 @@ $("modal-form").onsubmit = async (e) => {
   $("modal-ok").disabled = true;
   $("modal-ok").textContent = uiText("loading") || "加载中…";
   try { await modalSubmit(new FormData(e.target)); }
-  catch (err) { modalError(gateMessage(err)); }
+  catch (err) {
+    const msg = gateMessage(err);
+    modalError(msg);
+    banner(msg, "err");   // 表单失败也要换掉"加载中"，否则横幅一直挂着
+  }
   finally { $("modal-ok").disabled = false; $("modal-ok").textContent = okLabel; }
 };

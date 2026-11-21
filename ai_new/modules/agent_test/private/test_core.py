@@ -2224,6 +2224,66 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(r["ok"])
         self.assertEqual(r["effects"], [])
 
+    def test_decompose_install_reports_upstream_failure(self):
+        """模型没交答复时，需求回上游错误码，不许误报成"缺少标识 id"。"""
+        def dead_react(ctx, payload):
+            return {"steps": 0, "messages": [], "last": {},
+                    "failed": {"ok": False, "code": "no_key"}}
+
+        original = self.ctx.api.route("react.run")["fn"]
+        self.ctx.api.substitute("react.run", dead_react)
+        try:
+            r = self._run("decompose-install", {
+                "skill_md": "---\nname: weekly_x\ndescription: 周报\n---\n正文",
+                "source": "weekly_x"})
+        finally:
+            self.ctx.api.substitute("react.run", original)
+        self.assertFalse(r["ok"])
+        res = r["result"]
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "no_answer")
+        self.assertNotIn("标识", res["error"])
+
+    def test_decompose_install_end_to_end_writes_library(self):
+        """真链路：包正文 → 模型拆解 JSON → 四库合并 → Skill 单元落盘可列。"""
+        import json
+        draft = {"role": {"cn": "周报汇总员", "must_dos": ["读工单"], "forbidden": [],
+                          "tools": ["tickets-list"]},
+                 "flow": {"checks": ["四节齐全"], "nodes": [], "edges": []},
+                 "new_tools": [{"name": "weekly_render", "desc": "渲染周报",
+                                "params": [], "deps": {"pip": [], "scripts": []}}]}
+
+        def fake_react(ctx, payload):
+            text = json.dumps(draft, ensure_ascii=False)
+            return {"steps": 1, "messages": [{"role": "assistant", "content": text}],
+                    "last": {"role": "assistant", "content": text},
+                    "cancelled": False, "failed": None}
+
+        lib = (("agent/library", "skills.yaml"), ("agent/library", "roles.yaml"),
+               ("agent/library", "flows.yaml"), ("agent_common/tools", "tools.yaml"))
+        before = {(m, p): self.ctx.api.call("store.read", {"module": m, "path": p}).get("value")
+                  for m, p in lib}
+
+        original = self.ctx.api.route("react.run")["fn"]
+        self.ctx.api.substitute("react.run", fake_react)
+        try:
+            r = self._run("decompose-install", {
+                "skill_md": "---\nname: weekly_review\ndescription: 周报\n---\n正文",
+                "source": "weekly_review"})
+            self.assertTrue(r["ok"], r)
+            skills = self.ctx.api.call("store.read", {"module": "agent/library",
+                                                      "path": "skills.yaml"}).get("value") or {}
+            self.assertIn("weekly_review", skills)
+            roles = self.ctx.api.call("store.read", {"module": "agent/library",
+                                                     "path": "roles.yaml"}).get("value") or {}
+            self.assertTrue(any((v or {}).get("skill") == "weekly_review" for v in roles.values()))
+        finally:
+            self.ctx.api.substitute("react.run", original)
+            for (m, p), val in before.items():  # 新增记录回滚，避免污染后续用例
+                self.ctx.api.call("store.write", {"module": m, "path": p,
+                                                  "value": {} if val is None else val})
+
+
         # skills_listp：关联岗位中文名、流程在库与否、工具名、启停文本
         skills = {"s1": {"id": "s1", "cn": "PPT师", "status": "enabled", "role": "r1",
                          "flow": "f1", "tools": ["t1"], "builtin": False},

@@ -11,13 +11,13 @@ view:
   key: skills
   crumb: [项目管理, 技能]
   heading: 技能
-  subheading: Skill = 从一份 Skill.md 拆出的一个岗位、配套流程与工具，归到同一标识下；可临时禁用，也可级联卸载。内置能力受保护不可卸载
+  subheading: 一份 Skill.md 拆成一个岗位、配套流程与工具，归同一标识；可禁用、可级联卸载，内置受保护
   actions:
   - {label: ＋ 新建拆解, tone: primary, modal: decompose.new}
   forms:
   - id: decompose.new
     title: 拆解 Skill.md 包
-    hint: 三种方式提供 Skill.md：粘贴正文、拖入 .md/.txt 文件，或填网页链接由后台拉取；链接优先。声明的 Python 依赖由拆解者当场核对安装，脚本资源随包登记。拆解结果直接入库为一个 Skill 单元，流程拆不出就留空。
+    hint: 粘贴正文、拖入 .md/.txt，或填链接由后台拉取（链接优先）；依赖当场核对安装，结果直接入库为技能单元。
     fields:
     - name: source
       label: 来源标识（可选）

@@ -4,8 +4,11 @@
 module: decompose
 routes:
   decompose.install:
-    doc: 拆解入库：产物有效才合并四库并产出落盘 effects；无效回空 effects 不落盘
+    doc: 拆解入库：产物有效才合并四库并产出落盘 effects；无效回空 effects 不落盘；上游失败原样透出
     in:
+      run:
+        type: any
+        req: false
       draft:
         type: any
         req: false

@@ -90,8 +90,13 @@ def _route_install(ctx, payload):
     读现有库、合并、effects 成形都在能力内；需求只调本能力再 runtime.apply。
     拆解没成功（缺标识/坏草稿）时不产出任何写盘动作，正式库不被重写。
     """
+    run = payload.get("run")
+    if isinstance(run, dict) and run.get("ok") is False:
+        return {"ok": False, "code": run.get("code") or "run_failed", "effects": [],
+                "error": run.get("error") or _msg_tpl(ctx).get("run_failed") or ""}
+    src = run if isinstance(run, dict) and run.get("draft") is not None else payload
     parts = ctx.api.call("decompose.install_parts", {
-        "draft": payload.get("draft"), "meta": payload.get("meta"),
+        "draft": src.get("draft"), "meta": src.get("meta"),
         "source": payload.get("source"), "now": payload.get("now")}, caller=None)
     if not (parts or {}).get("skill"):
         return {"ok": False, "effects": [],
