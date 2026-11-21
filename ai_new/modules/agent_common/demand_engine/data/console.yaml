@@ -29,6 +29,7 @@ login:                                 # 登录页（未登录可读，不含导
   net_fail: "网络请求失败：{}"
   http_code: "（{}）"
 ui:
+  crumb_root: 工作台                     # 面包屑唯一根：所有页面都从这里起算，视图里不许再写根词
   loading: 加载中…
   empty: 暂无数据
   empty_tree: 暂无内容

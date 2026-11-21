@@ -37,7 +37,9 @@ COPY_WHITELIST = {
 
 
 def src_files(base):
-    return sorted(p for p in base.rglob("*.py") if "__pycache__" not in p.parts)
+    """模块源码文件：`data/` 是运行期产物目录（交付件里可能有 .py），不算源码。"""
+    return sorted(p for p in base.rglob("*.py")
+                  if "__pycache__" not in p.parts and "data" not in p.parts)
 
 
 def runtime_modules():
@@ -433,6 +435,91 @@ class StructureTest(unittest.TestCase):
                          "根目录多出了东西: %s" % sorted(entries - allowed))
         self.assertTrue((ROOT / "agent_start.py").is_file())
         self.assertTrue((ROOT / "test_start.py").is_file())
+
+
+class TestViewPaths(unittest.TestCase):
+    """页面路径只有一套根：视图不许自带根词，层级必须和 parent 链一次不差。
+
+    这一条是"前端页面到底有没有被管起来"的机械答案：
+    面包屑 = 词表里唯一的根 + 视图声明的各级；谁想偷偷换根、跳级挂靠，直接红灯。
+    """
+
+    @staticmethod
+    def _views():
+        demands = module_dir("agent_common", "demand_engine") / "data" / "demands"
+        out = {}
+        for path in sorted(demands.glob("view-*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            view = rec.get("view")
+            if not isinstance(view, dict) or not view.get("key"):
+                continue
+            out[view["key"]] = (path.name, view)
+        return out
+
+    @staticmethod
+    def _parent_key(view):
+        parent = view.get("parent")
+        if isinstance(parent, dict):
+            return parent.get("view")
+        if isinstance(parent, str):
+            return None if parent.startswith("$") else parent
+        return None
+
+    def test_one_root_for_the_whole_console(self):
+        console = yaml.safe_load((module_dir("agent_common", "demand_engine") / "data"
+                                  / "console.yaml").read_text(encoding="utf-8")) or {}
+        root = str((console.get("ui") or {}).get("crumb_root") or "")
+        self.assertTrue(root, "词表没声明面包屑根 ui.crumb_root")
+        for key, (name, view) in self._views().items():
+            for part in view.get("crumb") or []:
+                self.assertNotEqual(str(part), root,
+                                    "%s 自己写了根词，路径会出现第二个根" % name)
+
+    def test_breadcrumb_depth_matches_parent_chain(self):
+        views = self._views()
+        problems = []
+        for key, (name, view) in views.items():
+            crumb = [str(x) for x in (view.get("crumb") or [])]
+            if not crumb:
+                problems.append("%s 没有声明 crumb，页面顶上看不出自己在哪一级" % name)
+                continue
+            chain, seen = [], {key}
+            at = key
+            while True:
+                parent = self._parent_key(views[at][1])
+                if not parent:
+                    break
+                if parent in seen or parent not in views:
+                    problems.append("%s 的 parent 链断了或成环: %s" % (name, parent))
+                    break
+                seen.add(parent)
+                chain.insert(0, parent)
+                at = parent
+            top = views[chain[0]][1] if chain else view
+            label = (top.get("menu") or {}).get("label")
+            if not label:
+                problems.append("%s 的层级终点不是导航页（%s 没 menu）" % (name, chain[0]))
+                continue
+            if crumb[0] != str(label):
+                problems.append("%s 的第一级是 %r，不是它所在的导航页 %r"
+                                % (name, crumb[0], str(label)))
+            if len(crumb) != len(chain) + 1:
+                problems.append("%s 写了 %d 级，parent 链只有 %d 级"
+                                % (name, len(crumb), len(chain) + 1))
+        self.assertEqual(problems, [], "页面路径不统一: %s" % problems)
+
+    def test_nav_label_is_the_page_title(self):
+        """导航名就是页面名：侧栏与标题不许两种叫法，否则面包屑第一级会跟着漂。"""
+        bad = []
+        for key, (name, view) in self._views().items():
+            menu = view.get("menu") or {}
+            if not menu:
+                continue
+            label = str(menu.get("label") or "")
+            head = str(view.get("heading") or "")
+            if head and label and label != head:
+                bad.append("%s 导航叫 %r，标题叫 %r" % (name, label, head))
+        self.assertEqual(bad, [], "导航名与页面标题不一致: %s" % bad)
 
 
 DEAD_DOC_CONCEPTS = (

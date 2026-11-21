@@ -379,16 +379,17 @@ function crumbUp() {
   return { view: defaultView() };
 }
 function renderCrumb(spec, ctx) {
+  // 路径只有一套：根词由词表下发（console.yaml ui.crumb_root），视图只声明"导航名 + 各级"，
+  // 所以任何页面第一级都是同一个根，不管从哪进都不会冒出第二个根。
+  const root = uiText("crumb_root");
   const parts = (spec.crumb || []).map((x) => fill(x, ctx)).filter(Boolean);
-  // 只有一级且与页面大标题相同，就别重复印两遍（项目页不该顶着"项目 / 项目"）
-  const head = fill(spec.heading || spec.heading_from || "", ctx);
-  if (parts.length <= 1 && (!parts.length || String(parts[0]) === String(head))) {
-    $("crumb").innerHTML = ""; return;
-  }
+  let trail = parts;
+  if (root) trail = [root].concat(parts);
+  if (!trail.length) { $("crumb").innerHTML = ""; return; }
   // 末段=当前页（不可点）；倒数第二段=上一级（点了回上级）；更上面的只是层级标识
-  $("crumb").innerHTML = parts.map((text, i) => {
-    if (i === parts.length - 1) return `<span class="now">${esc(text)}</span>`;
-    if (i === parts.length - 2) return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
+  $("crumb").innerHTML = trail.map((text, i) => {
+    if (i === trail.length - 1) return `<span class="now">${esc(text)}</span>`;
+    if (i === trail.length - 2) return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
     return `<span class="up">${esc(text)}</span><span class="sep">/</span>`;
   }).join("");
 }

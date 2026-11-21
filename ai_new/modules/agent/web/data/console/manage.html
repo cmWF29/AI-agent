@@ -53,10 +53,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line-2)}
 .side-foot button{width:100%;justify-content:flex-start}
 .main-col{flex:1;min-width:0;display:flex;flex-direction:column}
-.crumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-2);min-width:0}
-.crumb button{background:transparent;border:0;padding:2px 6px;border-radius:8px;color:var(--fg-2)}
+.crumb{display:flex;align-items:center;gap:0;font-size:13px;color:var(--fg-2);min-width:0}
+.crumb button{background:transparent;border:0;padding:2px 0;border-radius:8px;color:var(--fg-2)}
 .crumb button:hover{background:var(--line-2);color:var(--fg)}
-.crumb .sep{color:var(--muted)}
+.crumb .sep{color:var(--muted);padding:0 6px}
 .crumb .now{font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:36vw}
 .spacer{margin-left:auto}
 
@@ -365,11 +365,11 @@ textarea{min-height:72px;resize:vertical}
   main{padding:8px 10px calc(14px + env(safe-area-inset-bottom));flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
   /* 手机上一屏只有群聊：面包屑与页面大标题合并，去掉一层重复 */
   /* 面包屑保留：顶部要能看出现在在哪一级（项目 / 工单 / 会话） */
-  .crumb{display:flex;font-size:12px;gap:2px;padding:2px 2px 0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .crumb{display:flex;font-size:12px;gap:0;padding:2px 2px 0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   .crumb::-webkit-scrollbar{display:none}
-  .crumb button{padding:2px 4px;flex:none}
+  .crumb button{padding:0;flex:none}
   .crumb .now{max-width:46vw;flex:none}
-  .crumb .sep{flex:none}
+  .crumb .sep{flex:none;padding:0 4px}
   main .crumb{margin-bottom:2px}
   .view-head{padding:0 2px 8px;gap:6px;margin-bottom:0;flex:none;flex-wrap:wrap;align-items:flex-start}
   /* 标题至少占六成宽：短标题与按钮同一行，长标题自然把按钮挤到下一行 */

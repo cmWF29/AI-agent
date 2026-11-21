@@ -9,7 +9,7 @@ do: []
 view:
   menu: {order: 9, label: 运维, short: 运维, mobile: false}
   key: ops
-  crumb: [系统, 运维]
+  crumb: [运维]
   heading: 运维
   subheading: 运行记录只读，扫描与导出手动触发
   actions:

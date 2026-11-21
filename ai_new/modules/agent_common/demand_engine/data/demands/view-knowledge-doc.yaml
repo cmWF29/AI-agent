@@ -11,7 +11,7 @@ view:
   params: [layer, name, project, ticket]
   nav: knowledge
   parent: {view: knowledge}
-  crumb: [项目管理, 知识库, "{route.name}"]
+  crumb: [知识库, "{route.name}"]
   heading: "{route.name}"
   subheading: 只读浏览；文档由流程运行沉淀，不在此页修改
   data:

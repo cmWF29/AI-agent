@@ -9,7 +9,8 @@ do: []
 view:
   key: traces
   nav: arch
-  crumb: [系统, 链路]
+  parent: {view: arch}
+  crumb: [架构, 链路]
   heading: 链路
   subheading: 一次请求一条 trace；点开任意一行，看这次请求里每个 span 在时间轴上的位置与耗时
   data:
@@ -23,7 +24,8 @@ view:
   - kind: table
     source: data.list.items
     heading: 请求清单
-    note: 慢请求排前面；错误数非 0 的行会标红
+    limit: 20
+    count_note: "共 {data.list.total} 条；慢请求排前面，只看前 20 条，点任意一行看瀑布"
     columns:
     - {label: 链路, value: row.trace, sub: "{row.start|when}"}
     - {label: 节点数, value: row.spans, suffix: 个}

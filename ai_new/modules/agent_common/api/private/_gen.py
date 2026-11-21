@@ -58,10 +58,14 @@ def modules_of(root):
 
 
 def route_literals(root, modules):
-    """源码里出现的、形如 `模块.函数` 的字符串（用来核对编译结果是否覆盖调用）。"""
+    """源码里出现的、形如 `模块.函数` 的字符串（用来核对编译结果是否覆盖调用）。
+
+    只扫源码：`data/` 下是运行期产物（交付件里可能有 .py，业务文件不是本模块的源码），
+    扫进来会把自己的产物当代码解析，启动直接炸。
+    """
     found = set()
     for path in sorted((Path(root) / MODULES_DIR).rglob("*.py")):
-        if "__pycache__" in path.parts:
+        if "__pycache__" in path.parts or "data" in path.parts:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):

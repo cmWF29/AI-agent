@@ -7,9 +7,9 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 6, label: 知识, mobile: false}
+  menu: {order: 6, label: 知识库, mobile: false}
   key: knowledge
-  crumb: [项目管理, 知识库]
+  crumb: [知识库]
   heading: 知识库
   subheading: 公共规范、项目沉淀与工单留档；只读浏览，写入由流程自动沉淀
   data:

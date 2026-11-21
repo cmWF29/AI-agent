@@ -10,7 +10,7 @@ view:
   menu: {order: 2, label: 架构, short: 架构, mobile: true}
   key: arch
   nav: arch
-  crumb: [系统, 架构]
+  crumb: [架构]
   heading: 架构
   subheading: 需求是数据、模块是能力、契约是约束；一条需求怎么编译、落到哪条路由、由哪个岗位执行，都在这一页
   actions:

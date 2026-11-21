@@ -9,7 +9,7 @@ do: []
 view:
   menu: {order: 5, label: 技能, mobile: false}
   key: skills
-  crumb: [项目管理, 技能]
+  crumb: [技能]
   heading: 技能
   subheading: 一份 Skill.md 拆成一个岗位、配套流程与工具，归同一标识；可禁用、可级联卸载，内置受保护
   actions:

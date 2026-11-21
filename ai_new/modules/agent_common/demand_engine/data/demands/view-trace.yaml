@@ -11,7 +11,7 @@ view:
   nav: arch
   params: [trace]
   parent: traces
-  crumb: [系统, 链路, "{route.trace}"]
+  crumb: [架构, 链路, "{route.trace}"]
   heading: 链路 {route.trace}
   subheading: 横轴是这条请求的总时长；条越长越慢，缩进表示调用层级，红色是出错节点
   data:
