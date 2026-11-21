@@ -252,13 +252,32 @@ async function go(next, push) {
 }
 
 async function boot() {
-  // 视图规格与外壳词表各取一次、并行拿：页面自己不存任何业务字或菜单
-  const [viewsRes, shellRes] = await runBatch([
-    { id: "views-list", input: {} }, { id: "console-shell", input: {} }]);
-  if (!viewsRes.ok) throw new Error(viewsRes.error || uiText("no_views"));
-  const items = viewsRes.data, shell = shellRes.ok ? shellRes.data : {};
+  // 整页一次往返：服务端按视图规格把依赖算完、并发跑完，连外壳与视图清单一起回。
+  // 前端只带 URL 上的参数，不知道这一页要几份数据、谁依赖谁。
+  const q = new URLSearchParams(location.search);
+  const params = {}; q.forEach((v, k) => { if (k !== "view") params[k] = v; });
+  let page = {}, shell = {};
+  try { page = await resolvePage(q.get("view") || "", params, true); }
+  catch (err) { if (err && err.status === 401) return; page = {}; }
+  if (page.views && page.views.length) {
+    shell = page.shell || {};
+    adoptViews(page.views);
+  } else {
+    // 兜底：视图名不认识或没回清单时，退回"外壳 + 清单"两件一起取
+    const [viewsRes, shellRes] = await runBatch([
+      { id: "views-list", input: {} }, { id: "console-shell", input: {} }]);
+    if (!viewsRes.ok) throw new Error(viewsRes.error || uiText("no_views"));
+    shell = shellRes.ok ? shellRes.data : {};
+    adoptViews(viewsRes.data);
+  }
   applyShell(shell);
-  for (const it of items) {
+  renderMenus((shell && shell.menus && shell.menus.length) ? shell.menus : menusFromViews());
+  state = parseURL();
+  // 服务端算的那页和 URL 解析出来的一致就直接用，省掉第二次取数
+  await render({ pre: (page.view === state.view) ? page : null });
+}
+function adoptViews(items) {
+  for (const it of items || []) {
     const v = it && it.view;
     if (!v) continue;
     if (v.key) VIEWS[v.key] = v;
@@ -266,9 +285,6 @@ async function boot() {
     for (const f of v.forms || []) FORMS[f.id] = f;
   }
   if (!Object.keys(VIEWS).length) throw new Error(uiText("no_views") || "没有任何视图规格，页面无法启动");
-  renderMenus((shell && shell.menus && shell.menus.length) ? shell.menus : menusFromViews());
-  state = parseURL();
-  await render();
 }
 /* 菜单兜底：console-shell 不可用时，直接按视图规格里的 menu 汇总——
    同一份数据换个读法，不额外存清单。 */
@@ -348,47 +364,26 @@ function openStream(key) {
   ES.onerror = () => { /* 浏览器自动重连；低频兜底轮询仍在 */ };
 }
 
-function paramRefs(obj, acc) {
-  if (typeof obj === "string") {
-    const re = /\{([^{}]+)\}/g; let m;
-    while ((m = re.exec(obj))) {
-      // 只有 {data.x}/{cache.x} 才是"要等别的数据源"的依赖；
-      // {route.x}/{row.x}/{fields.x} 上手就有，不能算依赖——
-      // 算了会让每个数据源都"缺依赖"，被兜底逻辑串成一层一条，白等好几个 RTT。
-      const p = m[1].split("|")[0].trim();
-      if (!p.startsWith("data.") && !p.startsWith("cache.")) continue;
-      const head = p.replace(/^(data|cache)\./, "").split(".")[0];
-      if (head) acc.add(head);
-    }
-  } else if (Array.isArray(obj)) obj.forEach((x) => paramRefs(x, acc));
-  else if (obj && typeof obj === "object") Object.values(obj).forEach((x) => paramRefs(x, acc));
-}
-
-async function loadData(spec, ctx) {
-  // 数据源按依赖分层：参数只引用已就绪数据源的一层并行发起；引用前序结果的下一层再跑。
-  const sources = spec.data || [];
-  const done = new Set();
-  let pending = sources.slice();
-  while (pending.length) {
-    const ready = [], wait = [];
-    for (const src of pending) {
-      const refs = new Set();
-      paramRefs(src.params || {}, refs);
-      if ([...refs].every((a) => done.has(a))) ready.push(src);
-      else wait.push(src);
-    }
-    if (!ready.length) ready.push(wait.shift());  // 环或缺依赖兜底：串行先跑一个
-    const calls = ready.map((src) => ({ src, id: src.demand, input: fill(src.params || {}, ctx) }));
-    const out = await runBatch(calls);
-    calls.forEach((c, i) => {
-      const r = out[i] || {};
-      if (!r.ok) throw Object.assign(new Error(r.error || uiText("demand_fail")), { code: "demand_fail" });
-      ctx.data[c.src.as] = r.data || {};
-      if (c.src.cache) ctx.cache[c.src.cache] = r.data || {};
+/* 整页取数：只报"看哪一页、什么参数"，依赖分层与并发都在服务端按视图规格做。
+   前端不再猜哪份数据依赖哪份——那本来就不是前端该有的业务知识。 */
+async function resolvePage(view, params, wantShell) {
+  let resp, body;
+  try {
+    resp = await fetch("/api/rpc/demand_engine/resolve", {
+      method: "POST", headers: headers(),
+      body: yamlBody({ view: view || "", params: params || {}, shell: !!wantShell })
     });
-    ready.forEach((s) => done.add(s.as));
-    pending = wait;
+    body = await readYaml(resp).catch(() => ({ ok: false, error: uiText("bad_yaml"), code: "bad_yaml" }));
+  } catch (e) {
+    throw Object.assign(new Error(uiText("net_fail", e.message)), { status: 0, code: "network" });
   }
+  if (!body.ok) {
+    if (resp.status === 401 || body.code === "unauthorized") { clearToken(); location.href = "/login.html"; return {}; }
+    throw Object.assign(new Error(body.error || ("HTTP " + resp.status)),
+      { status: resp.status, code: body.code });
+  }
+  const p = body.result || {};
+  return p.result || p;   // 兼容多套一层
 }
 
 async function render(opts) {
@@ -403,7 +398,19 @@ async function render(opts) {
     openStream("");
     return;
   }
-  await loadData(spec, ctx);
+  const pre = opts && opts.pre;
+  if (pre && pre.data) {
+    ctx.data = pre.data || {};
+    ctx.cache = pre.cache || {};
+  } else {
+    const page = await resolvePage(state.view, state, false);
+    ctx.data = page.data || {};
+    ctx.cache = page.cache || {};
+    if ((page.missing || []).length) {
+      $("view-body").innerHTML = `<div class="view-scroll"><div class="vsec"><div class="empty">${esc(spec.empty_hint || uiText("need_param"))}</div></div></div>`;
+      return;
+    }
+  }
   if (!(opts && opts.keepBanner)) banner("");
   const draft = (document.querySelector("#view-body .composer textarea") || {}).value || "";
   renderCrumb(spec, ctx);

@@ -41,11 +41,187 @@ async def _route_batch(ctx, payload):
     return {"items": list(items)}
 
 
+import re
+
+_REF = re.compile(r"\{([^{}]+)\}")
+
+
+def _dig(obj, path):
+    cur = obj
+    for part in str(path or "").split("."):
+        if not part:
+            continue
+        if isinstance(cur, dict):
+            if part not in cur:
+                return None
+            cur = cur[part]
+        elif isinstance(cur, list):
+            try:
+                cur = cur[int(part)]
+            except (ValueError, IndexError):
+                return None
+        else:
+            return None
+    return cur
+
+
+def _value(expr, route, data, cache):
+    """一条取值表达式的实际值：只认 route / data / cache 三种来源。"""
+    expr = expr.strip()
+    if expr.startswith("route."):
+        return route.get(expr[6:])
+    if expr.startswith("data."):
+        rest = expr[5:]
+        head = rest.split(".")[0]
+        return _dig(data.get(head), rest[len(head) + 1:])
+    if expr.startswith("cache."):
+        rest = expr[6:]
+        head = rest.split(".")[0]
+        return _dig(cache.get(head), rest[len(head) + 1:])
+    head = expr.split(".")[0]
+    if head in data:
+        return _dig(data.get(head), expr[len(head) + 1:])
+    if head in cache:
+        return _dig(cache.get(head), expr[len(head) + 1:])
+    return None
+
+
+def _fill(tpl, route, data, cache):
+    """把规格里的参数模板填成实际值（与前端 spec.fill 同一套语义）。"""
+    if isinstance(tpl, str):
+        if "{" in tpl:
+            def one(m):
+                v = _value(m.group(1).split("|")[0], route, data, cache)
+                return "" if v is None else str(v)
+            return _REF.sub(one, tpl)
+        if re.match(r"^[A-Za-z_$][\w$]*(\.[\w$]+)+$", tpl):
+            v = _value(tpl, route, data, cache)
+            return "" if v is None else v
+        return tpl
+    if isinstance(tpl, list):
+        return [_fill(x, route, data, cache) for x in tpl]
+    if isinstance(tpl, dict):
+        return {k: _fill(v, route, data, cache) for k, v in tpl.items()}
+    return tpl
+
+
+def _refs(tpl):
+    """规格里引用到的数据源名：只有 data./cache. 才是"要等别的数据源"，route/row 上手就有。"""
+    acc = set()
+    if isinstance(tpl, str):
+        for m in _REF.findall(tpl):
+            p = m.split("|")[0].strip()
+            if p.startswith("data.") or p.startswith("cache."):
+                parts = p.split(".")
+                if len(parts) > 1 and parts[1]:
+                    acc.add(parts[1])
+    elif isinstance(tpl, list):
+        for x in tpl:
+            acc |= _refs(x)
+    elif isinstance(tpl, dict):
+        for x in tpl.values():
+            acc |= _refs(x)
+    return acc
+
+
+def _unwrap(val):
+    """需求返回外面套了一层 {ok, demand, result, calls}，页面只认里面的 result。"""
+    if isinstance(val, dict) and "result" in val and "demand" in val:
+        out = val.get("result")
+        if isinstance(out, dict) and "result" in out and "ok" in out:
+            return out.get("result")   # 需求内部又调了一条，多套一层
+        return out
+    return val
+
+
+async def _route_resolve(ctx, payload):
+    """整页取数：前端只报"看哪一页、什么参数"，依赖与并发都由视图规格自己决定。
+
+    一页要五份数据时，让浏览器算依赖就是把业务上下游搬到前端；这里按规格 data 声明的
+    data./cache. 引用分层，同层 asyncio.gather，一次往返回整页。
+    """
+    import asyncio
+
+    view_key = str(payload.get("view") or "")
+    params = payload.get("params") or {}
+    want_shell = bool(payload.get("shell"))
+    if not isinstance(params, dict):
+        raise ctx.ApiError("params 必须是对象", code="bad_params", status=400)
+
+    views, shell = await asyncio.gather(
+        ctx.demand_engine.arun_callable("views-list", {}),
+        ctx.demand_engine.arun_callable("console-shell", {}) if want_shell else _noop())
+    views, shell = _unwrap(views), _unwrap(shell)
+    views = views if isinstance(views, list) else (views.get("items") if isinstance(views, dict) else []) or []
+
+    specs, order = {}, []
+    for it in views or []:
+        v = (it or {}).get("view") or {}
+        k = v.get("key")
+        if k:
+            specs[k] = v
+            order.append(k)
+    if not view_key:
+        view_key = next((k for k in order if specs[k].get("default")), order[0] if order else "")
+    spec = specs.get(view_key)
+    if spec is None:
+        raise ctx.ApiError("视图不存在：" + (view_key or "（空）"), code="no_view", status=404)
+
+    route = dict(params)
+    out = {"view": view_key, "data": {}, "cache": {},
+           "missing": [k for k in (spec.get("require") or []) if not route.get(k)]}
+    if want_shell:
+        out["views"] = list(views or [])
+        out["shell"] = shell or {}
+    if out["missing"]:
+        return out   # 缺必填参数：没有对象的页面不发请求，直接空态
+
+    data, cache = {}, {}
+    done, pending = set(), list(spec.get("data") or [])
+
+    async def one(src):
+        try:
+            return True, _unwrap(await ctx.demand_engine.arun_callable(str(src.get("demand") or ""), args_of(src)))
+        except Exception as exc:  # noqa: BLE001 — 单条失败要指名到源
+            return False, str(exc) or repr(exc)
+
+    def args_of(src):
+        return _fill(src.get("params") or {}, route, data, cache)
+
+    while pending:
+        ready, wait = [], []
+        for src in pending:
+            (ready if _refs(src.get("params") or {}) <= done else wait).append(src)
+        if not ready:
+            ready = [wait.pop(0)]   # 环或引用未声明：按声明顺序先跑一个，避免死等
+        results = await asyncio.gather(*[one(s) for s in ready])
+        for src, (ok, val) in zip(ready, results):
+            name = str(src.get("as") or src.get("demand") or "")
+            if not ok:
+                raise ctx.ApiError("%s：%s" % (name, val), code="data_fail", status=502)
+            data[name] = val or {}
+            if src.get("cache"):
+                cache[str(src["cache"])] = val or {}
+                done.add(str(src["cache"]))
+        for src in ready:
+            done.add(str(src.get("as") or src.get("demand") or ""))
+        pending = wait
+
+    out.update({"data": data, "cache": cache})
+    return out
+
+
+async def _noop():
+    return None
+
+
 def setup(ctx):
     """装配入口：装填 ctx.demand_engine（需求装载 + 解释执行）。"""
     ctx.demand_engine = _engine.Engine(ctx)
     ctx.api.register("demand_engine.run", _route_run, "按名跑一段编排需求", module="demand_engine")
     ctx.api.register("demand_engine.batch", _route_batch, "同层多条需求一次往返", module="demand_engine")
+    ctx.api.register("demand_engine.resolve", _route_resolve,
+                     "整页取数：按视图规格的依赖分层并发跑完，一次往返回整页", module="demand_engine")
     ctx.api.register("demand_engine.list", lambda c, p: ctx.demand_engine.items(),
                      "当前需求（on/do/enabled）", module="demand_engine")
     ctx.api.register("demand_engine.manifest", lambda c, p: ctx.demand_engine.manifest(),

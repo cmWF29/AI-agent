@@ -26,6 +26,31 @@ routes:
     out:
       items:
         type: any
+  demand_engine.resolve:
+    doc: 整页取数：按视图规格声明的依赖分层并发跑完，一次往返回整页数据
+    in:
+      view:
+        type: str
+        req: false
+      params:
+        type: any
+        req: false
+      shell:
+        type: bool
+        req: false
+    out:
+      view:
+        type: str
+      data:
+        type: any
+      cache:
+        type: any
+      views:
+        type: any
+      shell:
+        type: any
+      missing:
+        type: any
   demand_engine.manifest:
     doc: 全量需求的可视化形状（执行链 + 树节点）
     out:
