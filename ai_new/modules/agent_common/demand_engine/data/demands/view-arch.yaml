@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  menu: {order: 2, label: 架构, mobile: true}
   key: arch
   nav: arch
   crumb: [系统, 架构与链路]

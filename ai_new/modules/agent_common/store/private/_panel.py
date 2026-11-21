@@ -231,6 +231,22 @@ class ModuleData:
             return 0
 
 
+    def stat_mtime(self, rel):
+
+        """最后修改时刻（秒）；文件不在就回 0。
+
+        给"改了配置要不要重新装载"这类判断用：只回答时间，不读内容。
+        """
+
+        try:
+
+            return (self.root / rel).stat().st_mtime
+
+        except OSError:
+
+            return 0.0
+
+
 
     def glob(self, pattern):
 

@@ -1,0 +1,132 @@
+# 控制台外壳：页面上所有"看得见的字"和"配色"都从这里下发。
+#
+# 为什么要集中：外壳（导航、标题、词表、配色）一旦写进 HTML/JS，后端改一个岗位名、
+# 加一个视图、换一套配色，页面就得跟着改一遍——页面等于存了第二份业务。
+# 这里只放平台级、与具体业务无关的外壳信息：
+#   brand  品牌与浏览器标题
+#   ui     固定可见文案（空态、按钮、提示），{} 是占位，前端按顺序填空
+#   roles  角色称呼与配色（改岗位配色改这里，前端不再认角色名）
+#   fields 工具结果字段的显示名与展示顺序
+#   status 会话状态的语义分组与文案（分组决定徽标颜色，文案决定显示词）
+# 导航菜单不放这里：菜单是视图的属性，视图自己声明 `view.menu`，加视图就自动进导航。
+brand:
+  name: Hive AI
+  logo: H
+  tagline: 项目 · 工单 · 会话
+  title: Hive AI · 项目与工单
+  title_view: "{} · {}"                # 进到具体视图时的标题：先视图名，再品牌名
+ui:
+  loading: 加载中…
+  empty: 暂无数据
+  empty_tree: 暂无内容
+  more: 更多
+  logout: 登出
+  cancel: 取消
+  ok: 确定
+  menu: 菜单
+  collapse: 收起侧栏
+  expand: 展开侧栏
+  composer_empty: 请先输入内容，再点这个按钮
+  boot_fail: "控制台启动失败：{}（检查 views-list 与视图规格）"
+  no_views: 没有任何视图规格，页面无法启动
+  unknown_kind: "未知区块: {}"
+  badge_offline: 下线
+  call_pending: 执行中…
+  call_raw: 原始数据
+  call_empty: 无命中
+  written: 已写入
+  not_written: 未写入
+  record: 记录
+  stamp_yes: 是
+  stamp_no: 否
+  done_word: 完成
+  empty_file: 空文件（0 字节）
+  trunc_note: "…（截断，共 {} 字符）"
+  more_rows: "另有 {} 条未列出"
+  wire_title: 网络报文
+  wire_expand: 展开即读原文…
+  wire_loading: 读取中…
+  wire_no_entry: 这条消息没有声明报文回读入口
+  wire_fail: "读取失败：{}"
+  inject_title: "系统注入 ×{}"
+  raw_title: 原文
+  summary_title: 上下文摘要
+  tool_group: "工具调用 ×{}"
+  tool_group_fail: " · {} 失败"
+  todo_title: "待办 {}/{}"
+  todo_doing: " · 正在做：{}"
+  todo_state_done: 完成
+  todo_state_doing: 在做
+  todo_state_pending: 待办
+  flow_states: "{} 态"
+  role_flow: 流程
+  role_current: 当前
+  role_active: 活跃
+  role_todo: 待办
+  role_task: 任务
+  role_session: 会话
+  wf_head: 调用层级
+  wf_ratio: "{}%"
+  card_open: "进入 {}"
+  col_actions: 操作
+  role_spawned: 已派出
+  items_unit: 项
+  chars_unit: "{} 字符"
+  doc_empty: 暂无正文
+  voice: 语音
+  send: 发送
+  mic_denied: 麦克风不可用，请检查浏览器授权
+  stop: 停止
+  required_empty: "{}不能为空"
+  bad_yaml: 响应不是 YAML
+  net_fail: "网络请求失败：{}"
+  demand_fail: 需求失败
+  gate_expired: 登录已失效（401），请重新登录。
+  gate_fail: 操作失败
+  wire_model: 模型
+  wire_stream: 流式
+  wire_req: 请求
+  wire_resp: 响应
+  wire_req_body: 请求体
+  wire_resp_body: 响应原文
+roles:
+  colors:
+    pm: "#2f6bff"
+    developer: "#722ed1"
+    tester: "#0fc6c2"
+    reviewer: "#ff7d00"
+    user: "#00b42a"
+    tool: "#86909c"
+    system: "#86909c"
+  labels:
+    pm: PM
+    assistant: PM
+    user: 用户
+    system: 系统
+    tool: 工具
+  palette: ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"]
+fields:
+  order: [demand, id, title, status, project, kind, layer, path, query, size, chars, truncated, written, pm, encoding]
+  labels:
+    demand: 需求
+    id: ID
+    title: 标题
+    status: 状态
+    project: 项目
+    kind: 类型
+    layer: 层
+    path: 路径
+    query: 关键词
+    size: 字节
+    chars: 字符
+    truncated: 截断
+    written: 已落盘
+    pm: PM
+    encoding: 编码
+status:
+  busy: [running, queued, doing, open]
+  offline: [gone, done, closed, ""]
+  labels:
+    busy: 忙
+    idle: 空闲
+    offline: 下线

@@ -32,3 +32,18 @@ routes:
         type: any
       nodes:
         type: any
+  demand_engine.console:
+    doc: 控制台外壳（品牌、词表、配色、导航菜单）
+    out:
+      brand:
+        type: any
+      ui:
+        type: any
+      roles:
+        type: any
+      fields:
+        type: any
+      status:
+        type: any
+      menus:
+        type: any

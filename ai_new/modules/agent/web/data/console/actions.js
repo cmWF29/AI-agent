@@ -34,7 +34,7 @@ async function execute(binding, fields) {
 }
 /* ---- 语音录音：开始/停止 → 识别 → 回填输入框，不自动发送 ---- */
 function voiceBtnLabel(binding) {
-  return String((binding.act && binding.act.label) || "语音");
+  return String((binding.act && binding.act.label) || uiText("voice"));
 }
 function resetVoiceBtn(btn, binding) {
   btn.classList.remove("on");
@@ -45,9 +45,9 @@ async function executeVoice(binding, btn) {
   const box = $("view-body").querySelector(".composer textarea");
   if (!VoiceRecorder.recording) {
     try { await VoiceRecorder.start(); }
-    catch (err) { banner(gateMessage(err) || "麦克风不可用，请检查浏览器授权", "err"); return; }
+    catch (err) { banner(gateMessage(err) || uiText("mic_denied"), "err"); return; }
     btn.classList.add("on");
-    btn.textContent = "停止";
+    btn.textContent = uiText("stop");
     return;
   }
   let rec;
@@ -118,7 +118,7 @@ function openForm(form, ctx) {
     return `<div class="field"><label>${esc(f.label)}</label><input name="${esc(f.name)}" type="${type}" value="${esc(val)}"${ph}${req}${ro}></div>`;
   }).join("");
   bindDropZones($("modal-form"));
-  $("modal-ok").textContent = fill((form.submit || {}).ok || "确定", ctx);
+  $("modal-ok").textContent = fill((form.submit || {}).ok || uiText("ok"), ctx);
   $("modal-ok").disabled = false;
   $("modal").hidden = false;
   const first = $("modal-form").querySelector("input:not([readonly]),textarea,select");
@@ -127,7 +127,7 @@ function openForm(form, ctx) {
     const fields = {};
     for (const [k, v] of fd.entries()) fields[k] = typeof v === "string" ? v.trim() : v;
     for (const f of form.fields || []) {
-      if (f.required && !fields[f.name]) throw new Error(f.label + "不能为空");
+      if (f.required && !fields[f.name]) throw new Error(uiText("required_empty", f.label));
     }
     const c = { ...ctx, fields };
     const res = await run(form.submit.demand, fill(form.submit.params || {}, c));

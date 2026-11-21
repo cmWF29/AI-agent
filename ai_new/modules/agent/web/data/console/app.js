@@ -7,6 +7,57 @@
 async function readYaml(resp){return jsyaml.load(await resp.text())||{};}
 function yamlBody(o){return jsyaml.dump(o,{flowLevel:Infinity,noRefs:true,sortKeys:false});}
 const $ = (id) => document.getElementById(id);
+
+/* ---- 外壳词表：页面上所有"看得见的字"与配色都由后端下发（console-shell），
+   这里只留空壳兜底，保证后端没给时页面还能起来，不存第二份业务。 ---- */
+let UI = {};                 // 固定文案（空态、按钮、提示）
+let BRAND = {};              // 品牌与浏览器标题
+let ROLE_COLORS = {};        // 角色 -> 配色
+let ROLE_LABELS = {};        // 角色 -> 称呼
+let ROLE_PALETTE = [];       // 未登记角色的回退色板
+let FIELD_LABELS = {};       // 工具结果字段 -> 显示名
+let FIELD_ORDER = [];        // 字段展示顺序
+let STATUS_META = { busy: [], offline: [], labels: {} };
+
+function uiText(key, ...args) {
+  let s = UI[key];
+  if (s == null) return "";
+  return String(s).replace(/\{\}/g, () => (args.length ? String(args.shift()) : ""));
+}
+function roleLabel(role) { return ROLE_LABELS[role] || role || ""; }
+
+function applyShell(shell) {
+  shell = shell || {};
+  UI = shell.ui || {};
+  BRAND = shell.brand || {};
+  const roles = shell.roles || {};
+  ROLE_COLORS = roles.colors || {};
+  ROLE_LABELS = roles.labels || {};
+  ROLE_PALETTE = roles.palette || [];
+  const fields = shell.fields || {};
+  FIELD_LABELS = fields.labels || {};
+  FIELD_ORDER = fields.order || [];
+  const st = shell.status || {};
+  STATUS_META = { busy: st.busy || [], offline: st.offline || [], labels: st.labels || {} };
+  // 静态外壳：品牌、标题、固定按钮与 aria 文案
+  document.title = BRAND.title || document.title;
+  document.querySelectorAll("[data-ui]").forEach((el) => {
+    const txt = uiText(el.dataset.ui);
+    if (txt) el.textContent = txt;
+  });
+  document.querySelectorAll("[data-ui-title]").forEach((el) => {
+    const txt = uiText(el.dataset.uiTitle);
+    if (txt) el.title = txt;
+  });
+  document.querySelectorAll("[data-ui-aria]").forEach((el) => {
+    const txt = uiText(el.dataset.uiAria);
+    if (txt) el.setAttribute("aria-label", txt);
+  });
+  document.querySelectorAll("[data-brand]").forEach((el) => {
+    const txt = BRAND[el.dataset.brand];
+    if (txt != null) el.textContent = txt;
+  });
+}
 function readCookie(name) {
   const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
   return m ? decodeURIComponent(m[1]) : "";
@@ -83,9 +134,9 @@ async function run(demand, input) {
       method: "POST", headers: headers(),
       body: yamlBody({ id: demand, input: input || {} })
     });
-    body = await readYaml(resp).catch(() => ({ ok: false, error: "响应不是 YAML", code: "bad_yaml" }));
+    body = await readYaml(resp).catch(() => ({ ok: false, error: uiText("bad_yaml"), code: "bad_yaml" }));
   } catch (e) {
-    throw Object.assign(new Error("网络请求失败：" + e.message), { status: 0, code: "network" });
+    throw Object.assign(new Error(uiText("net_fail", e.message)), { status: 0, code: "network" });
   }
   if (!body.ok) {
     if (resp.status === 401 || body.code === "unauthorized") { clearToken(); location.href = "/login.html"; return; }
@@ -95,7 +146,7 @@ async function run(demand, input) {
   const inner = (body.result && body.result.result) || {};
   if (inner && inner.ok === false) {
     if (resp.status === 401 || inner.code === "unauthorized") { clearToken(); location.href = "/login.html"; return; }
-    throw Object.assign(new Error(inner.error || inner.code || "需求失败"),
+    throw Object.assign(new Error(inner.error || inner.code || uiText("demand_fail")),
       { status: resp.status, code: inner.code });
   }
   return inner;
@@ -109,8 +160,8 @@ function banner(msg, kind) {
   el.style.display = "block";  // 行内样式优先级最高，隐藏后必须显式改回来
 }
 function gateMessage(err) {
-  if (err && (err.status === 401 || err.code === "unauthorized")) return "登录已失效（401），请重新登录。";
-  return (err && err.message) || "操作失败";
+  if (err && (err.status === 401 || err.code === "unauthorized")) return uiText("gate_expired");
+  return (err && err.message) || uiText("gate_fail");
 }
 function when(ts) {
   if (!ts) return "—";
@@ -171,7 +222,9 @@ async function go(next, push) {
 }
 
 async function boot() {
-  const items = arr(await run("views-list", {}));
+  // 视图规格与外壳词表各取一次、并行拿：页面自己不存任何业务字或菜单
+  const [items, shell] = await Promise.all([run("views-list", {}), run("console-shell", {})]);
+  applyShell(shell);
   for (const it of items) {
     const v = it && it.view;
     if (!v) continue;
@@ -179,9 +232,25 @@ async function boot() {
     if (v.labels) Object.assign(LABELS, v.labels);
     for (const f of v.forms || []) FORMS[f.id] = f;
   }
-  if (!Object.keys(VIEWS).length) throw new Error("没有任何视图规格，页面无法启动");
+  if (!Object.keys(VIEWS).length) throw new Error(uiText("no_views") || "没有任何视图规格，页面无法启动");
+  renderMenus((shell && shell.menus && shell.menus.length) ? shell.menus : menusFromViews());
   state = parseURL();
   await render();
+}
+/* 菜单兜底：console-shell 不可用时，直接按视图规格里的 menu 汇总——
+   同一份数据换个读法，不额外存清单。 */
+function menusFromViews() {
+  const out = [];
+  for (const k of Object.keys(VIEWS)) {
+    const v = VIEWS[k] || {};
+    const m = v.menu;
+    if (!m) continue;
+    const label = m.label || v.heading || k;
+    out.push({ key: m.key || v.nav || v.key || k, label,
+               short: m.short || label, order: Number(m.order || 100),
+               mobile: m.mobile !== false });
+  }
+  return out.sort((a, b) => a.order - b.order || (a.key < b.key ? -1 : 1));
 }
 
 let POLL = null;   // 视图级低频兜底轮询句柄：只在 SSE 断连时兜底，增量靠 SSE 推送
@@ -324,10 +393,12 @@ function renderCrumb(spec, ctx) {
 function wireText(w, cap) {
   const cut = (v) => {
     const t = typeof v === "string" ? v : JSON.stringify(v == null ? "" : v, null, 1);
-    return cap > 0 && t.length > cap ? t.slice(0, cap) + "\n…（截断，共 " + t.length + " 字符）" : t;
+    return cap > 0 && t.length > cap ? t.slice(0, cap) + "\n" + uiText("trunc_note", t.length) : t;
   };
-  return "POST " + (w.url || "") + "\n模型：" + (w.model || "—") + " · 流式：" + (w.stream ? "是" : "否") +
-    "\n\n▸ 请求体\n" + cut(w.request) + "\n\n▸ 响应原文\n" + cut(w.response);
+  return "POST " + (w.url || "") + "\n" + uiText("wire_model") + "：" + (w.model || "—")
+    + " · " + uiText("wire_stream") + "：" + (w.stream ? uiText("stamp_yes") : uiText("stamp_no")) +
+    "\n\n▸ " + uiText("wire_req_body") + "\n" + cut(w.request)
+    + "\n\n▸ " + uiText("wire_resp_body") + "\n" + cut(w.response);
 }
 document.addEventListener("toggle", async (e) => {
   const box = e.target;
@@ -335,10 +406,10 @@ document.addEventListener("toggle", async (e) => {
   const pre = box.querySelector(".wire-body");
   if (!pre || !box.open) return;
   if (pre.getAttribute("data-loaded")) return;
-  pre.textContent = "读取中…";
+  pre.textContent = uiText("wire_loading");
   try {
     const demand = box.getAttribute("data-demand") || "";
-    if (!demand) { pre.textContent = "这条消息没有声明报文回读入口"; return; }
+    if (!demand) { pre.textContent = uiText("wire_no_entry"); return; }
     const out = await run(demand, {
       session: box.getAttribute("data-session") || "",
       seq: Number(box.getAttribute("data-seq") || -1)
@@ -346,6 +417,6 @@ document.addEventListener("toggle", async (e) => {
     pre.textContent = wireText(out.wire || {}, Number(box.getAttribute("data-chars") || 0));
     pre.setAttribute("data-loaded", "1");
   } catch (err) {
-    pre.textContent = "读取失败：" + (err && err.message ? err.message : err);
+    pre.textContent = uiText("wire_fail", (err && err.message ? err.message : err));
   }
 }, true);

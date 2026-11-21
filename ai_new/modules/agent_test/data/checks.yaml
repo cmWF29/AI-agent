@@ -32,6 +32,7 @@ checks:
   enabled: true
   demands:
   - api-snapshot
+  - console-shell
   - demands-manifest
   - trace-slow
   - view-arch

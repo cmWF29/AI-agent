@@ -1,7 +1,9 @@
-comment: 控制台外壳允许直接引用的需求入口。只收平台级、与业务无关的三个：
-  views-list 取视图规格、auth-login 换票、auth-logout 注销；
+comment: 控制台外壳允许直接引用的需求入口。只收平台级、与业务无关的四个：
+  views-list 取视图规格、console-shell 取外壳词表与导航、
+  auth-login 换票、auth-logout 注销；
   业务需求一律由 views-list 下发，页面与脚本里不得出现任何业务需求 id 字面量。
 entries:
 - views-list
+- console-shell
 - auth-login
 - auth-logout

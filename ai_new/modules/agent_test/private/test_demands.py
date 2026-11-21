@@ -136,10 +136,28 @@ class _Storage:
 
     def __init__(self):
         self.written = {}
+        self.rev = 0
 
     def own(self, anchor):
         """引擎读"自己的数据"：这里就是 demand_engine 的数据目录。"""
         return self
+
+    def _real(self, rel):
+        return _fixtures.module_data("agent_common", "demand_engine") / rel
+
+    def stat_size(self, rel):
+        """指纹用：覆盖层按内容长度，真实文件按文件大小。"""
+        if rel in self.written:
+            return len(yaml.safe_dump(self.written[rel], allow_unicode=True))
+        path = self._real(rel)
+        return path.stat().st_size if path.is_file() else 0
+
+    def stat_mtime(self, rel):
+        """覆盖层每写一次推进一格版本，让引擎的热加载判断能看见"刚改过"。"""
+        if rel in self.written:
+            return float(self.rev) + 1.0
+        path = self._real(rel)
+        return path.stat().st_mtime if path.is_file() else 0.0
 
     def list_dir(self, rel=""):
         return [p.name for p in sorted(
@@ -163,6 +181,7 @@ class _Storage:
 
     def json_write(self, rel, obj):
         self.written[rel] = obj
+        self.rev += 1
 
     def yaml_write(self, rel, obj):
         self.json_write(rel, obj)

@@ -242,6 +242,57 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(stray, [],
                          "控制台硬编码了业务需求 id，外壳又存了一份需求清单: %s" % stray)
 
+    def test_console_shell_is_backend_driven(self):
+        """导航、品牌、字与配色都只存后端一份：页面改了后端也跟着变，反过来也一样。
+
+        判据两条：
+        1. 页面里没有硬编码的导航项，也没有视图菜单声明的名字（加视图不必改页面）；
+        2. console-shell 的菜单由视图规格汇总，临时加一个带 menu 的视图，导航立刻多一项。
+        """
+        import re
+        console = ROOT / "ai_new/modules/agent/web/data/console"
+        raw = (console / "manage.html").read_text(encoding="utf-8")
+        html = "\n".join(f.read_text(encoding="utf-8") for f in sorted(console.glob("*.js")))
+        # 注释里提到业务词不算存了一份清单，只看真正会渲染出去的 HTML
+        visible = re.sub(r"/\*.*?\*/", "", raw, flags=re.S)
+        visible = re.sub(r"<!--.*?-->", "", visible, flags=re.S)
+        self.assertNotIn('data-nav="', visible,
+                         "页面硬编码了导航项：菜单必须由后端菜单下发（视图规格 view.menu）")
+        demands_dir = ROOT / "ai_new/modules/agent_common/demand_engine/data/demands"
+        labels = set()
+        for path in sorted(demands_dir.glob("view-*.yaml")):
+            rec = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            menu = ((rec.get("view") or {}).get("menu") or {})
+            for key in ("label", "short"):
+                if menu.get(key):
+                    labels.add(str(menu[key]))
+        self.assertTrue(labels, "没有任何视图声明 menu，导航无从生成")
+        leaked = sorted(word for word in labels if word in visible)
+        self.assertEqual(leaked, [],
+                         "页面上写死了导航名，改视图菜单会漏改页面: %s" % leaked)
+        # 渲染层不认识角色名与字段名：配色、称呼、字段显示名都在后端词表
+        for word in ("developer", "tester", "reviewer", "TOOL_META_LABELS"):
+            self.assertNotIn(word, html, "渲染层写死了业务词表项: %s" % word)
+
+        engine = self.ctx.demand_engine
+        menus = engine.console()["menus"]
+        self.assertEqual([m["key"] for m in menus][:2], ["projects", "arch"],
+                         "菜单顺序应由视图 menu.order 决定")
+        # 菜单是视图的属性：临时挂一个带 menu 的视图，导航就自动多一项
+        engine.reload()
+        base = engine._load()
+        probe = {"id": "view-probe", "title": "探针页", "enabled": True,
+                 "tags": ["view"], "on": [], "do": [],
+                 "view": {"key": "probe", "heading": "探针页",
+                          "menu": {"order": 99, "label": "探针九十九"}}}
+        engine._cache = list(base) + [probe]
+        try:
+            got = engine.console()["menus"]
+            self.assertEqual(got[-1]["key"], "probe", "新视图没自动进导航：菜单不是从视图汇总的")
+            self.assertEqual(got[-1]["label"], "探针九十九")
+        finally:
+            engine.reload()
+
     # ---- 需求编排闭环 ----
 
     def _run(self, demand, input=None):

@@ -1,0 +1,17 @@
+id: console-shell
+title: 控制台外壳：品牌、词表、配色与导航一次下发
+description: "控制台外壳：品牌、标题、可见文案、角色配色、字段词表、状态语义与导航菜单一次下发。页面只认这些字，不自己存一份"
+tags: [view, web, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.console
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.console
+  payload: {}
+  promise: 页面上所有可见的字与配色都来自这里；改后端，页面自动跟着变

@@ -33,12 +33,31 @@ class Engine:
     def __init__(self, ctx):
         self.ctx = ctx
         self._cache = None
+        self._sig = None
 
     # ---- 装载 ----
     def _load(self):
-        if self._cache is None:
+        # 需求是磁盘上的数据，改了就该生效：按文件名+大小+修改时刻判要不要重新装载。
+        # 这样改一条需求（含视图菜单、标签）不用重启服务，页面刷新即是新样子。
+        sig = self._signature()
+        if self._cache is None or (sig is not None and self._sig != sig):
             self._cache = self._read_all()
+            self._sig = sig
         return self._cache
+
+    def _signature(self):
+        """需求目录的指纹（文件名+大小+修改时刻）；无存储上下文时回 None，退化成不比对。"""
+        try:
+            md = _md(self.ctx)
+        except AttributeError:
+            return None
+        sig = []
+        for name in md.list_dir("demands"):
+            if not name.endswith(".yaml"):
+                continue
+            rel = "demands/%s" % name
+            sig.append((name, md.stat_size(rel), md.stat_mtime(rel)))
+        return tuple(sig)
 
     def _read_all(self):
         names = _md(self.ctx).list_dir("demands")
@@ -56,6 +75,7 @@ class Engine:
 
     def reload(self):
         self._cache = None
+        self._sig = None
 
     # ---- 可见性 ----
     def items(self):
@@ -119,6 +139,36 @@ class Engine:
                   for k, v in sorted(buckets.items(), key=lambda kv: (-len(kv[1]), kv[0]))]
         return {"count": len(items), "steps": steps_total, "views": views,
                 "callable": callable_n, "items": items, "nodes": nodes, "groups": groups}
+
+    def console(self):
+        """控制台外壳：品牌、词表、配色 + 导航菜单一次下发。
+
+        菜单不单独存一份：它是视图的属性，视图在自己规格里写 `menu`，
+        这里按 order 汇总。所以"加一个视图"就是"多一个导航项"，前端零改动。
+        """
+        shell = _md(self.ctx).yaml_read("console.yaml", {}) or {}
+        menus = []
+        for r in self._load():
+            view = r.get("view") if isinstance(r.get("view"), dict) else {}
+            menu = view.get("menu") if isinstance(view.get("menu"), dict) else None
+            if not menu:
+                continue
+            key = str(menu.get("key") or view.get("nav") or view.get("key") or "")
+            if not key:
+                continue
+            label = str(menu.get("label") or view.get("heading") or key)
+            menus.append({
+                "key": key,
+                "label": label,
+                # 手机底栏位置小，视图可另给短名；没给就用全名
+                "short": str(menu.get("short") or label),
+                "order": float(menu.get("order") or 100),
+                "mobile": bool(menu.get("mobile", True)),
+                "demand": r["id"],
+            })
+        menus.sort(key=lambda m: (m["order"], m["key"]))
+        shell["menus"] = menus
+        return shell
 
     # ---- 插拔 ----
     def set_enabled(self, demand_id, enabled):

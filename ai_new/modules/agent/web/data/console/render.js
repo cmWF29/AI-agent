@@ -19,20 +19,19 @@ function buttonHtml(act, ctx, opts) {
 }
 function badgeHtml(value, ctx) {
   const s = String(value == null ? "" : value);
-  const cls = s === "closed" || s === "gone" || s === "done" ? "closed"
-    : (s === "open" || s === "running" || s === "queued" || s === "doing" ? "open" : "");
-  return `<span class="badge ${cls}">${esc(s || "下线")}</span>`;
+  const kind = statusKind(s);
+  const cls = kind === "offline" ? "closed" : (kind === "busy" ? "open" : "");
+  return `<span class="badge ${cls}">${esc(s || uiText("badge_offline"))}</span>`;
 }
-const BUSY_STATUS = ["running", "queued", "doing"];
-const OFFLINE_STATUS = ["gone", "done", "closed", ""];
+/* 状态语义在 shell.status：哪些值算忙、哪些算下线、显示什么字，后端说了算 */
 function statusKind(s) {
   s = String(s == null ? "" : s);
-  if (BUSY_STATUS.includes(s)) return "busy";
-  if (OFFLINE_STATUS.includes(s)) return "offline";
+  if (STATUS_META.busy.includes(s)) return "busy";
+  if (STATUS_META.offline.includes(s)) return "offline";
   return "idle";
 }
 function statusText(s) {
-  return { busy: "忙", idle: "空闲", offline: "下线" }[statusKind(s)];
+  return STATUS_META.labels[statusKind(s)] || "";
 }
 function emptyHtml(block) {
   block = block || {};
@@ -52,7 +51,7 @@ function cardsHtml(sec, ctx) {
     const meta = (sec.meta || []).filter((m) => m.hide_if_empty ? !!fmtVal(m, c) : true)
       .map((m) => `<span>${esc(fill(m.label, c))} ${esc(fmtVal(m, c))}</span>`).join("");
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
-    return `<article class="pcard${archived ? " archived" : ""}" ${click >= 0 ? `data-go="${click}"` : ""} role="button" tabindex="0" aria-label="进入 ${esc(fill(sec.title, c))}">
+    return `<article class="pcard${archived ? " archived" : ""}" ${click >= 0 ? `data-go="${click}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
       <div class="acts">${acts}</div>
       <h3 class="pname">${esc(fill(sec.title, c))}</h3>
       ${badge}${stat}
@@ -81,7 +80,7 @@ function tableHtml(sec, ctx) {
   const head = `<div class="tbl-head">
     ${sec.heading ? `<strong style="font-size:13px">${esc(fill(sec.heading, ctx))}</strong>` : ""}
     ${sec.count_note ? `<span class="muted">${esc(fill(sec.count_note, ctx))}</span>` : ""}
-    ${truncated ? `<span class="muted">… 另有 ${truncated} 条未列出</span>` : ""}
+    ${truncated ? `<span class="muted">… ${esc(uiText("more_rows", truncated))}</span>` : ""}
     <div class="spacer" style="margin-left:auto"></div>
     ${filters.length ? `<span class="seg" id="seg">${filters.map((f) =>
       `<button data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</button>`).join("")}</span>` : ""}
@@ -105,9 +104,9 @@ function tableHtml(sec, ctx) {
     const acts = rowActs.length ? `<td class="actions">${rowActs.map((a) => buttonHtml(a, c)).join("")}</td>` : "";
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
     return `<tr ${click >= 0 ? `data-go="${click}"` : ""}>${cells}${acts}</tr>`;
-  }).join("") : `<tr><td colspan="${cols.length + (rowActs.length ? 1 : 0)}" class="muted">${esc((sec.empty || {}).text || "暂无数据")}</td></tr>`;
+  }).join("") : `<tr><td colspan="${cols.length + (rowActs.length ? 1 : 0)}" class="muted">${esc((sec.empty || {}).text || uiText("empty"))}</td></tr>`;
   if (sec.hide_when_empty && !rows0.length) return "";
-  const actHead = rowActs.length ? "<th>操作</th>" : "";
+  const actHead = rowActs.length ? "<th>" + esc(uiText("col_actions")) + "</th>" : "";
   const wrap = `<div class="tbl-wrap">${sec.heading || filters.length || sec.count_note ? head : ""}<table>
     <thead><tr>${cols.map((c) => `<th>${esc(c.label || "")}</th>`).join("")}${actHead}</tr></thead>
     <tbody>${body}</tbody></table></div>`;
@@ -117,23 +116,15 @@ function tableHtml(sec, ctx) {
   return wrap;
 }
 
-const AVATAR_PALETTE = ["#2f6bff", "#00b42a", "#ff7d00", "#722ed1", "#0fc6c2", "#f53f3f", "#eb0aa4"];
-/* 角色固定配色：同名同色，跨会话一致；未命中回退哈希取色 */
-const ROLE_COLOR = {
-  "pm": "#2f6bff", "PM": "#2f6bff",
-  "developer": "#722ed1", "tester": "#0fc6c2", "reviewer": "#ff7d00",
-  "user": "#00b42a", "用户": "#00b42a",
-  "tool": "#86909c", "工具": "#86909c", "系统": "#86909c"
-};
+/* 角色固定配色：同名同色，跨会话一致；配色表与回退色板都由后端下发 */
+function paletteOf() { return ROLE_PALETTE.length ? ROLE_PALETTE : ["#2f6bff"]; }
 function speakerOf(msg, roles) {
-  if (msg.kind === "note") return "系统";
+  if (msg.kind === "note") return roleLabel("system");
   const actor = msg.actor || msg.role || "assistant";
-  if (actor === "user") return "用户";
-  if (actor === "system") return "系统";
-  if (actor === "tool") return msg.name ? ("工具 · " + msg.name) : "工具";
-  if (actor === "pm" || actor === "assistant") return "PM";
+  if (actor === "tool") return msg.name ? (roleLabel("tool") + " · " + msg.name) : roleLabel("tool");
   const hit = (roles || []).find((r) => r.role === actor || r.session === actor);
-  return (hit && (hit.display || hit.role)) || actor;
+  if (hit && (hit.display || hit.role)) return hit.display || hit.role;
+  return roleLabel(actor);
 }
 function bubbleClass(msg) {
   if (msg.kind === "note") return "system";
@@ -148,10 +139,11 @@ function bubbleClass(msg) {
 }
 function avatarColor(name) {
   const key = String(name || "").trim();
-  if (ROLE_COLOR[key]) return ROLE_COLOR[key];
+  if (ROLE_COLORS[key]) return ROLE_COLORS[key];
+  const pal = paletteOf();
   let h = 0;
   for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+  return pal[h % pal.length];
 }
 function initial(name) {
   const s = String(name || "?").trim();
@@ -183,10 +175,10 @@ function eventText(group) {
     if (items.length === 1) {
       const one = items[0];
       const task = taskOf(one.text);
-      return task ? roleOf(one.text) + " · " + task : roleOf(one.text) + " 已派出";
+      return task ? roleOf(one.text) + " · " + task : roleOf(one.text) + " " + uiText("role_spawned");
     }
     const roles = items.map((h) => roleOf(h.text)).filter(Boolean);
-    return roles.length ? roles.join("、") + " 已派出" : "";
+    return roles.length ? roles.join("、") + " " + uiText("role_spawned") : "";
   }
   const last = items[items.length - 1] || {};
   return String(last.text || "");
@@ -267,30 +259,30 @@ function toolBrief(m) {
       if (typeof v === "string" && v.trim()) return { ok: true, text: v.trim().replace(/\s+/g, " ").slice(0, 92) };
     }
   }
-  if (res.size === 0) return { ok: true, text: "空文件（0 字节）" };
+  if (res.size === 0) return { ok: true, text: uiText("empty_file") };
   const bits = [];
   const items = Array.isArray(o.items) ? o.items : (Array.isArray(res.items) ? res.items : null);
-  if (items) bits.push(items.length + " 项");
-  for (const k of TOOL_META_ORDER) {
+  if (items) bits.push(items.length + " " + uiText("items_unit"));
+  for (const k of FIELD_ORDER) {
     if (k === "demand") continue;
     let v = res[k];
     if (v == null || v === "" || typeof v === "object") continue;
-    if (typeof v === "boolean") v = v ? "是" : "否";
-    bits.push((TOOL_META_LABELS[k] || k) + " " + v);
+    if (typeof v === "boolean") v = v ? uiText("stamp_yes") : uiText("stamp_no");
+    bits.push((FIELD_LABELS[k] || k) + " " + v);
     if (bits.length >= 3) break;
   }
-  return { ok: true, text: bits.join(" · ") || "完成" };
+  return { ok: true, text: bits.join(" · ") || uiText("done_word") };
 }
 function toolCallCard(it) {
   const args = String(it.args || "").trim();
   const argsHtml = args && args !== "{}"
     ? `<span class="tool-call-args">${esc(args.length > 72 ? args.slice(0, 72) + "…" : args)}</span>` : "";
-  let line = `<div class="tool-line pending">执行中…</div>`;
+  let line = `<div class="tool-line pending">${esc(uiText("call_pending"))}</div>`;
   let raw = "";
   if (it.result) {
     const brief = toolBrief(it.result);
     line = `<div class="tool-line ${brief.ok ? "" : "err"}">${esc(brief.text)}</div>`;
-    raw = `<details class="tool-raw"><summary>原始数据</summary><pre>${esc(String(it.result.content == null ? "" : it.result.content))}</pre></details>`;
+    raw = `<details class="tool-raw"><summary>${esc(uiText("call_raw"))}</summary><pre>${esc(String(it.result.content == null ? "" : it.result.content))}</pre></details>`;
   }
   return `<div class="tool-call"><div class="tool-call-head"><span class="tool-call-name">${esc(it.name)}</span>${argsHtml}</div>${line}${raw}</div>`;
 }
@@ -306,7 +298,7 @@ function itemHtml(it) {
 function toolGroupHtml(items) {
   const cards = items.map((it) => (it.kind === "call" ? toolCallCard(it) : toolBodyHtml(it.m))).join("");
   const fails = items.filter((it) => it.kind === "call" && it.result && !toolBrief(it.result).ok).length;
-  const title = "工具调用 ×" + items.length + (fails ? " · " + fails + " 失败" : "");
+  const title = uiText("tool_group", items.length) + (fails ? uiText("tool_group_fail", fails) : "");
   return `<details class="tool-group"><summary>${esc(title)}</summary><div class="tool-group-body">${cards}</div></details>`;
 }
 function groupBody(g) {
@@ -344,7 +336,7 @@ function renderBubbles(msgs, roles, wireDemand, wireChars, rawChars) {
       <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
       <div class="bubble-stack">${bodies}</div>${ts ? `<div class="msg-ts">${esc(ts)}</div>` : ""}
       ${wireHtml(g.items, wireDemand, wireChars)}
-      ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), "原文", rawChars)}</div>${side === "right" ? av : ""}</div>`;
+      ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), uiText("raw_title"), rawChars)}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
 }
 
@@ -395,9 +387,11 @@ function todoBoardHtml(todos) {
   const doing = list.find((t) => (t.status || "") === "doing");
   const rows = list.map((t) => {
     const st = t.status || "pending";
-    return `<div class="td-row"><i class="td-dot ${esc(st)}"></i><span class="td-id">${esc(t.id || "")}</span><span class="td-text ${st === "done" ? "off" : ""}">${esc(t.text || "")}</span><em>${esc(st === "done" ? "完成" : st === "doing" ? "在做" : "待办")}</em></div>`;
+    const word = st === "done" ? uiText("todo_state_done")
+      : (st === "doing" ? uiText("todo_state_doing") : uiText("todo_state_pending"));
+    return `<div class="td-row"><i class="td-dot ${esc(st)}"></i><span class="td-id">${esc(t.id || "")}</span><span class="td-text ${st === "done" ? "off" : ""}">${esc(t.text || "")}</span><em>${esc(word)}</em></div>`;
   }).join("");
-  return `<details class="todo-board"><summary>待办 ${done}/${list.length}${doing ? ` · 正在做：${esc(doing.text || "")}` : ""}</summary><div class="td-list">${rows}</div></details>`;
+  return `<details class="todo-board"><summary>${esc(uiText("todo_title", done, list.length))}${doing ? esc(uiText("todo_doing", doing.text || "")) : ""}</summary><div class="td-list">${rows}</div></details>`;
 }
 
 /* 网络报文：这一轮真实发出去/收回来的东西。视图只带摘要（模型、状态、字节量），
@@ -410,10 +404,10 @@ function wireHtml(items, demand, chars) {
   if (!hit) return "";
   const m = hit.owner || hit.m || {};
   const w = m.wire;
-  const size = (v) => (typeof v === "number" && v > 0 ? `${v} 字符` : "—");
+  const size = (v) => (typeof v === "number" && v > 0 ? uiText("chars_unit", v) : "—");
   if (!demand) return "";
-  return `<details class="raw-box wire-box" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary>网络报文 · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · 请求 ${esc(size(w.req_len))} / 响应 ${esc(size(w.res_len))}</summary>
-    <pre class="wire-body">展开即读原文…</pre></details>`;
+  return `<details class="raw-box wire-box" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary>${esc(uiText("wire_title"))} · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · ${esc(uiText("wire_req"))} ${esc(size(w.req_len))} / ${esc(uiText("wire_resp"))} ${esc(size(w.res_len))}</summary>
+    <pre class="wire-body">${esc(uiText("wire_expand"))}</pre></details>`;
 }
 
 /* 结构化原文：所有通信都是结构化对象，原样吐出看得到字段，不用猜 */
@@ -427,7 +421,7 @@ function rawHtml(objs, label, limit) {
     try { text = JSON.stringify(list, null, 2); } catch (e2) { text = String(list); }
   }
   const cap = limit || 6000;
-  const cut = text.length > cap ? text.slice(0, cap) + "\n…（已截断，共 " + text.length + " 字符）" : text;
+  const cut = text.length > cap ? text.slice(0, cap) + "\n" + uiText("trunc_note", text.length) : text;
   return `<details class="raw-box"><summary>${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
 }
 
@@ -451,14 +445,14 @@ function chatHtml(sec, ctx) {
   const draft = (ctx.data && ctx.data.draft) || {};
   const draftHtml = draftBubbleHtml(draft, roles);
   const summary = (src.summary || "").trim();
-  const summaryHtml = summary ? `<details class="chat-summary"><summary>上下文摘要</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
+  const summaryHtml = summary ? `<details class="chat-summary"><summary>${esc(uiText("summary_title"))}</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
   const hiddenEvents = sec.hide_events || [];
   const events = groupEvents(sec.history_source ? ref(sec.history_source, ctx) : undefined)
     .filter((g) => !hiddenEvents.includes(g.event));
   const stream = streamHtml(msgs, events, roles, sec.wire_demand || "", sec.wire_chars || 0, sec.raw_chars || 0);
   const hiddenMsgs = arr(src.messages).filter((m) => hidden.includes(m.role || ""));
   const inject = hiddenMsgs.length
-    ? `<div class="inject">${rawHtml(hiddenMsgs, "系统注入 ×" + hiddenMsgs.length)}</div>` : "";
+    ? `<div class="inject">${rawHtml(hiddenMsgs, uiText("inject_title", hiddenMsgs.length))}</div>` : "";
   const body = inject + todoBoardHtml(src.todos) +
     (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
@@ -468,19 +462,15 @@ function chatHtml(sec, ctx) {
     <div class="chat">${body}</div>
   </section>`;
 }
-const TOOL_META_LABELS = { path: "路径", id: "ID", title: "标题", status: "状态", project: "项目",
-  kind: "类型", layer: "层", size: "字节", chars: "字符", query: "关键词", truncated: "截断",
-  written: "已落盘", pm: "PM", demand: "需求", encoding: "编码" };
-const TOOL_META_ORDER = ["demand", "id", "title", "status", "project", "kind", "layer", "path",
-  "query", "size", "chars", "truncated", "written", "pm", "encoding"];
+/* 工具结果字段的显示名与顺序来自后端词表，前端不认识任何字段名 */
 
 function toolMetaChips(obj) {
   const chips = [];
-  for (const k of TOOL_META_ORDER) {
+  for (const k of FIELD_ORDER) {
     let v = obj[k];
     if (v == null || v === "") continue;
-    if (typeof v === "boolean") v = v ? "是" : "否";
-    chips.push(`<span class="tool-meta-item"><b>${esc(TOOL_META_LABELS[k] || k)}</b> ${esc(v)}</span>`);
+    if (typeof v === "boolean") v = v ? uiText("stamp_yes") : uiText("stamp_no");
+    chips.push(`<span class="tool-meta-item"><b>${esc(FIELD_LABELS[k] || k)}</b> ${esc(v)}</span>`);
   }
   return chips.length ? `<div class="tool-meta">${chips.join("")}</div>` : "";
 }
@@ -503,11 +493,11 @@ function toolTraceHtml(o) {
   });
   (o.applied || []).forEach((a) => {
     if (!a) return;
-    const seg = (a.written === false ? "未写入" : "已写入") + (a.path ? " · " + a.path : "");
+    const seg = (a.written === false ? uiText("not_written") : uiText("written")) + (a.path ? " · " + a.path : "");
     lines.push(seg);
   });
   (o.history || []).forEach((h) => {
-    if (h && h.text) lines.push((h.event || "记录") + " · " + String(h.text).slice(0, 120));
+    if (h && h.text) lines.push((h.event || uiText("record")) + " · " + String(h.text).slice(0, 120));
   });
   return lines.length ? `<div class="tool-trace">${lines.map(esc).join("<br>")}</div>` : "";
 }
@@ -519,7 +509,7 @@ function toolResultHtml(o, raw) {
   const parts = [];
   parts.push(toolMetaChips(metaObj));
   if (Array.isArray(res.items)) {
-    if (!res.items.length) parts.push(`<div class="tool-empty">无命中</div>`);
+    if (!res.items.length) parts.push(`<div class="tool-empty">${esc(uiText("call_empty"))}</div>`);
     else parts.push(`<ul class="tool-items">${res.items.map((it) => {
       const label = typeof it === "string" ? it : (it.title || it.path || it.summary || JSON.stringify(it));
       return `<li>${esc(label)}</li>`;
@@ -529,7 +519,7 @@ function toolResultHtml(o, raw) {
   parts.push(toolTraceHtml(o));
   let pretty = raw;
   try { pretty = JSON.stringify(o, null, 2); } catch (e) {}
-  parts.push(`<details class="tool-raw"><summary>原始数据</summary><pre>${esc(pretty)}</pre></details>`);
+  parts.push(`<details class="tool-raw"><summary>${esc(uiText("call_raw"))}</summary><pre>${esc(pretty)}</pre></details>`);
   return `<div class="bubble-body tool md">${parts.join("")}</div>`;
 }
 
@@ -637,7 +627,7 @@ function waterfallHtml(sec, ctx) {
   }).join("");
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => `<i>${wfFmt(total * f * 1000)}</i>`).join("");
   return head + `<div class="wf">
-    <div class="wf-row wf-head"><div class="wf-label">调用层级</div><div class="wf-ticks">${ticks}</div></div>
+    <div class="wf-row wf-head"><div class="wf-label">${esc(uiText("wf_head"))}</div><div class="wf-ticks">${ticks}</div></div>
     ${bars}
   </div>`;
 }
@@ -657,7 +647,7 @@ function flowHtml(sec, ctx) {
         ${nx.length ? `<div class="flow-next">→ ${nx.map((x) => `<span class="k">${esc(x)}</span>`).join(" / ")}</div>` : ""}</div></li>`;
     }).join("");
     return `<article class="flow-card"><header><h4>${esc(row.cn || row.id || "")}</h4>
-      <span class="muted">${esc(row.id || "")} · ${states.length} 态</span></header>
+      <span class="muted">${esc(row.id || "")} · ${esc(uiText("flow_states", states.length))}</span></header>
       <ol class="flow-chain">${chain}</ol></article>`;
   }).join("");
   return head + `<div class="flow-grid">${body}</div>`;
@@ -688,7 +678,7 @@ function kvHtml(sec, ctx) {
 function docHtml(sec, ctx) {
   const raw = String(ref(sec.source, ctx) == null ? "" : ref(sec.source, ctx));
   if (sec.hide_when_empty && !raw.trim()) return "";
-  const body = raw.trim() ? renderMarkdown(raw) : esc(sec.fallback || "暂无正文");
+  const body = raw.trim() ? renderMarkdown(raw) : esc(sec.fallback || uiText("doc_empty"));
   return `<aside class="side-card">
     ${sec.heading ? `<h3>${esc(fill(sec.heading, ctx))}</h3>` : ""}
     <div class="doc-body">${body}</div>
@@ -713,14 +703,14 @@ function composerHtml(sec, ctx) {
   const busyVal = sec.busy_from ? String(fill(sec.busy_from, ctx) || "") : "";
   const busy = !disabled && busyVal && busyVal === (sec.busy_when || "running");
   const voiceBtn = voice && !disabled
-    ? `<button class="voice" data-act="${voiceIdx}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || "语音", ctx))}</button>`
+    ? `<button class="voice" data-act="${voiceIdx}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
     : "";
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
       <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
       ${acts}
       ${voiceBtn}
-      <button class="primary" data-act="${submitIdx}"${gate}>${esc(fill(submit.label || "发送", ctx))}</button>
+      <button class="primary" data-act="${submitIdx}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
     </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
     ${busy ? `<div class="composer-hint busy">${esc(fill(sec.busy_text || "", ctx))}</div>` : ""}
@@ -740,7 +730,7 @@ function sectionHtml(sec, ctx) {
   else if (kind === "tree") html = secHead(sec, ctx) + treeHtml(sec, ctx);
   else if (kind === "doc") html = docHtml(sec, ctx);
   else if (kind === "composer") html = composerHtml(sec, ctx);
-  else html = emptyHtml({ text: "未知区块: " + kind });
+  else html = emptyHtml({ text: uiText("unknown_kind", kind) });
   if (sec.fold) {
     const title = fill((sec.fold || {}).title || sec.heading || "", ctx);
     return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"><details><summary><strong>${esc(title)}</strong>${
@@ -774,4 +764,12 @@ function renderView(spec, ctx) {
     </div>`;
   }
   $("view-body").innerHTML = head + body;
+  // 浏览器标题也由外壳词表拼：视图名走规格，品牌名走后端
+  const name = String(fill(spec.heading || spec.heading_from || "", ctx) || "").trim();
+  if (BRAND.title_view && name) {
+    const parts = [name, BRAND.name || ""];
+    let idx = 0;
+    document.title = String(BRAND.title_view).replace(/\{\}/g, () => (idx++ === 0 ? parts[0] : parts[1]));
+  }
+  else if (BRAND.title) document.title = BRAND.title;
 }

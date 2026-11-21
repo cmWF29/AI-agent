@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  menu: {order: 3, label: 岗位库, short: 岗位, mobile: true}
   key: positions
   crumb: [项目管理, 岗位库]
   heading: 岗位库

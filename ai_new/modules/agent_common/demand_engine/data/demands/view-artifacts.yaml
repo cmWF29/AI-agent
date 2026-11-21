@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  menu: {order: 7, label: 文档, mobile: false}
   key: artifacts
   crumb: [项目管理, 文档]
   heading: 文档

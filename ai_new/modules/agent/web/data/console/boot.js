@@ -11,7 +11,7 @@ document.addEventListener("click", (e) => {
       const box = $("view-body").querySelector(".composer textarea");
       const text = (box && box.value || "").trim();
       if (!text) {
-        banner(binding.act.empty_hint || "请先输入内容，再点这个按钮", "err");
+        banner(uiText("composer_empty") || binding.act.empty_hint || "请先输入内容", "err");
         return;
       }
       return execute(binding, { text });
@@ -62,6 +62,24 @@ document.addEventListener("keydown", (e) => {
 function navTarget(view) {
   return viewSpec(view).nav || view;
 }
+/* 导航完全由后端菜单渲染：侧栏全部项，手机底栏取后端标记 mobile 的前四项 + 更多。
+   加一个视图 = 视图规格里多一行 menu，这里零改动。 */
+function renderMenus(menus) {
+  const side = $("side-nav");
+  if (side) {
+    side.innerHTML = arr(menus).map((m) =>
+      `<button data-nav="${esc(m.key)}">${esc(m.label || m.key)}</button>`).join("");
+  }
+  const bar = $("tab-bar");
+  if (bar) {
+    const mob = arr(menus).filter((m) => m.mobile).slice(0, 4);
+    bar.innerHTML = mob.map((m) =>
+      `<button data-nav="${esc(m.key)}">${esc(m.short || m.label || m.key)}</button>`).join("")
+      + `<button class="tab-more" id="tab-more" data-ui-aria="more">${esc(uiText("more"))}</button>`;
+    const more = $("tab-more");
+    if (more) more.onclick = () => openDrawer();
+  }
+}
 function highlightNav() {
   const cur = navTarget(state.view);
   document.querySelectorAll("[data-nav]").forEach((b) =>
@@ -106,10 +124,10 @@ function machineHtml(m) {
   const cur = states.find((st) => st.id === mc.stage) || {};
   const acts = active.filter((id) => id !== mc.stage)
     .map((id) => (states.find((st) => st.id === id) || {}).cn || id);
-  return `<div class="p-row"><span>流程</span><div>
+  return `<div class="p-row"><span>${esc(uiText("role_flow"))}</span><div>
     <div class="p-flow">${esc((mc.flow || {}).cn || (mc.flow || {}).id || "—")}</div>
     <div class="st-chain">${chain}</div>
-    <div class="p-flow">当前 ${esc(cur.cn || mc.stage || "—")}${acts.length ? " · 活跃 " + esc(acts.join("/")) : ""}</div>
+    <div class="p-flow">${esc(uiText("role_current"))} ${esc(cur.cn || mc.stage || "—")}${acts.length ? " · " + esc(uiText("role_active")) + " " + esc(acts.join("/")) : ""}</div>
   </div></div>`;
 }
 
@@ -120,9 +138,9 @@ function openMemberCard(el) {
   pop.innerHTML = `<h4><span class="avatar" style="--av:${avatarColor(m.display || m.role)}">${initial(m.display || m.role)}</span>${esc(m.display || m.role)}</h4>
     <div class="p-role">${esc(m.role || "")} · ${statusText(m.status)}</div>
     ${machineHtml(m)}
-    ${(m.todos || {}).total ? `<div class="p-row"><span>待办</span><div>${(m.todos || {}).done}/${(m.todos || {}).total}${(m.todos || {}).current ? " · " + esc((m.todos || {}).current) : ""}</div></div>` : ""}
-    ${m.task ? `<div class="p-row"><span>任务</span><div>${esc(m.task)}</div></div>` : ""}
-    ${m.session ? `<div class="p-row"><span>会话</span><div>${esc(m.session)}</div></div>` : ""}`;
+    ${(m.todos || {}).total ? `<div class="p-row"><span>${esc(uiText("role_todo"))}</span><div>${(m.todos || {}).done}/${(m.todos || {}).total}${(m.todos || {}).current ? " · " + esc((m.todos || {}).current) : ""}</div></div>` : ""}
+    ${m.task ? `<div class="p-row"><span>${esc(uiText("role_task"))}</span><div>${esc(m.task)}</div></div>` : ""}
+    ${m.session ? `<div class="p-row"><span>${esc(uiText("role_session"))}</span><div>${esc(m.session)}</div></div>` : ""}`;
   pop.hidden = false;
   const r = el.getBoundingClientRect();
   const w = pop.offsetWidth, h = pop.offsetHeight;
@@ -141,7 +159,4 @@ window.addEventListener("popstate", () => {
   render().catch((err) => banner(gateMessage(err), "err"));
 });
 
-const tabMore = document.getElementById("tab-more");
-if (tabMore) tabMore.onclick = () => openDrawer();
-
-boot().catch((err) => banner("控制台启动失败：" + gateMessage(err) + "（检查 views-list 与视图规格）", "err"));
+boot().catch((err) => banner(uiText("boot_fail", gateMessage(err)) || ("控制台启动失败：" + gateMessage(err)), "err"));

@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  menu: {order: 9, label: 用户管理, short: 用户, mobile: false}
   key: user
   crumb: [用户管理]
   heading: 用户管理

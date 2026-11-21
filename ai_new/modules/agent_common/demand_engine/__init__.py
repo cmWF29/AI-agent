@@ -25,6 +25,8 @@ def setup(ctx):
                      "当前需求（on/do/enabled）", module="demand_engine")
     ctx.api.register("demand_engine.manifest", lambda c, p: ctx.demand_engine.manifest(),
                      "全量需求的可视化形状（执行链 + 树节点）", module="demand_engine")
+    ctx.api.register("demand_engine.console", lambda c, p: ctx.demand_engine.console(),
+                     "控制台外壳（品牌、词表、配色、导航菜单）", module="demand_engine")
     return ctx.demand_engine
 
 

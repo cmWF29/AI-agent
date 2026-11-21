@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  menu: {order: 1, label: 项目, mobile: true}
   key: projects
   default: true
   crumb: [项目]

@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  menu: {order: 6, label: 知识, mobile: false}
   key: knowledge
   crumb: [项目管理, 知识库]
   heading: 知识库
