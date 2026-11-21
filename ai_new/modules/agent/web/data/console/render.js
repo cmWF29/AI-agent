@@ -66,8 +66,8 @@ function cardsHtml(sec, ctx) {
       .map((m) => `<span>${esc(fill(m.label, c))} ${esc(metaVal(m))}</span>`).join("");
     const groups = Array.isArray(sec.chips) ? sec.chips : (sec.chips ? [sec.chips] : []);
     const chips = groups.map((g) => shareChips(g, c)).join("");
-    const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
-    return `<article class="pcard${archived ? " archived" : ""}" ${click >= 0 ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
+    const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
+    return `<article class="pcard${archived ? " archived" : ""}" ${click ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
       <div class="acts">${acts}</div>
       <h3 class="pname">${esc(fill(sec.title, c))}</h3>
       ${badge}${stat}
@@ -100,7 +100,7 @@ function tableHtml(sec, ctx) {
   const rows0 = arr(ref(sec.source, ctx));
   let rows = rows0.slice();
   if (sec.sort) {
-    const by = sec.sort.by, dir = sec.sort.order === "asc" ? 1 : -1;
+    const by = sec.sort.by, dir = sec.sort.order === "asc" ? 1 : "";
     rows.sort((a, b) => dir * String(dig(a, by) || "").localeCompare(String(dig(b, by) || "")));
   }
   let truncated = 0;
@@ -138,8 +138,8 @@ function tableHtml(sec, ctx) {
       return `<td class="${col.muted ? "muted" : ""}"${th ? ` data-th="${th}"` : ""}>${val}</td>`;
     }).join("");
     const acts = rowActs.length ? `<td class="actions">${rowActs.map((a) => buttonHtml(a, c)).join("")}</td>` : "";
-    const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
-    return `<tr ${click >= 0 ? `data-go="${click}"` : ""}>${cells}${acts}</tr>`;
+    const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
+    return `<tr ${click ? `data-go="${click}"` : ""}>${cells}${acts}</tr>`;
   }).join("") : `<tr><td colspan="${cols.length + (rowActs.length ? 1 : 0)}" class="muted">${esc((sec.empty || {}).text || uiText("empty"))}</td></tr>`;
   if (sec.hide_when_empty && !rows0.length) return "";
   const actHead = rowActs.length ? "<th>" + esc(uiText("col_actions")) + "</th>" : "";
@@ -571,8 +571,8 @@ function toolBodyHtml(m) {
 }
 function treeDocHtml(doc, sec, ctx) {
   const c = { ...ctx, row: doc };
-  const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
-  return `<div class="tree-doc" ${click >= 0 ? `data-go="${click}"` : ""} role="button" tabindex="0">
+  const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
+  return `<div class="tree-doc" ${click ? `data-go="${click}"` : ""} role="button" tabindex="0">
     <span class="tree-doc-name">${esc(fill("row.name", c))}</span>
     <span class="muted tree-doc-path">${esc(fill("row.path", c))}</span>
   </div>`;

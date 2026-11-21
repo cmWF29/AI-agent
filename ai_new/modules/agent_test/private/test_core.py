@@ -260,6 +260,8 @@ class CoreTest(unittest.TestCase):
         self.assertIn("ACTS.get(", boot, "派发端必须按 id 查表")
         self.assertNotIn("ACTS[Number(", boot, "派发端退回下标查表")
         self.assertIn("acts: ACTS", app, "保活实例没有带上绑定表")
+        self.assertNotIn("click >= 0", render, "点击 id 是字符串，不能再跟 0 比大小（会把整张卡片点死）")
+        self.assertIn("click ? `data-go=", render, "data-go 必须按 id 真值生成")
         self.assertIn("ACTS = k.acts", app, "恢复时没有接管这一页的绑定表")
 
     def test_console_clicks_have_one_entry_and_state_machine(self):
