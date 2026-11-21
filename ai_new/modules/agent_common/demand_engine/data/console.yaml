@@ -30,6 +30,7 @@ login:                                 # 登录页（未登录可读，不含导
   http_code: "（{}）"
 ui:
   crumb_root: 工作台
+  perf_probe: "{} fps · 最差 {}ms · 长任务 {}"   # 手机端性能自检浮层（?perf=1 打开）
   deck_expand: "展开 {}"                 # 卡片堆叠：收起状态下的展开按钮
   deck_collapse: 收起
   deck_pos: "{} / {}"                  # 卡片堆叠的位置指示：第几张 / 共几张                     # 面包屑唯一根：所有页面都从这里起算，视图里不许再写根词

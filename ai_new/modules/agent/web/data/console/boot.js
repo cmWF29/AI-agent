@@ -75,6 +75,16 @@ let DECK_DRAG = null;
 
 function deckCards(d) { return [...d.querySelectorAll(".deck-stage > .pcard")]; }
 
+function deckMetrics(d) {
+  // 位移步长只在样式里写一次（桌面/手机两套），这里读回来算像素，不存第二份数值
+  const stage = d.querySelector(".deck-stage");
+  const cs = getComputedStyle(stage);
+  return {
+    ox: parseFloat(cs.getPropertyValue("--ox")) || 9,
+    oy: parseFloat(cs.getPropertyValue("--oy")) || 13,
+  };
+}
+
 function deckLayout(d) {
   const cards = deckCards(d), n = cards.length;
   const stage = d.querySelector(".deck-stage");
@@ -90,21 +100,24 @@ function deckLayout(d) {
   if (open) {
     stage.style.height = "";
     cards.forEach((c) => {
-      c.style.removeProperty("--pos"); c.style.removeProperty("--dx");
+      c.style.removeProperty("--pos"); c.style.removeProperty("transform");
       delete c.dataset.far; delete c.dataset.front;
     });
     return;
   }
   const front = Number(d.dataset.pos) || 0;
   const vis = Math.min(n, 4);
-  const step = 13;   // 与 css 的 --oy 一致，只用来算容器高度
+  const m = deckMetrics(d);
+  const h = cards[front].offsetHeight;   // 先量高度，再写位移：少一次强制重排
   cards.forEach((c, i) => {
     const p = (i - front + n) % n;
-    c.style.setProperty("--pos", String(p >= vis ? 0 : p));
-    if (p >= vis) c.dataset.far = "1"; else delete c.dataset.far;
+    const far = p >= vis;
+    c.style.setProperty("--pos", String(far ? 0 : p));
+    c.style.transform = far ? "" : "translate3d(" + (p * m.ox) + "px," + (p * m.oy) + "px,0)";
+    if (far) c.dataset.far = "1"; else delete c.dataset.far;
     if (p === 0) c.dataset.front = "1"; else delete c.dataset.front;
   });
-  stage.style.height = (cards[front].offsetHeight + step * (vis - 1)) + "px";
+  stage.style.height = (h + m.oy * (vis - 1)) + "px";
 }
 
 function mountDecks() {
@@ -119,6 +132,13 @@ document.addEventListener("pointerdown", (e) => {
   if (e.target.closest("button")) return;
   DECK_DRAG = { d, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, moved: false, cards: deckCards(d) };
 });
+/* 一帧只写一次 transform：触屏的 pointermove 可能比屏幕帧率还密，
+   每次都写会让浏览器白算样式；攒到 rAF 里一起写，草稿留在 g.pending。 */
+function deckPaint(g) {
+  g.raf = 0;
+  const front = g.cards[Number(g.d.dataset.pos) || 0];
+  if (front) front.style.transform = "translate3d(" + g.dx + "px,0,0)";
+}
 document.addEventListener("pointermove", (e) => {
   const g = DECK_DRAG;
   if (!g || e.pointerId !== g.id) return;
@@ -127,18 +147,22 @@ document.addEventListener("pointermove", (e) => {
     if (Math.abs(dx) < 10) return;
     if (Math.abs(dx) <= Math.abs(dy)) { DECK_DRAG = null; return; }  // 纵向手势还给页面滚动
     g.moved = true;
+    g.d.dataset.dragging = "1";
+    const front0 = g.cards[Number(g.d.dataset.pos) || 0];
+    if (front0) front0.style.transition = "none";
   }
   g.dx = dx;
-  const front = g.cards[Number(g.d.dataset.pos) || 0];
-  if (front) { front.style.transition = "none"; front.style.setProperty("--dx", dx + "px"); }
+  if (!g.raf) g.raf = requestAnimationFrame(() => deckPaint(g));
   if (e.cancelable) e.preventDefault();
 }, { passive: false });
 function deckRelease(e) {
   const g = DECK_DRAG;
   if (!g) return;
   DECK_DRAG = null;
+  if (g.raf) { cancelAnimationFrame(g.raf); g.raf = 0; }
+  delete g.d.dataset.dragging;
   const front = g.cards[Number(g.d.dataset.pos) || 0];
-  if (front) { front.style.removeProperty("transition"); front.style.removeProperty("--dx"); }
+  if (front) front.style.removeProperty("transition");
   if (g.moved && Math.abs(g.dx) >= 56) {
     const n = g.cards.length, cur = Number(g.d.dataset.pos) || 0;
     g.d.dataset.pos = String(((g.dx < 0 ? cur + 1 : cur - 1) + n) % n);
@@ -149,6 +173,32 @@ function deckRelease(e) {
 document.addEventListener("pointerup", deckRelease);
 document.addEventListener("pointercancel", deckRelease);
 window.addEventListener("resize", mountDecks);
+
+/* ---- 性能自检浮层（?perf=1 或 localStorage.ai_new_perf=1）----
+   只报数，不改行为：帧率、最差一帧、50ms 以上长任务数量，方便在真机上定位卡顿。 */
+function startPerfProbe() {
+  if (!(new URLSearchParams(location.search).get("perf") === "1"
+      || localStorage.getItem("ai_new_perf") === "1")) return;
+  const box = document.createElement("div");
+  box.className = "perf-probe";
+  document.body.appendChild(box);
+  let frames = 0, from = performance.now(), worst = 0, last = from, longs = 0;
+  try {
+    new PerformanceObserver((list) => { longs += list.getEntries().length; })
+      .observe({ entryTypes: ["longtask"] });
+  } catch (err) { /* 浏览器不支持就只报帧率 */ }
+  const tick = (t) => {
+    if (t - last > worst) worst = t - last;
+    last = t; frames += 1;
+    if (t - from >= 500) {
+      const fps = Math.round(frames * 1000 / (t - from));
+      box.textContent = uiText("perf_probe", fps, Math.round(worst), longs);
+      frames = 0; worst = 0; from = t;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 
 function navTarget(view) {
   return viewSpec(view).nav || view;
@@ -241,4 +291,5 @@ window.addEventListener("popstate", () => {
   render().catch((err) => banner(gateMessage(err), "err"));
 });
 
+startPerfProbe();
 boot().catch((err) => banner(uiText("boot_fail", gateMessage(err)) || ("控制台启动失败：" + gateMessage(err)), "err"));

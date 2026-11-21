@@ -84,16 +84,23 @@ main .crumb{margin-bottom:14px}
 .deck-stage{position:relative;transition:height .26s cubic-bezier(.22,.72,.28,1)}
 /* 展开态就回到普通卡片排列：桌面网格、手机竖排 */
 .deck[data-open="1"] .deck-stage{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.deck-stage{--ox:9px;--oy:13px;isolation:isolate;will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard{position:absolute;left:0;right:calc(var(--pos,0) * var(--ox));top:0;
-  --ox:9px;--oy:13px;--dx:0px;
-  transform:translate(calc(var(--pos,0) * var(--ox) + var(--dx)),calc(var(--pos,0) * var(--oy)));
   z-index:calc(20 - var(--pos,0));
-  transition:transform .26s cubic-bezier(.22,.72,.28,1),opacity .2s;
+  backface-visibility:hidden;
+  transition:transform .26s cubic-bezier(.22,.72,.28,1);
   touch-action:pan-y;cursor:grab}
 .deck[data-open="0"] .deck-stage>.pcard:active{cursor:grabbing}
-.deck[data-open="0"] .deck-stage>.pcard[data-front="1"]{box-shadow:0 12px 28px rgba(0,0,0,.11)}
-.deck[data-open="0"] .deck-stage>.pcard[data-far="1"]{opacity:0;pointer-events:none}
+.deck[data-open="0"] .deck-stage>.pcard[data-front="1"]{box-shadow:0 12px 26px rgba(0,0,0,.11);will-change:transform}
+.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){box-shadow:0 1px 3px rgba(16,24,40,.10)}
+/* 拖动期间收掉大模糊阴影：移动中的卡每帧都要重绘阴影 */
+.deck[data-dragging="1"] .deck-stage>.pcard[data-front="1"]{box-shadow:0 5px 12px rgba(0,0,0,.14)}
+/* 露不出来的牌直接不参与绘制，省掉十几张大卡的合成开销 */
+.deck[data-open="0"] .deck-stage>.pcard[data-far="1"]{visibility:hidden;pointer-events:none}
 .deck-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 10px}
+.perf-probe{position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:90;
+  background:rgba(16,24,40,.82);color:#fff;font-size:11px;line-height:1.5;padding:3px 8px;border-radius:8px;
+  font-variant-numeric:tabular-nums;pointer-events:none}
 .deck[data-open="1"] .deck-pos{display:none}
 .deck-pos{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .deck-more{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;
@@ -441,7 +448,7 @@ textarea{min-height:72px;resize:vertical}
   .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
   .cards{display:flex;flex-direction:column;gap:10px}
-  .deck[data-open="0"] .deck-stage>.pcard{--ox:7px;--oy:11px}
+  .deck-stage{--ox:7px;--oy:11px}
   .deck[data-open="1"] .deck-stage{display:flex;flex-direction:column;gap:10px}
   .view-scroll .vsec>.cards.deck{overflow:visible}
   .cards>.pcard{min-height:0}
