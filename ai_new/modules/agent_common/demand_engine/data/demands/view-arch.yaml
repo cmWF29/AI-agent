@@ -21,11 +21,23 @@ view:
   - {as: pos, demand: position-list}
   - {as: slow, demand: trace-slow, params: {}}
   sections:
-  - kind: stats
-    rows:
-    - {label: 需求, value: "data.mf.count", note: "条可插拔业务"}
-    - {label: 执行步骤, value: "data.mf.steps", note: "语句树节点"}
-    - {label: 对外路由, value: "data.api.routes", note: "条已注册能力"}
+  - kind: map
+    heading: 架构全景：一条需求怎么变成一次调用
+    note: 从上往下是数据流向，框里是当前在库数量；业务域按条数列在最后一行
+    cols:
+    - title: 入口
+      nodes:
+      - {label: 需求, value: "data.mf.count", note: 条，业务域分组见图下}
+    - title: 编译
+      nodes:
+      - {label: 语句树, value: "data.mf.steps", note: 个顺序 call/send 节点}
+    - title: 契约
+      nodes:
+      - {label: 已注册路由, value: "data.api.routes", note: 条可被调用的能力}
+    - title: 执行
+      nodes:
+      - {label: 带状态机岗位, value: "data.pos.items|count", note: 个，各自带一套状态机}
+    foot: {label: 业务域分布, from: data.mf.groups}
 
   - kind: tree
     source: data.mf.groups

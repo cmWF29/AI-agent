@@ -634,6 +634,35 @@ function waterfallHtml(sec, ctx) {
   </div>`;
 }
 
+function mapHtml(sec, ctx) {
+  // 全景图：一列一个环节，节点上带当前在库的数量，列间箭头是数据的去向
+  const head = secHead(sec, ctx);
+  const nodeOf = (n) => {
+    const v = n.value ? fill(n.value, ctx) : "";
+    const note = n.note ? fill(n.note, ctx) : "";
+    return `<div class="flow-node"><b>${esc(fill(n.label, ctx))}</b>${
+      v === "" || v === "undefined" ? "" : `<i class="map-num">${esc(String(v))}</i>`}${
+      note ? `<span>${esc(note)}</span>` : ""}</div>`;
+  };
+  const cols = (sec.cols || []).map((col) => {
+    const items = col.from
+      ? arr(ref(col.from, ctx)).map((n) => `<div class="flow-node"><b>${esc(n.label || n.id || "")}</b>${
+        n.badge === undefined || n.badge === "" ? "" : `<i class="map-num">${esc(String(n.badge))}</i>`}${
+        n.sub ? `<span>${esc(String(n.sub))}</span>` : ""}</div>`).join("")
+      : (col.nodes || []).map(nodeOf).join("");
+    if (!items) return "";
+    return `<div class="flow-col">${col.title ? `<div class="flow-col-t">${esc(fill(col.title, ctx))}</div>` : ""}${items}</div>`;
+  }).filter(Boolean);
+  if (!cols.length) return head + emptyHtml(sec.empty);
+  // 图下方一行分布 chips：数量多的分组不铺成节点，免得把图挤成一列长条
+  const foot = sec.foot ? `<div class="map-foot"><span class="muted">${esc(fill(sec.foot.label || "", ctx))}</span><div class="chips">${
+    arr(ref(sec.foot.from, ctx)).map((n) => `<span class="chip"><span class="chip-name">${esc(n.label || n.id || "")}</span>${
+      n.badge === undefined || n.badge === "" ? "" : `<span>${esc(String(n.badge))}</span>`}</span>`).join("")
+  }</div></div>` : "";
+  return `<div class="flow-grid map-grid"><article class="flow-card">${head}<div class="flow-map">${
+    cols.join('<div class="flow-arrow">→</div>')}</div>${foot}</article></div>`;
+}
+
 function flowHtml(sec, ctx) {
   const head = secHead(sec, ctx);
   const cards = arr(ref(sec.source, ctx));
@@ -743,6 +772,7 @@ function sectionHtml(sec, ctx) {
   if (kind === "cards") html = cardsHtml(sec, ctx);
   else if (kind === "stats") html = statsHtml(sec, ctx);
   else if (kind === "flow") html = flowHtml(sec, ctx);
+  else if (kind === "map") html = mapHtml(sec, ctx);
   else if (kind === "waterfall") html = waterfallHtml(sec, ctx);
   else if (kind === "table") html = tableHtml(sec, ctx);
   else if (kind === "chat") html = chatHtml(sec, ctx);
