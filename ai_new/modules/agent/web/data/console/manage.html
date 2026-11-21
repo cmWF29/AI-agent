@@ -133,8 +133,9 @@ main .crumb{margin-bottom:14px}
   touch-action:pan-y;cursor:grab}
 .deck[data-open="0"] .deck-stage>.pcard:active{cursor:grabbing}
 /* 后层只用轮廓示意"下面还有牌"：按钮和内容都压暗，否则两层按钮叠在一起像重复控件 */
-.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){opacity:.42}
-.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]) .acts{display:none}
+/* 后层只留一张白卡的下缘：内容全部隐藏，露出来的就是"下面还有牌"的那道边，
+   不会和前卡的文字混成一团（微信那种合并转发的观感） */
+.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"])>*{visibility:hidden}
 .deck[data-open="0"] .deck-stage>.pcard[data-front="1"]{box-shadow:0 12px 26px rgba(0,0,0,.11);will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){box-shadow:0 1px 3px rgba(16,24,40,.10)}
 /* 拖动期间收掉大模糊阴影：移动中的卡每帧都要重绘阴影 */
