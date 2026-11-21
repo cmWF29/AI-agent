@@ -450,13 +450,13 @@ function scrollRestore(marks) {
       if (it.done) continue;
       const el = now.get(it.m.key + "#" + it.m.nth);
       if (!el || !el.isConnected) { it.done = true; continue; }
-      // 刚换上的节点可能还没撑开（scrollHeight 等于可视高），这时设 scrollTop 会被吞掉；
-      // 留到下一轮再设，最多补 4 次，之后按现有高度收敛，不会跟用户抢滚动。
-      if (el.scrollHeight <= el.clientHeight + 1 && step < 4) { pending = true; continue; }
       it.stick = it.m.bottom <= SCROLL_BOTTOM;                 // 本来贴底就继续贴底
+      const max = Math.max(0, el.scrollHeight - el.clientHeight);
+      // 刚换上的节点常常还没撑开：要么完全不可滚，要么只撑到一半（目标位置放不下）。
+      // 这时设 scrollTop 会被吞掉/夹小，留到下一轮再设，最多补 4 次。
+      if ((max < it.m.top || !max) && step < 4) { pending = true; continue; }
       // 记「期望值」而不是设置后读回的值：浏览器可能当场把位置挪走，读回就成了错的目标
-      it.want = it.stick ? el.scrollHeight
-        : Math.min(it.m.top, Math.max(0, el.scrollHeight - el.clientHeight));
+      it.want = it.stick ? max : Math.min(it.m.top, max);
       el.scrollTop = it.want;
       it.done = true;
     }
@@ -474,11 +474,9 @@ function scrollRestore(marks) {
       if (it.want == null) continue;
       const el = now.get(it.m.key + "#" + it.m.nth);
       if (!el || !el.isConnected) continue;
-      if (it.stick) {
-        if (el.scrollHeight - el.scrollTop - el.clientHeight > 2) el.scrollTop = el.scrollHeight;
-      } else if (Math.abs(el.scrollTop - it.want) > 2) {
-        el.scrollTop = Math.min(it.want, Math.max(0, el.scrollHeight - el.clientHeight));
-      }
+      const max = Math.max(0, el.scrollHeight - el.clientHeight);   // 内容可能又长高了，目标跟着重算
+      const target = it.stick ? max : Math.min(it.m.top, max);
+      if (Math.abs(el.scrollTop - target) > 2) el.scrollTop = target;
     }
   };
   requestAnimationFrame(() => setTimeout(verify, 0));
