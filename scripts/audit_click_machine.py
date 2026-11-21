@@ -137,6 +137,37 @@ def real_behaviour(pg, base, view, query):
     return {"view": view, "query": query, "what": out}
 
 
+def audit_synthetic(pg, base, kinds):
+    """没有真实实例的种类：在审计页注入一个同属性按钮，点它验门禁与迁移链路。
+
+    只验解析->门禁->迁移，不改页面数据（审计模式本来就不执行动作）。
+    """
+    pg.goto(base + "/manage.html?audit=1&perf=0", wait_until="domcontentloaded")
+    pg.wait_for_function("() => window.uiSnapshot && uiSnapshot().machine", timeout=90000)
+    out = []
+    for kind in kinds:
+        sel = SELECTORS.get(kind)
+        if not sel:
+            continue
+        attr = sel.strip("[]").split("=")[0]
+        before = pg.evaluate("() => uiSnapshot().violations")
+        pg.evaluate("""([sel, attr]) => {
+            const host = document.querySelector('#view-body');
+            const el = document.createElement('button');
+            el.setAttribute(attr, attr === 'data-crumb' ? '1' : '1');
+            el.className = 'synth-audit';
+            el.textContent = '审计注入';
+            host.appendChild(el);
+        }""", [sel, attr])
+        pg.evaluate("(s) => document.querySelector(s).click()", ".synth-audit")
+        pg.wait_for_timeout(200)
+        after = pg.evaluate("() => ({v: uiSnapshot().violations, s: uiSnapshot().state, b: uiSnapshot().lastBad})")
+        pg.evaluate("() => document.querySelector('.synth-audit').remove()")
+        out.append({"kind": kind, "synthetic": True, "pass": after["v"] == before and after["s"] == "idle",
+                    "detail": "violations %s->%s state=%s %s" % (before, after["v"], after["s"], after["b"])})
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:8787")
@@ -221,6 +252,9 @@ def main():
         # 弹窗门禁单独验（弹窗不属于任何视图）
         pg.goto(args.base + "/manage.html?audit=1&perf=0", wait_until="domcontentloaded")
         pg.wait_for_function("() => window.uiSnapshot && uiSnapshot().machine", timeout=90000)
+        naked = [k for k in spec_kinds if k not in MODAL_KINDS
+                 and not any(row["clicked"] for r in report["results"] for row in r["rows"] if row["kind"] == k)]
+        report["synthetic"] = audit_synthetic(pg, args.base, naked)
         modal = audit_modal(pg, spec_kinds)
         report["modal"] = modal
         report["pageerrors"] = errs
@@ -235,6 +269,7 @@ def main():
     report["coverage"] = cover
     bad = [r for r in report["results"] for row in r["rows"] if not row["pass"]]
     bad += [x for r in report["real"] for x in r["what"] if not x["pass"]]
+    bad += [x for x in report["synthetic"] if not x["pass"]]
     bad += [m for m in modal if not m["pass"]]
     if errs:
         bad.append({"pageerror": errs})
@@ -256,6 +291,8 @@ def main():
     print("覆盖矩阵: %s" % "  ".join("%s=%d/%d" % (k, v["clicked"], v["found"]) for k, v in cover.items()))
     naked = [k for k, v in cover.items() if not v["clicked"] and k not in MODAL_KINDS]
     print("无实例种类（规格已声明、当前页面未出现，属未覆盖）: %s" % (" / ".join(naked) or "无"))
+    for x in report["synthetic"]:
+        print("%-14s 合成实例  %s %s" % (x["kind"], "通过" if x["pass"] else "失败", x["detail"]))
     print("弹窗门禁: %s" % ", ".join("%s=%s" % (m["kind"], "通过" if m["pass"] else "失败") for m in modal))
     print("报告: %s" % args.report)
     print("结论: %s" % ("全通过" if not bad else "有 %d 处失败" % len(bad)))
