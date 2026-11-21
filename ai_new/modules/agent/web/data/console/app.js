@@ -454,9 +454,10 @@ function scrollRestore(marks) {
       // 留到下一轮再设，最多补 4 次，之后按现有高度收敛，不会跟用户抢滚动。
       if (el.scrollHeight <= el.clientHeight + 1 && step < 4) { pending = true; continue; }
       it.stick = it.m.bottom <= SCROLL_BOTTOM;                 // 本来贴底就继续贴底
-      el.scrollTop = it.stick ? el.scrollHeight
+      // 记「期望值」而不是设置后读回的值：浏览器可能当场把位置挪走，读回就成了错的目标
+      it.want = it.stick ? el.scrollHeight
         : Math.min(it.m.top, Math.max(0, el.scrollHeight - el.clientHeight));
-      it.want = el.scrollTop;
+      el.scrollTop = it.want;
       it.done = true;
     }
     if (pending && step < 4) {
