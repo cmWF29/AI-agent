@@ -30,6 +30,7 @@ view:
     gone: 已失效
     error: 异常
   params: [project, ticket]
+  require: [ticket]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
   nav: projects
   parent: {view: project, params: {project: "{route.project}"}}
   crumb:

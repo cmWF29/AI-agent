@@ -18,6 +18,7 @@ view:
     error: 异常
   key: project
   params: [project]
+  require: [project]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
   nav: projects
   parent: {view: projects}
   crumb: [项目, "{project.name}"]

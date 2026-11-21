@@ -394,6 +394,15 @@ async function loadData(spec, ctx) {
 async function render(opts) {
   const spec = VIEWS[state.view] || VIEWS[defaultView()];
   const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
+  // 缺必填参数的页面（比如直接开 /?view=knowledge-doc）不发请求：
+  // 请求必然失败、页面只剩空壳，看起来就是"卡住不动"
+  const missing = (spec.require || []).filter((k) => !state[k]);
+  if (missing.length) {
+    renderCrumb(spec, { route: state, data: {}, cache: {}, fields: {}, row: null });
+    $("view-body").innerHTML = `<div class="view-scroll"><div class="vsec"><div class="empty">${esc(spec.empty_hint || uiText("need_param"))}</div></div></div>`;
+    openStream("");
+    return;
+  }
   await loadData(spec, ctx);
   if (!(opts && opts.keepBanner)) banner("");
   const draft = (document.querySelector("#view-body .composer textarea") || {}).value || "";

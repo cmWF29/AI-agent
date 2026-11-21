@@ -30,6 +30,7 @@ login:                                 # 登录页（未登录可读，不含导
   http_code: "（{}）"
 ui:
   crumb_root: 工作台
+  need_param: 请从上一级页面选一个对象再进来：这一页只显示被选中对象的内容
   perf_probe: "{} fps · 最差 {}ms · 长任务 {}"   # 手机端性能自检浮层（?perf=1 打开）
   deck_expand: "展开 {}"                 # 卡片堆叠：收起状态下的展开按钮
   deck_collapse: 收起

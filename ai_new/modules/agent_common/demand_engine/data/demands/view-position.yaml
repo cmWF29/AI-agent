@@ -9,6 +9,7 @@ do: []
 view:
   key: position
   params: [position]
+  require: [position]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
   nav: positions
   parent: {view: positions}
   crumb: [岗位库, "{position.cn}"]

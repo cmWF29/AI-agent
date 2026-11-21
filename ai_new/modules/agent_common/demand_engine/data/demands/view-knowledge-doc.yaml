@@ -9,6 +9,7 @@ do: []
 view:
   key: knowledge-doc
   params: [layer, name, project, ticket]
+  require: [name]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
   nav: knowledge
   parent: {view: knowledge}
   crumb: [知识库, "{route.name}"]
