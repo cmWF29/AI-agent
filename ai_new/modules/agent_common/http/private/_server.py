@@ -37,6 +37,12 @@ def start(ctx, server):
 def _make_handler(ctx):
     class _Handler(BaseHTTPRequestHandler):
         server_version = "AI_NEW/0.1"
+        # HTTP/1.1：连接可复用。默认的 HTTP/1.0 每条响应就关连接，一个页面十来个资源
+        # 就是十几次 TLS 握手；跨公网时每一次握手两个 RTT，手感就是"处处都慢半秒"。
+        # 所有响应都带 Content-Length，满足 1.1 复用条件。
+        protocol_version = "HTTP/1.1"
+        # 小包不攒：一次 RPC 的响应只有几百字节，Nagle 会让它多等一个 ACK。
+        disable_nagle_algorithm = True
 
         def log_message(self, fmt, *args):  # 请求日志走自己的 log，不用 stderr 刷屏
             pass
@@ -189,6 +195,8 @@ def _make_handler(ctx):
                     if not result.get("blocked"):
                         ctx.api.call("clock.sleep", {"seconds": 1}, caller=None, direct=True)
             except (BrokenPipeError, ConnectionResetError, OSError):
+                # 流是被对端掐断才退出的：这条连接不能再复用
+                self.close_connection = True
                 return
 
         def _static(self, path):
