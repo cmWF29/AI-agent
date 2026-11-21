@@ -132,6 +132,10 @@ main .crumb{margin-bottom:14px}
   transition:transform .26s cubic-bezier(.22,.72,.28,1);
   touch-action:pan-y;cursor:grab}
 .deck[data-open="0"] .deck-stage>.pcard:active{cursor:grabbing}
+/* 后层只用轮廓示意"下面还有牌"：按钮和内容都压暗，否则两层按钮叠在一起像重复控件 */
+.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]) .acts,
+.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]) .ar{opacity:0;pointer-events:none}
+.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"])>*:not(.pname){opacity:.38}
 .deck[data-open="0"] .deck-stage>.pcard[data-front="1"]{box-shadow:0 12px 26px rgba(0,0,0,.11);will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){box-shadow:0 1px 3px rgba(16,24,40,.10)}
 /* 拖动期间收掉大模糊阴影：移动中的卡每帧都要重绘阴影 */
