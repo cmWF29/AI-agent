@@ -475,8 +475,10 @@ function restorePage(k) {
 }
 
 /* ---- 后端失效：只重取受影响的那份数据，只换吃它的那些区块 ---- */
-let INV = null, INV_SEQ = 0, INV_TIMER = null;
+let INV = null, INV_SEQ = 0, INV_TIMER = null, INV_BUSY = false, INV_AT = 0;
 const INV_PENDING = new Set();
+const INV_AGAIN = new Set();
+const INV_MIN_GAP = 1000;   // 同一页面最短补取间隔：写链路抖动不该变成请求风暴
 function openInvalidate() {
   if (INV) return;
   const q = new URLSearchParams({ key: "console.invalidate", token: token() });
@@ -484,7 +486,9 @@ function openInvalidate() {
   INV.onmessage = (ev) => {
     let snap, msg;
     try { snap = jsyaml.load(ev.data) || {}; } catch (e) { return; }
-    try { msg = jsyaml.load(String(snap.text || "")) || {}; } catch (e) { return; }
+    const rawText = String(snap.text || "");
+    try { msg = JSON.parse(rawText); }            // 引擎推的是单行 JSON
+    catch (e) { try { msg = jsyaml.load(rawText) || {}; } catch (e2) { return; } }
     const items = (msg.items || []).filter((x) => Number(x.seq || 0) > INV_SEQ);
     if (!items.length) return;
     INV_SEQ = Math.max.apply(null, items.map((x) => Number(x.seq || 0)));
@@ -500,17 +504,21 @@ function hitInvalidate(hit) {
   }
   if (hit.as) INV_PENDING.add(String(hit.as));
   if (INV_TIMER) clearTimeout(INV_TIMER);
+  // 写链路会连发很多帧（同一份数据反复变），按 MIN_GAP 收口成一次补取，末帧数据一定取到
+  const wait = Math.max(180, INV_MIN_GAP - (Date.now() - INV_AT));
   INV_TIMER = setTimeout(() => {
     const pend = [...INV_PENDING]; INV_PENDING.clear();
     refreshAs(pend);
-  }, 180);   // 一次写操作可能带动几份数据，合并成一次补取
+  }, wait);
 }
 async function refreshAs(list) {
   if (!list || !list.length) return;
+  if (INV_BUSY) { list.forEach((a) => INV_AGAIN.add(a)); return; }
+  INV_BUSY = true;
   const spec = viewSpec(state.view);
   let page;
-  try { page = await resolvePage(state.view, state, false, list); } catch (e) { return; }
-  if (!page || !page.data) return;
+  try { page = await resolvePage(state.view, state, false, list); } catch (e) { page = null; }
+  if (!page || !page.data) return doneRefresh();
   const ctx = LAST_CTX || { route: state, data: {}, cache: {}, fields: {}, row: null };
   Object.assign(ctx.data, page.data);
   Object.assign(ctx.cache, page.cache || {});
@@ -535,6 +543,15 @@ async function refreshAs(list) {
   if (typeof mountDecks === "function") mountDecks();
   if (typeof expandFolds === "function") expandFolds();
   keepPage(ctx);
+  doneRefresh();
+}
+function doneRefresh() {
+  INV_BUSY = false;
+  INV_AT = Date.now();
+  if (!INV_AGAIN.size) return;
+  const more = [...INV_AGAIN]; INV_AGAIN.clear();
+  const wait = Math.max(60, INV_MIN_GAP - (Date.now() - INV_AT));
+  setTimeout(() => refreshAs(more), wait);   // 刷新期间又到的失效，补跑一次
 }
 
 function crumbUp() {

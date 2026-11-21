@@ -41,8 +41,9 @@ def yaml_encode(value):
 def yaml_encode_flow(value):
     """报文/SSE 用：YAML flow 单行，保持现有分帧与 Content-Length。"""
     try:
+        # 无限宽度：不然长值会在 80 列处折行，SSE 只认 `data:` 首行，帧就被截断
         text = yaml.dump(value, Dumper=_YAML_DUMPER, allow_unicode=True,
-                         sort_keys=False, default_flow_style=True)
+                         sort_keys=False, default_flow_style=True, width=10 ** 9)
         return {"ok": True, "text": text.strip()}
     except (TypeError, ValueError, yaml.YAMLError) as exc:
         return {"ok": False, "error": str(exc), "code": "encode_failed"}

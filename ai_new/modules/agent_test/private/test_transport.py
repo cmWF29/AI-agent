@@ -279,3 +279,21 @@ class BindingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FrameLineTest(unittest.TestCase):
+    """SSE 每帧只认 `data:` 首行：长值折行会把帧截断，前端永远收不到。"""
+
+    def test_flow_frame_is_single_line_and_roundtrips(self):
+        payload = {"text": "x" * 300, "running": True}
+        out = _codec.yaml_encode_flow(payload)
+        self.assertTrue(out["ok"])
+        self.assertNotIn("\n", out["text"], "帧文本必须单行，否则 SSE 只送出前半截")
+        self.assertEqual(yaml.safe_load(out["text"]), payload)
+
+    def test_long_json_text_roundtrips(self):
+        inner = _codec.json_encode({"seq": 1, "items": [{"demand": "ticket-create",
+                                                        "items": [{"view": "project", "as": "tickets"}]}] * 6})
+        out = _codec.yaml_encode_flow({"text": inner["text"], "running": True, "at": 1.0})
+        self.assertNotIn("\n", out["text"])
+        self.assertEqual(yaml.safe_load(out["text"])["text"], inner["text"])

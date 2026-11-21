@@ -103,9 +103,16 @@ class Engine:
         hits = self._views_using(touch)
         if not hits:
             return
+        # 同一条需求连带触发的重复通知（多步写、同数据源）合并掉，避免前端连刷好几轮
+        now = float(self.ctx.clock.now()["ts"])
+        last = self._badge_items[-1] if self._badge_items else None
+        if (last and last.get("demand") == demand_id and last.get("items") == hits
+                and now - float(last.get("at") or 0) < 1.5):
+            last["at"] = now
+            return
         self._badge_seq += 1
         self._badge_items = (self._badge_items + [{"seq": self._badge_seq, "demand": demand_id,
-                                                   "items": hits}])[-30:]
+                                                   "items": hits, "at": now}])[-30:]
         self._publish_badges()
 
     def _publish_badges(self):
@@ -114,7 +121,8 @@ class Engine:
             return
         payload = {"seq": self._badge_seq, "items": self._badge_items}
         try:
-            text = self.ctx.codec.yaml_encode_flow(payload)["text"]
+            # 必须是单行：SSE 层会把这段再包成 YAML 标量，多行会撕成非法文档
+            text = self.ctx.codec.json_encode(payload)["text"]
         except Exception:  # noqa: BLE001 — 编码失败不该拖垮写操作本身
             return
         try:
@@ -333,7 +341,7 @@ class Engine:
                                  "result": bad.get("result"),
                                  "error": bad.get("error") or "",
                                  "code": bad.get("code") or ""}
-            if ok and "write" in (rec.get("tags") or []):
+            if "write" in (rec.get("tags") or []):
                 self.notify_write(demand_id, rec)   # 改完就通知，前端只换受影响的那一块
             return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
@@ -416,8 +424,10 @@ class Engine:
                                  "result": bad.get("result"),
                                  "error": bad.get("error") or "",
                                  "code": bad.get("code") or ""}
-            if ok and "write" in (rec.get("tags") or []):
-                self.notify_write(demand_id, rec)   # 幂等：同一需求重复通知只是序号前进
+            if "write" in (rec.get("tags") or []):
+                # 通知看"写需求有没有跑过"，不看内部异步子任务收口（上游拉起是异步的，
+                # 等它成功就永远不发；多发一次最多多重取一块，漏发就是脏页面）
+                self.notify_write(demand_id, rec)
             return res
         raise self.ctx.ApiError("需求不存在: %s" % demand_id, code="no_demand", status=404)
 
