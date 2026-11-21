@@ -23,6 +23,9 @@ def _load(path):
 def migrate(data_root):
     root = Path(data_root)
     base = root / "agent" / "tickets"
+    # 数据没外部化时模块数据落在 <module>/data/ 里，两种布局都认。
+    if not (base / "tickets").is_dir() and (base / "data").is_dir():
+        base = base / "data"
     legacy = base / "tickets"
     moved, already, orphans, broken = [], [], [], []
     if not legacy.is_dir():

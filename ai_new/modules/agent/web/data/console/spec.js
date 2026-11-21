@@ -95,7 +95,8 @@ function fill(tpl, ctx) {
     const [path, ...chain] = s.split("|").map((x) => x.trim());
     return applyChain(ref(path, ctx), chain, ctx);
   }
-  if (s.startsWith("$") || s.includes(".")) {
+  // 只有"整串就是一个引用路径"才取值：文案里出现 .md、域名、小数点时保持原文。
+  if (s.startsWith("$") || /^[A-Za-z_$][\w$]*(\.[\w$]+)+$/.test(s)) {
     const v = ref(s, ctx);
     return v == null ? "" : v;
   }
