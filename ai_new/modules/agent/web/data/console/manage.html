@@ -413,6 +413,8 @@ textarea{min-height:72px;resize:vertical}
   #view-body{position:relative}
   /* 一页一张卡，纵向堆叠：卡高少 44px，下一张的上沿露在底部 */
   /* 一页到底：所有区块按顺序自然铺开，内容超出就整块滚动，不做一屏一卡的吸附翻页 */
+  /* 滚动位置由 scrollRestore 自己还原：关掉浏览器滚动锚定，免得它按自己的锚点再挪一次 */
+  #view-body .view-scroll,#view-body .chat,#view-body .tbl-wrap,#view-body .deck-stage,#view-body .flow-map,#drawer .drawer-body{overflow-anchor:none}
   .view-scroll{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;overscroll-behavior:contain}
   .view-scroll::-webkit-scrollbar{display:none}
