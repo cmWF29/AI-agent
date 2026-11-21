@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 7, label: 文档, mobile: false}
+  menu: {order: 3, label: 文档, group: {name: 工作, order: 1}, mobile: true}
   key: artifacts
   crumb: [文档]
   heading: 文档
-  subheading: 交付件与非交付件按归属分组只读浏览；落盘由流程动作记录，文档不自动升级为知识
+  subheading: 交付件按归属分组，只读
   data:
   - {as: idx, demand: artifacts-index}
   sections:

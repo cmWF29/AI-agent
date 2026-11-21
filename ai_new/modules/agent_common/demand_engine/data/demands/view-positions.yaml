@@ -1,5 +1,5 @@
 id: view-positions
-title: 岗位库视图：岗位是系统提示词与流程规范，不在主线
+title: 岗位：岗位是系统提示词与流程规范，不在主线
 description: "岗位库视图：岗位是系统提示词与流程规范，不在主线。每个岗位一张卡，数据源走需求"
 tags: [view, web, read]
 enabled: true
@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 3, label: 岗位库, short: 岗位, mobile: true}
+  menu: {order: 2, label: 岗位, group: {name: 资产, order: 2}, mobile: true}
   key: positions
-  crumb: [岗位库]
-  heading: 岗位库
-  subheading: 岗位 = 系统提示词 + 流程规范；角色是岗位在某工单上的实例
+  crumb: [岗位]
+  heading: 岗位
+  subheading: 岗位 = 提示词 + 流程；角色是一次实例
   data:
   - {as: list, demand: position-list}
   sections:

@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 8, label: 日志, mobile: true}
+  menu: {order: 4, label: 日志, group: {name: 工作, order: 1}, mobile: true}
   key: logs
   crumb: [日志]
   heading: 日志
-  subheading: 系统事件、工具输出、群聊往来与会话留档；只读浏览，落盘由系统动作自动记录
+  subheading: 事件、工具输出、群聊、会话留档
   data:
   - {as: idx, demand: logs-index}
   sections:

@@ -19,17 +19,10 @@ import urllib.parse
 
 from playwright.sync_api import sync_playwright
 
-# 页面里每类控件按选择器取，顺序与前端 CLICK_KINDS 无关：审计按规格 kinds 逐类验证
-SELECTORS = {
-    "deck": "[data-deck-open]",
-    "act": "[data-act]",
-    "go": "[data-go]",
-    "filter": "[data-filter]",
-    "nav": "[data-nav]",           # 侧栏，不在 view-body 内
-    "crumb": "[data-crumb]",
-    "member": "[data-member]",
-    "expand": "[data-expand]",
-}
+# 每类控件都按 data-clk 取：种类由渲染层写在元素上，审计不再维护第二份选择器表
+def selector_of(kind):
+    return '[data-clk="%s"]' % kind
+SELECTORS = {}   # 兼容旧调用：用到时按 kind 现算
 # 深链发现：列表页 -> 详情页 -> 工单/文档，这些页才有堆叠、浮层、折叠、面包屑
 DISCOVERY = [("projects", "go"), ("knowledge", "go"), ("project", "go"), ("ticket", "go")]
 MODAL_KINDS = ["modal_ok", "modal_cancel", "modal_backdrop"]
@@ -79,10 +72,8 @@ def audit_view(pg, base, view, kinds, per_kind=3, query=""):
     pg.wait_for_timeout(600)
     rows = []
     for kind in kinds:
-        sel = SELECTORS.get(kind)
-        if not sel:
-            continue
-        scope = "" if kind in ("nav", "crumb") else "#view-body "   # 面包屑在页头
+        sel = selector_of(kind)
+        scope = ""      # 壳层（抽屉/侧栏/面包屑）与页内共用同一属性，一律全文档找
         n = pg.evaluate("([sc, s]) => document.querySelectorAll(sc + s).length", [scope, sel])
         if not n:
             rows.append({"kind": kind, "found": 0, "clicked": 0, "pass": True, "note": "本页无此控件"})
@@ -146,19 +137,16 @@ def audit_synthetic(pg, base, kinds):
     pg.wait_for_function("() => window.uiSnapshot && uiSnapshot().machine", timeout=90000)
     out = []
     for kind in kinds:
-        sel = SELECTORS.get(kind)
-        if not sel:
-            continue
-        attr = sel.strip("[]").split("=")[0]
+        attr = "data-clk"
         before = pg.evaluate("() => uiSnapshot().violations")
-        pg.evaluate("""([sel, attr]) => {
+        pg.evaluate("""([attr, kind]) => {
             const host = document.querySelector('#view-body');
             const el = document.createElement('button');
-            el.setAttribute(attr, attr === 'data-crumb' ? '1' : '1');
+            el.setAttribute(attr, kind);
             el.className = 'synth-audit';
             el.textContent = '审计注入';
             host.appendChild(el);
-        }""", [sel, attr])
+        }""", [attr, kind])
         pg.evaluate("(s) => document.querySelector(s).click()", ".synth-audit")
         pg.wait_for_timeout(200)
         after = pg.evaluate("() => ({v: uiSnapshot().violations, s: uiSnapshot().state, b: uiSnapshot().lastBad})")

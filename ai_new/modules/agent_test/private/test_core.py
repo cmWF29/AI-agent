@@ -276,9 +276,10 @@ class CoreTest(unittest.TestCase):
         self.assertNotIn("const UIS_NEXT", boot, "迁移表不许再写死在前端")
 
     def test_click_machine_spec_covers_every_clickable_kind(self):
-        """规格与页面必须齐：页面上每一种可点属性，都得在规格里声明门禁。
+        """规格与页面必须齐：页面上每一个可点位置，都得在规格里声明门禁。
 
-        两边一旦漂移，就会出现"点了没门禁"或"声明了却没人用"，用测试钉死。
+        粒度是"语义位置"（页头按钮 / 卡内按钮 / 表格行 / 树节点 …），
+        由渲染层直接写在 data-clk 上；解析表只留兜底，不再维护第二份种类清单。
         """
         import re
         import yaml
@@ -286,16 +287,24 @@ class CoreTest(unittest.TestCase):
         spec = yaml.safe_load((root / "ai_new/modules/agent_common/demand_engine/data/console.yaml")
                              .read_text(encoding="utf-8"))["click_machine"]
         kinds = {k["key"] for k in spec["kinds"]}
-        boot = (root / "ai_new/modules/agent/web/data/console/boot.js").read_text(encoding="utf-8")
-        block = boot[boot.index("const CLICK_KINDS"):boot.index("function resolveKind")]
-        wired = set(re.findall(r'"(deck|act|go|filter|nav|crumb|member|expand)"', block))
+        web = root / "ai_new/modules/agent/web/data/console"
+        boot = (web / "boot.js").read_text(encoding="utf-8")
+        # 已接线的种类 = CLICK_HANDLERS 的键（这里就是"点了会发生什么"的唯一清单）
+        block = boot[boot.index("const CLICK_HANDLERS"):boot.index("function handleClick")]
+        wired = set(re.findall(r"^  ([a-z_]+)\s*\(", block, re.M))
+        # 页面上写死的种类（模板里动态给 kind 的由 handler 覆盖）
         rendered = set()
-        for f in (root / "ai_new/modules/agent/web/data/console").glob("*.js"):
-            rendered |= set(re.findall(r'data-(deck-open|act|go|filter|nav|crumb|member|expand)', f.read_text(encoding="utf-8")))
-        rendered.discard("deck-open")
-        self.assertTrue(wired, "前端 CLICK_KINDS 解析表缺失")
-        self.assertEqual(rendered - kinds, set(), "页面渲染了规格未声明的可点属性: %s" % (rendered - kinds))
-        self.assertEqual(wired - kinds, set(), "前端解析了规格未声明的种类: %s" % (wired - kinds))
+        for f in web.glob("*.js"):
+            rendered |= set(re.findall(r'data-clk="([a-z_]+)"', f.read_text(encoding="utf-8")))
+        rendered |= set(re.findall(r'data-clk="([a-z_]+)"', (web / "manage.html").read_text(encoding="utf-8")))
+        self.assertTrue(wired, "前端 CLICK_HANDLERS 缺失")
+        self.assertEqual(wired - kinds, set(), "前端接线的种类规格没声明: %s" % (wired - kinds))
+        self.assertEqual(kinds - wired, set(), "规格声明的种类前端没接线: %s" % (kinds - wired))
+        self.assertEqual(rendered - kinds, set(), "页面标了规格未声明的种类: %s" % (rendered - kinds))
+        # 兜底表只能指向已声明的种类
+        legacy = boot[boot.index("const LEGACY_KINDS"):boot.index("function resolveKind")]
+        legacy_kinds = set(re.findall(r'\["([a-z_]+)"', legacy))
+        self.assertEqual(legacy_kinds - kinds, set(), "兜底表含未声明种类: %s" % (legacy_kinds - kinds))
         for k in spec["kinds"]:
             self.assertIn("allow", k, "种类 %s 必须声明允许态（门禁）" % k["key"])
             self.assertTrue(k["allow"], "种类 %s 的 allow 不能为空" % k["key"])
@@ -305,14 +314,43 @@ class CoreTest(unittest.TestCase):
             for fld in ("enter", "exit"):
                 if k.get(fld):
                     self.assertIn(k[fld], states, "种类 %s 的 %s 指向未声明状态" % (k["key"], fld))
+        # 每种控件的迁移必须真的存在于迁移表，否则门禁放行后第一步就违规
+        trans = spec["transitions"]
+        for k in spec["kinds"]:
+            for now in k["allow"]:
+                if k.get("enter"):
+                    self.assertIn(k["enter"], trans.get(now, []),
+                                  "种类 %s 在 %s 下要迁到 %s，但迁移表没这条" % (k["key"], now, k["enter"]))
+            if k.get("enter") and k.get("exit"):
+                self.assertIn(k["exit"], trans.get(k["enter"], []),
+                              "种类 %s 从 %s 回不到 %s" % (k["key"], k["enter"], k["exit"]))
         # 展示页的数字必须是算出来的，不能手写死
         view = (root / "ai_new/modules/agent_common/demand_engine/data/demands/view-click-machine.yaml") \
             .read_text(encoding="utf-8")
         self.assertIn("click_machine.edges", view, "展示页的迁移条数必须取后端算出的 edges")
+        self.assertIn("kind: machine", view, "展示页必须把状态机画成图，不能只有文字表")
         self.assertIn("edges", (root / "ai_new/modules/agent_common/demand_engine/__init__.py").read_text(encoding="utf-8"))
-        for now, nxt in spec["transitions"].items():
+        for now, nxt in trans.items():
             self.assertIn(now, states, "迁移表源状态未声明: %s" % now)
             self.assertTrue(set(nxt) <= states, "迁移目标未声明: %s" % nxt)
+        # 手势状态必须与订单状态机同一套：press/drag/scroll 不能是前端私有的
+        for st in ("press", "drag", "scroll"):
+            self.assertIn(st, states, "手势状态 %s 没进状态机规格" % st)
+
+    def test_console_scripts_have_no_duplicate_toplevel_names(self):
+        """console 的 js 会合成一个脚本执行：顶层同名函数后者覆盖前者。
+
+        这个坑踩过一次：渲染层的 machineHtml 被 boot.js 的同名函数盖掉，
+        区块渲染出空壳，页面和测试都不报错。这里钉死。
+        """
+        import re
+        web = ROOT / "ai_new/modules/agent/web/data/console"
+        names = {}
+        for f in web.glob("*.js"):
+            for m in re.finditer(r"^function ([A-Za-z_$][\w$]*)\s*\(", f.read_text(encoding="utf-8"), re.M):
+                names.setdefault(m.group(1), []).append(f.name)
+        dup = {k: v for k, v in names.items() if len(v) > 1}
+        self.assertEqual(dup, {}, "console.js 顶层重名函数（后者会覆盖前者）: %s" % dup)
 
     def test_console_render_keeps_scroll_position(self):
         """重渲染不许把用户滚到的位置清掉：整页 render 与局部 refreshAs 都要记账再还。
@@ -371,8 +409,13 @@ class CoreTest(unittest.TestCase):
 
         engine = self.ctx.demand_engine
         menus = engine.console()["menus"]
-        self.assertEqual([m["key"] for m in menus][:2], ["projects", "arch"],
+        # 侧栏先按组排（组序由菜单自己声明），组内再按 order
+        self.assertEqual([m["key"] for m in menus][:2], ["projects", "knowledge"],
                          "菜单顺序应由视图 menu.order 决定")
+        groups = [m["group"] for m in menus]
+        self.assertEqual(groups, sorted(groups, key=lambda g: [m for m in menus if m["group"] == g][0]["group_order"]),
+                         "菜单必须按 group_order 分组连续排列: %s" % groups)
+        self.assertTrue(all(m["group"] for m in menus), "每个导航项都要归组: %s" % menus)
         # 菜单是视图的属性：临时挂一个带 menu 的视图，导航就自动多一项
         engine.reload()
         base = engine._load()
@@ -445,7 +488,9 @@ class CoreTest(unittest.TestCase):
             {"id": "T-20261118-0003", "project": "重构", "title": "群聊流式"},
         ]
         out = self.ctx.api.call("knowledge.index", {"rows": rows, "tickets": tickets})
-        self.assertEqual(out["counts"], {"public": 1, "project": 1, "ticket": 2})
+        self.assertEqual(
+            {k: out["counts"][k] for k in ("public", "project", "ticket", "project_groups", "placed", "orphan")},
+            {"public": 1, "project": 1, "ticket": 2, "project_groups": 1, "placed": 2, "orphan": 0})
         top = {n["type"] + ":" + n.get("label", ""): n for n in out["tree"]}
         self.assertIn("public:公共", top)
         proj = top["project:重构"]
@@ -460,7 +505,10 @@ class CoreTest(unittest.TestCase):
         # 工单档案缺失项目归属时，工单文档落到顶层孤儿节点，不丢条目
         orphan = self.ctx.api.call("knowledge.index", {
             "rows": [{"path": "tickets/t-orphan/note.md"}], "tickets": []})
-        self.assertEqual(orphan["tree"][0]["type"], "ticket")
+        # 公共层恒在，孤儿工单排在它后面，但条目不能丢
+        self.assertEqual(orphan["tree"][0]["type"], "public")
+        self.assertEqual(orphan["tree"][-1]["type"], "ticket")
+        self.assertEqual(orphan["counts"]["orphan"], 1)
 
     def test_channel_post_tail_roundtrip(self):
         """频道：需求发两条、按序读回；watch 门面按游标回 {items, cursor}。"""

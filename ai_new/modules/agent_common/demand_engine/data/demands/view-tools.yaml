@@ -1,5 +1,5 @@
 id: view-tools
-title: 工具库视图：agent 代码内置能力，只读清单
+title: 工具：agent 代码内置能力，只读清单
 description: "工具库视图：只列代码内置工具。视图只声明表格，数据源走需求"
 tags: [view, web, read]
 enabled: true
@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 4, label: 工具库, mobile: false}
+  menu: {order: 3, label: 工具, group: {name: 资产, order: 2}, mobile: true}
   key: tools
-  crumb: [工具库]
-  heading: 工具库
-  subheading: 工具 = agent 代码里注册的内置能力；宏观 Shell/进程执行属平台底座，不作为业务工具露出
+  crumb: [工具]
+  heading: 工具
+  subheading: 代码里注册的内置能力
   actions: []
   data:
   - {as: list, demand: tools-list}

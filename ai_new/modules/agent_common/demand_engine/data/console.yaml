@@ -30,14 +30,16 @@ login:                                 # 登录页（未登录可读，不含导
   http_code: "（{}）"
 ui:
   crumb_root: 工作台
-  need_param: 请从上一级页面选一个对象再进来：这一页只显示被选中对象的内容
+  need_param: 从列表里点一个进来，这一页只显示选中的那个
   perf_probe: "{} fps · 最差 {}ms · 长任务 {}"   # 手机端性能自检浮层（?perf=1 打开）
-  deck_expand: "展开 {}"                 # 卡片堆叠：收起状态下的展开按钮
-  deck_collapse: 收起
+  deck_expand: "铺开 {} 张"                 # 卡片堆叠：收起状态下的展开按钮
+  deck_collapse: 叠起来
   deck_pos: "{} / {}"                  # 卡片堆叠的位置指示：第几张 / 共几张                     # 面包屑唯一根：所有页面都从这里起算，视图里不许再写根词
   loading: 加载中…
   empty: 暂无数据
-  empty_tree: 暂无内容
+  empty_tree: 这里还是空的
+  tree_empty_layer: 这一层还没有文档
+  machine_svg_alt: 点击状态机：状态与允许的迁移
   more: 更多
   logout: 登出
   cancel: 取消
@@ -45,9 +47,9 @@ ui:
   menu: 菜单
   collapse: 收起侧栏
   expand: 展开侧栏
-  composer_empty: 请先输入内容，再点这个按钮
-  boot_fail: "控制台启动失败：{}（检查 views-list 与视图规格）"
-  no_views: 没有任何视图规格，页面无法启动
+  composer_empty: 先输入内容
+  boot_fail: "控制台没起来：{}"
+  no_views: 没有视图规格，页面起不来
   unknown_kind: "未知区块: {}"
   badge_offline: 下线
   call_pending: 执行中…
@@ -62,12 +64,12 @@ ui:
   switch_off: 已关闭
   done_word: 完成
   empty_file: 空文件（0 字节）
-  trunc_note: "…（截断，共 {} 字符）"
-  more_rows: "另有 {} 条未列出"
+  trunc_note: "…（共 {} 字）"
+  more_rows: "还有 {} 条"
   wire_title: 网络报文
-  wire_expand: 展开即读原文…
+  wire_expand: 展开读原文
   wire_loading: 读取中…
-  wire_no_entry: 这条消息没有声明报文回读入口
+  wire_no_entry: 这条消息没有报文
   wire_fail: "读取失败：{}"
   inject_title: "系统注入 ×{}"
   raw_title: 原文
@@ -88,7 +90,7 @@ ui:
   role_session: 会话
   wf_head: 调用层级
   wf_ratio: "{}%"
-  card_open: "进入 {}"
+  card_open: "打开 {}"
   col_actions: 操作
   role_spawned: 已派出
   items_unit: 项
@@ -102,7 +104,7 @@ ui:
   bad_yaml: 响应不是 YAML
   net_fail: "网络请求失败：{}"
   demand_fail: 需求失败
-  gate_expired: 登录已失效（401），请重新登录。
+  gate_expired: 登录已失效，重新登录
   gate_fail: 操作失败
   wire_model: 模型
   wire_stream: 流式
@@ -110,31 +112,58 @@ ui:
   wire_resp: 响应
   wire_req_body: 请求体
   wire_resp_body: 响应原文
-click_machine:                          # 点击状态机：所有可点的东西共用一套显式状态 + 门禁
+click_machine:                          # 点击状态机：前端每一个可点位置都在这里登记种类与门禁
   states:
-  - {key: idle,    label: 空闲,    note: 可以正常点击}
-  - {key: drag,    label: 拖动中,  note: 手势接管，点击不生效}
-  - {key: swallow, label: 吞点击,  note: 刚松手，紧随的一次点击属于手势}
-  - {key: busy,    label: 执行中,  note: 有动作在飞，重复点击丢弃}
-  - {key: modal,   label: 弹窗,    note: 只认弹窗内控件}
+  - {key: idle,    label: 空闲,      at: [0.50, 0.10], note: 可以正常点击}
+  - {key: press,   label: 按下,      at: [0.22, 0.40], note: 手指已落下，还没判方向}
+  - {key: busy,    label: 执行中,    at: [0.50, 0.40], note: 有动作在飞，重复点击丢弃}
+  - {key: modal,   label: 弹窗,      at: [0.80, 0.40], note: 只认弹窗内控件}
+  - {key: drag,    label: 横滑,      at: [0.12, 0.76], note: 手势接管，本次不产生点击}
+  - {key: scroll,  label: 纵滚,      at: [0.36, 0.76], note: 纵向手势交还页面滚动，立即回空闲}
+  - {key: swallow, label: 吞一下,    at: [0.68, 0.76], note: 刚松手，紧随的一次点击属于手势}
+  edge_notes:                          # 图上的关键边注解（只标容易看错的那几条）
+    press>drag: 横滑
+    press>scroll: 纵滑
+    drag>swallow: 松手
+    busy>modal: 开弹窗
+    modal>busy: 提交
+    drag>idle: 停下
   transitions:                          # 允许的状态迁移：左边 now，右边 next
-    idle:    [drag, busy, modal]
+    idle:    [press, busy, modal]
+    press:   [drag, scroll, idle, swallow, busy]
     drag:    [idle, swallow, busy]
-    swallow: [idle, drag, busy]         # 吞点击窗口里再滑，手势优先
+    scroll:  [idle]
+    swallow: [idle, press, drag]
     busy:    [idle, modal, swallow]
-    modal:   [idle, busy]          # 弹窗里提交要进 busy，回落到 modal 或 idle
-  kinds:                                # 每个可点种类：允许态 allow / 进入 enter / 回落 exit
-  - {key: deck,    label: 堆叠展开收起, allow: [idle, swallow], enter: "",     exit: "",   note: 只改布局，不取数}
-  - {key: act,     label: 动作按钮,     allow: [idle],           enter: busy,   exit: idle, note: 同一时刻只允许一个动作}
-  - {key: go,      label: 卡片/行/树,   allow: [idle],           enter: busy,   exit: idle, note: 跳转前先收好当前页}
-  - {key: filter,  label: 列表过滤,     allow: [idle],           enter: "",     exit: "",   note: 纯前端重渲染}
-  - {key: nav,     label: 侧栏导航,     allow: [idle],           enter: busy,   exit: idle, note: 导航互斥}
-  - {key: crumb,   label: 面包屑,       allow: [idle],           enter: busy,   exit: idle, note: 导航互斥}
-  - {key: member,  label: 成员卡,       allow: [idle],           enter: "",     exit: "",   note: 只开关浮层}
-  - {key: expand,  label: 折叠展开,     allow: [idle, swallow],  enter: "",     exit: "",   note: 只改文本}
-  - {key: modal_ok,     label: 弹窗提交, allow: [modal], enter: busy, exit: modal, note: 提交中禁用按钮}
-  - {key: modal_cancel, label: 弹窗取消, allow: [modal], enter: "",   exit: modal, note: 关闭回到空闲由 closeModal 负责}
-  - {key: modal_backdrop, label: 弹窗遮罩, allow: [modal], enter: "", exit: modal, note: 点遮罩关闭}
+    modal:   [idle, busy]
+  kinds:                                # 每个可点位置一类：允许态 allow / 进入 enter / 回落 exit
+  - {key: nav,            label: 侧栏导航,     allow: [idle],           enter: busy,  exit: idle, note: 切页前先收好当前页}
+  - {key: drawer_open,    label: 打开侧栏,     allow: [idle],           enter: "",    exit: "",   note: 只开抽屉}
+  - {key: drawer_scrim,   label: 点暗处关侧栏, allow: [idle],           enter: "",    exit: "",   note: 只关抽屉}
+  - {key: rail_close,     label: 收起侧栏,     allow: [idle],           enter: "",    exit: "",   note: 宽屏折叠}
+  - {key: rail_open,      label: 展开侧栏,     allow: [idle],           enter: "",    exit: "",   note: 宽屏展开}
+  - {key: crumb_up,       label: 面包屑上一级, allow: [idle],           enter: busy,  exit: idle, note: 回到上级页}
+  - {key: head_act,       label: 页头按钮,     allow: [idle],           enter: busy,  exit: idle, note: 页级动作，同时只跑一个}
+  - {key: card_open,      label: 打开卡片,     allow: [idle],           enter: busy,  exit: idle, note: 卡片整块可点}
+  - {key: card_act,       label: 卡内按钮,     allow: [idle],           enter: busy,  exit: idle, note: 卡内改名/归档/删除}
+  - {key: row_open,       label: 打开表格行,   allow: [idle],           enter: busy,  exit: idle, note: 整行可点}
+  - {key: row_act,        label: 行内按钮,     allow: [idle],           enter: busy,  exit: idle, note: 行尾动作}
+  - {key: tree_group,     label: 展开目录分组, allow: [idle, swallow],  enter: "",    exit: "",   note: 只展开收起，不取数}
+  - {key: tree_doc,       label: 打开文档,     allow: [idle],           enter: busy,  exit: idle, note: 叶子跳转}
+  - {key: filter,         label: 切换筛选,     allow: [idle],           enter: "",    exit: "",   note: 纯前端重排}
+  - {key: member_chip,    label: 成员头像,     allow: [idle],           enter: "",    exit: "",   note: 只开关成员卡}
+  - {key: popover_close,  label: 关闭成员卡,   allow: [idle],           enter: "",    exit: "",   note: 点空白处关闭}
+  - {key: fold_text,      label: 展开长文,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改文本}
+  - {key: wire_fold,      label: 展开报文,     allow: [idle, swallow],  enter: "",    exit: "",   note: 展开时才读原文}
+  - {key: summary_fold,   label: 展开摘要,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改文本}
+  - {key: raw_fold,       label: 展开原文,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改文本}
+  - {key: deck_toggle,    label: 展开堆叠,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改布局}
+  - {key: deck_swipe,     label: 滑动堆叠,     allow: [idle],           enter: press, exit: idle, note: 手势由 pointer 驱动，先 press 再判方向}
+  - {key: composer_send,  label: 发送消息,     allow: [idle],           enter: busy,  exit: idle, note: 空文本不发}
+  - {key: composer_voice, label: 语音输入,     allow: [idle],           enter: busy,  exit: idle, note: 录音期互斥}
+  - {key: modal_ok,       label: 弹窗确定,     allow: [modal],          enter: busy,  exit: modal, note: 提交中禁用}
+  - {key: modal_cancel,   label: 弹窗取消,     allow: [modal],          enter: "",    exit: "",   note: 关闭由 closeModal 负责}
+  - {key: modal_backdrop, label: 点遮罩关闭,   allow: [modal],          enter: "",    exit: "",   note: 只关弹窗}
 
 roles:
   colors:

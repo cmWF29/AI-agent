@@ -1,5 +1,5 @@
 id: view-arch
-title: 架构视图：需求全景、路由契约与实时调用摊开看
+title: 架构与链路：需求全景、路由契约与实时调用摊开看
 description: "架构视图：需求全景、路由契约与实时调用摊开看。页面只声明区块，形状归模块与需求"
 tags: [view, web, read]
 enabled: true
@@ -7,12 +7,12 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 2, label: 架构, short: 架构, mobile: true}
+  menu: {order: 1, label: 架构与链路, short: 架构, group: {name: 资产, order: 2}, mobile: true}
   key: arch
   nav: arch
-  crumb: [架构]
-  heading: 架构
-  subheading: 需求是数据、模块是能力、契约是约束；一条需求怎么编译、落到哪条路由、由哪个岗位执行，都在这一页
+  crumb: [架构与链路]
+  heading: 架构与链路
+  subheading: 需求怎么编译、落到哪条路由、谁执行
   actions:
   - {label: 全部调用, view: traces}
   data:
@@ -22,7 +22,7 @@ view:
   - {as: slow, demand: trace-slow, params: {}}
   sections:
   - kind: map
-    heading: 架构全景：一条需求怎么变成一次调用
+    heading: 架构与链路全景：一条需求怎么变成一次调用
     note: 从上往下是数据流向，框里是当前在库数量；业务域按条数列在最后一行
     cols:
     - title: 入口

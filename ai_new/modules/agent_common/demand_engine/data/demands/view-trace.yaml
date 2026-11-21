@@ -12,9 +12,9 @@ view:
   params: [trace]
   require: [trace]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
   parent: traces
-  crumb: [架构, 链路, "{route.trace}"]
+  crumb: [架构与链路, 链路, "{route.trace}"]
   heading: 链路 {route.trace}
-  subheading: 横轴是这条请求的总时长；条越长越慢，缩进表示调用层级，红色是出错节点
+  subheading: 横轴是总时长；缩进是层级，红是出错
   data:
   - {as: t, demand: trace-get, params: {trace: "{route.trace}"}}
   sections:

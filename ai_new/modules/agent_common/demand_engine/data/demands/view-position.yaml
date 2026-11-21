@@ -12,9 +12,9 @@ view:
   require: [position]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
   nav: positions
   parent: {view: positions}
-  crumb: [岗位库, "{position.cn}"]
+  crumb: [岗位, "{position.cn}"]
   heading: "{position.cn}"
-  subheading: 岗位 = 系统提示词 + 流程状态机 + 工具名单；三者同屏，主会话条目只读
+  subheading: 提示词、流程、工具同屏
   data:
   - {as: position, demand: position-get, params: {id: "{route.position}"}}
   sections:

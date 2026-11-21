@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 6, label: 知识库, mobile: false}
+  menu: {order: 2, label: 知识库, group: {name: 工作, order: 1}, mobile: true}
   key: knowledge
   crumb: [知识库]
   heading: 知识库
-  subheading: 公共规范、项目沉淀与工单留档；只读浏览，写入由流程自动沉淀
+  subheading: 公共、项目、工单三级，只读
   data:
   - {as: idx, demand: knowledge-index}
   sections:
@@ -23,9 +23,11 @@ view:
     - label: 公共
       value: row.public
     - label: 项目
-      value: row.project
-    - label: 工单
-      value: row.ticket
+      value: row.project_groups
+    - label: 已归项目
+      value: row.placed
+    - label: 未归工单
+      value: row.orphan
   - kind: tree
     as: idx
     source: idx.tree

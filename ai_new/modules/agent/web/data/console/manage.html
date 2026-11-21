@@ -46,7 +46,48 @@ button,input,select,textarea{font:inherit;color:inherit}
 .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#2f6bff,#722ed1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
 .brand h1{font-size:15px;margin:0;line-height:1.2}
 .brand .sub{font-size:12px;color:var(--muted)}
-.nav{display:flex;flex-direction:column;gap:2px}
+.nav{display:flex;flex-direction:column;gap:0}
+.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-group + .nav-group{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.nav-group-title{font-size:11px;letter-spacing:.08em;color:var(--muted);padding:0 12px 6px}
+/* 点击状态机图：宽 100% 自适应手机，节点按状态配色，边是允许的迁移 */
+.machine-wrap{display:flex;flex-direction:column;gap:8px}
+.mch-svg{width:100%;height:auto;display:block;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.mch-edge-label{fill:var(--muted);font-size:10.5px;paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
+.mch-edge{fill:none;stroke:#a9b6c6;stroke-width:2;stroke-linecap:round}
+.mch-arrow-head{fill:#8b98a8}
+.mch-node rect{fill:var(--card);stroke:#cdd5e0;stroke-width:1.3}
+.mch-node .mch-cn{fill:var(--fg);font-size:12.5px;font-weight:600}
+.mch-node .mch-key{fill:var(--muted);font-size:10px;letter-spacing:.04em}
+.mch-node[data-state=idle] rect{fill:#eef4ff;stroke:#8fb2ff}
+.mch-node[data-state=press] rect{fill:#eaf9ee;stroke:#6ecf8b}
+.mch-node[data-state=drag] rect{fill:#e6f8f8;stroke:#4fc7c4}
+.mch-node[data-state=scroll] rect{fill:#eef0fb;stroke:#8f9de3}
+.mch-node[data-state=swallow] rect{fill:#f2f3f5;stroke:#c2c8d2}
+.mch-node[data-state=busy] rect{fill:#fff4e6;stroke:#f5b063}
+.mch-node[data-state=modal] rect{fill:#f6edff;stroke:#b689ec}
+.mch-legend{display:none}
+.mch-leg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--fg-2)}
+.mch-leg i{width:9px;height:9px;border-radius:3px;display:inline-block;background:#cdd5e0}
+.mch-leg[data-state=idle] i{background:#8fb2ff}
+.mch-leg[data-state=press] i{background:#6ecf8b}
+.mch-leg[data-state=drag] i{background:#4fc7c4}
+.mch-leg[data-state=scroll] i{background:#8f9de3}
+.mch-leg[data-state=swallow] i{background:#c2c8d2}
+.mch-leg[data-state=busy] i{background:#f5b063}
+.mch-leg[data-state=modal] i{background:#b689ec}
+.mch-note{font-size:11.5px;color:var(--muted);line-height:1.5}
+/* 可点位置清单：一行一类，手机上一屏看四五类 */
+.kind-list{display:flex;flex-direction:column}
+.kind-row{padding:9px 0;border-bottom:1px solid var(--line-2)}
+.kind-row:last-child{border-bottom:0}
+.kind-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.kind-top b{font-size:13.5px;font-weight:600}
+.kind-top em{font-style:normal;font-size:10.5px;color:var(--muted);background:var(--bg);padding:1px 5px;border-radius:5px}
+.kind-flow{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;margin-left:auto}
+.kind-flow i{font-style:normal;color:var(--muted);font-size:11px}
+.kind-flow .chip{padding:1px 8px;font-size:11px}
+.kind-row p{margin:3px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45}
 .nav button{justify-content:flex-start;border:0;background:transparent;text-align:left;padding:9px 12px;border-radius:9px;color:var(--fg-2);font-size:13.5px}
 .nav button:hover{background:var(--line-2);color:var(--fg)}
 .nav button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
@@ -191,6 +232,7 @@ tbody tr:last-child td{border-bottom:0}
 .chip.st-idle .dot{background:var(--ok)}
 .chip.st-offline .dot{background:var(--muted)}
 .chip.st-offline{opacity:.55}
+td .chip{margin:0 4px 4px 0}
 
 /* ---- 按钮 ---- */
 button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;transition:background .15s,border-color .15s,opacity .15s}
@@ -687,7 +729,7 @@ textarea{min-height:72px;resize:vertical}
     <div class="brand">
       <span class="logo" data-brand="logo"></span>
       <div><h1 data-brand="name"></h1><div class="sub" data-brand="tagline"></div></div>
-      <button class="icon-btn rail-btn" id="side-collapse" data-ui-aria="collapse" data-ui-title="collapse">‹</button>
+      <button class="icon-btn rail-btn" id="side-collapse" data-clk="rail_close" data-ui-aria="collapse" data-ui-title="collapse">‹</button>
     </div>
     <!-- 导航项由后端菜单渲染：视图规格里的 menu 决定顺序与名称，页面不存清单 -->
     <nav class="nav" id="side-nav"></nav>
@@ -695,13 +737,13 @@ textarea{min-height:72px;resize:vertical}
       <button id="logout" class="ghost" data-ui="logout"></button>
     </div>
   </aside>
-  <div class="scrim" id="scrim"></div>
+  <div class="scrim" id="scrim" data-clk="drawer_scrim"></div>
   <div class="main-col">
     <header class="topbar">
-      <button class="icon-btn" id="menu-btn" data-ui-aria="menu">☰</button>
+      <button class="icon-btn" id="menu-btn" data-clk="drawer_open" data-ui-aria="menu">☰</button>
       <div class="brand-mini"><span class="logo" data-brand="logo"></span><h1 data-brand="name"></h1></div>
     </header>
-    <button class="icon-btn rail-open" id="rail-open" data-ui-aria="expand" data-ui-title="expand">☰</button>
+    <button class="icon-btn rail-open" id="rail-open" data-clk="rail_open" data-ui-aria="expand" data-ui-title="expand">☰</button>
     <div id="banner"></div>
     <main>
       <div class="crumb" id="crumb"></div>
@@ -716,15 +758,15 @@ textarea{min-height:72px;resize:vertical}
 <div class="popover" id="popover" hidden></div>
 
 <!-- 通用弹窗 -->
-<div class="modal" id="modal" hidden>
+<div class="modal" id="modal" data-clk="modal_backdrop" hidden>
   <div class="modal-card">
     <h2 id="modal-title"></h2>
     <p class="hint" id="modal-hint"></p>
     <div class="modal-err" id="modal-err"></div>
     <form id="modal-form"></form>
     <div class="modal-foot">
-      <button type="button" id="modal-cancel" data-ui="cancel"></button>
-      <button type="submit" form="modal-form" class="primary" id="modal-ok" data-ui="ok"></button>
+      <button type="button" id="modal-cancel" data-clk="modal_cancel" data-ui="cancel"></button>
+      <button type="submit" form="modal-form" class="primary" id="modal-ok" data-clk="modal_ok" data-ui="ok"></button>
     </div>
   </div>
 </div>

@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 9, label: 运维, short: 运维, mobile: false}
+  menu: {order: 2, label: 运维, group: {name: 系统, order: 3}, mobile: true}
   key: ops
   crumb: [运维]
   heading: 运维
-  subheading: 运行记录只读，扫描与导出手动触发
+  subheading: 运行记录只读，扫描手动触发
   actions:
   - {label: 扫停滞, demand: ops-scan, confirm: 扫一遍在途工单，命中停滞的按配置开审计单。继续？, flash: 扫描完成}
   - {label: 导出数据, modal: ops.export}

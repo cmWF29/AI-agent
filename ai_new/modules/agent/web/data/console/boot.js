@@ -83,81 +83,122 @@ function consumeSwallow() {
   return false;
 }
 
-/* 控件种类 -> 选择器：顺序就是优先级（卡片里嵌按钮时先命中外层卡片） */
-const CLICK_KINDS = [
-  ["deck", "[data-deck-open]"],
-  ["act", "[data-act]"],
+/* 控件种类由渲染层直接声明：每个可点元素自带 data-clk。
+   这里只留一张兜底表，给极少数没标的老元素（漏标时点不动比乱跳更糟）。 */
+const LEGACY_KINDS = [
+  ["deck_toggle", "[data-deck-open]"],
+  ["card_act", "[data-act]"],
   ["filter", "[data-filter]"],
-  ["go", "[data-go]"],
+  ["card_open", "[data-go]"],
   ["nav", "[data-nav]"],
-  ["crumb", "[data-crumb]"],
-  ["member", "[data-member]"],
-  ["expand", "[data-expand]"],
+  ["crumb_up", "[data-crumb]"],
+  ["member_chip", "[data-member]"],
+  ["fold_text", "[data-expand]"],
 ];
 function resolveKind(target) {
-  for (const pair of CLICK_KINDS) {
-    const el = target && target.closest && target.closest(pair[1]);
-    if (el) return { kind: pair[0], el };
+  const el = target && target.closest && target.closest("[data-clk]");
+  if (el) return { kind: el.dataset.clk, el };
+  for (const pair of LEGACY_KINDS) {
+    const hit = target && target.closest && target.closest(pair[1]);
+    if (hit) return { kind: pair[0], el: hit };
   }
   return null;
 }
+
+/* 动作按钮：所有"有 data-act 的按钮"共用同一段执行逻辑，种类只决定门禁 */
+function runAct(el, kind) {
+  if (el.disabled) return null;
+  const binding = ACTS.get(String(el.dataset.act));
+  if (!binding) {   // 绑定表里没有：这次渲染已作废，页面该重取
+    UIS.violations += 1; UIS.lastBad = "stale-act:" + el.dataset.act;
+    return null;
+  }
+  if (binding.voice) return uiRun(() => executeVoice(binding, el), kind);
+  if (binding.composer && !binding.act.modal) {
+    const box = $("view-body").querySelector(".composer textarea");
+    const text = (box && box.value || "").trim();
+    if (!text) {
+      banner(uiText("composer_empty") || binding.act.empty_hint || "请先输入内容", "err");
+      return null;
+    }
+    return uiRun(() => execute(binding, { text }), kind);
+  }
+  return uiRun(() => execute(binding, {}), kind);
+}
+function runGo(el, kind) {
+  const binding = ACTS.get(String(el.dataset.go));
+  if (!binding) { UIS.violations += 1; UIS.lastBad = "stale-go:" + el.dataset.go; return null; }
+  return uiRun(() => execute(binding, {}), kind);
+}
+
 const CLICK_HANDLERS = {
-  deck(el) {
+  drawer_open() { openDrawer(); },
+  drawer_scrim() { closeDrawer(); },
+  rail_close() { setRail(true); },
+  rail_open() { setRail(false); },
+  nav(el) { closeDrawer(); return uiRun(() => go({ view: el.dataset.nav }, true), "nav"); },
+  crumb_up() { return uiRun(() => go(crumbUp(), true), "crumb_up"); },
+  head_act(el) { return runAct(el, "head_act"); },
+  card_open(el) { return runGo(el, "card_open"); },
+  card_act(el) { return runAct(el, "card_act"); },
+  row_open(el) { return runGo(el, "row_open"); },
+  row_act(el) { return runAct(el, "row_act"); },
+  tree_group(el) {
+    const d = el.closest("details.tree-node");
+    if (d) d.open = !d.open;
+  },
+  tree_doc(el) { return runGo(el, "tree_doc"); },
+  filter(el) { FILTER = el.dataset.filter; render(); },
+  member_chip(el) { return $("popover").hidden ? openMemberCard(el) : closeMemberCard(); },
+  popover_close() { closeMemberCard(); },
+  fold_text(el) {
+    const folded = el.classList.toggle("clamp");
+    const t = el.querySelector(".ev-text");
+    if (t) t.textContent = folded ? (el.dataset.short || "") : (el.dataset.full || "");
+  },
+  /* 原生 details/summary 自己会开关，这里不拦默认行为，只让状态机记账 */
+  wire_fold() {},
+  summary_fold() {},
+  raw_fold() {},
+  /* 弹窗三个入口在 actions.js 里自己过门禁并执行，这里只登记，不重复执行 */
+  modal_ok() {},
+  modal_cancel() {},
+  modal_backdrop() {},
+  /* 堆叠滑动由 pointer 事件驱动；这里登记是为了让规格与页面双向闭合 */
+  deck_swipe() {},
+  deck_toggle(el) {
     const d = el.closest("[data-deck]");
     if (!d) return;
     d.dataset.open = d.dataset.open === "1" ? "0" : "1";
     deckLayout(d);
   },
-  act(el) {
-    if (el.disabled) return;
-    const binding = ACTS.get(String(el.dataset.act));
-    if (!binding) {   // 绑定表里没有：这次渲染已作废，页面该重取
-      UIS.violations += 1; UIS.lastBad = "stale-act:" + el.dataset.act;
-      return;
-    }
-    if (binding.voice) return uiRun(() => executeVoice(binding, el), "act");
-    if (binding.composer && !binding.act.modal) {
-      const box = $("view-body").querySelector(".composer textarea");
-      const text = (box && box.value || "").trim();
-      if (!text) {
-        banner(uiText("composer_empty") || binding.act.empty_hint || "请先输入内容", "err");
-        return;
-      }
-      return uiRun(() => execute(binding, { text }), "act");
-    }
-    return uiRun(() => execute(binding, {}), "act");
-  },
-  filter(el) { FILTER = el.dataset.filter; render(); },
-  go(el) {
-    const binding = ACTS.get(String(el.dataset.go));
-    if (!binding) { UIS.violations += 1; UIS.lastBad = "stale-go:" + el.dataset.go; return; }
-    return uiRun(() => execute(binding, {}), "go");
-  },
-  nav(el) { closeDrawer(); return uiRun(() => go({ view: el.dataset.nav }, true), "nav"); },
-  crumb() { return uiRun(() => go(crumbUp(), true), "crumb"); },
-  member(el) {
-    if ($("popover").hidden) return openMemberCard(el);
-    return closeMemberCard();
-  },
-  expand(el) {
-    const folded = el.classList.toggle("clamp");
-    const t = el.querySelector(".ev-text");
-    if (t) t.textContent = folded ? (el.dataset.short || "") : (el.dataset.full || "");
-  },
+  composer_send(el) { return runAct(el, "composer_send"); },
+  composer_voice(el) { return runAct(el, "composer_voice"); },
 };
 
 function handleClick(e) {
-  if (consumeSwallow()) { e.stopPropagation(); e.preventDefault(); return; }
-  if (UIS.state === "modal") return;          // 弹窗里的事件由弹窗自己管（也过模态门禁）
   const hit = resolveKind(e.target);
+  if (UIS.state === "swallow") {
+    // 吞的是"滑完紧跟着的那一下"；点堆叠展开按钮不是滑动余波，放它过去
+    if (hit && hit.kind === "deck_toggle") { uiTo("idle", "swallow:deck-toggle"); }
+    else if (consumeSwallow()) { e.stopPropagation(); e.preventDefault(); return; }
+  }
+  // 弹窗里的事件由弹窗自己管：只放 modal_* 过去（它们自己过门禁），其余一律不理
+  if (UIS.state === "modal" && !(hit && hit.kind.indexOf("modal_") === 0)) return;
   if (!hit) {                                 // 点在空白：只负责收浮层
-    if (!e.target.closest("#popover")) closeMemberCard();
+    if (!e.target.closest("#popover") && !$("popover").hidden) {
+      if (uiAllowed("popover_close")) CLICK_HANDLERS.popover_close();
+    }
     return;
   }
   if (!uiAllowed(hit.kind)) return;           // 门禁拒绝：不猜、不排队
   if (AUDIT) {                                 // 审计：走一遍进入/回落，证明迁移合法
     uiEnter(hit.kind);
-    setTimeout(() => { if (UIS.state !== "idle") uiTo("idle", "audit:" + hit.kind); }, 60);
+    setTimeout(() => {
+      const exit = (machineKind(hit.kind) || {}).exit;
+      if (exit && UIS.state !== exit) uiTo(exit, "audit:" + hit.kind);
+      else if (!exit && UIS.state !== "idle") uiTo("idle", "audit:" + hit.kind);
+    }, 60);
     return;
   }
   const fn = CLICK_HANDLERS[hit.kind];
@@ -219,7 +260,9 @@ function deckLayout(d) {
     });
     return;
   }
-  const front = Number(d.dataset.pos) || 0;
+  // 卡片数可能在上一轮渲染后变了：位置先夹到合法范围再写回，否则会停在一张不存在的牌上
+  const front = Math.min(Math.max(Number(d.dataset.pos) || 0, 0), n - 1);
+  d.dataset.pos = String(front);
   const vis = Math.min(n, 4);
   const m = deckMetrics(d);
   const h = cards[front].offsetHeight;   // 先量高度，再写位移：少一次强制重排
@@ -240,13 +283,15 @@ function mountDecks() {
 
 document.addEventListener("pointerdown", (e) => {
   if (e.button > 0) return;
+  // 上一次手势没收到 pointerup（切后台/被系统吞）会把状态卡在 drag/press，这里就地清掉
+  if ((UIS.state === "drag" || UIS.state === "press") && !DECK_DRAG) uiTo("idle", "deck:orphan");
   if (UIS.state !== "idle" && UIS.state !== "swallow") return;   // 动作在飞 / 弹窗开着，手势不接管
   const stage = e.target.closest && e.target.closest(".deck-stage");
   const d = stage && stage.closest("[data-deck]");
   if (!d || d.dataset.open === "1") return;
   if (e.target.closest("button")) return;
   DECK_DRAG = { d, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, moved: false, cards: deckCards(d) };
-  uiTo("drag", "deck");
+  uiTo("press", "deck:touch");
 });
 /* 一帧只写一次 transform：触屏的 pointermove 可能比屏幕帧率还密，
    每次都写会让浏览器白算样式；攒到 rAF 里一起写，草稿留在 g.pending。 */
@@ -260,9 +305,15 @@ document.addEventListener("pointermove", (e) => {
   if (!g || e.pointerId !== g.id) return;
   const dx = e.clientX - g.x, dy = e.clientY - g.y;
   if (!g.moved) {
-    if (Math.abs(dx) < 10) return;
-    if (Math.abs(dx) <= Math.abs(dy)) { DECK_DRAG = null; uiTo("idle", "deck:scroll"); return; }  // 纵向手势还给页面滚动
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;      // 还没动够阈值，方向未知
+    if (Math.abs(dx) <= Math.abs(dy)) {                       // 纵向：这手势归页面滚动
+      DECK_DRAG = null;
+      uiTo("scroll", "deck:vertical");
+      uiTo("idle", "deck:scroll-handoff");
+      return;
+    }
     g.moved = true;
+    uiTo("drag", "deck:horizontal");
     g.d.dataset.dragging = "1";
     const front0 = g.cards[Number(g.d.dataset.pos) || 0];
     if (front0) front0.style.transition = "none";
@@ -279,15 +330,17 @@ function deckRelease(e) {
   delete g.d.dataset.dragging;
   const front = g.cards[Number(g.d.dataset.pos) || 0];
   if (front) front.style.removeProperty("transition");
-  if (g.moved && Math.abs(g.dx) >= 56) {
-    const n = g.cards.length, cur = Number(g.d.dataset.pos) || 0;
+  const live = deckCards(g.d);
+  if (g.moved && live.length === g.cards.length && Math.abs(g.dx) >= 56) {
+    const n = live.length, cur = Number(g.d.dataset.pos) || 0;
     g.d.dataset.pos = String(((g.dx < 0 ? cur + 1 : cur - 1) + n) % n);
   }
   if (g.moved) {   // 拖动后紧跟的那一下 click 属于松手，不算点击
-    uiTo("swallow", "deck:release");
+    if (UIS.state === "drag") uiTo("swallow", "deck:release");
     UIS.swallowUntil = performance.now() + 600;
   } else {
-    uiTo("idle", "deck:release");
+    // 只是按住没滑：press 直接回 idle
+    if (UIS.state === "press") uiTo("idle", "deck:release");
   }
   deckLayout(g.d);
 }
@@ -333,10 +386,19 @@ function navTarget(view) {
    加一个视图 = 视图规格里多一行 menu，这里零改动。 */
 function renderMenus(menus) {
   const side = $("side-nav");
-  if (side) {
-    side.innerHTML = arr(menus).map((m) =>
-      `<button data-nav="${esc(m.key)}">${esc(m.label || m.key)}</button>`).join("");
-  }
+  if (!side) return;
+  // 同组相邻：组内按后端 order 排，组间留一道分隔，跟 App 的分区一致
+  const groups = [];
+  arr(menus).forEach((m) => {
+    const name = m.group || "";
+    const last = groups[groups.length - 1];
+    if (last && last.name === name) last.items.push(m);
+    else groups.push({ name, items: [m] });
+  });
+  side.innerHTML = groups.map((g) => `<div class="nav-group">${
+    g.name ? `<div class="nav-group-title">${esc(g.name)}</div>` : ""}${
+    g.items.map((m) => `<button data-clk="nav" data-nav="${esc(m.key)}">${esc(m.label || m.key)}</button>`).join("")
+  }</div>`).join("");
 }
 function highlightNav() {
   const cur = navTarget(state.view);
@@ -358,10 +420,7 @@ function setRail(on) {
   try { localStorage.setItem("hive.rail", on ? "1" : "0"); } catch (e) {}
   closeMemberCard();
 }
-$("menu-btn").onclick = openDrawer;
-$("scrim").onclick = closeDrawer;
-$("side-collapse").onclick = () => setRail(true);
-$("rail-open").onclick = () => setRail(false);
+/* 壳层的四个静态按钮不单独绑 onclick：走同一条 [data-clk] 入口，才有门禁与迁移记录 */
 try { if (localStorage.getItem("hive.rail") === "1") setRail(true); } catch (e) {}
 
 /* ---- 成员卡浮层：点头像弹显示岗位职责 ---- */

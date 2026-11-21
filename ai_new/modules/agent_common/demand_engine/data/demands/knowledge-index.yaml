@@ -18,9 +18,9 @@ do:
     module:
       lit: agent/tickets
     root:
-      lit: tickets
+      lit: projects
     pattern:
-      lit: '*/ticket.yaml'
+      lit: '*/tickets/*/ticket.yaml'
   as: trows
 - call: knowledge.index
   with:

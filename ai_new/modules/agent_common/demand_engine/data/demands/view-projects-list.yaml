@@ -7,12 +7,12 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 1, label: 项目, mobile: true}
+  menu: {order: 1, label: 项目, group: {name: 工作, order: 1}, mobile: true}
   key: projects
   default: true
   crumb: [项目]
   heading: 项目
-  subheading: 选一个项目进去看它的工单
+  subheading: 选一个项目看它的工单
   actions:
   - {label: ＋ 新建项目, tone: primary, modal: project.new}
   data:
@@ -21,6 +21,7 @@ view:
   - kind: cards
     as: tree
     source: tree.items
+    layout: deck
     key: row.project.id
     title: row.project.name
     archived_when: row.project.archived

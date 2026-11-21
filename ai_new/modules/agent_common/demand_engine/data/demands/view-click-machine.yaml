@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 6, label: 点击状态机, mobile: true}
+  menu: {order: 1, label: 点击状态机, group: {name: 系统, order: 3}, mobile: true}
   key: click-machine
   crumb: [点击状态机]
   heading: 点击状态机
-  subheading: 每种可点控件点下去先过门禁；规格改这里，页面行为和全量测试同时跟着改
+  subheading: 每个可点位置的门禁与允许的迁移
   data:
   - {as: machine, demand: click-machine}
   actions: []
@@ -19,30 +19,16 @@ view:
   - kind: stats
     as: machine
     rows:
-    - {label: 状态, value: "data.machine.click_machine.states|count", note: 个状态}
-    - {label: 可点种类, value: "data.machine.click_machine.kinds|count", note: 种控件}
+    - {label: 状态, value: "data.machine.click_machine.states|count", note: 个交互状态}
+    - {label: 可点位置, value: "data.machine.click_machine.kinds|count", note: 类控件}
     - {label: 迁移规则, value: "data.machine.click_machine.edges", note: 条允许的转移}
-  - kind: table
+  - kind: machine
     as: machine
-    source: machine.click_machine.states
-    heading: 状态
-    columns:
-    - {label: 键, value: row.key}
-    - {label: 名称, value: row.label}
-    - {label: 含义, value: row.note, muted: true}
-  - kind: table
+    source: machine.click_machine
+    heading: 状态与迁移
+    note: 箭头是允许的转移；线越密的地方越容易被误点，门禁就在那里
+  - kind: kinds
     as: machine
     source: machine.click_machine.kinds
-    heading: 可点种类与门禁
-    columns:
-    - {label: 种类, value: row.label}
-    - {label: 键, value: row.key, muted: true}
-    - {label: 允许态, value: row.allow}
-    - {label: 进入, value: row.enter}
-    - {label: 回落, value: row.exit}
-    - {label: 说明, value: row.note, muted: true}
-expect:
-  given:
-    input: {}
-  calls: []
-  promise: 状态机规格只此一份：加一种可点控件必须先在这里声明门禁
+    heading: 可点位置与门禁
+    note: 允许态里点得动；箭头是点下去之后的状态

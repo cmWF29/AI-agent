@@ -44,6 +44,7 @@ view:
   - kind: cards
     as: tickets
     source: tickets.items
+    layout: deck
     heading: 工单
     note: "共 {data.tickets.items|count} 条 · 进行中 {data.tickets.items|count(status!=closed)} · 已结单 {data.tickets.items|count(status=closed)}"
     title: row.title

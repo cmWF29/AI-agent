@@ -125,7 +125,9 @@ def index(p):
     取数归需求，归组形状归模块；前端只按 tree 递归渲染。
     """
     items = []
-    counts = {"public": 0, "project": 0, "ticket": 0}
+    # 计数分口径：project/ticket 是"知识层级"，project_groups/placed/orphan 是"工单归属"
+    counts = {"public": 0, "project": 0, "ticket": 0,
+              "project_groups": 0, "placed": 0, "orphan": 0}
     tpl = p.get("tpl") or {}
     layer_label = {"public": tpl.get("label_public") or "",
                    "project": tpl.get("label_project") or "",
@@ -174,10 +176,14 @@ def index(p):
             else:
                 orphan_tickets.setdefault(key, []).append(doc)
 
+    counts["project_groups"] = len(project_groups)
+    counts["placed"] = sum(len(grp["tickets"]) for grp in project_groups.values())
+    counts["orphan"] = len(orphan_tickets)
+
     tree = []
-    if public_docs:
-        tree.append({"type": "public", "label": layer_label["public"],
-                     "badge": layer_label["public"], "children": public_docs})
+    # 公共层恒在：它是知识库的第一级，没文档也要露出来，否则用户不知道还有这一层
+    tree.append({"type": "public", "label": layer_label["public"],
+                 "badge": layer_label["public"], "children": public_docs})
     for pid in sorted(project_groups):
         grp = project_groups[pid]
         children = list(grp["docs"])

@@ -14,7 +14,7 @@ view:
   parent: {view: knowledge}
   crumb: [知识库, "{route.name}"]
   heading: "{route.name}"
-  subheading: 只读浏览；文档由流程运行沉淀，不在此页修改
+  subheading: 只读；文档由流程沉淀
   data:
   - as: doc
     demand: knowledge-read

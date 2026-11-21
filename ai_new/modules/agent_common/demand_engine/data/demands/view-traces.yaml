@@ -10,9 +10,9 @@ view:
   key: traces
   nav: arch
   parent: {view: arch}
-  crumb: [架构, 链路]
+  crumb: [架构与链路, 链路]
   heading: 链路
-  subheading: 一次请求一条 trace；点开任意一行，看这次请求里每个 span 在时间轴上的位置与耗时
+  subheading: 一次请求一条；点开看每段耗时
   data:
   - {as: list, demand: trace-list}
   - {as: slow, demand: trace-slow, params: {limit: 8}}

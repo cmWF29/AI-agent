@@ -212,16 +212,20 @@ class Engine:
             if not key:
                 continue
             label = str(menu.get("label") or view.get("heading") or key)
+            grp = menu.get("group") if isinstance(menu.get("group"), dict) else {}
             menus.append({
                 "key": key,
                 "label": label,
+                # 侧栏按概念分组：组名与组序由视图自己声明，前端不存分组表
+                "group": str(grp.get("name") or ""),
+                "group_order": float(grp.get("order") or 99),
                 # 手机底栏位置小，视图可另给短名；没给就用全名
                 "short": str(menu.get("short") or label),
                 "order": float(menu.get("order") or 100),
                 "mobile": bool(menu.get("mobile", True)),
                 "demand": r["id"],
             })
-        menus.sort(key=lambda m: (m["order"], m["key"]))
+        menus.sort(key=lambda m: (m["group_order"], m["order"], m["key"]))
         shell["menus"] = menus
         return shell
 

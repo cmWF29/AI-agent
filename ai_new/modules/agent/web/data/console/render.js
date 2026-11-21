@@ -15,6 +15,7 @@ function actIndex(act, ctx) {
 function buttonHtml(act, ctx, opts) {
   opts = opts || {};
   const binding = { act, ctx };
+  const kind = act.clk || opts.clk || "card_act";
   if (opts.composer) binding.composer = true;
   const id = regAct(binding);
   const disabled = opts.disabled === true
@@ -22,7 +23,7 @@ function buttonHtml(act, ctx, opts) {
   const hint = act.disabled_hint || opts.hint || "";
   const title = disabled && hint ? ` title="${esc(hint)}"` : "";
   const cls = act.tone === "primary" ? "primary" : (act.tone === "danger" ? "danger" : "");
-  return `<button class="${cls}" data-act="${id}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
+  return `<button class="${cls}" data-clk="${esc(kind)}" data-act="${id}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
 }
 function badgeHtml(value, ctx) {
   const s = String(value == null ? "" : value);
@@ -53,7 +54,7 @@ function cardsHtml(sec, ctx) {
   const cards = rows.map((row, idx) => {
     const c = { ...ctx, row };
     const archived = sec.archived_when != null && condOf(sec.archived_when, c);
-    const acts = (sec.actions || []).map((a) => buttonHtml(a, c)).join("");
+    const acts = (sec.actions || []).map((a) => buttonHtml(a, c, { clk: "card_act" })).join("");
     const badge = (sec.badge && condOf(sec.badge.when, c))
       ? `<span class="badge archived">${esc(fill(sec.badge.text, c))}</span>` : "";
     const stat = sec.stat ? `<div class="stat"><b>${esc(fill(sec.stat.count, c))}</b> ${esc(fill(sec.stat.label, c))}<span class="muted">· ${esc(fill(sec.stat.note || "", c))}</span></div>` : "";
@@ -67,7 +68,7 @@ function cardsHtml(sec, ctx) {
     const groups = Array.isArray(sec.chips) ? sec.chips : (sec.chips ? [sec.chips] : []);
     const chips = groups.map((g) => shareChips(g, c)).join("");
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
-    return `<article class="pcard${archived ? " archived" : ""}" ${click ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
+    return `<article class="pcard${archived ? " archived" : ""}" data-clk="card_open" ${click ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
       <div class="acts">${acts}</div>
       <h3 class="pname">${esc(fill(sec.title, c))}</h3>
       ${badge}${stat}
@@ -76,13 +77,14 @@ function cardsHtml(sec, ctx) {
       <span class="ar">›</span>
     </article>`;
   }).join("");
-  if (!deck) return `<div class="cards">${cards}</div>`;
+  // 只有一张牌时堆叠没有意义（还会多出一次"滑不动"的手势），退回普通列表
+  if (!deck || rows.length < 2) return `<div class="cards">${cards}</div>`;
   return `<div class="cards deck" data-deck="1" data-open="0" data-pos="0">
     <div class="deck-bar">
       <span class="deck-pos">${esc(uiText("deck_pos", 1, rows.length))}</span>
-      <button class="deck-more" data-deck-open="1">${esc(uiText("deck_expand", rows.length))}</button>
+      <button class="deck-more" data-clk="deck_toggle" data-deck-open="1">${esc(uiText("deck_expand", rows.length))}</button>
     </div>
-    <div class="deck-stage">${cards}</div>
+    <div class="deck-stage" data-clk="deck_swipe">${cards}</div>
   </div>`;
 }
 
@@ -117,7 +119,7 @@ function tableHtml(sec, ctx) {
     ${truncated ? `<span class="muted">… ${esc(uiText("more_rows", truncated))}</span>` : ""}
     <div class="spacer" style="margin-left:auto"></div>
     ${filters.length ? `<span class="seg" id="seg">${filters.map((f) =>
-      `<button data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</button>`).join("")}</span>` : ""}
+      `<button data-clk="filter" data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</button>`).join("")}</span>` : ""}
   </div>`;
   const cols = sec.columns || [];
   const rowActs = sec.actions || [];
@@ -128,7 +130,9 @@ function tableHtml(sec, ctx) {
       if (col.badge) val = badgeHtml(fill(col.badge, c), c);
       else {
         const raw = col.format ? fmtVal(col, c) : fill(col.value, c);
-        val = Array.isArray(raw) ? raw.map((x) => esc(x)).join("<br>") : esc(raw);
+        val = Array.isArray(raw)
+          ? (col.chips ? raw.map((x) => `<span class="chip">${esc(x)}</span>`).join("") : raw.map((x) => esc(x)).join("<br>"))
+          : esc(raw);
         if (col.suffix) val += ` ${esc(fill(col.suffix, c))}`;
         if (col.sub) val += `<div class="muted">${esc(fill(col.sub, c))}</div>`;
       }
@@ -137,9 +141,9 @@ function tableHtml(sec, ctx) {
       const th = esc(fill(col.label || "", c));
       return `<td class="${col.muted ? "muted" : ""}"${th ? ` data-th="${th}"` : ""}>${val}</td>`;
     }).join("");
-    const acts = rowActs.length ? `<td class="actions">${rowActs.map((a) => buttonHtml(a, c)).join("")}</td>` : "";
+    const acts = rowActs.length ? `<td class="actions">${rowActs.map((a) => buttonHtml(a, c, { clk: "row_act" })).join("")}</td>` : "";
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
-    return `<tr ${click ? `data-go="${click}"` : ""}>${cells}${acts}</tr>`;
+    return `<tr data-clk="row_open" ${click ? `data-go="${click}"` : ""}>${cells}${acts}</tr>`;
   }).join("") : `<tr><td colspan="${cols.length + (rowActs.length ? 1 : 0)}" class="muted">${esc((sec.empty || {}).text || uiText("empty"))}</td></tr>`;
   if (sec.hide_when_empty && !rows0.length) return "";
   const actHead = rowActs.length ? "<th>" + esc(uiText("col_actions")) + "</th>" : "";
@@ -147,7 +151,7 @@ function tableHtml(sec, ctx) {
     <thead><tr>${cols.map((c) => `<th>${esc(c.label || "")}</th>`).join("")}${actHead}</tr></thead>
     <tbody>${body}</tbody></table></div>`;
   if (sec.summarize) {
-    return `<div class="orphans"><details><summary>${esc(fill(sec.title || "", ctx))}（${rows0.length}）</summary>${wrap}</details></div>`;
+    return `<div class="orphans"><details><summary data-clk="summary_fold">${esc(fill(sec.title || "", ctx))}（${rows0.length}）</summary>${wrap}</details></div>`;
   }
   return wrap;
 }
@@ -256,7 +260,7 @@ function eventGroupHtml(g) {
   const text = eventText(g);
   const long = text.length > 60;
   const shown = long ? text.slice(0, 58) + "…" : text;
-  const fold = long ? ` data-expand data-full="${esc(text)}" data-short="${esc(shown)}"` : "";
+  const fold = long ? ` data-clk="fold_text" data-expand data-full="${esc(text)}" data-short="${esc(shown)}"` : "";
   return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(first.at))}</span></div></div>`;
 }
 
@@ -318,7 +322,7 @@ function toolCallCard(it) {
   if (it.result) {
     const brief = toolBrief(it.result);
     line = `<div class="tool-line ${brief.ok ? "" : "err"}">${esc(brief.text)}</div>`;
-    raw = `<details class="tool-raw"><summary>${esc(uiText("call_raw"))}</summary><pre>${esc(String(it.result.content == null ? "" : it.result.content))}</pre></details>`;
+    raw = `<details class="tool-raw"><summary data-clk="raw_fold">${esc(uiText("call_raw"))}</summary><pre>${esc(String(it.result.content == null ? "" : it.result.content))}</pre></details>`;
   }
   return `<div class="tool-call"><div class="tool-call-head"><span class="tool-call-name">${esc(it.name)}</span>${argsHtml}</div>${line}${raw}</div>`;
 }
@@ -335,7 +339,7 @@ function toolGroupHtml(items) {
   const cards = items.map((it) => (it.kind === "call" ? toolCallCard(it) : toolBodyHtml(it.m))).join("");
   const fails = items.filter((it) => it.kind === "call" && it.result && !toolBrief(it.result).ok).length;
   const title = uiText("tool_group", items.length) + (fails ? uiText("tool_group_fail", fails) : "");
-  return `<details class="tool-group"><summary>${esc(title)}</summary><div class="tool-group-body">${cards}</div></details>`;
+  return `<details class="tool-group"><summary data-clk="raw_fold">${esc(title)}</summary><div class="tool-group-body">${cards}</div></details>`;
 }
 function groupBody(g) {
   const calls = [];
@@ -407,7 +411,7 @@ function roleBoardHtml(roles) {
     const acts = (mc.active || []).filter((id) => id !== mc.stage)
       .map((id) => (states.find((s) => s.id === id) || {}).cn || id);
     const idx = arr(roles).indexOf(r);
-    return `<button class="role-mini st-${statusKind(r.status)}" data-member="${idx}" title="${esc((mc.flow || {}).cn || "")}">
+    return `<button class="role-mini st-${statusKind(r.status)}" data-clk="member_chip" data-member="${idx}" title="${esc((mc.flow || {}).cn || "")}">
       <i class="rm-dot"></i><b>${esc(r.display || r.role)}</b>
       <span class="rm-stage">${esc(cur.cn || "—")}</span>
       ${acts.length ? `<span class="rm-active">${esc(acts.join("/"))}</span>` : ""}
@@ -427,7 +431,7 @@ function todoBoardHtml(todos) {
       : (st === "doing" ? uiText("todo_state_doing") : uiText("todo_state_pending"));
     return `<div class="td-row"><i class="td-dot ${esc(st)}"></i><span class="td-id">${esc(t.id || "")}</span><span class="td-text ${st === "done" ? "off" : ""}">${esc(t.text || "")}</span><em>${esc(word)}</em></div>`;
   }).join("");
-  return `<details class="todo-board"><summary>${esc(uiText("todo_title", done, list.length))}${doing ? esc(uiText("todo_doing", doing.text || "")) : ""}</summary><div class="td-list">${rows}</div></details>`;
+  return `<details class="todo-board"><summary data-clk="summary_fold"${esc(uiText("todo_title", done, list.length))}${doing ? esc(uiText("todo_doing", doing.text || "")) : ""}</summary><div class="td-list">${rows}</div></details>`;
 }
 
 /* 网络报文：这一轮真实发出去/收回来的东西。视图只带摘要（模型、状态、字节量），
@@ -442,7 +446,7 @@ function wireHtml(items, demand, chars) {
   const w = m.wire;
   const size = (v) => (typeof v === "number" && v > 0 ? uiText("chars_unit", v) : "—");
   if (!demand) return "";
-  return `<details class="raw-box wire-box" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary>${esc(uiText("wire_title"))} · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · ${esc(uiText("wire_req"))} ${esc(size(w.req_len))} / ${esc(uiText("wire_resp"))} ${esc(size(w.res_len))}</summary>
+  return `<details class="raw-box wire-box" data-clk="wire_fold" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary data-clk="wire_fold">${esc(uiText("wire_title"))} · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · ${esc(uiText("wire_req"))} ${esc(size(w.req_len))} / ${esc(uiText("wire_resp"))} ${esc(size(w.res_len))}</summary>
     <pre class="wire-body">${esc(uiText("wire_expand"))}</pre></details>`;
 }
 
@@ -458,7 +462,7 @@ function rawHtml(objs, label, limit) {
   }
   const cap = limit || 6000;
   const cut = text.length > cap ? text.slice(0, cap) + "\n" + uiText("trunc_note", text.length) : text;
-  return `<details class="raw-box"><summary>${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
+  return `<details class="raw-box" data-clk="raw_fold"><summary data-clk="raw_fold">${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
 }
 
 function chatHtml(sec, ctx) {
@@ -476,12 +480,12 @@ function chatHtml(sec, ctx) {
   const meta = (badge || metaBits.length)
     ? `<div class="chat-head-meta">${badge}${metaBits.map((x, i) => `<span>${i ? "<i>·</i>" : ""}${esc(x)}</span>`).join("")}</div>` : "";
   const headMain = (title || meta) ? `<div class="chat-head-main">${title}${meta}</div>` : "";
-  const chips = arr(roles).map((r, i) => `<button class="av-chip st-${statusKind(r.status)}" data-member="${i}"
+  const chips = arr(roles).map((r, i) => `<button class="av-chip st-${statusKind(r.status)}" data-clk="member_chip" data-member="${i}"
       style="--av:${avatarColor(r.display || r.role)}" title="${esc(r.display || r.role)} · ${statusText(r.status)}">${initial(r.display || r.role)}<i class="dot"></i></button>`).join("");
   const draft = (ctx.data && ctx.data.draft) || {};
   const draftHtml = draftBubbleHtml(draft, roles);
   const summary = (src.summary || "").trim();
-  const summaryHtml = summary ? `<details class="chat-summary"><summary>${esc(uiText("summary_title"))}</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
+  const summaryHtml = summary ? `<details class="chat-summary"><summary data-clk="summary_fold">${esc(uiText("summary_title"))}</summary><div class="chat-summary-text">${esc(summary)}</div></details>` : "";
   const hiddenEvents = sec.hide_events || [];
   const events = groupEvents(sec.history_source ? ref(sec.history_source, ctx) : undefined)
     .filter((g) => !hiddenEvents.includes(g.event));
@@ -555,7 +559,7 @@ function toolResultHtml(o, raw) {
   parts.push(toolTraceHtml(o));
   let pretty = raw;
   try { pretty = JSON.stringify(o, null, 2); } catch (e) {}
-  parts.push(`<details class="tool-raw"><summary>${esc(uiText("call_raw"))}</summary><pre>${esc(pretty)}</pre></details>`);
+  parts.push(`<details class="tool-raw"><summary data-clk="raw_fold">${esc(uiText("call_raw"))}</summary><pre>${esc(pretty)}</pre></details>`);
   return `<div class="bubble-body tool md">${parts.join("")}</div>`;
 }
 
@@ -572,19 +576,21 @@ function toolBodyHtml(m) {
 function treeDocHtml(doc, sec, ctx) {
   const c = { ...ctx, row: doc };
   const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
-  return `<div class="tree-doc" ${click ? `data-go="${click}"` : ""} role="button" tabindex="0">
+  return `<div class="tree-doc" data-clk="tree_doc" ${click ? `data-go="${click}"` : ""} role="button" tabindex="0">
     <span class="tree-doc-name">${esc(fill("row.name", c))}</span>
     <span class="muted tree-doc-path">${esc(fill("row.path", c))}</span>
   </div>`;
 }
 function treeNodeHtml(node, sec, ctx) {
+  // 分组（公共/项目/工单）永远按分组渲染：没有文档也要露出这一级，否则层级就断了
+  if (node.type === "doc") return treeDocHtml(node, sec, ctx);
   const kids = node.children || [];
-  if (!kids.length) return treeDocHtml(node, sec, ctx);
   const count = kids.length;
   const sub = node.sub ? `<span class="muted tree-node-sub">${esc(node.sub)}</span>` : "";
   return `<details class="tree-node"${sec.collapsed ? "" : " open"}>
-    <summary><span class="badge">${esc(node.badge || "")}</span><span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
-    <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx)).join("")}</div>
+    <summary data-clk="tree_group"><span class="badge">${esc(node.badge || "")}</span><span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
+    <div class="tree-children">${kids.length ? kids.map((k) => treeNodeHtml(k, sec, ctx)).join("")
+      : `<div class="muted tree-empty">${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</div>`}</div>
   </details>`;
 }
 function secHead(sec, ctx) {
@@ -750,7 +756,7 @@ function kvHtml(sec, ctx) {
       : esc((fmtVal(r, c) === undefined || fmtVal(r, c) === "" ? (r.fallback || "—") : fmtVal(r, c)));
     return `<div class="kv"><span>${esc(r.label)}</span><div>${val}</div></div>`;
   }).join("");
-  const acts = (sec.actions || []).map((a) => buttonHtml(a, { ...ctx, row: src })).join("");
+  const acts = (sec.actions || []).map((a) => buttonHtml(a, { ...ctx, row: src }, { clk: "card_act" })).join("");
   return `<aside class="side-card">
     ${sec.heading ? `<h3>${esc(fill(sec.heading, ctx))}</h3>` : ""}
     ${rows}
@@ -780,22 +786,89 @@ function composerHtml(sec, ctx) {
   const hint = disabled ? (sec.disabled_hint || "") : "";
   const gate = disabled ? ` disabled${hint ? ` title="${esc(hint)}"` : ""}` : "";
   const acts = (sec.actions || []).map((a) =>
-    buttonHtml(a, ctx, { disabled, hint, composer: true })).join("");
+    buttonHtml(a, ctx, { disabled, hint, composer: true, clk: a.clk || "composer_voice" })).join("");
   const busyVal = sec.busy_from ? String(fill(sec.busy_from, ctx) || "") : "";
   const busy = !disabled && busyVal && busyVal === (sec.busy_when || "running");
   const voiceBtn = voice && !disabled
-    ? `<button class="voice" data-act="${voiceId}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
+    ? `<button class="voice" data-clk="composer_voice" data-act="${voiceId}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
     : "";
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
       <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
       ${acts}
       ${voiceBtn}
-      <button class="primary" data-act="${submitId}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
+      <button class="primary" data-clk="composer_send" data-act="${submitId}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
     </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
     ${busy ? `<div class="composer-hint busy">${esc(fill(sec.busy_text || "", ctx))}</div>` : ""}
   </div>`;
+}
+
+/* 点击状态机图：规格驱动，7 个状态环形排布，有向边是允许的迁移 */
+function clickMachineHtml(sec, ctx) {
+  const m = ref(sec.source, ctx) || {};
+  const states = arr(m.states);
+  let trans = m.transitions || {};
+  if (typeof trans !== "object" || Array.isArray(trans)) trans = {};
+  if (!states.length) return emptyHtml(sec.empty);
+  const W = 760, H = 430, NW = 98, NH = 42;
+  const notes = m.edge_notes || {};
+  // 坐标由规格给（at 为归一化位置）；没给就退回环形，规格漏了也不会白屏
+  const pos = {};
+  states.forEach((s, i) => {
+    if (Array.isArray(s.at) && s.at.length === 2) pos[s.key] = { x: s.at[0] * W, y: s.at[1] * H };
+    else {
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / states.length;
+      pos[s.key] = { x: W / 2 + 150 * Math.cos(a), y: H / 2 + 150 * Math.sin(a) };
+    }
+  });
+  const edge = (from, to) => {
+    const a = pos[from], b = pos[to];
+    if (!a || !b) return "";
+    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    // 从矩形边界出发：按方向分量换算到边框上，箭头才不会被节点盖住
+    const k = 1 / (Math.abs(ux) / (NW / 2 + 8) + Math.abs(uy) / (NH / 2 + 8));
+    const sx = a.x + ux * k, sy = a.y + uy * k, ex = b.x - ux * k, ey = b.y - uy * k;
+    const mx = (sx + ex) / 2, my = (sy + ey) / 2;
+    // 互为反向的两条边各自外偏，避免重叠成一条；单向边也带一点弧度更好认
+    const both = !!(trans[to] || []).includes(from);
+    const bend = (both ? (String(from) < String(to) ? 1 : -1) * 16 : 8);
+    const qx = mx - uy * bend, qy = my + ux * bend;
+    const label = notes[from + ">" + to];
+    const tag = label ? `<text class="mch-edge-label" x="${qx.toFixed(1)}" y="${(qy - 4).toFixed(1)}" text-anchor="middle">${esc(label)}</text>` : "";
+    return `<path class="mch-edge" d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" marker-end="url(#mch-arrow)"/>${tag}`;
+  };
+  const edges = Object.keys(trans).map((from) => arr(trans[from]).map((to) => edge(from, to)).join("")).join("");
+  const nodes = states.map((s) => {
+    const p = pos[s.key];
+    return `<g class="mch-node" data-state="${esc(s.key)}" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})">
+      <rect x="${-NW / 2}" y="${-NH / 2}" width="${NW}" height="${NH}" rx="11"/>
+      <text class="mch-cn" y="-3" text-anchor="middle">${esc(s.label || s.key)}</text>
+      <text class="mch-key" y="13" text-anchor="middle">${esc(s.key)}</text></g>`;
+  }).join("");
+  return `<div class="machine-wrap">
+    <svg class="mch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(uiText("machine_svg_alt"))}">
+      <defs><marker id="mch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" class="mch-arrow-head"/></marker></defs>
+      ${edges}${nodes}
+    </svg>
+  </div>`;
+}
+
+/* 可点位置清单：一行一类，允许态 → 进入 → 回落；比多列表格省一半高度 */
+function clickKindsHtml(sec, ctx) {
+  const rows = arr(ref(sec.source, ctx));
+  if (!rows.length) return emptyHtml(sec.empty);
+  const chip = (v) => `<span class="chip">${esc(v)}</span>`;
+  return `<div class="kind-list">${rows.map((r) =>
+    `<div class="kind-row">
+      <div class="kind-top"><b>${esc(r.label || r.key)}</b><em>${esc(r.key)}</em>
+        <span class="kind-flow">${arr(r.allow).map(chip).join("")}${
+          r.enter ? `<i>→</i>${chip(r.enter)}` : ""}${r.exit ? `<i>→</i>${chip(r.exit)}` : ""}</span>
+      </div>
+      ${r.note ? `<p>${esc(r.note)}</p>` : ""}
+    </div>`).join("")}</div>`;
 }
 
 function sectionHtml(sec, ctx, idx) {
@@ -806,6 +879,8 @@ function sectionHtml(sec, ctx, idx) {
   if (kind === "cards") html = secHead(sec, ctx) + cardsHtml(sec, ctx);
   else if (kind === "stats") html = statsHtml(sec, ctx);
   else if (kind === "flow") html = flowHtml(sec, ctx);
+  else if (kind === "machine") html = secHead(sec, ctx) + clickMachineHtml(sec, ctx);
+  else if (kind === "kinds") html = secHead(sec, ctx) + clickKindsHtml(sec, ctx);
   else if (kind === "map") html = mapHtml(sec, ctx);
   else if (kind === "waterfall") html = waterfallHtml(sec, ctx);
   else if (kind === "table") html = tableHtml(sec, ctx);
@@ -853,7 +928,7 @@ function headHtml(spec, ctx) {
       <div style="min-width:0"><h2>${esc(fill(spec.heading || spec.heading_from || "", ctx))}</h2>
       <div class="desc">${esc(fill(spec.subheading || "", ctx))}</div></div>
       <div class="spacer"></div>
-      <div class="actions">${(spec.actions || []).map((a) => buttonHtml(a, ctx)).join("")}</div>
+      <div class="actions">${(spec.actions || []).map((a) => buttonHtml(a, ctx, { clk: "head_act" })).join("")}</div>
     </div>`;
 }
 

@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 5, label: 技能, mobile: false}
+  menu: {order: 4, label: 技能, group: {name: 资产, order: 2}, mobile: true}
   key: skills
   crumb: [技能]
   heading: 技能
-  subheading: 一份 Skill.md 拆成一个岗位、配套流程与工具，归同一标识；可禁用、可级联卸载，内置受保护
+  subheading: 一个标识对应岗位、流程与工具
   actions:
   - {label: ＋ 新建拆解, tone: primary, modal: decompose.new}
   forms:
@@ -48,6 +48,7 @@ view:
   - kind: cards
     as: list
     source: list.items
+    layout: deck
     title: row.cn
     meta:
     - {label: 岗位, value: row.role_cn, hide_if_empty: true}
