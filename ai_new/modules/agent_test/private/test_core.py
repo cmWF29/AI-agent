@@ -314,6 +314,29 @@ class CoreTest(unittest.TestCase):
             self.assertIn(now, states, "迁移表源状态未声明: %s" % now)
             self.assertTrue(set(nxt) <= states, "迁移目标未声明: %s" % nxt)
 
+    def test_console_render_keeps_scroll_position(self):
+        """重渲染不许把用户滚到的位置清掉：整页 render 与局部 refreshAs 都要记账再还。
+
+        真因是重建滚动容器（.chat 就在被替换的区块里、兜底轮询还整页重建），
+        scrollTop 天然归零，看起来就是"自己跳到最上面"。
+        """
+        app = (ROOT / "ai_new/modules/agent/web/data/console/app.js").read_text(encoding="utf-8")
+        for token in ("function scrollMarks()", "function scrollRestore(marks)",
+                      "const SCROLL_BOTTOM", "SCROLL_USER_AT", "requestAnimationFrame"):
+            self.assertIn(token, app, "缺滚动记账工具: %s" % token)
+        self.assertGreaterEqual(app.count("scrollRestore(marks)"), 2,
+                                "整页 render 与局部 refreshAs 都必须还原滚动位置")
+        self.assertGreaterEqual(app.count("const marks = scrollMarks()"), 2,
+                                "两处重渲染前都要先记账")
+        # 整页渲染只允许走 renderView 这一处，且必须被记账包住
+        self.assertEqual(app.count("renderView(spec, ctx)"), 1, "整页渲染入口必须唯一")
+        i = app.index("renderView(spec, ctx)")
+        window = app[max(0, i - 400):i]
+        self.assertIn("scrollMarks()", window, "renderView 之前必须记账")
+        self.assertIn("scrollRestore(marks)", app[i:i + 400], "renderView 之后必须还原")
+        # 兜底轮询仍会整页重渲染，所以上面的保护必须留在轮询路径上
+        self.assertIn("await render({ keepBanner: true })", app, "兜底轮询必须走 render")
+
     def test_console_shell_is_backend_driven(self):
         """导航、品牌、字与配色都只存后端一份：页面改了后端也跟着变，反过来也一样。
 

@@ -409,6 +409,81 @@ async function resolvePage(view, params, wantShell, only) {
   return p.result || p;   // 兼容多套一层
 }
 
+/* 局部/整页重渲染会重建滚动容器，浏览器把 scrollTop 归零——表现就是「自己跳到最上面」。
+   统一记账：渲染前记住每个可滚容器滚到哪、离底多远；渲染后按同类顺序还回去。
+   贴底的（离底 ≤ 48px）继续贴底；用户上滑读历史的回到原位，不被打断。 */
+const SCROLL_KEEP = "#view-body .view-scroll, #view-body .chat, #view-body .tbl-wrap, " +
+  "#view-body .deck-stage, #view-body .flow-map, #drawer .drawer-body, [data-scroll-keep]";
+const SCROLL_BOTTOM = 48;
+function scrollKeyOf(el) { return el.tagName + "." + ((el.classList && el.classList[0]) || ""); }
+function scrollMarks() {
+  const out = [], seen = new Map();
+  document.querySelectorAll(SCROLL_KEEP).forEach((el) => {
+    if (el.scrollHeight <= el.clientHeight + 1) return;    // 不可滚的不记
+    const key = scrollKeyOf(el);
+    const nth = seen.get(key) || 0; seen.set(key, nth + 1);
+    out.push({ key, nth, top: el.scrollTop, bottom: el.scrollHeight - el.scrollTop - el.clientHeight });
+  });
+  return out;
+}
+let SCROLL_USER_AT = 0;    // 用户自己滚动过的时刻：复核时让路，不跟手指抢
+["pointerdown", "touchmove", "wheel"].forEach((ev) => {
+  document.addEventListener(ev, () => { SCROLL_USER_AT = Date.now(); }, { passive: true, capture: true });
+});
+function scrollRestore(marks) {
+  if (!marks || !marks.length) return;
+  const find = () => {
+    const seen = new Map(), now = new Map();
+    document.querySelectorAll(SCROLL_KEEP).forEach((el) => {
+      const key = scrollKeyOf(el);
+      const nth = seen.get(key) || 0; seen.set(key, nth + 1);
+      now.set(key + "#" + nth, el);
+    });
+    return now;
+  };
+  const todo = marks.map((m) => ({ m, done: false, want: null, stick: false }));
+  let step = 0;
+  const apply = () => {
+    const now = find();
+    let pending = false;
+    for (const it of todo) {
+      if (it.done) continue;
+      const el = now.get(it.m.key + "#" + it.m.nth);
+      if (!el || !el.isConnected) { it.done = true; continue; }
+      // 刚换上的节点可能还没撑开（scrollHeight 等于可视高），这时设 scrollTop 会被吞掉；
+      // 留到下一轮再设，最多补 4 次，之后按现有高度收敛，不会跟用户抢滚动。
+      if (el.scrollHeight <= el.clientHeight + 1 && step < 4) { pending = true; continue; }
+      it.stick = it.m.bottom <= SCROLL_BOTTOM;                 // 本来贴底就继续贴底
+      el.scrollTop = it.stick ? el.scrollHeight
+        : Math.min(it.m.top, Math.max(0, el.scrollHeight - el.clientHeight));
+      it.want = el.scrollTop;
+      it.done = true;
+    }
+    if (pending && step < 4) {
+      step += 1;
+      setTimeout(apply, [0, 50, 150, 400][step] || 400);
+    }
+  };
+  apply();
+  // 浏览器重排会按自己的锚点把位置挪走（实测 106 被挪成 30）：隔一帧复核一次，只纠一次
+  const verify = () => {
+    if (Date.now() - SCROLL_USER_AT < 300) return;             // 用户正在滑，别插手
+    const now = find();
+    for (const it of todo) {
+      if (it.want == null) continue;
+      const el = now.get(it.m.key + "#" + it.m.nth);
+      if (!el || !el.isConnected) continue;
+      if (it.stick) {
+        if (el.scrollHeight - el.scrollTop - el.clientHeight > 2) el.scrollTop = el.scrollHeight;
+      } else if (Math.abs(el.scrollTop - it.want) > 2) {
+        el.scrollTop = Math.min(it.want, Math.max(0, el.scrollHeight - el.clientHeight));
+      }
+    }
+  };
+  requestAnimationFrame(() => setTimeout(verify, 0));
+  setTimeout(verify, 160);
+}
+
 async function render(opts) {
   const spec = VIEWS[state.view] || VIEWS[defaultView()];
   const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
@@ -437,7 +512,9 @@ async function render(opts) {
   if (!(opts && opts.keepBanner)) banner("");
   const draft = (document.querySelector("#view-body .composer textarea") || {}).value || "";
   renderCrumb(spec, ctx);
+  const marks = scrollMarks();          // 整页重渲染前记账（15s 兜底轮询走的就是这条）
   renderView(spec, ctx);
+  scrollRestore(marks);
   const ta = document.querySelector("#view-body .composer textarea");
   if (ta && draft) ta.value = draft;   // 轮询重建 DOM 时把用户草稿还回去
   const th = (ctx.data.thread && ctx.data.thread.thread) || {};
@@ -463,7 +540,7 @@ function keepPage(ctx) {
   PAGE_KEEP.set(key, {
     view: state.view, params: Object.assign({}, state),
     html: body.innerHTML, crumb: $("crumb").innerHTML,
-    scroll: scroll ? scroll.scrollTop : 0, ctx, acts: ACTS
+    scroll: scroll ? scroll.scrollTop : 0, marks: scrollMarks(), ctx, acts: ACTS
   });
   while (PAGE_KEEP.size > KEEP_MAX) PAGE_KEEP.delete(PAGE_KEEP.keys().next().value);
 }
@@ -474,6 +551,7 @@ function restorePage(k) {
   $("view-body").innerHTML = k.html;
   const scroll = document.querySelector("#view-body .view-scroll");
   if (scroll && k.scroll) scroll.scrollTop = k.scroll;
+  scrollRestore(k.marks);                  // 聊天内部容器也要回到原位置，不只是整页
   LAST_CTX = k.ctx;
   ACTS = k.acts || new Map();   // 接管这一页自己的绑定表，按钮才点得动
   const th = (k.ctx.data.thread && k.ctx.data.thread.thread) || {};
@@ -542,6 +620,7 @@ async function refreshAs(list) {
     if (t.firstElementChild) head.replaceWith(t.firstElementChild);
   }
   renderCrumb(spec, ctx);
+  const marks = scrollMarks();          // 失效补取会换掉区块（聊天滚动容器就在区块里）
   for (const as of list) {
     document.querySelectorAll('#view-body .vsec[data-as="' + as + '"]').forEach((node) => {
       const idx = Number(node.getAttribute("data-sec") || 0);
@@ -552,6 +631,7 @@ async function refreshAs(list) {
       if (t.firstElementChild) node.replaceWith(t.firstElementChild);
     });
   }
+  scrollRestore(marks);
   if (typeof mountDecks === "function") mountDecks();
   if (typeof expandFolds === "function") expandFolds();
   pruneActs();
