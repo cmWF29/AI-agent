@@ -1,0 +1,60 @@
+id: T-20261121-0001
+title: 归档前单
+goal: 验证归档前置
+project: 归档验收
+kind: normal
+parent: ''
+children: []
+status: queued
+pm: pm-1
+roles:
+- session: role-1
+  role: developer
+  display: developer
+  task: 按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。
+  status: spawned
+- session: role-2
+  role: tester
+  display: tester
+  task: 按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。
+  status: spawned
+- session: role-3
+  role: reviewer
+  display: reviewer
+  task: 按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。
+  status: spawned
+auto_retrospective: false
+created: 1795284320.9901345
+updated: 1795284333.0683312
+closed: ''
+summary: ''
+verdict: ''
+history:
+- at: 1795284320.9901345
+  event: created
+  text: 归档前单
+- at: 1795284320.9901345
+  event: pm_start
+  text: PM 会话已拉起
+- at: 1795284322.2819955
+  event: role_spawn
+  text: 'developer: 按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。'
+- at: 1795284322.8552365
+  event: role_spawn
+  text: 'tester: 按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。'
+- at: 1795284323.7210777
+  event: role_spawn
+  text: 'reviewer: 按工单验收标准完成交付，产出落到工单交付目录，结论记入备注。'
+- at: 1795284330.7163386
+  event: repush
+  text: （系统回催）还有缺口没完成：尚未到达交付阶段（当前 理解），请走完当前流程再结单。请对照岗位必做事项补齐交付件后再交作业。
+- at: 1795284331.114368
+  event: repush
+  text: （系统回催）还有缺口没完成：尚未到达交付阶段（当前 用例设计），请走完当前流程再结单。请对照岗位必做事项补齐交付件后再交作业。
+- at: 1795284331.7909143
+  event: repush
+  text: （系统回催）还有缺口没完成：尚未到达交付阶段（当前 需求主流程），请走完当前流程再结单。请对照岗位必做事项补齐交付件后再交作业。
+- at: 1795284333.0683312
+  event: repush
+  text: （系统回催）还有缺口没完成：任一命中即可，均未命中; 尚未到达交付阶段（当前 研读），请走完当前流程再结单。请对照岗位必做事项补齐交付件后再交作业。
+meta: {}

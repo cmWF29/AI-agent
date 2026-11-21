@@ -172,13 +172,20 @@ class Engine:
             steps_total += len(leaves)
             views += 1 if view_key else 0
             callable_n += 1 if callable_ else 0
+            exp = r.get("expect") or {}
+            expect_calls = [str(x) for x in (exp.get("calls") or [])]
+            # 需求自己声明的预期调用 vs 编译出来的实际调用：不一致就是"需求变形"
+            drift = sorted(set(routes) ^ set(expect_calls))
             items.append({"id": r["id"], "title": r.get("title", ""),
                           "enabled": bool(r.get("enabled", True)),
                           "tags": list(r.get("tags") or []),
                           "touch": list(r.get("touch") or []),
                           "on": list(r.get("on") or []),
                           "view": view_key or "", "callable": callable_,
-                          "steps": len(leaves), "routes": routes})
+                          "steps": len(leaves), "routes": routes,
+                          "expect_calls": expect_calls, "drift": drift,
+                          "promise": exp.get("promise") or "",
+                          "payload": exp.get("payload") or {}})
             touch = list(r.get("touch") or [])
             node = {"label": r["id"],
                     "badge": ("可调" if callable_ else ("视图" if view_key else "内置")),

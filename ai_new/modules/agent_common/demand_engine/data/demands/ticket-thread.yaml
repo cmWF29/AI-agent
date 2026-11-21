@@ -28,6 +28,18 @@ do:
     path:
       lit: messages.yaml
   as: tpls
+- call: projects.record_path
+  with:
+    id:
+      get: row.value.project
+  as: prp
+- call: store.read
+  with:
+    module:
+      lit: agent/projects
+    path:
+      get: prp.path
+  as: prow
 - call: store.id
   with:
     value:
@@ -67,6 +79,13 @@ do:
       get: roles_sessions.items
     tpl:
       get: tpls.value.missing
+    project_archived:
+      get: prow.value.archived
+    tpl_lock:
+      closed:
+        get: tpls.value.ticket_closed
+      archived:
+        get: tpls.value.project_archived
   as: out
 expect:
   given:
@@ -75,6 +94,8 @@ expect:
   calls:
   - tickets.record_path
   - store.read
+  - store.read
+  - projects.record_path
   - store.read
   - store.id
   - sessions.record_path

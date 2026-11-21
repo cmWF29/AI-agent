@@ -312,21 +312,40 @@ routes:
     out:
       id:
         type: any
-  tickets.note:
+  tickets.send:
+    doc: 发消息：结单/归档守卫→解析目标→追加→派发
     in:
-      now:
+      id:
         type: any
         req: false
-      rec:
+      text:
+        type: any
+        req: false
+      target:
+        type: any
+        req: false
+    out:
+      title:
+        type: any
+      ticket:
+        type: any
+      messages:
+        type: any
+  tickets.note_write:
+    doc: 追加备注：结单/归档守卫→追加 history→落盘
+    in:
+      id:
         type: any
         req: false
       text:
         type: any
         req: false
     out:
-      updated:
+      title:
         type: any
-      id:
+      ticket:
+        type: any
+      messages:
         type: any
   tickets.paths:
     in:
@@ -400,19 +419,6 @@ routes:
         req: false
     out:
       path:
-        type: any
-  tickets.resolve_target:
-    in:
-      rec:
-        type: any
-        req: false
-      target:
-        type: any
-        req: false
-    out:
-      role:
-        type: str
-      session:
         type: any
   tickets.review_mark:
     in:
@@ -519,6 +525,12 @@ routes:
         type: any
   tickets.thread:
     in:
+      project_archived:
+        type: any
+        req: false
+      tpl_lock:
+        type: any
+        req: false
       id:
         type: any
         req: false
@@ -535,6 +547,10 @@ routes:
         type: any
         req: false
     out:
+      locked:
+        type: any
+      lock_reason:
+        type: any
       ticket:
         type: any
       thread:

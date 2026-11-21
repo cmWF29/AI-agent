@@ -198,7 +198,8 @@ function when(ts) {
   if (!ts) return "—";
   const d = typeof ts === "number" ? new Date(ts * 1000) : new Date(ts);
   if (isNaN(d.getTime())) return String(ts);
-  return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit",
+                                     hour: "2-digit", minute: "2-digit" });
 }
 
 
@@ -260,7 +261,10 @@ async function go(next, push) {
   stashPage();
   state = next;
   if (push) history.pushState(next, "", qsOf(next));
-  const kept = PAGE_KEEP.get(keepKey(next));
+  // reload:true 是"刚写完的东西必须立刻看得见"：不走实例缓存，直接重取这一页
+  const key = keepKey(next);
+  if (next.reload) PAGE_KEEP.delete(key);
+  const kept = PAGE_KEEP.get(key);
   if (kept && !kept.stale) { restorePage(kept); return; }
   await render().catch((err) => banner(gateMessage(err), "err"));
 }

@@ -32,10 +32,12 @@ view:
       value: "row.flow.checks|count"
       suffix: 项
       muted: true
-  - kind: table
+  - kind: dag
     as: position
     source: position.stages
-    heading: 流程状态机（岗位预定，模型必须照着走）
+    heading: 流程状态机（DAG：分支与回退都在图上，虚线是回边）
+    note: 固定框自动布局，可缩放；虚线回边表示打回重做/回退
+    title: "{position.cn} 流程"
     hide_when_empty: true
     columns:
     - {label: 状态, value: row.cn, fallback: row.id}

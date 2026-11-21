@@ -77,6 +77,31 @@ def build(p):
 
 
 
+def guard_open(p):
+    """工单是活体才允许写：已结单只读。
+
+    归档项目里的工单必然都已结单，所以这一条同时挡住了"归档后还能发消息"。
+    """
+    rec = p.get("rec") or {}
+    tpl = p.get("tpl") or {}
+    if rec.get("status") == "closed":
+        return {"ok": False, "code": "ticket_closed", "status": 409,
+                "error": tpl.get("ticket_closed") or ""}
+    return {"ok": True}
+
+
+def guard_create(p):
+    """建单前置：归档项目不收新单；PM 被禁用就不能建单（工单默认要拉起 PM）。"""
+    tpl = p.get("tpl") or {}
+    if p.get("project_archived") is True:
+        return {"ok": False, "code": "project_archived", "status": 409,
+                "error": tpl.get("project_archived") or ""}
+    if p.get("pm_disabled") is True:
+        return {"ok": False, "code": "pm_disabled", "status": 409,
+                "error": tpl.get("pm_disabled") or ""}
+    return {"ok": True}
+
+
 def validate_project(p):
     """工单必须绑定项目：纯空值守卫，项目是否存在由需求层读盘判断。"""
     project = (p.get("project") or "").strip()
@@ -252,7 +277,19 @@ def threadp(p):
     for sid, reg in reg_by_sid.items():
         add_role(sid, reg, live_by_sid.get(sid), archived_by_sid.get(sid))
 
+    # 只读门禁一处算：结单或所在项目归档，都落到同一个 locked，前端四个控件共用。
+    closed = ticket.get("status") == "closed"
+    archived = p.get("project_archived") is True
+    locked = closed or archived
+    reason = ""
+    if archived:
+        reason = (p.get("tpl_lock") or {}).get("archived") or ""
+    elif closed:
+        reason = (p.get("tpl_lock") or {}).get("closed") or ""
+
     return {
+        "locked": locked,
+        "lock_reason": reason,
         "ticket": view({"rec": ticket}),
         "thread": {"id": pm_sid, "name": thread.get("name") or "", "status": status,
                    "role": "pm",

@@ -1,0 +1,17 @@
+id: runtime-params
+title: 运行时参数：重试/并发/超时/红线全部摊开
+description: "运行时参数：重试/并发/超时/红线全部摊开。取值与说明归 config，视图只声明区块"
+tags: [view, read, core]
+enabled: true
+callable: true
+'on': []
+do:
+- call: config.explain
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - config.explain
+  payload: {}
+  promise: 取值归 config，视图只声明区块

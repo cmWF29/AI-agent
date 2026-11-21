@@ -46,17 +46,18 @@ def tree(p):
             by.setdefault(proj, []).append(item)
         else:
             orphans.append(item)
-    items = []
+    items, archived = [], []
     for pr in projs:
         if not pr or not pr.get("id"):
             continue
         rows = by.get(pr.get("id")) or []
         open_n = len([t for t in rows if t.get("status") != "closed"])
-        items.append({"project": view({"rec": pr}),
-                      "tickets": rows,
-                      "counts": {"total": len(rows), "open": open_n,
-                                 "closed": len(rows) - open_n}})
-    return {"items": items, "orphans": orphans}
+        pv = view({"rec": pr})
+        row = {"project": pv, "tickets": rows,
+               "counts": {"total": len(rows), "open": open_n,
+                          "closed": len(rows) - open_n}}
+        (archived if pv.get("archived") else items).append(row)
+    return {"items": items, "archived": archived, "orphans": orphans}
 
 
 def _ticket_view(rec):
@@ -72,6 +73,36 @@ def screen(p):
     rows = p.get("rows") or []
     items = [view({"rec": rec}) for rec in rows if rec and rec.get("id")]
     return {"items": items}
+
+
+def guard_archive(p):
+    """归档前置：项目里还有没结单的工单就不许归档。
+
+    归档的定义是"冻结成只读快照"，冻结时还挂着在途工单，等于把别人正在做的事锁在门外。
+    """
+    rec = p.get("rec") or {}
+    tpl = p.get("tpl") or {}
+    if rec.get("archived") is True:
+        return {"ok": False, "code": "already_archived", "status": 409,
+                "error": tpl.get("already_archived") or ""}
+    open_ids = [str(x) for x in (p.get("open_tickets") or []) if x]
+    if open_ids:
+        t = tpl.get("open_tickets") or ""
+        return {"ok": False, "code": "open_tickets", "status": 409,
+                "error": t.format(n=len(open_ids), ids=", ".join(open_ids)) if t else ""}
+    return {"ok": True}
+
+
+def guard_writable(p):
+    """归档后只读：改名、启停、删除、建单、发消息一律拒绝。
+
+    "归档"必须有明确后果，否则按钮上写归档、实际什么都没变。
+    """
+    rec = p.get("rec") or {}
+    if rec.get("archived") is True:
+        return {"ok": False, "code": "project_archived", "status": 409,
+                "error": (p.get("tpl") or {}).get("project_archived") or ""}
+    return {"ok": True}
 
 
 def archive(p):
@@ -164,6 +195,15 @@ def toggle_override(p):
     elif rid not in cur:
         cur.append(rid)
     ov[kind] = cur
+    # 禁用工具要连带禁用岗位：工具没了，依赖它的岗位派活也跑不动，留着只会制造半死的岗。
+    cascaded = []
+    if kind == "tools" and not enabled:
+        roles = _clean_list(ov.get("roles"))
+        for role in _clean_list(p.get("cascade_roles")):
+            if role not in roles:
+                roles.append(role)
+                cascaded.append(role)
+        ov["roles"] = roles
     for k in _OVERRIDE_KINDS:
         ov.setdefault(k, [])
     rec["overrides"] = ov

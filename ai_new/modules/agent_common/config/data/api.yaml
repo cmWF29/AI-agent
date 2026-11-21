@@ -15,6 +15,16 @@ routes:
         type: any
         # 不传 key 是设计内行为：回脱敏后的全量配置，供总览类只读面板使用
         req: false
+  config.explain:
+    doc: 运行时参数解释：按登记表逐条取值并给出人话说明
+    in: {}
+    out:
+      rows:
+        type: any
+      count:
+        type: any
+      groups:
+        type: any
   config.set_value:
     doc: 按点号路径写配置并落盘
     out:

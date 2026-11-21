@@ -3,11 +3,43 @@
 */
 /* 点击绑定用"单调 id 表"，不用数组下标：
    下标会被下一次渲染/别的页面改写，保活页拿回来的 DOM 就会点到别人身上（或点空）。 */
+/* 折叠态：键 = 内容身份（会话/序位/工具/标签），存在 sessionStorage，
+   任何一次重渲染或整页刷新都按原状恢复；展开是用户的意图，不能被渲染抹掉。 */
+function foldLoad() {
+  try { return new Map(Object.entries(JSON.parse(sessionStorage.getItem("hive.folds") || "{}"))); }
+  catch (e) { return new Map(); }
+}
+let FOLDS = foldLoad();
+function foldSet(key, open) {
+  if (!key) return;
+  FOLDS.set(key, !!open);
+  try {
+    const obj = {};
+    for (const [k, v] of FOLDS) if (v) obj[k] = true;   // 只存展开的，数量有界
+    sessionStorage.setItem("hive.folds", JSON.stringify(obj));
+  } catch (e) {}
+}
+function foldAttr(key) {
+  if (!key) return "";
+  return ` data-fold="${esc(key)}"${FOLDS.get(key) ? " open" : ""}`;
+}
+
 function regAct(binding) {
   ACT_SEQ += 1;
   const id = "a" + ACT_SEQ;
   ACTS.set(id, binding);
   return id;
+}
+/* 控件身份：每个按钮一个稳定 id，由"标签 + 控件种类"算出（显式 ctl 可覆盖）。
+   规格里 controls: 按同一套算法登记，增删按钮立刻对不上，门禁脚本就报错。 */
+function ctlSlug(label) {
+  return String(label == null ? "" : label)
+    .replace(/[\s+＋]/g, "")
+    .replace(/[^0-9A-Za-z_\-\u4e00-\u9fff]/g, "_") || "x";
+}
+function ctlOf(act, kind) {
+  if (act && act.ctl) return String(act.ctl);
+  return "ctl." + String(kind || "card_act") + "." + ctlSlug(act && act.label);
 }
 function actIndex(act, ctx) {
   return regAct({ act, ctx });
@@ -18,12 +50,15 @@ function buttonHtml(act, ctx, opts) {
   const kind = act.clk || opts.clk || "card_act";
   if (opts.composer) binding.composer = true;
   const id = regAct(binding);
+  const ctl = String(act.ctl || opts.ctl || ctlOf(act, kind));
   const disabled = opts.disabled === true
     || (act.disabled_when != null && condOf(act.disabled_when, ctx));
   const hint = act.disabled_hint || opts.hint || "";
   const title = disabled && hint ? ` title="${esc(hint)}"` : "";
   const cls = act.tone === "primary" ? "primary" : (act.tone === "danger" ? "danger" : "");
-  return `<button class="${cls}" data-clk="${esc(kind)}" data-act="${id}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
+  // data-ctl 是这个按钮自己的状态机名：门禁脚本按它比对规格，浏览器按它读状态
+  const st = disabled ? "disabled" : "idle";
+  return `<button class="${cls}" data-clk="${esc(kind)}" data-act="${id}" data-ctl="${esc(ctl)}" data-ctl-state="${st}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
 }
 function badgeHtml(value, ctx) {
   const s = String(value == null ? "" : value);
@@ -48,7 +83,7 @@ function emptyHtml(block) {
 
 function cardsHtml(sec, ctx) {
   const rows = arr(ref(sec.source, ctx));
-  if (!rows.length) return emptyHtml(sec.empty);
+  if (!rows.length) return sec.hide_when_empty ? "" : emptyHtml(sec.empty);
   // layout: deck = 卡片堆叠：收缩时叠在一起、左右滑动换牌，点「展开」铺成列表
   const deck = sec.layout === "deck";
   const cards = rows.map((row, idx) => {
@@ -232,10 +267,13 @@ function atSeconds(at) {
   return isFinite(d) ? d / 1000 : -Infinity;
 }
 function clockText(at) {
+  if (at == null || at === "" || at === 0 || at === "0") return "";
   const t = atSeconds(at);
   if (!isFinite(t)) return "";
   const d = new Date(t * 1000);
-  return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  // 只给时分看不出是哪天：会话可能跨周，一律带年月日
+  return d.toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit",
+                                     hour: "2-digit", minute: "2-digit" });
 }
 /* 连续同类事件合并：派角色合并成「A、B 已派出」，其余取最后一条正文 */
 function groupEvents(events) {
@@ -313,18 +351,56 @@ function toolBrief(m) {
   }
   return { ok: true, text: bits.join(" · ") || uiText("done_word") };
 }
-function toolCallCard(it) {
-  const args = String(it.args || "").trim();
-  const argsHtml = args && args !== "{}"
-    ? `<span class="tool-call-args">${esc(args.length > 72 ? args.slice(0, 72) + "…" : args)}</span>` : "";
-  let line = `<div class="tool-line pending">${esc(uiText("call_pending"))}</div>`;
-  let raw = "";
-  if (it.result) {
-    const brief = toolBrief(it.result);
-    line = `<div class="tool-line ${brief.ok ? "" : "err"}">${esc(brief.text)}</div>`;
-    raw = `<details class="tool-raw"><summary data-clk="raw_fold">${esc(uiText("call_raw"))}</summary><pre>${esc(String(it.result.content == null ? "" : it.result.content))}</pre></details>`;
+/* 工具卡：只有一种形状——头行（工具名 + 参数）+ 结果体 + 可选原文。
+   调用与结果、有无 tool_call 配对，都落到同一张卡里，不再"有的嵌套有的没有"。 */
+function toolResultBody(o, raw, foldKey) {
+  const res = (o.result && typeof o.result === "object") ? o.result : o;
+  const metaObj = Object.assign({}, res, o);
+  ["result", "effects", "applied", "history", "items"].forEach((k) => delete metaObj[k]);
+  const parts = [];
+  parts.push(toolMetaChips(metaObj));
+  if (Array.isArray(res.items)) {
+    if (!res.items.length) parts.push(`<div class="tool-empty">${esc(uiText("call_empty"))}</div>`);
+    else parts.push(`<ul class="tool-items">${res.items.map((it) => {
+      const label = typeof it === "string" ? it : (it.title || it.path || it.summary || JSON.stringify(it));
+      return `<li>${esc(label)}</li>`;
+    }).join("")}</ul>`);
   }
-  return `<div class="tool-call"><div class="tool-call-head"><span class="tool-call-name">${esc(it.name)}</span>${argsHtml}</div>${line}${raw}</div>`;
+  toolCollectTexts(o).forEach((t) => parts.push(`<div class="tool-text md">${renderMarkdown(t)}</div>`));
+  parts.push(toolTraceHtml(o));
+  let pretty = raw;
+  try { pretty = JSON.stringify(o, null, 2); } catch (e) {}
+  parts.push(`<details class="tool-raw"${foldAttr(foldKey)}><summary data-clk="raw_fold">${esc(uiText("call_raw"))}</summary><pre>${esc(pretty)}</pre></details>`);
+  return parts.join("");
+}
+function toolCardHtml(name, args, raw, foldKey) {
+  const argsText = String(args || "").trim();
+  const argsHtml = argsText && argsText !== "{}"
+    ? `<span class="tool-call-args">${esc(argsText.length > 72 ? argsText.slice(0, 72) + "…" : argsText)}</span>` : "";
+  const head = `<div class="tool-call-head"><span class="tool-call-name">${esc(name || "tool")}</span>${argsHtml}</div>`;
+  if (!raw) return `<div class="tool-call">${head}<div class="tool-line pending">${esc(uiText("call_pending"))}</div></div>`;
+  let o = null;
+  try { o = JSON.parse(raw); } catch (e) {}
+  if (o && typeof o === "object" && o.ok === false) {
+    return `<div class="tool-call error">${head}<div class="tool-line err md">${renderMarkdown(o.error || raw)}</div></div>`;
+  }
+  if (o && typeof o === "object") {
+    return `<div class="tool-call">${head}${toolResultBody(o, raw, foldKey)}</div>`;
+  }
+  return `<div class="tool-call">${head}<div class="tool-line md">${renderMarkdown(String(raw))}</div></div>`;
+}
+function toolCallCard(it) {
+  const raw = it.result ? String(it.result.content == null ? "" : it.result.content) : "";
+  const key = "tool|" + String(it.name || "") + "|" + String(it.at || "") + "|" + raw.length;
+  return toolCardHtml(it.name, it.args, raw, key);
+}
+function toolBodyHtml(m) {
+  const raw = m.content == null ? "" : String(m.content);
+  let o = null;
+  try { o = JSON.parse(raw); } catch (e) {}
+  const name = m.name || (o && (o.tool || o.name)) || "";
+  const key = "tool|" + String(name) + "|" + String(m.at || "") + "|" + raw.length;
+  return toolCardHtml(name, "", raw, key);
 }
 function itemHtml(it) {
   if (it.kind === "call") return toolCallCard(it);
@@ -338,8 +414,10 @@ function itemHtml(it) {
 function toolGroupHtml(items) {
   const cards = items.map((it) => (it.kind === "call" ? toolCallCard(it) : toolBodyHtml(it.m))).join("");
   const fails = items.filter((it) => it.kind === "call" && it.result && !toolBrief(it.result).ok).length;
+  const first = items[0] || {};
+  const key = "group|" + String((first.owner || first.m || {}).session || "") + "|" + String(first.at || "");
   const title = uiText("tool_group", items.length) + (fails ? uiText("tool_group_fail", fails) : "");
-  return `<details class="tool-group"><summary data-clk="raw_fold">${esc(title)}</summary><div class="tool-group-body">${cards}</div></details>`;
+  return `<details class="tool-group"${foldAttr(key)}><summary data-clk="raw_fold">${esc(title)}</summary><div class="tool-group-body">${cards}</div></details>`;
 }
 function groupBody(g) {
   const calls = [];
@@ -446,7 +524,8 @@ function wireHtml(items, demand, chars) {
   const w = m.wire;
   const size = (v) => (typeof v === "number" && v > 0 ? uiText("chars_unit", v) : "—");
   if (!demand) return "";
-  return `<details class="raw-box wire-box" data-clk="wire_fold" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary data-clk="wire_fold">${esc(uiText("wire_title"))} · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · ${esc(uiText("wire_req"))} ${esc(size(w.req_len))} / ${esc(uiText("wire_resp"))} ${esc(size(w.res_len))}</summary>
+  const foldKey = "wire|" + String(m.session || "") + "|" + String(w.seq == null ? -1 : w.seq);
+  return `<details class="raw-box wire-box"${foldAttr(foldKey)} data-clk="wire_fold" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary data-clk="wire_fold">${esc(uiText("wire_title"))} · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · ${esc(uiText("wire_req"))} ${esc(size(w.req_len))} / ${esc(uiText("wire_resp"))} ${esc(size(w.res_len))}</summary>
     <pre class="wire-body">${esc(uiText("wire_expand"))}</pre></details>`;
 }
 
@@ -462,7 +541,10 @@ function rawHtml(objs, label, limit) {
   }
   const cap = limit || 6000;
   const cut = text.length > cap ? text.slice(0, cap) + "\n" + uiText("trunc_note", text.length) : text;
-  return `<details class="raw-box" data-clk="raw_fold"><summary data-clk="raw_fold">${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
+  const first = list[0] || {};
+  const foldKey = "raw|" + String(label || "") + "|" + String(first.session || "") + "|" +
+    String(first.at || "") + "|" + list.length;
+  return `<details class="raw-box"${foldAttr(foldKey)} data-clk="raw_fold"><summary data-clk="raw_fold">${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
 }
 
 function chatHtml(sec, ctx) {
@@ -542,37 +624,6 @@ function toolTraceHtml(o) {
   return lines.length ? `<div class="tool-trace">${lines.map(esc).join("<br>")}</div>` : "";
 }
 
-function toolResultHtml(o, raw) {
-  const res = (o.result && typeof o.result === "object") ? o.result : o;
-  const metaObj = Object.assign({}, res, o);
-  ["result", "effects", "applied", "history", "items"].forEach((k) => delete metaObj[k]);
-  const parts = [];
-  parts.push(toolMetaChips(metaObj));
-  if (Array.isArray(res.items)) {
-    if (!res.items.length) parts.push(`<div class="tool-empty">${esc(uiText("call_empty"))}</div>`);
-    else parts.push(`<ul class="tool-items">${res.items.map((it) => {
-      const label = typeof it === "string" ? it : (it.title || it.path || it.summary || JSON.stringify(it));
-      return `<li>${esc(label)}</li>`;
-    }).join("")}</ul>`);
-  }
-  toolCollectTexts(o).forEach((t) => parts.push(`<div class="tool-text md">${renderMarkdown(t)}</div>`));
-  parts.push(toolTraceHtml(o));
-  let pretty = raw;
-  try { pretty = JSON.stringify(o, null, 2); } catch (e) {}
-  parts.push(`<details class="tool-raw"><summary data-clk="raw_fold">${esc(uiText("call_raw"))}</summary><pre>${esc(pretty)}</pre></details>`);
-  return `<div class="bubble-body tool md">${parts.join("")}</div>`;
-}
-
-function toolBodyHtml(m) {
-  const raw = m.content == null ? "" : String(m.content);
-  let o = null;
-  try { o = JSON.parse(raw); } catch (e) {}
-  if (o && typeof o === "object" && o.ok === false) {
-    return `<div class="bubble-body tool error md">${renderMarkdown(o.error || raw)}</div>`;
-  }
-  if (o && typeof o === "object") return toolResultHtml(o, raw);
-  return `<div class="bubble-body tool md">${renderMarkdown(raw)}</div>`;
-}
 function treeDocHtml(doc, sec, ctx) {
   const c = { ...ctx, row: doc };
   const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
@@ -742,6 +793,141 @@ function flowHtml(sec, ctx) {
   return head + `<div class="flow-grid">${body}</div>`;
 }
 
+/* DAG 渲染器：固定框、按层自动布局、支持缩放；回边（环）画虚线并标注条件。
+   图上的每个节点就是岗位流程状态机的一个状态，边就是一次允许的迁移——
+   顺序条看不出"打回重做"和"分支裁决"，这里一眼能看到。 */
+function dagEdgeTo(x) {
+  return x && typeof x === "object" ? String(x.to || x.id || "") : String(x || "");
+}
+function dagNodes(states) {
+  const by = new Map();
+  arr(states).forEach((s) => { if (s && s.id) by.set(s.id, s); });
+  return by;
+}
+function dagLayout(states) {
+  const by = dagNodes(states);
+  const ids = [...by.keys()];
+  // 先用 DFS 找出成环的边（回到栈上的点）：这些是"回边"，只影响画法，不参与分层
+  const state = new Map(), backSet = new Set();
+  const dfs = (start) => {
+    const stack = [[start, 0]];
+    state.set(start, 1);
+    while (stack.length) {
+      const fr = stack[stack.length - 1];
+      const [id, i] = fr;
+      const outs = arr((by.get(id) || {}).next).map(dagEdgeTo).filter((t) => by.has(t));
+      if (i >= outs.length) { state.set(id, 2); stack.pop(); continue; }
+      fr[1] += 1;
+      const to = outs[i];
+      if (state.get(to) === 1) { backSet.add(id + "|" + to); continue; }
+      if (state.get(to) === 2) continue;
+      state.set(to, 1);
+      stack.push([to, 0]);
+    }
+  };
+  ids.forEach((id) => { if (!state.get(id)) dfs(id); });
+  // 分层：只在非回边上做最长路径松弛，几轮就稳定
+  const level = new Map(ids.map((id) => [id, 0]));
+  for (let it = 0; it < ids.length; it += 1) {
+    let moved = false;
+    ids.forEach((id) => {
+      arr((by.get(id) || {}).next).forEach((n) => {
+        const to = dagEdgeTo(n);
+        if (!by.has(to) || backSet.has(id + "|" + to)) return;
+        const want = (level.get(id) || 0) + 1;
+        if (want > (level.get(to) || 0)) { level.set(to, want); moved = true; }
+      });
+    });
+    if (!moved) break;
+  }
+  const edges = [], back = [];
+  ids.forEach((id) => {
+    arr((by.get(id) || {}).next).forEach((n) => {
+      const to = dagEdgeTo(n);
+      if (!by.has(to)) return;
+      const e = { from: id, to, when: ((by.get(id) || {})["when"] || {})[to] || "" };
+      (backSet.has(id + "|" + to) ? back : edges).push(e);
+    });
+  });
+  const cols = new Map();
+  ids.slice().sort((a, b) => (level.get(a) - level.get(b)) || (a < b ? -1 : 1))
+    .forEach((id) => {
+      const lv = level.get(id) || 0;
+      if (!cols.has(lv)) cols.set(lv, []);
+      cols.get(lv).push(id);
+    });
+  const COL_W = 172, ROW_H = 88, NODE_W = 128, NODE_H = 54, PAD = 18;
+  const rows = Math.max(1, ...[...cols.values()].map((c) => c.length));
+  const maxLv = Math.max(0, ...[...cols.keys()]);
+  const pos = new Map();
+  [...cols.entries()].forEach(([lv, list]) => list.forEach((id, i) => {
+    pos.set(id, { x: PAD + lv * COL_W, y: PAD + i * ROW_H });
+  }));
+  return { by, pos, edges: edges.concat(back), cols, rows, maxLv,
+           width: PAD * 2 + maxLv * COL_W + NODE_W,
+           height: PAD * 2 + rows * ROW_H,
+           w: NODE_W, h: NODE_H };
+}
+function dagSvg(L) {
+  const path = (e) => {
+    const a = L.pos.get(e.from), b = L.pos.get(e.to);
+    if (!a || !b) return "";
+    const x1 = a.x + L.w, y1 = a.y + L.h / 2;
+    const x2 = b.x, y2 = b.y + L.h / 2;
+    const isBack = (L.pos.get(e.to) || {}).x <= (L.pos.get(e.from) || {}).x;
+    const mx = (x1 + x2) / 2;
+    // 回边从上方绕回：控制点都落在两端之间，不会被画到画布外
+    const yTop = Math.max(4, Math.min(y1, y2) - 30);
+    const fromTop = Math.max(4, y1 - 26), toTop = Math.max(4, y2 - 26);
+    const d = isBack
+      ? `M${x1},${y1} C${x1 - 26},${fromTop} ${x2 + 26},${toTop} ${x2},${y2}`
+      : `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    const label = e.when
+      ? `<text x="${mx}" y="${(y1 + y2) / 2 - 6}" class="dag-elabel">${esc(e.when)}</text>` : "";
+    return `<g class="dag-edge${isBack ? " back" : ""}"><path d="${d}" marker-end="url(#dag-arrow${isBack ? "-back" : ""})"/>${label}</g>`;
+  };
+  return `<defs>
+      <marker id="dag-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      <marker id="dag-arrow-back" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e2571e"/></marker>
+    </defs>${L.edges.map(path).join("")}`;
+}
+function dagCard(row, sec, index, ctx) {
+  const states = arr(row.states && row.states.length ? row.states : (row.flow || {}).states);
+  if (!states.length) return "";
+  const L = dagLayout(states);
+  const nodes = [...L.pos.entries()].map(([id, p]) => {
+    const s = L.by.get(id) || {};
+    return `<div class="flow-node${s.terminal ? " term" : ""}" style="left:${p.x}px;top:${p.y}px;width:${L.w}px;height:${L.h}px" title="${esc(s.desc || "")}">
+      <b>${esc(s.cn || s.id)}</b><span>${esc(s.id)}</span></div>`;
+  }).join("");
+  const zoom = `<div class="dag-zoom">
+      <button data-clk="dag_zoom" data-dag="out" data-dag-i="${index}" aria-label="缩小">−</button>
+      <span class="dag-pct" data-dag-pct="${index}">100%</span>
+      <button data-clk="dag_zoom" data-dag="in" data-dag-i="${index}" aria-label="放大">＋</button>
+      <button data-clk="dag_zoom" data-dag="fit" data-dag-i="${index}">适应</button>
+    </div>`;
+  const title = row.cn || row.id || (sec.title ? fill(sec.title, ctx || {}) : "");
+  return `<article class="flow-card" data-dag-card="${index}">
+    <header><h4>${esc(title)}</h4>
+      <span class="muted">${esc(row.id || "")} · ${esc(uiText("flow_states", states.length))} · ${esc(uiText("dag_edges", L.edges.length))}</span>${zoom}</header>
+    <div class="dag-viewport"><div class="dag-stage" data-dag-stage="${index}" style="width:${L.width}px;height:${L.height}px">
+      <svg class="dag-edges" width="${L.width}" height="${L.height}" viewBox="0 0 ${L.width} ${L.height}">${dagSvg(L)}</svg>
+      ${nodes}
+    </div></div>
+  </article>`;
+}
+function dagHtml(sec, ctx) {
+  const head = secHead(sec, ctx);
+  let rows = arr(ref(sec.source, ctx));
+  if (!rows.length) return head + emptyHtml(sec.empty);
+  // source 直接给"状态列表"时包成一张图：岗位详情就是一整套状态，不该再要求外面套一层
+  if (rows.every((r) => r && typeof r === "object" && r.id && "next" in r)) {
+    rows = [{ id: "", cn: "", states: rows }];
+  }
+  const body = rows.map((row, i) => dagCard(row, sec, i, ctx)).join("");
+  return head + `<div class="flow-grid">${body}</div>`;
+}
+
 function treeHtml(sec, ctx) {
   const nodes = arr(ref(sec.source, ctx));
   if (!nodes.length) return emptyHtml(sec.empty);
@@ -775,35 +961,35 @@ function docHtml(sec, ctx) {
 }
 
 function composerHtml(sec, ctx) {
+  // 只读是"整块"的：工单结单或所在项目归档，追加备注/结单/语音/发送四个控件一起灰，
+  // 不再出现"少一个按钮"或"其中几个还亮着"的半开状态。
   const disabled = sec.disabled_when != null && condOf(sec.disabled_when, ctx);
   const submit = sec.submit || {};
   const submitId = regAct({ act: submit, ctx, composer: true });
   const voice = sec.voice || null;
-  let voiceId = "";
-  if (voice) {
-    voiceId = regAct({ act: voice, ctx, composer: true, voice: true });
-  }
-  const hint = disabled ? (sec.disabled_hint || "") : "";
+  const voiceId = voice ? regAct({ act: voice, ctx, composer: true, voice: true }) : "";
+  const hint = disabled ? String(fill(sec.disabled_hint || sec.disabled_reason || "", ctx)) : "";
   const gate = disabled ? ` disabled${hint ? ` title="${esc(hint)}"` : ""}` : "";
+  const st = disabled ? "disabled" : "idle";
   const acts = (sec.actions || []).map((a) =>
     buttonHtml(a, ctx, { disabled, hint, composer: true, clk: a.clk || "composer_voice" })).join("");
   const busyVal = sec.busy_from ? String(fill(sec.busy_from, ctx) || "") : "";
   const busy = !disabled && busyVal && busyVal === (sec.busy_when || "running");
-  const voiceBtn = voice && !disabled
-    ? `<button class="voice" data-clk="composer_voice" data-act="${voiceId}" title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
+  const voiceBtn = voice
+    ? `<button class="voice" data-clk="composer_voice" data-act="${voiceId}" data-ctl="${esc(ctlOf(voice, "composer_voice"))}" data-ctl-state="${st}"${gate} title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
     : "";
+  const submitCtl = String(submit.ctl || ctlOf(submit, "composer_send"));
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
       <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
       ${acts}
       ${voiceBtn}
-      <button class="primary" data-clk="composer_send" data-act="${submitId}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
+      <button class="primary" data-clk="composer_send" data-act="${submitId}" data-ctl="${esc(submitCtl)}" data-ctl-state="${st}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
     </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
     ${busy ? `<div class="composer-hint busy">${esc(fill(sec.busy_text || "", ctx))}</div>` : ""}
   </div>`;
 }
-
 /* 点击状态机图：规格驱动，7 个状态环形排布，有向边是允许的迁移 */
 function clickMachineHtml(sec, ctx) {
   const m = ref(sec.source, ctx) || {};
@@ -887,6 +1073,7 @@ function sectionHtml(sec, ctx, idx) {
   if (kind === "cards") html = secHead(sec, ctx) + cardsHtml(sec, ctx);
   else if (kind === "stats") html = statsHtml(sec, ctx);
   else if (kind === "flow") html = flowHtml(sec, ctx);
+  else if (kind === "dag") html = dagHtml(sec, ctx);
   else if (kind === "machine") html = secHead(sec, ctx) + clickMachineHtml(sec, ctx);
   else if (kind === "kinds") html = secHead(sec, ctx) + clickKindsHtml(sec, ctx);
   else if (kind === "map") html = mapHtml(sec, ctx);
@@ -932,8 +1119,11 @@ function expandFolds() {
 }
 
 function headHtml(spec, ctx) {
+  // 页头徽章：已归档/只读这类"整页的态"必须写在标题旁，而不是藏在某个区块里
+  const badges = (spec.badges || []).filter((b) => b && condOf(b.when, ctx))
+    .map((b) => `<span class="badge ${esc(b.tone || "archived")}">${esc(fill(b.text || "", ctx))}</span>`).join("");
   return `<div class="view-head">
-      <div style="min-width:0"><h2>${esc(fill(spec.heading || spec.heading_from || "", ctx))}</h2>
+      <div style="min-width:0"><h2>${esc(fill(spec.heading || spec.heading_from || "", ctx))}${badges}</h2>
       <div class="desc">${esc(fill(spec.subheading || "", ctx))}</div></div>
       <div class="spacer"></div>
       <div class="actions">${(spec.actions || []).map((a) => buttonHtml(a, ctx, { clk: "head_act" })).join("")}</div>

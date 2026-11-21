@@ -161,6 +161,25 @@ main .crumb{margin-bottom:14px}
 .flow-node span{font-size:11px;color:var(--muted)}
 .flow-node.term{border-color:var(--ok);background:rgba(0,180,42,.06)}
 .flow-arrow{color:var(--muted);font-size:13px;padding-top:12px;flex:none}
+/* ---- DAG 渲染器：固定框、按层自动布局、可缩放（缩放只改画布 transform） ---- */
+.dag-zoom{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.dag-zoom button{width:26px;height:24px;padding:0;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--fg-2);font-size:13px;line-height:1}
+.dag-zoom button[data-dag="fit"]{width:auto;padding:0 8px;font-size:11.5px}
+.dag-pct{font-size:11px;color:var(--muted);min-width:34px;text-align:center}
+.dag-viewport{overflow:auto;border:1px dashed var(--line);border-radius:10px;background:
+  linear-gradient(rgba(127,127,127,.05) 1px,transparent 1px) 0 0/100% 22px,
+  linear-gradient(90deg,rgba(127,127,127,.05) 1px,transparent 1px) 0 0/22px 100%;
+  padding:8px;max-height:60vh}
+.dag-stage{position:relative;transform-origin:0 0;transition:transform .16s ease}
+.dag-edges{position:absolute;left:0;top:0;color:#8a97a8;overflow:visible}
+.dag-edge path{fill:none;stroke:currentColor;stroke-width:1.4}
+.dag-edge.back path{stroke:#e2571e;stroke-dasharray:6 4}
+.dag-elabel{font-size:11px;fill:#8a97a8;text-anchor:middle}
+.dag-edge.back .dag-elabel{fill:#e2571e}
+.dag-stage .flow-node{position:absolute;display:flex;flex-direction:column;justify-content:center;
+  box-sizing:border-box;overflow:hidden;z-index:1}
+.dag-stage .flow-node span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .pcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 14px 12px;cursor:pointer;transition:border-color .15s,transform .08s}
 .pcard:hover{border-color:var(--accent)}
 .pcard:active{transform:scale(.995)}

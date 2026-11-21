@@ -14,7 +14,6 @@ def setup(ctx):
         ("tickets.view", _pure.view),
         ("tickets.screen", _pure.screen),
         ("tickets.roles", _pure.roles),
-        ("tickets.note", _pure.note),
         ("tickets.touch", _pure.touch),
         ("tickets.bindrole", _pure.bindrole),
         ("tickets.bindpm", _pure.bindpm),
@@ -24,7 +23,6 @@ def setup(ctx):
         ("tickets.collect_session_ids", _pure.collect_session_ids),
         ("tickets.archive_transcript", _pure.archive_transcript),
         ("tickets.pick", _pure.pick),
-        ("tickets.resolve_target", _pure.resolve_target),
         ("tickets.files_filter", _pure.files_filter),
         ("tickets.paths", _pure.paths),
         ("tickets.msg", _pure.msg),
@@ -38,6 +36,8 @@ def setup(ctx):
     ctx.api.register("tickets.stall_scan", _route_stall_scan, "停滞扫描：遍历在途→判定→开审计单", module="tickets")
     ctx.api.register("tickets.create", _route_create, "建工单：校验项目→造记录→拉 PM→落盘", module="tickets")
     ctx.api.register("tickets.rebind", _route_rebind, "项目改名后把工单改挂到新项目 id", module="tickets")
+    ctx.api.register("tickets.send", _route_send, "发消息：工单/项目守卫→解析目标→追加→派发", module="tickets")
+    ctx.api.register("tickets.note_write", _route_note_write, "追加备注：守卫→追加→落盘", module="tickets")
     _register_tools(ctx)
     return True
 
@@ -152,6 +152,87 @@ def _route_record_path(ctx, payload):
                               "id": p.get("id"), "project": pj})
 
 
+
+def _project_state(ctx, project):
+    """项目档案里的两件事实：是否归档、哪些岗位被项目禁用。
+
+    写在工单侧是因为这里的每个写入口都要用；不做缓存，一次点击一次读盘就够。
+    """
+    name = str(project or "").strip()
+    if not name:
+        return {"archived": False, "roles": [], "exists": False}
+    paths = _cfg_paths(ctx)
+    pr = paths.get("project_record") or ""
+    row = ctx.api.call("store.read", {
+        "module": "agent/projects",
+        "path": pr.format(project=name) if pr else name}, caller=None)
+    rec = row.get("value") or {}
+    ov = (rec.get("overrides") or {}) if isinstance(rec, dict) else {}
+    return {"archived": rec.get("archived") is True,
+            "roles": [str(x) for x in (ov.get("roles") or [])],
+            "exists": row.get("value") is not None}
+
+
+def _err(ctx, code, status, message):
+    return ctx.api.call("tickets.err", {
+        "code": code, "status": status, "message": message}, caller=None)
+
+
+def _route_send(ctx, payload):
+    """发消息闭环：工单守卫（结单只读）→ 项目守卫（归档只读）→ 解析目标 → 追加 → 派发。
+
+    守卫必须放在写之前：前端把按钮灰掉是提示，这里才是真正拦得住的地方。
+    """
+    tid = payload.get("id") or ""
+    tpl = _msg_tpl(ctx)
+    row = ctx.api.call("store.read", {"module": "agent/tickets",
+                                      "path": _ticket_path(ctx, tid)}, caller=None)
+    rec = row.get("value")
+    if rec is None:
+        return _err(ctx, "not_found", 404, tpl.get("missing") or "")
+    guard = _pure.guard_open({"rec": rec, "tpl": tpl})
+    if guard.get("ok") is False:
+        return _err(ctx, guard.get("code"), guard.get("status"), guard.get("error"))
+    proj = _project_state(ctx, rec.get("project"))
+    if proj.get("archived"):
+        return _err(ctx, "project_archived", 409, tpl.get("project_archived") or "")
+    tgt = _pure.resolve_target({"rec": rec, "target": payload.get("target") or "pm"})
+    sid = tgt.get("session") or ""
+    if not sid:
+        return _err(ctx, "no_session", 409, tpl.get("pm_started") or "")
+    ctx.demand_engine.run_callable("session-send", {
+        "id": sid, "text": payload.get("text") or ""})
+    ctx.runtime.dispatch({"demand": "session-run", "key": sid, "input": {"id": sid}})
+    return ctx.api.call("tickets.view", {"rec": rec}, caller=None)
+
+
+def _route_note_write(ctx, payload):
+    """追加备注：同一套守卫，追加后立即落盘并回视图。"""
+    tid = payload.get("id") or ""
+    tpl = _msg_tpl(ctx)
+    row = ctx.api.call("store.read", {"module": "agent/tickets",
+                                      "path": _ticket_path(ctx, tid)}, caller=None)
+    rec = row.get("value")
+    if rec is None:
+        return _err(ctx, "not_found", 404, tpl.get("missing") or "")
+    guard = _pure.guard_open({"rec": rec, "tpl": tpl})
+    if guard.get("ok") is False:
+        return _err(ctx, guard.get("code"), guard.get("status"), guard.get("error"))
+    if _project_state(ctx, rec.get("project")).get("archived"):
+        return _err(ctx, "project_archived", 409, tpl.get("project_archived") or "")
+    text = str(payload.get("text") or "").strip()
+    if not text:
+        return _err(ctx, "empty_text", 400, "")
+    now = ctx.api.call("clock.now", {}, caller=None)
+    rec2 = _pure.note({"rec": rec, "text": text, "now": now.get("ts")})
+    # 写盘不在能力里做：能力只声明 effect，由需求层统一落盘（架构闸会盯这一条）
+    view = ctx.api.call("tickets.view", {"rec": rec2}, caller=None)
+    view["effects"] = [{"kind": "write", "module": "agent/tickets",
+                        "path": _ticket_path(ctx, rec2.get("id"), rec2.get("project")),
+                        "value": rec2}]
+    return view
+
+
 def _route_create(ctx, payload):
     """建单：幂等键 = 项目 + 标题 + 目标。重放直接回原单，不建第二张。
 
@@ -226,6 +307,16 @@ def _create(ctx, payload):
         "path": pr.format(project=pname) if pr else pname}, caller=None)
     if prow.get("value") is None:
         return ctx.api.call("projects.missing", {"id": payload.get("project")}, caller=None)
+    prec = prow.get("value") or {}
+    proles = [str(x) for x in ((prec.get("overrides") or {}).get("roles") or [])]
+    cguard = _pure.guard_create({
+        "project_archived": prec.get("archived") is True,
+        "pm_disabled": "pm" in proles,
+        "tpl": _msg_tpl(ctx)})
+    if cguard.get("ok") is False:
+        return ctx.api.call("tickets.err", {
+            "code": cguard.get("code"), "status": cguard.get("status"),
+            "message": cguard.get("error")}, caller=None)
     now = ctx.api.call("clock.now", {}, caller=None)
     day = str(now.get("iso") or "")[:10].replace("-", "")
     listed = ctx.api.call("store.glob", {
@@ -308,6 +399,11 @@ def _route_close(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/tickets",
                                       "path": _ticket_path(ctx, payload.get("id"))}, caller=None)
     rec = row.get("value") or {}
+    if not rec:
+        return _err(ctx, "not_found", 404, _msg_tpl(ctx).get("missing") or "")
+    if _project_state(ctx, rec.get("project")).get("archived"):
+        return _err(ctx, "project_archived", 409,
+                    _msg_tpl(ctx).get("project_archived") or "")
     tpl_child_open = _msg_tpl(ctx).get("child_open") or ""
     for cid in rec.get("children") or []:
         child = ctx.api.call("store.read", {"module": "agent/tickets",

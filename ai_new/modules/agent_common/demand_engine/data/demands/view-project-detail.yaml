@@ -24,6 +24,8 @@ view:
   crumb: [项目, "{project.name}"]
   heading: "{project.name}"
   subheading: "建 {project.created|when}"
+  badges:
+  - {text: 已归档·只读, when: "{project.archived}"}
   data:
   - {as: project, demand: projects-get, params: {id: "{route.project}"}}
   - {as: positions, demand: project-positions, params: {id: "{route.project}"}}
@@ -31,12 +33,14 @@ view:
   - {as: ptools, demand: project-tools, params: {id: "{route.project}"}}
   - {as: tickets, demand: ticket-list, params: {project: "{route.project}"}}
   actions:
-  - {label: 重命名, modal: project.rename}
+  - {label: 重命名, modal: project.rename,
+     disabled_when: "{project.archived}", disabled_hint: 已归档项目只能查看，不能再改名}
   - {label: 归档, demand: projects-archive, params: {id: "{route.project}"},
-     flash: "已归档：{project.name}", disabled_when: "{project.archived}", stay: true}
+     flash: "已归档：{project.name}", disabled_when: "{project.archived}", disabled_hint: 已归档,
+     stay: true}
   - {label: 删除, demand: projects-delete, params: {id: "{route.project}", purge: true},
      confirm: "彻底删除项目「{project.name}」？", flash: "已删除：{project.name}",
-     tone: danger, after: {view: projects}}
+     tone: danger, after: {view: projects, reload: true}}
   - {label: ＋ 新建工单, tone: primary, modal: ticket.new,
      disabled_when: "{project.archived}", disabled_hint: 已归档项目不能再建工单}
   sections:
@@ -73,15 +77,14 @@ view:
     - label: 禁用
       demand: project-override-toggle
       params: {project: "{project.id}", kind: roles, id: row.id, enabled: false}
-      disabled_when: "row.disabled == true"
+      disabled_when: "row.disabled == true || {project.archived}"
       disabled_hint: 已在本项目禁用
-      confirm: "在本项目禁用岗位「{row.cn}」？"
       flash: 已禁用岗位：{row.cn}
       stay: true
     - label: 启用
       demand: project-override-toggle
       params: {project: "{project.id}", kind: roles, id: row.id, enabled: true}
-      disabled_when: "row.disabled != true || row.locked == true"
+      disabled_when: "row.disabled != true || row.locked == true || {project.archived}"
       disabled_hint: 已启用，无需再启用
       flash: 已启用岗位：{row.cn}
       stay: true
@@ -103,15 +106,14 @@ view:
     - label: 禁用
       demand: project-override-toggle
       params: {project: "{project.id}", kind: skills, id: row.id, enabled: false}
-      disabled_when: "row.disabled_project == true"
+      disabled_when: "row.disabled_project == true || {project.archived}"
       disabled_hint: 已在本项目禁用
-      confirm: "在本项目禁用技能「{row.cn}」？"
       flash: 已禁用技能：{row.cn}
       stay: true
     - label: 启用
       demand: project-override-toggle
       params: {project: "{project.id}", kind: skills, id: row.id, enabled: true}
-      disabled_when: "row.disabled_project != true"
+      disabled_when: "row.disabled_project != true || {project.archived}"
       disabled_hint: 已启用
       flash: 已启用技能：{row.cn}
       stay: true
@@ -133,15 +135,14 @@ view:
     - label: 禁用
       demand: project-override-toggle
       params: {project: "{project.id}", kind: tools, id: row.name, enabled: false}
-      disabled_when: "row.disabled_project == true"
+      disabled_when: "row.disabled_project == true || {project.archived}"
       disabled_hint: 已在本项目禁用
-      confirm: "在本项目禁用工具「{row.name}」？"
       flash: 已禁用工具：{row.name}
       stay: true
     - label: 启用
       demand: project-override-toggle
       params: {project: "{project.id}", kind: tools, id: row.name, enabled: true}
-      disabled_when: "row.disabled_project != true"
+      disabled_when: "row.disabled_project != true || {project.archived}"
       disabled_hint: 已启用
       flash: 已启用工具：{row.name}
       stay: true

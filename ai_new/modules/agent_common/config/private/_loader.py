@@ -40,6 +40,7 @@ def setup(ctx):
     _apply_env(ctx.cfg)
     ctx.api.register("config.get", _route_get, "读取脱敏配置")
     ctx.api.register("config.set_value", _route_set_value, "按点号路径写配置并落盘", module="config")
+    ctx.api.register("config.explain", _route_explain, "运行时参数解释：按登记表逐条取值并给出人话说明", module="config")
 
 
 def _apply_env(cfg):
@@ -85,6 +86,23 @@ def _route_get(ctx, payload):
         value = _nested_get(ctx.cfg, key) if "." in key else ctx.cfg.get(key)
         return {"key": key, "value": value}
     return redacted(ctx)
+
+
+def _route_explain(ctx, payload):
+    """把"藏起来的运行时参数"摊开：说明与分组来自 params.yaml，值现读当前配置。
+
+    用途是让人一眼看出重试几次、并发多少、超时多少，而不是去翻配置文件猜。
+    """
+    spec = _read(ctx, "params.yaml").get("params") or []
+    rows = [{"group": p.get("group") or "", "key": p.get("key") or "",
+             "label": p.get("label") or p.get("key") or "",
+             "note": p.get("note") or "", "value": _nested_get(ctx.cfg, p.get("key") or "")}
+            for p in spec if isinstance(p, dict)]
+    groups = []
+    for r in rows:
+        if r["group"] not in groups:
+            groups.append(r["group"])
+    return {"rows": rows, "count": len(rows), "groups": groups}
 
 
 def _route_set_value(ctx, payload):

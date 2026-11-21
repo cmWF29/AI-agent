@@ -38,6 +38,7 @@ checks:
   - click-machine
   - view-click-machine
   - demands-manifest
+  - runtime-params
   - trace-slow
   - view-arch
   - trace-list

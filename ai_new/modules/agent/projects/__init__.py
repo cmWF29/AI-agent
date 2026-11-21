@@ -81,16 +81,29 @@ def _route_toggle(ctx, payload):
     if row.get("value") is None:
         return ctx.api.call("projects.missing",
             {"id": pid.get("id"), "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
+    guard = _pure.guard_writable({"rec": row.get("value"), "tpl": _msg_tpl(ctx)})
+    if guard.get("ok") is False:
+        return guard
     now = ctx.api.call("clock.now", {}, caller=None)
+    cascaded = []
+    if payload.get("kind") == "tools" and payload.get("enabled") is False:
+        lib = ctx.api.call("store.read", {"module": "agent/library",
+                                          "path": "roles.yaml"}, caller=None)
+        tool_id = str(payload.get("id") or "")
+        for role_id, role in (lib.get("value") or {}).items():
+            if tool_id in [str(t) for t in ((role or {}).get("tools") or [])]:
+                cascaded.append(str(role_id))
     rec = ctx.api.call("projects.toggle_override", {
         "rec": row.get("value"), "kind": payload.get("kind"),
         "id": payload.get("id"), "enabled": payload.get("enabled"),
+        "cascade_roles": cascaded,
         "now": now.get("ts"), "tpl": _msg_tpl(ctx)}, caller=None)
     if rec.get("ok") is False:
         return rec
     view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
     view["overrides"] = ctx.api.call("projects.override_parts",
                                      {"rec": rec}, caller=None)
+    view["cascaded"] = cascaded
     view["effects"] = [{"kind": "write", "module": "agent/projects",
                         "path": _record(paths, pid.get("id")), "value": rec}]
     return view
@@ -175,6 +188,7 @@ def _route_remove(ctx, payload):
     row = ctx.api.call("store.read", {"module": "agent/projects",
         "path": _record(paths, pid.get("id"))}, caller=None)
     if payload.get("purge") is True:
+        # 彻底删除不受归档限制：归档是"只读封存"，不是"防删除"；删掉归档项目是合法收尾。
         ticket_effects, ticket_ids = _purge_tickets(ctx, pid.get("id"))
         effects = list(ticket_effects)
         effects += _purge_sessions(ctx, ticket_ids)
@@ -186,6 +200,23 @@ def _route_remove(ctx, payload):
         out = ctx.api.call("projects.deleted", {"id": pid.get("id")}, caller=None)
         out["effects"] = effects
         return out
+    paths2 = _cfg_paths(ctx)
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/tickets", "pattern": paths2.get("ticket_glob") or ""}, caller=None)
+    open_ids = []
+    for rel in listed.get("items") or []:
+        segs = str(rel).split("/")
+        if len(segs) != 5 or segs[1] != pid.get("id"):
+            continue
+        trow = ctx.api.call("store.read", {"module": "agent/tickets", "path": rel}, caller=None)
+        trec = trow.get("value") or {}
+        if trec and trec.get("status") != "closed":
+            open_ids.append(trec.get("id") or segs[3])
+    guard = _pure.guard_archive({
+        "rec": row.get("value"), "open_tickets": open_ids,
+        "tpl": _msg_tpl(ctx)})
+    if guard.get("ok") is False:
+        return guard
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.archive", {"rec": row.get("value"),
         "now": now.get("ts")}, caller=None)
@@ -204,6 +235,9 @@ def _route_rename(ctx, payload):
     if row.get("value") is None:
         return ctx.api.call("projects.missing",
             {"id": old, "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
+    guard = _pure.guard_writable({"rec": row.get("value"), "tpl": _msg_tpl(ctx)})
+    if guard.get("ok") is False:
+        return guard
     new_id = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None).get("id")
     if new_id != old:
         ex = ctx.api.call("store.exists", {"module": "agent/projects",

@@ -56,10 +56,17 @@ function uiExit(kind) {
 }
 /* 收尾看"这次动作自己的 promise"，包成函数再调用：
    直接传 promise 会在设 busy 之前就把 execute 跑起来，弹窗抢先把状态改成 modal。 */
-function uiRun(fn, kind) {
+/* 控件级状态机：每个按钮自带 data-ctl，data-ctl-state 走 idle→busy→done→idle。
+   页面级 click_machine 管"这一下能不能点"，控件状态管"这个按钮自己现在是什么态"。 */
+function ctlMark(el, st) {
+  if (el && el.dataset && el.dataset.ctl) el.dataset.ctlState = st;
+}
+function uiRun(fn, kind, el) {
   if (!uiAllowed(kind)) return null;
   uiEnter(kind);
-  const done = () => uiExit(kind);
+  ctlMark(el, "busy");
+  const done = () => { uiExit(kind); ctlMark(el, "done");
+    setTimeout(() => { if (el && el.isConnected) ctlMark(el, "idle"); }, 240); };
   let p;
   try { p = fn(); } catch (err) { done(); throw err; }
   Promise.resolve(p).then(done, done);
@@ -108,12 +115,14 @@ function resolveKind(target) {
 /* 动作按钮：所有"有 data-act 的按钮"共用同一段执行逻辑，种类只决定门禁 */
 function runAct(el, kind) {
   if (el.disabled) return null;
+  // 没声明控件状态机的按钮一律点不动：漏声明本身就是缺陷，不能静默放过
+  if (!el.dataset.ctl) { UIS.violations += 1; UIS.lastBad = "no-ctl:" + String(el.dataset.act || ""); return null; }
   const binding = ACTS.get(String(el.dataset.act));
   if (!binding) {   // 绑定表里没有：这次渲染已作废，页面该重取
     UIS.violations += 1; UIS.lastBad = "stale-act:" + el.dataset.act;
     return null;
   }
-  if (binding.voice) return uiRun(() => executeVoice(binding, el), kind);
+  if (binding.voice) return uiRun(() => executeVoice(binding, el), kind, el);
   if (binding.composer && !binding.act.modal) {
     const box = $("view-body").querySelector(".composer textarea");
     const text = (box && box.value || "").trim();
@@ -121,15 +130,21 @@ function runAct(el, kind) {
       banner(uiText("composer_empty") || binding.act.empty_hint || "请先输入内容", "err");
       return null;
     }
-    return uiRun(() => execute(binding, { text }), kind);
+    return uiRun(() => execute(binding, { text }), kind, el);
   }
-  return uiRun(() => execute(binding, {}), kind);
+  return uiRun(() => execute(binding, {}), kind, el);
 }
 function runGo(el, kind) {
   const binding = ACTS.get(String(el.dataset.go));
   if (!binding) { UIS.violations += 1; UIS.lastBad = "stale-go:" + el.dataset.go; return null; }
-  return uiRun(() => execute(binding, {}), kind);
+  return uiRun(() => execute(binding, {}), kind, el);
 }
+
+/* 折叠是用户的意图：展开/收起写进 sessionStorage，重渲染与整页刷新都按原状恢复 */
+document.addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (d && d.dataset && d.dataset.fold && typeof foldSet === "function") foldSet(d.dataset.fold, d.open);
+}, true);
 
 const CLICK_HANDLERS = {
   drawer_open() { openDrawer(); },
@@ -161,6 +176,26 @@ const CLICK_HANDLERS = {
   summary_fold() {},
   raw_fold() {},
   /* 弹窗三个入口在 actions.js 里自己过门禁并执行，这里只登记，不重复执行 */
+  dag_zoom(el) {
+    // 缩放只改画布 transform：不动布局，也不重取数据
+    const card = el.closest("[data-dag-card]");
+    const stage = card && card.querySelector("[data-dag-stage]");
+    if (!stage) return;
+    const mode = el.dataset.dag || "in";
+    let z = Number(stage.dataset.z || 1);
+    if (mode === "in") z = Math.min(2, z + 0.2);
+    else if (mode === "out") z = Math.max(0.5, z - 0.2);
+    else {
+      const box = card.querySelector(".dag-viewport");
+      const w = Number(stage.style.width.replace("px", "")) || stage.offsetWidth || 1;
+      z = box ? Math.min(1, (box.clientWidth - 16) / w) : 1;
+      if (!isFinite(z) || z <= 0) z = 1;
+    }
+    stage.dataset.z = String(z);
+    stage.style.transform = "scale(" + z + ")";
+    const pct = card.querySelector("[data-dag-pct]");
+    if (pct) pct.textContent = Math.round(z * 100) + "%";
+  },
   modal_ok() {},
   modal_cancel() {},
   modal_backdrop() {},

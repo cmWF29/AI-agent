@@ -1,0 +1,11 @@
+entries:
+- path: tickets/t-20261121-0001/round-note.md
+  category: knowledge
+  doc_kind: null
+  source: llm
+  layer: ticket
+  project: item
+  ticket: t-20261121-0001
+  name: round-note.md
+  created: '2026-11-21T18:05:32Z'
+  updated: '2026-11-21T18:05:32Z'

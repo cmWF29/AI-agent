@@ -106,8 +106,9 @@ view:
     - label: 结单
       modal: ticket.close
       tone: danger
-    disabled_when: '{thread.ticket.status=closed}'
-    disabled_hint: 工单已结单：不能再发消息或追加备注
+    # 只读只有一处判据：后端算好 locked（已结单或所在项目已归档），四个控件共用
+    disabled_when: '{thread.locked}'
+    disabled_hint: '{thread.lock_reason}'
 expect:
   given:
     input: {}

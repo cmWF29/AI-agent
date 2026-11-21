@@ -1,6 +1,6 @@
 id: projects-archive
-title: 归档项目：读一次 → 打归档标记（带时间）→ 落盘 → 露出字段
-description: 归档项目：读一次 → 打归档标记（带时间）→ 落盘 → 露出字段。标记与时间都由需求带进来，模块纯计算
+title: 归档项目：归档前置（工单全部结单）与只读封锁都在 projects.remove 能力内
+description: "归档项目：归档前置与只读封锁在能力内，需求只做顺序编排。有未结单工单就 409 open_tickets；已归档再归档 409 already_archived"
 tags:
 - project
 - write
@@ -9,62 +9,25 @@ enabled: true
 callable: true
 'on': []
 do:
-- call: store.id
+- call: projects.remove
   with:
-    value:
+    id:
       get: input.id
-  as: id
-- call: projects.record_path
-  with:
-    id:
-      get: id.id
-  as: pp1
-- call: store.read
-  with:
-    module:
-      lit: agent/projects
-    path:
-      get: pp1.path
-  as: row
-- call: clock.now
-  as: now
-- call: projects.archive
-  with:
-    rec:
-      get: row.value
-    now:
-      get: now.ts
-  as: rec
-- call: projects.record_path
-  with:
-    id:
-      get: id.id
-  as: pp2
-- call: store.write
-  with:
-    module:
-      lit: agent/projects
-    path:
-      get: pp2.path
-    value:
-      get: rec
-  as: w
-- call: projects.view
-  with:
-    rec:
-      get: rec
+    purge:
+      lit: false
   as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
 expect:
   given:
     input: {}
   calls:
-  - store.id
-  - projects.record_path
-  - store.read
-  - clock.now
-  - projects.archive
-  - projects.record_path
-  - store.write
-  - projects.view
+  - projects.remove
+  - runtime.apply
   payload: {}
-  promise: 标记与时间都由需求带进来，模块纯计算
+  promise: 归档前置与只读封锁归模块，需求不绕过

@@ -134,6 +134,10 @@ function condOf(expr, ctx) {
   if (expr == null) return true;
   if (typeof expr === "boolean") return expr;
   let s = String(expr).trim();
+  // 组合条件：|| 与 && 各自拆开逐段求值（&& 优先），每段可以是 {路径} 或 path=value
+  if (s.includes("||") || s.includes("&&")) {
+    return s.split("||").some((part) => part.split("&&").every((sub) => condOf(sub, ctx)));
+  }
   const wrapped = s.match(/^\{(.+)\}$/);
   if (wrapped) s = wrapped[1];
   if (/[!<>=]=?/.test(s)) return matchCond(condBase(ctx), s);

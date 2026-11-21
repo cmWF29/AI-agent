@@ -107,6 +107,8 @@ ui:
   gate_expired: 登录已失效，重新登录
   gate_fail: 操作失败
   wire_model: 模型
+  dag_edges: "{} 条迁移"
+  dag_fit: 适应
   wire_stream: 流式
   wire_req: 请求
   wire_resp: 响应
@@ -161,6 +163,158 @@ click_machine:                          # 点击状态机：前端每一个可�
   - {key: modal_ok,       label: 弹窗确定,     allow: [modal],          enter: busy,  exit: modal, note: 提交中禁用}
   - {key: modal_cancel,   label: 弹窗取消,     allow: [modal],          enter: "",    exit: "",   note: 关闭由 closeModal 负责}
   - {key: modal_backdrop, label: 点遮罩关闭,   allow: [modal],          enter: "",    exit: "",   note: 只关弹窗}
+  - {key: dag_zoom,       label: 流程图缩放,   allow: [idle],           enter: "",    exit: "",   note: 只改画布缩放，不取数}
+
+# 控件级状态机：每一个按钮/控件一条，id 由「种类 + 标签」算（render.js 的 ctlOf 同算法）。
+# 增删一个按钮而不登记这里，scripts/gate_controls.py 会直接报错——门禁不是靠人记得。
+controls:
+  ctl.head_act.全部调用:
+    label: 全部调用
+    kind: head_act
+    where: [arch]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.扫停滞:
+    label: 扫停滞
+    kind: head_act
+    where: [ops]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.导出数据:
+    label: 导出数据
+    kind: head_act
+    where: [ops]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.重命名:
+    label: 重命名
+    kind: head_act
+    where: [project-detail]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.归档:
+    label: 归档
+    kind: head_act
+    where: [project-detail]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.删除:
+    label: 删除
+    kind: head_act
+    where: [project-detail]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.新建工单:
+    label: ＋ 新建工单
+    kind: head_act
+    where: [project-detail]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.禁用:
+    label: 禁用
+    kind: cards
+    where: [project-detail, skills]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.启用:
+    label: 启用
+    kind: cards
+    where: [project-detail, skills]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.新建项目:
+    label: ＋ 新建项目
+    kind: head_act
+    where: [projects-list]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.改名:
+    label: 改名
+    kind: cards
+    where: [projects-list]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.归档:
+    label: 归档
+    kind: cards
+    where: [projects-list]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.删除:
+    label: 删除
+    kind: cards
+    where: [projects-list]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.新建拆解:
+    label: ＋ 新建拆解
+    kind: head_act
+    where: [skills]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.卸载:
+    label: 卸载
+    kind: cards
+    where: [skills]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.追加备注:
+    label: 追加备注
+    kind: composer_voice
+    where: [ticket-thread]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.结单:
+    label: 结单
+    kind: composer_voice
+    where: [ticket-thread]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.composer_send.发送:
+    label: 发送
+    kind: composer_voice
+    where: [ticket-thread]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.composer_voice.语音:
+    label: 语音
+    kind: composer_voice
+    where: [ticket-thread]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.安装缺失依赖:
+    label: 安装缺失依赖
+    kind: kv
+    where: [tools]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.card_act.修改密码:
+    label: 修改密码
+    kind: kv
+    where: [user]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
 
 roles:
   colors:

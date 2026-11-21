@@ -44,6 +44,30 @@ view:
        after: {view: projects, reload: true}}
     on_click: {view: project, params: {project: row.project.id}}
     empty: {title: 还没有项目, text: 先建一个项目，工单都挂在项目里。}
+  # 归档项目单独一摞：只读，只有"删除"这一条出口；能不能归档由后端按"工单全部结单"判
+  - kind: cards
+    as: tree
+    source: tree.archived
+    layout: deck
+    heading: 已归档
+    note: "共 {data.tree.archived|count} 个 · 只读：归档要求工单全部结单，归档后不能再改名、建单、发消息"
+    hide_when_empty: true
+    key: row.project.id
+    title: row.project.name
+    archived_when: row.project.archived
+    badge: {text: 已归档, when: row.project.archived}
+    stat:
+      count: row.counts.total
+      label: 工单
+      note: "{row.counts.closed} 已结单 · 只读"
+    meta:
+    - {label: 建, value: "row.project.created|when"}
+    actions:
+    - {label: 删除, demand: projects-delete, params: {id: row.project.id, purge: true},
+       confirm: "彻底删除项目「{row.project.name}」？其工单、会话与知识将一并删除。",
+       flash: "已删除：{row.project.name}", tone: danger,
+       after: {view: projects, reload: true}}
+    on_click: {view: project, params: {project: row.project.id}}
   - kind: table
     as: tree
     source: tree.orphans

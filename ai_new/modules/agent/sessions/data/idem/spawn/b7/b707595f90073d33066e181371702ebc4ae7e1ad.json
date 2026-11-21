@@ -1,0 +1,1 @@
+{"attempt": 1, "created_at": "2026-11-21T18:05:22.537583+00:00", "error_code": "", "holder": "16447:140715787011648", "key": "b707595f90073d33066e181371702ebc4ae7e1ad", "lease_until": 0, "result_digest": "role-1", "route": "sessions.spawn", "scope": "T-20261121-0001", "status": "done", "updated_at": "2026-11-21T18:05:22.609549+00:00"}

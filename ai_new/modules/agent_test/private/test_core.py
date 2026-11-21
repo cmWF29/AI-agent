@@ -187,6 +187,18 @@ class CoreTest(unittest.TestCase):
                     problems.append("%s 调了不存在的 func: %s" % (rec.get("id"), route))
         self.assertEqual(problems, [], "需求绑定了不存在的功能: %s" % problems)
 
+    def test_every_control_has_a_declared_state_machine(self):
+        """每个按钮都有自己的状态机：页面控件与 console.yaml controls 双向闭合。
+
+        加/删按钮而不登记，或登记了却已删掉按钮，这里直接失败——不靠人记得。
+        """
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "gate_controls", ROOT / "scripts" / "gate_controls.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.problems(), [], "控件状态机门禁未通过（见 scripts/gate_controls.py）")
+
     def test_registered_routes_are_demand_bound_or_platform(self):
         """注册表只收两类路由：被需求 do 树编排的业务能力，或清单登记的平台入口。
 

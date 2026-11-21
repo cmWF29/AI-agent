@@ -1,6 +1,6 @@
 id: ticket-message
-title: 工单消息：pm 或指定角色 → send 需求
-description: 工单消息：pm 或指定角色 → send 需求。目标解析归模块
+title: 工单消息：守卫 → 解析目标 → 追加 → 派发
+description: 工单消息：守卫 → 解析目标 → 追加 → 派发。结单/归档拦截与目标解析都归模块
 tags:
 - ticket
 - write
@@ -9,59 +9,19 @@ enabled: true
 callable: true
 'on': []
 do:
-- call: tickets.record_path
+- call: tickets.send
   with:
     id:
       get: input.id
-  as: tp
-- call: store.read
-  with:
-    module:
-      lit: agent/tickets
-    path:
-      get: tp.path
-  as: row
-- call: tickets.resolve_target
-  with:
-    rec:
-      get: row.value
+    text:
+      get: input.text
     target:
       lit: pm
-  as: tgt
-- call: demand_engine.run
-  with:
-    id:
-      lit: session-send
-    input:
-      id:
-        get: tgt.session
-      text:
-        get: input.text
-  as: sent
-- call: runtime.dispatch
-  with:
-    demand:
-      lit: session-run
-    key:
-      get: tgt.session
-    input:
-      id:
-        get: tgt.session
-  as: run
-- call: tickets.view
-  with:
-    rec:
-      get: row.value
   as: out
 expect:
   given:
     input: {}
   calls:
-  - tickets.record_path
-  - store.read
-  - tickets.resolve_target
-  - demand_engine.run
-  - runtime.dispatch
-  - tickets.view
+  - tickets.send
   payload: {}
-  promise: 目标解析归模块
+  promise: 结单与归档拦截下沉到模块，编排只剩一次调用

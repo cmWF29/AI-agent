@@ -1,18 +1,18 @@
 id: view-arch
-title: 架构与链路：需求全景、路由契约与实时调用摊开看
-description: "架构视图：需求全景、路由契约与实时调用摊开看。页面只声明区块，形状归模块与需求"
+title: 需求契约与运行时参数：需求要求什么、编译成什么、藏了哪些参数
+description: "需求契约：每条需求要求什么、编译成什么调用、有没有变形；运行时参数（重试/并发/超时/红线）与路由契约同屏。页面只声明区块，形状归模块与需求"
 tags: [view, web, read]
 enabled: true
 callable: false
 'on': []
 do: []
 view:
-  menu: {order: 1, label: 架构与链路, short: 架构, group: {name: 资产, order: 2}, mobile: true}
+  menu: {order: 1, label: 需求契约, short: 契约, group: {name: 资产, order: 2}, mobile: true}
   key: arch
   nav: arch
-  crumb: [架构与链路]
-  heading: 架构与链路
-  subheading: 需求怎么编译、落到哪条路由、谁执行
+  crumb: [需求契约]
+  heading: 需求契约
+  subheading: 每条需求要求什么、编译成哪些调用、偏差在哪；重试/并发/超时等隐藏参数一并摊开
   actions:
   - {label: 全部调用, view: traces}
   data:
@@ -20,14 +20,15 @@ view:
   - {as: api, demand: api-snapshot}
   - {as: pos, demand: position-list}
   - {as: slow, demand: trace-slow, params: {}}
+  - {as: params, demand: runtime-params}
   sections:
   - kind: map
-    heading: 架构与链路全景：一条需求怎么变成一次调用
-    note: 从上往下是数据流向，框里是当前在库数量；业务域按条数列在最后一行
+    heading: 一条需求怎么变成一次调用
+    note: 从上往下是数据流向，框里是当前在库数量
     cols:
     - title: 入口
       nodes:
-      - {label: 需求, value: "data.mf.count", note: 条，业务域分组见图下}
+      - {label: 需求, value: "data.mf.count", note: 条}
     - title: 编译
       nodes:
       - {label: 语句树, value: "data.mf.steps", note: 个顺序 call/send 节点}
@@ -36,8 +37,36 @@ view:
       - {label: 已注册路由, value: "data.api.routes", note: 条可被调用的能力}
     - title: 执行
       nodes:
-      - {label: 带状态机岗位, value: "data.pos.items|count", note: 个，各自带一套状态机}
+      - {label: 带状态机岗位, value: "data.pos.items|count", note: 个}
     foot: {label: 业务域分布, from: data.mf.groups}
+
+  # 先给"需求本身"：标题、要求什么、编译出什么、声明预期与实际是否一致
+  - kind: table
+    as: mf
+    source: data.mf.items
+    heading: 需求清单（声明 vs 编译）
+    note: 偏差 = 需求自己声明的预期调用与编译出来的实际调用不一致；不是 0 就是需求变形或用例过期
+    columns:
+    - {label: 需求, value: row.id, sub: row.view}
+    - {label: 标题, value: row.title}
+    - {label: 步骤, value: row.steps}
+    - {label: 实际调用, value: row.routes, muted: true}
+    - {label: 声明预期, value: row.expect_calls, muted: true}
+    - {label: 偏差, value: "row.drift|count", suffix: 处}
+    - {label: 契约承诺, value: row.promise, muted: true}
+    empty: {text: 暂无需求}
+
+  - kind: table
+    as: params
+    source: data.params.rows
+    heading: 运行时隐藏参数
+    note: 这些值不在页面上就没人知道"重试几次、并发多少、超时多少"；改值去 config，说明留在这里
+    columns:
+    - {label: 分组, value: row.group}
+    - {label: 参数, value: row.label, sub: row.key}
+    - {label: 当前值, value: row.value}
+    - {label: 作用, value: row.note, muted: true}
+    empty: {text: 暂无参数登记}
 
   - kind: tree
     as: mf
@@ -45,8 +74,8 @@ view:
     list: true
     collapsed: true
     hide_count: true
-    fold: {title: "需求执行链"}
-    note: 点开组看需求，再点开需求看 call/send 与 as/with 摘要
+    fold: {title: "需求执行链（点开看 call/send 与 as/with 摘要）"}
+    note: 点开组看需求，再点开需求看每一步
     empty: {text: 暂无需求}
   - kind: table
     as: api

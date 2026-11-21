@@ -1,49 +1,97 @@
+# 岗位流程：状态 + 迁移。next 是能去哪，when 是"什么条件下走这条"。
+# 只写顺序一条线是假的状态机：验收不过要打回、实现发现计划不成立要回退、
+# 扫描判定不成立就不开单——这些分支和回边本来就在真实流程里。
 requirement-owner:
   id: requirement-owner
+  cn: 需求流转
   kind: process
   states:
   - id: req.intake
+    cn: 接需求
     next:
     - req.structure
   - id: req.structure
+    cn: 结构化
     next:
     - req.plan
+    when:
+      req.plan: 需求描述可拆解
   - id: req.plan
+    cn: 定计划
     next:
     - req.split
+    - req.structure
+    when:
+      req.split: 计划可执行
+      req.structure: 需求变形需重新结构化
   - id: req.split
+    cn: 拆子单
     next:
     - req.execute
   - id: req.execute
+    cn: 执行
     next:
     - req.accept
+    - req.plan
+    when:
+      req.accept: 交付件齐了
+      req.plan: 发现计划不成立，回退重排
   - id: req.accept
+    cn: 验收
     next:
     - req.close
+    - req.execute
+    when:
+      req.close: verdict=accepted
+      req.execute: verdict=rejected 打回重做
   - id: req.close
+    cn: 结单
     next: []
     terminal: true
   builtin: true
 ticket-health:
   id: ticket-health
+  cn: 工单体检
   kind: process
   states:
   - id: scan.run
+    cn: 扫描
     next:
     - scan.judge
   - id: scan.judge
+    cn: 判停滞
     next:
     - scan.audit
+    - scan.skip
+    when:
+      scan.audit: stale=true
+      scan.skip: stale=false
   - id: scan.audit
+    cn: 开审计单
     next:
     - ops.diagnose
   - id: ops.diagnose
+    cn: 诊断
     next:
     - ops.recover
+    - ops.escalate
+    when:
+      ops.recover: recoverable=true
+      ops.escalate: recoverable=false
   - id: ops.recover
+    cn: 自动恢复
     next:
     - audit.close
+  - id: ops.escalate
+    cn: 上抛裁决
+    next:
+    - audit.close
+  - id: scan.skip
+    cn: 跳过
+    next: []
+    terminal: true
   - id: audit.close
+    cn: 收口
     next: []
     terminal: true
   builtin: true

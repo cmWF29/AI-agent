@@ -1,0 +1,21 @@
+# 运行时隐藏参数：这些值平时藏在 config 里，界面上不露就没人知道"重试几次、并发多少、超时多少"。
+# 每条 = 配置路径 + 人话说明；值现读，说明与分组留在这里（说明是数据，不是模板）。
+params:
+- {group: 会话与派活, key: runtime.session_workers, label: 会话调度并发, note: 同时驱动的会话数上限，超出排队}
+- {group: 会话与派活, key: runtime.tool_workers, label: 工具执行并发, note: 工具调用/子进程并发上限}
+- {group: 会话与派活, key: runtime.api_workers, label: 路由执行线程, note: 同步路由的桥接线程上限，影响建单与嵌套回投}
+- {group: 会话与派活, key: sessions.max_concurrent, label: 单实例会话并发, note: 同一实例内并行会话数}
+- {group: 会话与派活, key: sessions.max_steps, label: 单轮最大步数, note: ReAct 一轮最多走多少步工具往返}
+- {group: 会话与派活, key: sessions.react_cap, label: ReAct 硬上限, note: 未指定步数时的硬上限，防止死循环}
+- {group: 重试与超时, key: llm.timeout, label: 模型超时, note: 单次模型调用超时秒数}
+- {group: 重试与超时, key: api.transport_timeout, label: 通道超时, note: 跨进程调用超时秒数}
+- {group: 重试与超时, key: runtime.future_timeout, label: 后台收尾等待, note: 等后台任务收尾的秒数}
+- {group: 重试与超时, key: review_max_retries, label: 评审回催上限, note: 交付缺口最多回催几次，到达即转卡点}
+- {group: 工单红线, key: tickets.max_roles, label: 单工单岗位上限, note: 一个工单最多并行几个岗位}
+- {group: 工单红线, key: tickets.max_children, label: 子单上限, note: 一个工单最多拆几个子单}
+- {group: 工单红线, key: tickets.pm_max_steps, label: PM 单轮步数, note: PM 一轮最多几步，0 表示不限}
+- {group: 工单红线, key: tickets.stall_check.idle_minutes, label: 停滞判定, note: 空闲超过该分钟判停滞}
+- {group: 工单红线, key: tickets.stall_check.max_per_scan, label: 扫描上限, note: 单次扫描最多开几张审计单}
+- {group: 采样与回查, key: net.stream_lines, label: SSE 原文保留行数, note: 报文回查能回看多少行原文}
+- {group: 采样与回查, key: sessions.context.tool_output_chars, label: 工具输出截断, note: 超过该字符数即落盘，上下文只回路径}
+- {group: 采样与回查, key: sessions.stuck_check.idle_minutes, label: 僵死复位阈值, note: 运行中会话超该分钟无更新则复位}
