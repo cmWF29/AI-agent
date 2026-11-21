@@ -292,14 +292,16 @@ def install_parts(p):
     字段映射归拆解模块，不写盘；流程拆不出就留空（无 checks/nodes/edges），不硬造。
     """
     draft = p.get("draft") or {}
-    rid = (draft.get("id") or "").strip()
+    meta = p.get("meta") or {}
+    # 标识优先取模型给的 id，其次取包 frontmatter 的 name：包名本来就是业界通用的技能名。
+    # 只去首尾空白，不改写大小写与分隔符——标识是外部生态里的原名，改了就对不上。
+    rid = str(draft.get("id") or meta.get("id") or meta.get("name") or "").strip()
     if not rid:
         tpl = p.get("tpl") or {}
         return {"ok": False, "code": "missing_id", "status": 400,
                 "error": tpl.get("missing_id") or ""}
     role = draft.get("role") or {}
     flow = draft.get("flow") or {}
-    meta = p.get("meta") or {}
 
     role_tools = list(role.get("tools") or [])
     tool_records = []
