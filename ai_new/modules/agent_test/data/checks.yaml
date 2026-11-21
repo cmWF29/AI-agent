@@ -35,6 +35,8 @@ checks:
   - view-ops
   - console-shell
   - console-chrome
+  - click-machine
+  - view-click-machine
   - demands-manifest
   - trace-slow
   - view-arch

@@ -76,6 +76,11 @@ routes:
         type: any
       login:
         type: any
+  demand_engine.click_machine:
+    doc: 点击状态机规格（状态、迁移、每种可点控件的门禁）
+    out:
+      click_machine:
+        type: any
   demand_engine.console:
     doc: 控制台外壳（品牌、词表、配色、导航菜单）
     out:

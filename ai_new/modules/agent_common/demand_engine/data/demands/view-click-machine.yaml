@@ -1,0 +1,48 @@
+id: view-click-machine
+title: 点击状态机：页面所有可点控件的状态、迁移与门禁
+description: "点击状态机：页面所有可点控件的状态、迁移与门禁。状态与门禁由外壳下发，前端只执行，测试按这份规格全量跑"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  menu: {order: 6, label: 点击状态机, mobile: true}
+  key: click-machine
+  crumb: [点击状态机]
+  heading: 点击状态机
+  subheading: 每种可点控件点下去先过门禁；规格改这里，页面行为和全量测试同时跟着改
+  data:
+  - {as: machine, demand: click-machine}
+  actions: []
+  sections:
+  - kind: stats
+    as: machine
+    rows:
+    - {label: 状态, value: "data.machine.click_machine.states|count", note: 个状态}
+    - {label: 可点种类, value: "data.machine.click_machine.kinds|count", note: 种控件}
+    - {label: 迁移起点, value: "data.machine.click_machine.transitions|count", note: 个状态各有出边}
+  - kind: table
+    as: machine
+    source: machine.click_machine.states
+    heading: 状态
+    columns:
+    - {label: 键, value: row.key}
+    - {label: 名称, value: row.label}
+    - {label: 含义, value: row.note, muted: true}
+  - kind: table
+    as: machine
+    source: machine.click_machine.kinds
+    heading: 可点种类与门禁
+    columns:
+    - {label: 种类, value: row.label}
+    - {label: 键, value: row.key, muted: true}
+    - {label: 允许态, value: row.allow}
+    - {label: 进入, value: row.enter}
+    - {label: 回落, value: row.exit}
+    - {label: 说明, value: row.note, muted: true}
+expect:
+  given:
+    input: {}
+  calls: []
+  promise: 状态机规格只此一份：加一种可点控件必须先在这里声明门禁

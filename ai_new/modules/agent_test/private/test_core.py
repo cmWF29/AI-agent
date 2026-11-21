@@ -270,9 +270,44 @@ class CoreTest(unittest.TestCase):
         boot = (console / "boot.js").read_text(encoding="utf-8")
         self.assertEqual(boot.count('document.addEventListener("click"'), 1,
                          "点击入口必须唯一，别处不许再挂 click")
-        self.assertIn("const UIS_NEXT", boot, "缺少点击状态迁移表")
-        for state in ("idle", "drag", "swallow", "busy", "modal"):
-            self.assertIn('"%s"' % state, boot, "状态机缺状态: %s" % state)
+        # 状态与门禁不再写死在前端：规格来自后端 shell.click_machine，页面必须按它迁移
+        for token in ("setClickMachine", "uiAllowed", "uiEnter", "uiExit", "click_machine"):
+            self.assertIn(token, boot, "点击状态机必须规格驱动，缺: %s" % token)
+        self.assertNotIn("const UIS_NEXT", boot, "迁移表不许再写死在前端")
+
+    def test_click_machine_spec_covers_every_clickable_kind(self):
+        """规格与页面必须齐：页面上每一种可点属性，都得在规格里声明门禁。
+
+        两边一旦漂移，就会出现"点了没门禁"或"声明了却没人用"，用测试钉死。
+        """
+        import re
+        import yaml
+        root = ROOT
+        spec = yaml.safe_load((root / "ai_new/modules/agent_common/demand_engine/data/console.yaml")
+                             .read_text(encoding="utf-8"))["click_machine"]
+        kinds = {k["key"] for k in spec["kinds"]}
+        boot = (root / "ai_new/modules/agent/web/data/console/boot.js").read_text(encoding="utf-8")
+        block = boot[boot.index("const CLICK_KINDS"):boot.index("function resolveKind")]
+        wired = set(re.findall(r'"(deck|act|go|filter|nav|crumb|member|expand)"', block))
+        rendered = set()
+        for f in (root / "ai_new/modules/agent/web/data/console").glob("*.js"):
+            rendered |= set(re.findall(r'data-(deck-open|act|go|filter|nav|crumb|member|expand)', f.read_text(encoding="utf-8")))
+        rendered.discard("deck-open")
+        self.assertTrue(wired, "前端 CLICK_KINDS 解析表缺失")
+        self.assertEqual(rendered - kinds, set(), "页面渲染了规格未声明的可点属性: %s" % (rendered - kinds))
+        self.assertEqual(wired - kinds, set(), "前端解析了规格未声明的种类: %s" % (wired - kinds))
+        for k in spec["kinds"]:
+            self.assertIn("allow", k, "种类 %s 必须声明允许态（门禁）" % k["key"])
+            self.assertTrue(k["allow"], "种类 %s 的 allow 不能为空" % k["key"])
+        states = {s["key"] for s in spec["states"]}
+        for k in spec["kinds"]:
+            self.assertTrue(set(k["allow"]) <= states, "种类 %s 的 allow 含未声明状态" % k["key"])
+            for fld in ("enter", "exit"):
+                if k.get(fld):
+                    self.assertIn(k[fld], states, "种类 %s 的 %s 指向未声明状态" % (k["key"], fld))
+        for now, nxt in spec["transitions"].items():
+            self.assertIn(now, states, "迁移表源状态未声明: %s" % now)
+            self.assertTrue(set(nxt) <= states, "迁移目标未声明: %s" % nxt)
 
     def test_console_shell_is_backend_driven(self):
         """导航、品牌、字与配色都只存后端一份：页面改了后端也跟着变，反过来也一样。

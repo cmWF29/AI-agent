@@ -1,32 +1,32 @@
 /* boot：事件总线与启动
    只有一条：点到的按钮 -> 动作表 -> 执行器。
 */
-/* ---- 点击状态机：全页只有一条点击入口 ----
-   状态：idle（正常）/ drag（手势进行中）/ swallow（拖动结束吞掉紧随的一次点击）/
-        busy（一个动作在飞，重复点击直接丢）/ modal（弹窗开着，只认弹窗自己的按钮）。
-   任何分支都不再自己判断"此刻能不能点"，判断只发生在这里。
+/* ---- 点击状态机：全页只有一条入口，规格由后端下发 ----
+   状态与迁移、每种可点控件的门禁（allow / enter / exit）都在外壳的 click_machine 里。
+   前端只做三件事：解析控件种类 -> 过门禁 -> 按规格迁移。没有第二份状态表。
 */
-const UIS = {
-  state: "idle",
-  at: 0,
-  why: "boot",
-  swallowUntil: 0,
-  violations: 0,
-};
-const UIS_NEXT = {
-  idle: ["drag", "busy", "modal"],
-  drag: ["idle", "busy", "swallow"],
-  swallow: ["idle", "busy", "drag"],   // 吞点击的窗口里再滑，手势优先
-  busy: ["idle", "modal", "swallow"],
-  modal: ["idle"],
-};
+const AUDIT = /[?&]audit=1/.test(location.search);   // 审计模式：只过门禁与迁移，不真正执行
+const UIS = { state: "idle", at: 0, why: "boot", swallowUntil: 0, violations: 0 };
+let CLICK_MACHINE = null;
+
+function setClickMachine(spec) {
+  CLICK_MACHINE = spec && spec.kinds ? spec : null;
+  if (!CLICK_MACHINE) {
+    banner("点击状态机规格缺失：页面已锁定点击", "err");   // fail-closed，不许无门禁运行
+  }
+}
+function machineKind(key) {
+  if (!CLICK_MACHINE) return null;
+  return (CLICK_MACHINE.kinds || []).find((k) => k.key === key) || null;
+}
 function uiTo(next, why) {
-  if (next === UIS.state) { UIS.why = why || ""; return UIS.state; }   // 同状态只更新原因
-  if (!UIS_NEXT[UIS.state] || UIS_NEXT[UIS.state].indexOf(next) < 0) {
-    // 迁移不合理说明某处漏了收尾：记一次并强制回 idle，别让页面卡在错的状态里
+  if (next === UIS.state) { UIS.why = why || ""; return UIS.state; }
+  const table = (CLICK_MACHINE && CLICK_MACHINE.transitions) || {};
+  if (!table[UIS.state] || table[UIS.state].indexOf(next) < 0) {
     UIS.violations += 1;
     UIS.lastBad = UIS.state + "->" + next + " (" + (why || "") + ")";
     UIS.state = "idle";
+    return UIS.state;
   }
   UIS.state = next;
   UIS.why = why || "";
@@ -34,23 +34,47 @@ function uiTo(next, why) {
   return UIS.state;
 }
 function uiBusy() { return UIS.state === "busy"; }
+/* 门禁：控件种类在规格里声明"允许哪些状态点击"，没声明就是漏声明，按违规记。 */
+function uiAllowed(kind) {
+  if (!CLICK_MACHINE) return false;
+  const k = machineKind(kind);
+  if (!k) {
+    UIS.violations += 1;
+    UIS.lastBad = "unknown-kind:" + kind;
+    return false;
+  }
+  return (k.allow || []).indexOf(UIS.state) >= 0;
+}
+function uiEnter(kind) {
+  const k = machineKind(kind);
+  if (k && k.enter) uiTo(k.enter, kind);
+}
+function uiExit(kind) {
+  if (UIS.state !== "busy") return;
+  const k = machineKind(kind) || {};
+  uiTo(k.exit || "idle", kind + ":done");
+}
 /* 收尾看"这次动作自己的 promise"，包成函数再调用：
    直接传 promise 会在设 busy 之前就把 execute 跑起来，弹窗抢先把状态改成 modal。 */
-function uiRun(fn, why) {
-  if (uiBusy()) return null;
-  uiTo("busy", why);
-  const done = () => { if (UIS.state === "busy") uiTo("idle", why + ":done"); };
+function uiRun(fn, kind) {
+  if (!uiAllowed(kind)) return null;
+  uiEnter(kind);
+  const done = () => uiExit(kind);
   let p;
   try { p = fn(); } catch (err) { done(); throw err; }
   Promise.resolve(p).then(done, done);
   return p;
 }
 function uiModal(open) {
+  if (!CLICK_MACHINE) return;
   if (open) { if (UIS.state !== "modal") uiTo("modal", "modal:open"); return; }
   if (UIS.state === "modal") uiTo("idle", "modal:close");
 }
-window.uiSnapshot = () => ({ state: UIS.state, why: UIS.why, violations: UIS.violations,
-  lastBad: UIS.lastBad || "" });
+window.uiSnapshot = () => ({
+  state: UIS.state, why: UIS.why, violations: UIS.violations, lastBad: UIS.lastBad || "",
+  machine: CLICK_MACHINE ? { states: (CLICK_MACHINE.states || []).map((s) => s.key),
+                             kinds: (CLICK_MACHINE.kinds || []).map((k) => k.key) } : null,
+});
 
 function consumeSwallow() {
   if (UIS.state !== "swallow") return false;
@@ -59,22 +83,39 @@ function consumeSwallow() {
   return false;
 }
 
-function handleClick(e) {
-  if (consumeSwallow()) { e.stopPropagation(); e.preventDefault(); return; }
-  if (UIS.state === "modal") return;          // 弹窗里的事件由弹窗自己管
-  const deckBtn = e.target.closest("[data-deck-open]");
-  if (deckBtn) {
-    const d = deckBtn.closest("[data-deck]");
+/* 控件种类 -> 选择器：顺序就是优先级（卡片里嵌按钮时先命中外层卡片） */
+const CLICK_KINDS = [
+  ["deck", "[data-deck-open]"],
+  ["act", "[data-act]"],
+  ["filter", "[data-filter]"],
+  ["go", "[data-go]"],
+  ["nav", "[data-nav]"],
+  ["crumb", "[data-crumb]"],
+  ["member", "[data-member]"],
+  ["expand", "[data-expand]"],
+];
+function resolveKind(target) {
+  for (const pair of CLICK_KINDS) {
+    const el = target && target.closest && target.closest(pair[1]);
+    if (el) return { kind: pair[0], el };
+  }
+  return null;
+}
+const CLICK_HANDLERS = {
+  deck(el) {
+    const d = el.closest("[data-deck]");
+    if (!d) return;
     d.dataset.open = d.dataset.open === "1" ? "0" : "1";
     deckLayout(d);
-    return;
-  }
-  const btn = e.target.closest("[data-act]");
-  if (btn && !btn.disabled) {
-    if (uiBusy()) return;                    // 动作还没回来：重复点击不排队
-    const binding = ACTS.get(String(btn.dataset.act));
-    if (!binding) return;                    // 绑定表里没有：这次渲染已作废，页面该重取
-    if (binding.voice) return uiRun(() => executeVoice(binding, btn), "voice");
+  },
+  act(el) {
+    if (el.disabled) return;
+    const binding = ACTS.get(String(el.dataset.act));
+    if (!binding) {   // 绑定表里没有：这次渲染已作废，页面该重取
+      UIS.violations += 1; UIS.lastBad = "stale-act:" + el.dataset.act;
+      return;
+    }
+    if (binding.voice) return uiRun(() => executeVoice(binding, el), "act");
     if (binding.composer && !binding.act.modal) {
       const box = $("view-body").querySelector(".composer textarea");
       const text = (box && box.value || "").trim();
@@ -82,43 +123,45 @@ function handleClick(e) {
         banner(uiText("composer_empty") || binding.act.empty_hint || "请先输入内容", "err");
         return;
       }
-      return uiRun(() => execute(binding, { text }), "composer");
+      return uiRun(() => execute(binding, { text }), "act");
     }
     return uiRun(() => execute(binding, {}), "act");
-  }
-  const filterBtn = e.target.closest("[data-filter]");
-  if (filterBtn) { FILTER = filterBtn.dataset.filter; return render(); }
-  const goEl = e.target.closest("[data-go]");
-  if (goEl) {
-    if (uiBusy()) return;
-    const binding = ACTS.get(String(goEl.dataset.go));
-    if (binding) return uiRun(() => execute(binding, {}), "go");
-    return;
-  }
-  const navEl = e.target.closest("[data-nav]");
-  if (navEl) {
-    if (uiBusy()) return;
-    closeDrawer();
-    return uiRun(() => go({ view: navEl.dataset.nav }, true), "nav");
-  }
-  if (e.target.closest("[data-crumb]")) {
-    if (uiBusy()) return;
-    return uiRun(() => go(crumbUp(), true), "crumb");
-  }
-  const memberEl = e.target.closest("[data-member]");
-  if (memberEl) {
-    e.stopPropagation();
-    if ($("popover").hidden) return openMemberCard(memberEl);
+  },
+  filter(el) { FILTER = el.dataset.filter; render(); },
+  go(el) {
+    const binding = ACTS.get(String(el.dataset.go));
+    if (!binding) { UIS.violations += 1; UIS.lastBad = "stale-go:" + el.dataset.go; return; }
+    return uiRun(() => execute(binding, {}), "go");
+  },
+  nav(el) { closeDrawer(); return uiRun(() => go({ view: el.dataset.nav }, true), "nav"); },
+  crumb() { return uiRun(() => go(crumbUp(), true), "crumb"); },
+  member(el) {
+    if ($("popover").hidden) return openMemberCard(el);
     return closeMemberCard();
-  }
-  const foldEl = e.target.closest("[data-expand]");
-  if (foldEl) {
-    const folded = foldEl.classList.toggle("clamp");
-    const t = foldEl.querySelector(".ev-text");
-    if (t) t.textContent = folded ? (foldEl.dataset.short || "") : (foldEl.dataset.full || "");
+  },
+  expand(el) {
+    const folded = el.classList.toggle("clamp");
+    const t = el.querySelector(".ev-text");
+    if (t) t.textContent = folded ? (el.dataset.short || "") : (el.dataset.full || "");
+  },
+};
+
+function handleClick(e) {
+  if (consumeSwallow()) { e.stopPropagation(); e.preventDefault(); return; }
+  if (UIS.state === "modal") return;          // 弹窗里的事件由弹窗自己管（也过模态门禁）
+  const hit = resolveKind(e.target);
+  if (!hit) {                                 // 点在空白：只负责收浮层
+    if (!e.target.closest("#popover")) closeMemberCard();
     return;
   }
-  if (!e.target.closest("#popover")) closeMemberCard();
+  if (!uiAllowed(hit.kind)) return;           // 门禁拒绝：不猜、不排队
+  if (AUDIT) {                                 // 审计：走一遍进入/回落，证明迁移合法
+    uiEnter(hit.kind);
+    setTimeout(() => { if (UIS.state !== "idle") uiTo("idle", "audit:" + hit.kind); }, 60);
+    return;
+  }
+  const fn = CLICK_HANDLERS[hit.kind];
+  if (fn) return fn(hit.el, e);
 }
 document.addEventListener("click", handleClick);
 

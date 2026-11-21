@@ -110,6 +110,32 @@ ui:
   wire_resp: 响应
   wire_req_body: 请求体
   wire_resp_body: 响应原文
+click_machine:                          # 点击状态机：所有可点的东西共用一套显式状态 + 门禁
+  states:
+  - {key: idle,    label: 空闲,    note: 可以正常点击}
+  - {key: drag,    label: 拖动中,  note: 手势接管，点击不生效}
+  - {key: swallow, label: 吞点击,  note: 刚松手，紧随的一次点击属于手势}
+  - {key: busy,    label: 执行中,  note: 有动作在飞，重复点击丢弃}
+  - {key: modal,   label: 弹窗,    note: 只认弹窗内控件}
+  transitions:                          # 允许的状态迁移：左边 now，右边 next
+    idle:    [drag, busy, modal]
+    drag:    [idle, swallow, busy]
+    swallow: [idle, drag, busy]         # 吞点击窗口里再滑，手势优先
+    busy:    [idle, modal, swallow]
+    modal:   [idle, busy]          # 弹窗里提交要进 busy，回落到 modal 或 idle
+  kinds:                                # 每个可点种类：允许态 allow / 进入 enter / 回落 exit
+  - {key: deck,    label: 堆叠展开收起, allow: [idle, swallow], enter: "",     exit: "",   note: 只改布局，不取数}
+  - {key: act,     label: 动作按钮,     allow: [idle],           enter: busy,   exit: idle, note: 同一时刻只允许一个动作}
+  - {key: go,      label: 卡片/行/树,   allow: [idle],           enter: busy,   exit: idle, note: 跳转前先收好当前页}
+  - {key: filter,  label: 列表过滤,     allow: [idle],           enter: "",     exit: "",   note: 纯前端重渲染}
+  - {key: nav,     label: 侧栏导航,     allow: [idle],           enter: busy,   exit: idle, note: 导航互斥}
+  - {key: crumb,   label: 面包屑,       allow: [idle],           enter: busy,   exit: idle, note: 导航互斥}
+  - {key: member,  label: 成员卡,       allow: [idle],           enter: "",     exit: "",   note: 只开关浮层}
+  - {key: expand,  label: 折叠展开,     allow: [idle, swallow],  enter: "",     exit: "",   note: 只改文本}
+  - {key: modal_ok,     label: 弹窗提交, allow: [modal], enter: busy, exit: modal, note: 提交中禁用按钮}
+  - {key: modal_cancel, label: 弹窗取消, allow: [modal], enter: "",   exit: modal, note: 关闭回到空闲由 closeModal 负责}
+  - {key: modal_backdrop, label: 弹窗遮罩, allow: [modal], enter: "", exit: modal, note: 点遮罩关闭}
+
 roles:
   colors:
     pm: "#2f6bff"

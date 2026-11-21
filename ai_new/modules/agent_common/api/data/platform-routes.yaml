@@ -16,6 +16,9 @@ routes:
   demand_engine.resolve:
     caller: http-frontend
     reason: 控制台一页要的几份数据，依赖由视图规格自己声明；分层与并发收在引擎里，前端不再算业务上下游。
+  demand_engine.click_machine:
+    caller: http-frontend
+    reason: 控制台外壳的点击状态机规格随外壳下发；页面只按规格门禁，不自己存一份状态表。
   clock.sleep:
     caller: engine
     reason: 需求语言 wait 语句与 SSE 轮询直接调用；平台计时等待，不是业务能力。

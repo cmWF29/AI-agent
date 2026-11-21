@@ -39,6 +39,7 @@ function applyShell(shell) {
   FIELD_ORDER = fields.order || [];
   const st = shell.status || {};
   STATUS_META = { busy: st.busy || [], offline: st.offline || [], labels: st.labels || {} };
+  if (typeof setClickMachine === "function") setClickMachine(shell.click_machine);
   // 静态外壳：品牌、标题、固定按钮与 aria 文案
   document.title = BRAND.title || document.title;
   document.querySelectorAll("[data-ui]").forEach((el) => {

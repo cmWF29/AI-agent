@@ -227,6 +227,12 @@ async def _route_resolve(ctx, payload):
     return out
 
 
+async def _route_click_machine(ctx, payload):
+    """点击状态机规格：前端按它做门禁，架构页按它显示，测试按它做全覆盖。"""
+    shell = ctx.demand_engine.console() or {}
+    return {"click_machine": shell.get("click_machine") or {}}
+
+
 async def _noop():
     return None
 
@@ -244,6 +250,8 @@ def setup(ctx):
                      "全量需求的可视化形状（执行链 + 树节点）", module="demand_engine")
     ctx.api.register("demand_engine.console", lambda c, p: ctx.demand_engine.console(),
                      "控制台外壳（品牌、词表、配色、导航菜单）", module="demand_engine")
+    ctx.api.register("demand_engine.click_machine", _route_click_machine,
+                     "点击状态机规格（状态/迁移/每种可点控件的门禁）", module="demand_engine")
     ctx.api.register("demand_engine.chrome", lambda c, p: ctx.demand_engine.chrome(),
                      "登录页外壳（只回品牌与登录文案，未登录可读）", module="demand_engine")
     return ctx.demand_engine

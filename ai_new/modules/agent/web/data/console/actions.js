@@ -152,11 +152,20 @@ function modalError(msg) {
   $("modal-err").className = "modal-err on";
   $("modal-err").textContent = msg;
 }
-$("modal-cancel").onclick = closeModal;
-$("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(); };
+$("modal-cancel").onclick = () => {
+  if (typeof uiAllowed === "function" && !uiAllowed("modal_cancel")) return;
+  closeModal();
+};
+$("modal").onclick = (e) => {
+  if (e.target !== $("modal")) return;
+  if (typeof uiAllowed === "function" && !uiAllowed("modal_backdrop")) return;
+  closeModal();
+};
 $("modal-form").onsubmit = async (e) => {
   e.preventDefault();
   if (!modalSubmit) return;
+  if (typeof uiAllowed === "function" && !uiAllowed("modal_ok")) return;
+  if (typeof uiEnter === "function") uiEnter("modal_ok");
   const okLabel = $("modal-ok").textContent;
   $("modal-ok").disabled = true;
   $("modal-ok").textContent = uiText("loading") || "加载中…";
@@ -166,5 +175,8 @@ $("modal-form").onsubmit = async (e) => {
     modalError(msg);
     banner(msg, "err");   // 表单失败也要换掉"加载中"，否则横幅一直挂着
   }
-  finally { $("modal-ok").disabled = false; $("modal-ok").textContent = okLabel; }
+  finally {
+    $("modal-ok").disabled = false; $("modal-ok").textContent = okLabel;
+    if (typeof uiExit === "function") uiExit("modal_ok");
+  }
 };

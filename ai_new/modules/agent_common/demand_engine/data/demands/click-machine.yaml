@@ -1,0 +1,17 @@
+id: click-machine
+title: 点击状态机规格：状态、迁移与每种可点控件的门禁
+description: "点击状态机规格：状态、迁移与每种可点控件的门禁。前端按它门禁，架构页按它显示，测试按它全量跑"
+tags: [view, web, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.click_machine
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.click_machine
+  payload: {}
+  promise: 每多一种可点控件，先在规格里声明门禁，页面与测试都跟着它走
