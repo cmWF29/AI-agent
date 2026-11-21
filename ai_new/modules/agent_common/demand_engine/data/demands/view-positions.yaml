@@ -1,6 +1,6 @@
 id: view-positions
 title: 岗位库视图：岗位是系统提示词与流程规范，不在主线
-description: "岗位库视图：岗位是系统提示词与流程规范，不在主线。岗位库只声明表格，数据源走需求"
+description: "岗位库视图：岗位是系统提示词与流程规范，不在主线。每个岗位一张卡，数据源走需求"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -15,11 +15,17 @@ view:
   data:
   - {as: list, demand: position-list}
   sections:
-  - kind: table
+  - kind: cards
     source: list.items
-    columns:
-    - {label: 名称, value: row.cn, fallback: row.id, sub: row.prompt_file}
-    - {label: 流程检查, value: "row.flow.checks|count", suffix: 项, muted: true}
+    title: row.cn
+    meta:
+    - {label: 提示词, value: row.prompt_file}
+    - {label: 工具, value: "row.tools|count", suffix: 个}
+    - {label: 流程检查, value: "row.flow.checks|count", suffix: 项}
+    chips:
+    - {label: 状态机, from: row.stages, text: cn}
+    - {label: 工具, from: row.tools}
+    stat: {count: "row.stages|count", label: 个状态, note: 状态机随岗位走}
     on_click: {view: position, params: {position: row.id}}
     empty: {text: 暂无岗位}
 expect:
@@ -27,4 +33,4 @@ expect:
     input: {}
   calls: []
   payload: {}
-  promise: 岗位库只声明表格，数据源走需求
+  promise: 岗位库只声明卡片清单，数据源走需求

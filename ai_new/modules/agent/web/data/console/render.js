@@ -50,16 +50,29 @@ function cardsHtml(sec, ctx) {
     const stat = sec.stat ? `<div class="stat"><b>${esc(fill(sec.stat.count, c))}</b> ${esc(fill(sec.stat.label, c))}<span class="muted">· ${esc(fill(sec.stat.note || "", c))}</span></div>` : "";
     const meta = (sec.meta || []).filter((m) => m.hide_if_empty ? !!fmtVal(m, c) : true)
       .map((m) => `<span>${esc(fill(m.label, c))} ${esc(fmtVal(m, c))}</span>`).join("");
+    const groups = Array.isArray(sec.chips) ? sec.chips : (sec.chips ? [sec.chips] : []);
+    const chips = groups.map((g) => shareChips(g, c)).join("");
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : -1;
     return `<article class="pcard${archived ? " archived" : ""}" ${click >= 0 ? `data-go="${click}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
       <div class="acts">${acts}</div>
       <h3 class="pname">${esc(fill(sec.title, c))}</h3>
       ${badge}${stat}
       <div class="meta">${meta}</div>
+      ${chips}
       <span class="ar">›</span>
     </article>`;
   }).join("");
   return `<div class="cards">${cards}</div>`;
+}
+
+function shareChips(spec, c) {
+  if (!spec || !spec.from) return "";
+  const rows = arr(fill(spec.from, c));
+  if (!rows.length) return "";
+  const items = rows.map((x) => `<span class="chip">${spec.text ? esc(dig(x, spec.text))
+    : esc(typeof x === "object" ? (x.cn || x.id || "") : x)}</span>`).join("");
+  const label = spec.label ? `<span class="chips-label">${esc(fill(spec.label, {}))}</span>` : "";
+  return `<div class="chips-row">${label}<div class="chips">${items}</div></div>`;
 }
 
 function tableHtml(sec, ctx) {
@@ -796,7 +809,7 @@ function pruneEmptyCards() {
   });
 }
 
-function mountDots() {
+function mountPager() {
   const rail = document.querySelector("#view-body .view-scroll");
   if (!rail) return;
   // 群聊页把双栏合成一张卡，里面的 chat/composer 不是独立页，不参与翻页计数
@@ -804,20 +817,25 @@ function mountDots() {
     const grid = s.closest(".ticket-grid");
     return !grid || getComputedStyle(grid).display === "contents";
   });
+  if (!cards.length) return;
+  // 手机上是纵向卡片堆叠：折叠块默认摊开，免得只看到一行标题不知道这页是什么
+  if (getComputedStyle(rail).flexDirection === "column") {
+    cards.forEach((c) => c.querySelectorAll("details").forEach((d) => { d.open = true; }));
+  }
   if (cards.length < 2) return;
-  const dots = document.createElement("div");
-  dots.className = "view-dots";
-  dots.innerHTML = cards.map((_, i) => `<i${i ? "" : ` class="on"`}></i>`).join("");
-  $("view-body").appendChild(dots);
+  const pager = document.createElement("div");
+  pager.className = "view-pager";
+  pager.innerHTML = `<span class="cur">1</span><span class="sep">/</span><span class="all">${cards.length}</span>`;
+  $("view-body").appendChild(pager);
+  const cur = pager.querySelector(".cur");
   rail.addEventListener("scroll", () => {
-    // 卡片宽度不全等于轨宽（右侧故意露一点），按离轨道左缘最近的卡判定当前页
-    const edge = rail.getBoundingClientRect().left;
+    const edge = rail.getBoundingClientRect().top;
     let idx = 0, best = Infinity;
     cards.forEach((c, i) => {
-      const d = Math.abs(c.getBoundingClientRect().left - edge);
+      const d = Math.abs(c.getBoundingClientRect().top - edge);
       if (d < best) { best = d; idx = i; }
     });
-    [...dots.children].forEach((d, i) => d.classList.toggle("on", i === idx));
+    cur.textContent = String(idx + 1);
   }, { passive: true });
 }
 
@@ -848,7 +866,7 @@ function renderView(spec, ctx) {
   // 内容区单独包一层：桌面纵向排布，手机变成横滑吸附的卡片轨
   $("view-body").innerHTML = head + `<div class="view-scroll">${body}</div>`;
   pruneEmptyCards();
-  mountDots();
+  mountPager();
   // 浏览器标题也由外壳词表拼：视图名走规格，品牌名走后端
   const name = String(fill(spec.heading || spec.heading_from || "", ctx) || "").trim();
   if (BRAND.title_view && name) {

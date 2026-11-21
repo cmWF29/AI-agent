@@ -1,18 +1,18 @@
 id: view-arch
-title: 架构与链路视图：需求执行链、状态机、路由与实时链路摊开看
-description: "架构与链路视图：需求执行链、状态机、路由与实时链路摊开看。页面只声明区块，形状归模块与需求"
+title: 架构视图：需求全景、路由契约与实时链路摊开看
+description: "架构视图：需求全景、路由契约与实时链路摊开看。页面只声明区块，形状归模块与需求"
 tags: [view, web, read]
 enabled: true
 callable: false
 'on': []
 do: []
 view:
-  menu: {order: 2, label: 架构与链路, short: 架构, mobile: true}
+  menu: {order: 2, label: 架构, short: 架构, mobile: true}
   key: arch
   nav: arch
-  crumb: [系统, 架构与链路]
-  heading: 架构与链路
-  subheading: 需求是数据、模块是能力、契约是约束；这里把四件事摊在同一屏里对照
+  crumb: [系统, 架构]
+  heading: 架构
+  subheading: 需求是数据、模块是能力、契约是约束；一条需求怎么编译、落到哪条路由、由哪个岗位执行，都在这一页
   actions:
   - {label: 全部链路, view: traces}
   data:
@@ -47,11 +47,6 @@ view:
     fold: {title: "需求执行链"}
     note: 点开组看需求，再点开需求看 call/send 与 as/with 摘要
     empty: {text: 暂无需求}
-  - kind: flow
-    source: data.pos.items
-    heading: 岗位状态机（按转移关系分层）
-    note: 横向是层级：同层并列即可并行，箭头是允许迁移，绿框为终态；状态机随岗位走，不再单独存流程
-    empty: {text: 暂无状态机}
   - kind: table
     source: data.api.items
     limit: 40
@@ -66,7 +61,7 @@ view:
     empty: {text: 暂无路由}
   - kind: table
     source: data.slow.items
-    heading: 今日链路（按 P95 排序）
+    heading: 今日慢请求（链路＝一次请求，按 P95 排序）
     columns:
     - {label: 阶段, value: row.name}
     - {label: 次数, value: row.n}

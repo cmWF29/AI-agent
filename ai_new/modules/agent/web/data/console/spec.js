@@ -60,6 +60,13 @@ function applyChain(val, chain, ctx) {
       const cond = t.slice(6, -1);
       val = arr(val).filter((x) => matchCond(x, cond)).length;
     }
+    else if (t.startsWith("join(") && t.endsWith(")")) {
+      // join(field:sep)：数组按字段取值后拼接，默认用箭头；字段缺省时直接拼标量
+      const arg = t.slice(5, -1);
+      const [field, sep] = arg.split(":");
+      val = arr(val).map((x) => (field ? dig(x, field.trim()) : x))
+        .filter((x) => x != null && x !== "").join(sep != null ? sep.trim() : " → ");
+    }
   }
   return val;
 }

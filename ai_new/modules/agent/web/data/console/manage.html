@@ -69,8 +69,8 @@ main .crumb{margin-bottom:14px}
 .view-head .spacer{margin-left:auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
 .vsec{margin-bottom:16px}
-/* 手机端的分页圆点，桌面版不需要 */
-.view-dots{display:none}
+/* 手机端的页码指示，桌面版不需要 */
+.view-pager{display:none}
 .loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:80px 20px;color:var(--muted);font-size:13px}
 .spinner{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -152,6 +152,9 @@ tbody tr:last-child td{border-bottom:0}
 .badge.open,.badge.running{color:var(--accent);border-color:rgba(47,107,255,.4)}
 .badge.archived{color:var(--warn);border-color:rgba(255,125,0,.4)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips-row{display:flex;align-items:flex-start;gap:10px;min-width:0;margin-top:8px}
+.chips-row>.chips-label{flex:none;font-size:12px;color:var(--muted);line-height:22px}
+.chips-row>.chips{min-width:0}
 .chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--fg-2);display:inline-flex;align-items:center;gap:6px}
 .chip .dot{width:7px;height:7px;border-radius:50%;flex:none}
 .chip .chip-name{font-weight:600;color:var(--fg)}
@@ -356,35 +359,52 @@ textarea{min-height:72px;resize:vertical}
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
 @media (max-width: 720px) {
   .sidebar{width:280px}
+  html,body{height:100%;overflow:hidden}
+  .shell{height:100dvh;min-height:0}
   .main-col{height:100dvh;max-height:100dvh;overflow:hidden}
+  .sidebar{height:100dvh;overflow-y:auto;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
   main{padding:8px 10px calc(58px + env(safe-area-inset-bottom));flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
   /* 手机上一屏只有群聊：面包屑与页面大标题合并，去掉一层重复 */
   .crumb{display:none}
-  .view-head{padding:0 2px 8px;gap:6px;margin-bottom:0;flex:none}
-  .view-head h2{font-size:17px}
+  .view-head{padding:0 2px 8px;gap:6px;margin-bottom:0;flex:none;flex-wrap:wrap;align-items:flex-start}
+  /* 标题独占一行，操作按钮换到下一行：长项目名不再被按钮挤成竖排 */
+  .view-head>div:first-child{flex:1 1 100%}
+  .view-head .spacer{display:none}
+  .view-head .actions{margin-left:auto}
+  .view-head h2{font-size:17px;word-break:break-word}
   .view-head .desc{display:none}
   /* 一屏一页：内容区横向吸附，一块内容一张卡，卡内滚动，整页不纵向长滚 */
   #view-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-  .view-scroll{flex:1;min-height:0;display:flex;align-items:flex-start;gap:10px;overflow-x:auto;overflow-y:hidden;
-    scroll-snap-type:x mandatory;scroll-padding:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #view-body{position:relative}
+  /* 一页一张卡，纵向堆叠：卡高少 44px，下一张的上沿露在底部 */
+  .view-scroll{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;
+    scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
   .view-scroll::-webkit-scrollbar{display:none}
-  /* 桌面的双栏容器在手机上摊平，两栏的每一节都成为同一轨道的卡片 */
+  /* 桌面的双栏容器在手机上摊平，两栏的每一节都成为同一堆的卡片 */
   .view-scroll>.ticket-grid,.view-scroll>.ticket-grid>.lane{display:contents}
-  /* 卡片自身按内容定高，最长到一屏；内容再多在卡里滚，不把整页拉长 */
-  .view-scroll>.vsec,.view-scroll .lane>.vsec{flex:0 0 100%;width:100%;min-width:0;margin:0;
-    max-height:100%;overflow:hidden;
-    scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column}
+  .view-scroll>.vsec,.view-scroll .lane>.vsec{flex:0 0 auto;width:100%;height:calc(100% - 56px);min-height:0;margin:0;
+    overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column}
+  /* 只有一页时不留堆叠的缺口，直接占满 */
+  .view-scroll>.vsec:only-child,.view-scroll>.lane>.vsec:only-child{height:100%}
+  /* 折叠区块展开后卡内已有标题，卡外那条 summary 会重复，手机上隐藏 */
+  .view-scroll>.vsec>.orphans>details[open]>summary,
+  .view-scroll .lane>.vsec>.orphans>details[open]>summary{display:none}
   .view-scroll .vsec>.tree,.view-scroll .vsec>.tbl-wrap,.view-scroll .vsec>.cards,
   .view-scroll .vsec>.flow-grid,.view-scroll .vsec>.side-card,
   .view-scroll .vsec>.empty,.view-scroll .vsec>.chat-card{flex:0 1 auto;min-height:0;overflow-y:auto}
   .view-scroll .vsec>.stat-strip{flex:0 0 auto}
   /* 手机上统计格压到三列，一行读完，不拉成竖条 */
   .view-scroll .vsec>.stat-strip{grid-template-columns:repeat(3,minmax(0,1fr))}
+  /* 内容少的卡（统计/键值）不占满一屏，避免卡里空一大片；长内容卡仍一屏一张 */
+  .view-scroll>.vsec:has(>.stat-strip),.view-scroll>.vsec:has(>.side-card){height:auto;min-height:0}
+  .view-scroll .vsec>.side-card{flex:0 0 auto}
   .view-scroll .vsec .stat-cell{padding:10px 11px;border-left:0}
   .view-scroll .vsec .stat-cell b{font-size:20px}
-  .view-dots{display:flex;gap:5px;justify-content:center;padding:7px 0 2px;flex:none}
-  .view-dots i{width:6px;height:6px;border-radius:50%;background:var(--line);transition:background .18s}
-  .view-dots i.on{background:var(--accent);width:16px;border-radius:3px}
+  .view-pager{position:absolute;right:12px;bottom:10px;display:flex;align-items:baseline;gap:2px;
+    background:rgba(24,28,38,.62);color:#fff;border-radius:999px;padding:3px 10px 4px;font-size:12px;
+    font-variant-numeric:tabular-nums;pointer-events:none;z-index:2}
+  .view-pager .cur{font-weight:650}
+  .view-pager .sep,.view-pager .all{opacity:.72}
   .chat-card{flex:1 1 auto;height:auto;max-height:none;min-height:200px;border-radius:14px}
   .chat{max-height:none}
   .chat-head{padding:10px 12px;flex-wrap:nowrap}
@@ -393,17 +413,29 @@ textarea{min-height:72px;resize:vertical}
   .chat-head-meta>span:nth-of-type(3){display:none} /* 项目名在抽屉与会话里都有，手机上不重复占位 */
   .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
-  .cards{grid-template-columns:1fr}
+  .cards{display:flex;flex-direction:column;gap:10px;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none}
+  .cards::-webkit-scrollbar{display:none}
+  .cards>.pcard{min-height:calc(100% - 56px);scroll-snap-align:start}
+  .cards>.pcard .chips{flex-wrap:wrap}
+  .cards>.pcard{padding:18px 18px}
+  .cards>.pcard .pname{font-size:19px;letter-spacing:.01em}
+  .cards>.pcard .stat b{font-size:26px}
   /* 表格折成「字段名 + 值」的行式卡片：不用横向拖表，列不会被裁掉 */
   .tbl-wrap{overflow-x:visible}
   .tbl-wrap table{min-width:0;width:100%}
+  /* 表头：标题与说明各占一行，避免标题被挤成竖排 */
+  .tbl-wrap .tbl-head{flex-wrap:wrap;align-items:flex-start;gap:4px 8px}
+  .tbl-wrap .tbl-head strong{flex:none;white-space:nowrap}
+  .tbl-wrap .tbl-head .muted{flex:1 1 100%;min-width:0}
   .tbl-wrap thead{display:none}
   .tbl-wrap tbody tr{display:block;padding:8px 12px;border-bottom:1px solid var(--line-2)}
   .tbl-wrap tbody tr:last-child{border-bottom:0}
-  .tbl-wrap td{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;align-items:baseline;
-    padding:2px 0;border:0;text-align:left;word-break:break-word}
-  .tbl-wrap td::before{content:attr(data-th);color:var(--muted);font-size:12px;flex:none;text-align:left}
-  .tbl-wrap td:first-child{display:block;font-size:14.5px;font-weight:600;text-align:left}
+  /* 单元格：字段名在上、值占满一行，长串（如工具清单）不再被窄列挤成碎片 */
+  .tbl-wrap td{display:block;padding:3px 0;border:0;text-align:left;word-break:break-word;
+    font-size:13px;line-height:1.5}
+  .tbl-wrap td::before{content:attr(data-th);display:block;color:var(--muted);font-size:11.5px;
+    line-height:1.4;margin-bottom:1px}
+  .tbl-wrap td:first-child{display:block;font-size:15px;font-weight:650;text-align:left;padding-top:8px}
   .tbl-wrap td:first-child::before{display:none}
   .tbl-wrap td.actions{display:flex;justify-content:flex-end}
   .tbl-wrap td>.badge,.tbl-wrap td>span.badge{justify-self:start}
@@ -565,22 +597,32 @@ textarea{min-height:72px;resize:vertical}
   .map-grid .flow-col{flex:0 0 auto;flex-direction:row;flex-wrap:wrap;width:100%;min-width:0;gap:6px;align-items:stretch}
   .map-grid .flow-col-t{width:100%;margin-bottom:1px}
 .map-grid .flow-arrow{transform:rotate(90deg);align-self:center;padding:0;line-height:1;height:12px;display:flex;align-items:center}
-  .map-grid .flow-card{min-width:0;overflow:hidden}
-  .map-foot .chips{flex-wrap:nowrap;max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .map-grid .flow-card{min-width:0;overflow:hidden;padding:10px 12px}
+  .map-grid .flow-node{padding:4px 8px}
+  .map-grid .flow-node b{font-size:15px}
+  .map-grid .flow-node span{font-size:11px}
+  .map-foot .chips{flex-wrap:wrap;max-width:100%}
   .map-foot .chips::-webkit-scrollbar{display:none}
   .map-foot .chip{flex:none}
   .map-grid .sec-head{flex-wrap:wrap}
-  .map-grid .flow-node{flex:1 1 42%;min-width:0;padding:6px 8px}
-  .map-grid .map-num{font-size:17px}
+  .map-grid .flow-node{flex:1 1 42%;min-width:0;padding:5px 8px}
+  .map-grid .map-num{font-size:16px;line-height:1.25}
+  .map-grid .flow-node span{font-size:10.5px;line-height:1.35}
+  .map-grid .flow-col-t{font-size:11px;margin:0 0 2px}
+  .map-grid .map-foot{margin-top:8px;padding-top:8px}
+  .map-grid .flow-card{box-shadow:none}
+  .map-grid .flow-map{gap:0}
   /* 群聊页：聊天与输入框是同一张卡，不在两页之间来回滑 */
-  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]){flex:0 0 100%;width:100%;display:flex;flex-direction:column;
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]){flex:0 0 100%;width:100%;height:100%;display:flex;flex-direction:column;
     gap:8px;max-height:100%;overflow:hidden}
   .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;gap:8px}
-  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane>.vsec{flex:0 0 auto;width:auto;max-height:none;overflow:visible}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane>.vsec{flex:0 0 auto;width:auto;height:auto;max-height:none;overflow:visible}
   .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane>.vsec[data-kind="chat"]{flex:1 1 auto;min-height:0;overflow:hidden}
   .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane>.vsec[data-kind="chat"]>.chat-card{flex:1 1 auto;min-height:0}
   .view-scroll .vsec[data-kind="chat"] .chat{min-height:0}
-  .vsec-fold>details>summary{flex-direction:column;align-items:flex-start;gap:3px}
+  /* 露出的角要能读出这是哪一页：▸ 与标题同行，note 放不下才折行 */
+  .vsec-fold>details>summary{flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+  .vsec-fold>details>summary .muted{flex:1 1 100%}
   .wf-row{grid-template-columns:minmax(140px,50%) 1fr;gap:8px}
   .wf-caller{display:none}
   .wf-label{font-size:12px}
