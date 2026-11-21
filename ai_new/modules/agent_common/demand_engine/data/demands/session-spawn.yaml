@@ -53,17 +53,6 @@ do:
     path:
       lit: flows.yaml
   as: flows
-- call: library.get
-  with:
-    kind:
-      lit: flows
-    id:
-      get: rec.item.flow
-    seed:
-      get: seed.value
-    user:
-      get: flows.value
-  as: flow
 - call: config.get
   with:
     key:
@@ -86,7 +75,7 @@ do:
 - call: library.stage_apply_overrides
   with:
     states:
-      get: flow.item.states
+      get: rec.item.states
     remove:
       get: proj.value.overrides.states
   as: ov
@@ -104,7 +93,7 @@ do:
     stages:
       get: ov.states
     checks:
-      get: flow.item.checks
+      get: rec.item.checks
     refs:
       get: refs.refs
   as: contract
@@ -135,11 +124,11 @@ do:
       get: contract
     flow:
       id:
-        get: flow.item.id
+        get: rec.item.id
       cn:
-        get: flow.item.cn
+        get: rec.item.cn
     checks:
-      get: flow.item.checks
+      get: rec.item.checks
     active:
     - get: contract.initial
   as: fctx
@@ -235,7 +224,6 @@ expect:
   - store.read
   - library.get
   - store.read
-  - library.get
   - config.get
   - projects.record_path
   - store.read

@@ -75,6 +75,13 @@ main .crumb{margin-bottom:14px}
 
 /* ---- 项目卡片 ---- */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.flow-map{display:flex;align-items:flex-start;gap:6px;overflow-x:auto;padding:2px}
+.flow-col{display:flex;flex-direction:column;gap:8px;min-width:118px;flex:1}
+.flow-node{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 9px;min-width:0}
+.flow-node b{display:block;font-size:12.5px;line-height:1.4;color:var(--fg);font-weight:600}
+.flow-node span{font-size:11px;color:var(--muted)}
+.flow-node.term{border-color:var(--ok);background:rgba(0,180,42,.06)}
+.flow-arrow{color:var(--muted);font-size:13px;padding-top:12px;flex:none}
 .pcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 14px 12px;cursor:pointer;transition:border-color .15s,transform .08s}
 .pcard:hover{border-color:var(--accent)}
 .pcard:active{transform:scale(.995)}
@@ -434,7 +441,7 @@ textarea{min-height:72px;resize:vertical}
 .stat-cell b{display:block;font-size:25px;line-height:1.12;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .stat-cell span{display:block;font-size:12.5px;color:var(--fg-2);margin-top:3px}
 .stat-cell em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:1px}
-.flow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.flow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:14px}
 .flow-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px}
 .flow-card header{display:flex;align-items:baseline;gap:8px;margin-bottom:11px;min-width:0}
 .flow-card h4{margin:0;font-size:14px;font-weight:650}

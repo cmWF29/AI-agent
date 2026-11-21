@@ -1,0 +1,101 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# in 字段由需求 with 键反推（scripts/gen_module_contracts.py 生成，可复跑）；
+# 改动路由或需求传参后重跑脚本，别手抄。
+module: artifacts
+routes:
+  artifacts.base:
+    in:
+      layer:
+        type: any
+        req: false
+      paths:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+    out: {}
+  artifacts.group:
+    in:
+      entries:
+        type: any
+        req: false
+      tickets:
+        type: any
+        req: false
+    out: {}
+  artifacts.rel:
+    in:
+      base:
+        type: any
+        req: false
+      path:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+    out: {}
+  artifacts.save:
+    in:
+      content:
+        type: any
+        req: false
+      encoding:
+        type: any
+        req: false
+      layer:
+        type: any
+        req: false
+      path:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+    out: {}
+  artifacts.screen:
+    in:
+      layer:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+    out: {}
+  artifacts.stats:
+    in:
+      rows:
+        type: any
+        req: false
+    out: {}
+  artifacts.viewed:
+    in:
+      encoding:
+        type: any
+        req: false
+      path:
+        type: any
+        req: false
+      size:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+      truncated:
+        type: any
+        req: false
+    out: {}
+  artifacts.written:
+    in: {}
+    out: {}

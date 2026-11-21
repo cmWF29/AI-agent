@@ -1,7 +1,9 @@
 id: library-summary
 title: 岗位库总览：种子 + 两类用户记录，交给 library 数数
-description: "岗位库总览：种子 + 两类用户记录，交给 library 数数。两张表一起数，规则归模块"
-tags: [library, read]
+description: 岗位库总览：种子 + 两类用户记录，交给 library 数数。两张表一起数，规则归模块
+tags:
+- library
+- read
 enabled: true
 callable: true
 'on': []
@@ -20,13 +22,6 @@ do:
     path:
       lit: roles.yaml
   as: roles
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
-      lit: flows.yaml
-  as: flows
 - call: library.summary
   with:
     seed:
@@ -34,14 +29,11 @@ do:
     user:
       roles:
         get: roles.value
-      flows:
-        get: flows.value
   as: out
 expect:
   given:
     input: {}
   calls:
-  - store.read
   - store.read
   - store.read
   - library.summary

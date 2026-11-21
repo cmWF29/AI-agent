@@ -1,0 +1,116 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# in 字段由需求 with 键反推（scripts/gen_module_contracts.py 生成，可复跑）；
+# 改动路由或需求传参后重跑脚本，别手抄。
+module: projects
+routes:
+  projects.archive:
+    in:
+      now:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+    out: {}
+  projects.build:
+    in: {}
+    out: {}
+  projects.conflict:
+    in: {}
+    out: {}
+  projects.create:
+    in:
+      name:
+        type: any
+        req: false
+    out: {}
+  projects.deleted:
+    in: {}
+    out: {}
+  projects.missing:
+    in: {}
+    out: {}
+  projects.override_parts:
+    in:
+      rec:
+        type: any
+        req: false
+    out: {}
+  projects.present:
+    in:
+      id:
+        type: any
+        req: false
+      rec:
+        type: any
+        req: false
+    out: {}
+  projects.record_path:
+    in:
+      id:
+        type: any
+        req: false
+      paths:
+        type: any
+        req: false
+    out: {}
+  projects.remove:
+    in:
+      id:
+        type: any
+        req: false
+      purge:
+        type: any
+        req: false
+    out: {}
+  projects.rename:
+    in:
+      id:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+    out: {}
+  projects.renamed:
+    in: {}
+    out: {}
+  projects.screen:
+    in:
+      rows:
+        type: any
+        req: false
+    out: {}
+  projects.toggle:
+    in:
+      enabled:
+        type: any
+        req: false
+      id:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+    out: {}
+  projects.toggle_override:
+    in: {}
+    out: {}
+  projects.tree:
+    in:
+      projects:
+        type: any
+        req: false
+      tickets:
+        type: any
+        req: false
+    out: {}
+  projects.view:
+    in:
+      rec:
+        type: any
+        req: false
+    out: {}

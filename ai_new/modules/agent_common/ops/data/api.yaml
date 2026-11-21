@@ -1,0 +1,74 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# in 字段由需求 with 键反推（scripts/gen_module_contracts.py 生成，可复跑）；
+# 改动路由或需求传参后重跑脚本，别手抄。
+module: ops
+routes:
+  ops.assemble:
+    in:
+      artifacts:
+        type: any
+        req: false
+      config:
+        type: any
+        req: false
+      demands:
+        type: any
+        req: false
+      knowledge:
+        type: any
+        req: false
+      library:
+        type: any
+        req: false
+      projects:
+        type: any
+        req: false
+      sessions:
+        type: any
+        req: false
+      tickets:
+        type: any
+        req: false
+    out: {}
+  ops.events:
+    in:
+      rows:
+        type: any
+        req: false
+    out: {}
+  ops.export_path:
+    in:
+      name:
+        type: any
+        req: false
+    out: {}
+  ops.log_line:
+    in:
+      text:
+        type: any
+        req: false
+    out: {}
+  ops.record:
+    in:
+      data:
+        type: any
+        req: false
+      hook:
+        type: any
+        req: false
+      level:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+    out: {}
+  ops.tail:
+    in:
+      lines:
+        type: any
+        req: false
+      rows:
+        type: any
+        req: false
+    out: {}

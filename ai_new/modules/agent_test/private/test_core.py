@@ -1899,14 +1899,14 @@ class CoreTest(unittest.TestCase):
         seed = yaml.safe_load((ROOT /
             "ai_new/modules/agent/library/data/seed.yaml").read_text(encoding="utf-8"))
         refs = lib_pure.stage_refsp({"seed": seed, "flows": {}})["refs"]
-        flows = lib_pure._records({"seed": seed, "user": {}, "kind": "flows"})
-        pm = lib_pure.stage_contractp({"states": flows["pm"]["states"], "refs": refs,
-                                       "checks": flows["pm"].get("checks")})
+        roles = lib_pure._records({"seed": seed, "user": {}, "kind": "roles"})
+        pm = lib_pure.stage_contractp({"states": roles["pm"]["states"], "refs": refs,
+                                       "checks": roles["pm"].get("checks")})
         self.assertEqual(pm["initial"], "owner")
         self.assertEqual(pm["terminals"], ["owner.req.close"])
         self.assertIn("owner.req.intake", [s["path"] for s in pm["states"]])
-        ops = lib_pure.stage_contractp({"states": flows["ops"]["states"], "refs": refs,
-                                        "checks": flows["ops"].get("checks")})
+        ops = lib_pure.stage_contractp({"states": roles["ops"]["states"], "refs": refs,
+                                        "checks": roles["ops"].get("checks")})
         self.assertEqual(ops["initial"], "health")
         self.assertEqual(ops["terminals"], ["health.audit.close"])
         self.assertIn("health.ops.diagnose", [s["path"] for s in ops["states"]])
@@ -2130,21 +2130,21 @@ class CoreTest(unittest.TestCase):
         out = decompose_pure.install_parts(
             {"draft": draft_empty, "meta": {"id": "ppt_design_skill", "doc": "做PPT", "version": "v1"},
              "source": "github:x", "now": "t1"})
-        self.assertIsNone(out["flow"])
-        self.assertEqual(out["skill"]["flow"], "")
+        self.assertNotIn("flow", out)
         self.assertEqual(out["skill"]["status"], "enabled")
         self.assertEqual(out["role"]["skill"], "ppt_design_skill")
         self.assertEqual(out["tools"][0]["skill"], "ppt_design_skill")
         self.assertIn("artifact_read", out["role"]["tools"])
         self.assertIn("ppt_render", out["role"]["tools"])
-        # 带检查项 → 流程成形，skill.flow 指向流程标识
+        # 带检查项与状态节点 → 直接成形在岗位记录里，不再另起流程实体
         draft_flow = dict(draft_empty)
         draft_flow["flow"] = {"checks": [{"kind": "file", "paths": ["docs/a.md"]}],
-                              "nodes": [], "edges": []}
+                              "nodes": [{"id": "n1", "cn": "出稿"}], "edges": []}
         out2 = decompose_pure.install_parts(
             {"draft": draft_flow, "meta": {"id": "ppt_design_skill"}, "now": "t2"})
-        self.assertIsNotNone(out2["flow"])
-        self.assertEqual(out2["skill"]["flow"], "ppt_design_skill")
+        self.assertEqual(out2["role"]["checks"][0]["kind"], "file")
+        self.assertEqual(out2["role"]["kind"], "process")
+        self.assertEqual(out2["role"]["nodes"][0]["id"], "n1")
         # 缺标识 → 成形报错，不落有效记录
         bad = decompose_pure.install_parts({"draft": {"role": {}}})
         self.assertFalse(bad["ok"])
@@ -2289,12 +2289,12 @@ class CoreTest(unittest.TestCase):
                          "flow": "f1", "tools": ["t1"], "builtin": False},
                   "s2": {"id": "s2", "cn": "生图师", "status": "disabled", "role": "r2",
                          "flow": "", "tools": ["t2"], "builtin": False}}
-        roles = {"r1": {"id": "r1", "cn": "PPT师", "skill": "s1"},
-                 "r2": {"id": "r2", "cn": "生图师", "skill": "s2"}}
-        flows = {"f1": {"id": "f1", "role": "r1", "checks": []}}
+        roles = {"r1": {"id": "r1", "cn": "PPT师", "skill": "s1",
+                        "states": [{"id": "a", "next": []}]},
+                 "r2": {"id": "r2", "cn": "生图师", "skill": "s2", "states": []}}
         tools = {"t1": {"name": "t1", "skill": "s1"}, "t2": {"name": "t2", "skill": "s2"}}
         listed = lib_pure.skills_listp({"skills": skills, "roles": roles,
-                                        "flows": flows, "tools": tools})["items"]
+                                        "tools": tools})["items"]
         row1 = next(x for x in listed if x["id"] == "s1")
         row2 = next(x for x in listed if x["id"] == "s2")
         self.assertEqual(row1["role_cn"], "PPT师")
@@ -2308,8 +2308,7 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(lib_pure.disabled_p({"skills": skills})["ids"], ["s2"])
 
         # 岗位清单摘除禁用 Skill 的岗位；seed 为空时不含内置条目
-        pos = lib_pure.positionsp({"seed": {}, "user": roles, "flows": flows,
-                                   "skills": skills})["items"]
+        pos = lib_pure.positionsp({"seed": {}, "user": roles, "skills": skills})["items"]
         self.assertIn("r1", [p["id"] for p in pos])
         self.assertNotIn("r2", [p["id"] for p in pos])
 
@@ -2326,7 +2325,7 @@ class CoreTest(unittest.TestCase):
         # skill_uninstallp：级联删岗位/流程/工具/Skill；内置受保护
         removed = lib_pure.skill_uninstallp(
             {"id": "s1", "skills": dict(skills), "roles": dict(roles),
-             "flows": dict(flows), "tools": dict(tools)})
+             "flows": {}, "tools": dict(tools)})
         self.assertNotIn("s1", removed["skills"])
         self.assertNotIn("r1", removed["roles"])
         self.assertNotIn("f1", removed["flows"])

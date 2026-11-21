@@ -637,18 +637,36 @@ function flowHtml(sec, ctx) {
   const cards = arr(ref(sec.source, ctx));
   if (!cards.length) return head + emptyHtml(sec.empty);
   const body = cards.map((row) => {
-    const states = arr(row.states);
-    const chain = states.map((s) => {
-      const nx = arr(s.next);
-      return `<li class="flow-state${s.terminal ? " term" : ""}"><span class="flow-dot"></span>
-        <div class="flow-line"><strong>${esc(s.cn || s.id || "")}</strong>
-        <span class="muted">${esc(s.id || "")}${s.ref ? " · ref " + esc(s.ref) : ""}</span>
-        ${s.desc ? `<p class="muted">${esc(s.desc)}</p>` : ""}
-        ${nx.length ? `<div class="flow-next">→ ${nx.map((x) => `<span class="k">${esc(x)}</span>`).join(" / ")}</div>` : ""}</div></li>`;
-    }).join("");
+    const states = arr(row.states && row.states.length ? row.states : (row.flow || {}).states);
+    if (!states.length) return "";
+    const ids = new Set(states.map((s) => s.id).filter(Boolean));
+    const indeg = {};
+    states.forEach((s) => { if (s.id) indeg[s.id] = 0; });
+    states.forEach((s) => arr(s.next).forEach((n) => { if (ids.has(n)) indeg[n] += 1; }));
+    const level = new Map();
+    const queue = states.filter((s) => s.id && !indeg[s.id]).map((s) => s.id);
+    queue.forEach((id) => level.set(id, 0));
+    let guard = 0;
+    while (queue.length && guard < states.length * 6) {
+      const id = queue.shift(); guard += 1;
+      const cur = states.find((s) => s.id === id) || {};
+      arr(cur.next).forEach((n) => {
+        if (!ids.has(n)) return;
+        const want = (level.get(id) || 0) + 1;
+        if (!level.has(n) || level.get(n) < want) level.set(n, want);
+        queue.push(n);
+      });
+    }
+    states.forEach((s, i) => { if (s.id && !level.has(s.id)) level.set(s.id, i); });
+    const maxLv = Math.max(0, ...Array.from(level.values()));
+    const cols = [];
+    for (let l = 0; l <= maxLv; l += 1) cols.push(states.filter((s) => level.get(s.id) === l));
+    const node = (s) => `<div class="flow-node${s.terminal ? " term" : ""}" title="${esc(s.desc || "")}">
+        <b>${esc(s.cn || s.id || "")}</b><span>${esc(s.id || "")}</span></div>`;
+    const map = cols.filter((c) => c.length).map((c) => `<div class="flow-col">${c.map(node).join("")}</div>`).join('<div class="flow-arrow">→</div>');
     return `<article class="flow-card"><header><h4>${esc(row.cn || row.id || "")}</h4>
       <span class="muted">${esc(row.id || "")} · ${esc(uiText("flow_states", states.length))}</span></header>
-      <ol class="flow-chain">${chain}</ol></article>`;
+      <div class="flow-map">${map}</div></article>`;
   }).join("");
   return head + `<div class="flow-grid">${body}</div>`;
 }

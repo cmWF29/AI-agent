@@ -17,7 +17,13 @@ architect:
   - ticket_note
   - todo
   builtin: true
-  flow: architect
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*architect*
+    - docs/**/*架构*
+    match: any
+    min_bytes: 80
 developer:
   id: developer
   cn: 开发
@@ -39,7 +45,15 @@ developer:
   - shell
   - todo
   builtin: true
-  flow: developer
+  checks:
+  - kind: glob
+    paths:
+    - '**/*.py'
+    - '**/*.js'
+    - '**/*.go'
+    - '**/*.sh'
+    match: any
+    min_bytes: 80
 reviewer:
   id: reviewer
   cn: 评审
@@ -56,7 +70,13 @@ reviewer:
   - ticket_note
   - todo
   builtin: true
-  flow: reviewer
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*review*
+    - docs/**/*评审*
+    match: any
+    min_bytes: 80
 tester:
   id: tester
   cn: 测试
@@ -76,7 +96,13 @@ tester:
   - shell
   - todo
   builtin: true
-  flow: tester
+  checks:
+  - kind: glob
+    paths:
+    - tests/**/*.py
+    - tests/**/*.md
+    match: any
+    min_bytes: 80
 ops:
   id: ops
   cn: 运维
@@ -92,7 +118,12 @@ ops:
   - ticket_read_doc
   - todo
   builtin: true
-  flow: ops
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*.md
+    match: any
+    min_bytes: 80
 researcher:
   id: researcher
   cn: 调研
@@ -108,7 +139,12 @@ researcher:
   - ticket_read_doc
   - todo
   builtin: true
-  flow: researcher
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*.md
+    match: any
+    min_bytes: 80
 writer:
   id: writer
   cn: 文案
@@ -124,7 +160,12 @@ writer:
   - ticket_read_doc
   - todo
   builtin: true
-  flow: writer
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*.md
+    match: any
+    min_bytes: 80
 process:
   id: process
   cn: 流程专家
@@ -140,7 +181,13 @@ process:
   - ticket_read_doc
   - todo
   builtin: true
-  flow: process
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*.yaml
+    - docs/**/*.md
+    match: any
+    min_bytes: 80
 skill-decomposer:
   id: skill-decomposer
   cn: 拆解者
@@ -160,4 +207,10 @@ skill-decomposer:
   - ticket_note
   - todo
   builtin: true
-  flow: skill-decomposer
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*拆解*
+    - docs/**/*.yaml
+    match: any
+    min_bytes: 80

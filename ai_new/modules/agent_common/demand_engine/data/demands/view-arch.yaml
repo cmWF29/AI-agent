@@ -18,7 +18,7 @@ view:
   data:
   - {as: mf, demand: demands-manifest}
   - {as: api, demand: api-snapshot}
-  - {as: flows, demand: library-list, params: {kind: flows}}
+  - {as: pos, demand: position-list}
   - {as: slow, demand: trace-slow, params: {}}
   sections:
   - kind: stats
@@ -36,10 +36,10 @@ view:
     note: 点开组看需求，再点开需求看 call/send 与 as/with 摘要
     empty: {text: 暂无需求}
   - kind: flow
-    source: data.flows.items
-    heading: 岗位状态机
-    note: 每个岗位一列状态链，箭头是允许迁移，终点标记结单
-    empty: {text: 暂无流程规范}
+    source: data.pos.items
+    heading: 岗位状态机（按转移关系分层）
+    note: 横向是层级：同层并列即可并行，箭头是允许迁移，绿框为终态；状态机随岗位走，不再单独存流程
+    empty: {text: 暂无状态机}
   - kind: table
     source: data.api.items
     limit: 40

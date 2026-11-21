@@ -1,6 +1,6 @@
 id: position-get
-title: 岗位详情：岗位记录 + 关联流程规范 + 提示词正文
-description: 岗位详情：岗位记录 + 关联流程规范 + 提示词正文。岗位是提示词加流程规范的模板，实例化不在此需求
+title: 岗位详情：岗位记录（含状态机与检查项）+ 提示词正文
+description: 岗位详情：岗位记录（含自带状态机与检查项）+ 提示词正文。岗位是提示词加状态机的模板，实例化不在此需求
 tags:
 - position
 - library
@@ -28,13 +28,6 @@ do:
     module:
       lit: agent/library
     path:
-      lit: flows.yaml
-  as: uflows
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
       lit: messages.yaml
   as: lib_tpl
 - call: library.get
@@ -48,17 +41,6 @@ do:
     user:
       get: uroles.value
   as: rec
-- call: library.get
-  with:
-    kind:
-      lit: flows
-    id:
-      get: input.id
-    seed:
-      get: seed.value
-    user:
-      get: uflows.value
-  as: flowrec
 - call: library.prompt_path
   with:
     rec:
@@ -77,8 +59,6 @@ do:
       get: input.id
     rec:
       get: rec.item
-    flow:
-      get: flowrec.item
     prompt_text:
       get: libprompt.value
     tpl:
@@ -92,8 +72,6 @@ expect:
   - store.read
   - store.read
   - store.read
-  - store.read
-  - library.get
   - library.get
   - library.prompt_path
   - store.read_text

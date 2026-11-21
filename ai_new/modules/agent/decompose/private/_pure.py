@@ -317,33 +317,25 @@ def install_parts(p):
                    "must_dos": role.get("must_dos") or [],
                    "forbidden": role.get("forbidden") or [],
                    "tools": role_tools,
-                   "flow": rid,
                    "prompt_file": "",
                    "skill": rid, "builtin": False}
-
-    flow_record = {"id": rid, "skill": rid}
-    flow_id = ""
+    # 状态机与验收检查直接写在岗位记录里：不再另存一份同名流程，避免一处定义两处存。
     if flow.get("checks"):
-        flow_record["checks"] = flow.get("checks")
-        flow_id = rid
+        role_record["checks"] = flow.get("checks")
     if flow.get("nodes"):
-        flow_record["kind"] = "process"
-        flow_record["nodes"] = flow.get("nodes")
-        flow_record["edges"] = flow.get("edges")
-        flow_id = rid
-    if not flow_id:
-        flow_record = None
+        role_record["kind"] = "process"
+        role_record["nodes"] = flow.get("nodes")
+        role_record["edges"] = flow.get("edges")
 
     skill_record = {"id": rid, "cn": role.get("cn") or rid,
                      "doc": meta.get("doc") or "",
                      "source": p.get("source") or "",
                      "version": meta.get("version") or "",
-                     "status": "enabled", "role": rid, "flow": flow_id,
+                     "status": "enabled", "role": rid,
                      "tools": [t["name"] for t in tool_records],
                      "builtin": False,
                      "created": p.get("now") or "", "updated": p.get("now") or ""}
-    return {"skill": skill_record, "role": role_record,
-            "flow": flow_record, "tools": tool_records}
+    return {"skill": skill_record, "role": role_record, "tools": tool_records}
 
 
 def install_effects(p):
@@ -359,16 +351,12 @@ def install_effects(p):
         return {"ok": False, "effects": [],
                 "error": parts.get("error") or tpl.get("invalid_parts") or ""}
     roles = dict(p.get("roles") or {})
-    flows = dict(p.get("flows") or {})
     tools = dict(p.get("tools") or {})
     skills = dict(p.get("skills") or {})
 
     role = parts.get("role") or {}
     if role.get("id"):
         roles[role["id"]] = dict(role)
-    flow = parts.get("flow")
-    if flow and flow.get("id"):
-        flows[flow["id"]] = dict(flow)
     for tool in parts.get("tools") or []:
         if isinstance(tool, dict) and tool.get("name"):
             tools[tool["name"]] = dict(tool)
@@ -382,8 +370,5 @@ def install_effects(p):
         {"kind": "write", "module": "agent/library",
          "path": "skills.yaml", "value": skills},
     ]
-    if flow and flow.get("id"):
-        effects.insert(1, {"kind": "write", "module": "agent/library",
-                           "path": "flows.yaml", "value": flows})
     return {"ok": True, "effects": effects}
 

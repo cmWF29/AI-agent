@@ -97,13 +97,14 @@ def _check_desc(c, tpl):
 
 
 def _position(rec, flow, prompt_text="", tpl=None):
-    """岗位 = 系统提示词引用 + 红线/必做 + 工具清单；流程规范独立挂在绑定的流程实体上。
+    """岗位 = 系统提示词引用 + 红线/必做 + 工具清单 + 自己的状态机与验收检查。
 
-    岗位只持人格/职责/边界，不内嵌状态机；状态集/转移/验收来自绑定流程记录。
+    状态集/转移/检查项直接写在岗位记录里（checks/states/kind），不再另存流程实体；
+    只有被多个岗位复用的子流程才留在流程库，靠状态节点 ref 指过去。
     正文取提示词文件内容；提示词归属模块由记录 prompt_module 标注。
     """
     tpl = tpl or {}
-    flow = flow or {}
+    flow = flow or rec
     checks = [dict(c, desc=_check_desc(c, tpl)) for c in (flow.get("checks") or [])]
     stages = flow.get("states") or flow.get("stages") or []
     must_outputs = []
@@ -605,7 +606,6 @@ def positionsp(p):
     system/readonly 内置条目恒定受保护，不被项目禁用标记摘除。
     """
     roles = _records({"seed": p.get("seed"), "user": p.get("user"), "kind": "roles"})
-    flows = _records({"seed": p.get("seed"), "user": p.get("flows"), "kind": "flows"})
     disabled = _disabled_skill_ids(p.get("skills"))
     disabled_roles = set(p.get("disabled_roles") or [])
     tpl = p.get("tpl") or {}
@@ -614,8 +614,7 @@ def positionsp(p):
         sk = rec.get("skill")
         if sk and sk in disabled:
             continue
-        flow_id = rec.get("flow") or rid
-        row = _position(rec, flows.get(flow_id) or {}, "", tpl)
+        row = _position(rec, rec, "", tpl)
         locked = bool(rec.get("system") or rec.get("readonly"))
         row["disabled"] = (rid in disabled_roles) and not locked
         if row["disabled"]:
@@ -665,12 +664,11 @@ def designp(p):
 def summaryp(p):
     seed = p.get("seed") or {}
     user = p.get("user") or {}
-    counts, names = {}, {}
-    for kind in ("roles", "flows"):
-        recs = _records({"seed": seed, "user": user.get(kind) or {}, "kind": kind})
-        counts[kind] = len(recs)
-        names[kind] = sorted(recs)
-    return {"counts": counts, "roles": names["roles"], "flows": names["flows"]}
+    roles = _records({"seed": seed, "user": user.get("roles") or {}, "kind": "roles"})
+    # 流程数统计带状态机的岗位：状态机随岗位走，不再有独立流程实体（子流程库另计）
+    flows = sum(1 for r in roles.values() if isinstance(r, dict) and r.get("states"))
+    return {"counts": {"roles": len(roles), "flows": flows},
+            "roles": sorted(roles), "flows": []}
 
 
 def promptp(p):
@@ -791,8 +789,8 @@ def skills_listp(p):
             "role": role_id,
             "role_cn": role_rec.get("cn") or "",
             "flow": flow_id,
-            "has_flow": bool(flow_id and flow_id in flows),
-            "flow_text": (tpl.get("label_has_flow") or "") if (flow_id and flow_id in flows) else (tpl.get("label_no_flow") or ""),
+            "has_flow": bool(role_rec.get("states")),
+            "flow_text": (tpl.get("label_has_flow") or "") if role_rec.get("states") else (tpl.get("label_no_flow") or ""),
             "tools": "、".join(tool_names),
             "tool_names": tool_names,
             "builtin": bool(rec.get("builtin")),

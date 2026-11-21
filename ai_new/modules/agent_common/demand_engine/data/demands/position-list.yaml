@@ -1,7 +1,10 @@
 id: position-list
 title: 岗位列表：岗位记录关联各自流程规范，合并种子与用户记录
-description: "岗位列表：岗位记录关联各自流程规范，合并种子与用户记录。岗位提示词与流程规范的合并规则归模块，取数归需求"
-tags: [position, library, read]
+description: 岗位列表：岗位记录关联各自流程规范，合并种子与用户记录。岗位提示词与流程规范的合并规则归模块，取数归需求
+tags:
+- position
+- library
+- read
 enabled: true
 callable: true
 'on': []
@@ -25,13 +28,6 @@ do:
     module:
       lit: agent/library
     path:
-      lit: flows.yaml
-  as: uflows
-- call: store.read
-  with:
-    module:
-      lit: agent/library
-    path:
       lit: skills.yaml
   as: usk
 - call: library.positions
@@ -40,8 +36,6 @@ do:
       get: seed.value
     user:
       get: uroles.value
-    flows:
-      get: uflows.value
     skills:
       get: usk.value
   as: out
@@ -49,7 +43,6 @@ expect:
   given:
     input: {}
   calls:
-  - store.read
   - store.read
   - store.read
   - store.read

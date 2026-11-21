@@ -25,7 +25,19 @@ roles:
   builtin: true
   readonly: true
   system: true
-  flow: pm
+  checks:
+  - kind: glob
+    paths:
+    - docs/pm/plan.md
+    match: any
+    min_bytes: 80
+  states:
+  - id: owner
+    cn: 需求主流程
+    desc: 受理→澄清→计划→分派→执行→验收→结单（复用需求归属子流程）
+    ref: requirement-owner
+    next:
+    - owner.req.close
 - id: architect
   cn: 架构
   prompt_file: roles/architect.md
@@ -44,163 +56,6 @@ roles:
   - ticket_note
   - todo
   builtin: true
-  flow: architect
-- id: developer
-  cn: 开发
-  prompt_file: roles/developer.md
-  must_dos:
-  - 按验收标准实现并交付代码产物
-  - 改完自己跑一遍验证，写明验证命令与结果
-  forbidden:
-  - 不为凑清单创建项目里不存在的语言文件
-  - 不自验通过就宣称完成
-  tools:
-  - artifact_read
-  - artifact_write
-  - knowledge_read
-  - knowledge_write
-  - knowledge_search
-  - ticket_read_doc
-  - ticket_note
-  - shell
-  - todo
-  builtin: true
-  flow: developer
-- id: reviewer
-  cn: 评审
-  prompt_file: roles/reviewer.md
-  must_dos:
-  - 逐条对照验收标准给出评审结论并落文档
-  forbidden:
-  - 不改业务代码
-  - 不替开发补实现
-  tools:
-  - artifact_read
-  - knowledge_read
-  - ticket_read_doc
-  - ticket_note
-  - artifact_write
-  - todo
-  builtin: true
-  flow: reviewer
-- id: tester
-  cn: 测试
-  prompt_file: roles/tester.md
-  must_dos:
-  - 交付测试用例或脚本并跑通，记录结果
-  forbidden:
-  - 不改业务实现逻辑
-  - 不隐藏或跳过失败用例
-  tools:
-  - artifact_read
-  - artifact_write
-  - knowledge_read
-  - knowledge_write
-  - ticket_read_doc
-  - ticket_note
-  - shell
-  - todo
-  builtin: true
-  flow: tester
-- id: ops
-  cn: 运维
-  prompt_file: roles/ops.md
-  must_dos:
-  - 给出部署或恢复方案文档
-  forbidden:
-  - 不在被审计工单上直接改动其产物
-  tools:
-  - artifact_read
-  - knowledge_read
-  - knowledge_search
-  - ticket_read_doc
-  - artifact_write
-  - todo
-  builtin: true
-  flow: ops
-- id: researcher
-  cn: 调研
-  prompt_file: roles/researcher.md
-  must_dos:
-  - 输出调研结论文档并标注来源
-  forbidden:
-  - 不把调研结论当成已落地实现
-  tools:
-  - artifact_read
-  - knowledge_read
-  - knowledge_search
-  - ticket_read_doc
-  - artifact_write
-  - todo
-  builtin: true
-  flow: researcher
-- id: writer
-  cn: 文案
-  prompt_file: roles/writer.md
-  must_dos:
-  - 交付对应文案文档
-  forbidden:
-  - 不改技术实现
-  tools:
-  - artifact_read
-  - artifact_write
-  - knowledge_read
-  - ticket_read_doc
-  - todo
-  builtin: true
-  flow: writer
-- id: process
-  cn: 流程专家
-  prompt_file: roles/process.md
-  must_dos:
-  - 输出流程或规则配置文档
-  forbidden:
-  - 不改业务代码
-  tools:
-  - artifact_read
-  - artifact_write
-  - knowledge_read
-  - ticket_read_doc
-  - todo
-  builtin: true
-  flow: process
-- id: skill-decomposer
-  cn: 拆解者
-  prompt_file: roles/skill-decomposer.md
-  must_dos:
-  - 把外部 Skill.md 包拆成岗位角色、引用工具、流程规则三要素
-  - 工具只引用注册表已有项，名单外的不写
-  - 拆解结果直接入库为一个 Skill 单元，岗位/流程/工具归到同一标识下
-  forbidden:
-  - 流程拆不出就留空数组，不硬造检查项或流程节点
-  - 不改业务代码
-  tools:
-  - artifact_read
-  - knowledge_read
-  - knowledge_search
-  - ticket_read_doc
-  - ticket_note
-  - artifact_write
-  - todo
-  builtin: true
-  flow: skill-decomposer
-flows:
-- id: pm
-  cn: PM
-  states:
-  - id: owner
-    cn: 需求主流程
-    desc: 受理→澄清→计划→分派→执行→验收→结单（复用需求归属子流程）
-    ref: requirement-owner
-    next:
-    - owner.req.close
-  checks:
-  - kind: glob
-    paths:
-    - docs/pm/plan.md
-    match: any
-    min_bytes: 80
-- id: architect
   checks:
   - kind: glob
     paths:
@@ -208,7 +63,6 @@ flows:
     - docs/**/*架构*
     match: any
     min_bytes: 80
-  cn: 架构
   states:
   - id: study
     cn: 研读
@@ -241,6 +95,25 @@ flows:
     next: []
     terminal: true
 - id: developer
+  cn: 开发
+  prompt_file: roles/developer.md
+  must_dos:
+  - 按验收标准实现并交付代码产物
+  - 改完自己跑一遍验证，写明验证命令与结果
+  forbidden:
+  - 不为凑清单创建项目里不存在的语言文件
+  - 不自验通过就宣称完成
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - knowledge_search
+  - ticket_read_doc
+  - ticket_note
+  - shell
+  - todo
+  builtin: true
   checks:
   - kind: glob
     paths:
@@ -250,7 +123,6 @@ flows:
     - '**/*.sh'
     match: any
     min_bytes: 80
-  cn: 开发
   states:
   - id: understand
     cn: 理解
@@ -284,6 +156,21 @@ flows:
     next: []
     terminal: true
 - id: reviewer
+  cn: 评审
+  prompt_file: roles/reviewer.md
+  must_dos:
+  - 逐条对照验收标准给出评审结论并落文档
+  forbidden:
+  - 不改业务代码
+  - 不替开发补实现
+  tools:
+  - artifact_read
+  - knowledge_read
+  - ticket_read_doc
+  - ticket_note
+  - artifact_write
+  - todo
+  builtin: true
   checks:
   - kind: glob
     paths:
@@ -291,7 +178,6 @@ flows:
     - docs/**/*评审*
     match: any
     min_bytes: 80
-  cn: 评审
   states:
   - id: study
     cn: 研读
@@ -322,6 +208,23 @@ flows:
     next: []
     terminal: true
 - id: tester
+  cn: 测试
+  prompt_file: roles/tester.md
+  must_dos:
+  - 交付测试用例或脚本并跑通，记录结果
+  forbidden:
+  - 不改业务实现逻辑
+  - 不隐藏或跳过失败用例
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - ticket_read_doc
+  - ticket_note
+  - shell
+  - todo
+  builtin: true
   checks:
   - kind: glob
     paths:
@@ -329,7 +232,6 @@ flows:
     - tests/**/*.md
     match: any
     min_bytes: 80
-  cn: 测试
   states:
   - id: design
     cn: 用例设计
@@ -363,6 +265,25 @@ flows:
     terminal: true
 - id: ops
   cn: 运维
+  prompt_file: roles/ops.md
+  must_dos:
+  - 给出部署或恢复方案文档
+  forbidden:
+  - 不在被审计工单上直接改动其产物
+  tools:
+  - artifact_read
+  - knowledge_read
+  - knowledge_search
+  - ticket_read_doc
+  - artifact_write
+  - todo
+  builtin: true
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*.md
+    match: any
+    min_bytes: 80
   states:
   - id: health
     cn: 健康处置流程
@@ -370,20 +291,27 @@ flows:
     ref: ticket-health
     next:
     - health.audit.close
-  checks:
-  - kind: glob
-    paths:
-    - docs/**/*.md
-    match: any
-    min_bytes: 80
 - id: researcher
+  cn: 调研
+  prompt_file: roles/researcher.md
+  must_dos:
+  - 输出调研结论文档并标注来源
+  forbidden:
+  - 不把调研结论当成已落地实现
+  tools:
+  - artifact_read
+  - knowledge_read
+  - knowledge_search
+  - ticket_read_doc
+  - artifact_write
+  - todo
+  builtin: true
   checks:
   - kind: glob
     paths:
     - docs/**/*.md
     match: any
     min_bytes: 80
-  cn: 调研
   states:
   - id: scope
     cn: 界定边界
@@ -416,13 +344,25 @@ flows:
     next: []
     terminal: true
 - id: writer
+  cn: 文案
+  prompt_file: roles/writer.md
+  must_dos:
+  - 交付对应文案文档
+  forbidden:
+  - 不改技术实现
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - ticket_read_doc
+  - todo
+  builtin: true
   checks:
   - kind: glob
     paths:
     - docs/**/*.md
     match: any
     min_bytes: 80
-  cn: 文案
   states:
   - id: gather
     cn: 读素材
@@ -452,6 +392,19 @@ flows:
     next: []
     terminal: true
 - id: process
+  cn: 流程专家
+  prompt_file: roles/process.md
+  must_dos:
+  - 输出流程或规则配置文档
+  forbidden:
+  - 不改业务代码
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - ticket_read_doc
+  - todo
+  builtin: true
   checks:
   - kind: glob
     paths:
@@ -459,7 +412,6 @@ flows:
     - docs/**/*.md
     match: any
     min_bytes: 80
-  cn: 流程专家
   states:
   - id: survey
     cn: 梳理现状
@@ -489,6 +441,24 @@ flows:
     next: []
     terminal: true
 - id: skill-decomposer
+  cn: 拆解者
+  prompt_file: roles/skill-decomposer.md
+  must_dos:
+  - 把外部 Skill.md 包拆成岗位角色、引用工具、流程规则三要素
+  - 工具只引用注册表已有项，名单外的不写
+  - 拆解结果直接入库为一个 Skill 单元，岗位/流程/工具归到同一标识下
+  forbidden:
+  - 流程拆不出就留空数组，不硬造检查项或流程节点
+  - 不改业务代码
+  tools:
+  - artifact_read
+  - knowledge_read
+  - knowledge_search
+  - ticket_read_doc
+  - ticket_note
+  - artifact_write
+  - todo
+  builtin: true
   checks:
   - kind: glob
     paths:
@@ -496,7 +466,6 @@ flows:
     - docs/**/*.yaml
     match: any
     min_bytes: 80
-  cn: 拆解者
   states:
   - id: inspect
     cn: 读包
@@ -527,6 +496,7 @@ flows:
     - todo
     next: []
     terminal: true
+flows:
 - id: requirement-owner
   kind: process
   states:

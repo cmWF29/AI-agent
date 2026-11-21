@@ -1,7 +1,9 @@
 id: library-check
-title: 流程检查：读流程记录，按调用方给的文件清单核验
-description: "流程检查：读流程记录，按调用方给的文件清单核验。文件从外面进来，判断归模块"
-tags: [library, read]
+title: 交付检查：读岗位自带检查项，按调用方给的文件清单核验
+description: 流程检查：读流程记录，按调用方给的文件清单核验。文件从外面进来，判断归模块
+tags:
+- library
+- read
 enabled: true
 callable: true
 'on': []
@@ -18,18 +20,18 @@ do:
     module:
       lit: agent/library
     path:
-      lit: flows.yaml
-  as: flows
+      lit: roles.yaml
+  as: uroles
 - call: library.get
   with:
     kind:
-      lit: flows
+      lit: roles
     id:
       get: input.flow
     seed:
       get: seed.value
     user:
-      get: flows.value
+      get: uroles.value
   as: rec
 - call: library.check
   with:
