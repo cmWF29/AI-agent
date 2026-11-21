@@ -450,9 +450,7 @@ textarea{min-height:72px;resize:vertical}
   .cards{display:flex;flex-direction:column;gap:10px}
   .deck-stage{--ox:7px;--oy:11px}
   .deck[data-open="1"] .deck-stage{display:flex;flex-direction:column;gap:10px}
-  /* 手机上阴影是最大的绘制开销：一律改边框，视觉层次靠线与底色区分 */
-  .pcard,.card,.tbl-wrap,.tree-node,.stat-strip,.side-card,.flow-card,.wf,
-  .vsec-fold>details,.chat-card,.composer,.popover,.modal-card{box-shadow:none}
+  /* 阴影保留：手机上层次靠阴影，不再用去阴影换帧率（实测无收益还会显平） */
   /* 离屏区块交给浏览器跳过渲染；带卡片堆叠的区块要量高度，不能跳 */
   .view-scroll>.vsec:not(:has([data-deck])){content-visibility:auto;contain-intrinsic-size:auto 220px}
   .view-scroll .vsec>.cards.deck{overflow:visible}

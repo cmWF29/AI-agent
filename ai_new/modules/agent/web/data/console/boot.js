@@ -2,8 +2,11 @@
    只有一条：点到的按钮 -> 动作表 -> 执行器。
 */
 document.addEventListener("click", (e) => {
-  // 刚刚是滑动换牌，不是点卡片：吃掉这一次点击
-  if (DECK_SUPPRESS) { DECK_SUPPRESS = false; e.stopPropagation(); e.preventDefault(); return; }
+  // 刚刚是滑动换牌，不是点卡片：吃掉这一次点击（只吞紧跟拖动的这一下，600ms 后自然失效）
+  if (DECK_SUPPRESS && performance.now() - DECK_SUPPRESS < 600) {
+    DECK_SUPPRESS = 0;
+    e.stopPropagation(); e.preventDefault(); return;
+  }
   const deckBtn = e.target.closest("[data-deck-open]");
   if (deckBtn) {
     const d = deckBtn.closest("[data-deck]");
@@ -70,7 +73,10 @@ document.addEventListener("keydown", (e) => {
 
 /* ---- 卡片堆叠（deck）：收缩时叠着放，左右滑动换牌；展开时铺成列表 ----
    位置由 --pos 决定（0=最上面那张），拖动只用 --dx 做临时位移，松手后重排。 ---- */
-let DECK_SUPPRESS = false;   // 拖动结束的那一下点击不算点击
+let DECK_SUPPRESS = 0;   // 拖动结束的时间戳：只吞紧跟拖动的这一下点击。
+/* 真机触摸拖动后浏览器不会派发 click（pointermove 被 preventDefault 了），
+   所以这里不能当成"等一个 click 来清"的布尔锁——那样第二次滑动会被
+   pointerdown 里的判断挡掉，表现为"滑一张就滑不动了"。 */
 let DECK_DRAG = null;
 
 function deckCards(d) { return [...d.querySelectorAll(".deck-stage > .pcard")]; }
@@ -125,7 +131,7 @@ function mountDecks() {
 }
 
 document.addEventListener("pointerdown", (e) => {
-  if (DECK_SUPPRESS || e.button > 0) return;
+  if (e.button > 0) return;
   const stage = e.target.closest && e.target.closest(".deck-stage");
   const d = stage && stage.closest("[data-deck]");
   if (!d || d.dataset.open === "1") return;
@@ -167,7 +173,7 @@ function deckRelease(e) {
     const n = g.cards.length, cur = Number(g.d.dataset.pos) || 0;
     g.d.dataset.pos = String(((g.dx < 0 ? cur + 1 : cur - 1) + n) % n);
   }
-  DECK_SUPPRESS = !!g.moved;
+  DECK_SUPPRESS = g.moved ? performance.now() : 0;
   deckLayout(g.d);
 }
 document.addEventListener("pointerup", deckRelease);
