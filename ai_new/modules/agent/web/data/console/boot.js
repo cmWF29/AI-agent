@@ -177,8 +177,13 @@ window.addEventListener("resize", mountDecks);
 /* ---- 性能自检浮层（?perf=1 或 localStorage.ai_new_perf=1）----
    只报数，不改行为：帧率、最差一帧、50ms 以上长任务数量，方便在真机上定位卡顿。 */
 function startPerfProbe() {
-  if (!(new URLSearchParams(location.search).get("perf") === "1"
-      || localStorage.getItem("ai_new_perf") === "1")) return;
+  // 登录跳转会丢掉 query：开过一次就记住，?perf=0 关掉
+  const ask = new URLSearchParams(location.search).get("perf");
+  try {
+    if (ask === "1") localStorage.setItem("ai_new_perf", "1");
+    else if (ask === "0") localStorage.removeItem("ai_new_perf");
+    if (localStorage.getItem("ai_new_perf") !== "1") return;
+  } catch (err) { if (ask !== "1") return; }
   const box = document.createElement("div");
   box.className = "perf-probe";
   document.body.appendChild(box);
