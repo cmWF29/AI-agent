@@ -32,6 +32,7 @@ checks:
   enabled: true
   demands:
   - api-snapshot
+  - view-ops
   - console-shell
   - console-chrome
   - demands-manifest

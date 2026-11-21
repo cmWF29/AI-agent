@@ -1,0 +1,66 @@
+id: view-ops
+title: 运维视图：只读总览 + 运行记录 + 运行环境
+description: "运维视图：一次取运维总览与系统运行记录，摊成统计、事件表与环境信息；面板只声明区块，取数与组装归需求"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  menu: {order: 9, label: 运维, short: 运维, mobile: false}
+  key: ops
+  crumb: [系统, 运维]
+  heading: 运维
+  subheading: 会话、工单、知识、文档、岗位一次总览；运行记录只读，扫描与导出由运维动作触发
+  actions:
+  - {label: 扫停滞, demand: ops-scan, confirm: 扫一遍在途工单，命中停滞的按配置开审计单。继续？, flash: 扫描完成}
+  - {label: 导出数据, modal: ops.export}
+  data:
+  - {as: overview, demand: ops-overview}
+  - {as: logs, demand: ops-logs}
+  forms:
+  - id: ops.export
+    title: 导出模块数据
+    hint: 打包走存储层压缩，落在这个模块自己的 exports 下；文件名留空按时间戳生成。
+    fields:
+    - name: name
+      label: 包名（可选）
+      placeholder: 例如 data-20261121.zip
+    submit:
+      demand: ops-export
+      params:
+        name: $name
+      ok: 导出
+      flash: 已导出
+  sections:
+  - kind: stats
+    rows:
+    - {label: 会话, value: "data.overview.sessions.result.items|count", note: 个在库会话}
+    - {label: 工单, value: "data.overview.tickets.result.items|count", note: 张工单}
+    - {label: 公共知识, value: "data.overview.knowledge.result.counts.public", note: 篇规范}
+    - {label: 文档, value: "data.overview.artifacts.result.files", note: 个文件}
+    - {label: 岗位, value: "data.overview.library.result.counts.roles", note: 个岗位}
+    - {label: 流程, value: "data.overview.library.result.counts.flows", note: 套流程}
+  - kind: kv
+    source: data.overview
+    heading: 运行环境
+    rows:
+    - {label: 服务地址, value: "{row.config.server.host}:{row.config.server.port}"}
+    - {label: 版本, value: row.config.server.version}
+    - {label: 登录校验, value: row.config.server.auth.enabled}
+    - {label: 模型接入, value: row.config.llm.base_url}
+  - kind: table
+    source: data.logs.events
+    heading: 运行记录
+    columns:
+    - {label: 时间, value: row.ts, muted: true}
+    - {label: 级别, value: row.level}
+    - {label: 事件, value: row.event}
+    - {label: 详情, value: row.detail, fallback: row.msg, muted: true}
+    empty: {text: 暂无运行记录；系统动作会自动追加到这里}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 运维视图只声明区块，取数与组装归需求

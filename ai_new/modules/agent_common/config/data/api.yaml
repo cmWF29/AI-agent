@@ -13,7 +13,8 @@ routes:
     in:
       key:
         type: any
-        req: true
+        # 不传 key 是设计内行为：回脱敏后的全量配置，供总览类只读面板使用
+        req: false
   config.set_value:
     doc: 按点号路径写配置并落盘
     out:

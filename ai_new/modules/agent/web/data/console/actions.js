@@ -17,6 +17,8 @@ async function execute(binding, fields) {
   if (act.confirm && !confirm(String(fill(act.confirm, c)))) return;
   const flashText = act.flash ? String(fill(act.flash, c)) : "";
   try {
+    // 拆解这类长动作可能跑几十秒，先给一条"加载中"，成功/失败再被下面的提示覆盖。
+    banner(uiText("loading") || "加载中…", "info");
     const res = await run(act.demand, params);
     if (act.clear) {
       const ta = document.querySelector("#view-body .composer textarea");
@@ -130,6 +132,7 @@ function openForm(form, ctx) {
       if (f.required && !fields[f.name]) throw new Error(uiText("required_empty", f.label));
     }
     const c = { ...ctx, fields };
+    banner(uiText("loading") || "加载中…", "info");
     const res = await run(form.submit.demand, fill(form.submit.params || {}, c));
     closeModal();
     if (form.submit.flash) banner(fill(form.submit.flash, { ...c, result: res }), "ok");
@@ -150,8 +153,10 @@ $("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(); };
 $("modal-form").onsubmit = async (e) => {
   e.preventDefault();
   if (!modalSubmit) return;
+  const okLabel = $("modal-ok").textContent;
   $("modal-ok").disabled = true;
+  $("modal-ok").textContent = uiText("loading") || "加载中…";
   try { await modalSubmit(new FormData(e.target)); }
   catch (err) { modalError(gateMessage(err)); }
-  finally { $("modal-ok").disabled = false; }
+  finally { $("modal-ok").disabled = false; $("modal-ok").textContent = okLabel; }
 };

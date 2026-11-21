@@ -7,7 +7,7 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 2, label: 架构, mobile: true}
+  menu: {order: 2, label: 架构与链路, short: 架构, mobile: true}
   key: arch
   nav: arch
   crumb: [系统, 架构与链路]
@@ -26,8 +26,7 @@ view:
     - {label: 需求, value: "data.mf.count", note: "条可插拔业务"}
     - {label: 执行步骤, value: "data.mf.steps", note: "语句树节点"}
     - {label: 对外路由, value: "data.api.routes", note: "条已注册能力"}
-    - {label: 岗位状态机, value: "data.flows.items|count", note: "套流程规范"}
-    - {label: 慢链路, value: "data.slow.items|count", note: "个聚合 span"}
+
   - kind: tree
     source: data.mf.groups
     list: true

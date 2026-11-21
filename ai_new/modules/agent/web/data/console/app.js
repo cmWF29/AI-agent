@@ -155,7 +155,7 @@ async function run(demand, input) {
 function banner(msg, kind) {
   const el = $("banner");
   if (!msg) { el.style.display = "none"; el.textContent = ""; el.className = ""; return; }
-  el.className = kind === "ok" ? "ok" : "err";
+  el.className = kind === "ok" ? "ok" : (kind === "info" ? "info" : "err");
   el.textContent = msg;
   el.style.display = "block";  // 行内样式优先级最高，隐藏后必须显式改回来
 }
