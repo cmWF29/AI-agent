@@ -549,6 +549,14 @@ textarea{min-height:72px;resize:vertical}
   .flow-node b{font-size:12px}
   .flow-node span{font-size:10px;word-break:break-all}
   .flow-arrow{font-size:11px;padding:11px 0 0}
+  /* 群聊页：聊天与输入框是同一张卡，不在两页之间来回滑 */
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]){flex:0 0 100%;width:100%;display:flex;flex-direction:column;
+    gap:8px;max-height:100%;overflow:hidden}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;gap:8px}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane>.vsec{flex:0 0 auto;width:auto;max-height:none;overflow:visible}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane>.vsec[data-kind="chat"]{flex:1 1 auto;min-height:0;overflow:hidden}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane>.vsec[data-kind="chat"]>.chat-card{flex:1 1 auto;min-height:0}
+  .view-scroll .vsec[data-kind="chat"] .chat{min-height:0}
   .vsec-fold>details>summary{flex-direction:column;align-items:flex-start;gap:3px}
   .wf-row{grid-template-columns:minmax(140px,50%) 1fr;gap:8px}
   .wf-caller{display:none}

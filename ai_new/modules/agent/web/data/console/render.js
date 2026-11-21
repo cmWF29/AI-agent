@@ -769,7 +769,11 @@ function pruneEmptyCards() {
 function mountDots() {
   const rail = document.querySelector("#view-body .view-scroll");
   if (!rail) return;
-  const cards = [...rail.querySelectorAll(".vsec")];
+  // 群聊页把双栏合成一张卡，里面的 chat/composer 不是独立页，不参与翻页计数
+  const cards = [...rail.querySelectorAll(".vsec")].filter((s) => {
+    const grid = s.closest(".ticket-grid");
+    return !grid || getComputedStyle(grid).display === "contents";
+  });
   if (cards.length < 2) return;
   const dots = document.createElement("div");
   dots.className = "view-dots";
