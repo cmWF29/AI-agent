@@ -69,6 +69,57 @@ class Engine:
             for r in self._load()
         ]
 
+    def manifest(self):
+        """全量需求的可视化形状：每条需求的执行链 + 树节点（成形归模块，渲染只认节点）。
+
+        节点约定：`{label,badge,sub}` 表示分支节点，`{name,path}` 表示叶子。
+        需求 DSL 只有顺序 call/send，所以树是两层：需求 → 步骤。
+        """
+        items, nodes, buckets = [], [], {}
+        steps_total = views = callable_n = 0
+        for r in self._load():
+            steps = r.get("do") or []
+            leaves = []
+            for i, st in enumerate(steps if isinstance(steps, list) else []):
+                if not isinstance(st, dict):
+                    leaves.append({"name": str(st)[:120], "path": "非结构语句"})
+                    continue
+                name = st.get("call") or st.get("send") or "?"
+                as_ = str(st.get("as") or "")
+                with_ = st.get("with")
+                keys = ",".join(sorted(with_)) if isinstance(with_, dict) else ""
+                sub = ("as " + as_ if as_ else "")
+                if keys:
+                    sub = (sub + " · with " + keys).strip()
+                leaves.append({"name": "%d. %s" % (i + 1, name), "path": sub})
+            routes = _lang.routes_of(steps)
+            view = r.get("view") if isinstance(r.get("view"), dict) else None
+            view_key = (view or {}).get("key") or ""
+            callable_ = bool(r.get("callable"))
+            steps_total += len(leaves)
+            views += 1 if view_key else 0
+            callable_n += 1 if callable_ else 0
+            items.append({"id": r["id"], "title": r.get("title", ""),
+                          "enabled": bool(r.get("enabled", True)),
+                          "tags": list(r.get("tags") or []),
+                          "on": list(r.get("on") or []),
+                          "view": view_key or "", "callable": callable_,
+                          "steps": len(leaves), "routes": routes})
+            node = {"label": r["id"],
+                    "badge": ("可调" if callable_ else ("视图" if view_key else "内置")),
+                    "sub": r.get("title", ""),
+                    "children": leaves}
+            nodes.append(node)
+            first_tag = (r.get("tags") or ["core"])[0]
+            buckets.setdefault(first_tag, []).append(node)
+        named = {t.get("id"): (t.get("name") or t.get("id"))
+                 for t in ((_md(self.ctx).yaml_read("tags.yaml", {}) or {}).get("tags") or [])}
+        groups = [{"label": named.get(k, k), "badge": "%d" % len(v), "sub": k,
+                   "children": v}
+                  for k, v in sorted(buckets.items(), key=lambda kv: (-len(kv[1]), kv[0]))]
+        return {"count": len(items), "steps": steps_total, "views": views,
+                "callable": callable_n, "items": items, "nodes": nodes, "groups": groups}
+
     # ---- 插拔 ----
     def set_enabled(self, demand_id, enabled):
         for rec in self._load():

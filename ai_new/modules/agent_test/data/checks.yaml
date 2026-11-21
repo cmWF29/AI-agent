@@ -32,6 +32,9 @@ checks:
   enabled: true
   demands:
   - api-snapshot
+  - demands-manifest
+  - trace-slow
+  - view-arch
   - api-notify
   - artifacts-list
   - artifacts-read

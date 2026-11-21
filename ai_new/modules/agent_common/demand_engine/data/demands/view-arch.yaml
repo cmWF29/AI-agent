@@ -1,0 +1,70 @@
+id: view-arch
+title: 架构与链路视图：需求执行链、状态机、路由与实时链路摊开看
+description: "架构与链路视图：需求执行链、状态机、路由与实时链路摊开看。页面只声明区块，形状归模块与需求"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: arch
+  nav: arch
+  crumb: [系统, 架构与链路]
+  heading: 架构与链路
+  subheading: 需求是数据、模块是能力、契约是约束；这里把四件事摊在同一屏里对照
+  data:
+  - {as: mf, demand: demands-manifest}
+  - {as: api, demand: api-snapshot}
+  - {as: flows, demand: library-list, params: {kind: flows}}
+  - {as: slow, demand: trace-slow, params: {}}
+  sections:
+  - kind: stats
+    rows:
+    - {label: 需求, value: "data.mf.count", note: "条可插拔业务"}
+    - {label: 执行步骤, value: "data.mf.steps", note: "语句树节点"}
+    - {label: 对外路由, value: "data.api.routes", note: "条已注册能力"}
+    - {label: 岗位状态机, value: "data.flows.items|count", note: "套流程规范"}
+    - {label: 慢链路, value: "data.slow.items|count", note: "个聚合 span"}
+  - kind: tree
+    source: data.mf.groups
+    list: true
+    collapsed: true
+    hide_count: true
+    fold: {title: "需求执行链 · {data.mf.count} 条 / {data.mf.steps} 步"}
+    note: 点开组看需求，再点开需求看 call/send 与 as/with 摘要
+    empty: {text: 暂无需求}
+  - kind: flow
+    source: data.flows.items
+    heading: 岗位状态机
+    note: 每个岗位一列状态链，箭头是允许迁移，终点标记结单
+    empty: {text: 暂无流程规范}
+  - kind: table
+    source: data.api.items
+    limit: 40
+    list: true
+    fold: {title: "路由与契约 · {data.api.routes} 条"}
+    heading: 路由与契约
+    columns:
+    - {label: 路由, value: row.name, sub: row.module}
+    - {label: 通道, value: row.stream, fallback: 直连, muted: true}
+    - {label: 入参, value: "row.in|count", suffix: 项}
+    - {label: 出参, value: "row.out|count", suffix: 项}
+    - {label: 说明, value: row.doc, muted: true}
+    empty: {text: 暂无路由}
+  - kind: table
+    source: data.slow.items
+    heading: 今日链路（按 P95 排序）
+    columns:
+    - {label: 阶段, value: row.name}
+    - {label: 次数, value: row.n}
+    - {label: P50, value: row.p50_ms, suffix: ms, muted: true}
+    - {label: P95, value: row.p95_ms, suffix: ms}
+    - {label: 峰值, value: row.max_ms, suffix: ms, muted: true}
+    - {label: 错误, value: row.err, muted: true}
+    empty: {text: 今日暂无链路采样（trace 采样率可在 config.trace.sample 调高）}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 页面只声明区块，形状归模块与需求

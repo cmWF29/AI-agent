@@ -23,6 +23,8 @@ def setup(ctx):
     ctx.api.register("demand_engine.run", _route_run, "按名跑一段编排需求", module="demand_engine")
     ctx.api.register("demand_engine.list", lambda c, p: ctx.demand_engine.items(),
                      "当前需求（on/do/enabled）", module="demand_engine")
+    ctx.api.register("demand_engine.manifest", lambda c, p: ctx.demand_engine.manifest(),
+                     "全量需求的可视化形状（执行链 + 树节点）", module="demand_engine")
     return ctx.demand_engine
 
 

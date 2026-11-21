@@ -1,0 +1,20 @@
+id: trace-slow
+title: 链路聚合：今日各 span 的 P50/P95/最大值与错误数
+description: "链路聚合：今日各 span 的 P50/P95/最大值与错误数。聚合规则归 trace 模块，视图只声明表格"
+tags: [ops, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: trace.slow
+  with:
+    limit:
+      lit: 16
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - trace.slow
+  payload: {}
+  promise: 聚合规则归 trace 模块，视图只声明表格

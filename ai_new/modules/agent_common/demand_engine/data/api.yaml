@@ -17,3 +17,18 @@ routes:
     out:
       result:
         type: any
+  demand_engine.manifest:
+    doc: 全量需求的可视化形状（执行链 + 树节点）
+    out:
+      count:
+        type: int
+      steps:
+        type: int
+      views:
+        type: int
+      callable:
+        type: int
+      items:
+        type: any
+      nodes:
+        type: any

@@ -422,6 +422,73 @@ textarea{min-height:72px;resize:vertical}
 .td-text.off{text-decoration:line-through;color:var(--muted)}
 .td-row em{font-size:11px;color:var(--muted);font-style:normal}
 
+
+/* ---- 架构页：指标条 / 区块头 / 状态机 ---- */
+.sec-head{display:flex;align-items:baseline;gap:10px;margin:0 2px 10px;flex-wrap:wrap}
+.sec-head strong{font-size:13.5px;font-weight:650}
+.sec-head .muted{font-size:12px}
+.stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 4px}
+.stat-cell{padding:2px 16px;border-left:1px solid var(--line-2);min-width:0}
+.stat-cell:first-child{border-left:0}
+.stat-cell b{display:block;font-size:25px;line-height:1.12;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat-cell span{display:block;font-size:12.5px;color:var(--fg-2);margin-top:3px}
+.stat-cell em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:1px}
+.flow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.flow-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px}
+.flow-card header{display:flex;align-items:baseline;gap:8px;margin-bottom:11px;min-width:0}
+.flow-card h4{margin:0;font-size:14px;font-weight:650}
+.flow-card header .muted{margin-left:auto;flex:none;font-size:11.5px}
+.flow-chain{list-style:none;margin:0;padding:0}
+.flow-state{display:flex;gap:10px;padding:0 0 14px;position:relative}
+.flow-state:last-child{padding-bottom:0}
+.flow-state:not(:last-child)::after{content:"";position:absolute;left:4.5px;top:15px;bottom:0;width:1px;background:var(--line)}
+.flow-dot{width:10px;height:10px;border-radius:50%;flex:none;margin-top:4px;background:var(--card);border:2px solid var(--accent);position:relative;z-index:1}
+.flow-state.term .flow-dot{background:var(--ok);border-color:var(--ok)}
+.flow-line{min-width:0;font-size:12.5px}
+.flow-line strong{font-size:13px;font-weight:600;margin-right:6px}
+.flow-line p{margin:2px 0 0;line-height:1.55}
+.flow-next{margin-top:3px;font-size:11.5px;color:var(--muted)}
+.flow-next .k{font-size:11px;padding:1px 6px;border-radius:6px;background:var(--bg);border:1px solid var(--line);color:var(--fg-2)}
+
+
+/* 列表式树：整块一张卡，行与行只隔一条细线，适合装几十上百条 */
+.vsec-list[data-kind="tree"] .tree{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:4px;gap:0}
+.vsec-list .tree-node{border:0;border-radius:8px;box-shadow:none;background:transparent}
+.vsec-list .tree-node>summary{padding:7px 12px}
+.vsec-list .tree-node>summary:hover{background:var(--line-2)}
+.vsec-list .tree-node>summary .badge{min-width:34px;justify-content:center}
+.vsec-list .tree-children{gap:0;padding:2px 6px 6px 22px;border-top:1px solid var(--line-2)}
+.vsec-list .tree-children .tree-node{border-radius:6px}
+.vsec-list .tree-children .tree-doc{padding:4px 10px;border-radius:6px;line-height:1.5}
+.vsec-list .tree-children .tree-node>summary{padding:8px 10px}
+
+.vsec-fold>details{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.vsec-fold>details>summary{display:flex;align-items:baseline;gap:10px;padding:13px 16px;cursor:pointer;list-style:none}
+.vsec-fold>details>summary::-webkit-details-marker{display:none}
+.vsec-fold>details>summary::before{content:"▸";color:var(--muted);font-size:11px}
+.vsec-fold>details[open]>summary::before{content:"▾"}
+.vsec-fold>details>summary strong{font-size:13.5px;font-weight:650}
+.vsec-fold>details>summary .muted{font-size:12px}
+.vsec-fold>details[open]>summary{border-bottom:1px solid var(--line-2)}
+.vsec-fold>details>*:not(summary) .tbl-wrap,.vsec-fold>details>*:not(summary) .tree{box-shadow:none;border:0;border-radius:0}
+.vsec-fold>details>*:not(summary){padding:0}
+/* ---- 移动端第二套骨架：底部 tab 栏（≤720px 生效） ---- */
+.tabbar{display:none}
+
+@media (max-width:720px){
+  .stat-strip{grid-template-columns:1fr 1fr;padding:12px 2px}
+  .stat-cell{padding:4px 12px;border-left:0}
+  .stat-cell:nth-child(even){border-left:1px solid var(--line-2)}
+  .stat-cell b{font-size:21px}
+  .flow-grid{grid-template-columns:1fr}
+  .vsec-fold>details>summary{flex-direction:column;align-items:flex-start;gap:3px}
+  .stat-cell:last-child:nth-child(odd){grid-column:1/-1}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:22;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;box-shadow:0 -2px 10px rgba(16,24,40,.06)}
+  .tabbar button{flex:1;border:0;background:transparent;border-radius:10px;padding:7px 2px;font-size:12px;color:var(--muted);line-height:1.3}
+  .tabbar button.on{color:var(--accent);font-weight:600;background:var(--accent-weak)}
+  body{padding-bottom:58px}
+  .side-foot{padding-bottom:20px}
+}
 </style>
 </head>
 <body>
@@ -434,6 +501,7 @@ textarea{min-height:72px;resize:vertical}
     </div>
     <nav class="nav" id="side-nav">
       <button data-nav="projects">项目</button>
+      <button data-nav="arch">架构</button>
       <button data-nav="positions">岗位库</button>
       <button data-nav="tools">工具库</button>
       <button data-nav="skills">技能</button>
@@ -460,6 +528,14 @@ textarea{min-height:72px;resize:vertical}
     </main>
   </div>
 </div>
+
+<nav class="tabbar" id="tab-bar" aria-label="快捷导航">
+  <button data-nav="projects">项目</button>
+  <button data-nav="arch">架构</button>
+  <button data-nav="positions">岗位</button>
+  <button data-nav="logs">日志</button>
+  <button class="tab-more" id="tab-more" aria-label="更多入口">更多</button>
+</nav>
 
 <!-- 成员卡浮层 -->
 <div class="popover" id="popover" hidden></div>

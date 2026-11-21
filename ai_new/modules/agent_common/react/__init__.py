@@ -66,6 +66,19 @@ async def _exec_tool(ctx, fn, targs, session):
         return {"ok": False, "error": exc.message, "code": exc.code}
 
 
+def _rel_path(tpl, fallback, **kw):
+    """路径模板填参：值为空的段整段去掉（未归属项目时不会拼出 projects//tickets/…）。"""
+    if tpl:
+        if "{project}" in tpl and not kw.get("project"):
+            tpl = tpl.replace("projects/{project}/", "").replace("projects/{project}", "")
+        rel = tpl.format(**kw).strip("/")
+        while "//" in rel:
+            rel = rel.replace("//", "/")
+        if rel:
+            return rel
+    return fallback
+
+
 def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
     """工具输出分级：超限先落 ticket 层日志，回路径与读取提示；落盘失败兜底全文回填。"""
     cls = ctx.api.call("react.classify_tool",
@@ -77,8 +90,8 @@ def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
     project = session.get("project") or ""
     ticket = session.get("ticket") or ""
     pt = _logs_paths(ctx).get("tool") or ""
-    rel_path = pt.format(project=project, ticket=ticket, fid=fid) if pt \
-        else "%s/%s" % (ticket, fid)
+    rel_path = _rel_path(pt, "%s/%s" % (ticket, fid),
+                         project=project, ticket=ticket, fid=fid)
     body_effect = {"kind": "write_text", "module": "agent/logs",
                    "path": rel_path, "text": text}
     rec = ctx.api.call("logs.record", {

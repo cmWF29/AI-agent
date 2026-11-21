@@ -70,6 +70,8 @@ function tableHtml(sec, ctx) {
     const by = sec.sort.by, dir = sec.sort.order === "asc" ? 1 : -1;
     rows.sort((a, b) => dir * String(dig(a, by) || "").localeCompare(String(dig(b, by) || "")));
   }
+  let truncated = 0;
+  if (sec.limit && rows.length > sec.limit) { truncated = rows.length - sec.limit; rows = rows.slice(0, sec.limit); }
   const filters = sec.filters || [];
   if (filters.length) {
     const active = filters.find((f) => f.key === FILTER) || filters[0];
@@ -79,6 +81,7 @@ function tableHtml(sec, ctx) {
   const head = `<div class="tbl-head">
     ${sec.heading ? `<strong style="font-size:13px">${esc(fill(sec.heading, ctx))}</strong>` : ""}
     ${sec.count_note ? `<span class="muted">${esc(fill(sec.count_note, ctx))}</span>` : ""}
+    ${truncated ? `<span class="muted">… 另有 ${truncated} 条未列出</span>` : ""}
     <div class="spacer" style="margin-left:auto"></div>
     ${filters.length ? `<span class="seg" id="seg">${filters.map((f) =>
       `<button data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</button>`).join("")}</span>` : ""}
@@ -553,11 +556,49 @@ function treeNodeHtml(node, sec, ctx) {
   if (!kids.length) return treeDocHtml(node, sec, ctx);
   const count = kids.length;
   const sub = node.sub ? `<span class="muted tree-node-sub">${esc(node.sub)}</span>` : "";
-  return `<details class="tree-node" open>
-    <summary><span class="badge">${esc(node.badge || "")}</span><span class="tree-node-label">${esc(node.label || "")}</span>${sub}<span class="muted tree-node-count">${count}</span></summary>
+  return `<details class="tree-node"${sec.collapsed ? "" : " open"}>
+    <summary><span class="badge">${esc(node.badge || "")}</span><span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
     <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx)).join("")}</div>
   </details>`;
 }
+function secHead(sec, ctx) {
+  if (sec.fold || (!sec.heading && !sec.note)) return "";
+  return `<div class="sec-head">${sec.heading ? `<strong>${esc(fill(sec.heading, ctx))}</strong>` : ""}${
+    sec.note ? `<span class="muted">${esc(fill(sec.note, ctx))}</span>` : ""}</div>`;
+}
+
+function statsHtml(sec, ctx) {
+  const rows = sec.rows || [];
+  if (!rows.length) return "";
+  const cells = rows.map((r) => {
+    const v = fill(r.value, ctx);
+    return `<div class="stat-cell"><b>${esc(v === "" ? "—" : v)}</b><span>${esc(fill(r.label, ctx))}</span>${
+      r.note ? `<em>${esc(fill(r.note, ctx))}</em>` : ""}</div>`;
+  }).join("");
+  return `<div class="stat-strip">${cells}</div>`;
+}
+
+function flowHtml(sec, ctx) {
+  const head = secHead(sec, ctx);
+  const cards = arr(ref(sec.source, ctx));
+  if (!cards.length) return head + emptyHtml(sec.empty);
+  const body = cards.map((row) => {
+    const states = arr(row.states);
+    const chain = states.map((s) => {
+      const nx = arr(s.next);
+      return `<li class="flow-state${s.terminal ? " term" : ""}"><span class="flow-dot"></span>
+        <div class="flow-line"><strong>${esc(s.cn || s.id || "")}</strong>
+        <span class="muted">${esc(s.id || "")}${s.ref ? " · ref " + esc(s.ref) : ""}</span>
+        ${s.desc ? `<p class="muted">${esc(s.desc)}</p>` : ""}
+        ${nx.length ? `<div class="flow-next">→ ${nx.map((x) => `<span class="k">${esc(x)}</span>`).join(" / ")}</div>` : ""}</div></li>`;
+    }).join("");
+    return `<article class="flow-card"><header><h4>${esc(row.cn || row.id || "")}</h4>
+      <span class="muted">${esc(row.id || "")} · ${states.length} 态</span></header>
+      <ol class="flow-chain">${chain}</ol></article>`;
+  }).join("");
+  return head + `<div class="flow-grid">${body}</div>`;
+}
+
 function treeHtml(sec, ctx) {
   const nodes = arr(ref(sec.source, ctx));
   if (!nodes.length) return emptyHtml(sec.empty);
@@ -626,14 +667,21 @@ function sectionHtml(sec, ctx) {
   const kind = sec.kind;
   let html = "";
   if (kind === "cards") html = cardsHtml(sec, ctx);
+  else if (kind === "stats") html = statsHtml(sec, ctx);
+  else if (kind === "flow") html = flowHtml(sec, ctx);
   else if (kind === "table") html = tableHtml(sec, ctx);
   else if (kind === "chat") html = chatHtml(sec, ctx);
   else if (kind === "kv") html = kvHtml(sec, ctx);
-  else if (kind === "tree") html = treeHtml(sec, ctx);
+  else if (kind === "tree") html = secHead(sec, ctx) + treeHtml(sec, ctx);
   else if (kind === "doc") html = docHtml(sec, ctx);
   else if (kind === "composer") html = composerHtml(sec, ctx);
   else html = emptyHtml({ text: "未知区块: " + kind });
-  return `<div class="vsec" data-kind="${esc(kind)}">${html}</div>`;
+  if (sec.fold) {
+    const title = fill((sec.fold || {}).title || sec.heading || "", ctx);
+    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"><details><summary><strong>${esc(title)}</strong>${
+      sec.note ? `<span class="muted">${esc(fill(sec.note, ctx))}</span>` : ""}</summary>${html}</details></div>`;
+  }
+  return `<div class="vsec${sec.list ? " vsec-list" : ""}" data-kind="${esc(kind)}">${html}</div>`;
 }
 
 function renderView(spec, ctx) {

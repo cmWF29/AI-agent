@@ -64,7 +64,7 @@ function navTarget(view) {
 }
 function highlightNav() {
   const cur = navTarget(state.view);
-  document.querySelectorAll("#side-nav [data-nav]").forEach((b) =>
+  document.querySelectorAll("[data-nav]").forEach((b) =>
     b.classList.toggle("on", b.dataset.nav === cur));
 }
 function openDrawer() {
@@ -140,5 +140,8 @@ window.addEventListener("popstate", () => {
   state = parseURL();
   render().catch((err) => banner(gateMessage(err), "err"));
 });
+
+const tabMore = document.getElementById("tab-more");
+if (tabMore) tabMore.onclick = () => openDrawer();
 
 boot().catch((err) => banner("控制台启动失败：" + gateMessage(err) + "（检查 views-list 与视图规格）", "err"));

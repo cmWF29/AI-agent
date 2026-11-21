@@ -1,0 +1,17 @@
+id: demands-manifest
+title: 需求清单可视化：执行链、原文与树节点一次取全
+description: "需求清单可视化：执行链、原文与树节点一次取全。树成形归模块，视图只声明区块"
+tags: [view, read, core]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.manifest
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.manifest
+  payload: {}
+  promise: 树成形归模块，视图只声明区块
