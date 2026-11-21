@@ -578,6 +578,70 @@ function statsHtml(sec, ctx) {
   return `<div class="stat-strip">${cells}</div>`;
 }
 
+function wfMs(v) { const n = Number(v || 0); return Number.isFinite(n) && n > 0 ? n : 0; }
+function wfStart(s) { return wfMs(s.start); }
+function wfDur(s) { return wfMs(s.dur_ms); }
+function wfFmt(ms) {
+  if (ms >= 1000) return (ms / 1000).toFixed(2) + "s";
+  if (ms >= 10) return ms.toFixed(1) + "ms";
+  return ms.toFixed(2) + "ms";
+}
+function waterfallHtml(sec, ctx) {
+  const head = secHead(sec, ctx);
+  const spans = arr(ref(sec.source, ctx));
+  if (!spans.length) return head + emptyHtml(sec.empty);
+  const by = {};
+  spans.forEach((s) => { if (s && s.span) by[s.span] = s; });
+  // 父节点：优先采信记录里的 parent；跨执行器/跨通道丢了父时，用时间包含关系推断
+  // （真实嵌套必然"包含 + 起点不晚"，取包含者里最内层那个）。
+  const inferParent = (s) => {
+    const b0 = wfStart(s), b1 = b0 + wfDur(s) / 1000;
+    let best = null;
+    for (const o of spans) {
+      if (!o || o === s || !o.span) continue;
+      const a0 = wfStart(o), a1 = a0 + wfDur(o) / 1000;
+      if (a0 > b0 + 1e-6 || a1 < b1 - 1e-6) continue;
+      if (wfDur(o) <= wfDur(s) + 0.005) continue;
+      if (!best || a0 > wfStart(best) || (a0 === wfStart(best) && wfDur(o) < wfDur(best))) best = o;
+    }
+    return best ? best.span : "";
+  };
+  const parentOf = (s) => (s.parent && by[s.parent]) ? s.parent : inferParent(s);
+  const depthOf = (s) => {
+    let d = 0, p = parentOf(s), seen = {};
+    while (p && by[p] && !seen[p] && d < 12) { seen[p] = 1; d += 1; p = parentOf(by[p]); }
+    return d;
+  };
+  let t0 = Infinity, t1 = -Infinity;
+  spans.forEach((s) => {
+    const a = wfStart(s);
+    t0 = Math.min(t0, a);
+    t1 = Math.max(t1, a + wfDur(s) / 1000);
+  });
+  const total = Math.max(0.001, (isFinite(t1) ? t1 : 0) - (isFinite(t0) ? t0 : 0));
+  const rows = spans.slice().sort((a, b) => wfStart(a) - wfStart(b) || depthOf(a) - depthOf(b));
+  const bars = rows.map((s) => {
+    const d = Math.min(depthOf(s), 3), a = wfStart(s), du = wfDur(s);
+    const left = Math.max(0, (a - t0) / total * 100);
+    const w = Math.max(0.4, du / 1000 / total * 100);
+    const pct = du / 1000 / total * 100;
+    const bad = String(s.status || "ok") !== "ok";
+    return `<div class="wf-row">
+      <div class="wf-label" style="padding-left:${d * 14}px">
+        <span class="wf-name" title="${esc(s.name || "")}">${esc(s.name || "?")}</span>
+        ${s.caller ? `<span class="wf-caller">${esc(s.caller)}</span>` : ""}
+        <span class="wf-meta">${wfFmt(du)} · ${pct.toFixed(0)}%</span>
+      </div>
+      <div class="wf-track"><i class="wf-bar d${d}${bad ? " bad" : ""}" style="left:${left.toFixed(2)}%;width:${w.toFixed(2)}%"></i></div>
+    </div>`;
+  }).join("");
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => `<i>${wfFmt(total * f * 1000)}</i>`).join("");
+  return head + `<div class="wf">
+    <div class="wf-row wf-head"><div class="wf-label">调用层级</div><div class="wf-ticks">${ticks}</div></div>
+    ${bars}
+  </div>`;
+}
+
 function flowHtml(sec, ctx) {
   const head = secHead(sec, ctx);
   const cards = arr(ref(sec.source, ctx));
@@ -669,6 +733,7 @@ function sectionHtml(sec, ctx) {
   if (kind === "cards") html = cardsHtml(sec, ctx);
   else if (kind === "stats") html = statsHtml(sec, ctx);
   else if (kind === "flow") html = flowHtml(sec, ctx);
+  else if (kind === "waterfall") html = waterfallHtml(sec, ctx);
   else if (kind === "table") html = tableHtml(sec, ctx);
   else if (kind === "chat") html = chatHtml(sec, ctx);
   else if (kind === "kv") html = kvHtml(sec, ctx);

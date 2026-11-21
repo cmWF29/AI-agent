@@ -1,0 +1,20 @@
+id: trace-list
+title: 链路列表：今天每次请求一条 trace 的汇总
+description: "链路列表：今天每次请求一条 trace 的汇总。聚合归 trace 模块，视图只声明表格"
+tags: [ops, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: trace.list
+  with:
+    limit:
+      lit: 40
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - trace.list
+  payload: {}
+  promise: 聚合归 trace 模块，视图只声明表格

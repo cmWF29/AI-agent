@@ -1,0 +1,45 @@
+id: view-trace
+title: 单条链路视图：一次请求的 span 瀑布
+description: "单条链路视图：一次请求的 span 瀑布。时间轴与层级归渲染层，取数归需求"
+tags: [view, web, ops]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: trace
+  nav: arch
+  params: [trace]
+  parent: traces
+  crumb: [系统, 链路, "{route.trace}"]
+  heading: 链路 {route.trace}
+  subheading: 横轴是这条请求的总时长；条越长越慢，缩进表示调用层级，红色是出错节点
+  data:
+  - {as: t, demand: trace-get, params: {trace: "{route.trace}"}}
+  sections:
+  - kind: stats
+    rows:
+    - {label: 总耗时, value: "data.t.total_ms", note: "ms · 墙钟跨度"}
+    - {label: 节点, value: "data.t.count", note: "个 span"}
+    - {label: 出错, value: "data.t.spans|count(status!=ok)", note: "个异常节点"}
+  - kind: waterfall
+    source: data.t.spans
+    heading: 耗时瀑布
+    note: 同一层级按开始时间排；条上的数字是自身耗时，括号里是占本次请求的比例
+    empty: {text: 没有采到这个 trace（可能跨天或未采样）}
+  - kind: table
+    source: data.t.spans
+    heading: 节点明细
+    columns:
+    - {label: 节点, value: row.name, sub: row.span}
+    - {label: 调用方, value: row.caller, fallback: "—", muted: true}
+    - {label: 开始, value: row.start, format: when}
+    - {label: 耗时, value: row.dur_ms, suffix: ms}
+    - {label: 状态, value: row.status, fallback: ok}
+    empty: {text: 暂无节点}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 时间轴与层级归渲染层，取数归需求

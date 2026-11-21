@@ -12,6 +12,8 @@ view:
   crumb: [系统, 架构与链路]
   heading: 架构与链路
   subheading: 需求是数据、模块是能力、契约是约束；这里把四件事摊在同一屏里对照
+  actions:
+  - {label: 全部链路, view: traces}
   data:
   - {as: mf, demand: demands-manifest}
   - {as: api, demand: api-snapshot}

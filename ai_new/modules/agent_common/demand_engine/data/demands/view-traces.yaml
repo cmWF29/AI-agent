@@ -1,0 +1,52 @@
+id: view-traces
+title: 链路列表视图：今天每次请求一条 trace，点开看瀑布
+description: "链路列表视图：今天每次请求一条 trace，点开看瀑布。列表只声明表格，聚合走需求"
+tags: [view, web, ops]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: traces
+  nav: arch
+  crumb: [系统, 链路]
+  heading: 链路
+  subheading: 一次请求一条 trace；点开任意一行，看这次请求里每个 span 在时间轴上的位置与耗时
+  data:
+  - {as: list, demand: trace-list}
+  - {as: slow, demand: trace-slow, params: {limit: 8}}
+  sections:
+  - kind: stats
+    rows:
+    - {label: 今日请求, value: "data.list.total", note: "条 trace"}
+    - {label: 本页列出, value: "data.list.items|count", note: "按开始时间倒序"}
+    - {label: 聚合阶段, value: "data.slow.items|count", note: "个不同 span 名"}
+    - {label: 最慢 P95, value: "data.slow.items.0.p95_ms", note: "ms · 见下方表"}
+  - kind: table
+    source: data.list.items
+    heading: 请求清单
+    note: 慢请求排前面；错误数非 0 的行会标红
+    columns:
+    - {label: 链路, value: row.trace, sub: "{row.start|when}"}
+    - {label: 节点数, value: row.spans, suffix: 个}
+    - {label: 总耗时, value: row.dur_ms, suffix: ms}
+    - {label: 错误, value: row.err}
+    on_click: {view: trace, params: {trace: row.trace}}
+    empty: {text: 今天还没有链路采样（config.trace.sample 调高可全采）}
+  - kind: table
+    source: data.slow.items
+    heading: 按阶段聚合（P95 排序）
+    columns:
+    - {label: 阶段, value: row.name}
+    - {label: 次数, value: row.n}
+    - {label: P50, value: row.p50_ms, suffix: ms, muted: true}
+    - {label: P95, value: row.p95_ms, suffix: ms}
+    - {label: 峰值, value: row.max_ms, suffix: ms, muted: true}
+    - {label: 错误, value: row.err, muted: true}
+    empty: {text: 暂无采样}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 列表只声明表格，聚合走需求

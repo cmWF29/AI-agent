@@ -1,0 +1,24 @@
+id: trace-get
+title: 单条链路：按 trace 取回整棵 span 树
+description: "单条链路：按 trace 取回整棵 span 树。组装（parent 归树、时间轴）归渲染层，取数归需求"
+tags: [ops, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: trace.get
+  with:
+    trace:
+      get: input.trace
+    date:
+      get: input.date
+  as: out
+expect:
+  given:
+    input:
+      trace: ''
+  calls:
+  - trace.get
+  payload:
+    trace: ''
+  promise: 组装归渲染层，取数归需求

@@ -100,7 +100,9 @@ def _route_open(ctx, payload):
         return {"trace": "", "span": "", "parent": "", "off": True}
     cur = _trace_ctx()
     tid = str(payload.get("trace") or cur.get("trace") or _new_id())
-    parent = str(payload.get("parent") or cur.get("span") or "")
+    # 显式 parent（哪怕是空串）优先：调用方说了"我是根"，就不能再挂到残留上下文上
+    parent = (str(payload.get("parent") or "")
+              if "parent" in payload else str(cur.get("span") or ""))
     span = "%s-%d" % (_S["tag"], next(_SEQ))
     rec = {"trace": tid, "span": span, "parent": parent,
            "name": str(payload.get("name") or "")[:120],
@@ -179,9 +181,15 @@ def _route_get(ctx, payload):
     if not rows and not payload.get("date"):
         rows = [r for r in _read_day(_day(_now() - 86400)) if r.get("trace") == tid]
     rows.sort(key=lambda r: float(r.get("start") or 0))
-    total = sum(float(r.get("dur_ms") or 0) for r in rows if not r.get("parent"))
+    # 总时长按墙钟跨度算（最早开始到最晚结束）：一条 trace 可能有多个根，
+    # 把根时长相加会把并行/多阶段当成串行，横轴也对不上。
+    t0 = t1 = 0.0
+    if rows:
+        t0 = min(float(r.get("start") or 0) for r in rows)
+        t1 = max(float(r.get("start") or 0) + float(r.get("dur_ms") or 0) / 1000.0
+                 for r in rows)
     return {"trace": tid, "spans": rows, "count": len(rows),
-            "total_ms": round(total, 2)}
+            "total_ms": round(max(0.0, (t1 - t0) * 1000.0), 2)}
 
 
 def _route_list(ctx, payload):
@@ -192,14 +200,16 @@ def _route_list(ctx, payload):
         t = r.get("trace") or ""
         if not t:
             continue
-        item = by.setdefault(t, {"trace": t, "spans": 0, "start": 1e18, "dur_ms": 0.0,
+        item = by.setdefault(t, {"trace": t, "spans": 0, "start": 1e18, "end": 0.0,
                                  "err": 0})
         item["spans"] += 1
-        item["start"] = min(item["start"], float(r.get("start") or 0))
-        if not r.get("parent"):
-            item["dur_ms"] = float(r.get("dur_ms") or 0)
+        st = float(r.get("start") or 0)
+        item["start"] = min(item["start"], st)
+        item["end"] = max(item["end"], st + float(r.get("dur_ms") or 0) / 1000.0)
         if str(r.get("status") or "") not in ("ok", ""):
             item["err"] += 1
+    for it in by.values():
+        it["dur_ms"] = round(max(0.0, (it.pop("end") - it["start"]) * 1000.0), 2)
     items = sorted(by.values(), key=lambda x: x["start"], reverse=True)
     limit = int(payload.get("limit") or 50)
     return {"date": date, "total": len(items), "items": items[:limit]}

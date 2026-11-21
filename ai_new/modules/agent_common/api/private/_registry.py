@@ -41,6 +41,7 @@ class Registry:
         self.transport = _transport.Transport(ctx)
         self._loop = None
         self._loop_lock = threading.Lock()
+        self._tl = threading.local()   # 链路 span 栈：跨执行器时靠它继承父节点
 
     def _cfg_int(self, key, default):
         cfg = getattr(self.ctx, "cfg", None) or {}
@@ -268,12 +269,28 @@ class Registry:
     # ---- 作用域包装：handler 执行期间把"谁在调"写进 contextvar ----
 
     # ---- 链路埋点：一次路由调用 = 一个 span（trace 自己的两条原语不埋，避免递归）----
-    def _span_open(self, name, caller=""):
+    def _span_ctx(self):
+        """当前线程正在执行的 span（嵌套调用据此接父）。"""
+        return getattr(self._tl, "span", "") or ""
+
+    def _span_enter(self, span):
+        """把新 span 设为当前，返回进入前的那个，供退出时恢复。"""
+        prev = self._span_ctx()
+        if span:
+            self._tl.span = span
+        return prev
+
+    def _span_exit(self, prev):
+        self._tl.span = prev or ""
+
+    def _span_open(self, name, caller="", parent=None):
         fn = getattr(self, "_trace_open", None)
         if fn is None:
             return ""
         try:
-            return str(fn(self.ctx, {"name": name, "caller": caller}).get("span") or "")
+            payload = {"name": name, "caller": caller,
+                       "parent": self._span_ctx() if parent is None else parent}
+            return str(fn(self.ctx, payload).get("span") or "")
         except Exception:
             return ""
 
@@ -294,6 +311,7 @@ class Registry:
         traced = route.get("module") != "trace"
         span = self._span_open("call:" + (name or route.get("module") or ""),
                                str(route.get("module") or "")) if traced else ""
+        prev = self._span_enter(span) if traced else ""
         try:
             out = route["fn"](ctx, payload)
             if traced:
@@ -305,12 +323,15 @@ class Registry:
             raise
         finally:
             _SCOPE.reset(token)
+            if traced:
+                self._span_exit(prev)
 
-    async def _ascoped(self, route, ctx, payload, name=""):
+    async def _ascoped(self, route, ctx, payload, name="", parent=None):
         token = _SCOPE.set(route["owner"])
         traced = route.get("module") != "trace"
         span = self._span_open("call:" + (name or route.get("module") or ""),
-                               str(route.get("module") or "")) if traced else ""
+                               str(route.get("module") or ""), parent=parent) if traced else ""
+        prev = self._span_enter(span) if traced else ""
         try:
             out = route["fn"](ctx, payload)
             if inspect.isawaitable(out):
@@ -324,6 +345,8 @@ class Registry:
             raise
         finally:
             _SCOPE.reset(token)
+            if traced:
+                self._span_exit(prev)
 
     def call(self, name, payload=None, caller=None, direct=False):
         """同步入口：先服从通道绑定，再按"同步/异步"决定怎么执行。
@@ -340,7 +363,8 @@ class Registry:
             if kind != "direct":
                 return self.transport.send(name, payload, handler, caller=caller)
             fut = asyncio.run_coroutine_threadsafe(
-                self._ascoped(route, self.ctx, payload or {}, name), self._ensure_loop())
+                self._ascoped(route, self.ctx, payload or {}, name,
+                              parent=self._span_ctx()), self._ensure_loop())
             return fut.result()
         if direct:
             return self._scoped(route, self.ctx, payload or {}, name)
@@ -356,7 +380,8 @@ class Registry:
             if kind != "direct":
                 return await self._ensure_loop().run_in_executor(
                     None, self.transport.send, name, payload or {}, handler, caller)
-            return await self._ascoped(route, self.ctx, payload or {}, name)
+            return await self._ascoped(route, self.ctx, payload or {}, name,
+                                       parent=self._span_ctx())
         if direct:
             return self._scoped(route, self.ctx, payload or {}, name)
         return await self._ensure_loop().run_in_executor(

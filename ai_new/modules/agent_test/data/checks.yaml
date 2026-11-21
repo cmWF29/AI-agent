@@ -35,6 +35,10 @@ checks:
   - demands-manifest
   - trace-slow
   - view-arch
+  - trace-list
+  - trace-get
+  - view-traces
+  - view-trace
   - api-notify
   - artifacts-list
   - artifacts-read
