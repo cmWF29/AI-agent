@@ -354,6 +354,10 @@ class Engine:
             "close_controls": [{"ctl": o.get("close_ctl"), "note": o.get("close_note")} for o in (sm.get("overlays") or [])],
         }
 
+    def inventory(self):
+        """可点实例清单（由 scripts/ui_inventory.py 生成）：每条都带控件 id、状态机与点后去向。"""
+        return _md(self.ctx).yaml_read("ui-inventory.json", {}) or {}
+
     def chrome(self):
         """登录页要的那点字：品牌 + 登录文案。
 

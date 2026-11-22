@@ -29,6 +29,15 @@ view:
     - {label: 界面迁移, value: "data.machine.screen_machine.stats.edges|count", note: 条"点哪个控件到哪个状态"}
     - {label: 浮层, value: "data.machine.screen_machine.stats.overlays|count", note: 能开必须能关}
     - {label: 控件, value: "data.machine.screen_machine.stats.controls|count", note: 登记过的按钮；真实实例按行数据重复}
+    - {label: 可点实例, value: "data.machine.inventory.stats.instances", note: 逐页清点到的真实元素，每一条都带控件 id}
+  - kind: table
+    as: machine
+    source: machine.inventory.pages
+    title: 每页可点实例数
+    note: 这些实例全部带控件 id、状态机与点后去向（完整清单由 scripts/ui_inventory.py 生成）
+    columns:
+    - {label: 页面, value: row.view}
+    - {label: 可点实例, value: row.count}
   - kind: table
     as: machine
     source: machine.screen_machine.controls

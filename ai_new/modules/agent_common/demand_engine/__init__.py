@@ -233,7 +233,8 @@ async def _route_click_machine(ctx, payload):
     spec = dict(shell.get("click_machine") or {})
     # 边数是迁移表自己算出来的，不手工维护：加一条迁移，展示页的数字自动跟着变
     spec["edges"] = sum(len(v or []) for v in (spec.get("transitions") or {}).values())
-    return {"click_machine": spec, "screen_machine": ctx.demand_engine.screens()}
+    return {"click_machine": spec, "screen_machine": ctx.demand_engine.screens(),
+            "inventory": ctx.demand_engine.inventory()}
 
 
 async def _noop():
