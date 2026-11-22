@@ -131,7 +131,8 @@ def index(p):
     tpl = p.get("tpl") or {}
     layer_label = {"public": tpl.get("label_public") or "",
                    "project": tpl.get("label_project") or "",
-                   "ticket": tpl.get("label_ticket") or ""}
+                   "ticket": tpl.get("label_ticket") or "",
+                   "orphan": tpl.get("label_orphan") or ""}
     ticket_project, ticket_title, ticket_raw = {}, {}, {}
     for t in p.get("tickets") or []:
         if not t:
@@ -193,10 +194,16 @@ def index(p):
                              "badge": layer_label["ticket"], "children": grp["tickets"][key]})
         tree.append({"type": "project", "label": pid, "badge": layer_label["project"],
                      "children": children})
-    for key in sorted(orphan_tickets):
-        tree.append({"type": "ticket", "label": ticket_raw.get(key, key),
-                     "sub": ticket_title.get(key, ""),
-                     "badge": layer_label["ticket"], "children": orphan_tickets[key]})
+    # 项目归属缺失的工单（档案里查不到 project）：不冒充项目层，也不平铺裸挂在顶层，
+    # 归成一个「工单 / 未归工单」分组——层级名仍是工单，组名说清为什么它不挂在项目下
+    if orphan_tickets:
+        kids = []
+        for key in sorted(orphan_tickets):
+            kids.append({"type": "ticket", "label": ticket_raw.get(key, key),
+                         "sub": ticket_title.get(key, ""),
+                         "badge": layer_label["ticket"], "children": orphan_tickets[key]})
+        tree.append({"type": "orphan", "label": layer_label["orphan"],
+                     "badge": layer_label["ticket"], "children": kids})
     return {"items": items, "counts": counts, "tree": tree}
 
 

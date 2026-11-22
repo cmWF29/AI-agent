@@ -222,9 +222,10 @@ main .crumb{margin-bottom:14px}
 .tree-node:not([open])>summary::before{content:"▸ "}
 .tree-node .badge{flex:none}
 .tree-node-label{font-weight:600;font-size:13.5px;flex:none}
-/* 空层行：不带 tree-node 的壳，但与 summary 行同节奏（同内边距、同 gap），
-   让"公共"这类空层读起来仍是树的一级，而不是一块孤立的空框 */
-.tree-node-blank{display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:var(--radius)}
+/* 空层行：与折叠条同款一张卡（同一套壳、同一内边距、同一 gap），
+   只是不可折叠：没有三角、没有计数，说明文字退居 muted */
+.tree-node-blank{display:flex;align-items:center;gap:8px;padding:11px 26px 11px 34px}
+.tree-node-blank .tree-node-empty{margin-left:2px}
 .tree-node-sub{font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tree-node-count{margin-left:auto;font-size:12px;flex:none}
 .tree-children{display:flex;flex-direction:column;gap:6px;padding:10px 10px 10px 24px;border-top:1px solid var(--line-2)}

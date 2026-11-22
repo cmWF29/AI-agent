@@ -556,12 +556,16 @@ class CoreTest(unittest.TestCase):
             self.assertEqual(len(node["children"]), 1)
             self.assertEqual(node["children"][0]["project"], "重构")
             self.assertTrue(node["label"].startswith("T-"))
-        # 工单档案缺失项目归属时，工单文档落到顶层孤儿节点，不丢条目
+        # 工单档案缺失项目归属时，归到「工单 / 未归工单」分组，条目不能丢，也不平铺冒充项目层
         orphan = self.ctx.api.call("knowledge.index", {
             "rows": [{"path": "tickets/t-orphan/note.md"}], "tickets": []})
-        # 公共层恒在，孤儿工单排在它后面，但条目不能丢
         self.assertEqual(orphan["tree"][0]["type"], "public")
-        self.assertEqual(orphan["tree"][-1]["type"], "ticket")
+        grp = orphan["tree"][-1]
+        self.assertEqual(grp["type"], "orphan")
+        self.assertEqual(grp["label"], "未归工单")
+        self.assertEqual(grp["badge"], "工单")
+        self.assertEqual([c["type"] for c in grp["children"]], ["ticket"])
+        self.assertEqual(grp["children"][0]["label"].lower(), "t-orphan")
         self.assertEqual(orphan["counts"]["orphan"], 1)
 
     def test_channel_post_tail_roundtrip(self):
