@@ -86,6 +86,7 @@ def _route_toggle(ctx, payload):
         return guard
     now = ctx.api.call("clock.now", {}, caller=None)
     cascaded = []
+    cascaded_names = []
     if payload.get("kind") == "tools" and payload.get("enabled") is False:
         lib = ctx.api.call("store.read", {"module": "agent/library",
                                           "path": "roles.yaml"}, caller=None)
@@ -93,6 +94,7 @@ def _route_toggle(ctx, payload):
         for role_id, role in (lib.get("value") or {}).items():
             if tool_id in [str(t) for t in ((role or {}).get("tools") or [])]:
                 cascaded.append(str(role_id))
+                cascaded_names.append(str((role or {}).get("cn") or role_id))
     rec = ctx.api.call("projects.toggle_override", {
         "rec": row.get("value"), "kind": payload.get("kind"),
         "id": payload.get("id"), "enabled": payload.get("enabled"),
@@ -104,6 +106,7 @@ def _route_toggle(ctx, payload):
     view["overrides"] = ctx.api.call("projects.override_parts",
                                      {"rec": rec}, caller=None)
     view["cascaded"] = cascaded
+    view["cascaded_names"] = cascaded_names
     view["effects"] = [{"kind": "write", "module": "agent/projects",
                         "path": _record(paths, pid.get("id")), "value": rec}]
     return view

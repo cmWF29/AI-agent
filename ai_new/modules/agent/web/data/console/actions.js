@@ -26,8 +26,10 @@ async function execute(binding, fields) {
     }
     if (flashText) {
       // 工具禁用会连带禁用依赖岗位：把连带结果一并说清楚，否则用户只看到"岗位也灰了"
-      const casc = ((res && res.result) || {}).cascaded || [];
-      const extra = casc.length ? uiText("cascaded_roles", casc.length) : "";
+      const casc = (res && (res.cascaded || (res.result && res.result.cascaded))) || [];
+      const cnames = (res && res.cascaded_names) || casc.map(roleLabel);
+      const names = cnames.join("/");
+      const extra = casc.length ? uiText("cascaded_roles", casc.length, names) : "";
       banner(fill(act.flash, { ...c, result: res }) + extra, "ok");
     }
     if (act.after) {

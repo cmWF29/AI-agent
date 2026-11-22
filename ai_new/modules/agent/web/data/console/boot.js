@@ -308,6 +308,9 @@ function deckLayout(d) {
   d.dataset.pos = String(front);
   const vis = Math.min(n, 4);
   const m = deckMetrics(d);
+  // 每张牌都还带着上一轮写死的 height：直接量量到的是旧前卡的高度，
+  // 新前卡比它高就会整段溢出卡外。先全部还原自然高度，量完再统一写回。
+  cards.forEach((c) => c.style.removeProperty("height"));
   const h = cards[front].offsetHeight;   // 先量高度，再写位移：少一次强制重排
   // 所有牌统一成前卡的高度：后层内容不画、宽度又少 8px，不管就会比前卡矮一截，
   // 叠起来后完全被前卡盖住，看不出"下面还有牌"
