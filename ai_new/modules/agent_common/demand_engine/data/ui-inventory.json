@@ -1,6 +1,6 @@
 {
  "sig": {
-  "sha": "5c28175b98f0c7a2",
+  "sha": "31a9dc6945015978",
   "files": 23
  },
  "stats": {
@@ -6679,33 +6679,6 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "logs40",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
    "label": "position33",
    "states": [
     "idle",
@@ -6761,6 +6734,33 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "positions28",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "logs19",
    "states": [
     "idle",
     "busy",
@@ -11580,7 +11580,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f2af8-8422-4",
+   "label": "1a204641e83-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11607,7 +11607,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f25d2-8422-4",
+   "label": "1a204641990-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11634,7 +11634,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f20e9-8422-4",
+   "label": "1a2046414a6-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11661,7 +11661,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f1c01-8422-4",
+   "label": "1a204640fb4-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11688,7 +11688,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f1721-8422-4",
+   "label": "1a204640acb-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11715,7 +11715,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f123c-8422-4",
+   "label": "1a2046405d9-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11742,7 +11742,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f0d52-8422-4",
+   "label": "1a2046400ec-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11769,7 +11769,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f0868-8422-3",
+   "label": "1a20463fc05-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11796,7 +11796,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044f0376-8422-3",
+   "label": "1a20463f710-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11823,7 +11823,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044ef992-8422-3",
+   "label": "1a20463ed3f-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11850,7 +11850,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044ef920-8422-3",
+   "label": "1a20463ece7-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11877,7 +11877,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044ef2ff-8422-3",
+   "label": "1a20463e5df-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11904,7 +11904,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044ef128-8422-3",
+   "label": "1a20463e4e9-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11931,7 +11931,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044ef10f-8422-3",
+   "label": "1a20463e3d4-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11958,7 +11958,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044e38b4-8422-3",
+   "label": "1a2044f75cc-8422-5",
    "states": [
     "idle",
     "busy",
@@ -11985,7 +11985,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044e3865-8422-3",
+   "label": "1a2044f7358-8422-5",
    "states": [
     "idle",
     "busy",
@@ -12012,7 +12012,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044e0aed-8422-3",
+   "label": "1a2044f65e9-8422-4",
    "states": [
     "idle",
     "busy",
@@ -12039,7 +12039,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044e089f-8422-3",
+   "label": "1a2044f64d8-8422-4",
    "states": [
     "idle",
     "busy",
@@ -12066,7 +12066,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044dfaeb-8422-3",
+   "label": "1a2044f641f-8422-4",
    "states": [
     "idle",
     "busy",
@@ -12093,7 +12093,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "1a2044df9c0-8422-3",
+   "label": "1a2044f565b-8422-4",
    "states": [
     "idle",
     "busy",
@@ -12471,6 +12471,33 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
+   "label": "demand:knowledge-i",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "traces",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
    "label": "demand:ticket-file",
    "states": [
     "idle",
@@ -12499,33 +12526,6 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "demand:ticket-crea",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "traces",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "demand:knowledge-i",
    "states": [
     "idle",
     "busy",

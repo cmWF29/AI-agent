@@ -115,6 +115,9 @@ routes:
       cancelled:
         type: any
         req: false
+      checklist:
+        type: any
+        req: false
       failed:
         type: any
         req: false
@@ -136,8 +139,13 @@ routes:
       summary_by_model:
         type: any
         req: false
+      violations:
+        type: any
+        req: false
     out:
       cancelled:
+        type: any
+      checklist:
         type: any
       failed:
         type: any
@@ -154,6 +162,8 @@ routes:
       summary:
         type: any
       summary_by_model:
+        type: any
+      violations:
         type: any
   react.run:
     doc: ReAct 循环：模型→工具→再模型，闭环在能力内

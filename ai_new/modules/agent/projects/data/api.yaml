@@ -4,13 +4,7 @@
 module: projects
 routes:
   projects.archive:
-    in:
-      now:
-        type: any
-        req: false
-      rec:
-        type: any
-        req: false
+    in: {}
     out: {}
   projects.build:
     in: {}
@@ -109,8 +103,5 @@ routes:
         req: false
     out: {}
   projects.view:
-    in:
-      rec:
-        type: any
-        req: false
+    in: {}
     out: {}

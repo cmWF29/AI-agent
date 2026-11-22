@@ -16,7 +16,7 @@ view:
   menu: {order: 1, label: 点击状态机, group: {name: 系统, order: 3}, mobile: true}
   key: click-machine
   crumb: [点击状态机]
-  heading: 页面怎么走
+  heading: 点击状态机
   subheading: 用户从登录进来先看哪页、页面之间靠哪个控件跳、每页里哪些东西能点、点不动时是什么态
   data:
   - {as: machine, demand: click-machine}

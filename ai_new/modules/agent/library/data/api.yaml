@@ -381,6 +381,9 @@ routes:
       active:
         type: any
         req: false
+      checked:
+        type: any
+        req: false
       contents:
         type: any
         req: false
@@ -397,6 +400,9 @@ routes:
         type: any
         req: false
       prev:
+        type: any
+        req: false
+      violations:
         type: any
         req: false
   library.summary:
