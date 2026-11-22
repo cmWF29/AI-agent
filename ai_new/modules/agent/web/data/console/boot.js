@@ -158,7 +158,9 @@ const CLICK_HANDLERS = {
   card_act(el) { return runAct(el, "card_act"); },
   row_open(el) { return runGo(el, "row_open"); },
   row_act(el) { return runAct(el, "row_act"); },
-  tree_group(el) {
+  tree_group(el, e) {
+    // summary 的原生默认动作也会翻一次开关：不拦默认就是两次相抵，永远收不回去
+    if (e && e.cancelable) e.preventDefault();
     const d = el.closest("details.tree-node");
     if (d) d.open = !d.open;
   },
@@ -166,7 +168,8 @@ const CLICK_HANDLERS = {
   filter(el) { FILTER = el.dataset.filter; render(); },
   member_chip(el) { return $("popover").hidden ? openMemberCard(el) : closeMemberCard(); },
   popover_close() { closeMemberCard(); },
-  section_fold(el) {
+  section_fold(el, e) {
+    if (e && e.cancelable) e.preventDefault();   // 同 tree_group：拦原生翻转，避免两次相抵
     const d = el.closest("details");
     if (d) d.open = !d.open;
   },

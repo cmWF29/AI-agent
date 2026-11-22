@@ -9,6 +9,8 @@ def setup(ctx):
         ("ops.assemble", _pure.assemble),
         ("ops.record", _pure.record),
         ("ops.events", _pure.events),
+        ("ops.spans_events", _pure.spans_events),
+        ("ops.merge_events", _pure.merge_events),
         ("ops.tail", _pure.tail),
         ("ops.export_path", _pure.export_path),
         ("ops.log_line", _pure.log_line),

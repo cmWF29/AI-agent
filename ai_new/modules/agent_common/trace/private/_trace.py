@@ -246,6 +246,18 @@ def _route_slow(ctx, payload):
             "spans": len(rows)}
 
 
+def _route_recent(ctx, payload):
+    """最近的 span 流（按开始时间倒序）：name 前缀过滤，供运行记录这类"系统做了什么"的呈现。"""
+    date = str(payload.get("date") or _day(_now()))
+    prefix = str(payload.get("prefix") or "")
+    rows = _read_day(date)
+    if prefix:
+        rows = [r for r in rows if str(r.get("name") or "").startswith(prefix)]
+    rows.sort(key=lambda r: float(r.get("start") or 0), reverse=True)
+    limit = int(payload.get("limit") or 50)
+    return {"date": date, "total": len(rows), "items": rows[:limit]}
+
+
 def setup(ctx):
     _S["tag"] = str(id(_S) % 99991)
     _S["st"] = ctx.storage.own(__file__)
@@ -265,5 +277,6 @@ def setup(ctx):
     ctx.api.register("trace.close", _route_close, module="trace")
     ctx.api.register("trace.get", _route_get, module="trace")
     ctx.api.register("trace.list", _route_list, module="trace")
+    ctx.api.register("trace.recent", _route_recent, module="trace")
     ctx.api.register("trace.slow", _route_slow, module="trace")
     return True

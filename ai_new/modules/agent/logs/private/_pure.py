@@ -115,9 +115,9 @@ def group(p):
             project_groups.setdefault(pid, {"docs": [], "tickets": {}})["docs"].append(item)
 
     tree = []
-    if public_items:
-        tree.append({"type": "public", "label": layer_label["public"],
-                     "badge": layer_label["public"], "children": public_items})
+    # 公共层恒在：它是日志的第一级，没条目也要露出来（空层由前端渲染成一行说明），否则层级就断了
+    tree.append({"type": "public", "label": layer_label["public"],
+                 "badge": layer_label["public"], "children": public_items})
     for pid in sorted(project_groups):
         grp = project_groups[pid]
         children = list(grp["docs"])

@@ -1,6 +1,6 @@
 id: ops-logs
-title: 读日志：读文本 → 切成行 → 解析成事件
-description: "读日志：读文本 → 切成行 → 解析成事件。解析归模块，读盘归能力；日志正文归 logs 模块数据根。"
+title: 读运行记录：trace span 流水 + 系统日志文件 → 并成一路运行记录
+description: "读运行记录：系统动作的需求执行流水归 trace 模块，历史系统日志文件归 store；解析与合并归 ops 纯函数，条数上限走配置。"
 tags: [ops, read]
 enabled: true
 callable: true
@@ -36,6 +36,25 @@ do:
   with:
     rows:
       get: last.rows
+  as: rec
+- call: trace.recent
+  with:
+    prefix:
+      lit: 'demand:'
+    limit:
+      get: cfg_lines.value
+  as: recent
+- call: ops.spans_events
+  with:
+    rows:
+      get: recent.items
+  as: sp
+- call: ops.merge_events
+  with:
+    legacy:
+      get: rec.events
+    spans:
+      get: sp.events
   as: out
 expect:
   given:
@@ -46,5 +65,8 @@ expect:
   - store.read_text
   - ops.tail
   - ops.events
+  - trace.recent
+  - ops.spans_events
+  - ops.merge_events
   payload: {}
-  promise: 解析归模块，读盘归能力
+  promise: 解析归模块，取数归能力；运行记录只读

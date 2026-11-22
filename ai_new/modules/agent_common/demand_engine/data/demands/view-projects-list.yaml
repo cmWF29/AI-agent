@@ -22,6 +22,8 @@ view:
     as: tree
     source: tree.items
     layout: deck
+    heading: 进行中
+    note: "共 {data.tree.items|count} 个 · 在建工单、发消息、改名、归档都在这里"
     key: row.project.id
     title: row.project.name
     archived_when: row.project.archived

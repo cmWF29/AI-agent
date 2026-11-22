@@ -640,21 +640,31 @@ function toolTraceHtml(o) {
 function treeDocHtml(doc, sec, ctx) {
   const c = { ...ctx, row: doc };
   const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
-  return `<div class="tree-doc" data-clk="tree_doc" ${click ? `data-go="${click}"` : ""} role="button" tabindex="0">
+  // 没有跳转目标的叶子就是纯展示行：不注册点击种类，点了也不算违规
+  if (!click) return `<div class="tree-doc"><span class="tree-doc-name">${esc(fill("row.name", c))}</span><span class="muted tree-doc-path">${esc(fill("row.path", c))}</span></div>`;
+  return `<div class="tree-doc" data-clk="tree_doc" data-go="${click}" role="button" tabindex="0">
     <span class="tree-doc-name">${esc(fill("row.name", c))}</span>
     <span class="muted tree-doc-path">${esc(fill("row.path", c))}</span>
   </div>`;
 }
-function treeNodeHtml(node, sec, ctx) {
-  // 分组（公共/项目/工单）永远按分组渲染：没有文档也要露出这一级，否则层级就断了
-  if (node.type === "doc") return treeDocHtml(node, sec, ctx);
+function treeNodeHtml(node, sec, ctx, path) {
+  // 叶子（doc/log/交付件）没有 children 键，一律渲染成可点的行；
+  // 分组（公共/项目/工单）恒有 children：没有条目也要露出这一级，否则层级就断了
+  if (!("children" in node)) return treeDocHtml(node, sec, ctx);
   const kids = node.children || [];
   const count = kids.length;
   const sub = node.sub ? `<span class="muted tree-node-sub">${esc(node.sub)}</span>` : "";
-  return `<details class="tree-node"${sec.collapsed ? "" : " open"}>
+  const here = ((ctx.route || {}).view || "") + ":" + (path || "tree") + "/" + (node.type || "g") + ":" + (node.label || "");
+  if (!count) {
+    // 空层不装成可折叠的样子：一行说明，不给假三角也不给占位壳
+    return `<div class="tree-node tree-node-blank muted">${esc(node.label || "")} · ${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</div>`;
+  }
+  // 折叠是用户意图：键挂内容身份，重渲染/刷新按原状恢复；没动过按声明默认展开
+  const stored = FOLDS.get(here);
+  const openAttr = (stored === undefined ? !sec.collapsed : !!stored) ? " open" : "";
+  return `<details class="tree-node" data-fold="${esc(here)}"${openAttr}>
     <summary data-clk="tree_group"><span class="badge">${esc(node.badge || "")}</span><span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
-    <div class="tree-children">${kids.length ? kids.map((k) => treeNodeHtml(k, sec, ctx)).join("")
-      : `<div class="muted tree-empty">${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</div>`}</div>
+    <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx, here)).join("")}</div>
   </details>`;
 }
 function secHead(sec, ctx) {

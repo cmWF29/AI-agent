@@ -516,9 +516,22 @@ async function render(opts) {
   const draft = (document.querySelector("#view-body .composer textarea") || {}).value || "";
   renderCrumb(spec, ctx);
   const marks = scrollMarks();          // 整页重渲染前记账（15s 兜底轮询走的就是这条）
+  // 堆叠牌位也是用户意图：重渲染前记账（展开态/当前在第几张），渲染后按原状恢复
+  const deckStates = [...$("view-body").querySelectorAll("[data-deck]")]
+    .map((d) => ({ open: d.dataset.open, pos: d.dataset.pos }));
   renderView(spec, ctx);
   if (typeof stampCtl === "function") stampCtl(document.querySelector("#view-body"));
   scrollRestore(marks);
+  // 堆叠牌位也是用户意图：重渲染前记账（展开态/当前在第几张），渲染后按原状恢复
+  [...$("view-body").querySelectorAll("[data-deck]")].forEach((d, i) => {
+    const s = deckStates[i];
+    if (!s) return;
+    if (s.open === "1") d.dataset.open = "1";
+    if (s.pos && s.pos !== "0" && Number(s.pos) < d.querySelectorAll(".deck-stage > .pcard").length) {
+      d.dataset.pos = s.pos;
+      if (typeof deckLayout === "function") deckLayout(d);
+    }
+  });
   const ta = document.querySelector("#view-body .composer textarea");
   if (ta && draft) ta.value = draft;   // 轮询重建 DOM 时把用户草稿还回去
   const th = (ctx.data.thread && ctx.data.thread.thread) || {};
@@ -625,6 +638,9 @@ async function refreshAs(list) {
   }
   renderCrumb(spec, ctx);
   const marks = scrollMarks();          // 失效补取会换掉区块（聊天滚动容器就在区块里）
+  // 堆叠牌位也是用户意图：区块重渲染前记账，换完按原状恢复（启用/禁用后不跳回第一张）
+  const deckStates = [...$("view-body").querySelectorAll("[data-deck]")]
+    .map((d) => ({ open: d.dataset.open, pos: d.dataset.pos }));
   for (const as of list) {
     document.querySelectorAll('#view-body .vsec[data-as="' + as + '"]').forEach((node) => {
       const idx = Number(node.getAttribute("data-sec") || 0);
@@ -637,6 +653,15 @@ async function refreshAs(list) {
   }
   scrollRestore(marks);
   if (typeof mountDecks === "function") mountDecks();
+  [...$("view-body").querySelectorAll("[data-deck]")].forEach((d, i) => {
+    const s = deckStates[i];
+    if (!s) return;
+    if (s.open === "1") d.dataset.open = "1";
+    if (s.pos && s.pos !== "0" && Number(s.pos) < d.querySelectorAll(".deck-stage > .pcard").length) {
+      d.dataset.pos = s.pos;
+      if (typeof deckLayout === "function") deckLayout(d);
+    }
+  });
   if (typeof expandFolds === "function") expandFolds();
   pruneActs();
   keepPage(ctx);

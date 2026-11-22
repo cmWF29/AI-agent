@@ -63,8 +63,9 @@ view:
     as: logs
     source: data.logs.events
     heading: 运行记录
+    note: 每一次需求执行都是一条系统动作；点进链路追踪看完整瀑布
     columns:
-    - {label: 时间, value: row.ts, muted: true}
+    - {label: 时间, value: row.ts, format: when, muted: true}
     - {label: 级别, value: row.level}
     - {label: 事件, value: row.event}
     - {label: 详情, value: row.detail, fallback: row.msg, muted: true}

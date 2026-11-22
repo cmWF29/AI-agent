@@ -42,6 +42,15 @@ routes:
       date: {type: any}
       total: {type: any}
       items: {type: any}
+  trace.recent:
+    in:
+      date: {type: any, req: false}
+      limit: {type: any, req: false}
+      prefix: {type: any, req: false}
+    out:
+      date: {type: any}
+      total: {type: any}
+      items: {type: any}
   trace.slow:
     in:
       date: {type: any, req: false}

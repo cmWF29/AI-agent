@@ -29,10 +29,10 @@ routes:
       sessions:
         type: any
         req: false
-      tools:
+      tickets:
         type: any
         req: false
-      tickets:
+      tools:
         type: any
         req: false
     out: {}
@@ -54,6 +54,15 @@ routes:
         type: any
         req: false
     out: {}
+  ops.merge_events:
+    in:
+      legacy:
+        type: any
+        req: false
+      spans:
+        type: any
+        req: false
+    out: {}
   ops.record:
     in:
       data:
@@ -66,6 +75,12 @@ routes:
         type: any
         req: false
       now:
+        type: any
+        req: false
+    out: {}
+  ops.spans_events:
+    in:
+      rows:
         type: any
         req: false
     out: {}
