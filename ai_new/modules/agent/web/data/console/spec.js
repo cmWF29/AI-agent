@@ -72,7 +72,7 @@ function applyChain(val, chain, ctx) {
   return val;
 }
 function matchCond(item, cond) {
-  const m = String(cond).match(/^(\S+?)(!=|==|=|>=|<=|>|<)(\S+)$/);
+  const m = String(cond).match(/^(\S+?)\s*(!=|==|>=|<=|=|>|<)\s*(\S+)$/);
   if (!m) return false;
   const [, field, op, raw] = m;
   const left = dig(item, field);

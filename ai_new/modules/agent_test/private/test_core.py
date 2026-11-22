@@ -187,6 +187,16 @@ class CoreTest(unittest.TestCase):
                     problems.append("%s 调了不存在的 func: %s" % (rec.get("id"), route))
         self.assertEqual(problems, [], "需求绑定了不存在的功能: %s" % problems)
 
+    def test_demand_test_map_is_fresh(self):
+        """需求 ↔ 用例映射是算出来的，不是手写的：表过期即失败。"""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "gate_demand_tests", ROOT / "scripts" / "gate_demand_tests.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.problems(), [],
+                         "需求↔用例映射门禁未通过（跑 scripts/gate_demand_tests.py --write 刷新）")
+
     def test_every_control_has_a_declared_state_machine(self):
         """每个按钮都有自己的状态机：页面控件与 console.yaml controls 双向闭合。
 

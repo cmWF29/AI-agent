@@ -24,7 +24,12 @@ async function execute(binding, fields) {
       const ta = document.querySelector("#view-body .composer textarea");
       if (ta) ta.value = "";   // 成功即清空，避免残留文本把轮询挡在门外
     }
-    if (flashText) banner(fill(act.flash, { ...c, result: res }), "ok");
+    if (flashText) {
+      // 工具禁用会连带禁用依赖岗位：把连带结果一并说清楚，否则用户只看到"岗位也灰了"
+      const casc = ((res && res.result) || {}).cascaded || [];
+      const extra = casc.length ? uiText("cascaded_roles", casc.length) : "";
+      banner(fill(act.flash, { ...c, result: res }) + extra, "ok");
+    }
     if (act.after) {
       const next = resolveView(act.after, { ...c, result: res });
       return go(next, true);

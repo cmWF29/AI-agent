@@ -55,6 +55,7 @@ ui:
   call_pending: 执行中…
   call_raw: 原始数据
   call_empty: 无命中
+  cascaded_roles: "（连带禁用 {} 个依赖岗位）"
   written: 已写入
   not_written: 未写入
   record: 记录
