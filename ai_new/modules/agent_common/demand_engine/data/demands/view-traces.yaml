@@ -8,9 +8,9 @@ callable: false
 do: []
 view:
   key: traces
-  nav: arch
-  parent: {view: arch}
-  crumb: [需求契约, 链路]
+  nav: ops
+  parent: {view: ops}
+  crumb: [运维, 链路]
   heading: 链路
   subheading: 一次请求一条；点开看每段耗时
   data:

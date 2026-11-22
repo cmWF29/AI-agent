@@ -93,9 +93,17 @@ async def main():
             ctl = await pg.evaluate("""() => [...document.querySelectorAll('.composer [data-ctl]')]
               .map((e) => ({ctl: e.dataset.ctl, off: e.disabled, st: e.dataset.ctlState}))""")
             check("结单后四个控件一起灰", len(ctl) == 4 and all(x["off"] for x in ctl), ctl)
-            tss = await pg.evaluate("() => [...document.querySelectorAll('.msg-ts')].map(e => e.textContent)")
+            # 5. 时间口径：气泡内 HH:MM（悬停 title 带完整年月日）；纯工具组退回组尾 .msg-ts
+            tss = await pg.evaluate("""() => [...document.querySelectorAll('.msg-time,.msg-ts')]
+              .map(e => ({t: e.textContent, title: e.getAttribute('title') || ''}))""")
             if tss:
-                check("消息时间带年月日", any(re.search(r"\\d{4}/\\d{1,2}/\\d{1,2}", x or "") for x in tss), tss[:3])
+                def _ok(x):
+                    if not re.search(r"\d{1,2}:\d{2}", x.get("t") or ""):
+                        return False
+                    if x.get("title"):
+                        return bool(re.search(r"\d{4}", x["title"]))
+                    return True
+                check("消息时间带年月日", all(_ok(x) for x in tss), [x["t"] for x in tss[:3]])
             else:
                 print("  SKIP 消息时间（该工单消息没有时间戳）")
             # 7. 展开原文后重渲染仍展开

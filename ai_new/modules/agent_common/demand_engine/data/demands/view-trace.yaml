@@ -8,11 +8,11 @@ callable: false
 do: []
 view:
   key: trace
-  nav: arch
+  nav: ops
   params: [trace]
   require: [trace]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
   parent: traces
-  crumb: [需求契约, 链路, "{route.trace}"]
+  crumb: [运维, 链路, "{route.trace}"]
   heading: 链路 {route.trace}
   subheading: 横轴是总时长；缩进是层级，红是出错
   data:

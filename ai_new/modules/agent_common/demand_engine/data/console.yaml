@@ -225,10 +225,10 @@ controls:
     states: [idle, busy]
     transitions: {idle: [busy], busy: [idle]}
     note: 宽屏从图标条展开
-  ctl.head_act.全部调用:
-    label: 全部调用
+  ctl.head_act.链路追踪:
+    label: 链路追踪
     kind: head_act
-    where: [arch]
+    where: [ops]
     states: [idle, busy, done, disabled]
     transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
     note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应

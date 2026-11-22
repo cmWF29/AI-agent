@@ -198,6 +198,8 @@ function tableHtml(sec, ctx) {
 function paletteOf() { return ROLE_PALETTE.length ? ROLE_PALETTE : ["#2f6bff"]; }
 function speakerOf(msg, roles) {
   if (msg.kind === "note") return roleLabel("system");
+  // 真人发言（session-send 打 human 标）：显示"用户"，不借会话主人的名字
+  if (msg.kind === "human") return roleLabel("user");
   const actor = msg.actor || msg.role || "assistant";
   if (actor === "tool") return msg.name ? (roleLabel("tool") + " · " + msg.name) : roleLabel("tool");
   const hit = (roles || []).find((r) => r.role === actor || r.session === actor);
@@ -206,6 +208,9 @@ function speakerOf(msg, roles) {
 }
 function bubbleClass(msg) {
   if (msg.kind === "note") return "system";
+  // 真人从控制台发的消息（session-send 落盘时打 human 标）在右侧；
+  // 会话装配注入的提示 kind=note，不受影响，仍走系统条
+  if (msg.kind === "human") return "user";
   if (msg.role === "tool") return "tool";
   if (msg.role === "system") return "system";
   // 左右按发言人不按 role：PM 与各角色都是群成员（左），只有真人输入在右。
@@ -277,6 +282,31 @@ function clockText(at) {
   // 只给时分看不出是哪天：会话可能跨周，一律带年月日
   return d.toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit",
                                      hour: "2-digit", minute: "2-digit" });
+}
+/* 气泡内的小时间（HH:MM），完整年月日放 title 悬停看 */
+function timeText(at) {
+  const t = atSeconds(at);
+  if (!isFinite(t) || t < 0) return "";
+  return new Date(t * 1000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+}
+/* 日期分隔签：跨天了先插一条居中日期，格式化口径与 clockText 一致 */
+function dayKeyOf(at) {
+  const t = atSeconds(at);
+  return isFinite(t) && t > 0 ? new Date(t * 1000).toDateString() : "";
+}
+function dayLabelOf(at) {
+  const t = atSeconds(at);
+  if (!isFinite(t) || t < 0) return "";
+  const d = new Date(t * 1000);
+  const now = new Date();
+  const day = 86400000;
+  const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOfDay(now) - startOfDay(d)) / day);
+  const md = d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  if (diff === 0) return md + " 今天";
+  if (diff === 1) return md + " 昨天";
+  const y = d.getFullYear() === now.getFullYear() ? "" : d.getFullYear() + "年";
+  return y + md;
 }
 /* 连续同类事件合并：派角色合并成「A、B 已派出」，其余取最后一条正文 */
 function groupEvents(events) {
@@ -462,10 +492,30 @@ function renderBubbles(msgs, roles, wireDemand, wireChars, rawChars) {
     const bodies = groupBody(g);
     if (!bodies) return "";
     const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
-    const ts = clockText((g.items[g.items.length - 1] || {}).at);
+    // TG 手感：时间收进最后一条文本气泡的右下角（悬停看完整年月日）；
+    // 纯工具往返组没有文本气泡，退回组尾时间行
+    const lastAt = (g.items[g.items.length - 1] || {}).at;
+    const tm = timeText(lastAt);
+    const full = clockText(lastAt);
+    let stack = bodies;
+    let tsHtml = "";
+    if (tm) {
+      const tail = `<span class="msg-time"${full ? ` title="${esc(full)}"` : ""}>${esc(tm)}</span>`;
+      const endDiv = stack.lastIndexOf("</div>");
+      const lastBubble = stack.lastIndexOf('<div class="bubble-body');
+      const lastDetails = stack.lastIndexOf("<details");
+      if (endDiv > -1 && lastBubble > -1 && lastBubble > lastDetails && endDiv > lastBubble) {
+        stack = stack.slice(0, endDiv) + tail + stack.slice(endDiv);
+      } else {
+        tsHtml = `<div class="msg-ts">${esc(tm)}</div>`;
+      }
+    }
+    // 自己的消息不显示名字（TG 口径）；成员消息名字用该角色专属色
+    const name = side === "left"
+      ? `<div class="msg-name" style="color:${avatarColor(g.who)}">${esc(g.who)}</div>` : "";
     return `<div class="msg ${side}">${side === "left" ? av : ""}
-      <div class="msg-main"><div class="msg-name">${esc(g.who)}</div>
-      <div class="bubble-stack">${bodies}</div>${ts ? `<div class="msg-ts">${esc(ts)}</div>` : ""}
+      <div class="msg-main">${name}
+      <div class="bubble-stack">${stack}</div>${tsHtml}
       ${wireHtml(g.items, wireDemand, wireChars)}
       ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), uiText("raw_title"), rawChars)}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
@@ -479,10 +529,19 @@ function streamHtml(msgs, events, roles, wireDemand, wireChars, rawChars) {
   stream.sort((a, b) => (a.at === b.at ? a.i - b.i : (a.at < b.at ? -1 : 1)));
   const out = [];
   let buf = [];
+  let lastDay = "";
+  const daySep = (at) => {
+    const day = dayKeyOf(at);
+    if (!day || day === lastDay) return false;
+    return day;
+  };
   const flush = () => {
     if (buf.length) { out.push(renderBubbles(buf, roles, wireDemand, wireChars, rawChars)); buf = []; }
   };
   for (const s of stream) {
+    const at = s.kind === "m" ? s.m.at : s.e.at;
+    const day = daySep(at);
+    if (day !== false) { flush(); out.push(`<div class="chat-day"><span>${esc(dayLabelOf(at))}</span></div>`); lastDay = day; }
     if (s.kind === "m") { buf.push(s.m); continue; }
     flush();
     out.push(eventGroupHtml(s.e));

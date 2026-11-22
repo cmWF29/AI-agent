@@ -1,17 +1,17 @@
 {
  "sig": {
-  "sha": "781ddfc1ec3e7488",
+  "sha": "a9980e1971b8750b",
   "files": 23
  },
  "stats": {
-  "instances": 638,
+  "instances": 649,
   "pages": 12,
   "kinds": 15
  },
  "pages": [
   {
    "view": "arch",
-   "count": 308
+   "count": 307
   },
   {
    "view": "click-machine",
@@ -19,15 +19,15 @@
   },
   {
    "view": "projects",
-   "count": 44
+   "count": 48
   },
   {
    "view": "knowledge",
-   "count": 41
+   "count": 44
   },
   {
    "view": "artifacts",
-   "count": 38
+   "count": 40
   },
   {
    "view": "position",
@@ -43,7 +43,7 @@
   },
   {
    "view": "logs",
-   "count": 18
+   "count": 21
   },
   {
    "view": "skills",
@@ -356,33 +356,6 @@
     "busy": [
      "idle"
     ]
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.head_act.全部调用",
-   "kind": "head_act",
-   "tag": "BUTTON",
-   "label": "全部调用",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
    },
    "effect": "本页刷新"
   },
@@ -6859,7 +6832,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "路由与契约只列前 10 条；完整清单",
+   "label": "路由与契约只列前 10 条看契约形状",
    "states": [
     "idle",
     "done"
@@ -7203,7 +7176,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "demand:react-run96",
+   "label": "demand:react-run19",
    "states": [
     "idle",
     "busy",
@@ -7230,7 +7203,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "call:react.run9656",
+   "label": "call:react.run1968",
    "states": [
     "idle",
     "busy",
@@ -7766,6 +7739,46 @@
    "kind": "tree_group",
    "tag": "SUMMARY",
    "label": "工单文档t-20261121-000",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "artifacts",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "项目文档群聊样式验证1",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "artifacts",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "工单文档t-20261122-000",
    "states": [
     "idle",
     "done"
@@ -8425,7 +8438,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch308",
+   "label": "arch307",
    "states": [
     "idle",
     "busy",
@@ -8479,7 +8492,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "knowledge41",
+   "label": "projects48",
    "states": [
     "idle",
     "busy",
@@ -8506,7 +8519,34 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "artifacts38",
+   "label": "knowledge44",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "artifacts40",
    "states": [
     "idle",
     "busy",
@@ -8534,33 +8574,6 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "position32",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "projects30",
    "states": [
     "idle",
     "busy",
@@ -8641,7 +8654,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "logs18",
+   "label": "logs21",
    "states": [
     "idle",
     "busy",
@@ -8749,33 +8762,6 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "需求契约view:arch全部调用c",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
    "label": "知识库view:knowledge打",
    "states": [
     "idle",
@@ -8831,6 +8817,33 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "运维view:ops导出数据ctl.",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "运维view:ops链路追踪ctl.",
    "states": [
     "idle",
     "busy",
@@ -10188,6 +10201,73 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
+   "label": "项目群聊样式验证1",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "工单T-20261122-0001T",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.tree_doc",
+   "kind": "tree_doc",
+   "tag": "DIV",
+   "label": "round-note\n    tic",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
    "label": "工单t-20261121-00031",
    "states": [
     "idle",
@@ -10998,7 +11078,67 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
+   "label": "项目群聊样式验证1",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "工单t-20261122-00018",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
    "label": "工单t-20261121-00013",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "工单t-20261122-00013",
    "states": [
     "idle",
     "done"
@@ -12015,7 +12155,7 @@
    "ctl": "ctl.deck_toggle",
    "kind": "deck_toggle",
    "tag": "BUTTON",
-   "label": "铺开 2 张",
+   "label": "铺开 3 张",
    "states": [
     "idle",
     "done"
@@ -12164,6 +12304,114 @@
    "kind": "card_open",
    "tag": "ARTICLE",
    "label": "堆叠测试辛\n        \n   ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "projects",
+   "ctl": "ctl.card_act.改名",
+   "kind": "card_act",
+   "tag": "BUTTON",
+   "label": "改名",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "projects",
+   "ctl": "ctl.card_act.归档",
+   "kind": "card_act",
+   "tag": "BUTTON",
+   "label": "归档",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "projects",
+   "ctl": "ctl.card_act.删除",
+   "kind": "card_act",
+   "tag": "BUTTON",
+   "label": "删除",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "projects",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "群聊样式验证\n        \n  ",
    "states": [
     "idle",
     "busy",

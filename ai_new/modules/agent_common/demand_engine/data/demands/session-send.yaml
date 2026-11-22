@@ -30,6 +30,10 @@ do:
       get: input.text
     now:
       get: now.ts
+    # 真人从控制台发出的消息打 human 标：群聊里归右侧绿气泡；
+    # 闭环注入的回催/复盘提示走 appendmsg 的 kind:note，两条路不混
+    kind:
+      lit: human
   as: rec
 - call: sessions.record_path
   with:

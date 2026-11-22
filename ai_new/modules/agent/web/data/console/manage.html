@@ -15,6 +15,8 @@
   --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.06);
   --shadow-sm:0 1px 2px rgba(16,24,40,.06);
   --radius:12px;
+  /* 群聊 TG 手感：聊天底色与自己的气泡色（自己= TG 绿，成员=白卡） */
+  --chat-bg:#e6ebf1;--out-bg:#effdde;--out-fg:#0f0f0f;
   /* 角色固定配色：PM 蓝 / developer 紫 / tester 青 / reviewer 橙 / user 绿 */
   --c-pm:#2f6bff;--c-developer:#722ed1;--c-tester:#0fc6c2;--c-reviewer:#ff7d00;--c-user:#00b42a;
 }
@@ -22,7 +24,8 @@
   :root{color-scheme:dark;--fg:#e5e6eb;--fg-2:#c9cdd4;--muted:#8b90a0;
     --bg:#131418;--card:#1c1d23;--line:#2c2e36;--line-2:#25262d;
     --accent:#6aa1ff;--accent-weak:rgba(106,161,255,.16);
-    --shadow:0 1px 2px rgba(0,0,0,.32);--shadow-sm:0 1px 2px rgba(0,0,0,.3);}
+    --shadow:0 1px 2px rgba(0,0,0,.32);--shadow-sm:0 1px 2px rgba(0,0,0,.3);
+    --chat-bg:#0e1621;--out-bg:#8774e1;--out-fg:#ffffff;}
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -303,7 +306,7 @@ textarea{min-height:72px;resize:vertical}
 .lane-left>.vsec[data-kind="chat"]{flex:1;min-height:0;display:flex}
 .lane-left>.vsec[data-kind="chat"] .chat-card{flex:1;min-height:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent;box-shadow:none}
 .lane-left>.vsec[data-kind="composer"]{flex:none}
-.lane-left>.vsec[data-kind="composer"] .composer{background:var(--card);border:1px solid var(--line);border-top:1px solid var(--line);border-radius:0 0 var(--radius) var(--radius);box-shadow:var(--shadow);padding:12px 16px}
+.lane-left>.vsec[data-kind="composer"] .composer{background:var(--card);border:1px solid var(--line);border-top:1px solid var(--line);border-radius:0 0 var(--radius) var(--radius);box-shadow:var(--shadow);padding:10px 12px}
 .lane-left>.vsec[data-kind="composer"] .composer textarea{min-height:56px;resize:none}
 .chat-card{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .chat-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;flex:none}
@@ -331,30 +334,45 @@ textarea{min-height:72px;resize:vertical}
 .popover .p-row div{color:var(--fg-2);min-width:0;word-break:break-word}
 .chat-title{font-size:13px;color:var(--fg-2);display:flex;align-items:center;gap:8px;min-width:0}
 .chat-title strong{color:var(--fg);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* 消息贴底（真实 IM 手感）：首个气泡吃掉剩余高度，避免 flex-end 在溢出时裁掉顶部 */
-.chat{flex:1;min-height:0;overflow:auto;padding:18px 18px;display:flex;flex-direction:column;gap:16px}
+/* ---- 群聊 TG 手感：聊天区带底色和暗纹，气泡浮在底上，头像圆、底对齐 ---- */
+.chat{flex:1;min-height:0;overflow:auto;padding:14px 14px 18px;display:flex;flex-direction:column;gap:8px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(47,107,255,.05) 0 14px, transparent 15px),
+    radial-gradient(circle at 82% 38%, rgba(47,107,255,.04) 0 18px, transparent 19px),
+    radial-gradient(circle at 30% 76%, rgba(47,107,255,.04) 0 12px, transparent 13px),
+    var(--chat-bg)}
 .chat>*:first-child{margin-top:auto}
 .chat-empty{margin:auto;color:var(--muted);font-size:13px}
+/* 日期签：跨天插一条居中胶囊 */
+.chat-day{align-self:center;margin:8px 0 2px}
+.chat-day>span{display:inline-block;padding:3px 12px;border-radius:999px;background:rgba(127,127,127,.16);color:var(--fg-2);font-size:11.5px}
 .chat-summary{flex:none;margin:10px 16px 0;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg-2,transparent);font-size:12px;color:var(--muted)}
 .chat-summary>summary{cursor:pointer;color:var(--fg-2)}
 .chat-summary-text{margin-top:6px;white-space:pre-wrap;line-height:1.6}
-.msg{display:flex;gap:9px;align-items:flex-start;max-width:86%}
+.msg{display:flex;gap:8px;align-items:flex-end;max-width:78%}
 .msg.right{align-self:flex-end;flex-direction:row}
 .msg.left{align-self:flex-start}
-.msg.system{align-self:center;max-width:70%}
-.avatar{width:30px;height:30px;border-radius:10px;flex:none;background:var(--av);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12.5px}
+.msg.system{align-self:center;max-width:76%}
+.avatar{width:34px;height:34px;border-radius:50%;flex:none;background:var(--av);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .avatar-ph{visibility:hidden}
 .msg-main{min-width:0}
 .msg.right .msg-main{text-align:left}
 .msg.right .msg-name{text-align:right}
-.msg-name{font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:600}
-.bubble-stack{display:flex;flex-direction:column;gap:4px}
+/* 发言人名字用角色专属色，同组只出现一次 */
+.msg-name{font-size:12px;margin-bottom:3px;font-weight:600;opacity:.92}
+.bubble-stack{display:flex;flex-direction:column;gap:2px}
 .msg.left .bubble-stack{align-items:flex-start}
 .msg.right .bubble-stack{align-items:flex-end}
-.bubble-body{padding:9px 13px;border-radius:12px;background:var(--card);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;max-width:100%;box-shadow:var(--shadow-sm)}
+.bubble-body{padding:7px 11px;border-radius:14px;background:var(--card);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;max-width:100%;box-shadow:0 1px 1.5px rgba(16,24,40,.08)}
 .msg.left .bubble-body{border-top-left-radius:5px}
-.msg.right .bubble-body{background:var(--accent);border-color:var(--accent);color:#fff;border-top-right-radius:5px;box-shadow:0 4px 12px rgba(47,107,255,.22)}
-.msg-ts{font-size:11px;color:var(--muted);margin-top:4px}
+.msg.left .bubble-stack .bubble-body:last-child{border-bottom-left-radius:5px}
+/* 自己的气泡 = TG 绿（暗色 = TG 紫），朝头像一侧收一个小角 */
+.msg.right .bubble-body{background:var(--out-bg);border-color:var(--out-bg);color:var(--out-fg);border-top-right-radius:5px;box-shadow:0 1px 2px rgba(16,24,40,.14)}
+.msg.right .bubble-stack .bubble-body:last-child{border-bottom-right-radius:5px}
+/* 时间收在气泡内右下角：小字、不占独立行；纯工具组退回 .msg-ts */
+.msg-time{float:right;display:inline-block;margin:9px 0 -7px 10px;font-size:10.5px;line-height:1;color:var(--muted);opacity:.85;user-select:none}
+.msg.right .msg-time{color:var(--out-fg);opacity:.62}
+.msg-ts{font-size:10.5px;color:var(--muted);margin-top:2px;text-align:right;user-select:none}
 .bubble-body.draft{color:var(--muted)}
 .bubble-body.md{white-space:normal;line-height:1.55}
 .bubble-body.md p{margin:0}
@@ -367,13 +385,13 @@ textarea{min-height:72px;resize:vertical}
 .msg.right .bubble-body.md code{background:rgba(255,255,255,.2)}
 .cursor{display:inline-block;margin-left:1px;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.msg.system .sys-body{padding:7px 12px;border-radius:999px;background:var(--line-2);color:var(--fg-2);font-size:12.5px;text-align:center}
-/* ---- 工单历程：系统事件气泡 ---- */
+.msg.system .sys-body{padding:6px 14px;border-radius:999px;background:rgba(127,127,127,.16);color:var(--fg-2);font-size:12px;text-align:center;box-shadow:none;border:0}
+/* ---- 工单历程：系统事件气泡（TG 服务消息口径） ---- */
 .msg.event{align-self:center;max-width:78%}
-.msg.event .sys-body{display:block;background:var(--line-2);border-radius:12px;padding:6px 12px;font-size:12.5px;color:var(--fg-2);text-align:center;line-height:1.6}
+.msg.event .sys-body{display:block;background:rgba(127,127,127,.16);border:0;border-radius:14px;padding:6px 14px;font-size:12px;color:var(--fg-2);text-align:center;line-height:1.6;box-shadow:none}
 .msg.event .ev-line{display:block}
 .msg.event .sys-body.clamp{cursor:pointer}
-.msg.event .sys-body.clamp:hover{background:var(--line)}
+.msg.event .sys-body.clamp:hover{background:rgba(127,127,127,.26)}
 .msg.event .ev-label{font-weight:600;color:var(--fg-2);margin-right:6px}
 .msg.event .ev-text{min-width:0;word-break:break-word}
 .msg.event .ev-ts{display:block;color:var(--muted);font-size:11px;margin-top:2px}
@@ -417,10 +435,14 @@ textarea{min-height:72px;resize:vertical}
 .tool-raw summary::before{content:"▸ ";color:var(--muted)}
 .tool-raw[open] summary::before{content:"▾ "}
 .tool-raw pre{margin:6px 0 0;padding:8px;border-radius:8px;background:rgba(127,127,127,.10);font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}
-.composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--card)}
-.composer textarea{min-height:44px;max-height:120px;flex:1}
-.composer button{flex:none}
-.composer button.voice{color:var(--accent);border-color:rgba(36,87,224,.4)}
+/* ---- 输入区 TG 化：胶囊输入框 + 圆润按钮，贴在聊天底色上 ---- */
+.composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--card);align-items:flex-end}
+.composer textarea{min-height:44px;max-height:140px;flex:1;background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:10px 14px;resize:none;line-height:1.5}
+.composer textarea:focus{outline:none;border-color:var(--accent)}
+.composer button{flex:none;border-radius:999px;padding:9px 16px}
+.composer .primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.composer .primary:hover{filter:brightness(1.06)}
+.composer button.voice{color:var(--accent);border-color:rgba(36,87,224,.4);background:var(--accent-weak)}
 .composer button.voice.on{background:var(--danger);border-color:var(--danger);color:#fff}
 .composer-wrap{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
 .composer-wrap .composer{flex:1}

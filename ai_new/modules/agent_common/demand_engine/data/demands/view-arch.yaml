@@ -13,8 +13,6 @@ view:
   crumb: [需求契约]
   heading: 需求契约
   subheading: 每条需求要求什么、编译成哪些调用、偏差在哪；重试/并发/超时等隐藏参数一并摊开
-  actions:
-  - {label: 全部调用, view: traces}
   data:
   - {as: mf, demand: demands-manifest}
   - {as: api, demand: api-snapshot}
@@ -83,7 +81,7 @@ view:
     limit: 10
     list: true
     fold: {title: "路由与契约"}
-    note: 只列前 10 条；完整清单点右上「全部调用」
+    note: 只列前 10 条看契约形状；运行期的调用与链路观测在「运维」页，那里有完整清单和链路追踪
     columns:
     - {label: 路由, value: row.name, sub: row.module}
     - {label: 通道, value: row.stream, fallback: 直连, muted: true}

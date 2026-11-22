@@ -136,6 +136,9 @@ routes:
         type: any
   sessions.appendmsg:
     in:
+      kind:
+        type: any
+        req: false
       now:
         type: any
         req: false
