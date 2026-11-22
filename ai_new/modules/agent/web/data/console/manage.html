@@ -120,16 +120,17 @@ main .crumb{margin-bottom:14px}
 
 /* ---- 项目卡片 ---- */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+/* 只有一张卡时不留多列缺口：一张卡就是一张全宽卡，与堆叠态的整宽口径一致 */
+.cards:has(> .pcard:only-child){grid-template-columns:minmax(0,1fr)}
 
 /* ---- 卡片堆叠（deck）：收缩时叠成一摞、左右滑动换牌；展开时铺成列表 ----
    位置全靠 --pos：0 是最上面那张，往下每层右移 9px、下移 13px，最多露四层。 */
 .cards.deck{display:block}
 .deck{position:relative;min-width:0}
 .deck-stage{position:relative;transition:height .26s cubic-bezier(.22,.72,.28,1)}
-/* 展开态就回到普通卡片排列：桌面网格、手机竖排。
-   卡片保持自己的自然高度——grid 默认 stretch 会把同排矮卡强行拉到最高那张，
-   内容少的项目卡于是多出一大段空白（"堆叠之后被拉长"就是它） */
-.deck[data-open="1"] .deck-stage{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+/* 展开态就回到普通卡片排列：一张一行、整宽，与收缩态的整宽口径一致
+   （原先 auto-fill 多列会把卡压成 300px 列宽，和叠起来那张整宽卡对不上） */
+.deck[data-open="1"] .deck-stage{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .deck-stage{--ox:9px;--oy:13px;isolation:isolate;will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard{position:absolute;left:0;right:calc(var(--pos,0) * var(--ox));top:0;
   z-index:calc(20 - var(--pos,0));
