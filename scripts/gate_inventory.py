@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """可点实例清单门禁：清单里的每一条都必须能点、能定位、有自己的状态机、有明确去向。"""
+import glob
+import hashlib
 import json
 import os
 import sys
@@ -11,6 +13,20 @@ INV = ROOT + "/ai_new/modules/agent_common/demand_engine/data/ui-inventory.json"
 CONSOLE = ROOT + "/ai_new/modules/agent_common/demand_engine/data/console.yaml"
 
 
+WEB = ROOT + "/ai_new/modules/agent/web/data/console"
+
+
+def source_sig():
+    h = hashlib.sha256()
+    files = sorted([CONSOLE, WEB + "/render.js", WEB + "/boot.js", WEB + "/app.js", WEB + "/manage.html"]
+                   + sorted(glob.glob(ROOT + "/ai_new/modules/agent_common/demand_engine/data/demands/view-*.yaml")))
+    for p in files:
+        if os.path.exists(p):
+            h.update(p.encode())
+            h.update(open(p, "rb").read())
+    return {"sha": h.hexdigest()[:16], "files": len(files)}
+
+
 def problems():
     out = []
     if not os.path.exists(INV):
@@ -19,6 +35,13 @@ def problems():
     rows = inv.get("rows") or []
     if not rows:
         return ["清单是空的"]
+    sig = inv.get("sig") or {}
+    here = source_sig()
+    if not sig.get("sha"):
+        out.append("清单没有源码签名：跑 scripts/ui_inventory.py 重新生成（清单必须跟着源码走）")
+    elif sig.get("sha") != here.get("sha"):
+        out.append("清单过期：决定可点 DOM 的源码变了（sig=%s 现算=%s），跑 scripts/ui_inventory.py 重新生成"
+                   % (sig.get("sha"), here.get("sha")))
     shell = yaml.safe_load(open(CONSOLE, encoding="utf-8")) or {}
     kinds = {k["key"] for k in (shell.get("click_machine") or {}).get("kinds") or []}
     pages = {r["view"] for r in rows}

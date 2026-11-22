@@ -31,3 +31,13 @@ jobs:
       - name: 需求/架构/装配/传输/幂等/桩协议全量用例
         working-directory: ai_new/modules/agent_test/private
         run: python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto
+      - name: UI 回归（真实浏览器起桩遍历：控件状态机实拉 + 可点实例数核对）
+        run: |
+          pip install playwright
+          python3 -m playwright install --with-deps chromium
+          export CHROME="$(python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()")"
+          AI_NEW_STUB=1 nohup python3 agent_start.py > /tmp/stub.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8787/api/health/live >/dev/null && break; sleep 2; done
+          curl -sf http://127.0.0.1:8787/api/health/live
+          python3 scripts/verify_ui.py
+          python3 scripts/ui_inventory.py --check

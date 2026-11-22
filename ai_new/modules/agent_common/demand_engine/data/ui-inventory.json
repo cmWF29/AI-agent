@@ -1,13 +1,17 @@
 {
+ "sig": {
+  "sha": "1775f7aeb2c47aa2",
+  "files": 23
+ },
  "stats": {
-  "instances": 1160,
+  "instances": 1175,
   "pages": 12,
   "kinds": 15
  },
  "pages": [
   {
    "view": "arch",
-   "count": 797
+   "count": 800
   },
   {
    "view": "artifacts",
@@ -15,7 +19,7 @@
   },
   {
    "view": "click-machine",
-   "count": 53
+   "count": 65
   },
   {
    "view": "knowledge",
@@ -11275,6 +11279,26 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
+   "label": "",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
    "label": "可调skill-disable禁用 ",
    "states": [
     "idle",
@@ -12956,6 +12980,46 @@
    "kind": "tree_group",
    "tag": "SUMMARY",
    "label": "可调ops-overview运维总览",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "",
    "states": [
     "idle",
     "done"
@@ -17087,7 +17151,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "dispatch:sessions.",
+   "label": "call:demand_engine",
    "states": [
     "idle",
     "busy",
@@ -17114,7 +17178,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "demand:artifacts-s",
+   "label": "dispatch:sessions.",
    "states": [
     "idle",
     "busy",
@@ -19624,6 +19688,330 @@
     "busy": [
      "idle"
     ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "arch797",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "artifacts91",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "click-machine53",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "knowledge42",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "position32",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "tools30",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "logs27",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "positions27",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "projects26",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "skills16",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "user16",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "ops3",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
    },
    "effect": "本页刷新"
   },

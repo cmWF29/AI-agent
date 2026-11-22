@@ -7,6 +7,7 @@
 用法：python3 scripts/ui_inventory.py [--check] [base_url]
 """
 import glob
+import hashlib
 import json
 import os
 import sys
@@ -26,6 +27,20 @@ for a in sys.argv[1:]:
         BASE = a
 
 CHROME = os.environ.get("CHROME", "/usr/local/bin/chromium")
+
+# 决定可点 DOM 的全部源：YAML 声明 + 前端脚本。任何一个变了，清单就必须重扫。
+WEB = ROOT + "/ai_new/modules/agent/web/data/console"
+SIG_FILES = [CONSOLE, WEB + "/render.js", WEB + "/boot.js", WEB + "/app.js", WEB + "/manage.html"]
+
+
+def source_sig():
+    h = hashlib.sha256()
+    files = sorted(SIG_FILES + sorted(glob.glob(DEMANDS + "/view-*.yaml")))
+    for p in files:
+        if os.path.exists(p):
+            h.update(p.encode())
+            h.update(open(p, "rb").read())
+    return {"sha": h.hexdigest()[:16], "files": len(files)}
 
 TOGGLE_KINDS = {"fold_text", "summary_fold", "wire_fold", "raw_fold", "tree_group",
                 "section_fold", "deck_toggle", "member_chip", "popover_close",
@@ -155,7 +170,8 @@ def main():
     pages_sum = {}
     for r in rows:
         pages_sum[r["view"]] = pages_sum.get(r["view"], 0) + 1
-    body = {"stats": {"instances": len(rows), "pages": len(pages_sum),
+    body = {"sig": source_sig(),
+            "stats": {"instances": len(rows), "pages": len(pages_sum),
                       "kinds": len({r["kind"] for r in rows})},
             "pages": [{"view": k, "count": v} for k, v in sorted(pages_sum.items(), key=lambda x: -x[1])],
             "rows": rows}
