@@ -125,6 +125,7 @@ view:
     layout: deck
     note: "{data.ptools.items|count} 个工具 · 左右滑动换卡；可在本项目单独禁用"
     title: row.name
+    badge: {when: row.disabled_project == true, text: 本项目已禁用}
     meta:
     - {label: 模块, value: row.module}
     - {label: 来源, value: row.source}
