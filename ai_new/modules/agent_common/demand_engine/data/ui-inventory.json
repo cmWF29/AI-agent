@@ -1,10 +1,10 @@
 {
  "sig": {
-  "sha": "a9980e1971b8750b",
+  "sha": "af6707a845abf6fc",
   "files": 23
  },
  "stats": {
-  "instances": 649,
+  "instances": 646,
   "pages": 12,
   "kinds": 15
  },
@@ -43,7 +43,7 @@
   },
   {
    "view": "logs",
-   "count": 21
+   "count": 18
   },
   {
    "view": "skills",
@@ -7284,7 +7284,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "dispatch:sessions.",
+   "label": "demand:artifacts-s",
    "states": [
     "idle",
     "busy",
@@ -7311,7 +7311,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "demand:artifacts-s",
+   "label": "dispatch:sessions.",
    "states": [
     "idle",
     "busy",
@@ -11078,67 +11078,7 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "项目群聊样式验证1",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261122-00018",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
    "label": "工单t-20261121-00013",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261122-00013",
    "states": [
     "idle",
     "done"

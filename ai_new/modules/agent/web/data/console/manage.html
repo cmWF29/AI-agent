@@ -815,16 +815,17 @@ textarea{min-height:72px;resize:vertical}
 <!-- 成员卡浮层 -->
 <div class="popover" id="popover" hidden></div>
 
-<!-- 通用弹窗 -->
-<div class="modal" id="modal" data-clk="modal_backdrop" hidden>
+<!-- 通用弹窗：三个控件的状态机在 console.yaml 里有名有姓，静态就盖 data-ctl，
+     不等运行时兜底——弹窗骨架不进任何 stampCtl 覆盖区，漏盖就是永远裸奔 -->
+<div class="modal" id="modal" data-clk="modal_backdrop" data-ctl="ctl.modal_backdrop" data-ctl-state="idle" hidden>
   <div class="modal-card">
     <h2 id="modal-title"></h2>
     <p class="hint" id="modal-hint"></p>
     <div class="modal-err" id="modal-err"></div>
     <form id="modal-form"></form>
     <div class="modal-foot">
-      <button type="button" id="modal-cancel" data-clk="modal_cancel" data-ui="cancel"></button>
-      <button type="submit" form="modal-form" class="primary" id="modal-ok" data-clk="modal_ok" data-ui="ok"></button>
+      <button type="button" id="modal-cancel" data-clk="modal_cancel" data-ctl="ctl.modal_cancel" data-ctl-state="idle" data-ui="cancel"></button>
+      <button type="submit" form="modal-form" class="primary" id="modal-ok" data-clk="modal_ok" data-ctl="ctl.modal_ok" data-ctl-state="idle" data-ui="ok"></button>
     </div>
   </div>
 </div>
