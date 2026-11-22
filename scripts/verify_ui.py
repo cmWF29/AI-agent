@@ -110,6 +110,15 @@ async def main():
                 still = await pg.evaluate("""() => { const d=document.querySelector('.raw-box');
                   return !!(d && d.open); }""")
                 check("原文展开态重渲染后保持", still)
+                # 7b. 刷新页面（不是重渲染）后，折叠态必须还在——这条专堵"刷新自动收回去"
+                await pg.reload(wait_until="load")
+                await pg.wait_for_timeout(1500)
+                after = await pg.evaluate("""(k) => { const d = document.querySelector('details[data-fold="' + k + '"]');
+                  return d ? d.open : null; }""", opened)
+                if after is None:
+                    print("  SKIP 刷新保持（刷新后找不到同一折叠块）")
+                else:
+                    check("刷新后折叠态保持", after is True)
             else:
                 print("  SKIP 折叠持久化（该工单没有原文块）")
         else:

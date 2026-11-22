@@ -209,6 +209,15 @@ class CoreTest(unittest.TestCase):
         spec.loader.exec_module(mod)
         self.assertEqual(mod.problems(), [], "控件状态机门禁未通过（见 scripts/gate_controls.py）")
 
+    def test_views_guarded_and_tool_card_single_exit(self):
+        """视图层静态门禁：条件表达式可解析、项目/工单页写操作带归档判据、工具卡单一折叠出口。"""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "gate_views", ROOT / "scripts" / "gate_views.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.problems(), [], "视图层门禁未通过（见 scripts/gate_views.py）")
+
     def test_registered_routes_are_demand_bound_or_platform(self):
         """注册表只收两类路由：被需求 do 树编排的业务能力，或清单登记的平台入口。
 

@@ -377,7 +377,9 @@ function toolCardHtml(name, args, raw, foldKey) {
   const argsText = String(args || "").trim();
   const argsHtml = argsText && argsText !== "{}"
     ? `<span class="tool-call-args">${esc(argsText.length > 72 ? argsText.slice(0, 72) + "…" : argsText)}</span>` : "";
-  const head = `<div class="tool-call-head"><span class="tool-call-name">${esc(name || "tool")}</span>${argsHtml}</div>`;
+  const inner = `<span class="tool-call-name">${esc(name || "tool")}</span>${argsHtml}`;
+  const head = `<div class="tool-call-head">${inner}</div>`;                 // 只读小卡（结果未到/报错）不折叠
+  const fhead = `<summary class="tool-call-head">${inner}</summary>`;        // 可折叠卡：点头行才展开细节
   if (!raw) return `<div class="tool-call">${head}<div class="tool-line pending">${esc(uiText("call_pending"))}</div></div>`;
   let o = null;
   try { o = JSON.parse(raw); } catch (e) {}
@@ -385,9 +387,9 @@ function toolCardHtml(name, args, raw, foldKey) {
     return `<div class="tool-call error">${head}<div class="tool-line err md">${renderMarkdown(o.error || raw)}</div></div>`;
   }
   if (o && typeof o === "object") {
-    return `<div class="tool-call">${head}${toolResultBody(o, raw, foldKey)}</div>`;
+    return `<details class="tool-call"${foldAttr(foldKey)}>${fhead}<div class="tool-call-body">${toolResultBody(o, raw, foldKey)}</div></details>`;
   }
-  return `<div class="tool-call">${head}<div class="tool-line md">${renderMarkdown(String(raw))}</div></div>`;
+  return `<details class="tool-call"${foldAttr(foldKey)}>${fhead}<div class="tool-call-body"><div class="tool-line md">${renderMarkdown(String(raw))}</div></div></details>`;
 }
 function toolCallCard(it) {
   const raw = it.result ? String(it.result.content == null ? "" : it.result.content) : "";

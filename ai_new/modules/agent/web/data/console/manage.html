@@ -390,6 +390,11 @@ textarea{min-height:72px;resize:vertical}
 .tool-group-body{display:flex;flex-direction:column;gap:6px;padding-bottom:8px}
 .tool-group .tool-call{border-color:var(--line)}
 .tool-call-head{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.tool-call>summary{cursor:pointer;list-style:none}
+.tool-call>summary::-webkit-details-marker{display:none}
+.tool-call>summary:before{content:"▸";color:var(--muted);margin-right:2px}
+.tool-call[open]>summary:before{content:"▾"}
+.tool-call-body{margin-top:6px}
 .tool-line{margin-top:4px;line-height:1.5;word-break:break-word}
 .tool-line.err{color:var(--danger)}
 .tool-line.pending{color:var(--muted)}
