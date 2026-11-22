@@ -4,7 +4,7 @@ from __future__ import annotations
 
 def assemble(p):
     keys = ("config", "sessions", "tickets", "knowledge", "artifacts",
-            "library", "projects", "demands")
+            "library", "projects", "demands", "tools", "docs")
     return {k: p.get(k) or {} for k in keys}
 
 

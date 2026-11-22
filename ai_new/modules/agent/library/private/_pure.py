@@ -667,8 +667,9 @@ def summaryp(p):
     roles = _records({"seed": seed, "user": user.get("roles") or {}, "kind": "roles"})
     # 流程数统计带状态机的岗位：状态机随岗位走，不再有独立流程实体（子流程库另计）
     flows = sum(1 for r in roles.values() if isinstance(r, dict) and r.get("states"))
-    return {"counts": {"roles": len(roles), "flows": flows},
-            "roles": sorted(roles), "flows": []}
+    skills = [k for k, v in (p.get("user_skills") or {}).items() if isinstance(v, dict)]
+    return {"counts": {"roles": len(roles), "flows": flows, "skills": len(skills)},
+            "roles": sorted(roles), "flows": [], "skills": sorted(skills)}
 
 
 def promptp(p):

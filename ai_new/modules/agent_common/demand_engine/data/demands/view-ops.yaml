@@ -42,7 +42,12 @@ view:
     - {label: 进行中, value: "data.overview.tickets.result.items|count(status!=closed)", note: 个未结单工单}
     - {label: 会话, value: "data.overview.sessions.result.items|count", note: 个在库会话}
     - {label: 文档, value: "data.overview.artifacts.result.files", note: 个文件}
+    - {label: 公共文档, value: "data.overview.docs.result.counts.public", note: 篇公共规范}
+    - {label: 项目文档, value: "data.overview.docs.result.counts.project", note: 篇项目文档}
+    - {label: 工单文档, value: "data.overview.docs.result.counts.ticket", note: 篇工单文档}
     - {label: 公共知识, value: "data.overview.knowledge.result.counts.public", note: 篇规范}
+    - {label: 工具, value: "data.overview.tools.result.total", note: 个内置工具}
+    - {label: 技能, value: "data.overview.library.result.counts.skills", note: 个技能}
     - {label: 岗位, value: "data.overview.library.result.counts.roles", note: 个岗位}
     - {label: 流程, value: "data.overview.library.result.counts.flows", note: 套流程}
   - kind: kv

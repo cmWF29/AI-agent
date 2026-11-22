@@ -34,6 +34,16 @@ do:
     id:
       lit: library-summary
 - call: demand_engine.run
+  as: tools
+  with:
+    id:
+      lit: tools-deps
+- call: demand_engine.run
+  as: docs
+  with:
+    id:
+      lit: artifacts-index
+- call: demand_engine.run
   as: projects
   with:
     id:
@@ -56,6 +66,10 @@ do:
       get: library
     projects:
       get: projects
+    tools:
+      get: tools
+    docs:
+      get: docs
     demands:
       get: demands
   as: overview

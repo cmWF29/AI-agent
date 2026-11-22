@@ -7,6 +7,11 @@ metrics:
 - {key: open,      label: 进行中,   note: 个未结单工单, value: "data.overview.tickets.result.items|count(status!=closed)"}
 - {key: sessions,  label: 会话,     note: 个在库会话,   value: "data.overview.sessions.result.items|count"}
 - {key: artifacts, label: 文档,     note: 个文件,       value: "data.overview.artifacts.result.files"}
+- {key: docs_public,  label: 公共文档, note: 篇公共规范, value: "data.overview.docs.result.counts.public"}
+- {key: docs_project, label: 项目文档, note: 篇项目文档, value: "data.overview.docs.result.counts.project"}
+- {key: docs_ticket,  label: 工单文档, note: 篇工单文档, value: "data.overview.docs.result.counts.ticket"}
 - {key: knowledge, label: 公共知识, note: 篇规范,       value: "data.overview.knowledge.result.counts.public"}
+- {key: tools,     label: 工具,     note: 个内置工具,   value: "data.overview.tools.result.total"}
+- {key: skills,    label: 技能,     note: 个技能,       value: "data.overview.library.result.counts.skills"}
 - {key: roles,     label: 岗位,     note: 个岗位,       value: "data.overview.library.result.counts.roles"}
 - {key: flows,     label: 流程,     note: 套流程,       value: "data.overview.library.result.counts.flows"}
