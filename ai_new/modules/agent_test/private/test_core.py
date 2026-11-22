@@ -218,6 +218,14 @@ class CoreTest(unittest.TestCase):
         spec.loader.exec_module(mod)
         self.assertEqual(mod.problems(), [], "视图层门禁未通过（见 scripts/gate_views.py）")
 
+    def test_ops_metrics_have_real_sources(self):
+        """运维指标门禁：统计条与指标清单一一对应，每个指标的取数源真实存在。"""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("gate_ops", ROOT / "scripts" / "gate_ops.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.problems(), [], "运维指标门禁未通过（见 scripts/gate_ops.py）")
+
     def test_screen_machine_is_closed(self):
         """界面状态图门禁：页面/浮层节点闭合、浮层可关、壳层控件已登记、入口全可达；
         并且运行时推导（demand_engine.screens）与静态推导（gate_screens）节点一致。"""

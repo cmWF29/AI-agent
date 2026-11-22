@@ -1,0 +1,12 @@
+# 运维指标清单：页面统计条只允许出现这里登记过的指标，顺序也以这里为准。
+# value 里的 as 必须是 ops-overview 真正取回的源（gate_ops.py 会核对），不许写不存在的字段。
+metrics:
+- {key: projects,  label: 项目,     note: 个在库项目,   value: "data.overview.projects.result.items|count"}
+- {key: archived,  label: 归档项目, note: 个已归档项目, value: "data.overview.projects.result.archived|count"}
+- {key: tickets,   label: 工单,     note: 个在库工单,   value: "data.overview.tickets.result.items|count"}
+- {key: open,      label: 进行中,   note: 个未结单工单, value: "data.overview.tickets.result.items|count(status!=closed)"}
+- {key: sessions,  label: 会话,     note: 个在库会话,   value: "data.overview.sessions.result.items|count"}
+- {key: artifacts, label: 文档,     note: 个文件,       value: "data.overview.artifacts.result.files"}
+- {key: knowledge, label: 公共知识, note: 篇规范,       value: "data.overview.knowledge.result.counts.public"}
+- {key: roles,     label: 岗位,     note: 个岗位,       value: "data.overview.library.result.counts.roles"}
+- {key: flows,     label: 流程,     note: 套流程,       value: "data.overview.library.result.counts.flows"}
