@@ -81,6 +81,38 @@ button,input,select,textarea{font:inherit;color:inherit}
 .mch-leg[data-state=modal] i{background:#b689ec}
 .mch-note{font-size:11.5px;color:var(--muted);line-height:1.5}
 /* 可点位置清单：一行一类，手机上一屏看四五类 */
+/* ---- 用户视角的页面地图 / 跳转 / 元素 ---- */
+.pmap{display:flex;flex-direction:column;gap:10px}
+.pmap-row{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.pmap-row.is-entry{border-color:rgba(95,135,221,.5);box-shadow:0 0 0 1px rgba(95,135,221,.16) inset}
+.pmap-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pmap-top b{font-size:13.5px;color:var(--fg)}
+.pmp-pin{font-size:11px;color:#5f87dd;border:1px solid rgba(95,135,221,.4);border-radius:999px;padding:1px 7px}
+.pmap-main{font-size:12.5px;color:var(--fg-2);margin-top:3px;line-height:1.6}
+.pmap-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}
+.pmp-lab{font-size:11.5px;color:var(--muted)}
+.pmp-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11.5px;color:var(--fg-2)}
+.pmp-chip i{font-style:normal;color:var(--muted)}
+.pmp-none{font-size:11.5px;color:var(--muted)}
+.pmp-arrow{color:var(--muted);font-size:12px}
+.route-list{display:flex;flex-direction:column;gap:6px}
+.route-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:10px}
+.rt-from,.rt-to{color:var(--fg)}
+.rt-by{color:var(--fg-2)}
+.rt-arrow{color:var(--muted)}
+.elem-pages{display:flex;flex-direction:column;gap:6px}
+.elem-page{border:1px solid var(--line);border-radius:10px;padding:2px 10px}
+.elem-page>summary{cursor:pointer;font-size:12.5px;padding:6px 0;list-style:none;display:flex;align-items:center;gap:8px}
+.elem-page>summary::-webkit-details-marker{display:none}
+.elem-count{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px}
+.elem-list{display:flex;flex-direction:column;gap:5px;padding:2px 0 8px}
+.elem-row{display:grid;grid-template-columns:minmax(120px,1.2fr) 52px minmax(110px,1fr) minmax(0,1.6fr);gap:8px;align-items:baseline;font-size:12px;border-top:1px dashed var(--line);padding-top:5px}
+.elem-label{color:var(--fg);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.elem-n{font-style:normal;color:var(--muted);margin-left:4px;font-size:11px}
+.elem-tag{font-size:10.5px;color:var(--muted);text-transform:lowercase}
+.elem-eff{color:var(--fg-2)}
+.elem-gate{color:var(--muted);font-size:11.5px;line-height:1.5}
+@media (max-width:720px){.elem-row{grid-template-columns:1fr;gap:2px}}
 .kind-list{display:flex;flex-direction:column}
 .kind-row{padding:9px 0;border-bottom:1px solid var(--line-2)}
 .kind-row:last-child{border-bottom:0}
@@ -94,6 +126,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav button{justify-content:flex-start;border:0;background:transparent;text-align:left;padding:9px 12px;border-radius:9px;color:var(--fg-2);font-size:13.5px}
 .nav button:hover{background:var(--line-2);color:var(--fg)}
 .nav button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+/* 二级菜单：缩进 + 左侧竖线，读起来是"这页属于上面那页"，不是又一列平铺 */
+.nav-sub{display:flex;flex-direction:column;gap:2px;margin:1px 0 3px 14px;padding-left:8px;border-left:1px solid var(--line)}
+.nav-child{font-size:12.5px !important;padding:7px 10px !important;color:var(--muted) !important;border-radius:8px !important}
+.nav-child:hover{color:var(--fg) !important}
+.nav-child.on{color:var(--accent) !important;background:var(--accent-weak) !important}
 .side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line-2)}
 .side-foot button{width:100%;justify-content:flex-start}
 .main-col{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -389,10 +426,12 @@ textarea{min-height:72px;resize:vertical}
 /* 自己的气泡 = TG 绿（暗色 = TG 紫），朝头像一侧收一个小角 */
 .msg.right .bubble-body{background:var(--out-bg);border-color:var(--out-bg);color:var(--out-fg);border-top-right-radius:5px;box-shadow:0 1px 2px rgba(16,24,40,.14)}
 .msg.right .bubble-stack .bubble-body:last-child{border-bottom-right-radius:5px}
-/* 时间收在气泡内右下角：小字、不占独立行；纯工具组退回 .msg-ts */
-.msg-time{float:right;display:inline-block;margin:9px 0 -7px 10px;font-size:10.5px;line-height:1;color:var(--muted);opacity:.85;user-select:none}
-.msg.right .msg-time{color:var(--out-fg);opacity:.62}
-.msg-ts{font-size:10.5px;color:var(--muted);margin-top:2px;text-align:right;user-select:none}
+/* 时间在消息之上：和名字同一行（右边对齐自己），悬停看完整年月日 */
+.msg-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;min-width:0}
+.msg.right .msg-head{justify-content:flex-end}
+.msg-time{font-size:11px;line-height:1;color:var(--muted);opacity:.8;user-select:none;flex:none}
+.msg.right .msg-time{color:var(--muted)}
+.msg-ts{font-size:11px;color:var(--muted);margin-top:2px;text-align:right;user-select:none}
 .bubble-body.draft{color:var(--muted)}
 .bubble-body.md{white-space:normal;line-height:1.55}
 .bubble-body.md p{margin:0}
@@ -408,7 +447,7 @@ textarea{min-height:72px;resize:vertical}
 .msg.system .sys-body{padding:6px 14px;border-radius:999px;background:rgba(127,127,127,.16);color:var(--fg-2);font-size:12px;text-align:center;box-shadow:none;border:0}
 /* ---- 工单历程：系统事件气泡（TG 服务消息口径） ---- */
 .msg.event{align-self:center;max-width:78%}
-.msg.event .sys-body{display:block;background:rgba(127,127,127,.16);border:0;border-radius:14px;padding:6px 14px;font-size:12px;color:var(--fg-2);text-align:center;line-height:1.6;box-shadow:none}
+.msg.event .sys-body{display:block;background:rgba(127,127,127,.16);border:0;border-radius:999px;padding:6px 16px;font-size:12px;color:var(--fg-2);text-align:center;line-height:1.6;box-shadow:none}
 .msg.event .ev-line{display:block}
 .msg.event .sys-body.clamp{cursor:pointer}
 .msg.event .sys-body.clamp:hover{background:rgba(127,127,127,.26)}
@@ -618,6 +657,7 @@ textarea{min-height:72px;resize:vertical}
 /* 角色状态板：一行看全组谁在哪个阶段，破折号换成点互斥；点开复用成员卡 */
 .role-board{display:flex;gap:8px;overflow-x:auto;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--line);scrollbar-width:none}
 .role-board::-webkit-scrollbar{display:none}
+.role-board .board-lab{flex:none;font-size:11.5px;color:var(--muted);letter-spacing:.02em;padding-right:2px}
 .role-mini{display:inline-flex;align-items:center;gap:6px;flex:none;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;color:var(--fg-2);cursor:pointer;max-width:100%}
 .role-mini:hover{border-color:var(--accent);background:var(--accent-weak)}
 .role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
@@ -635,7 +675,8 @@ textarea{min-height:72px;resize:vertical}
 .raw-box summary::before{content:"▸";font-size:10px}
 .raw-box[open] summary::before{content:"▾"}
 .raw-box pre{margin:4px 0 0;padding:9px 11px;background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:11px;line-height:1.55;color:var(--fg-2);white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto}
-.inject{padding:6px 4px 0}
+.inject{display:flex;flex-direction:column;gap:6px;padding:6px 4px 0}
+.inject-note{font-size:11.5px;color:var(--muted);line-height:1.6}
 .inject .raw-box{margin:0}
 /* 成员卡里的流程链 */
 .p-flow{font-size:12px;color:var(--muted);margin-bottom:5px}

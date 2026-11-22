@@ -53,7 +53,7 @@ ui:
   unknown_kind: "未知区块: {}"
   badge_offline: 下线
   call_pending: 执行中…
-  call_raw: 原始数据
+  call_raw: 工具返回原文
   call_empty: 无命中
   cascaded_roles: "（连带禁用 {} 个依赖岗位：{}）"
   written: 已写入
@@ -68,12 +68,20 @@ ui:
   trunc_note: "…（共 {} 字）"
   more_rows: "还有 {} 条"
   wire_title: 网络报文
+  pmap_entry: 入口页
+  pmap_in: 从
+  pmap_out: 到
+  pmap_none: 没有其他页面跳到这里，只能从侧栏进
+  pmap_end: 走到这一页就是终点，只能往回或去侧栏
+  wire_note: 模型请求与响应的原始报文（HTTP 抓包那一层）
+  raw_note: 这条消息在会话里落盘的字段原样（角色 / 时间 / 内容），不是网络报文
+  inject_note: 发给岗位的系统上下文（提示词），不进对话流，只有岗位自己看得见
   wire_expand: 展开读原文
   wire_loading: 读取中…
   wire_no_entry: 这条消息没有报文
   wire_fail: "读取失败：{}"
-  inject_title: "系统注入 ×{}"
-  raw_title: 原文
+  inject_title: "系统上下文 ×{}"
+  raw_title: 消息原文
   summary_title: 上下文摘要
   tool_group: "工具调用 ×{}"
   tool_group_fail: " · {} 失败"

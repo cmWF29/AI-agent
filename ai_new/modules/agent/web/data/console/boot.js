@@ -447,10 +447,18 @@ function renderMenus(menus) {
     if (last && last.name === name) last.items.push(m);
     else groups.push({ name, items: [m] });
   });
-  side.innerHTML = groups.map((g) => `<div class="nav-group">${
-    g.name ? `<div class="nav-group-title">${esc(g.name)}</div>` : ""}${
-    g.items.map((m) => `<button data-clk="nav" data-nav="${esc(m.key)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</button>`).join("")
-  }</div>`).join("");
+  // 二级菜单：parent 指向父项 key 的挂到父项下面缩进渲染；父项自己也是可点的页
+  const btn = (m, cls) => `<button${cls ? ` class="${cls}"` : ""} data-clk="nav" data-nav="${esc(m.key)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</button>`;
+  side.innerHTML = groups.map((g) => {
+    const kids = {};
+    g.items.forEach((m) => {
+      if (m.parent) (kids[m.parent] = kids[m.parent] || []).push(m);
+    });
+    const sub = (k) => (kids[k] || []).length
+      ? `<div class="nav-sub">${kids[k].map((c) => btn(c, "nav-child")).join("")}</div>` : "";
+    return `<div class="nav-group">${g.name ? `<div class="nav-group-title">${esc(g.name)}</div>` : ""}${
+      g.items.filter((m) => !m.parent).map((m) => btn(m) + sub(m.key)).join("")}</div>`;
+  }).join("");
   if (typeof stampCtl === "function") stampCtl(side);
 }
 function highlightNav() {

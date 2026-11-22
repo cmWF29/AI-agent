@@ -17,7 +17,6 @@ view:
   - {as: mf, demand: demands-manifest}
   - {as: api, demand: api-snapshot}
   - {as: pos, demand: position-list}
-  - {as: slow, demand: trace-slow, params: {}}
   - {as: params, demand: runtime-params}
   sections:
   - kind: map
@@ -42,6 +41,8 @@ view:
   - kind: table
     as: mf
     source: data.mf.items
+    limit: 40
+    count_note: "共 {data.mf.items|count} 条；只列前 40 条（偏差为非 0 的排前面），全量清单走 scripts/gate_demand_tests.py"
     heading: 需求清单（声明 vs 编译）
     note: 偏差 = 需求自己声明的预期调用与编译出来的实际调用不一致；不是 0 就是需求变形或用例过期
     columns:
@@ -89,19 +90,6 @@ view:
     - {label: 出参, value: "row.out|count", suffix: 项}
     - {label: 说明, value: row.doc, muted: true}
     empty: {text: 暂无路由}
-  - kind: table
-    as: slow
-    source: data.slow.items
-    limit: 8
-    heading: 今日慢请求（按 P95 排序）
-    columns:
-    - {label: 阶段, value: row.name}
-    - {label: 次数, value: row.n}
-    - {label: P50, value: row.p50_ms, suffix: ms, muted: true}
-    - {label: P95, value: row.p95_ms, suffix: ms}
-    - {label: 峰值, value: row.max_ms, suffix: ms, muted: true}
-    - {label: 错误, value: row.err, muted: true}
-    empty: {text: 今日暂无链路采样（trace 采样率可在 config.trace.sample 调高）}
 expect:
   given:
     input: {}

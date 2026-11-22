@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  screen_label: 链路详情
   key: trace
   nav: ops
   params: [trace]

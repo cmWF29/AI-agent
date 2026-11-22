@@ -10,6 +10,7 @@ callable: false
 'on': []
 do: []
 view:
+  screen_label: 工单群聊
   key: ticket
   # 事件词与状态词同表：事件看历史、状态看徽章，两边都从后端词表取
   labels:

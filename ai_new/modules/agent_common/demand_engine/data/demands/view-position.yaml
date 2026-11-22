@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  screen_label: 岗位详情
   key: position
   params: [position]
   require: [position]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等

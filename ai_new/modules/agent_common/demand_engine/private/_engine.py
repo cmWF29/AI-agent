@@ -243,6 +243,8 @@ class Engine:
                 "short": str(menu.get("short") or label),
                 "order": float(menu.get("order") or 100),
                 "mobile": bool(menu.get("mobile", True)),
+                # 二级菜单：parent 指向父级视图的 key；没有就是一级
+                "parent": str(menu.get("parent") or ""),
                 "demand": r["id"],
             })
         menus.sort(key=lambda m: (m["group_order"], m["order"], m["key"]))
@@ -260,27 +262,54 @@ class Engine:
         sm = shell.get("screen_machine") or {}
         states, edges, overlays, controls = {}, [], [], []
 
+        def _view_label(v, key):
+            """界面上这一页叫什么：菜单名 → 去掉占位符的标题 → 静态面包屑 → key。
+            详情页标题是 {project.name} 这类占位符，直接当节点名用户读不懂。"""
+            lab0 = str(v.get("screen_label") or "").strip()
+            if lab0:
+                return lab0
+            menu = v.get("menu") or {}
+            if isinstance(menu, str):
+                menu = {"label": menu}
+            lab = str(menu.get("label") or "").strip()
+            if lab:
+                return lab
+            head = re.sub(r"\{[^}]*\}", "", str(v.get("heading") or v.get("heading_from") or "")).strip(" ·，")
+            if head:
+                return head
+            crumb = [str(c) for c in (v.get("crumb") or []) if "{" not in str(c)]
+            if crumb:
+                return " · ".join(crumb)
+            return key
+
         def node(key, label):
+            # 先被引用、后来才轮到的页面先落成 key 占位；轮到它时用真名覆盖，别让用户看到 view:xxx
             if key not in states:
                 states[key] = {"id": key, "cn": label or key, "next": []}
+            elif label:
+                states[key]["cn"] = label
             return states[key]
 
         def edge(frm, to, ctl, label):
             if frm == to:
                 return
-            node(frm, frm)
-            node(to, to)
+            # 边只补节点、不改名：名字由视图自己声明（菜单名 / screen_label）
+            node(frm, "")
+            node(to, "")
             states[frm]["next"].append({"to": to, "when": label or ""})
             edges.append({"from": frm, "to": to, "ctl": ctl, "label": label or ""})
 
         views = []
+        mains = {}
         for rec in self._load():
             v = rec.get("view") or {}
             if v.get("key"):
                 views.append((v.get("key"), v, rec))
+                # 每页"就一件事"：视图自己声明的副标题，页面地图上直接给用户看
+                mains["view:%s" % v.get("key")] = str(v.get("subheading") or "")
         forms = set()
         for key, v, rec in views:
-            label = (v.get("menu") or {}).get("label") or v.get("heading") or key
+            label = _view_label(v, key)
             node("view:%s" % key, label)
             par = v.get("parent") or {}
             parent = par if isinstance(par, str) else par.get("view")
@@ -344,13 +373,57 @@ class Engine:
         for ov in (sm.get("overlays") or []):
             if ov.get("key") in states:
                 overlays.append({"id": ov.get("key"), "label": ov.get("label"), "close": ov.get("close_ctl"), "note": ov.get("close_note")})
+        # 用户视角的页面地图：一页从哪进、点哪里走、这一页只讲一件事。
+        # 页面之间的边里排除"侧栏进来"的那几条（侧栏是外壳，不算一次业务跳转）
+        entry_key = sm.get("entry") or "view:projects"
+        meta = {}
+        for key, v, rec in views:
+            menu = v.get("menu") or {}
+            if isinstance(menu, str):
+                menu = {"label": menu}
+            grp = menu.get("group") if isinstance(menu.get("group"), dict) else {}
+            meta["view:%s" % key] = (bool(menu), float(grp.get("order") or 99),
+                                     float(menu.get("order") or 100), str(key))
+        pages = []
+        for st in states.values():
+            if not str(st["id"]).startswith("view:"):
+                continue
+            ins = [e for e in edges if e["to"] == st["id"] and not str(e["from"]).startswith("overlay:sidebar")]
+            outs = [e for e in edges if e["from"] == st["id"] and str(e["to"]).startswith("view:")]
+            pages.append({
+                "key": st["id"], "label": st["cn"],
+                # 副标题里带 {占位符} 的（"建 {project.created}"）不摊到页面地图上，留给详情页自己渲染
+                "main": "" if "{" in mains.get(st["id"], "") else mains.get(st["id"], ""),
+                "entry": st["id"] == entry_key,
+                "from": [{"label": states.get(e["from"], {}).get("cn", e["from"]), "by": e["label"]} for e in ins],
+                "to": [{"label": states.get(e["to"], {}).get("cn", e["to"]), "by": e["label"]} for e in outs],
+            })
+        pages.sort(key=lambda p: (p["key"] != entry_key, not meta.get(p["key"], (False,))[0],
+                                  meta.get(p["key"], (False, 99, 100, p["key"]))[1:]))
+        # 页面→页面 的跳转清单（浮层单独列，用户读的是"点了哪个、到了哪"）
+        seen = set()
+        routes = []
+        for e in edges:
+            # 页面→页面/弹窗才算一次用户跳转；侧栏进来、退回侧栏是外壳动作，不占页面地图
+            if not (str(e["from"]).startswith("view:") and str(e["to"]).startswith(("view:", "overlay:form:"))):
+                continue
+            sig = (e["from"], e["to"], e["label"])
+            if sig in seen:
+                continue
+            seen.add(sig)
+            routes.append({"from": states.get(e["from"], {}).get("cn", e["from"]),
+                            "from_key": e["from"], "by": e["label"],
+                            "to": states.get(e["to"], {}).get("cn", e["to"]), "to_key": e["to"]})
         return {
-            "entry": sm.get("entry") or "view:projects",
+            "entry": entry_key,
+            "pages": pages,
+            "routes": routes,
             "states": list(states.values()),
             "edges": edges,
             "overlays": overlays,
             "controls": controls,
-            "stats": {"states": len(states), "edges": len(edges), "overlays": len(overlays), "controls": len(controls)},
+            "stats": {"states": len(states), "edges": len(edges), "overlays": len(overlays),
+                      "controls": len(controls), "pages": len(pages), "routes": len(routes)},
             "close_controls": [{"ctl": o.get("close_ctl"), "note": o.get("close_note")} for o in (sm.get("overlays") or [])],
         }
 

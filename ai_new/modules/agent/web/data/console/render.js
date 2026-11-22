@@ -492,30 +492,17 @@ function renderBubbles(msgs, roles, wireDemand, wireChars, rawChars) {
     const bodies = groupBody(g);
     if (!bodies) return "";
     const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
-    // TG 手感：时间收进最后一条文本气泡的右下角（悬停看完整年月日）；
-    // 纯工具往返组没有文本气泡，退回组尾时间行
+    // 时间在消息之上：先看清"谁、什么时候发的"，再读内容；悬停给完整年月日
     const lastAt = (g.items[g.items.length - 1] || {}).at;
     const tm = timeText(lastAt);
     const full = clockText(lastAt);
-    let stack = bodies;
-    let tsHtml = "";
-    if (tm) {
-      const tail = `<span class="msg-time"${full ? ` title="${esc(full)}"` : ""}>${esc(tm)}</span>`;
-      const endDiv = stack.lastIndexOf("</div>");
-      const lastBubble = stack.lastIndexOf('<div class="bubble-body');
-      const lastDetails = stack.lastIndexOf("<details");
-      if (endDiv > -1 && lastBubble > -1 && lastBubble > lastDetails && endDiv > lastBubble) {
-        stack = stack.slice(0, endDiv) + tail + stack.slice(endDiv);
-      } else {
-        tsHtml = `<div class="msg-ts">${esc(tm)}</div>`;
-      }
-    }
+    const ts = tm ? `<span class="msg-time"${full ? ` title="${esc(full)}"` : ""}>${esc(tm)}</span>` : "";
     // 自己的消息不显示名字（TG 口径）；成员消息名字用该角色专属色
     const name = side === "left"
       ? `<div class="msg-name" style="color:${avatarColor(g.who)}">${esc(g.who)}</div>` : "";
     return `<div class="msg ${side}">${side === "left" ? av : ""}
-      <div class="msg-main">${name}
-      <div class="bubble-stack">${stack}</div>${tsHtml}
+      <div class="msg-main"><div class="msg-head">${name}${ts}</div>
+      <div class="bubble-stack">${bodies}</div>
       ${wireHtml(g.items, wireDemand, wireChars)}
       ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), uiText("raw_title"), rawChars)}</div>${side === "right" ? av : ""}</div>`;
   }).join("");
@@ -567,7 +554,8 @@ function roleBoardHtml(roles) {
       ${acts.length ? `<span class="rm-active">${esc(acts.join("/"))}</span>` : ""}
     </button>`;
   }).join("");
-  return `<div class="role-board">${cells}</div>`;
+  // 这一条是每个岗位"走到流程哪一步"的状态机：没有标题读者会以为是工单状态
+  return `<div class="role-board"><span class="board-lab" title="每个岗位在自己的流程里走到哪一步、并行在做哪几步">岗位状态</span>${cells}</div>`;
 }
 /* 待办板：模型自己排的分步计划，和岗位流程状态机不是一回事，单独一条 */
 function todoBoardHtml(todos) {
@@ -597,7 +585,7 @@ function wireHtml(items, demand, chars) {
   const size = (v) => (typeof v === "number" && v > 0 ? uiText("chars_unit", v) : "—");
   if (!demand) return "";
   const foldKey = "wire|" + String(m.session || "") + "|" + String(w.seq == null ? -1 : w.seq);
-  return `<details class="raw-box wire-box"${foldAttr(foldKey)} data-clk="wire_fold" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary data-clk="wire_fold">${esc(uiText("wire_title"))} · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · ${esc(uiText("wire_req"))} ${esc(size(w.req_len))} / ${esc(uiText("wire_resp"))} ${esc(size(w.res_len))}</summary>
+  return `<details class="raw-box wire-box"${foldAttr(foldKey)} data-clk="wire_fold" data-demand="${esc(demand)}" data-chars="${esc(String(chars || 0))}" data-session="${esc(m.session || "")}" data-seq="${esc(String(w.seq == null ? -1 : w.seq))}"><summary data-clk="wire_fold" title="${esc(uiText("wire_note"))}">${esc(uiText("wire_title"))} · ${esc(w.model || "")} · HTTP ${esc(String(w.status == null ? "—" : w.status))} · ${esc(uiText("wire_req"))} ${esc(size(w.req_len))} / ${esc(uiText("wire_resp"))} ${esc(size(w.res_len))}</summary>
     <pre class="wire-body">${esc(uiText("wire_expand"))}</pre></details>`;
 }
 
@@ -616,7 +604,7 @@ function rawHtml(objs, label, limit) {
   const first = list[0] || {};
   const foldKey = "raw|" + String(label || "") + "|" + String(first.session || "") + "|" +
     String(first.at || "") + "|" + list.length;
-  return `<details class="raw-box"${foldAttr(foldKey)} data-clk="raw_fold"><summary data-clk="raw_fold">${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
+  return `<details class="raw-box"${foldAttr(foldKey)} data-clk="raw_fold"><summary data-clk="raw_fold" title="${esc(uiText("raw_note"))}">${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
 }
 
 function chatHtml(sec, ctx) {
@@ -646,7 +634,7 @@ function chatHtml(sec, ctx) {
   const stream = streamHtml(msgs, events, roles, sec.wire_demand || "", sec.wire_chars || 0, sec.raw_chars || 0);
   const hiddenMsgs = arr(src.messages).filter((m) => hidden.includes(m.role || ""));
   const inject = hiddenMsgs.length
-    ? `<div class="inject">${rawHtml(hiddenMsgs, uiText("inject_title", hiddenMsgs.length))}</div>` : "";
+    ? `<div class="inject"><div class="inject-note">${esc(uiText("inject_note"))}</div>${rawHtml(hiddenMsgs, uiText("inject_title", hiddenMsgs.length))}</div>` : "";
   const body = inject + todoBoardHtml(src.todos) +
     (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
@@ -1150,6 +1138,70 @@ function clickKindsHtml(sec, ctx) {
     </div>`).join("")}</div>`;
 }
 
+/* 用户视角：页面地图 = 一页一行，"从哪进 / 点哪里走 / 这页只做一件事" */
+function userPagesHtml(sec, ctx) {
+  const m = ((ctx || {}).data || {}).machine || {};
+  // pages/routes 挂在 screen_machine 下：由页面与控件推导，不手维护
+  const pages = arr((m.screen_machine || {}).pages);
+  if (!pages.length) return emptyHtml(sec.empty);
+  const chip = (x) => `<span class="pmp-chip"><i>${esc(x.by)}</i>${esc(x.label)}</span>`;
+  return `<div class="pmap">${pages.map((p) => {
+    const inChips = (p.from || []).length ? p.from.map(chip).join("") : `<span class="pmp-none">${esc(uiText("pmap_none"))}</span>`;
+    const outChips = (p.to || []).length ? p.to.map(chip).join("") : `<span class="pmp-none">${esc(uiText("pmap_end"))}</span>`;
+    return `<div class="pmap-row${p.entry ? " is-entry" : ""}">
+      <div class="pmap-top"><b>${esc(p.label)}</b>${p.entry ? `<span class="pmp-pin">${esc(uiText("pmap_entry"))}</span>` : ""}</div>
+      ${p.main ? `<div class="pmap-main">${esc(p.main)}</div>` : ""}
+      <div class="pmap-flow"><span class="pmp-lab">${esc(uiText("pmap_in"))}</span>${inChips}<span class="pmp-arrow">→</span><span class="pmp-lab">${esc(uiText("pmap_out"))}</span>${outChips}</div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+/* 页面之间的跳转：一行一条"从这页点这个到那页" */
+function userRoutesHtml(sec, ctx) {
+  const m = ((ctx || {}).data || {}).machine || {};
+  const rows = arr((m.screen_machine || {}).routes);
+  if (!rows.length) return emptyHtml(sec.empty);
+  return `<div class="route-list">${rows.map((r) =>
+    `<div class="route-row"><span class="rt-from">${esc(r.from)}</span><span class="rt-arrow">→</span><span class="rt-by">点「${esc(r.by)}」</span><span class="rt-arrow">→</span><span class="rt-to">${esc(r.to)}</span></div>`).join("")}</div>`;
+}
+
+/* 一页里的元素：按页面折叠，每个元素写清"是什么、点下去发生什么、什么时候点不动" */
+function userElemsHtml(sec, ctx) {
+  const m = ((ctx || {}).data || {}).machine || {};
+  const inv = (m.inventory || {}).rows || [];
+  const labels = {};
+  arr((m.screen_machine || {}).states).forEach((s) => { labels[s.id] = s.cn; });
+  // 控件种类 → 允许态：门禁写成"什么时候点不动"，不写内部状态名
+  const cm = m.click_machine || {};
+  const stLabel = {};
+  arr(cm.states).forEach((s) => { stLabel[s.key] = s.label || s.key; });
+  const gate = {};
+  arr(cm.kinds).forEach((k) => {
+    const ok = arr(k.allow).map((x) => stLabel[x] || x).join(" / ");
+    gate[k.key] = { allow: ok, note: k.note || "" };
+  });
+  if (!inv.length) return emptyHtml(sec.empty);
+  const gateOf = (r) => {
+    const g = gate[r.kind];
+    if (!g) return "";
+    return g.note ? `${g.note}｜只在「${g.allow}」时点得动` : `只在「${g.allow}」时点得动`;
+  };
+  return `<div class="elem-pages">${Object.keys(labels).filter((k) => inv.some((r) => ("view:" + r.view) === k))
+    .map((k) => {
+      const rows = inv.filter((r) => ("view:" + r.view) === k);
+      // 同一控件在一页上出现多次（每行一个实例）只列一条，数量当计数
+      const uniq = {};
+      rows.forEach((r) => { (uniq[r.ctl] = uniq[r.ctl] || { row: r, n: 0 }).n += 1; });
+      const list = Object.keys(uniq).map((c) => Object.assign({}, uniq[c].row, { count: uniq[c].n }));
+      return `<details class="elem-page"><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><b>${esc(labels[k])}</b><span class="elem-count">${list.length}</span></summary>
+        <div class="elem-list">${list.map((r) =>
+          `<div class="elem-row"><span class="elem-label">${esc(r.label || r.ctl)}${r.count > 1 ? `<i class="elem-n">×${r.count}</i>` : ""}</span><span class="elem-tag">${esc(r.tag || "")}</span>
+            <span class="elem-eff">${esc(r.effect || "")}</span>
+            <span class="elem-gate">${esc(gateOf(r))}</span></div>`).join("")}</div>
+      </details>`;
+    }).join("")}</div>`;
+}
+
 function sectionHtml(sec, ctx, idx) {
   const kind = sec.kind;
   // data-as：这一块吃哪份数据（规格里声明的）；失效来了只换它吃的那几块
@@ -1161,6 +1213,9 @@ function sectionHtml(sec, ctx, idx) {
   else if (kind === "dag") html = dagHtml(sec, ctx);
   else if (kind === "machine") html = secHead(sec, ctx) + clickMachineHtml(sec, ctx);
   else if (kind === "kinds") html = secHead(sec, ctx) + clickKindsHtml(sec, ctx);
+  else if (kind === "pages") html = secHead(sec, ctx) + userPagesHtml(sec, ctx);
+  else if (kind === "routes") html = secHead(sec, ctx) + userRoutesHtml(sec, ctx);
+  else if (kind === "elems") html = secHead(sec, ctx) + userElemsHtml(sec, ctx);
   else if (kind === "map") html = mapHtml(sec, ctx);
   else if (kind === "waterfall") html = waterfallHtml(sec, ctx);
   else if (kind === "table") html = tableHtml(sec, ctx);

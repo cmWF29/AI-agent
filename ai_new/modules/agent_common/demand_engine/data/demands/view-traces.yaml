@@ -7,6 +7,7 @@ callable: false
 'on': []
 do: []
 view:
+  menu: {order: 2.1, label: 链路, group: {name: 系统, order: 3}, parent: ops, mobile: true}
   key: traces
   nav: ops
   parent: {view: ops}

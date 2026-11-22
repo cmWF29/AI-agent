@@ -19,6 +19,7 @@ view:
   data:
   - {as: overview, demand: ops-overview}
   - {as: logs, demand: ops-logs}
+  - {as: slow, demand: trace-slow, params: {limit: 8}}
   - {as: api, demand: api-snapshot}
   forms:
   - id: ops.export
@@ -56,6 +57,7 @@ view:
     as: overview
     source: data.overview
     heading: 运行环境
+    fold: {title: 运行环境}
     rows:
     - {label: 服务地址, value: "{row.config.server.host}:{row.config.server.port}"}
     - {label: 版本, value: row.config.server.version}
@@ -64,7 +66,10 @@ view:
   - kind: table
     as: api
     source: data.api.items
+    limit: 40
+    count_note: "共 {data.api.items|count} 条；只列前 40 条，完整清单走 scripts/ui_inventory.py"
     heading: 路由与调用（全部）
+    fold: {title: "路由与调用（全部 · {data.api.items|count} 条）"}
     note: 在库全部可调用能力；契约页只摆前 10 条看形状，运行期的完整清单与链路追踪归这里
     columns:
     - {label: 路由, value: row.name, sub: row.module}
@@ -74,9 +79,26 @@ view:
     - {label: 说明, value: row.doc, muted: true}
     empty: {text: 暂无路由}
   - kind: table
+    as: slow
+    source: data.slow.items
+    limit: 8
+    heading: 今日慢请求（按 P95 排序）
+    note: 链路采样按阶段聚合，P95 排前面；点「链路追踪」看单次请求的瀑布
+    columns:
+    - {label: 阶段, value: row.name}
+    - {label: 次数, value: row.n}
+    - {label: P50, value: row.p50_ms, suffix: ms, muted: true}
+    - {label: P95, value: row.p95_ms, suffix: ms}
+    - {label: 峰值, value: row.max_ms, suffix: ms, muted: true}
+    - {label: 错误, value: row.err, muted: true}
+    empty: {text: 今日暂无链路采样（trace 采样率可在 config.trace.sample 调高）}
+  - kind: table
     as: logs
     source: data.logs.events
+    limit: 30
+    count_note: "共 {data.logs.events|count} 条；只列最近 30 条"
     heading: 运行记录
+    fold: {title: "运行记录 · {data.logs.events|count} 条"}
     note: 每一次需求执行都是一条系统动作；点进链路追踪看完整瀑布
     columns:
     - {label: 时间, value: row.ts, format: when, muted: true}

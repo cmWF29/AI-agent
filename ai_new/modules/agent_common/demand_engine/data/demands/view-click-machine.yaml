@@ -1,6 +1,6 @@
 id: view-click-machine
-title: 点击状态机：页面所有可点控件的状态、迁移与门禁
-description: "点击状态机：页面所有可点控件的状态、迁移与门禁。状态与门禁由外壳下发，前端只执行，测试按这份规格全量跑"
+title: 页面怎么走、每页能点什么、点了以后什么态
+description: "用户视角：先把有哪些页面、页面之间怎么跳讲清楚，再逐页列出能点/能输入的元素与它们的态；技术附录（状态迁移图、控件门禁）折叠在最后，不占主线"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -11,61 +11,67 @@ expect:
     input: {}
   calls: []
   payload: {}
-  promise: 页面只声明区块与规格，状态机数据由 click-machine 需求提供
+  promise: 页面只声明区块与规格；页面地图、跳转与元素清单全部由 click-machine 需求从视图规格推导，不手维护
 view:
   menu: {order: 1, label: 点击状态机, group: {name: 系统, order: 3}, mobile: true}
   key: click-machine
   crumb: [点击状态机]
-  heading: 点击状态机
-  subheading: 每个可点位置的门禁与允许的迁移
+  heading: 页面怎么走
+  subheading: 用户从登录进来先看哪页、页面之间靠哪个控件跳、每页里哪些东西能点、点不动时是什么态
   data:
   - {as: machine, demand: click-machine}
   actions: []
   sections:
+  # 第一屏只讲一件事：这是一张"用户走位图"——页面 → 页面间跳转 → 页内元素
+  - kind: pages
+    as: machine
+    source: machine
+    heading: 有哪些页面
+    note: 每行一页：这页只干一件事（视图自己声明的副标题）、从哪页点什么进来、点哪个控件能出去
+  - kind: routes
+    as: machine
+    source: machine
+    heading: 页面之间怎么跳
+    note: 一条就是"在哪页、点哪个、到了哪页"；弹窗（浮层）也算一步落点，因为它会打断当前页
+  - kind: elems
+    as: machine
+    source: machine
+    heading: 一页里有哪些元素、点了以后什么态
+    note: 按页折叠；每行写清元素叫什么、点下去发生什么、以及只在哪个态点得动（点不动就是灰的、吞掉点击）
   - kind: stats
     as: machine
+    fold: {title: 盘点数字}
     rows:
-    - {label: 状态, value: "data.machine.click_machine.states|count", note: 个交互状态}
-    - {label: 可点位置, value: "data.machine.click_machine.kinds|count", note: 类控件}
-    - {label: 迁移规则, value: "data.machine.click_machine.edges", note: 条允许的转移}
-  - kind: stats
-    as: machine
-    rows:
-    - {label: 界面状态, value: "data.machine.screen_machine.stats.states|count", note: 个页面/浮层}
-    - {label: 界面迁移, value: "data.machine.screen_machine.stats.edges|count", note: 条"点哪个控件到哪个状态"}
-    - {label: 浮层, value: "data.machine.screen_machine.stats.overlays|count", note: 能开必须能关}
-    - {label: 控件, value: "data.machine.screen_machine.stats.controls|count", note: 登记过的按钮；真实实例按行数据重复}
-    - {label: 可点实例, value: "data.machine.inventory.stats.instances", note: 逐页清点到的真实元素，每一条都带控件 id}
+    - {label: 页面, value: "data.machine.screen_machine.stats.pages", note: 个业务页面}
+    - {label: 页面间跳转, value: "data.machine.screen_machine.stats.routes", note: 条页面→页面/弹窗}
+    - {label: 控件种类, value: "data.machine.click_machine.kinds|count", note: 类可点位置}
+    - {label: 可点实例, value: "data.machine.inventory.stats.instances", note: 逐页清点到的真实元素}
+    - {label: 交互迁移, value: "data.machine.click_machine.edges", note: 条允许的状态转移}
+  # 技术附录：给实现与测试看，默认折叠，不进用户主线
   - kind: table
     as: machine
+    fold: {title: "附录：每页可点实例数（脚本清点）", note: "完整清单由 scripts/ui_inventory.py 生成"}
     source: machine.inventory.pages
-    title: 每页可点实例数
-    note: 这些实例全部带控件 id、状态机与点后去向（完整清单由 scripts/ui_inventory.py 生成）
     columns:
     - {label: 页面, value: row.view}
     - {label: 可点实例, value: row.count}
   - kind: table
     as: machine
+    fold: {title: "附录：控件清单（每个按钮点下去干什么）", note: "不换页面的按钮也在册：归档/删除/启停是本页刷新，展开/缩放只改本页显示"}
     source: machine.screen_machine.controls
-    title: 控件清单（每个按钮点下去干什么）
-    note: 不换页面的按钮也在册：归档/删除/启停是"本页刷新"，展开/缩放是"只改本页显示"
     columns:
     - {label: 页面, value: row.view_cn, sub: row.view}
     - {label: 按钮, value: row.label, sub: row.ctl}
     - {label: 点后去向, value: row.effect}
   - kind: dag
     as: machine
+    fold: {title: "附录：全站界面状态图", note: "节点是页面/浮层，箭头是具体控件点下去到哪；虚线回边是关回去那一步"}
     source: machine.screen_machine.states
-    title: 全站界面状态图
-    heading: 页面、浮层与控件点击的去向
-    note: 节点是界面状态，箭头是具体控件点下去之后到的状态；虚线回边是"关回去"的那一步（侧栏/弹窗/面包屑）
-  - kind: machine
-    as: machine
-    source: machine.click_machine
-    heading: 状态与迁移
-    note: 箭头是允许的转移；线越密的地方越容易被误点，门禁就在那里
   - kind: kinds
     as: machine
+    fold: {title: "附录：可点位置的门禁", note: "允许态里点得动；箭头是点下去之后的状态"}
     source: machine.click_machine.kinds
-    heading: 可点位置与门禁
-    note: 允许态里点得动；箭头是点下去之后的状态
+  - kind: machine
+    as: machine
+    fold: {title: "附录：交互状态迁移图", note: "空闲/按下/执行中/弹窗/横滑/纵滚/吞一下，以及它们之间允许的转移"}
+    source: machine.click_machine
