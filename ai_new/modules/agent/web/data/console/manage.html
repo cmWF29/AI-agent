@@ -126,8 +126,10 @@ main .crumb{margin-bottom:14px}
 .cards.deck{display:block}
 .deck{position:relative;min-width:0}
 .deck-stage{position:relative;transition:height .26s cubic-bezier(.22,.72,.28,1)}
-/* 展开态就回到普通卡片排列：桌面网格、手机竖排 */
-.deck[data-open="1"] .deck-stage{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+/* 展开态就回到普通卡片排列：桌面网格、手机竖排。
+   卡片保持自己的自然高度——grid 默认 stretch 会把同排矮卡强行拉到最高那张，
+   内容少的项目卡于是多出一大段空白（"堆叠之后被拉长"就是它） */
+.deck[data-open="1"] .deck-stage{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
 .deck-stage{--ox:9px;--oy:13px;isolation:isolate;will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard{position:absolute;left:0;right:calc(var(--pos,0) * var(--ox));top:0;
   z-index:calc(20 - var(--pos,0));
@@ -139,9 +141,10 @@ main .crumb{margin-bottom:14px}
 /* 后层只留一张白卡的下缘：内容全部隐藏，露出来的就是"下面还有牌"的那道边，
    不会和前卡的文字混成一团（微信那种合并转发的观感） */
 .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"])>*{visibility:hidden}
-/* 露出来的那道边要看得见：底色压深一档，再补一圈内描边 */
-.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){background:#fff;
-  box-shadow:inset 0 0 0 1px #c9d2df, 0 2px 0 #c9d2df}
+/* 露出来的那道边要看得见：用卡片底色的下一档 + 主题色描边，暗亮两套主题都成立
+   （写死 #fff 在暗色下会变成一道刺眼白边） */
+.deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){background:var(--bg);
+  box-shadow:inset 0 0 0 1px var(--line), 0 2px 0 var(--line)}
 .deck[data-open="0"] .deck-stage>.pcard[data-front="1"]{box-shadow:0 12px 26px rgba(0,0,0,.11);will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]){box-shadow:0 1px 3px rgba(16,24,40,.10)}
 /* 拖动期间收掉大模糊阴影：移动中的卡每帧都要重绘阴影 */
