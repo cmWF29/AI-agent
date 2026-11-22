@@ -301,6 +301,18 @@ textarea{min-height:72px;resize:vertical}
 /* ---- 会话视图 ---- */
 .ticket-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:stretch;height:calc(100vh - 150px)}
 .ticket-grid.solo{grid-template-columns:minmax(0,1fr)}
+/* ---- 工单聊天满高整改：聊天区是这页的主角，冗余高度全部让位 ----
+   页大标题与 chat-head 里的工单标题重复，直接让位；grid 高度公式跟着减负，
+   头部/状态条/composer 收紧——省下的每一像素都归消息区 */
+#view-body:has(>.view-scroll>.ticket-grid .vsec[data-kind="chat"])>.view-head>div:first-child{display:none}
+#view-body:has(>.view-scroll>.ticket-grid .vsec[data-kind="chat"])>.view-head{margin-bottom:6px}
+.ticket-grid:has(.vsec[data-kind="chat"]){height:calc(100vh - 96px)}
+.ticket-grid:has(.vsec[data-kind="chat"]) .chat-head{padding:8px 12px}
+.ticket-grid:has(.vsec[data-kind="chat"]) .chat-head-title strong{font-size:14px}
+.ticket-grid:has(.vsec[data-kind="chat"]) .chat-head-main{gap:1px}
+.ticket-grid:has(.vsec[data-kind="chat"]) .role-board{padding:6px 12px}
+.ticket-grid:has(.vsec[data-kind="chat"]) .composer{padding:8px 10px}
+.ticket-grid:has(.vsec[data-kind="chat"]) .composer textarea{min-height:38px;max-height:110px}
 .lane{display:flex;flex-direction:column;min-width:0;min-height:0}
 .lane>.vsec{margin-bottom:0}
 .lane-left>.vsec[data-kind="chat"]{flex:1;min-height:0;display:flex}
