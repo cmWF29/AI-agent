@@ -14,6 +14,9 @@ routes:
       demands:
         type: any
         req: false
+      docs:
+        type: any
+        req: false
       knowledge:
         type: any
         req: false
@@ -24,6 +27,9 @@ routes:
         type: any
         req: false
       sessions:
+        type: any
+        req: false
+      tools:
         type: any
         req: false
       tickets:

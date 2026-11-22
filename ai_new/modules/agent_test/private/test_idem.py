@@ -5,9 +5,13 @@
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 import threading
 import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 from ai_new.modules.agent_common.store.private import _idem
 

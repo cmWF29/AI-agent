@@ -65,6 +65,9 @@ def all_modules():
 
 def platform_modules():
     """平台模块 = 在 setup 里装填了 ctx 面的模块（从装配图读，不维护名单）。"""
+    import sys
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
     from ai_new.modules.agent_common.boot.private._graph import plan
     dirs = [MODULES / group for group in RUNTIME_GROUPS]
     return set(plan(dirs)["providers"].values())
@@ -430,7 +433,9 @@ class StructureTest(unittest.TestCase):
                    "AUDIT-2026-11-21.md", "IDEMPOTENCY.md", "ROADMAP.md",
                    "agent_start.out.log", "agent_start.err.log",
                    # VCS 元数据；部署副本运行期产物（TLS 材料目录、运行日志）
-                   ".git", ".gitignore", "certs", "run.log"}
+                   ".git", ".gitignore", "certs", "run.log",
+                   # CI 工作流定义目录（门禁本身也是契约的一部分）
+                   ".github"}
         self.assertEqual(sorted(entries - allowed), [],
                          "根目录多出了东西: %s" % sorted(entries - allowed))
         self.assertTrue((ROOT / "agent_start.py").is_file())

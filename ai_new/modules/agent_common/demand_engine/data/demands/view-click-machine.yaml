@@ -6,6 +6,12 @@ enabled: true
 callable: false
 'on': []
 do: []
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 页面只声明区块与规格，状态机数据由 click-machine 需求提供
 view:
   menu: {order: 1, label: 点击状态机, group: {name: 系统, order: 3}, mobile: true}
   key: click-machine

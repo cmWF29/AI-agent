@@ -407,3 +407,6 @@ routes:
       user:
         type: any
         req: false
+      user_skills:
+        type: any
+        req: false

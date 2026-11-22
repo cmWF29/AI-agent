@@ -204,10 +204,17 @@ class _Nested:
         return self.run_callable(demand_id, input)
 
 
+class _Clock:
+    ts = 1000.0
+    def now(self):
+        return {"ts": _Clock.ts, "iso": "2026-11-21T00:00:00"}
+
+
 class _Ctx:
     def __init__(self, api, storage):
         self.api = api
         self.storage = storage
+        self.clock = _Clock()
         self.ApiError = RuntimeError
         self.demand_engine = _Nested(api)
 

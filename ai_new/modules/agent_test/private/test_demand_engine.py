@@ -55,6 +55,12 @@ class FakeStorage:
     def yaml_write(self, rel, obj):
         self.json_write(rel, obj)
 
+    def stat_size(self, rel):
+        return len(str(self.records.get(rel.split("/")[-1][:-5], "")))
+
+    def stat_mtime(self, rel):
+        return 0.0
+
 
 class FakeCtx:
     class ApiError(Exception):

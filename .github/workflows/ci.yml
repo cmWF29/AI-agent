@@ -30,4 +30,4 @@ jobs:
         run: python3 scripts/gate_demand_tests.py
       - name: 需求/架构/装配/传输/幂等/桩协议全量用例
         working-directory: ai_new/modules/agent_test/private
-        run: python3 -m unittest test_core test_boot_graph test_transport test_idem test_stub_proto
+        run: python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto
