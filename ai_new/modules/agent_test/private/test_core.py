@@ -1949,6 +1949,8 @@ class CoreTest(unittest.TestCase):
         ok = lib_pure.stage_transitionp({"contract": contract, "prev": "a", "nxt": "b"})
         self.assertTrue(ok["ok"])
         self.assertEqual(ok["stage"], "b")
+        # 迁移后活跃集合只留目标态，旧态不再拖清单
+        self.assertEqual(ok["active"], ["b"])
         stay = lib_pure.stage_transitionp({"contract": contract, "prev": "b", "nxt": "b"})
         self.assertTrue(stay["ok"])
         unset = lib_pure.stage_transitionp({"contract": contract, "prev": "b", "nxt": ""})
@@ -3035,6 +3037,54 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(len(flat), n_threads * per)
         self.assertEqual(len(set(flat)), len(flat), "并发取号出现重复: %s" % flat)
         self.assertEqual(sorted(flat), list(range(1, n_threads * per + 1)))
+
+class StageGateTest(unittest.TestCase):
+    """状态机清单契约：must 打勾项随提示词下发，迁移时后端逐条校验。"""
+
+    def setUp(self):
+        import importlib.util, sys, os
+        mods = [m for m in sys.modules if m.startswith("modules.")]
+        for m in list(mods):
+            del sys.modules[m]
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        spec = importlib.util.spec_from_file_location("lib_pure_gate", os.path.join(
+            root, "agent", "library", "private", "_pure.py"))
+        self.pure = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.pure)
+        self.stages = [
+            {"id": "a", "cn": "甲", "next": ["b"],
+             "gate": {"must": [{"id": "a.m1", "text": "写结论"},
+                               {"id": "a.m2", "text": "给依据"}],
+                      "forbid": ["改业务代码"]}},
+            {"id": "b", "cn": "乙", "terminal": True}]
+
+    def test_gate_blocks_until_every_must_checked(self):
+        c = self.pure.stage_contractp({"stages": self.stages})
+        miss = self.pure.stage_transitionp({"contract": c, "prev": "a", "nxt": "b"})
+        self.assertFalse(miss["ok"])
+        self.assertEqual(miss["code"], "checklist_unmet")
+        self.assertEqual(miss["missing"], ["a.m1", "a.m2"])
+        self.assertEqual(miss["stage"], "a")
+        part = self.pure.stage_transitionp({"contract": c, "prev": "a", "nxt": "b",
+                                            "checked": ["a.m1"]})
+        self.assertEqual(part["missing"], ["a.m2"])
+        ok = self.pure.stage_transitionp({"contract": c, "prev": "a", "nxt": "b",
+                                          "checked": ["a.m1", "a.m2"]})
+        self.assertTrue(ok["ok"])
+        self.assertEqual(ok["stage"], "b")
+        # 迁移后活跃集合只留目标态，旧态不再拖清单
+        self.assertEqual(ok["active"], ["b"])
+
+    def test_gate_checks_redline_and_stay(self):
+        c = self.pure.stage_contractp({"stages": self.stages})
+        vio = self.pure.stage_transitionp({"contract": c, "prev": "a", "nxt": "b",
+                                           "checked": ["a.m1", "a.m2"],
+                                           "violations": ["直接改了业务代码"]})
+        self.assertFalse(vio["ok"])
+        self.assertEqual(vio["code"], "forbidden_hit")
+        # 原地停留不算迁移，不必交清单
+        stay = self.pure.stage_transitionp({"contract": c, "prev": "a", "nxt": "a"})
+        self.assertTrue(stay["ok"])
 
 
 if __name__ == "__main__":

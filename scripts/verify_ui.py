@@ -31,7 +31,7 @@ def check(name, ok, detail=""):
 
 async def open_view(pg, q):
     await pg.goto(BASE + "/manage.html?" + q, wait_until="load")
-    await pg.wait_for_timeout(1200)
+    await pg.wait_for_timeout(1800)
 
 
 async def main():
@@ -64,13 +64,13 @@ async def main():
 
         # 3. 已归档项目详情只读
         if sec:
-            proj = await pg.evaluate("""() => {
+            # data-go 存的是本页动作索引（ACTS 键），不是项目 id；直接点卡片最贴近真实操作
+            has_card = await pg.evaluate("""() => {
               const hs=[...document.querySelectorAll('.vsec')].filter(s=>/已归档/.test(s.innerText));
               const card=hs[0] && hs[0].querySelector('.pcard');
-              return card ? card.getAttribute('data-go') : null; }""")
-            if proj:
-                await pg.evaluate("(id) => { const a=ACTS.get(id); if(a) execute(a,{}); }", proj)
-                await pg.wait_for_timeout(1500)
+              if (!card) return false; card.click(); return true; }""")
+            if has_card:
+                await pg.wait_for_timeout(1800)
                 info = await pg.evaluate("""() => ({badge: /已归档·只读/.test(document.querySelector('#view-body').innerText),
                   rename: (()=>{const b=[...document.querySelectorAll('#view-body .view-head button')].find(x=>/重命名/.test(x.textContent)); return b?b.disabled:null;})(),
                   create: (()=>{const b=[...document.querySelectorAll('#view-body .view-head button')].find(x=>/新建工单/.test(x.textContent)); return b?b.disabled:null;})()})""")

@@ -373,6 +373,25 @@ def stage_transitionp(p):
         if t not in prev and not any(t in ((by.get(x) or {}).get("next") or []) for x in prev):
             return {"ok": False, "code": "illegal_edge",
                     "stage": cur, "active": prev}
+    # 自检清单：要离开的源状态，must 项必须全部交齐；只允许原地停留时免检。
+    checked = set(str(x) for x in (p.get("checked") or []) if str(x))
+    violations = [str(x) for x in (p.get("violations") or []) if str(x)]
+    if violations:
+        return {"ok": False, "code": "forbidden_hit", "stage": cur, "active": prev,
+                "violations": violations}
+    missing = []
+    for x in prev:
+        if all(t == x for t in targets):
+            continue
+        rec = by.get(x) or {}
+        for it in ((rec.get("gate") or {}).get("must") or []):
+            gid = str((it or {}).get("id") or "")
+            if gid and gid not in checked:
+                missing.append(gid)
+    if missing:
+        return {"ok": False, "code": "checklist_unmet", "stage": cur, "active": prev,
+                "missing": missing}
+
     # 源状态交付件条件：有源将离开其 checks 须落盘达标；原地停留不强制。
     files = p.get("files") or []
     contents = p.get("contents") or {}
@@ -383,7 +402,8 @@ def stage_transitionp(p):
             if _check_missing(rec.get("checks") or [], files, contents, tpl, notes):
                 return {"ok": False, "code": "condition_unmet",
                         "stage": cur, "active": prev}
-    kept = [x for x in prev if not (by.get(x) or {}).get("terminal")]
+    # 活跃集合：离开的当前态要摘掉，并行分支上的兄弟态保留；目标态并入。
+    kept = [x for x in prev if x != cur and not (by.get(x) or {}).get("terminal")]
     for t in targets:
         if t not in kept:
             kept.append(t)
@@ -440,6 +460,25 @@ def stage_blockp(p):
             lines.append((tpl.get("stage_next") or "").format(next="、".join(nxt_cn)))
         elif rec.get("terminal"):
             lines.append(tpl.get("stage_terminal") or "")
+    # 本步清单跟着 system 走：上下文压缩只留 system，清单不能只挂在流程约束消息里
+    gate_lines = []
+    for path in active:
+        rec = by.get(path) or {}
+        gate = rec.get("gate") or {}
+        for it in gate.get("must") or []:
+            gt = tpl.get("gate_must") or ""
+            if gt:
+                gate_lines.append(gt.format(id=(it or {}).get("id") or "",
+                                            text=(it or {}).get("text") or ""))
+        for f in gate.get("forbid") or []:
+            gt = tpl.get("gate_forbid") or ""
+            if gt:
+                gate_lines.append(gt.format(text=f))
+    if gate_lines and tpl.get("heading_gate"):
+        lines.append(tpl["heading_gate"])
+        lines.extend(gate_lines)
+        if tpl.get("gate_rule"):
+            lines.append(tpl["gate_rule"])
     return {"system": "\n".join(lines)}
 
 
@@ -459,6 +498,8 @@ def flow_contextp(p):
         states.append({"id": path, "cn": rec.get("cn") or path,
                        "desc": rec.get("desc") or "",
                        "next": rec.get("next") or [],
+                       "when": rec.get("when") or {},
+                       "gate": rec.get("gate") or {},
                        "terminal": bool(rec.get("terminal"))})
     checks = [dict(c, desc=_check_desc(c, tpl)) for c in (p.get("checks") or [])]
     lines = []
@@ -483,6 +524,39 @@ def flow_contextp(p):
             lines.append((tpl.get("stage_next") or "").format(next="、".join(nxt_cn)))
         elif rec.get("terminal"):
             lines.append(tpl.get("stage_terminal") or "")
+    # ---- 状态机全貌：分支、回退与迁移条件都要进提示词，模型不能只看到"当前阶段" ----
+    sm_head = tpl.get("heading_state_machine") or ""
+    if sm_head and by:
+        lines.append(sm_head)
+    for path, rec in by.items():
+        t = (tpl.get("machine_state_cur") if path in active else tpl.get("machine_state")) or ""
+        if t:
+            lines.append(t.format(cn=rec.get("cn") or path, id=path, desc=rec.get("desc") or ""))
+        for to in (rec.get("next") or []):
+            trec = by.get(to) or {}
+            cond = (rec.get("when") or {}).get(to) or ""
+            e = (tpl.get("machine_edge") if cond else tpl.get("machine_edge_plain")) or ""
+            if e:
+                lines.append(e.format(cn=trec.get("cn") or to, id=to, when=cond))
+    # ---- 本步清单：must 打勾项 + forbid 红线，直接随状态机下发 ----
+    gate_head = tpl.get("heading_gate") or ""
+    gate_lines = []
+    for path in active:
+        rec = by.get(path) or {}
+        gate = rec.get("gate") or {}
+        for it in gate.get("must") or []:
+            gt = tpl.get("gate_must") or ""
+            if gt:
+                gate_lines.append(gt.format(id=(it or {}).get("id") or "", text=(it or {}).get("text") or ""))
+        for f in gate.get("forbid") or []:
+            gt = tpl.get("gate_forbid") or ""
+            if gt:
+                gate_lines.append(gt.format(text=f))
+    if gate_lines and gate_head:
+        lines.append(gate_head)
+        lines.extend(gate_lines)
+        if tpl.get("gate_rule"):
+            lines.append(tpl.get("gate_rule"))
     checks_head = tpl.get("heading_checks") or ""
     if checks:
         if checks_head:

@@ -223,6 +223,23 @@ main .crumb{margin-bottom:14px}
 .dag-stage .flow-node{position:absolute;display:flex;flex-direction:column;justify-content:center;
   box-sizing:border-box;overflow:hidden;z-index:1}
 .dag-stage .flow-node span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flow-node .gate-badge{font-style:normal;font-size:10.5px;color:#8a97a8;margin-top:2px;white-space:nowrap}
+.flow-node .on-badge{position:absolute;right:6px;top:5px;font-style:normal;font-size:10px;line-height:1.3;
+  padding:1px 5px;border-radius:999px;background:var(--accent);color:#fff}
+.dag-stage .flow-node.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+.dag-legend{font-size:11px;color:var(--muted);padding:6px 2px 0;line-height:1.6}
+.gate-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.gate-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.gate-card header{display:flex;align-items:baseline;gap:7px;margin-bottom:5px}
+.gate-card header b{font-size:12.5px;color:var(--fg)}
+.gate-card header span{font-size:11px;color:var(--muted)}
+.gate-card h5{margin:6px 0 3px;font-size:11.5px;color:var(--fg-2);font-weight:600}
+.gate-card ul{margin:0;padding-left:16px}
+.gate-card li{font-size:11.5px;line-height:1.65;color:var(--fg-2)}
+.gate-must li::marker{content:"☐ "}
+.gate-forbid{color:#e2571e}
+.gate-forbid li{color:#c04a18}
+.gate-card code{font-size:10.5px;color:var(--muted);margin-right:5px;background:var(--line-2);padding:0 4px;border-radius:4px}
 
 .pcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 14px 12px;cursor:pointer;transition:border-color .15s,transform .08s}
 .pcard:hover{border-color:var(--accent)}

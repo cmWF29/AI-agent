@@ -210,6 +210,10 @@ do:
       get: row.value.meta.stage
     nxt:
       get: out.result.stage
+    checked:
+      get: out.result.checklist
+    violations:
+      get: out.result.violations
     files:
       get: paths.paths
     contents:

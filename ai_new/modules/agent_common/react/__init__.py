@@ -158,6 +158,7 @@ async def _route_run(ctx, payload):
     new_summary = summary
     summary_by_model = False
     new_stage = ""
+    new_checklist, new_violations = [], []
     steps = 0
     done = False
     cap = ctx.api.call("config.get", {"key": "sessions.react_cap"},
@@ -219,6 +220,8 @@ async def _route_run(ctx, payload):
                 summary_by_model = True
             if str(parsed.get("stage") or "").strip():
                 new_stage = parsed["stage"]
+            new_checklist = parsed.get("checklist") or []
+            new_violations = parsed.get("violations") or []
             _checkpoint(ctx, session, path, archive + new_msgs, new_summary, steps)
             done = True
             continue
@@ -263,4 +266,6 @@ async def _route_run(ctx, payload):
                                           "summary": new_summary,
                                           "summary_by_model": summary_by_model,
                                           "new_messages": new_msgs,
-                                          "stage": new_stage}, caller=None)
+                                          "stage": new_stage,
+                                          "checklist": new_checklist,
+                                          "violations": new_violations}, caller=None)

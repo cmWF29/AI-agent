@@ -75,6 +75,10 @@ do:
       get: out.new_messages
     stage:
       get: out.stage
+    checklist:
+      get: out.checklist
+    violations:
+      get: out.violations
   as: fin
 expect:
   given:

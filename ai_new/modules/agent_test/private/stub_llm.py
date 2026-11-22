@@ -417,7 +417,14 @@ class _Handler(BaseHTTPRequestHandler):
             with stats.lock:
                 stats.text += 1
             obj = {"reply": _filler("ticket_note", policy.filler_words),
-                   "summary": "本轮交付完成，结论、依据与遗留缺口已记入工单备注。"}
+                   "summary": "本轮交付完成，结论、依据与遗留缺口已记入工单备注。",
+                   "violations": []}
+            # 自检清单：按当前态 must 项逐条交齐，模拟"打勾后迁移"；缺项会被系统拒绝迁移
+            gst = next((s for s in (ctx.get("states") or []) if s.get("id") == cur), {}) or {}
+            obj["checklist"] = [it.get("id") for it in ((gst.get("gate") or {}).get("must") or [])
+                                if it.get("id")]
+            if not obj["checklist"]:
+                obj["checklist"] = re.findall(r"- \[ \] (\S+)", sys_text)
             if nxt:
                 obj["stage"] = nxt
             return _structured_frames(obj)
@@ -478,6 +485,9 @@ class _Handler(BaseHTTPRequestHandler):
             return _structured_frames({
                 "reply": "（stub）PM 已分派各角色并确认分工，对照验收标准核对交付，工单闭环结单。",
                 "stage": "owner.req.close",
+                "checklist": [it.get("id") for s0 in (ctx.get("states") or [])
+                              for it in (((s0.get("gate") or {}).get("must")) or []) if it.get("id")],
+                "violations": [],
                 "summary": "协同推进，依据工单验收标准交付，依据与缺口记入备注。"})
 
         # analyze 态：先读工单需求，下一轮自报进入编排阶段。

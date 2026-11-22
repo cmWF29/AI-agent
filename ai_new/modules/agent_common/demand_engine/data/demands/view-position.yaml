@@ -47,6 +47,13 @@ view:
     - {label: 此状态可用工具, value: row.tools, fallback: 全量}
     - {label: 下一状态, value: row.next, fallback: "—", muted: true}
     - {label: 终态, value: row.terminal, fallback: "—", muted: true}
+  - kind: gate
+    as: position
+    source: position.stages
+    heading: 每步清单（随提示词下发，收口必须逐条打勾）
+    note: 打勾项随迁移一起交给后端门禁：缺项或踩红线一律拒绝迁移，原地补做
+    hide_when_empty: true
+    empty: 本岗位状态未设必做/禁止清单
   - kind: doc
     as: position
     source: position.prompt

@@ -929,7 +929,7 @@ function dagLayout(states) {
       if (!cols.has(lv)) cols.set(lv, []);
       cols.get(lv).push(id);
     });
-  const COL_W = 172, ROW_H = 88, NODE_W = 128, NODE_H = 54, PAD = 18;
+  const COL_W = 196, ROW_H = 104, NODE_W = 152, NODE_H = 68, PAD = 20;
   const rows = Math.max(1, ...[...cols.values()].map((c) => c.length));
   const maxLv = Math.max(0, ...[...cols.keys()]);
   const pos = new Map();
@@ -956,7 +956,7 @@ function dagSvg(L) {
       ? `M${x1},${y1} C${x1 - 26},${fromTop} ${x2 + 26},${toTop} ${x2},${y2}`
       : `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
     const label = e.when
-      ? `<text x="${mx}" y="${(y1 + y2) / 2 - 6}" class="dag-elabel">${esc(e.when)}</text>` : "";
+      ? `<text x="${mx}" y="${(isBack ? Math.min(y1, y2) - 34 : (y1 + y2) / 2 - 6)}" class="dag-elabel">${esc((isBack ? uiText("dag_back") + "：" : "") + e.when)}</text>` : "";
     return `<g class="dag-edge${isBack ? " back" : ""}"><path d="${d}" marker-end="url(#dag-arrow${isBack ? "-back" : ""})"/>${label}</g>`;
   };
   return `<defs>
@@ -968,10 +968,16 @@ function dagCard(row, sec, index, ctx) {
   const states = arr(row.states && row.states.length ? row.states : (row.flow || {}).states);
   if (!states.length) return "";
   const L = dagLayout(states);
+  const active = new Set(arr(row.active));
   const nodes = [...L.pos.entries()].map(([id, p]) => {
     const s = L.by.get(id) || {};
-    return `<div class="flow-node${s.terminal ? " term" : ""}" style="left:${p.x}px;top:${p.y}px;width:${L.w}px;height:${L.h}px" title="${esc(s.desc || "")}">
-      <b>${esc(s.cn || s.id)}</b><span>${esc(s.id)}</span></div>`;
+    const g = s.gate || {};
+    const nm = arr(g.must).length, nf = arr(g.forbid).length;
+    const badge = (nm || nf)
+      ? `<i class="gate-badge">${nm ? esc(uiText("dag_must", nm)) : ""}${nm && nf ? " · " : ""}${nf ? esc(uiText("dag_forbid", nf)) : ""}</i>` : "";
+    const on = active.has(id) ? `<em class="on-badge">${esc(uiText("dag_current"))}</em>` : "";
+    return `<div class="flow-node${s.terminal ? " term" : ""}${active.has(id) ? " on" : ""}" style="left:${p.x}px;top:${p.y}px;width:${L.w}px;height:${L.h}px" title="${esc(s.desc || "")}">
+      ${on}<b>${esc(s.cn || s.id)}</b><span>${esc(s.id)}</span>${badge}</div>`;
   }).join("");
   const zoom = `<div class="dag-zoom">
       <button data-clk="dag_zoom" data-dag="out" data-dag-i="${index}" aria-label="缩小">−</button>
@@ -986,7 +992,7 @@ function dagCard(row, sec, index, ctx) {
     <div class="dag-viewport"><div class="dag-stage" data-dag-stage="${index}" style="width:${L.width}px;height:${L.height}px">
       <svg class="dag-edges" width="${L.width}" height="${L.height}" viewBox="0 0 ${L.width} ${L.height}">${dagSvg(L)}</svg>
       ${nodes}
-    </div></div>
+    </div><div class="dag-legend">${esc(uiText("dag_legend"))}</div></div>
   </article>`;
 }
 function dagHtml(sec, ctx) {
@@ -1001,6 +1007,21 @@ function dagHtml(sec, ctx) {
   return head + `<div class="flow-grid">${body}</div>`;
 }
 
+function gateHtml(sec, ctx) {
+  const rows = arr(ref(sec.source, ctx));
+  if (!rows.length) return emptyHtml(sec.empty);
+  const blocks = rows.map((s) => {
+    const g = (s && s.gate) || {}, must = arr(g.must), forbid = arr(g.forbid);
+    if (!must.length && !forbid.length) return "";
+    const mk = must.map((it) => `<li><code>${esc(it.id || "")}</code>${esc(it.text || "")}</li>`).join("");
+    const fk = forbid.map((x) => `<li>${esc(typeof x === "string" ? x : (x.text || ""))}</li>`).join("");
+    return `<article class="gate-card">
+      <header><b>${esc(s.cn || s.id)}</b><span>${esc(s.id)}</span></header>
+      ${mk ? `<h5>${esc(uiText("gate_must_head"))}</h5><ul class="gate-must">${mk}</ul>` : ""}
+      ${fk ? `<h5>${esc(uiText("gate_forbid_head"))}</h5><ul class="gate-forbid">${fk}</ul>` : ""}</article>`;
+  }).filter(Boolean).join("");
+  return blocks || emptyHtml(sec.empty);
+}
 function treeHtml(sec, ctx) {
   const nodes = arr(ref(sec.source, ctx));
   if (!nodes.length) return emptyHtml(sec.empty);
@@ -1211,6 +1232,7 @@ function sectionHtml(sec, ctx, idx) {
   else if (kind === "stats") html = statsHtml(sec, ctx);
   else if (kind === "flow") html = flowHtml(sec, ctx);
   else if (kind === "dag") html = dagHtml(sec, ctx);
+  else if (kind === "gate") html = secHead(sec, ctx) + gateHtml(sec, ctx);
   else if (kind === "machine") html = secHead(sec, ctx) + clickMachineHtml(sec, ctx);
   else if (kind === "kinds") html = secHead(sec, ctx) + clickKindsHtml(sec, ctx);
   else if (kind === "pages") html = secHead(sec, ctx) + userPagesHtml(sec, ctx);

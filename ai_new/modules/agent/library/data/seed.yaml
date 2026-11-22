@@ -65,6 +65,12 @@ roles:
     min_bytes: 80
   states:
   - id: study
+    gate:
+      must:
+      - {id: study.m1, text: 读完需求原文并列出约束与依据来源}
+      - {id: study.m2, text: 记录已知边界：能改哪里、不能碰哪里}
+      forbid:
+      - 研读阶段不产出设计文档
     cn: 研读
     desc: 读现有代码、知识与需求，摸清约束与依据
     tools:
@@ -76,6 +82,13 @@ roles:
     next:
     - design
   - id: design
+    gate:
+      must:
+      - {id: design.m1, text: 出模块划分、接口、数据流与规则变更}
+      - {id: design.m2, text: 每条设计决策写明依据与风险}
+      forbid:
+      - 不直接改业务代码实现
+      - 不替测试下验收结论
     cn: 结构设计
     desc: 出模块划分、接口、数据流与规则变更的结构设计文档
     tools:
@@ -86,7 +99,15 @@ roles:
     next:
     - study
     - deliver
+    when:
+      study: 设计不成立，回退补读
+      deliver: 文档已落档且依据齐全
   - id: deliver
+    gate:
+      must:
+      - {id: deliver.m1, text: 设计文档落档并附依据清单}
+      forbid:
+      - 不带依据就交付
     cn: 交付
     desc: 设计文档落档并交代依据
     tools:
@@ -125,6 +146,12 @@ roles:
     min_bytes: 80
   states:
   - id: understand
+    gate:
+      must:
+      - {id: understand.m1, text: 把验收标准复述成可执行条目}
+      - {id: understand.m2, text: 列出改动面与风险}
+      forbid:
+      - 不跳过需求理解直接写代码
     cn: 理解
     desc: 读懂验收标准与现有实现，明确改动范围
     tools:
@@ -136,6 +163,12 @@ roles:
     next:
     - implement
   - id: implement
+    gate:
+      must:
+      - {id: implement.m1, text: 按验收标准实现}
+      - {id: implement.m2, text: 每处改动标明对应验收条目}
+      forbid:
+      - 不为凑清单创建项目里不存在的语言文件
     cn: 实现
     desc: 按验收标准写代码并落盘产物
     tools:
@@ -146,7 +179,17 @@ roles:
     next:
     - understand
     - verify
+    when:
+      understand: 需求理解有误，回退重读
+      verify: 实现与自验均完成
   - id: verify
+    gate:
+      must:
+      - {id: verify.m1, text: 跑验证命令并记录命令与结果}
+      - {id: verify.m2, text: 未通过的条目回到实现修复}
+      forbid:
+      - 不自验通过就宣称完成
+      - 不伪造或省略测试结果
     cn: 自验交付
     desc: 自己跑一遍验证，写明命令与结果后交付
     tools:
@@ -180,6 +223,11 @@ roles:
     min_bytes: 80
   states:
   - id: study
+    gate:
+      must:
+      - {id: study.m1, text: 逐条读交付件与验收标准}
+      forbid:
+      - 未读完就表态
     cn: 研读
     desc: 读交付件与验收标准，逐条对照
     tools:
@@ -190,6 +238,12 @@ roles:
     next:
     - review
   - id: review
+    gate:
+      must:
+      - {id: review.m1, text: 给出通过项、缺口项与修复建议三段}
+      - {id: review.m2, text: 每一条结论写明依据}
+      forbid:
+      - 不替测试下验收结论
     cn: 逐条评审
     desc: 给出通过项、缺口项与修复建议
     tools:
@@ -198,7 +252,15 @@ roles:
     next:
     - study
     - deliver
+    when:
+      study: 依据缺失，回退补读
+      deliver: 通过项与缺口项都已列清
   - id: deliver
+    gate:
+      must:
+      - {id: deliver.m1, text: 结论与交付件一致并写明遗留缺口}
+      forbid:
+      - 不把缺口说成已通过
     cn: 结论交付
     desc: 评审结论落文档并交付
     tools:
@@ -234,6 +296,11 @@ roles:
     min_bytes: 80
   states:
   - id: design
+    gate:
+      must:
+      - {id: design.m1, text: 从验收标准推出用例清单}
+      forbid:
+      - 不照抄开发自测当用例
     cn: 用例设计
     desc: 依据验收标准设计测试用例或脚本
     tools:
@@ -245,6 +312,11 @@ roles:
     next:
     - run
   - id: run
+    gate:
+      must:
+      - {id: run.m1, text: 逐条执行并记录实际结果}
+      forbid:
+      - 不修改被测代码
     cn: 执行
     desc: 跑通用例或脚本，记录通过/失败数量与原因
     tools:
@@ -254,7 +326,15 @@ roles:
     next:
     - design
     - report
+    when:
+      design: 用例覆盖不足，回退补用例
+      report: 用例全部执行完
   - id: report
+    gate:
+      must:
+      - {id: report.m1, text: 给出通过/失败与证据路径}
+      forbid:
+      - 不隐藏失败用例
     cn: 测试报告
     desc: 汇总结果形成测试报告并交付
     tools:
@@ -314,6 +394,11 @@ roles:
     min_bytes: 80
   states:
   - id: scope
+    gate:
+      must:
+      - {id: scope.m1, text: 明确问题边界与信息缺口}
+      forbid:
+      - 不预设结论
     cn: 界定边界
     desc: 明确调研问题边界与待答结论
     tools:
@@ -323,6 +408,11 @@ roles:
     next:
     - search
   - id: search
+    gate:
+      must:
+      - {id: search.m1, text: 多源取证并标注来源}
+      forbid:
+      - 不引用无法核实的来源
     cn: 检索调研
     desc: 多来源查证，结论附证据来源
     tools:
@@ -333,7 +423,15 @@ roles:
     next:
     - scope
     - deliver
+    when:
+      scope: 问题边界变了，回退重定
+      deliver: 证据足以回答
   - id: deliver
+    gate:
+      must:
+      - {id: deliver.m1, text: 结论、依据与不确定项一并给出}
+      forbid:
+      - 不把猜测当事实
     cn: 结论交付
     desc: 调研结论文档落档并标注来源
     tools:
@@ -365,6 +463,11 @@ roles:
     min_bytes: 80
   states:
   - id: gather
+    gate:
+      must:
+      - {id: gather.m1, text: 收集写作素材与口径}
+      forbid:
+      - 不编造事实或数据
     cn: 读素材
     desc: 读需求与现有素材，明确文案对象与格式
     tools:
@@ -375,6 +478,11 @@ roles:
     next:
     - draft
   - id: draft
+    gate:
+      must:
+      - {id: draft.m1, text: 按目标读者与口径成稿}
+      forbid:
+      - 不引入未核实事实
     cn: 撰写
     desc: 按要求格式撰写文案
     tools:
@@ -383,7 +491,15 @@ roles:
     next:
     - gather
     - deliver
+    when:
+      gather: 素材不足，回退补素材
+      deliver: 成稿可交
   - id: deliver
+    gate:
+      must:
+      - {id: deliver.m1, text: 成稿落档并说明来源}
+      forbid:
+      - 不交付未落档的半成品
     cn: 文案交付
     desc: 文案文档落档并交付
     tools:
@@ -414,6 +530,11 @@ roles:
     min_bytes: 80
   states:
   - id: survey
+    gate:
+      must:
+      - {id: survey.m1, text: 盘清现状与约束}
+      forbid:
+      - 不跳过现状直接设计
     cn: 梳理现状
     desc: 读现有流程与规则，摸清节点与校验项
     tools:
@@ -424,6 +545,11 @@ roles:
     next:
     - design
   - id: design
+    gate:
+      must:
+      - {id: design.m1, text: 给出方案与影响面}
+      forbid:
+      - 不夹带未声明改动
     cn: 流程配置
     desc: 产出节点、边、校验项与触发条件的流程配置
     tools:
@@ -432,7 +558,15 @@ roles:
     next:
     - survey
     - deliver
+    when:
+      survey: 现状不清，回退补盘
+      deliver: 方案确认
   - id: deliver
+    gate:
+      must:
+      - {id: deliver.m1, text: 方案落档并附依据}
+      forbid:
+      - 不带依据就交付
     cn: 交付
     desc: 流程规则文档落档并交付
     tools:
@@ -468,6 +602,11 @@ roles:
     min_bytes: 80
   states:
   - id: inspect
+    gate:
+      must:
+      - {id: inspect.m1, text: 读技能原文与工具面}
+      forbid:
+      - 不臆造能力
     cn: 读包
     desc: 读外部 Skill.md 包，摸清岗位、工具与规则三要素
     tools:
@@ -479,6 +618,11 @@ roles:
     next:
     - split
   - id: split
+    gate:
+      must:
+      - {id: split.m1, text: 拆成可执行步骤并标注依赖}
+      forbid:
+      - 不写无依据步骤
     cn: 拆三要素
     desc: 拆成岗位角色、引用工具、流程规则，依赖如实标注
     tools:
@@ -487,7 +631,15 @@ roles:
     next:
     - inspect
     - deliver
+    when:
+      inspect: 技能原文不足，回退重读
+      deliver: 步骤齐备可交
   - id: deliver
+    gate:
+      must:
+      - {id: deliver.m1, text: 拆解清单落档}
+      forbid:
+      - 不交付空中楼阁
     cn: 入库交付
     desc: 三要素归同一标识入库交付
     tools:
@@ -501,6 +653,11 @@ flows:
   kind: process
   states:
   - id: req.intake
+    gate:
+      must:
+      - {id: intake.m1, text: 收齐目标、边界与验收口径}
+      forbid:
+      - 未澄清前不分单、不派角色
     cn: 需求受理
     desc: 接收工单、澄清目标与边界，记录待核对要点
     tools:
@@ -510,6 +667,11 @@ flows:
     next:
     - req.structure
   - id: req.structure
+    gate:
+      must:
+      - {id: structure.m1, text: 整理成可逐条核对的验收规格}
+      forbid:
+      - 不把模糊诉求当规格
     cn: 规格澄清
     desc: 把诉求整理成可逐条核对的验收规格
     tools:
@@ -519,6 +681,11 @@ flows:
     next:
     - req.plan
   - id: req.plan
+    gate:
+      must:
+      - {id: plan.m1, text: 明确分工与交付节奏}
+      forbid:
+      - 不超编派角色（默认 2-3 个）
     cn: 编排计划
     desc: 拆结构化计划、明确分工与交付节奏
     tools:
@@ -530,6 +697,11 @@ flows:
     next:
     - req.split
   - id: req.split
+    gate:
+      must:
+      - {id: split.m1, text: 每个子单给目标、路径、验收标准与边界}
+      forbid:
+      - 不给没有验收标准的活
     cn: 分派拆分
     desc: 按计划分派角色、拆分并行子任务
     tools:
@@ -540,6 +712,11 @@ flows:
     next:
     - req.execute
   - id: req.execute
+    gate:
+      must:
+      - {id: execute.m1, text: 跟踪进度并回收产出与缺口}
+      forbid:
+      - 不替执行角色写实现
     cn: 执行跟踪
     desc: 跟踪各角色执行进度，回收产出与缺口
     tools:
@@ -549,6 +726,11 @@ flows:
     next:
     - req.accept
   - id: req.accept
+    gate:
+      must:
+      - {id: accept.m1, text: 对照验收标准逐项核对交付件}
+      forbid:
+      - 不跳过缺口直接结单
     cn: 验收核对
     desc: 对照验收标准逐项核对交付件与结论
     tools:
@@ -558,6 +740,11 @@ flows:
     next:
     - req.close
   - id: req.close
+    gate:
+      must:
+      - {id: close.m1, text: 结论与交付件一致并沉淀}
+      forbid:
+      - 不假装完成
     cn: 闭环结单
     desc: 验收通过后闭环结单，沉淀结论
     tools:
@@ -570,6 +757,11 @@ flows:
   kind: process
   states:
   - id: scan.run
+    gate:
+      must:
+      - {id: scan.m1, text: 按阈值扫描在途工单}
+      forbid:
+      - 不臆造停滞
     cn: 巡检扫描
     desc: 扫描服务状态、日志与停滞工单，定位异常线索
     tools:
@@ -580,6 +772,11 @@ flows:
     next:
     - scan.judge
   - id: scan.judge
+    gate:
+      must:
+      - {id: judge.m1, text: stale 判定写明依据}
+      forbid:
+      - 不把正常在跑判停滞
     cn: 异常判定
     desc: 判定线索是否构成停滞或故障，区分待审计项
     tools:
@@ -589,6 +786,11 @@ flows:
     next:
     - scan.audit
   - id: scan.audit
+    gate:
+      must:
+      - {id: audit.m1, text: 审计单写清卡点与证据}
+      forbid:
+      - 不重复开单
     cn: 停滞审计
     desc: 复核停滞工单现象、根因与影响范围
     tools:
@@ -598,6 +800,11 @@ flows:
     next:
     - ops.diagnose
   - id: ops.diagnose
+    gate:
+      must:
+      - {id: diagnose.m1, text: 定位根因并给出恢复方案}
+      forbid:
+      - 不改业务数据绕过诊断
     cn: 根因诊断
     desc: 查日志与资源，定位根因并给出处置方向
     tools:
@@ -608,6 +815,11 @@ flows:
     next:
     - ops.recover
   - id: ops.recover
+    gate:
+      must:
+      - {id: recover.m1, text: 记录恢复动作与结果}
+      forbid:
+      - 不隐瞒恢复失败
     cn: 处置恢复
     desc: 执行恢复或规避措施，达到恢复标准
     tools:
@@ -618,6 +830,11 @@ flows:
     next:
     - audit.close
   - id: audit.close
+    gate:
+      must:
+      - {id: close.m1, text: 收口结论与证据}
+      forbid:
+      - 不遗留未说明的异常
     cn: 闭环归档
     desc: 处置结论落档，闭环归档审计记录
     tools:

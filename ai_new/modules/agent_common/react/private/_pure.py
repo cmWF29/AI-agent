@@ -68,7 +68,9 @@ def result(p):
             "failed": p.get("failed"), "summary": p.get("summary"),
             "summary_by_model": bool(p.get("summary_by_model")),
             "new_messages": p.get("new_messages") or [],
-            "stage": p.get("stage") or ""}
+            "stage": p.get("stage") or "",
+            "checklist": p.get("checklist") or [],
+            "violations": p.get("violations") or []}
 
 
 def toolerr(p):
@@ -179,12 +181,23 @@ def parse_final(p):
     """
     content = p.get("content") or ""
     obj = p.get("obj")
+    def _list(v):
+        """清单字段只收字符串列表：模型给错形状就当空，不让坏数据走成"已交齐"。"""
+        if isinstance(v, (list, tuple)):
+            return [str(x).strip() for x in v if str(x).strip()]
+        if isinstance(v, str) and v.strip():
+            return [x.strip() for x in v.replace("，", ",").split(",") if x.strip()]
+        return []
+
     if isinstance(obj, dict) and ("reply" in obj or "summary" in obj or "stage" in obj):
         return {"structured": True,
                 "reply": _textify(obj.get("reply")),
                 "summary": _textify(obj.get("summary")),
-                "stage": _textify(obj.get("stage"))}
-    return {"structured": False, "reply": content, "summary": "", "stage": ""}
+                "stage": _textify(obj.get("stage")),
+                "checklist": _list(obj.get("checklist")),
+                "violations": _list(obj.get("violations"))}
+    return {"structured": False, "reply": content, "summary": "", "stage": "",
+            "checklist": [], "violations": []}
 
 
 def summarize(p):

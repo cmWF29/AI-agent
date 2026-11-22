@@ -7,16 +7,31 @@ requirement-owner:
   kind: process
   states:
   - id: req.intake
+    gate:
+      must:
+      - {id: intake.m1, text: 收齐目标、边界与验收口径}
+      forbid:
+      - 未澄清前不分单、不派角色
     cn: 接需求
     next:
     - req.structure
   - id: req.structure
+    gate:
+      must:
+      - {id: structure.m1, text: 整理成可逐条核对的验收规格}
+      forbid:
+      - 不把模糊诉求当规格
     cn: 结构化
     next:
     - req.plan
     when:
       req.plan: 需求描述可拆解
   - id: req.plan
+    gate:
+      must:
+      - {id: plan.m1, text: 明确分工与交付节奏}
+      forbid:
+      - 不超编派角色（默认 2-3 个）
     cn: 定计划
     next:
     - req.split
@@ -25,10 +40,20 @@ requirement-owner:
       req.split: 计划可执行
       req.structure: 需求变形需重新结构化
   - id: req.split
+    gate:
+      must:
+      - {id: split.m1, text: 每个子单给目标、路径、验收标准与边界}
+      forbid:
+      - 不给没有验收标准的活
     cn: 拆子单
     next:
     - req.execute
   - id: req.execute
+    gate:
+      must:
+      - {id: execute.m1, text: 跟踪进度并回收产出与缺口}
+      forbid:
+      - 不替执行角色写实现
     cn: 执行
     next:
     - req.accept
@@ -37,6 +62,11 @@ requirement-owner:
       req.accept: 交付件齐了
       req.plan: 发现计划不成立，回退重排
   - id: req.accept
+    gate:
+      must:
+      - {id: accept.m1, text: 对照验收标准逐项核对交付件}
+      forbid:
+      - 不跳过缺口直接结单
     cn: 验收
     next:
     - req.close
@@ -45,6 +75,11 @@ requirement-owner:
       req.close: verdict=accepted
       req.execute: verdict=rejected 打回重做
   - id: req.close
+    gate:
+      must:
+      - {id: close.m1, text: 结论与交付件一致并沉淀}
+      forbid:
+      - 不假装完成
     cn: 结单
     next: []
     terminal: true
@@ -55,10 +90,20 @@ ticket-health:
   kind: process
   states:
   - id: scan.run
+    gate:
+      must:
+      - {id: scan.m1, text: 按阈值扫描在途工单}
+      forbid:
+      - 不臆造停滞
     cn: 扫描
     next:
     - scan.judge
   - id: scan.judge
+    gate:
+      must:
+      - {id: judge.m1, text: stale 判定写明依据}
+      forbid:
+      - 不把正常在跑判停滞
     cn: 判停滞
     next:
     - scan.audit
@@ -67,10 +112,20 @@ ticket-health:
       scan.audit: stale=true
       scan.skip: stale=false
   - id: scan.audit
+    gate:
+      must:
+      - {id: audit.m1, text: 审计单写清卡点与证据}
+      forbid:
+      - 不重复开单
     cn: 开审计单
     next:
     - ops.diagnose
   - id: ops.diagnose
+    gate:
+      must:
+      - {id: diagnose.m1, text: 定位根因并给出恢复方案}
+      forbid:
+      - 不改业务数据绕过诊断
     cn: 诊断
     next:
     - ops.recover
@@ -79,10 +134,20 @@ ticket-health:
       ops.recover: recoverable=true
       ops.escalate: recoverable=false
   - id: ops.recover
+    gate:
+      must:
+      - {id: recover.m1, text: 记录恢复动作与结果}
+      forbid:
+      - 不隐瞒恢复失败
     cn: 自动恢复
     next:
     - audit.close
   - id: ops.escalate
+    gate:
+      must:
+      - {id: escalate.m1, text: 上抛证据与建议裁决}
+      forbid:
+      - 不自行结单
     cn: 上抛裁决
     next:
     - audit.close
@@ -91,6 +156,11 @@ ticket-health:
     next: []
     terminal: true
   - id: audit.close
+    gate:
+      must:
+      - {id: close.m1, text: 收口结论与证据}
+      forbid:
+      - 不遗留未说明的异常
     cn: 收口
     next: []
     terminal: true

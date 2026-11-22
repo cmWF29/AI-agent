@@ -79,9 +79,19 @@ def finish(p):
             active = [stage] if stage else []
         if stage_check.get("ok"):
             meta.pop("stage_alert", None)
+            meta.pop("gate_alert", None)
         else:
             meta["stage_alert"] = {"code": stage_check.get("code") or "",
                                    "nxt": out.get("stage") or ""}
+            # 清单缺项/踩红线单独落一份，群聊与岗位页都能读到"哪一条没过"
+            if stage_check.get("code") in ("checklist_unmet", "forbidden_hit"):
+                meta["gate_alert"] = {"code": stage_check.get("code") or "",
+                                      "missing": stage_check.get("missing") or [],
+                                      "violations": stage_check.get("violations") or []}
+            else:
+                meta.pop("gate_alert", None)
+        meta["checklist"] = {"checked": list(out.get("checklist") or []),
+                             "violations": list(out.get("violations") or [])}
         if active:
             meta["active"] = active
     if stage:
