@@ -177,9 +177,24 @@ def main():
             "rows": rows}
     if CHECK:
         old = json.load(open(OUT, encoding="utf-8")) if os.path.exists(OUT) else {}
+        prev_sig = (old.get("sig") or {}).get("sha")
         prev = (old.get("stats") or {}).get("instances")
-        print("当前可点实例 %d（清单记录 %s），缺控件 id %d 个" % (len(rows), prev, len(miss)))
-        return 0 if (not miss and prev == len(rows)) else 1
+        drift = len(rows) - (prev or 0)
+        # 硬门禁：签名一致（源码变→必须重扫）+ 活扫描零缺控件 id。
+        # 总量只作提示：可点实例数随运行期数据（项目/工单档案）浮动，跨环境不可比。
+        if not prev_sig:
+            print("清单没有源码签名：跑 scripts/ui_inventory.py 重新生成")
+            return 1
+        if prev_sig != source_sig()["sha"]:
+            print("清单过期：决定可点 DOM 的源码变了（清单sig=%s 现算=%s），跑 scripts/ui_inventory.py 重新生成"
+                  % (prev_sig, source_sig()["sha"]))
+            return 1
+        if miss:
+            print("活扫描发现 %d 个没有控件 id 的可点元素：%s" % (len(miss), miss[:10]))
+            return 1
+        print("清单校验通过：签名一致，活扫描缺控件 id 0 个"
+              + ("（可点实例 %d，清单记录 %d，差 %d 来自运行期数据差异）" % (len(rows), prev, drift) if drift else "，可点实例 %d" % len(rows)))
+        return 0
     json.dump(body, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print("已写入 %s：%d 个可点实例，覆盖 %d 个页面，缺控件 id %d 个"
           % (OUT, len(rows), len(pages_sum), len(miss)))
@@ -188,7 +203,10 @@ def main():
 
 def asyncio_run(coro):
     import asyncio
-    return asyncio.get_event_loop().run_until_complete(coro)
+    try:
+        return asyncio.run(coro)
+    except RuntimeError:
+        return asyncio.get_event_loop().run_until_complete(coro)
 
 
 if __name__ == "__main__":
