@@ -665,7 +665,8 @@ function statsHtml(sec, ctx) {
   if (!rows.length) return "";
   const cells = rows.map((r) => {
     const v = fill(r.value, ctx);
-    return `<div class="stat-cell"><b>${esc(v === "" ? "—" : v)}</b><span>${esc(fill(r.label, ctx))}</span>${
+    // 读法固定：先标题、再数字、最后一行说明。倒过来是"9 张工单"式的错位阅读
+    return `<div class="stat-cell"><span class="stat-label">${esc(fill(r.label, ctx))}</span><b>${esc(v === "" ? "—" : v)}</b>${
       r.note ? `<em>${esc(fill(r.note, ctx))}</em>` : ""}</div>`;
   }).join("");
   return `<div class="stat-strip">${cells}</div>`;
