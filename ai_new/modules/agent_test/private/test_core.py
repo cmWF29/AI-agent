@@ -218,6 +218,21 @@ class CoreTest(unittest.TestCase):
         spec.loader.exec_module(mod)
         self.assertEqual(mod.problems(), [], "视图层门禁未通过（见 scripts/gate_views.py）")
 
+    def test_screen_machine_is_closed(self):
+        """界面状态图门禁：页面/浮层节点闭合、浮层可关、壳层控件已登记、入口全可达；
+        并且运行时推导（demand_engine.screens）与静态推导（gate_screens）节点一致。"""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "gate_screens", ROOT / "scripts" / "gate_screens.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.problems(), [], "界面状态图门禁未通过（见 scripts/gate_screens.py）")
+        shell, views = mod.load()
+        nodes, _ = mod.derive(shell, views)
+        runtime = self.ctx.demand_engine.screens()
+        self.assertEqual({s["id"] for s in runtime["states"]}, set(nodes),
+                         "运行时界面状态与静态扫描不一致（引擎推导漏了页面）")
+
     def test_registered_routes_are_demand_bound_or_platform(self):
         """注册表只收两类路由：被需求 do 树编排的业务能力，或清单登记的平台入口。
 

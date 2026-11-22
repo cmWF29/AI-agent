@@ -22,6 +22,18 @@ view:
     - {label: 状态, value: "data.machine.click_machine.states|count", note: 个交互状态}
     - {label: 可点位置, value: "data.machine.click_machine.kinds|count", note: 类控件}
     - {label: 迁移规则, value: "data.machine.click_machine.edges", note: 条允许的转移}
+  - kind: stats
+    as: machine
+    rows:
+    - {label: 界面状态, value: "data.machine.screen_machine.stats.states|count", note: 个页面/浮层}
+    - {label: 界面迁移, value: "data.machine.screen_machine.stats.edges|count", note: 条"点哪个控件到哪个状态"}
+    - {label: 浮层, value: "data.machine.screen_machine.stats.overlays|count", note: 能开必须能关}
+  - kind: dag
+    as: machine
+    source: machine.screen_machine.states
+    title: 全站界面状态图
+    heading: 页面、浮层与控件点击的去向
+    note: 节点是界面状态，箭头是具体控件点下去之后到的状态；虚线回边是"关回去"的那一步（侧栏/弹窗/面包屑）
   - kind: machine
     as: machine
     source: machine.click_machine

@@ -168,7 +168,53 @@ click_machine:                          # 点击状态机：前端每一个可�
 
 # 控件级状态机：每一个按钮/控件一条，id 由「种类 + 标签」算（render.js 的 ctlOf 同算法）。
 # 增删一个按钮而不登记这里，scripts/gate_controls.py 会直接报错——门禁不是靠人记得。
+screen_machine:                       # 界面状态图：节点是"界面状态"，边是"哪个控件点下去到哪个状态"
+  entry: view:projects
+  shell_controls:                     # 外壳按钮也在状态机里：没有它们，侧栏开合就没人管
+  - {key: ctl.shell.menu,       label: 三条杠,   note: 手机端点开侧栏}
+  - {key: ctl.shell.scrim,      label: 侧栏外暗区, note: 点暗处收起侧栏，页面不变}
+  - {key: ctl.shell.rail_close, label: 收起侧栏, note: 宽屏折叠}
+  - {key: ctl.shell.rail_open,  label: 展开侧栏, note: 宽屏展开}
+  - {key: ctl.crumb_up,         label: 面包屑上一级, note: 退回上级页}
+  overlays:                           # 浮层：能打开就必须能关，关的控件逐条登记
+  - {key: overlay:sidebar, label: 侧栏, close_ctl: ctl.shell.scrim, close_note: 点侧栏外暗区收起}
+  - {key: overlay:sidebar, label: 侧栏, close_ctl: ctl.shell.rail_close, close_note: 宽屏点收起}
 controls:
+  ctl.shell.menu:
+    label: 三条杠
+    kind: drawer_open
+    where: [shell]
+    states: [idle, busy]
+    transitions: {idle: [busy], busy: [idle]}
+    note: 点开侧栏；侧栏已开时再点由遮罩关闭
+  ctl.shell.scrim:
+    label: 侧栏外暗区
+    kind: drawer_scrim
+    where: [shell]
+    states: [idle, busy]
+    transitions: {idle: [busy], busy: [idle]}
+    note: 只认侧栏展开态；收起后回到原页面，不换页
+  ctl.shell.rail_close:
+    label: 收起侧栏
+    kind: rail_close
+    where: [shell]
+    states: [idle, busy]
+    transitions: {idle: [busy], busy: [idle]}
+    note: 宽屏折叠为图标条
+  ctl.crumb_up:
+    label: 面包屑上一级
+    kind: crumb_up
+    where: [shell]
+    states: [idle, busy]
+    transitions: {idle: [busy], busy: [idle]}
+    note: 回到 parent 视图，不换参数前的层级
+  ctl.shell.rail_open:
+    label: 展开侧栏
+    kind: rail_open
+    where: [shell]
+    states: [idle, busy]
+    transitions: {idle: [busy], busy: [idle]}
+    note: 宽屏从图标条展开
   ctl.head_act.全部调用:
     label: 全部调用
     kind: head_act

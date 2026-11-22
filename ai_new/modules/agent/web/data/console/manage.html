@@ -760,7 +760,7 @@ textarea{min-height:72px;resize:vertical}
     <div class="brand">
       <span class="logo" data-brand="logo"></span>
       <div><h1 data-brand="name"></h1><div class="sub" data-brand="tagline"></div></div>
-      <button class="icon-btn rail-btn" id="side-collapse" data-clk="rail_close" data-ui-aria="collapse" data-ui-title="collapse">‹</button>
+      <button class="icon-btn rail-btn" id="side-collapse" data-clk="rail_close" data-ctl="ctl.shell.rail_close" data-ctl-state="idle" data-ui-aria="collapse" data-ui-title="collapse">‹</button>
     </div>
     <!-- 导航项由后端菜单渲染：视图规格里的 menu 决定顺序与名称，页面不存清单 -->
     <nav class="nav" id="side-nav"></nav>
@@ -768,13 +768,13 @@ textarea{min-height:72px;resize:vertical}
       <button id="logout" class="ghost" data-ui="logout"></button>
     </div>
   </aside>
-  <div class="scrim" id="scrim" data-clk="drawer_scrim"></div>
+  <div class="scrim" id="scrim" data-clk="drawer_scrim" data-ctl="ctl.shell.scrim" data-ctl-state="idle"></div>
   <div class="main-col">
     <header class="topbar">
-      <button class="icon-btn" id="menu-btn" data-clk="drawer_open" data-ui-aria="menu">☰</button>
+      <button class="icon-btn" id="menu-btn" data-clk="drawer_open" data-ctl="ctl.shell.menu" data-ctl-state="idle" data-ui-aria="menu">☰</button>
       <div class="brand-mini"><span class="logo" data-brand="logo"></span><h1 data-brand="name"></h1></div>
     </header>
-    <button class="icon-btn rail-open" id="rail-open" data-clk="rail_open" data-ui-aria="expand" data-ui-title="expand">☰</button>
+    <button class="icon-btn rail-open" id="rail-open" data-clk="rail_open" data-ctl="ctl.shell.rail_open" data-ctl-state="idle" data-ui-aria="expand" data-ui-title="expand">☰</button>
     <div id="banner"></div>
     <main>
       <div class="crumb" id="crumb"></div>

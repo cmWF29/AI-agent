@@ -10,7 +10,14 @@
 """
 from __future__ import annotations
 
+import re
+
 from . import _lang
+
+
+def _slug(label):
+    s = re.sub(r"[\s+\uff0b]", "", str(label or ""))
+    return re.sub(r"[^0-9A-Za-z_\-\u4e00-\u9fff]", "_", s) or "x"
 
 
 def _canon(value):
@@ -235,6 +242,91 @@ class Engine:
         menus.sort(key=lambda m: (m["group_order"], m["order"], m["key"]))
         shell["menus"] = menus
         return shell
+
+    def screens(self):
+        """界面状态图：节点=界面状态（页面/浮层），边=具体控件点下去到哪个状态。
+
+        页面之间的边从视图规格自动推导（act.view 跳页、act.modal 开弹窗、parent 返回），
+        壳层（侧栏开合）在 console.yaml 的 screen_machine 里显式声明。
+        推导在前端零改动、后端零手维护：加一个按钮跳页，图里就多一条边。
+        """
+        shell = _md(self.ctx).yaml_read("console.yaml", {}) or {}
+        sm = shell.get("screen_machine") or {}
+        states, edges, overlays = {}, [], []
+
+        def node(key, label):
+            if key not in states:
+                states[key] = {"id": key, "cn": label or key, "next": []}
+            return states[key]
+
+        def edge(frm, to, ctl, label):
+            if frm == to:
+                return
+            node(frm, frm)
+            node(to, to)
+            states[frm]["next"].append({"to": to, "when": label or ""})
+            edges.append({"from": frm, "to": to, "ctl": ctl, "label": label or ""})
+
+        views = []
+        for rec in self._load():
+            v = rec.get("view") or {}
+            if v.get("key"):
+                views.append((v.get("key"), v, rec))
+        forms = set()
+        for key, v, rec in views:
+            label = (v.get("menu") or {}).get("label") or v.get("heading") or key
+            node("view:%s" % key, label)
+            par = v.get("parent") or {}
+            parent = par if isinstance(par, str) else par.get("view")
+            if parent:
+                edge("view:%s" % key, "view:%s" % parent, "ctl.crumb_up", "面包屑返回")
+            for kind, blob in [("head_act", (v.get("actions") or [])),
+                               ("card_act", []), ("row_act", [])]:
+                pass
+            acts = list(v.get("actions") or [])
+            for sec in v.get("sections") or []:
+                acts += list(sec.get("actions") or [])
+                sub = sec.get("submit")
+                if sub:
+                    acts.append(dict(sub, label=sub.get("label")))
+                if sec.get("on_click"):
+                    acts.append(dict(sec["on_click"], label=sec.get("click_label") or "打开卡片"))
+            for act in acts:
+                target, ctl_kind = None, "card_act"
+                if act.get("view"):
+                    tv = act["view"]
+                    target = "view:%s" % (tv if isinstance(tv, str) else (tv.get("key") or tv.get("view")))
+                    ctl_kind = "card_open" if act.get("label") is None else "head_act"
+                elif act.get("modal"):
+                    target = "overlay:form:%s" % act["modal"]
+                    forms.add(str(act["modal"]))
+                    ctl_kind = "card_act"
+                if target:
+                    label_ = act.get("label") or act.get("text") or "打开"
+                    edge("view:%s" % key, target, "ctl.%s.%s" % (ctl_kind, _slug(label_)), label_)
+        for form in sorted(forms):
+            node("overlay:form:%s" % form, "弹窗·%s" % form)
+        # 侧栏：任何页面都能点开；导航项点完落到目标页并收起
+        node("overlay:sidebar", (sm.get("overlays") or [{}])[0].get("label") or "侧栏")
+        for key, v, rec in views:
+            edge("view:%s" % key, "overlay:sidebar", "ctl.shell.menu", "点三条杠展开侧栏")
+            menu = v.get("menu") or {}
+            if isinstance(menu, str):
+                menu = {"label": menu}
+            if menu:
+                edge("overlay:sidebar", "view:%s" % key,
+                     "ctl.nav.%s" % _slug(menu.get("label") or key), "导航：%s（收起侧栏）" % (menu.get("label") or key))
+        for ov in (sm.get("overlays") or []):
+            if ov.get("key") in states:
+                overlays.append({"id": ov.get("key"), "label": ov.get("label"), "close": ov.get("close_ctl"), "note": ov.get("close_note")})
+        return {
+            "entry": sm.get("entry") or "view:projects",
+            "states": list(states.values()),
+            "edges": edges,
+            "overlays": overlays,
+            "stats": {"states": len(states), "edges": len(edges), "overlays": len(overlays)},
+            "close_controls": [{"ctl": o.get("close_ctl"), "note": o.get("close_note")} for o in (sm.get("overlays") or [])],
+        }
 
     def chrome(self):
         """登录页要的那点字：品牌 + 登录文案。

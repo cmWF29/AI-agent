@@ -58,9 +58,19 @@ def spec_controls():
     return doc.get("controls") or {}
 
 
+def shell_controls():
+    """外壳控件（侧栏三条杠/遮罩/宽屏收展）不是页面按钮，但同样要在状态机里登记。"""
+    doc = yaml.safe_load(open(ROOT + "/ai_new/modules/agent_common/demand_engine/data/console.yaml",
+                              encoding="utf-8")) or {}
+    sm = doc.get("screen_machine") or {}
+    return {row.get("key"): row.get("label") for row in (sm.get("shell_controls") or []) if row.get("key")}
+
+
 def problems():
     out = []
     page, spec = page_controls(), spec_controls()
+    for cid, label in shell_controls().items():
+        page.setdefault(cid, {"label": label, "where": ["shell"]})
     for cid in sorted(set(page) - set(spec)):
         out.append("页面有、规格未登记（补 console.yaml controls）: %s (%s)" % (cid, page[cid]["label"]))
     for cid in sorted(set(spec) - set(page)):
