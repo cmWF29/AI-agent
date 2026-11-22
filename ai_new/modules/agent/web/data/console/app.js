@@ -517,21 +517,11 @@ async function render(opts) {
   renderCrumb(spec, ctx);
   const marks = scrollMarks();          // 整页重渲染前记账（15s 兜底轮询走的就是这条）
   // 堆叠牌位也是用户意图：重渲染前记账（展开态/当前在第几张），渲染后按原状恢复
-  const deckStates = [...$("view-body").querySelectorAll("[data-deck]")]
-    .map((d) => ({ open: d.dataset.open, pos: d.dataset.pos }));
+  const deckStates = captureDecks($("view-body"));
   renderView(spec, ctx);
   if (typeof stampCtl === "function") stampCtl(document.querySelector("#view-body"));
   scrollRestore(marks);
-  // 堆叠牌位也是用户意图：重渲染前记账（展开态/当前在第几张），渲染后按原状恢复
-  [...$("view-body").querySelectorAll("[data-deck]")].forEach((d, i) => {
-    const s = deckStates[i];
-    if (!s) return;
-    if (s.open === "1") d.dataset.open = "1";
-    if (s.pos && s.pos !== "0" && Number(s.pos) < d.querySelectorAll(".deck-stage > .pcard").length) {
-      d.dataset.pos = s.pos;
-      if (typeof deckLayout === "function") deckLayout(d);
-    }
-  });
+  restoreDecks(deckStates);
   const ta = document.querySelector("#view-body .composer textarea");
   if (ta && draft) ta.value = draft;   // 轮询重建 DOM 时把用户草稿还回去
   const th = (ctx.data.thread && ctx.data.thread.thread) || {};
@@ -545,6 +535,34 @@ async function render(opts) {
 }
 
 /* ---- 页面保活：每页留一个实例，离开不销毁，回来直接接管 ---- */
+/* 堆叠牌位记账/恢复：按"牌所在区块(data-as)"对号，不按下标——归档可能让某个 deck
+   退化成普通列表（只剩一张牌），下标会把展开态错配到下一个 deck（曾把已归档组误展开）。 */
+function deckKeyOf(d) {
+  // 视图里多个区块可能共用同一个 as（如进行中/已归档都吃 tree），as 会撞键；
+  // 区块序号(data-sec)来自视图声明的 section 顺序，重渲染前后稳定，才是身份
+  const sec = d.closest(".vsec");
+  if (!sec) return "#";
+  const n = sec.getAttribute("data-sec");
+  return n != null ? "s" + n : "as:" + (sec.getAttribute("data-as") || "#");
+}
+function captureDecks(root) {
+  const m = {};
+  (root || document).querySelectorAll("[data-deck]").forEach((d) => {
+    m[deckKeyOf(d)] = { open: d.dataset.open, pos: d.dataset.pos };
+  });
+  return m;
+}
+function restoreDecks(prev) {
+  document.querySelectorAll("#view-body [data-deck]").forEach((d) => {
+    const s = prev && prev[deckKeyOf(d)];
+    if (!s) return;
+    const cards = d.querySelectorAll(".deck-stage > .pcard").length;
+    if (s.pos && Number(s.pos) < cards) d.dataset.pos = s.pos;
+    if (s.open === "1") d.dataset.open = "1";
+    // 恢复后必须重排：新 DOM 按收缩态摆好，不重排卡片会压到后面的分组（归档后曾两分组重叠）
+    if (typeof deckLayout === "function") deckLayout(d);
+  });
+}
 const PAGE_KEEP = new Map();
 const KEEP_MAX = 8;
 function keepKey(s) { return qsOf(s || state); }
@@ -634,13 +652,15 @@ async function refreshAs(list) {
   if (head) {
     const t = document.createElement("div");
     t.innerHTML = headHtml(spec, ctx);
-    if (t.firstElementChild) head.replaceWith(t.firstElementChild);
+    if (t.firstElementChild) {
+      head.replaceWith(t.firstElementChild);
+      if (typeof stampCtl === "function") stampCtl(t.firstElementChild);
+    }
   }
   renderCrumb(spec, ctx);
   const marks = scrollMarks();          // 失效补取会换掉区块（聊天滚动容器就在区块里）
   // 堆叠牌位也是用户意图：区块重渲染前记账，换完按原状恢复（启用/禁用后不跳回第一张）
-  const deckStates = [...$("view-body").querySelectorAll("[data-deck]")]
-    .map((d) => ({ open: d.dataset.open, pos: d.dataset.pos }));
+  const deckStates = captureDecks($("view-body"));
   for (const as of list) {
     document.querySelectorAll('#view-body .vsec[data-as="' + as + '"]').forEach((node) => {
       const idx = Number(node.getAttribute("data-sec") || 0);
@@ -648,20 +668,17 @@ async function refreshAs(list) {
       if (!sec) return;
       const t = document.createElement("div");
       t.innerHTML = sectionHtml(sec, ctx, idx);
-      if (t.firstElementChild) node.replaceWith(t.firstElementChild);
+      const el = t.firstElementChild;
+      if (el) {
+        node.replaceWith(el);
+        // 替换出来的新区块也过一遍控件盖章：data-ctl 是点击门禁与清单的依据，漏盖就是裸奔
+        if (typeof stampCtl === "function") stampCtl(el);
+      }
     });
   }
   scrollRestore(marks);
   if (typeof mountDecks === "function") mountDecks();
-  [...$("view-body").querySelectorAll("[data-deck]")].forEach((d, i) => {
-    const s = deckStates[i];
-    if (!s) return;
-    if (s.open === "1") d.dataset.open = "1";
-    if (s.pos && s.pos !== "0" && Number(s.pos) < d.querySelectorAll(".deck-stage > .pcard").length) {
-      d.dataset.pos = s.pos;
-      if (typeof deckLayout === "function") deckLayout(d);
-    }
-  });
+  restoreDecks(deckStates);
   if (typeof expandFolds === "function") expandFolds();
   pruneActs();
   keepPage(ctx);
