@@ -104,9 +104,12 @@ function cardsHtml(sec, ctx) {
     const chips = groups.map((g) => shareChips(g, c)).join("");
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
     return `<article class="pcard${archived ? " archived" : ""}" data-clk="card_open" ${click ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
-      <div class="acts">${acts}</div>
-      <h3 class="pname">${esc(fill(sec.title, c))}</h3>
-      ${badge}${stat}
+      <div class="phead">
+        <h3 class="pname">${esc(fill(sec.title, c))}</h3>
+        ${badge}
+        <div class="acts">${acts}</div>
+      </div>
+      ${stat}
       <div class="meta">${meta}</div>
       ${chips}
       <span class="ar">›</span>

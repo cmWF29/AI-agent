@@ -1,6 +1,6 @@
 {
  "sig": {
-  "sha": "1775f7aeb2c47aa2",
+  "sha": "630b4d2fe859a056",
   "files": 23
  },
  "stats": {
@@ -19696,7 +19696,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch797",
+   "label": "arch800",
    "states": [
     "idle",
     "busy",
@@ -19750,7 +19750,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine53",
+   "label": "click-machine65",
    "states": [
     "idle",
     "busy",
@@ -22869,7 +22869,7 @@
    "ctl": "ctl.deck_swipe",
    "kind": "deck_swipe",
    "tag": "DIV",
-   "label": "架构\n      3 个状态· 状态",
+   "label": "架构\n        \n      ",
    "states": [
     "idle",
     "done"
@@ -22889,7 +22889,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "架构\n      3 个状态· 状态",
+   "label": "架构\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -22916,7 +22916,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "开发\n      3 个状态· 状态",
+   "label": "开发\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -22943,7 +22943,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "评审\n      3 个状态· 状态",
+   "label": "评审\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -22970,7 +22970,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "测试\n      3 个状态· 状态",
+   "label": "测试\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -22997,7 +22997,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "运维\n      1 个状态· 状态",
+   "label": "运维\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -23024,7 +23024,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "调研\n      3 个状态· 状态",
+   "label": "调研\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -23051,7 +23051,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "文案\n      3 个状态· 状态",
+   "label": "文案\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -23078,7 +23078,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "流程专家\n      3 个状态· ",
+   "label": "流程专家\n        \n    ",
    "states": [
     "idle",
     "busy",
@@ -23105,7 +23105,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "拆解者\n      3 个状态· 状",
+   "label": "拆解者\n        \n     ",
    "states": [
     "idle",
     "busy",
@@ -23132,7 +23132,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "PM\n      1 个状态· 状态",
+   "label": "PM\n        \n      ",
    "states": [
     "idle",
     "busy",
@@ -23486,7 +23486,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "改名归档删除\n      验收项目\n",
+   "label": "验收项目\n        \n    ",
    "states": [
     "idle",
     "busy",
@@ -23614,7 +23614,7 @@
    "ctl": "ctl.deck_swipe",
    "kind": "deck_swipe",
    "tag": "DIV",
-   "label": "删除\n      归档验收\n    ",
+   "label": "归档验收\n        已归档\n ",
    "states": [
     "idle",
     "done"
@@ -23634,7 +23634,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "删除\n      归档验收\n    ",
+   "label": "归档验收\n        已归档\n ",
    "states": [
     "idle",
     "busy",
@@ -23688,7 +23688,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "删除\n      归档验收2\n   ",
+   "label": "归档验收2\n        已归档\n",
    "states": [
     "idle",
     "busy",
