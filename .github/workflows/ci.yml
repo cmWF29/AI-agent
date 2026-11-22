@@ -1,0 +1,25 @@
+name: ci
+
+# 门禁：静态扫描 + 用例全量回归。任何一条红即阻断合入。
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 依赖
+        run: pip install pyyaml
+      - name: 控件状态机门禁（每个按钮/事件都要有声明过的状态机）
+        run: python3 scripts/gate_controls.py
+      - name: 需求↔用例映射门禁（每条需求绑到 check，check 有 test 模块，映射表不许过期）
+        run: python3 scripts/gate_demand_tests.py
+      - name: 需求/架构/装配/传输/幂等/桩协议全量用例
+        working-directory: ai_new/modules/agent_test/private
+        run: python3 -m unittest test_core test_boot_graph test_transport test_idem test_stub_proto
