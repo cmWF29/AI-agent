@@ -715,8 +715,10 @@ function treeNodeHtml(node, sec, ctx, path) {
   const sub = node.sub ? `<span class="muted tree-node-sub">${esc(node.sub)}</span>` : "";
   const here = ((ctx.route || {}).view || "") + ":" + (path || "tree") + "/" + (node.type || "g") + ":" + (node.label || "");
   if (!count) {
-    // 空层不装成可折叠的样子：一行说明，不给假三角也不给占位壳
-    return `<div class="tree-node tree-node-blank muted">${esc(node.label || "")} · ${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</div>`;
+    // 空层不装成可折叠的样子：不给假三角不给占位壳，但排版对齐折叠条——
+    // 同一枚徽章、同一行高，说明文字退居 muted，视觉上是同一棵树的一行
+    const badge = node.badge ? `<span class="badge">${esc(node.badge)}</span>` : "";
+    return `<div class="tree-node-blank">${badge}<span class="tree-node-label">${esc(node.label || "")}</span><span class="muted">${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</span></div>`;
   }
   // 折叠是用户意图：键挂内容身份，重渲染/刷新按原状恢复；没动过按声明默认展开
   const stored = FOLDS.get(here);
