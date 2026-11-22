@@ -412,6 +412,14 @@ function itemHtml(it) {
   if (!text) return "";
   return `<div class="bubble-body md">${renderMarkdown(m.content)}</div>`;
 }
+/* 可点位置统一补控件 id：data-clk 就是它的点击种类，没登记的按「ctl.<种类>」兜底。
+   目的只有一个——页面上不存在"看不见的可点区域"，清点脚本能逐个点名。 */
+function stampCtl(root) {
+  (root || document).querySelectorAll("[data-clk]").forEach((el) => {
+    if (!el.dataset.ctl) el.dataset.ctl = "ctl." + el.dataset.clk;
+    if (!el.dataset.ctlState) el.dataset.ctlState = "idle";
+  });
+}
 /* 一条发言里的工具往返收成一个折叠块：群聊只看到「工具调用 ×N」，点开才是明细 */
 function toolGroupHtml(items) {
   const cards = items.map((it) => (it.kind === "call" ? toolCallCard(it) : toolBodyHtml(it.m))).join("");
@@ -1089,7 +1097,7 @@ function sectionHtml(sec, ctx, idx) {
   else html = emptyHtml({ text: uiText("unknown_kind", kind) });
   if (sec.fold) {
     const title = fill((sec.fold || {}).title || sec.heading || "", ctx);
-    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"${marks}><details><summary><strong>${esc(title)}</strong>${
+    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"${marks}><details><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><strong>${esc(title)}</strong>${
       sec.note ? `<span class="muted">${esc(fill(sec.note, ctx))}</span>` : ""}</summary>${html}</details></div>`;
   }
   return `<div class="vsec${sec.list ? " vsec-list" : ""}" data-kind="${esc(kind)}"${marks}>${html}</div>`;

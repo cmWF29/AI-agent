@@ -155,6 +155,8 @@ click_machine:                          # 点击状态机：前端每一个可�
   - {key: popover_close,  label: 关闭成员卡,   allow: [idle],           enter: "",    exit: "",   note: 点空白处关闭}
   - {key: fold_text,      label: 展开长文,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改文本}
   - {key: wire_fold,      label: 展开报文,     allow: [idle, swallow],  enter: "",    exit: "",   note: 展开时才读原文}
+  - {key: section_fold,   label: 折叠整段,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改本段显隐}
+  - {key: logout,         label: 登出,         allow: [idle],           enter: busy,  exit: idle, note: 清令牌回登录页}
   - {key: summary_fold,   label: 展开摘要,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改文本}
   - {key: raw_fold,       label: 展开原文,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改文本}
   - {key: deck_toggle,    label: 展开堆叠,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改布局}
@@ -176,6 +178,7 @@ screen_machine:                       # 界面状态图：节点是"界面状态
   - {key: ctl.shell.rail_close, label: 收起侧栏, note: 宽屏折叠}
   - {key: ctl.shell.rail_open,  label: 展开侧栏, note: 宽屏展开}
   - {key: ctl.crumb_up,         label: 面包屑上一级, note: 退回上级页}
+  - {key: ctl.shell.logout,     label: 登出, note: 清令牌回登录页}
   overlays:                           # 浮层：能打开就必须能关，关的控件逐条登记
   - {key: overlay:sidebar, label: 侧栏, close_ctl: ctl.shell.scrim, close_note: 点侧栏外暗区收起}
   - {key: overlay:sidebar, label: 侧栏, close_ctl: ctl.shell.rail_close, close_note: 宽屏点收起}
@@ -201,6 +204,13 @@ controls:
     states: [idle, busy]
     transitions: {idle: [busy], busy: [idle]}
     note: 宽屏折叠为图标条
+  ctl.shell.logout:
+    label: 登出
+    kind: logout
+    where: [shell]
+    states: [idle, busy]
+    transitions: {idle: [busy], busy: [idle]}
+    note: 清本机令牌并跳登录页
   ctl.crumb_up:
     label: 面包屑上一级
     kind: crumb_up

@@ -517,6 +517,7 @@ async function render(opts) {
   renderCrumb(spec, ctx);
   const marks = scrollMarks();          // 整页重渲染前记账（15s 兜底轮询走的就是这条）
   renderView(spec, ctx);
+  if (typeof stampCtl === "function") stampCtl(document.querySelector("#view-body"));
   scrollRestore(marks);
   const ta = document.querySelector("#view-body .composer textarea");
   if (ta && draft) ta.value = draft;   // 轮询重建 DOM 时把用户草稿还回去
@@ -676,7 +677,7 @@ function renderCrumb(spec, ctx) {
   // 末段=当前页（不可点）；倒数第二段=上一级（点了回上级）；更上面的只是层级标识
   $("crumb").innerHTML = trail.map((text, i) => {
     if (i === trail.length - 1) return `<span class="now">${esc(text)}</span>`;
-    if (i === trail.length - 2) return `<button data-crumb="1">${esc(text)}</button><span class="sep">/</span>`;
+    if (i === trail.length - 2) return `<button data-crumb="1" data-clk="crumb_up" data-ctl="ctl.crumb_up" data-ctl-state="idle">${esc(text)}</button><span class="sep">/</span>`;
     return `<span class="up">${esc(text)}</span><span class="sep">/</span>`;
   }).join("");
 }

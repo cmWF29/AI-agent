@@ -28,6 +28,16 @@ view:
     - {label: 界面状态, value: "data.machine.screen_machine.stats.states|count", note: 个页面/浮层}
     - {label: 界面迁移, value: "data.machine.screen_machine.stats.edges|count", note: 条"点哪个控件到哪个状态"}
     - {label: 浮层, value: "data.machine.screen_machine.stats.overlays|count", note: 能开必须能关}
+    - {label: 控件, value: "data.machine.screen_machine.stats.controls|count", note: 登记过的按钮；真实实例按行数据重复}
+  - kind: table
+    as: machine
+    source: machine.screen_machine.controls
+    title: 控件清单（每个按钮点下去干什么）
+    note: 不换页面的按钮也在册：归档/删除/启停是"本页刷新"，展开/缩放是"只改本页显示"
+    columns:
+    - {label: 页面, value: row.view_cn, sub: row.view}
+    - {label: 按钮, value: row.label, sub: row.ctl}
+    - {label: 点后去向, value: row.effect}
   - kind: dag
     as: machine
     source: machine.screen_machine.states

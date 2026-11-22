@@ -166,6 +166,14 @@ const CLICK_HANDLERS = {
   filter(el) { FILTER = el.dataset.filter; render(); },
   member_chip(el) { return $("popover").hidden ? openMemberCard(el) : closeMemberCard(); },
   popover_close() { closeMemberCard(); },
+  section_fold(el) {
+    const d = el.closest("details");
+    if (d) d.open = !d.open;
+  },
+  logout() {
+    return uiRun(async () => { try { await run("auth-logout", { token: token() }); } catch (e) {}
+      clearToken(); location.href = "/login.html"; }, "logout");
+  },
   fold_text(el) {
     const folded = el.classList.toggle("clamp");
     const t = el.querySelector(".ev-text");
@@ -435,8 +443,9 @@ function renderMenus(menus) {
   });
   side.innerHTML = groups.map((g) => `<div class="nav-group">${
     g.name ? `<div class="nav-group-title">${esc(g.name)}</div>` : ""}${
-    g.items.map((m) => `<button data-clk="nav" data-nav="${esc(m.key)}">${esc(m.label || m.key)}</button>`).join("")
+    g.items.map((m) => `<button data-clk="nav" data-nav="${esc(m.key)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</button>`).join("")
   }</div>`).join("");
+  if (typeof stampCtl === "function") stampCtl(side);
 }
 function highlightNav() {
   const cur = navTarget(state.view);

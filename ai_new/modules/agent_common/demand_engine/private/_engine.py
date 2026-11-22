@@ -15,6 +15,12 @@ import re
 from . import _lang
 
 
+WRITE_LIKE = {"projects-archive", "projects-rename", "projects-delete", "projects-create",
+              "ticket-create", "ticket-close", "ticket-message", "ticket-note",
+              "project-position-toggle", "project-tool-toggle", "project-skill-toggle",
+              "project-override-toggle"}
+
+
 def _slug(label):
     s = re.sub(r"[\s+\uff0b]", "", str(label or ""))
     return re.sub(r"[^0-9A-Za-z_\-\u4e00-\u9fff]", "_", s) or "x"
@@ -252,7 +258,7 @@ class Engine:
         """
         shell = _md(self.ctx).yaml_read("console.yaml", {}) or {}
         sm = shell.get("screen_machine") or {}
-        states, edges, overlays = {}, [], []
+        states, edges, overlays, controls = {}, [], [], []
 
         def node(key, label):
             if key not in states:
@@ -293,6 +299,25 @@ class Engine:
                     acts.append(dict(sec["on_click"], label=sec.get("click_label") or "打开卡片"))
             for act in acts:
                 target, ctl_kind = None, "card_act"
+                # 每个按钮都登记进控件清单：不换状态的按钮（归档/删除/启停）也要有去向说明
+                effect = "本页刷新"
+                if act.get("view"):
+                    effect = "跳到 %s" % (act["view"] if isinstance(act["view"], str)
+                                        else (act["view"].get("key") or act["view"].get("view")))
+                elif act.get("modal"):
+                    effect = "打开弹窗 %s" % act["modal"]
+                elif act.get("demand") in WRITE_LIKE:
+                    effect = "本页刷新"
+                elif act.get("demand") or act.get("confirm") or act.get("flash"):
+                    effect = "本页刷新"
+                else:
+                    effect = "只改本页显示"
+                label_inv = act.get("label") or act.get("text") or ""
+                if label_inv:
+                    controls.append({"view": "view:%s" % key, "view_cn": label,
+                                     "label": label_inv,
+                                     "ctl": act.get("ctl") or "ctl.%s.%s" % (ctl_kind, _slug(label_inv)),
+                                     "effect": effect})
                 if act.get("view"):
                     tv = act["view"]
                     target = "view:%s" % (tv if isinstance(tv, str) else (tv.get("key") or tv.get("view")))
@@ -324,7 +349,8 @@ class Engine:
             "states": list(states.values()),
             "edges": edges,
             "overlays": overlays,
-            "stats": {"states": len(states), "edges": len(edges), "overlays": len(overlays)},
+            "controls": controls,
+            "stats": {"states": len(states), "edges": len(edges), "overlays": len(overlays), "controls": len(controls)},
             "close_controls": [{"ctl": o.get("close_ctl"), "note": o.get("close_note")} for o in (sm.get("overlays") or [])],
         }
 
