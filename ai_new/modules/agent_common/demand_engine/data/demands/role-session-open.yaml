@@ -1,0 +1,203 @@
+id: role-session-open
+title: 全局岗位会话：起一个不挂项目的配置者/拆解者，并按 purpose 幂等复用
+description: 全局岗位会话：起一个不挂项目的配置者/拆解者，并按 purpose 幂等复用。人设、岗位要素、工具与知识各自取；会话落盘由 sessions.ensure 统一幂等
+tags:
+- session
+- write
+enabled: true
+callable: true
+'on': []
+do:
+- call: config.get
+  with:
+    key:
+      lit: knowledge.paths
+  as: k_paths
+- call: demand_engine.run
+  with:
+    id:
+      lit: library-role-prompt
+    input:
+      role:
+        get: input.role
+  as: prompt
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: roles.yaml
+  as: role
+- call: library.get
+  with:
+    kind:
+      lit: roles
+    id:
+      get: input.role
+    seed:
+      get: seed.value
+    user:
+      get: role.value
+  as: rec
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: flows.yaml
+  as: flows
+- call: library.stage_refs
+  with:
+    seed:
+      get: seed.value
+    flows:
+      get: flows.value
+  as: refs
+- call: library.stage_contract
+  with:
+    states:
+      get: rec.item.states
+    stages:
+      get: rec.item.states
+    checks:
+      get: rec.item.checks
+    refs:
+      get: refs.refs
+  as: contract
+- call: demand_engine.run
+  with:
+    id:
+      lit: position-tools
+    input:
+      role:
+        get: input.role
+      kind:
+        lit: role
+      project:
+        lit: ""
+  as: tools
+- call: library.stage_tools
+  with:
+    contract:
+      get: contract
+    active:
+    - get: contract.initial
+    items:
+      get: tools.result.items
+  as: stools
+- call: library.flow_context
+  with:
+    contract:
+      get: contract
+    flow:
+      id:
+        get: rec.item.id
+      cn:
+        get: rec.item.cn
+    checks:
+      get: rec.item.checks
+    active:
+    - get: contract.initial
+  as: fctx
+- call: library.prompt_blocks
+  with:
+    text:
+      get: prompt.result.prompt
+    must_dos:
+      get: rec.item.must_dos
+    forbidden:
+      get: rec.item.forbidden
+  as: blocks
+- call: demand_engine.run
+  with:
+    id:
+      lit: knowledge-compose
+    input:
+      prefixes:
+      - public/
+  as: know
+- call: sessions.ensure
+  with:
+    kind:
+      get: input.kind
+    name:
+      get: input.name
+    ticket:
+      lit: ""
+    project:
+      lit: ""
+    project_overrides:
+      lit: {}
+    role_system:
+      get: rec.item.system
+    role_readonly:
+      get: rec.item.readonly
+    role:
+      get: input.role
+    max_steps:
+      get: input.max_steps
+    meta:
+      purpose:
+        get: input.purpose
+    tools:
+      get: stools.items
+    machine:
+      get: contract
+    stages:
+      get: contract.states
+    active:
+    - get: contract.initial
+    stage:
+      get: contract.initial
+    task:
+      get: input.task
+    intro:
+      get: input.intro
+    role_prompt:
+      get: blocks.system
+    constraint:
+      get: fctx
+    flow:
+      get: fctx.flow
+    injected:
+      get: know.result.text
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input:
+      role: cloud-configurer
+      purpose: cloud-config
+      kind: role
+      name: 云端配置者
+  calls:
+  - config.get
+  - demand_engine.run
+  - store.read
+  - store.read
+  - library.get
+  - store.read
+  - library.stage_refs
+  - library.stage_contract
+  - demand_engine.run
+  - library.stage_tools
+  - library.flow_context
+  - library.prompt_blocks
+  - demand_engine.run
+  - sessions.ensure
+  - runtime.apply
+  payload: {}
+  promise: 全局配置者会话不挂项目、不碰工单；同 purpose 幂等复用，不每次切页都新建

@@ -204,6 +204,16 @@ def missing(p):
             "error": tpl.format(id=sid) if tpl else ""}
 
 
+def members(p):
+    """群聊成员：真人 + 本会话岗位；称呼来自词表与本岗位 cn。"""
+    tpl = p.get("tpl") or {}
+    role = p.get("role") or ""
+    return {"items": [
+        {"role": "user", "display": tpl.get("member_user") or "", "status": "active"},
+        {"role": role, "display": p.get("display") or role, "status": "active"},
+    ]}
+
+
 def record_path(p):
     """会话记录落盘相对路径：模板由需求层配置表给出，纯函数只填参。"""
     paths = p.get("paths") or {}

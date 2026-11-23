@@ -32,7 +32,7 @@ ui:
   crumb_root: 工作台
   tabbar: 主导航
   tab_config: 底栏配置
-  tab_config_note: 最多 5 个；没选的回到侧栏
+  tab_config_note: 最多 5 个；侧栏始终保留全部入口
   tab_config_full: 底栏最多 5 个入口
   tab_config_min: 底栏至少保留 1 个入口
   nav_all: 全部分组
@@ -268,27 +268,62 @@ controls:
     states: [idle, busy]
     transitions: {idle: [busy], busy: [idle]}
     note: 宽屏从图标条展开
-  ctl.head_act.登记节点:
-    label: 登记节点
+  ctl.head_act.节点配置者:
+    label: 节点配置者
     kind: head_act
     where: [nodes]
     states: [idle, busy, done, disabled]
     transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
-    note: 打开弹窗 node.register，不直接写；弹窗保存走 modal_ok；disabled 是只读态，点了不响应
-  ctl.head_act.绑定项目:
-    label: 绑定项目
+    note: 打开节点配置者对话；登记与绑定由岗位调工具完成
+  ctl.head_act.节点台账:
+    label: 节点台账
     kind: head_act
-    where: [nodes]
+    where: [node-chat]
     states: [idle, busy, done, disabled]
     transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
-    note: 打开弹窗 node.bind，不直接写；弹窗保存走 modal_ok；disabled 是只读态，点了不响应
-  ctl.head_act.保存云端配置:
-    label: 保存云端配置
+    note: 回到节点表核对健康、容量与归属
+  ctl.head_act.技能拆解者:
+    label: 技能拆解者
     kind: head_act
+    where: [skill-decompose]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 打开技能拆解者对话；给包地址，它校验、拆解并过库
+  ctl.head_act.拆解台账:
+    label: 拆解台账
+    kind: head_act
+    where: [skill-chat]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 回到拆解台账看已扫描/已登记/被阻断的包
+  ctl.card_act.配置信息:
+    label: 配置信息
+    kind: card_act
     where: [cloud]
     states: [idle, busy, done, disabled]
     transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
-    note: 打开弹窗 cloud.profile，不直接写；凭证只进密封层；disabled 是只读态，点了不响应
+    note: 查看当前 profile、最近同步与变更审计，不重新填表
+  ctl.head_act.对话:
+    label: 对话
+    kind: head_act
+    where: [cloud-info]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 回到云端配置者对话，继续收口径
+  ctl.card_act.群信息:
+    label: 群信息
+    kind: card_act
+    where: [secretary]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 打开群聊的独立信息页（队列/批次/定时任务），不打断聊天流
+  ctl.head_act.聊天:
+    label: 聊天
+    kind: head_act
+    where: [secretary-info]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 从群信息页回到群聊，不新建会话
   ctl.head_act.扫停滞:
     label: 扫停滞
     kind: head_act

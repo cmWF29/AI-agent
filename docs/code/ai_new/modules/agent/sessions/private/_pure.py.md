@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sessions/private/_pure.py
-hash: a6c168b03cce1cf670d28f780afaaed064f3e46276bb4cfbe11de80e886a08bb
+hash: e81739714a7b2f032893485e17b8cb2083b8b3badb80ef698a8b52422d6939b4
 symbols:
 - _seed
 - refresh_constraint_message
@@ -15,6 +15,7 @@ symbols:
 - compactp
 - machine_applyp
 - missing
+- members
 - record_path
 - wire_at
 - role_name
@@ -107,6 +108,12 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `missing`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `members`（function）
+- 职责: 群聊成员：真人 + 本会话岗位；称呼来自词表与本岗位 cn。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

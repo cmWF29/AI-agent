@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-nodes.yaml
-hash: 0208d98d40d5f8b165ddce6e6ecc8f76418d33152a923ee99b9539dc761322a1
+hash: 74328621587c7bfb35481925666fb89b5dca651c6439b3dafc215c9b75b318af
 symbols:
 - id
 - title

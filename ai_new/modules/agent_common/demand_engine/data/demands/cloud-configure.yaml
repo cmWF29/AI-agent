@@ -33,7 +33,7 @@ do:
       password:
         get: input.secret_key
     categories:
-    - get: input.category
+      get: input.categories
     policy:
       interval_s:
         lit: 3600
@@ -65,7 +65,7 @@ do:
   as: switched_applied
 expect:
   given:
-    input: {id: profile-form-1, company: demo, provider: webdav, endpoint: 'https://example.com/dav', root_dir: hive, access_key: u, secret_key: p, region: '', bucket: '', category: knowledge}
+    input: {id: profile-form-1, company: demo, provider: webdav, endpoint: 'https://example.com/dav', root_dir: hive, access_key: u, secret_key: p, region: '', bucket: '', categories: [knowledge]}
   calls:
   - cloud.profile_save
   - runtime.apply

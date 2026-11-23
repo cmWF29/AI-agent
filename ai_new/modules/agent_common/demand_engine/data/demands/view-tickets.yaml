@@ -7,11 +7,11 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 5, label: 群聊, group: {name: 工作, order: 1}, mobile: true, tab: {order: 2}}
+  url_only: true
   key: tickets
-  crumb: [群聊]
-  heading: 群聊
-  subheading: 按最近活动排列的工单群聊
+  crumb: [全部工单]
+  heading: 全部工单
+  subheading: 项目内已有群聊；这里只作为全部工单的直达清单
   data:
   - {as: tickets, demand: ticket-list}
   sections:

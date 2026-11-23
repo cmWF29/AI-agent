@@ -567,6 +567,7 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 .composer.off textarea,.composer.off sl-button{opacity:.55;cursor:not-allowed}
 .composer-hint{width:100%;font-size:12px;color:var(--muted)}
 .composer-hint.busy{color:#8a5a00}
+.field-hint{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:-2px}
 .side-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
 .side-card h3{font-size:13px;margin:0 0 10px;color:var(--fg);font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line-2)}
 .kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;line-height:1.5;padding:6px 0;border-bottom:1px solid var(--line-2)}
@@ -587,21 +588,28 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 #status{font-size:12px;color:var(--muted);padding:10px 16px;border-top:1px solid var(--line-2)}
 
 /* ---- 两级侧栏：一级分组、二级页面；移动底栏固定在安全区之上 ---- */
-.nav{display:flex;flex-direction:column;gap:8px;min-height:0;flex:1 1 auto;overflow:hidden}
-.nav-primary{display:flex;flex-direction:column;gap:4px;min-width:0;flex:none}
-.nav-group-btn::part(base){width:100%;min-width:0;justify-content:flex-start;gap:8px;min-height:44px;padding:9px 10px;border-radius:12px;color:var(--fg-2);font-size:13px}
+.nav{display:flex;flex-direction:column;gap:6px;min-height:0;flex:1 1 auto;overflow:hidden}
+/* 一级分组做成顶栏页签，二级列表独占整宽：两列并排会让“资产”组按钮和“工作”的叶子错行，看着像串组 */
+.nav-primary{display:flex;flex-direction:row;gap:2px;min-width:0;flex:none;padding-bottom:6px;border-bottom:1px solid var(--line-2)}
+.nav-primary>sl-button{flex:1 1 0;min-width:0}
+.nav-group-btn::part(base){width:100%;min-width:0;justify-content:center;gap:4px;min-height:36px;padding:5px 4px;border-radius:9px;color:var(--fg-2);font-size:12px}
 .nav-group-btn.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:600}
 .nav-group-label{white-space:nowrap}
-.nav-group-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none;font-size:18px}
-.nav-secondary{display:none;flex-direction:column;gap:4px;min-height:0;overflow-y:auto}
+.nav-group-ico{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:none;font-size:15px}
+.nav-secondary{display:flex;flex-direction:column;gap:3px;min-height:0;overflow-y:auto;padding-top:2px}
 .nav-back::part(base){justify-content:flex-start;padding:7px 10px;color:var(--muted);font-size:12px}
-.nav-sec-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 4px}
+.nav-sec-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 2px}
 .nav-sec-head span{font-size:12px;font-weight:600;color:var(--fg-2);letter-spacing:.04em}
 .nav-sec-head em{font-style:normal;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .nav-items{display:flex;flex-direction:column;gap:2px}
-.nav-leaf::part(base){justify-content:flex-start;padding:9px 12px;border-radius:10px;color:var(--fg-2);font-size:13px}
+.nav-leaf::part(base){justify-content:flex-start;padding:7px 10px;border-radius:9px;color:var(--fg-2);font-size:12.5px}
 .nav-leaf.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:600}
 .nav-empty{font-size:11.5px;color:var(--muted);line-height:1.6;padding:8px 12px;border:1px dashed var(--line);border-radius:10px}
+/* 覆盖通用 .nav sl-button 的宽松内边距：一级页签 36、二级叶子 34，紧凑但不挤 */
+.nav .nav-group-btn{height:36px}
+.nav .nav-group-btn::part(base){height:36px;min-height:36px;justify-content:center;padding:5px 4px;font-size:12px;border-radius:9px}
+.nav .nav-leaf{height:34px}
+.nav .nav-leaf::part(base){height:34px;min-height:34px;padding:7px 10px;font-size:12.5px;border-radius:9px}
 /* 底栏配置：入口在侧栏底部，勾选即存本地，不复制一份菜单数据 */
 .tab-config{flex:none;padding:10px 4px 2px;border-top:1px solid var(--line-2);margin-top:8px;background:var(--card)}
 .tcfg-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 6px 8px}
@@ -679,9 +687,9 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .shell{align-items:stretch}
   .sidebar.collapsed{width:0;padding:0;border-right:0;overflow:hidden}
   .sidebar.collapsed+.scrim{display:none}
-  .nav{flex-direction:row;gap:8px;align-items:flex-start;overflow:hidden}
-  .nav-primary{flex:0 0 72px;width:72px;min-width:0}
-  .nav-group-btn::part(base){flex-direction:column;justify-content:center;gap:4px;min-width:0;min-height:58px;padding:7px 2px;font-size:10.5px}
+  .nav{flex-direction:column;gap:6px;align-items:stretch;overflow:hidden}
+  .nav-primary{flex:none;width:auto;min-width:0}
+  .nav-group-btn::part(base){flex-direction:row;justify-content:center;gap:4px;min-width:0;min-height:36px;padding:5px 4px;font-size:12px}
   .nav-secondary{display:flex;flex:1;min-width:0;max-height:100%;overflow-y:auto}
   .nav-back{display:none}
   body.rail .rail-open{display:flex}
@@ -689,6 +697,8 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 }
 @media (max-width: 899px) {
   .rail-btn{display:none}
+  .nav-primary{flex-direction:column;gap:4px;padding-bottom:0;border-bottom:0}
+  .nav-primary>sl-button{flex:0 0 auto}
   .sidebar.group-open .nav-primary{display:none}
   .sidebar.group-open .nav-secondary{display:flex}
 }
@@ -728,6 +738,13 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .view-scroll::-webkit-scrollbar{display:none}
   /* 桌面的双栏容器在手机上摊平，两栏的每一节都成为同一堆的卡片 */
   .view-scroll>.ticket-grid,.view-scroll>.ticket-grid>.lane{display:contents}
+  /* 聊天是主角：手机端 chat 栏占满 composer 以上，别让卡片按内容缩成三分之一 */
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]){display:flex;flex-direction:column;gap:0;height:calc(100dvh - 96px);min-height:0}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"])>.lane{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .vsec[data-kind="chat"]{flex:1 1 auto;min-height:0;display:flex}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .vsec[data-kind="chat"] .chat-card{flex:1 1 auto;min-height:0}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .vsec[data-kind="composer"]{flex:0 0 auto}
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .role-board{display:none} /* 手机上成员头像已能点开状态，整条状态板让位给消息区 */
   .view-scroll>.vsec,.view-scroll .lane>.vsec{flex:0 0 auto;width:100%;height:auto;min-height:0;margin:0;
     overflow:visible;display:flex;flex-direction:column}
   /* 只有一页时不留堆叠的缺口，直接占满 */
@@ -751,10 +768,16 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 
   .chat-card{flex:1 1 auto;height:auto;max-height:none;min-height:200px;border-radius:14px}
   .chat{max-height:none}
-  .chat-head{padding:10px 12px;flex-wrap:nowrap}
-  .chat-head-meta{flex-wrap:wrap;gap:4px 8px}
+  .chat-head{padding:6px 10px;flex-wrap:nowrap;gap:6px}
+  .chat-head-title strong{font-size:13px}
+  .chat-head-meta{flex-wrap:nowrap;gap:2px 6px;font-size:11px}
+  .chat-head-actions sl-button::part(base){padding:4px 8px;font-size:11px}
+  .role-board{padding:3px 8px;gap:5px}
+  .role-board .board-lab{display:none}
+  .role-mini::part(base){padding:3px 8px;font-size:11px}
+  .av-chip::part(base){min-width:28px;height:28px;padding:0}
   .chat-head-meta>span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:150px}
-  .chat-head-meta>span:nth-of-type(3){display:none} /* 项目名在抽屉与会话里都有，手机上不重复占位 */
+  .chat-head-meta>span:nth-of-type(n+2){display:none} /* 项目名/更新时间在面包屑与会话里都有，手机上不重复占位 */
   .chat{padding:12px 12px}
   .row2{grid-template-columns:1fr}
   .cards{display:flex;flex-direction:column;gap:10px}
@@ -793,9 +816,16 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .tbl-wrap td.actions{display:flex;justify-content:flex-end}
   .tbl-wrap td>.badge,.tbl-wrap td>span.badge{justify-self:start}
   .msg{max-width:92%}
-  .composer{flex-wrap:wrap}
-  .composer textarea{flex:1 1 100%;min-width:0}
+  /* 手机群聊：输入框一行、操作按钮一行，别让底部把聊天区挤成三分之一 */
+  .composer{flex-wrap:wrap;padding:6px 8px;gap:4px;align-items:flex-end}
+  .lane-left>.vsec[data-kind="composer"] .composer{padding:6px 8px}
+  .composer textarea,.lane-left>.vsec[data-kind="composer"] .composer textarea{flex:1 1 100%;min-width:0;min-height:36px;max-height:76px;padding:7px 10px;line-height:1.3;border-radius:12px}
+  .composer-actions{flex-direction:row;gap:5px;width:100%;justify-content:flex-end;align-items:center}
+  .composer-actions sl-button::part(base){height:32px;min-height:32px;padding:4px 10px;font-size:12px}
   .composer button{flex:none}
+  /* 原始报文贴在原消息右侧，窄屏也不折成下一行当新消息 */
+  .wire-pair{grid-template-columns:minmax(0,1fr) 88px;gap:6px}
+  .wire-side-raw .raw-box summary{font-size:10px;line-height:1.35}
   #banner{margin:0 14px}
 }
 

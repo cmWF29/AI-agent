@@ -114,7 +114,9 @@ function fieldHtml(f, ctx) {
   if (f.kind === "select") {
     const opts = (f.options || []).map((o) =>
       `<sl-option value="${esc(o.value)}">${esc(o.label)}</sl-option>`).join("");
-    return `<div class="field"><label>${esc(f.label)}</label><sl-select name="${esc(f.name)}" data-value="${esc(String(val))}">${opts}</sl-select></div>`;
+    const mul = f.multiple ? " multiple" : "";
+    const help = f.hint ? `<div class="field-hint">${esc(f.hint)}</div>` : "";
+    return `<div class="field"><label>${esc(f.label)}</label><sl-select name="${esc(f.name)}" data-value="${esc(String(val))}"${mul}>${opts}</sl-select>${help}</div>`;
   }
   const type = f.kind === "url" ? "url" : f.kind === "password" ? "password" : "text";
   return `<div class="field"><label>${esc(f.label)}</label><sl-input name="${esc(f.name)}" type="${type}" value="${esc(val)}"${ph}${req}${ro}></sl-input></div>`;
@@ -124,8 +126,9 @@ function readModalFields(formEl) {
   formEl.querySelectorAll("sl-input,sl-textarea,sl-select,input,select,textarea").forEach((el) => {
     if (!el.name) return;
     let v = el.value;
-    if (Array.isArray(v)) v = v.join(",");
-    fields[el.name] = typeof v === "string" ? v.trim() : (v == null ? "" : v);
+    // 多选控件保持数组，交给需求原样传给能力；其余控件仍按纯文本归一。
+    if (Array.isArray(v)) fields[el.name] = v.map((x) => String(x).trim()).filter(Boolean);
+    else fields[el.name] = typeof v === "string" ? v.trim() : (v == null ? "" : v);
   });
   return fields;
 }
@@ -139,7 +142,10 @@ function openForm(form, ctx) {
   $("modal-err").textContent = "";
   $("modal-form").innerHTML = (form.fields || []).map((f) => fieldHtml(f, ctx)).join("");
   // sl-select 选中值：渲染后按 data-value 回填
-  $("modal-form").querySelectorAll("sl-select").forEach((el) => { el.value = el.dataset.value || ""; });
+  $("modal-form").querySelectorAll("sl-select").forEach((el) => {
+    const raw = el.dataset.value || "";
+    el.value = el.multiple ? raw.split(",").filter(Boolean) : raw;
+  });
   bindDropZones($("modal-form"));
   $("modal-ok").textContent = fill((form.submit || {}).ok || uiText("ok"), ctx);
   $("modal-ok").disabled = false;

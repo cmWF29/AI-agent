@@ -548,7 +548,7 @@ function renderTabConfig(menus) {
   if (box.hidden) return;
   const pool = arr(menus).filter((m) => m.mobile !== false);
   const keys = activeTabKeys(menus);
-  box.innerHTML = `<div class="tcfg-head"><b>${esc(uiText("tab_config") || "底栏入口")}</b><span class="muted">${esc(uiText("tab_config_note") || "最多 5 个；没选的回到侧栏")}</span></div>
+  box.innerHTML = `<div class="tcfg-head"><b>${esc(uiText("tab_config") || "底栏入口")}</b><span class="muted">${esc(uiText("tab_config_note") || "最多 5 个；侧栏始终保留全部入口")}</span></div>
     <div class="tcfg-list">${pool.map((m) => `<label class="tcfg-row">
       <sl-checkbox data-tab-key="${esc(m.key)}"${keys.indexOf(m.key) >= 0 ? " checked" : ""}>${esc(m.label || m.key)}</sl-checkbox>
       <span class="muted">${esc(m.group || "")}</span></label>`).join("")}</div>`;
@@ -586,7 +586,6 @@ function renderNavPanels() {
   const side = $("side-nav");
   if (!side) return;
   const groups = navGroupList(NAV_MENUS);
-  const tabKeys = activeTabKeys(NAV_MENUS);
   const groupButton = (g) => {
     const icon = ({ "工作": "folder2", "资产": "book", "系统": "check-lg" })[g.name] || "";
     const ch = [...String(g.name || "?")][0] || "?";
@@ -598,7 +597,8 @@ function renderNavPanels() {
     return `<sl-button variant="text" class="nav-leaf" data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</sl-button>`;
   };
   const group = groups.find((g) => g.name === NAV_GROUP) || { name: "", items: [] };
-  const leaves = group.items.filter((m) => tabKeys.indexOf(m.key) < 0);
+  // 侧栏是完整导航：底栏只是快捷入口，不再把已选进底栏的页面从侧栏抽走。
+  const leaves = group.items;
   side.innerHTML = `<div class="nav-primary">${groups.map(groupButton).join("")}</div>
     <div class="nav-secondary">
       <sl-button variant="text" class="nav-back" data-clk="nav_group" data-nav-back="1" data-ctl="ctl.nav_group.返回" data-ctl-state="idle">← ${esc(uiText("nav_all") || "全部分组")}</sl-button>

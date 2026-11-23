@@ -239,7 +239,20 @@ def queue_view(p):
             "roles_hint": list(b.get("roles_hint") or []),
             "error": b.get("error") or "",
         })
-    return {"counts": counts, "rows": rows, "batches": batches}
+    # 群聊流只输出结构化事件，文案由路由层按词表渲染；队列/批次明细仍留在“群信息”页。
+    events = [{
+        "kind": "message", "text": r.get("text") or "", "at": r.get("at"),
+        "msg_id": r.get("msg_id"), "status": r.get("status"),
+    } for r in rows if (r.get("text") or "").strip()]
+    for b in batches:
+        events.append({
+            "kind": "batch", "at": b.get("claimed_at"),
+            "count": len(b.get("msg_ids") or []), "ticket": b.get("ticket") or "",
+            "goal": str((b.get("brief") or {}).get("goal") or "").strip(),
+            "error": b.get("error") or "", "batch_id": b.get("batch_id"),
+        })
+    events.sort(key=lambda e: (e.get("at") is None, e.get("at") or 0))
+    return {"counts": counts, "rows": rows, "batches": batches, "events": events}
 
 
 STATUS_TRANSITIONS = {

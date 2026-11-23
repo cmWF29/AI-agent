@@ -127,6 +127,9 @@ checks:
   - session-stuck-scan
   - session-send
   - session-spawn
+  - role-session-open
+  - role-session-message
+  - role-session-members
   - session-state
   - session-wait
   - ticket-close
@@ -181,6 +184,7 @@ checks:
   - secretary-index
   - secretary-timers
   - view-secretary
+  - view-secretary-info
 - id: timer
   title: 定时器：调度推算、两路触发幂等、作用域隔离与审计
   module: test_timer
@@ -215,6 +219,7 @@ checks:
   - cloud-sync-plan
   - cloud-sync-run
   - view-cloud
+  - view-cloud-info
 - id: nodes
   title: 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账
   module: test_nodes
@@ -239,6 +244,7 @@ checks:
   - nodes-renew
   - nodes-role
   - view-nodes
+  - view-node-chat
 - id: skill-decompose
   title: 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑
   module: test_skill_decompose
@@ -250,6 +256,7 @@ checks:
   - decompose-inspect
   - decompose-register
   - view-skill-decompose
+  - view-skill-chat
 - id: sandbox
   title: 隔离执行：两档策略、执行计划、跨进程锁互斥与能力上报
   module: test_isolation_tiers

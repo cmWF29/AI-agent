@@ -788,7 +788,7 @@ process:
     when: {}
 skill-decomposer:
   id: skill-decomposer
-  cn: 拆解者
+  cn: 技能拆解者
   prompt_file: roles/skill-decomposer.md
   must_dos:
   - 读入外部 skill 包：记录来源 URL/版本/许可证，校验包结构

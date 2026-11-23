@@ -21,6 +21,8 @@ view:
     blocked_missing_deps: 缺依赖阻断
     registered: 已登记入库
     rejected: 已拒绝
+  actions:
+  - {label: 技能拆解者, view: skill-chat, ctl: ctl.head_act.技能拆解者}
   data:
   - {as: index, demand: decompose-index}
   sections:

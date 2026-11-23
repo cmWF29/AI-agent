@@ -77,6 +77,10 @@ routes:
         type: list
       batches:
         type: list
+      messages:
+        type: list
+      members:
+        type: list
       code:
         type: string
       error:

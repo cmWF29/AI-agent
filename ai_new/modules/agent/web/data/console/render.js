@@ -1094,7 +1094,7 @@ function composerHtml(sec, ctx) {
   const submitCtl = String(submit.ctl || ctlOf(submit, "composer_send"));
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
-      <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
+      <textarea rows="1" placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
       <div class="composer-actions">${acts}${voiceBtn}
         <sl-button class="primary" variant="primary" size="small" data-clk="composer_send" data-act="${submitId}" data-ctl="${esc(submitCtl)}" data-ctl-state="${st}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</sl-button>
       </div>

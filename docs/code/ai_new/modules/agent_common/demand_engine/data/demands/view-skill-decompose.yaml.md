@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-skill-decompose.yaml
-hash: d64f769ffb7cfeab2aeeacfbd800a4dc2c0dc9b28f74cd26cbc7ca3ac1a23151
+hash: 47bd217d4c41e525e908760974380260f6bd47506b18a6b613dac3d6335685f9
 symbols:
 - id
 - title

@@ -1,0 +1,59 @@
+id: view-skill-chat
+title: 技能拆解者对话：必要信息一次问清，配置由岗位调工具落地
+description: "技能拆解者对话：像即时通讯一样直接跟岗位聊；台账留在上位页，会话按 purpose 幂等复用"
+tags: [session, view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: skill-chat
+  crumb: [技能拆解, 技能拆解者]
+  heading: 技能拆解者
+  subheading: 和技能拆解者对话；给它外部 Skill 包来源，它负责校验、拆岗位/工具/流程并过库
+  poll: 2500
+  parent: {view: skill-decompose}
+  data:
+  - as: chat
+    demand: role-session-open
+    disabled_when: data.chat.status == gone
+    params: {role: skill-decomposer, purpose: skill-decompose, kind: role, name: 技能拆解者}
+  - as: members
+    demand: role-session-members
+    params: {role: skill-decomposer}
+  actions:
+  - label: 拆解台账
+    view: skill-decompose
+    ctl: ctl.head_act.拆解台账
+  sections:
+  - kind: chat
+    as: chat
+    lane: left
+    source: chat
+    heading: 技能拆解者
+    meta:
+    - 全局岗位会话 · 不挂项目
+    empty: 把外部 Skill 包地址、版本和用途发给拆解者；它会检查结构、依赖与许可证
+    hide_roles: [system]
+    roles_source: members.items
+    wire_demand: message-wire
+    wire_chars: 8000
+    raw_chars: 6000
+  - kind: composer
+    disabled_when: data.chat.status == gone
+    lane: left
+    placeholder: 把外部 Skill 包地址、版本和用途发给拆解者；它会检查结构、依赖与许可证
+    submit:
+      label: 发送
+      demand: role-session-message
+      params:
+        id: "{data.chat.id}"
+        text: $text
+      flash: 已发给技能拆解者
+      clear: true
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 技能拆解者会话按 purpose 复用，聊天流只追加 human 并后台驱动

@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 183 条需求，绑定 15 个检查项。
+共 190 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -106,6 +106,9 @@
 | projects-list | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | projects-rename | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | react-run | write | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| role-session-members | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| role-session-message | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| role-session-open | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | runtime-params | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | sandbox-capability | sandbox | sandbox | test_isolation_tiers.py | 隔离执行：两档策略、执行计划、跨进程锁互斥与能力上报 |
 | sandbox-plan | sandbox | sandbox | test_isolation_tiers.py | 隔离执行：两档策略、执行计划、跨进程锁互斥与能力上报 |
@@ -166,10 +169,12 @@
 | view-artifacts | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-click-machine | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-cloud | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
+| view-cloud-info | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
 | view-forms | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-knowledge | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-knowledge-doc | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-logs | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| view-node-chat | session | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | view-nodes | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | view-ops | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-position | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
@@ -177,6 +182,8 @@
 | view-project-detail | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-projects-list | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-secretary | view | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |
+| view-secretary-info | view | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |
+| view-skill-chat | session | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
 | view-skill-decompose | view | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
 | view-skills | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-ticket-thread | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |

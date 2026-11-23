@@ -1,11 +1,13 @@
 ---
 source: ai_new/modules/agent/sessions/__init__.py
-hash: b172bb4775e8daa6dd1bee92c64e67021eb9e6a2ef04e5d19831e5b1951cb8df
+hash: 9a0049f7834b6b1445e8e1ceea077c32501a52ac2383205aa7aa45eaae070182
 symbols:
 - setup
 - start
 - _route_resume
 - _route_scan_stuck
+- _route_ensure
+- _route_talk
 - _route_by_ticket
 - _route_emit_finished
 - _seq_of
@@ -52,6 +54,18 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `_route_scan_stuck`（function）
 - 职责: 自愈扫描闭环：对照运行表活跃任务与停滞阈值，僵死/超阈值的 running 会话复位 idle。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_ensure`（function）
+- 职责: 全局岗位会话幂等入口：同 role + meta.purpose 已有记录就复用，否则走统一 spawn。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_talk`（function）
+- 职责: 配置者对话：人给的文本追加为 human，落盘后立即派发统一会话驱动。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

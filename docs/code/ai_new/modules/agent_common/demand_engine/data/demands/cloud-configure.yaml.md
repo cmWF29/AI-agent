@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/cloud-configure.yaml
-hash: d275ed1caa0ad8c6586c5e5a20f8b8b157f295add6d4e1e626d4c434fe754b0d
+hash: 2d1dc4b2e06bff989cf4f126092e92011f62c761f24d3aedd237b89f53d3c31c
 symbols:
 - id
 - title

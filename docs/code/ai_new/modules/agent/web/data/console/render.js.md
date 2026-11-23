@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: e05b5ae20403fec18d0dae0abc4a137a74d59bc3e2d590d7b9851283ca504c23
+hash: 60f76ef1741983d8ce29c0f84617823da1c566404a12de5e8d8b0a08afbd2f63
 symbols:
 - foldLoad
 - foldSet

@@ -16,6 +16,7 @@ def setup(ctx):
         ("sessions.refresh_constraint_message", _pure.refresh_constraint_message),
         ("sessions.inject_assigned_message", _pure.inject_assigned_message),
         ("sessions.view", _pure.view),
+        ("sessions.members", _pure.members),
         ("sessions.present", _pure.present),
         ("sessions.screen", _pure.screen),
         ("sessions.gone", _pure.gone),
@@ -40,6 +41,10 @@ def setup(ctx):
                      "造会话：取人设与知识拼记录，写入算成效果交出去", module="sessions")
     ctx.api.register("sessions.emit_finished", _route_emit_finished,
                      "一轮收尾落盘后触发 finished 钩子，后续业务由需求编排", module="sessions")
+    ctx.api.register("sessions.ensure", _route_ensure,
+                     "幂等造全局岗位会话：按 role+purpose 复用，没有才 spawn", module="sessions")
+    ctx.api.register("sessions.talk", _route_talk,
+                     "全局岗位会话对话：追加 human 并后台派发 session-run", module="sessions")
     ctx.api.register("sessions.by_ticket", _route_by_ticket,
                      "按工单归集全部会话视图：PM 与角色会话同一群聊流", module="sessions")
     ctx.api.register("sessions.resume", _route_resume,
@@ -123,6 +128,49 @@ def _route_scan_stuck(ctx, payload):
     return {"effects": effects,
             "stuck": [i["id"] for i in plan.get("stuck") or []],
             "keep": plan.get("keep") or []}
+
+
+def _route_ensure(ctx, payload):
+    """全局岗位会话幂等入口：同 role + meta.purpose 已有记录就复用，否则走统一 spawn。
+
+    配置岗位不挂项目/工单，不能靠 active_same_role 的在途窗口；purpose 是长期键。
+    """
+    role = payload.get("role") or ""
+    purpose = (payload.get("meta") or {}).get("purpose") or ""
+    if not role or not purpose:
+        raise ctx.ApiError("全局岗位会话缺少 role 或 purpose", code="bad_request", status=400)
+    listed = ctx.api.call("store.glob", {
+        "module": "agent/logs", "pattern": _cfg_logs(ctx).get("session_glob") or ""},
+        caller=None)
+    for rel in listed.get("items") or []:
+        row = ctx.api.call("store.read", {"module": "agent/logs", "path": rel}, caller=None)
+        rec = row.get("value") or {}
+        meta = rec.get("meta") or {}
+        if (rec.get("role") == role and rec.get("kind") == (payload.get("kind") or "role")
+                and meta.get("purpose") == purpose and rec.get("status") != "gone"):
+            view = ctx.api.call("sessions.view", {"rec": rec}, caller=None)
+            view["rec"] = rec
+            view["reused"] = True
+            view["effects"] = []
+            return view
+    return _route_spawn(ctx, payload)
+
+
+def _route_talk(ctx, payload):
+    """配置者对话：人给的文本追加为 human，落盘后立即派发统一会话驱动。"""
+    sid = str(payload.get("id") or "").strip()
+    text = str(payload.get("text") or "").strip()
+    if not sid:
+        raise ctx.ApiError("缺少会话 id", code="bad_request", status=400)
+    if not text:
+        raise ctx.ApiError("消息内容不能为空", code="bad_request", status=400)
+    path = _record_path(_cfg_logs(ctx), sid)
+    row = ctx.api.call("store.read", {"module": "agent/logs", "path": path}, caller=None)
+    if not row.get("value"):
+        raise ctx.ApiError("会话不存在：" + sid, code="not_found", status=404)
+    ctx.demand_engine.run_callable("session-send", {"id": sid, "text": text})
+    ctx.runtime.dispatch({"demand": "session-run", "key": sid, "input": {"id": sid}})
+    return {"ok": True, "id": sid}
 
 
 def _route_by_ticket(ctx, payload):

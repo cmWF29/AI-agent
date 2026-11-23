@@ -1,108 +1,59 @@
 id: view-cloud
-title: 云端配置视图：保存 profile、提供方、连通状态、最近同步与审计
-description: "云端配置视图：保存/切换 profile、最近同步摘要、失败原因与配置变更审计；凭证只进密封层，项目页接入状态由 cloud-project-status 提供"
+title: 云端配置对话：和云端配置者聊，必要信息一次问清，配置由岗位调工具落地
+description: "云端配置对话：不摆表单，起一个全局云端配置者会话；用户给端点/账号/同步类别，岗位自己调连通测试与 profile 工具；凭证只在公共级上下文使用"
 tags: [cloud, view, web, read]
 enabled: true
 callable: false
 'on': []
 do: []
 view:
-  menu: {order: 4, label: 云端资料库, group: {name: 系统, order: 3}, mobile: true}
+  menu: {order: 6, label: 云端资料库, group: {name: 资产, order: 2}, mobile: true}
   key: cloud
   crumb: [云端资料库]
   heading: 云端资料库
-  subheading: 保存云端 profile、切为生效；凭证只进密封层，视图脱敏
-  actions:
-  - {label: 保存云端配置, modal: cloud.profile, disabled_when: "route.archived == true", disabled_hint: 云端配置始终开放}
-  forms:
-  - id: cloud.profile
-    disabled_when: "route.archived == true"
-    title: 保存云端配置
-    hint: 凭证只进密封层，视图不回显；保存后自动切为当前生效 profile。
-    fields:
-    - {name: id, label: profile 标识, placeholder: 例如 s3-main, required: true}
-    - {name: company, label: 公司标识, placeholder: 例如 hive, required: true}
-    - name: provider
-      label: 提供方
-      kind: select
-      value: webdav
-      options:
-      - {value: webdav, label: webdav}
-      - {value: s3, label: s3}
-      - {value: http_dir, label: http_dir}
-      - {value: rsync, label: rsync}
-    - {name: endpoint, label: 端点, placeholder: https://example.com/dav, required: true}
-    - {name: root_dir, label: 远端根目录或桶, placeholder: hive}
-    - {name: access_key, label: 访问账号 / access_key, required: true}
-    - {name: secret_key, label: 访问密钥 / secret_key, kind: password, required: true}
-    - {name: region, label: 区域（s3 可选）, placeholder: ap-east-1}
-    - {name: bucket, label: 桶（s3 可选）, placeholder: hive-backup}
-    - name: category
-      label: 同步类别
-      kind: select
-      value: knowledge
-      options:
-      - {value: knowledge, label: 知识}
-      - {value: artifact, label: 交付件}
-      - {value: ticket, label: 工单}
-      - {value: session, label: 会话}
-      - {value: log, label: 日志}
-      - {value: trace, label: 链路}
-    submit:
-      demand: cloud-configure
-      params: {id: $id, company: $company, provider: $provider, endpoint: $endpoint, root_dir: $root_dir, access_key: $access_key, secret_key: $secret_key, region: $region, bucket: $bucket, category: $category}
-      ok: 保存并生效
-      flash: 已保存云端配置：$id
-      then:
-        view: cloud
-        reload: true
+  subheading: 和云端配置者对话；它负责收口径、测连通、落 profile，凭证不进聊天与视图
+  poll: 2500
   data:
-  - {as: status, demand: cloud-status}
-  - {as: audit, demand: cloud-audit-list}
+  - as: config
+    demand: role-session-open
+    disabled_when: data.config.status == gone
+    params: {role: cloud-configurer, purpose: cloud-config, kind: role, name: 云端配置者}
+  - as: members
+    demand: role-session-members
+    params: {role: cloud-configurer}
   sections:
-  - kind: kv
-    as: status
-    source: status.profile
-    heading: 当前 profile
-    rows:
-    - label: 提供方
-      value: row.provider
-    - label: 端点
-      value: row.endpoint
-    - label: 根目录
-      value: row.root_dir
-    - label: 同步类别
-      value: row.categories
-  - kind: kv
-    as: status
-    source: status.last_run
-    heading: 最近同步
-    rows:
-    - label: 时间
-      value: row.at|when
-    - label: 已推送
-      value: row.pushed
-    - label: 未变化
-      value: row.unchanged
-    - label: 冲突
-      value: row.conflicts
-    - label: 失败
-      value: row.failures
-    - label: 原因
-      value: row.reason
-  - kind: table
-    as: audit
-    source: data.audit.items
-    heading: 配置变更审计
-    columns:
-    - {label: 时间, value: row.at|when}
-    - {label: 动作, value: row.action}
-    - {label: 目标, value: row.target_id}
-    - {label: 结果, value: row.decision}
-    - {label: 原因, value: row.reason}
+  - kind: chat
+    as: config
+    lane: left
+    source: config
+    heading: 云端配置者
+    meta:
+    - 全局配置会话 · 不挂项目
+    empty: 说说要接哪种云端、端点和要同步什么；配置者会一次把缺口问清
+    hide_roles: [system]
+    roles_source: members.items
+    wire_demand: message-wire
+    wire_chars: 8000
+    raw_chars: 6000
+    actions:
+    - label: 配置信息
+      view: cloud-info
+      ctl: ctl.card_act.配置信息
+  - kind: composer
+    disabled_when: data.config.status == gone
+    lane: left
+    placeholder: 告诉配置者：哪家云、端点、目录/桶、要同步什么
+    submit:
+      label: 发送
+      demand: role-session-message
+      params:
+        id: "{data.config.id}"
+        text: $text
+      flash: 已发给云端配置者
+      clear: true
 expect:
   given:
     input: {}
   calls: []
   payload: {}
-  promise: 视图只声明区块，profile 与审计数据由 cloud-status / cloud-audit-list 取齐，凭证不进前端
+  promise: 云端配置不再让人填 10 个字段；配置岗位自带工具与红线，缺口一次问清

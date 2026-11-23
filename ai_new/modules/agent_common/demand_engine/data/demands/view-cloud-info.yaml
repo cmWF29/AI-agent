@@ -1,0 +1,59 @@
+id: view-cloud-info
+title: 云端配置信息：当前 profile、最近同步与变更审计
+description: "云端配置信息：当前 profile、最近同步与变更审计；聊天留在对话页，凭证仍脱敏"
+tags: [cloud, view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  key: cloud-info
+  crumb: [云端资料库, 配置信息]
+  heading: 配置信息
+  subheading: 当前生效 profile、最近同步与变更审计；改配置回对话页说
+  parent: {view: cloud}
+  actions:
+  - label: 对话
+    view: cloud
+    ctl: ctl.head_act.对话
+    tone: primary
+  data:
+  - {as: status, demand: cloud-status}
+  - {as: audit, demand: cloud-audit-list}
+  sections:
+  - kind: kv
+    as: status
+    source: status.profile
+    heading: 当前 profile
+    rows:
+    - {label: 提供方, value: row.provider}
+    - {label: 端点, value: row.endpoint}
+    - {label: 根目录, value: row.root_dir}
+    - {label: 同步类别, value: row.categories}
+  - kind: kv
+    as: status
+    source: status.last_run
+    heading: 最近同步
+    rows:
+    - {label: 时间, value: "row.at|when"}
+    - {label: 已推送, value: row.pushed}
+    - {label: 未变化, value: row.unchanged}
+    - {label: 冲突, value: row.conflicts}
+    - {label: 失败, value: row.failures}
+    - {label: 原因, value: row.reason}
+  - kind: table
+    as: audit
+    source: data.audit.items
+    heading: 配置变更审计
+    columns:
+    - {label: 时间, value: "row.at|when"}
+    - {label: 动作, value: row.action}
+    - {label: 目标, value: row.target_id}
+    - {label: 结果, value: row.decision}
+    - {label: 原因, value: row.reason}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 配置信息只读现状与审计，不重复表单，也不回显凭证

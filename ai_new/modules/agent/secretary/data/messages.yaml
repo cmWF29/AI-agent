@@ -8,6 +8,13 @@ invalid_state: 只有待处理或处理中的消息可以撤回
 flush_failed: 秘书处理失败：{error}
 fallback_title: 项目需求
 fallback_goal: （秘书尚未整理出需求正文）
+# 群聊流：结构化事件在纯函数，文案在这里渲染
+member_me: 我
+member_secretary: 群聊秘书
+chat_merged: 已合并 {n} 条消息
+chat_ticket: ，建单 {ticket}
+chat_goal: 。需求：{goal}
+chat_merge_failed: 合并失败：{error}
 # 队列状态词：视图用 status|label 映射
 status_pending: 待处理
 status_processing: 处理中

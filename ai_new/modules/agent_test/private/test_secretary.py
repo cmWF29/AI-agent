@@ -115,6 +115,12 @@ class SecretaryTest(unittest.TestCase):
         queue = self._queue(project)
         self.assertEqual(queue["counts"]["merged"], 3)
         self.assertEqual(queue["counts"]["pending"], 0)
+        # 群聊流：3 条人消息在右，1 条批次回执在左；队列明细仍留在 rows/batches
+        self.assertEqual([m["role"] for m in queue["messages"]],
+                         ["user", "user", "user", "secretary"])
+        self.assertEqual(queue["messages"][0]["text"], "做一个登录页")
+        self.assertIn(ticket_id, queue["messages"][-1]["text"])
+        self.assertEqual([m["display"] for m in queue["members"]], ["我", "群聊秘书"])
 
         rec = self._ticket_record(project, ticket_id)
         sec = (rec.get("meta") or {}).get("secretary") or {}

@@ -338,6 +338,95 @@ routes:
       max:
         type: any
         req: false
+  sessions.members:
+    in:
+      role:
+        type: any
+        req: false
+      display:
+        type: any
+        req: false
+    out:
+      items:
+        type: any
+  sessions.ensure:
+    in:
+      role:
+        type: any
+        req: false
+      kind:
+        type: any
+        req: false
+      name:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      project_overrides:
+        type: any
+        req: false
+      role_system:
+        type: any
+        req: false
+      role_readonly:
+        type: any
+        req: false
+      max_steps:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      tools:
+        type: any
+        req: false
+      machine:
+        type: any
+        req: false
+      stages:
+        type: any
+        req: false
+      active:
+        type: any
+        req: false
+      stage:
+        type: any
+        req: false
+      task:
+        type: any
+        req: false
+      intro:
+        type: any
+        req: false
+      role_prompt:
+        type: any
+        req: false
+      constraint:
+        type: any
+        req: false
+      flow:
+        type: any
+        req: false
+      injected:
+        type: any
+        req: false
+    out: {}
+  sessions.talk:
+    in:
+      id:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+      tpl:
+        type: any
+        req: false
+    out: {}
   sessions.view:
     in:
       rec:

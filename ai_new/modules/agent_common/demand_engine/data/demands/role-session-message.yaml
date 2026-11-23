@@ -1,0 +1,26 @@
+id: role-session-message
+title: 全局岗位会话发消息：守卫 → 追加 human → 派发 session-run
+description: 全局岗位会话发消息：守卫 → 追加 human → 派发 session-run。对话只打一条 human 消息，后台驱动仍走统一会话轨
+tags:
+- session
+- write
+enabled: true
+callable: true
+'on': []
+do:
+- call: sessions.talk
+  with:
+    id:
+      get: input.id
+    text:
+      get: input.text
+    tpl:
+      lit: {}
+  as: out
+expect:
+  given:
+    input: {id: role-1, text: 帮我接一个 S3}
+  calls:
+  - sessions.talk
+  payload: {}
+  promise: 配置者对话与工单群聊共用会话轨，追加与派发只做一次

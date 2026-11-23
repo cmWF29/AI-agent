@@ -319,7 +319,34 @@ def _route_list(ctx, payload):
         return {"ok": False, "code": "state_unavailable",
                 "error": str(exc) or type(exc).__name__,
                 "counts": {"pending": 0, "processing": 0, "merged": 0, "discarded": 0},
-                "rows": [], "batches": []}
+                "rows": [], "batches": [], "messages": [], "members": []}
+    tpl = _msg_tpl(ctx)
+    msgs = []
+    for ev in view.pop("events", []):
+        if ev.get("kind") == "message":
+            text = ev.get("text") or ""
+            msgs.append({"role": "user", "actor": "user", "kind": "human",
+                         "text": text, "content": text, "at": ev.get("at"),
+                         "msg_id": ev.get("msg_id"), "status": ev.get("status")})
+            continue
+        if ev.get("error"):
+            text = str(tpl.get("chat_merge_failed") or "").format(error=ev.get("error") or "")
+            role = "system"
+        else:
+            text = str(tpl.get("chat_merged") or "").format(n=ev.get("count") or 0)
+            if ev.get("ticket"):
+                text += str(tpl.get("chat_ticket") or "").format(ticket=ev.get("ticket") or "")
+            if ev.get("goal"):
+                text += str(tpl.get("chat_goal") or "").format(goal=ev.get("goal") or "")
+            role = "secretary"
+        msgs.append({"role": role, "actor": role, "kind": "assistant",
+                     "text": text, "content": text, "at": ev.get("at"),
+                     "batch_id": ev.get("batch_id")})
+    view["messages"] = msgs
+    view["members"] = [
+        {"role": "user", "display": tpl.get("member_me") or "", "status": "active"},
+        {"role": "secretary", "display": tpl.get("member_secretary") or "", "status": "active"},
+    ]
     return {"ok": True, **view}
 
 

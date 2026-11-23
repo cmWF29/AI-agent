@@ -421,7 +421,7 @@ async function resolvePage(view, params, wantShell, only) {
 async function mountSecretaryStatus(ctx) {
   const host = $("view-body");
   let box = document.getElementById("secretary-status");
-  if (state.view !== "secretary" || !state.project) { if (box) box.hidden = true; return; }
+  if (state.view !== "secretary-info" || !state.project) { if (box) box.hidden = true; return; }
   let res = null;
   try {
     const resp = await fetch("/api/rpc/secretary/status", {

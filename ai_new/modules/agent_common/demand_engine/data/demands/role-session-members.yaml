@@ -1,0 +1,52 @@
+id: role-session-members
+title: 全局岗位会话的群聊成员：真人 + 岗位称呼
+description: 全局岗位会话的群聊成员：真人 + 岗位称呼。岗位称呼取公共库 cn，会话模块只拼成员形状
+tags:
+- session
+- read
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: roles.yaml
+  as: role
+- call: library.get
+  with:
+    kind:
+      lit: roles
+    id:
+      get: input.role
+    seed:
+      get: seed.value
+    user:
+      get: role.value
+  as: rec
+- call: sessions.members
+  with:
+    role:
+      get: input.role
+    display:
+      get: rec.item.cn
+  as: out
+expect:
+  given:
+    input: {role: cloud-configurer}
+  calls:
+  - store.read
+  - store.read
+  - library.get
+  - sessions.members
+  payload: {}
+  promise: 成员称呼不写死在视图里，岗位改中文名，群聊头像同步变

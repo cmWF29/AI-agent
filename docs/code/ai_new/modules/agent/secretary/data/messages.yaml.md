@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/secretary/data/messages.yaml
-hash: 596b54dddbdbb76c914a6e247d8bfe53fbc0840ceecb5bb9c8d78dc98bdfab1f
+hash: 32fb81bdead04d627ff1e7d933e3a6e169a72d2ad7ba1ee4a083f2d1c9489243
 symbols:
 - missing_project
 - project_archived
@@ -11,6 +11,12 @@ symbols:
 - flush_failed
 - fallback_title
 - fallback_goal
+- member_me
+- member_secretary
+- chat_merged
+- chat_ticket
+- chat_goal
+- chat_merge_failed
 - status_pending
 - status_processing
 - status_merged
@@ -92,6 +98,42 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `fallback_goal`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `member_me`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `member_secretary`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `chat_merged`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `chat_ticket`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `chat_goal`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `chat_merge_failed`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
