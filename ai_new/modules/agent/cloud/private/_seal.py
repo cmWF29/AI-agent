@@ -28,7 +28,10 @@ from __future__ import annotations
 
 import os
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+try:  # 依赖可选：CI/最小安装下没有 cryptography 时，密封能力报 crypto_unavailable，不阻断装配
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except Exception:  # pragma: no cover - 环境差异
+    AESGCM = None
 
 ENV_KEY = "AI_NEW_SECRET_KEY"
 ENV_KEY_FILE = "AI_NEW_SECRET_KEY_FILE"
@@ -164,6 +167,8 @@ def seal(ctx, secret, profile_id="", provider=""):
     text = str(secret or "")
     if not text:
         raise SealError("empty_secret", "secret is empty")
+    if AESGCM is None:
+        raise SealError("crypto_unavailable", "cryptography is not installed")
     key = _load_key(ctx)
     nonce = _nonce_bytes(ctx)
     ciphertext = AESGCM(key).encrypt(nonce, text.encode("utf-8"), _aad(profile_id, provider))
@@ -175,6 +180,8 @@ def open_sealed(ctx, sealed, profile_id="", provider=""):
     """v1 信封串 → 明文；格式不符、tag/AAD 校验失败抛 SealError。"""
     if not is_sealed(sealed):
         raise SealError("not_sealed", "value is not a sealed blob")
+    if AESGCM is None:
+        raise SealError("crypto_unavailable", "cryptography is not installed")
     payload = sealed.split(":", 1)[1]
     body = _b64decode(ctx, payload)
     if len(body) <= _NONCE_LEN:
