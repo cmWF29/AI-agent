@@ -45,7 +45,8 @@ jobs:
   isolation-windows:
     # Windows 真机装配 + 路径语义 + 核心用例：纯判定层在 Linux 上先覆盖，
     # 这里验证模块能在 Windows 装配起来，盘符/UNC/保留名/大小写/段尾点空格等
-    # Win32 语义在真机成立，并复跑平台适配/核心/节点/归属靶向用例。
+    # Win32 语义在真机成立，并复跑平台适配/核心靶向用例。
+    # 步骤拆开 + 每步 8 分钟门禁：挂死时定位到具体步骤，不靠 continue-on-error 掩盖。
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,10 +55,21 @@ jobs:
           python-version: "3.11"
       - name: 依赖
         run: pip install pyyaml
-      - name: 装配烟测（全部模块 import + setup，plat 能力上报成形）
-        run: python scripts/smoke_boot.py
-      - name: Win32 路径语义 + 平台适配 + 核心/节点/归属用例（Windows 真机）
-        # POSIX 专属档（fcntl 跨进程锁互斥 / unshare / chmod / uid）不在 Windows 跑：
-        # 那几档由 skipUnless 标注，平台边界写在 docs/isolation-status.md，标 verified=false。
+      - name: platform probe（OS 基本面 + plat 三档能力 + loopback TCP 自检）
+        timeout-minutes: 8
+        run: python scripts/win_probe.py
+      - name: test_plat（锁 / 传输 / 进程信号平台适配靶向用例）
+        timeout-minutes: 8
         working-directory: ai_new/modules/agent_test/private
-        run: python -m unittest test_isolation_windows test_plat test_core test_nodes test_node_profile -v
+        run: python -m unittest test_plat -v
+      - name: test_isolation_windows（Win32 路径语义 + msvcrt 锁 / TCP / shm 真机档）
+        timeout-minutes: 8
+        working-directory: ai_new/modules/agent_test/private
+        run: python -m unittest test_isolation_windows -v
+      - name: 装配烟测（全部模块 import + setup，plat 能力上报成形）
+        timeout-minutes: 8
+        run: python -X faulthandler scripts/smoke_boot.py
+      - name: test_core（核心回归：装配/路由/契约/桩协议）
+        timeout-minutes: 8
+        working-directory: ai_new/modules/agent_test/private
+        run: python -m unittest test_core -v

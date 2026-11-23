@@ -16,6 +16,12 @@ import time
 
 PLATFORM = "nt" if os.name == "nt" else "posix"
 
+# Windows 侧默认持锁等待上限（秒）：LK_LOCK 会永久阻塞，orphan 句柄/僵死锁
+# 会把进程钉死。NT 分支一律走 NBLCK 轮询，到上限显式 lock_timeout，不永久阻塞。
+NT_LOCK_DEFAULT_TIMEOUT = 30.0
+# 轮询退避基线（秒）：按次数线性退避，避免空转打满 CPU。
+_LOCK_POLL_BASE = 0.01
+
 # 同进程重入守卫：规范化路径 -> 持锁标识（pid:thread）。
 # flock 对同一打开文件描述符本身可重入，但跨句柄重入语义不定；这里按"同一路径
 # 同一时刻只允许一把锁"收口，第二次进入显式报错，不留隐式重入窗口。
@@ -106,10 +112,19 @@ class ExclusiveLock:
                                     "同一路径锁不可重入: %s" % self._path)
                 self._token = token
         self._fd = self._fileno()
-        if PLATFORM == "nt":
-            self._acquire_nt()
-        else:
-            self._acquire_posix()
+        try:
+            if PLATFORM == "nt":
+                self._acquire_nt()
+            else:
+                self._acquire_posix()
+        except Exception:
+            # 抢锁失败：自持句柄随对象收口，不留泄漏的文件句柄。
+            if self._owns_handle:
+                try:
+                    self._handle.close()
+                except OSError:
+                    pass
+            raise
         self._held = True
         if self._path:
             with _guard:
@@ -133,11 +148,11 @@ class ExclusiveLock:
 
     def _acquire_nt(self):
         import msvcrt
-        if self._timeout is None:
-            os.lseek(self._fd, 0, os.SEEK_SET)
-            msvcrt.locking(self._fd, msvcrt.LK_LOCK, 1)
-            return
-        deadline = time.time() + float(self._timeout)
+        # 不调用 LK_LOCK（永久阻塞）：统一 NBLCK 轮询 + 退避；未显式给时限时
+        # 落到平台默认上限，超时抛 lock_timeout，绝不在 Windows 上钉死。
+        deadline = time.time() + float(
+            self._timeout if self._timeout is not None else NT_LOCK_DEFAULT_TIMEOUT)
+        attempt = 0
         while True:
             try:
                 os.lseek(self._fd, 0, os.SEEK_SET)
@@ -146,7 +161,8 @@ class ExclusiveLock:
             except OSError:
                 if time.time() >= deadline:
                     raise LockError("lock_timeout", "等待锁超时: %s" % self._path)
-                time.sleep(0.01)
+                attempt += 1
+                time.sleep(_LOCK_POLL_BASE * min(attempt, 20))
 
     def release(self):
         if not self._held:

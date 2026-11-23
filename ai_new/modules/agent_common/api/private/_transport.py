@@ -193,11 +193,18 @@ class Transport:
         req = Path(addr) / "req.bin"
         resp = Path(addr) / "resp.bin"
         seq = self._next_seq()
+        lock_timeout = self._timeout()
         try:
             with open(req, "r+b") as fh:
                 mm = mmap.mmap(fh.fileno(), 0)
-                req_lock = plat_lock.ExclusiveLock(fh, path=str(req))
-                req_lock.acquire()
+                req_lock = plat_lock.ExclusiveLock(fh, path=str(req),
+                                                  timeout=lock_timeout)
+                try:
+                    req_lock.acquire()
+                except plat_lock.LockError as exc:
+                    mm.close()
+                    raise self.ctx.ApiError("共享内存锁等待超时: %s (%s)" % (route, exc),
+                                            code="remote_timeout", status=504)
                 try:
                     HDR.pack_into(mm, 0, len(body), seq)
                     mm[8:8 + len(body)] = body
@@ -214,8 +221,14 @@ class Transport:
             try:
                 with open(resp, "r+b") as fh:
                     mm = mmap.mmap(fh.fileno(), 0)
-                    resp_lock = plat_lock.ExclusiveLock(fh, path=str(resp))
-                    resp_lock.acquire()
+                    resp_lock = plat_lock.ExclusiveLock(fh, path=str(resp),
+                                                        timeout=lock_timeout)
+                    try:
+                        resp_lock.acquire()
+                    except plat_lock.LockError:
+                        mm.close()
+                        time.sleep(0.002)
+                        continue
                     try:
                         ln, rseq = HDR.unpack_from(mm, 0)
                         text = mm[8:8 + ln].decode("utf-8", "replace") if rseq == seq and ln > 0 else None

@@ -8,9 +8,11 @@
 """
 from __future__ import annotations
 import re, sys, glob
+from pathlib import Path
 import yaml
 
-ROOT = __file__.rsplit("/scripts/", 1)[0]
+# 跨平台推导仓库根：__file__ 在 Windows 用反斜杠，不能按 "/scripts/" 切分。
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def ctl_slug(label):
@@ -28,7 +30,7 @@ KIND_BY_SECTION = {"cards": "card_act", "table": "row_act", "kv": "card_act"}
 def page_controls():
     """页面实际声明的控件：{(id): {"label":..., "where": [...]}}"""
     found = {}
-    pat = ROOT + "/ai_new/modules/agent_common/demand_engine/data/demands/view-*.yaml"
+    pat = str(ROOT / "ai_new/modules/agent_common/demand_engine/data/demands/view-*.yaml")
     for path in sorted(glob.glob(pat)):
         doc = yaml.safe_load(open(path, encoding="utf-8")) or {}
         view = doc.get("view") or {}
@@ -53,14 +55,14 @@ def page_controls():
 
 
 def spec_controls():
-    doc = yaml.safe_load(open(ROOT + "/ai_new/modules/agent_common/demand_engine/data/console.yaml",
+    doc = yaml.safe_load(open(ROOT / "ai_new/modules/agent_common/demand_engine/data/console.yaml",
                               encoding="utf-8")) or {}
     return doc.get("controls") or {}
 
 
 def shell_controls():
     """外壳控件（侧栏三条杠/遮罩/宽屏收展）不是页面按钮，但同样要在状态机里登记。"""
-    doc = yaml.safe_load(open(ROOT + "/ai_new/modules/agent_common/demand_engine/data/console.yaml",
+    doc = yaml.safe_load(open(ROOT / "ai_new/modules/agent_common/demand_engine/data/console.yaml",
                               encoding="utf-8")) or {}
     sm = doc.get("screen_machine") or {}
     return {row.get("key"): row.get("label") for row in (sm.get("shell_controls") or []) if row.get("key")}

@@ -34,6 +34,7 @@ class Server:
         self._threads = []
         self._stop = threading.Event()
         self._closed = []
+        self._unlink = []
 
     # ---- 对外：按部署意图起监听 ----
     def start(self, listen, kinds):
@@ -60,7 +61,11 @@ class Server:
                 closer()
             except OSError:
                 pass
-        for path in getattr(self, "_unlink", []):
+        # 监听 socket 关闭后 accept 线程会醒；显式 join 收口，不依赖解释器退出回收。
+        for thread in self._threads:
+            if thread.is_alive():
+                thread.join(timeout=2.0)
+        for path in self._unlink:
             try:
                 os.unlink(path)
             except OSError:
@@ -135,8 +140,14 @@ class Server:
     def _start_tcp(self, host, port):
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        srv.bind((host, port))
-        srv.listen(64)
+        try:
+            srv.bind((host, port))
+            srv.listen(64)
+        except OSError as exc:
+            srv.close()
+            raise OSError("tcp 监听绑定失败 %s:%s: %s" % (host, port, exc))
+        # 轮询超时：stop() 后 accept 及时退出，不卡在阻塞 accept 上。
+        srv.settimeout(plat_net.LISTEN_TIMEOUT)
         self._closed.append(srv.close)
         t = threading.Thread(target=self._accept, args=(srv,), daemon=True,
                              name="api-tcp")
@@ -147,6 +158,8 @@ class Server:
         while not self._stop.is_set():
             try:
                 conn, _addr = srv.accept()
+            except socket.timeout:
+                continue  # 轮询超时：回头检查 stop 位，不是连接错误
             except OSError:
                 return
             threading.Thread(target=self._serve_one, args=(conn,), daemon=True).start()
@@ -180,12 +193,19 @@ class Server:
 
     def _shm_loop(self, req, resp):
         seen = 0
+        shm_lock_timeout = 5.0
         while not self._stop.is_set():
             body, seq = "", 0
             with open(req, "r+b") as fh:
                 mm = mmap.mmap(fh.fileno(), SHM_SIZE)
-                req_lock = plat_lock.ExclusiveLock(fh, path=str(req))
-                req_lock.acquire()
+                req_lock = plat_lock.ExclusiveLock(fh, path=str(req),
+                                                   timeout=shm_lock_timeout)
+                try:
+                    req_lock.acquire()
+                except plat_lock.LockError:
+                    mm.close()
+                    time.sleep(0.002)
+                    continue
                 try:
                     ln, sq = HDR.unpack_from(mm, 0)
                     if sq and sq != seen and 0 < ln <= SHM_SIZE - HDR.size:
@@ -201,8 +221,13 @@ class Server:
             text = self.handle(body).encode("utf-8")[:SHM_SIZE - HDR.size]
             with open(resp, "r+b") as fh:
                 mm = mmap.mmap(fh.fileno(), SHM_SIZE)
-                resp_lock = plat_lock.ExclusiveLock(fh, path=str(resp))
-                resp_lock.acquire()
+                resp_lock = plat_lock.ExclusiveLock(fh, path=str(resp),
+                                                    timeout=shm_lock_timeout)
+                try:
+                    resp_lock.acquire()
+                except plat_lock.LockError:
+                    mm.close()
+                    continue
                 try:
                     HDR.pack_into(mm, 0, len(text), seq)
                     mm[HDR.size:HDR.size + len(text)] = text

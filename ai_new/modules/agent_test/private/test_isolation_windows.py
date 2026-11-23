@@ -6,7 +6,11 @@
 """
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
+import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -14,6 +18,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 from ai_new.modules.agent.sandbox.private import _pure  # noqa: E402
 from ai_new.modules.agent.sandbox.private import _winpath  # noqa: E402
+
+POSIX = os.name != "nt"
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 class DriveLetterTest(unittest.TestCase):
@@ -215,6 +222,115 @@ class RouteRegistrationTest(unittest.TestCase):
         out = handler(None, {"root": r"C:\proj", "target": r"C:\proj\a",
                              "platform": "windows"})
         self.assertTrue(out["ok"])
+
+
+@unittest.skipUnless(not POSIX, "msvcrt 跨进程锁档仅 Windows 真机验证")
+class WindowsPlatLockTest(unittest.TestCase):
+    """Windows msvcrt.locking 跨进程争用：后到者限时等待/超时释放，异常路径不留句柄。"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="win-xlock-")
+        self.path = str(Path(self.tmp) / "project.lock")
+        self.ready = str(Path(self.tmp) / "ready")
+
+    def _spawn_child(self):
+        from ai_new.modules.agent_common.plat.private import _lock  # noqa: F401
+        child_code = (
+            "import sys,time;"
+            "from ai_new.modules.agent_common.plat.private import _lock;"
+            "l=_lock.lock_file(sys.argv[1]);l.acquire();"
+            "open(sys.argv[2],'w').write('ready');time.sleep(30)"
+        )
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(REPO_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
+        return subprocess.Popen(
+            [sys.executable, "-c", child_code, self.path, self.ready],
+            cwd=str(REPO_ROOT), env=env,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def test_capability_reports_msvcrt(self):
+        from ai_new.modules.agent_common.plat.private import _lock
+        cap = _lock.lock_capability()
+        self.assertEqual(cap["cross_process"]["mechanism"], "msvcrt.locking")
+
+    def test_contended_lock_times_out_then_releases(self):
+        from ai_new.modules.agent_common.plat.private import _lock
+        proc = self._spawn_child()
+        try:
+            deadline = time.time() + 5.0
+            while time.time() < deadline:
+                if os.path.exists(self.ready):
+                    break
+                time.sleep(0.05)
+            self.assertTrue(os.path.exists(self.ready), "子进程未拿到锁")
+            waiter = _lock.lock_file(self.path, timeout=1.5)
+            try:
+                with self.assertRaises(_lock.LockError) as caught:
+                    waiter.acquire()
+                self.assertEqual(caught.exception.code, "lock_timeout")
+            finally:
+                try:
+                    waiter.release()
+                except OSError:
+                    pass
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+        lock = _lock.lock_file(self.path)
+        lock.acquire()
+        lock.release()
+
+
+@unittest.skipUnless(not POSIX, "loopback TCP 回退通道仅 Windows 真机验证")
+class WindowsTcpTransportTest(unittest.TestCase):
+    """loopback TCP 传输往返：小服务 + 一条请求 + 关闭，侧车端口文件清理。"""
+
+    def test_tcp_roundtrip_and_sidecar_cleanup(self):
+        import socket as _socket
+        from test_plat import _minimal_ctx
+        from ai_new.modules.agent_common.api.private import _serve, _transport
+        from ai_new.modules.agent_common.plat.private import _net
+
+        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+        sock.close()
+
+        server_ctx = _minimal_ctx()
+        server_ctx.api.routes = {"ops.ping": lambda p: {"pong": p.get("n"), "via": "tcp"}}
+        server = _serve.Server(server_ctx)
+        server.start({"tcp": {"host": "127.0.0.1", "port": port}}, {"tcp"})
+        try:
+            client = _transport.Transport(_minimal_ctx({
+                "default": {"kind": "direct"},
+                "listen": {"tcp": {"host": "127.0.0.1", "port": port}},
+                "routes": {"ops.*": {"kind": "tcp"}}}))
+            self.assertEqual(
+                client.send("ops.ping", {"n": 9}, lambda c, p: {"local": 1}),
+                {"pong": 9, "via": "tcp"})
+        finally:
+            server.stop()
+
+
+@unittest.skipUnless(not POSIX, "multiprocessing.shared_memory 档仅 Windows 真机验证")
+class WindowsShmSharedMemoryTest(unittest.TestCase):
+    """shm 信箱 Windows 替代：shared_memory 块读写一致。"""
+
+    def test_shared_memory_block_roundtrip(self):
+        from multiprocessing import shared_memory
+        payload = b"ai_new-shm-consistency-0123456789"
+        shm = shared_memory.SharedMemory(create=True, size=len(payload),
+                                         name="ai_new_probe")
+        try:
+            shm.buf[:len(payload)] = payload
+            self.assertEqual(bytes(shm.buf[:len(payload)]), payload)
+        finally:
+            shm.close()
+            shm.unlink()
 
 
 if __name__ == "__main__":

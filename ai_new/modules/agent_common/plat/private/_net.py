@@ -7,8 +7,14 @@ from __future__ import annotations
 
 import os
 import socket
+import time
 
 PLATFORM = "nt" if os.name == "nt" else "posix"
+
+# 绑端口重试上限：瞬时占用 / TIME_WAIT 退避重试；超过上限显式报错，不静默降级。
+LISTEN_RETRIES = 5
+# 监听 socket 轮询超时（秒）：stop() 后 accept 能及时醒来退出，不卡在阻塞 accept 上。
+LISTEN_TIMEOUT = 1.0
 
 
 def supports_unix_socket():
@@ -36,12 +42,25 @@ def transport_capability():
 
 
 def loopback_listen(host="127.0.0.1", backlog=64):
-    """绑 loopback 随机端口；返回 ``(socket, host, port)``。"""
-    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind((host, 0))
-    srv.listen(backlog)
-    return srv, host, srv.getsockname()[1]
+    """绑 loopback 随机端口；返回 ``(socket, host, port)``。
+
+    绑定失败按退避重试到上限；监听 socket 带轮询超时，便于 stop 后及时退出。
+    重试耗尽抛 OSError，由调用方显式报错，不许静默起不来还假装在监听。
+    """
+    last_exc = None
+    for attempt in range(LISTEN_RETRIES):
+        srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            srv.bind((host, 0))
+            srv.listen(backlog)
+            srv.settimeout(LISTEN_TIMEOUT)
+            return srv, host, srv.getsockname()[1]
+        except OSError as exc:
+            srv.close()
+            last_exc = exc
+            time.sleep(0.05 * (attempt + 1))
+    raise OSError("loopback 监听重试 %d 次仍失败: %s" % (LISTEN_RETRIES, last_exc))
 
 
 def addr_file_for(unix_path):

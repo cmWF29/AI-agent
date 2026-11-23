@@ -57,8 +57,12 @@ def _plan(module_dirs=None):
     dirs = module_dirs or _profile()
     return _scan(dirs, data_dir=_demands_dir())
 
-def _build(ctx, module_dirs=None):
-    """按扫描出来的顺序装配所有模块，返回已装配模块名列表。"""
+def _build(ctx, module_dirs=None, start_phase=True):
+    """按扫描出来的顺序装配所有模块，返回已装配模块名列表。
+
+    ``start_phase=False`` 只跑 setup 段：不起常驻服务、不拉后台线程/定时器/
+    续跑需求，装配完即返回。烟测等"纯装配"场景用它，避免后台线程拖住进程退出。
+    """
     result = _plan(module_dirs)
     if result["cycle"]:
         raise RuntimeError("模块装配依赖成环，无法排序: %s"
@@ -79,6 +83,9 @@ def _build(ctx, module_dirs=None):
     api_module = ctx.loaded.get("api")
     if api_module is not None:
         api_module.compile_transport(ctx)
+
+    if not start_phase:
+        return loaded
 
     # 钩子机制此时才就位（hooks 在装配序列里）。组合根声明自己的点：
     # 名字必须写字面量，静态扫描靠这几行才能把 boot 的诊断也算进需求图。
