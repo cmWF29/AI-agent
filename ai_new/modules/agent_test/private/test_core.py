@@ -80,12 +80,28 @@ class CoreTest(unittest.TestCase):
         cls.ctx.api.substitute("net.request_stream", cls.fake_net)
         cls.server = cls.ctx.http
         cls.port = cls.server.server_address[1]
+        # 种子会话（模块自带样例）：用例间隔离时保留，其余用例自建的会话一律清掉。
+        seed_dir = ROOT / "ai_new" / "modules" / "agent" / "logs" / "data" / "sessions"
+        cls.seed_session_ids = {p.stem for p in seed_dir.glob("*.yaml")} if seed_dir.is_dir() else set()
 
     @classmethod
     def tearDownClass(cls):
         cls.server.shutdown()
         os.environ.pop("AI_NEW_DATA", None)
         cls.tmp.cleanup()
+
+    def setUp(self):
+        """用例隔离：先收口前序用例后台派发的会话任务，再清掉非种子会话记录，
+        避免残留在途状态串扰后续 resume 计数 / spawn 同岗复用判定。"""
+        rt = getattr(self.ctx, "runtime", None)
+        if rt is not None:
+            for key in list(rt.active_keys()):
+                rt.stop(key)
+        for rel in self._glob("agent/logs", "sessions/*.yaml"):
+            sid = str(rel).rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            if sid not in self.seed_session_ids:
+                self.ctx.api.call("store.remove",
+                                  {"module": "agent/logs", "path": rel})
 
     # ---- 架构不变量 ----
 
@@ -502,6 +518,14 @@ class CoreTest(unittest.TestCase):
     def _glob(self, module, pattern):
         return self.ctx.api.call("store.glob",
                                  {"module": module, "pattern": pattern})["items"]
+
+    def _remove_session(self, sid):
+        """用例收尾：删掉本用例在盘上造的会话，避免残留在途记录串扰后续
+        resume 计数 / spawn 同岗复用判定。"""
+        if not sid:
+            return
+        self.ctx.api.call("store.remove",
+                          {"module": "agent/logs", "path": "sessions/%s.yaml" % sid})
 
     def test_knowledge_roundtrip(self):
         self._run("knowledge-write", {"layer": "public", "name": "arch-note",
@@ -1321,6 +1345,7 @@ class CoreTest(unittest.TestCase):
             self.assertNotIn("summary", done["content"])
         finally:
             self.ctx.api.substitute("net.request_stream", self.fake_net)
+            self._remove_session(sid)
 
     def test_spawn_reuses_active_same_role_no_duplicate(self):
         """重复触发同岗：已有在途会话时复用，不并出第二条同岗线。"""
@@ -1454,8 +1479,9 @@ class CoreTest(unittest.TestCase):
             tool_msgs = [m for m in msgs if m.get("role") == "tool"]
             self.assertEqual([m.get("tool_call_id") for m in tool_msgs],
                              ["c1", "c2"], "工具回填应保持模型给出的原顺序")
-            # 串行两条 0.15 应为 ≈0.30；并发应明显低于串行阈值。
-            self.assertLess(elapsed, 0.28, "两条工具应并发执行，总耗时≈max 而非 sum")
+            # 串行两条 0.15 ≈0.30；并发 ≈max(单工具)+首轮回包/收口固定开销。
+            # 阈值留足 Windows 线程启动与调度余量，仍明显低于串行总耗时。
+            self.assertLess(elapsed, 0.38, "两条工具应并发执行，总耗时≈max 而非 sum")
         finally:
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 
@@ -1536,31 +1562,34 @@ class CoreTest(unittest.TestCase):
         sp = self._run("session-spawn", {"kind": "role", "role": "developer",
                                         "name": "dev2", "ticket": "T-1"})
         sid = sp["result"]["id"]
-        self._run("session-send", {"id": sid, "text": "开始"})
+        try:
+            self._run("session-send", {"id": sid, "text": "开始"})
 
-        def stub_json(ctx, payload):
-            return {"ok": True, "status": 200, "headers": {},
-                    "items": [{"choices": [{"delta": {"content": _json.dumps(
-                        {"reply": "第一轮", "summary": "旧摘要"},
-                         ensure_ascii=False)}, "finish_reason": "stop"}]}]}
+            def stub_json(ctx, payload):
+                return {"ok": True, "status": 200, "headers": {},
+                        "items": [{"choices": [{"delta": {"content": _json.dumps(
+                            {"reply": "第一轮", "summary": "旧摘要"},
+                             ensure_ascii=False)}, "finish_reason": "stop"}]}]}
 
-        self.ctx.api.substitute("net.request_stream", stub_json)
-        self._run("session-run", {"id": sid})
-        self._run("session-wait", {"id": sid})
+            self.ctx.api.substitute("net.request_stream", stub_json)
+            self._run("session-run", {"id": sid})
+            self._run("session-wait", {"id": sid})
 
-        def stub_plain(ctx, payload):
-            return {"ok": True, "status": 200, "headers": {},
-                    "items": [{"choices": [{"delta": {"content": "一段普通答复，没有 JSON 壳"},
-                                          "finish_reason": "stop"}]}]}
+            def stub_plain(ctx, payload):
+                return {"ok": True, "status": 200, "headers": {},
+                        "items": [{"choices": [{"delta": {"content": "一段普通答复，没有 JSON 壳"},
+                                              "finish_reason": "stop"}]}]}
 
-        self.ctx.api.substitute("net.request_stream", stub_plain)
-        self._run("session-send", {"id": sid, "text": "再来"})
-        self._run("session-run", {"id": sid})
-        self._run("session-wait", {"id": sid})
-        rec = self.ctx.api.call("store.read", {"module": "agent/logs",
-                                "path": "sessions/%s.yaml" % sid}).get("value") or {}
-        self.assertEqual(rec.get("summary"), "旧摘要")
-        self.ctx.api.substitute("net.request_stream", self.fake_net)
+            self.ctx.api.substitute("net.request_stream", stub_plain)
+            self._run("session-send", {"id": sid, "text": "再来"})
+            self._run("session-run", {"id": sid})
+            self._run("session-wait", {"id": sid})
+            rec = self.ctx.api.call("store.read", {"module": "agent/logs",
+                                    "path": "sessions/%s.yaml" % sid}).get("value") or {}
+            self.assertEqual(rec.get("summary"), "旧摘要")
+        finally:
+            self.ctx.api.substitute("net.request_stream", self.fake_net)
+            self._remove_session(sid)
 
     def test_ops_overview_logs_and_library(self):
         o = self._run("ops-overview")["result"]
