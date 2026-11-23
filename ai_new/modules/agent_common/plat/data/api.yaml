@@ -1,0 +1,14 @@
+# 消息契约：本模块每条能力收什么、回什么。
+module: plat
+routes:
+  plat.capability:
+    doc: 平台适配层能力上报（锁/传输/进程信号，按 OS 显式降级）
+    out:
+      platform:
+        type: any
+      lock:
+        type: any
+      transport:
+        type: any
+      proc:
+        type: any

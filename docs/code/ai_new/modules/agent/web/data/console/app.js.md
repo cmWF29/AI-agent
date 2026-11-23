@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/app.js
-hash: 11e75dd85b4852424f63842c29c878fc6945a2d16fc2db73f5828bde6f3d3387
+hash: 3bc5e946f0a1207afa4670257cd60737c91428abbb62a8e4778b7db5381c340a
 symbols:
 - readYaml
 - yamlBody
@@ -34,6 +34,9 @@ symbols:
 - openStream
 - resolvePage
 - mountSecretaryStatus
+- rpcDirect
+- mountCloudChannel
+- mountAuthBanner
 - scrollKeyOf
 - scrollMarks
 - scrollRestore
@@ -61,6 +64,10 @@ symbols:
 - roles
 - name
 - nexts
+- profile
+- lastRun
+- firstProvider
+- kv
 - find
 - apply
 - verify
@@ -278,6 +285,24 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `rpcDirect`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `mountCloudChannel`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `mountAuthBanner`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `scrollKeyOf`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -435,6 +460,30 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `nexts`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `profile`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `lastRun`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `firstProvider`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `kv`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

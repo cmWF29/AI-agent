@@ -145,7 +145,8 @@ class CoreTest(unittest.TestCase):
                   "tickets", "health", "ops", "web", "http",
                   "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec",
                   "decompose", "asr", "logs", "todos", "trace",
-                  "archive", "cloud", "graph", "nodes", "sandbox", "secretary", "timer"}
+                  "archive", "cloud", "graph", "nodes", "sandbox", "secretary", "timer",
+                  "plat"}
         self.assertEqual(set(self.loaded), expect)
 
     def test_modules_have_no_log_capability(self):

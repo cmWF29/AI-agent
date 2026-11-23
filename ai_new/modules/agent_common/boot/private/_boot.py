@@ -14,13 +14,14 @@
 from __future__ import annotations
 
 import importlib
-import signal
 import threading
 import yaml
 import os
 import time
 import traceback
 from pathlib import Path
+
+from ai_new.modules.agent_common.plat.private import _proc as plat_proc
 
 from ._context import Context
 from ._graph import plan as _scan
@@ -133,8 +134,9 @@ def _await_serve(ctx):
     def _stop(signum, frame):  # noqa: ARG001 —— 信号处理器签名固定
         stopped.set()
 
-    signal.signal(signal.SIGINT, _stop)
-    signal.signal(signal.SIGTERM, _stop)
+    # 信号档位按 OS 收口到 plat：POSIX 注册 SIGINT/SIGTERM；Windows 只注册
+    # SIGINT（SIGTERM 经 TerminateProcess 直达进程，不跑 Python 处理器）。
+    plat_proc.install_stop_handler(_stop)
     stopped.wait()
     try:
         server.shutdown()

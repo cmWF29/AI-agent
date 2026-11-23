@@ -1,0 +1,24 @@
+id: nodes-entry
+title: 入口节点：唯一对公网暴露的控制面入口
+description: "入口节点承担公网接入、TLS 终止与鉴权；执行节点留在内网，不直接对公网暴露，入口标记为 entry 且 public_exposed 为真。"
+tags: [nodes, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.overview
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - nodes.overview
+  payload: {}
+  promise: 只有入口节点标记 entry 且 public_exposed 为真；其余执行节点仅内网可达，客户端只连控制面入口
+evidence:
+  test: test_nodes
+  cases:
+  - test_entry_node_marked_exposed
+  files:
+  - docs/deploy-topology.md
+  - ai_new/modules/agent/nodes/data/api.yaml

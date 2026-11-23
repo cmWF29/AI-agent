@@ -338,6 +338,7 @@ capabilities:
     - host.env
     - codec.nonce
     - codec.digest
+    - codec.base64_encode
     - codec.base64_decode_bytes
     - net.request
   cloud.sync_plan:
@@ -353,6 +354,7 @@ capabilities:
     - store.read
     - store.glob
     - store.read_bytes
+    - codec.base64_encode
     - codec.base64_decode_bytes
     - codec.digest
     - archive.index_query
@@ -386,6 +388,6 @@ capabilities:
 # 聚合内部调用 cloud.sync_plan / cloud.sync_run 调 index_query / read_bytes。
 capability_modules:
   stdlib_io:
-    modules: [store, net, host, http, exec, archive, cloud]
+    modules: [store, net, host, http, exec, archive, cloud, plat]
   clock_codec:
-    modules: [clock, codec, store, host, net, http, exec, boot, api, config, trace, archive]
+    modules: [clock, codec, store, host, net, http, exec, boot, api, config, trace, archive, plat]

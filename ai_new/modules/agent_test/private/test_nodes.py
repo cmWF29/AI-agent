@@ -301,6 +301,35 @@ class StatusDataPlaneTest(unittest.TestCase):
         self.assertEqual(b1["backup_state"], "verified")
 
 
+class NodeRoleMaskTest(unittest.TestCase):
+    def test_default_role_executor_and_not_exposed(self):
+        state = _seed()
+        node = state["nodes"]["n1"]
+        self.assertEqual(node["role"], "executor")
+        self.assertFalse(node["public_exposed"])
+
+    def test_entry_node_marked_exposed(self):
+        state = _pure.empty_state()
+        res = _pure.register(state, {"id": "gw", "endpoint": "https://10.0.0.8:8443",
+                                     "role": "entry", "public_exposed": True}, 100.0)
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["node"]["role"], "entry")
+        self.assertTrue(res["node"]["public_exposed"])
+
+    def test_view_exposes_masked_address_only(self):
+        state = _seed()
+        view = _pure.nodes_view(state, 150.0)
+        row = next(r for r in view if r["id"] == "n1")
+        self.assertNotIn("endpoint", row)
+        self.assertEqual(row["endpoint_masked"], "unix://***")
+        self.assertFalse(row["public_exposed"])
+
+    def test_mask_endpoint_hides_host_and_port(self):
+        self.assertEqual(_pure.mask_endpoint("https://192.168.1.23:8443"), "https://***")
+        self.assertEqual(_pure.mask_endpoint("10.0.0.5:9000"), "***")
+        self.assertEqual(_pure.mask_endpoint(""), "")
+
+
 class RouteRegistrationTest(unittest.TestCase):
     def test_status_route_registered(self):
         from ai_new.modules.agent.nodes import setup as nodes_setup

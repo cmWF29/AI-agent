@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/archive/private/_lock.py
-hash: fd13b645b28ffd19cdfc7b107ad0805206154f4ec9eb368d154d8315bbab8583
+hash: acd2b19abf380c952dd4913a5d8b93011af729183e366625b55a6a3c74e9e485
 symbols:
 - __init__
 - __enter__

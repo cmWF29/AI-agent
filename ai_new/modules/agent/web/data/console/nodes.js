@@ -32,21 +32,33 @@ function pill(state) {
   return `<sl-badge variant="${variant}">${escNode(state)}</sl-badge>`;
 }
 
+const ROLE_LABELS = { entry: "入口", executor: "执行" };
+function rolePill(role) {
+  const label = ROLE_LABELS[role] || role || "—";
+  const variant = role === "entry" ? "primary" : "neutral";
+  return `<sl-badge variant="${variant}">${escNode(label)}</sl-badge>`;
+}
+
 function renderNodes(nodes) {
   const body = document.getElementById("nodes-body");
   if (!nodes || !nodes.length) {
-    body.innerHTML = `<tr><td colspan="6" class="muted">暂无节点</td></tr>`;
+    body.innerHTML = `<tr><td colspan="7" class="muted">暂无节点</td></tr>`;
     return;
   }
-  body.innerHTML = nodes.map(n => `
+  body.innerHTML = nodes.map(n => {
+    const masked = n.endpoint_masked || "—";
+    const netTag = n.public_exposed ? "" : ` <span class="muted">仅内网</span>`;
+    return `
     <tr>
       <td>${escNode(n.id)}</td>
-      <td>${escNode(n.endpoint)}</td>
+      <td>${rolePill(n.role)}</td>
+      <td>${escNode(masked)}${netTag}</td>
       <td>${escNode(n.transport)}</td>
       <td>${pill(n.health)}</td>
       <td>${escNode((n.load || {}).running)}</td>
       <td>${escNode((n.projects || []).join(", ")) || "<span class='muted'>—</span>"}</td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 }
 
 function renderAssignments(assignments) {
@@ -127,7 +139,7 @@ async function load() {
     renderMigrations(migrations.migrations);
   } catch (e) {
     document.getElementById("nodes-body").innerHTML =
-      `<tr><td colspan="6" class="muted">加载失败：${escNode(e.message)}</td></tr>`;
+      `<tr><td colspan="7" class="muted">加载失败：${escNode(e.message)}</td></tr>`;
   }
 }
 

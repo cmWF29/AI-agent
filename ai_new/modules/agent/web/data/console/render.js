@@ -185,8 +185,14 @@ function tableHtml(sec, ctx) {
     const c = { ...ctx, row };
     const cells = cols.map((col) => {
       let val;
-      if (col.badge) val = badgeHtml(fill(col.badge, c), c);
-      else {
+      if (col.badge) {
+        // badge 可为静态值，也可为 {when, text, off}：条件成立显 text，否则显 off。
+        const specBadge = col.badge;
+        if (specBadge && typeof specBadge === "object") {
+          const on = condOf(specBadge.when, c);
+          val = badgeHtml(fill(on ? specBadge.text : (specBadge.off || ""), c), c);
+        } else val = badgeHtml(fill(col.badge, c), c);
+      } else {
         const raw = col.format ? fmtVal(col, c) : fill(col.value, c);
         val = Array.isArray(raw)
           ? (col.chips ? raw.map((x) => `<span class="chip">${esc(x)}</span>`).join("") : raw.map((x) => esc(x)).join("<br>"))

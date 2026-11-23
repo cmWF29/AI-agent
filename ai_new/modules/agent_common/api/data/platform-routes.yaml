@@ -151,3 +151,6 @@ routes:
   sandbox.guard_path:
     caller: internal
     reason: 路径守卫纯计算原语：项目根包含判定（盘符/UNC/保留名/穿越段）；隔离路径解析内部调用，不对外暴露。
+  plat.capability:
+    caller: internal
+    reason: 平台适配层能力只读上报（锁/传输/进程信号按 OS 显式降级）；装配/巡检内部调用，不归属需求编排。

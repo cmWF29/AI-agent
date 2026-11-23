@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation_windows.py
-hash: 99fd96bfda9a07a83cd0bd104a98ad47d2c11e3d7795d16da30d771634ccdce5
+hash: 145bae880dd7d13f024b825e8abd8764a18b16528c3f4f3df83c16595aa14fdf
 symbols:
 - test_case_and_slash_mix_normalized_equal
 - test_drive_escape_rejected
@@ -25,6 +25,13 @@ symbols:
 - test_posix_guard_traversal_and_escape
 - test_five_dimensions_both_tiers_both_platforms
 - test_weak_lock_mechanism_matches_reported_tiers
+- test_multilevel_backslash_traversal_rejected
+- test_mixed_separators_normalized
+- test_trailing_dot_only_stripped
+- test_trailing_space_only_stripped
+- test_drive_case_insensitive_root_target
+- test_rel_multilevel_backslash_traversal_rejected
+- test_rel_mixed_separators_allowed
 - test_guard_path_route_registered_and_callable
 generated: gen_docs.py v1
 updated_at: '2026-11-23T09:13:18'
@@ -174,6 +181,48 @@ Windows 档路径语义靶向单测（在 Linux 上跑纯判定函数，CI windo
 - 关联需求/测试: 待人工补充
 
 ### `test_weak_lock_mechanism_matches_reported_tiers`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_multilevel_backslash_traversal_rejected`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_mixed_separators_normalized`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_trailing_dot_only_stripped`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_trailing_space_only_stripped`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_drive_case_insensitive_root_target`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_rel_multilevel_backslash_traversal_rejected`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_rel_mixed_separators_allowed`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

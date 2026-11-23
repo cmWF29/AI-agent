@@ -1,7 +1,8 @@
 """Provider 适配层：统一连接/上传/下载/列目录/删除/校验接口与注册表。
 
-出站只经 ``net.request``；不直连 socket/urllib。真实协议落地状态见
-``_pure.PROVIDER_META`` 与报告「云端接入三个方案的真实落地差异」。
+真实通道（``_s3`` / ``_webdav``）按名字惰性装载：首次构造时才 import 对应模块；
+模块缺失即回落到 ``_PendingProvider``（unsupported），装配期不因缺模块崩。
+出站经各通道自身的注入式传输接缝（默认委托 ``net.request``）；不直连 socket/urllib。
 """
 from __future__ import annotations
 
@@ -161,6 +162,10 @@ class _PendingProvider(BaseProvider):
 
     status_code = "adapter_pending"
 
+    def __init__(self, status_code=None):
+        if status_code:
+            self.status_code = status_code
+
     def test_connection(self, ctx, profile):
         return {"ok": False, "code": self.status_code, "detail": "not-wired"}
 
@@ -177,31 +182,145 @@ class _PendingProvider(BaseProvider):
         return {"ok": False, "code": self.status_code}
 
 
-class S3Provider(_PendingProvider):
-    """S3 兼容对象存储：路径风格 REST；AWS V4 签名未接线。"""
-
-    status_code = "s3_signing_pending"
-
-
 class RsyncProvider(_PendingProvider):
     """rsync/ssh 自建服务器：需 exec 能力包装命令；当前未接线。"""
 
     status_code = "exec_wrapper_pending"
 
 
+# ---------------------------------------------------------------- 惰性通道适配器
+
+class _ByteSink:
+    """下载收集器：实现 ``write(bytes)`` 接缝，供 WebDAV 客户端落汇总。"""
+
+    def __init__(self):
+        self.data = b""
+
+    def write(self, chunk):
+        self.data += bytes(chunk)
+
+
+class _S3Adapter(BaseProvider):
+    """S3 通道适配器：统一接口桥到 ``_s3.S3Client``；传输可注入（测试桩替换）。"""
+
+    def __init__(self, transport=None):
+        self._transport = transport
+
+    def _client(self, ctx, profile):
+        from . import _s3
+        return _s3.S3Client(ctx, profile, profile.get("credentials") or {},
+                            transport=self._transport)
+
+    def test_connection(self, ctx, profile):
+        return self._client(ctx, profile).test_connection()
+
+    def list_keys(self, ctx, profile, prefix):
+        return self._client(ctx, profile).list_keys(prefix)
+
+    def put(self, ctx, profile, key, data, resume_from=0, upload_id=None):
+        resume = {"upload_id": upload_id, "parts": {}} if upload_id else None
+        return self._client(ctx, profile).put(key, data, resume=resume)
+
+    def get(self, ctx, profile, key):
+        return self._client(ctx, profile).get(key)
+
+    def delete(self, ctx, profile, key):
+        return self._client(ctx, profile).delete(key)
+
+    def head(self, ctx, profile, key):
+        return self._client(ctx, profile).head(key)
+
+
+class _WebDavAdapter(BaseProvider):
+    """WebDAV 通道适配器：统一接口桥到 ``_webdav.WebDavClient``。"""
+
+    def _client(self, ctx, profile):
+        from . import _webdav
+        creds = profile.get("credentials") or {}
+        policy = profile.get("policy") or {}
+        return _webdav.WebDavClient(
+            profile.get("endpoint"),
+            username=creds.get("username") or creds.get("access_key"),
+            password=creds.get("password") or creds.get("secret_key"),
+            max_attempts=int(policy.get("max_attempts") or 3),
+            max_body_bytes=int(policy.get("max_body_bytes") or 0))
+
+    def test_connection(self, ctx, profile):
+        return self._client(ctx, profile).test_connection()
+
+    def list_keys(self, ctx, profile, prefix):
+        res = self._client(ctx, profile).propfind("", depth=1)
+        if not res.get("ok"):
+            return []
+        rows = []
+        for entry in res.get("entries") or []:
+            if entry.get("is_dir"):
+                continue
+            rows.append({"key": entry["key"], "digest": entry.get("etag") or "",
+                         "size": entry.get("size") or 0})
+        return rows
+
+    def put(self, ctx, profile, key, data, resume_from=0, upload_id=None):
+        res = self._client(ctx, profile).put(key, bytes(data))
+        if not res.get("ok"):
+            return {"ok": False, "code": res.get("code") or "provider_error",
+                    "offset": resume_from}
+        return {"ok": True, "size": res.get("size") or len(data),
+                "offset": res.get("offset") or len(data), "etag": res.get("etag")}
+
+    def get(self, ctx, profile, key):
+        sink = _ByteSink()
+        res = self._client(ctx, profile).get(key, sink)
+        if not res.get("ok"):
+            return {"ok": False, "code": res.get("code") or "provider_error"}
+        data = sink.data
+        digest = ctx.api.call("codec.digest", {"text": data, "algorithm": "sha256"},
+                              caller=None).get("hex")
+        return {"ok": True, "data": data, "digest": digest, "size": len(data)}
+
+    def delete(self, ctx, profile, key):
+        res = self._client(ctx, profile).delete(key)
+        return {"ok": bool(res.get("ok"))}
+
+
+# ---------------------------------------------------------------- 注册表与元数据
+
+def _build_s3():
+    # 模块存在性探测：缺失抛 ImportError，由 build 回落 unsupported 占位。
+    from . import _s3  # noqa: F401
+    return _S3Adapter()
+
+
+def _build_webdav():
+    from . import _webdav  # noqa: F401
+    return _WebDavAdapter()
+
+
+_LAZY = {"s3": _build_s3, "webdav": _build_webdav}
+_UNSUPPORTED_CODE = {"s3": "s3_signing_pending", "webdav": "adapter_pending"}
+
 REGISTRY = {
     "fake": FakeProvider,
     "stub": FakeProvider,
     "http_dir": HttpDirProvider,
-    "webdav": HttpDirProvider,
     "wiki": HttpDirProvider,
-    "s3": S3Provider,
     "rsync": RsyncProvider,
+}
+
+# 运行时状态覆盖：_pure 台账为静态基线，真实通道接线状态在此叠加（不改 _pure）。
+_META_OVERLAY = {
+    "s3": {"transport": "https-rest-s3v4", "status": "ready", "note": "sigv4"},
 }
 
 
 def build(kind):
-    """按提供方类型构造实例；未知类型抛 ProviderError。"""
+    """按提供方类型构造实例；惰性通道模块缺失回落占位；未知类型抛 ProviderError。"""
+    if kind in _LAZY:
+        try:
+            return _LAZY[kind]()
+        except ImportError:
+            return _PendingProvider(
+                status_code=_UNSUPPORTED_CODE.get(kind, "adapter_pending"))
     cls = REGISTRY.get(kind)
     if cls is None:
         raise ProviderError("unknown_provider", "unknown provider kind: %s" % kind)
@@ -210,4 +329,9 @@ def build(kind):
 
 def provider_meta():
     """提供方清单元数据（只读）：类型、通道、落地状态、备注。"""
-    return [{"kind": k, **v} for k, v in _pure.PROVIDER_META.items()]
+    items = []
+    for kind, meta in _pure.PROVIDER_META.items():
+        row = {"kind": kind, **meta}
+        row.update(_META_OVERLAY.get(kind, {}))
+        items.append(row)
+    return items

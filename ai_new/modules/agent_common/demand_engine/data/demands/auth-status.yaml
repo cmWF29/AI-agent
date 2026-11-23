@@ -16,4 +16,4 @@ expect:
   calls:
   - auth.status
   payload: {}
-  promise: 账号是否启用、当前用户名由 auth.status 能力回显，需求只做取数
+  promise: 账号是否启用、当前用户名，以及是否仍是默认/空口令（default_password 与告警文案）由 auth.status 能力回显，需求只做取数

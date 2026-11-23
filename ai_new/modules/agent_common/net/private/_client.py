@@ -36,17 +36,27 @@ def _split_url(url):
     return pr.scheme, host, port, path
 
 
+def _raw_body(body):
+    """请求体归一为字节：文本按 utf-8 编码；字节/字节透传（二进制对象通道用）。"""
+    if body is None:
+        return b""
+    if isinstance(body, (bytes, bytearray)):
+        return bytes(body)
+    return str(body).encode("utf-8")
+
+
 def _build_request(method, host, path, headers, body):
     hdrs = dict(headers or {})
     hdrs["Host"] = host
+    raw = _raw_body(body)
     if body is not None:
-        hdrs["Content-Length"] = str(len(body.encode("utf-8")))
+        hdrs["Content-Length"] = str(len(raw))
     lines = ["%s %s HTTP/1.1" % (method, path)]
     for k, v in hdrs.items():
         lines.append("%s: %s" % (k, v))
     head = ("\r\n".join(lines) + "\r\n\r\n").encode("utf-8")
     if body is not None:
-        head += body.encode("utf-8")
+        head += raw
     return head
 
 
@@ -106,8 +116,8 @@ async def _read_body(reader, headers):
 async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None, retries=2):
     if not url:
         return {"ok": False, "error": "缺少 url", "code": "bad_request"}
-    if body is not None and not isinstance(body, str):
-        return {"ok": False, "error": "body 必须是文本（对象先经 codec.json_encode）",
+    if body is not None and not isinstance(body, (str, bytes, bytearray)):
+        return {"ok": False, "error": "body 必须是文本或字节（二进制对象通道用字节透传）",
                 "code": "bad_body"}
     scheme, host, port, path = _split_url(url)
     if not host:
@@ -124,7 +134,8 @@ async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None
             status, resp_headers = await _read_status(reader)
             raw = await asyncio.wait_for(_read_body(reader, resp_headers), timeout=limit)
             return {"ok": True, "status": status,
-                    "headers": resp_headers, "text": raw.decode("utf-8", "replace")}
+                    "headers": resp_headers,
+                    "text": raw.decode("utf-8", "replace"), "body": raw}
         except Exception as exc:  # noqa: BLE001 —— 能力层不外抛
             code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
             last = {"ok": False, "status": 0, "error": str(exc), "code": code}
@@ -154,8 +165,8 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
                                 caller=None).get("value") or 0)
     if not url:
         return {"ok": False, "error": "缺少 url", "code": "bad_request"}
-    if body is not None and not isinstance(body, str):
-        return {"ok": False, "error": "body 必须是文本（对象先经 codec.json_encode）",
+    if body is not None and not isinstance(body, (str, bytes, bytearray)):
+        return {"ok": False, "error": "body 必须是文本或字节（二进制对象通道用字节透传）",
                 "code": "bad_body"}
     scheme, host, port, path = _split_url(url)
     if not host:

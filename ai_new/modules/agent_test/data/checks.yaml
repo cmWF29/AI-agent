@@ -219,8 +219,10 @@ checks:
   kind: runtime
   enabled: true
   demands:
+  - deploy-topology
   - nodes-acquire
   - nodes-backups
+  - nodes-entry
   - nodes-fence-check
   - nodes-heartbeat
   - nodes-list
@@ -230,6 +232,7 @@ checks:
   - nodes-register
   - nodes-release
   - nodes-renew
+  - nodes-role
   - view-nodes
 - id: skill-decompose
   title: 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑

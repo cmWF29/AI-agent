@@ -163,6 +163,40 @@ class MechanismMatrixTest(unittest.TestCase):
         self.assertIn("msvcrt", weak_lock["windows"])
 
 
+class ExtraSemanticsTest(unittest.TestCase):
+    def test_multilevel_backslash_traversal_rejected(self):
+        res = _winpath.guard_path(r"C:\proj", r"C:\proj\..\..\Windows\system.ini")
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "traversal")
+
+    def test_mixed_separators_normalized(self):
+        res = _winpath.guard_path(r"C:\proj", r"C:\proj/docs\a.txt")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["target_canonical"], "c:/proj/docs/a.txt")
+
+    def test_trailing_dot_only_stripped(self):
+        res = _winpath.guard_path(r"C:\proj", r"C:\proj\notes.md.")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["target_canonical"], "c:/proj/notes.md")
+
+    def test_trailing_space_only_stripped(self):
+        res = _winpath.guard_path(r"C:\proj", r"C:\proj\notes.md ")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["target_canonical"], "c:/proj/notes.md")
+
+    def test_drive_case_insensitive_root_target(self):
+        res = _winpath.guard_path(r"c:\proj", r"C:\proj\a.txt")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["root_canonical"], "c:/proj")
+        self.assertEqual(res["target_canonical"], "c:/proj/a.txt")
+
+    def test_rel_multilevel_backslash_traversal_rejected(self):
+        self.assertEqual(_winpath.guard_rel(r"sub\..\..\deep")["code"], "traversal")
+
+    def test_rel_mixed_separators_allowed(self):
+        self.assertTrue(_winpath.guard_rel(r"docs/sub\file.md")["ok"])
+
+
 class RouteRegistrationTest(unittest.TestCase):
     def test_guard_path_route_registered_and_callable(self):
         from ai_new.modules.agent.sandbox import setup as sandbox_setup

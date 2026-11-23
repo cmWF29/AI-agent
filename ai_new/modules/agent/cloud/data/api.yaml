@@ -13,8 +13,10 @@ routes:
       root_dir: {type: str, req: false}
       credential_ref: {type: str, req: false}
       credentials: {type: dict, req: false}
+      # s3 通道凭证键（密封落盘，视图脱敏）：access_key / secret_key / region / bucket
       categories: {type: list, req: false}
       policy: {type: dict, req: false}
+      # s3 通道策略键：multipart_threshold / multipart_min_size / concurrency / rate_per_s
       exclude_projects: {type: list, req: false}
       caller: {type: dict, req: false}
     out:
@@ -54,6 +56,8 @@ routes:
     out:
       ok: {type: bool}
       result: {type: dict}
+      # result.code ∈ ok / signature_mismatch / access_denied / not_found /
+      # rate_limited / transient / connection_error / provider_error
       effects: {type: list}
   cloud.probe_roundtrip:
     in:
@@ -65,6 +69,7 @@ routes:
       probe_key: {type: str}
       remote_digest: {type: str}
       expected_digest: {type: str}
+      # 校验失败码：checksum_mismatch / signature_mismatch / access_denied / multipart_error
       effects: {type: list}
   cloud.sync_plan:
     in:

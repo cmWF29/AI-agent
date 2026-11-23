@@ -1,0 +1,25 @@
+id: deploy-topology
+title: 部署拓扑：单入口控制面 + 内网执行节点
+description: "标准拓扑为一个公网入口收敛客户端连接，执行节点在私网由控制面经内网通道调度；动态 IP 走 DDNS/frp/Cloudflare Tunnel 反连，节点端口只放行控制面出口。"
+tags: [nodes, ops, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.overview
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - nodes.overview
+  payload: {}
+  promise: 拓扑意图落文档与节点标记：入口对外、执行对内，前端只展示归属与健康，不暴露节点真实地址
+evidence:
+  test: test_nodes
+  cases:
+  - test_entry_node_marked_exposed
+  - test_view_exposes_masked_address_only
+  files:
+  - docs/deploy-topology.md
+  - ai_new/modules/agent/nodes/private/_pure.py

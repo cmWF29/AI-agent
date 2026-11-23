@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/api/private/_serve.py
-hash: b1a0af6c00fadb3c77e87ada98d520b6bb65c0ef86c5385de7ba1244f8a3fb17
+hash: 6b2d7ed6af222d15d76cc3b61dd04ea3e8d7bff6026265158a20c6b6ca499681
 symbols:
 - __init__
 - start
@@ -8,6 +8,7 @@ symbols:
 - handle
 - _encode
 - _start_unix
+- _start_unix_tcp_fallback
 - _start_tcp
 - _accept
 - _serve_one
@@ -61,6 +62,12 @@ updated_at: '2026-11-23T04:10:21'
 
 ### `_start_unix`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_start_unix_tcp_fallback`（method）
+- 职责: 无 AF_UNIX 的平台：绑 loopback 随机端口，地址写侧车文件供客户端回连。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

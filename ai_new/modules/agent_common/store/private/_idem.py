@@ -15,6 +15,8 @@ import os
 import re
 import threading
 
+from ai_new.modules.agent_common.plat.private import _lock as plat_lock
+
 from . import _files
 from ._panel import _dir_of
 
@@ -67,27 +69,28 @@ def _write(path, rec):
 
 
 def _lock(path):
-    """对记录旁挂的 .lock 做独占锁；平台不支持 flock 时退化为进程内互斥。"""
+    """对记录旁挂的 .lock 做独占锁；OS 原语收口在 plat 适配层。
+
+    返回 ``(句柄, 排他锁)`` 持有者；平台锁装不上时由适配层显式报错，不再
+    用 try/except 吞掉锁失败。
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    fh = open(str(path.with_name(path.name + ".lock")), "a+")
-    try:
-        import fcntl
-        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-    except Exception:
-        pass
-    return fh
+    lock_path = path.with_name(path.name + ".lock")
+    fh = open(str(lock_path), "a+")
+    oslock = plat_lock.ExclusiveLock(fh, path=str(lock_path))
+    oslock.acquire()
+    return fh, oslock
 
 
-def _unlock(fh):
+def _unlock(holder):
+    fh, oslock = holder
     try:
-        import fcntl
-        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-    except Exception:
-        pass
-    try:
-        fh.close()
-    except Exception:
-        pass
+        oslock.release()
+    finally:
+        try:
+            fh.close()
+        except Exception:  # noqa: BLE001 — 关闭句柄不掀翻结算路径
+            pass
 
 
 def _route_claim(ctx, payload):

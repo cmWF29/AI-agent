@@ -387,6 +387,12 @@ levels:
     evidence:
     - ai_new/modules/agent/sandbox/__init__.py
     - ai_new/modules/agent/sandbox/data/api.yaml
+  plat.capability:
+    level: center
+    why: 平台能力自检：把锁/传输/进程三档的平台支持情况汇总上报，供控制面判断，不承载业务
+    evidence:
+    - ai_new/modules/agent_common/plat/__init__.py
+    - ai_new/modules/agent_common/plat/data/api.yaml
   secretary.status:
     level: center
     why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见

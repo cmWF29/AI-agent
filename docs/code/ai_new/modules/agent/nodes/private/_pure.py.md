@@ -1,7 +1,9 @@
 ---
 source: ai_new/modules/agent/nodes/private/_pure.py
-hash: 807f2c00029f75aaad90171c445273c0dce0568972da4457f765a6ea76ccb7dd
+hash: b226266739f09d96977fcac81e032d6fa61041e83e16641f92801058f629a15d
 symbols:
+- _coerce_role
+- mask_endpoint
 - empty_state
 - _ts
 - validate_node
@@ -44,6 +46,18 @@ updated_at: '2026-11-23T04:10:20'
 节点协调纯计算：注册、心跳、租约、fencing、项目→节点分配、备份台账。
 
 ## 符号
+
+### `_coerce_role`（function）
+- 职责: 归一化节点归属：未声明默认执行节点；非法值回退执行节点，不写脏数据。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `mask_endpoint`（function）
+- 职责: 把节点真实地址脱敏成只读展示串：保留协议名，主机/端口/套接字路径一律打码。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `empty_state`（function）
 - 职责: 空状态：纯函数不携带默认业务档案。

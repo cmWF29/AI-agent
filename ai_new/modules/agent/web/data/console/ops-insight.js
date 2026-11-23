@@ -130,6 +130,10 @@
       const projectHtml = projects.length
         ? projects.map(function (p) { return '<span class="chip">' + esc(p) + "</span>"; }).join(" ")
         : '<span class="muted">—</span>';
+      const ROLE_LABELS = { entry: "入口", executor: "执行" };
+      const roleLabel = ROLE_LABELS[n.role] || n.role || "—";
+      const masked = n.endpoint_masked || "";
+      const netTag = n.public_exposed ? "" : '<span class="muted">仅内网</span>';
       let backupHtml;
       if (!projects.length) {
         backupHtml = '<span class="muted">—</span>';
@@ -141,8 +145,8 @@
           : '<span class="muted">无备份记录</span>';
       }
       return "<tr><td>" + esc(n.id || "—") +
-        '<div class="muted">' + esc(n.endpoint || "") + "</div></td>" +
-        "<td>" + stateChip + "</td><td>" + esc(lease) + "</td>" +
+        '<div class="muted">' + esc(masked) + (netTag ? " " + netTag : "") + "</div></td>" +
+        "<td>" + stateChip + ' <span class="chip">' + esc(roleLabel) + "</span></td><td>" + esc(lease) + "</td>" +
         "<td>" + projectHtml + "</td><td>" + backupHtml + "</td></tr>";
     }).join("");
     host.innerHTML = '<div class="tbl-wrap"><div class="tbl-head"><strong>节点与归属</strong></div>' +

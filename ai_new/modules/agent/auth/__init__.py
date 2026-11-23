@@ -5,7 +5,28 @@
 """
 from __future__ import annotations
 
+import sys
+
 from .private import _pure
+
+
+def _auth_cfg(ctx):
+    row = ctx.api.call("config.get", {"key": "server.auth"}, caller=None)
+    return row.get("value") or {}
+
+
+def _weak_digest(ctx, auth):
+    """默认口令 ``salt:123456`` 的摘要；算不出返回空串，纯判定侧按非默认处理。"""
+    salt = str(auth.get("salt") or "")
+    row = ctx.api.call("codec.digest", {
+        "text": salt + ":" + _pure.DEFAULT_PASSWORD, "algorithm": "sha256"}, caller=None)
+    return row.get("hex") or ""
+
+
+def _default_warning(ctx):
+    """默认/空口令判定：读配置 → 算默认口令摘要 → 交纯函数判定。"""
+    auth = _auth_cfg(ctx)
+    return _pure.default_password_state({"auth": auth, "weak_digest": _weak_digest(ctx, auth)})
 
 
 def _msg_tpl(ctx):
@@ -61,9 +82,15 @@ def setup(ctx):
     def _status(payload):
         server = ctx.cfg.get("server") or {}
         auth = server.get("auth") or {}
+        try:
+            warn = _default_warning(ctx)
+        except Exception:
+            warn = {"default": False, "reason": ""}
         return {"enabled": bool(auth.get("enabled")),
                 "legacy": bool(server.get("token")),
-                "username": auth.get("username") or ""}
+                "username": auth.get("username") or "",
+                "default_password": bool(warn.get("default")),
+                "warning": "默认口令，必须改密后才能对外" if warn.get("default") else ""}
 
     pairs = [
         ("auth.credentials_ok", _pure.credentials_ok),
@@ -80,6 +107,17 @@ def setup(ctx):
                      "修改密码：验旧密码→摘要校验→写配置新摘要", module="auth")
     ctx.api.register("auth.verify", lambda c, p: _verify(p), module="auth")
     ctx.api.register("auth.status", lambda c, p: _status(p), module="auth")
+
+    # 启动即查默认/空口令：命中就打显著告警，不静默放过；前端横幅由 auth.status 下发。
+    try:
+        warn = _default_warning(ctx)
+    except Exception:
+        warn = {"default": False, "reason": ""}
+    if warn.get("default"):
+        line = "【安全告警】默认/空口令未改（%s）：必须改密后才能对外提供服务。" % warn.get("reason")
+        print("=" * 64, file=sys.stderr)
+        print(line, file=sys.stderr)
+        print("=" * 64, file=sys.stderr)
     return True
 
 

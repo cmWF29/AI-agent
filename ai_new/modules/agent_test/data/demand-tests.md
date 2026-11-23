@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 175 条需求，绑定 15 个检查项。
+共 178 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -48,6 +48,7 @@
 | decompose-register | library | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
 | demands-list | contract | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | demands-manifest | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| deploy-topology | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | health-live | core | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | health-self | write | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | knowledge-compose | knowledge | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
@@ -70,6 +71,7 @@
 | message-wire | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | nodes-acquire | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-backups | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
+| nodes-entry | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-fence-check | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-heartbeat | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-list | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
@@ -79,6 +81,7 @@
 | nodes-register | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-release | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-renew | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
+| nodes-role | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | ops-export | ops | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | ops-logs | ops | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | ops-overview | ops | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |

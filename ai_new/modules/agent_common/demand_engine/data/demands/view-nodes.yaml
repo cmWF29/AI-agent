@@ -12,6 +12,9 @@ view:
   crumb: [节点]
   heading: 节点
   subheading: 控制面只读视图：节点健康、项目归属、备份状态
+  labels:
+    entry: 入口
+    executor: 执行
   data:
   - {as: nodes, demand: nodes-list}
   - {as: assignments, demand: nodes-list}
@@ -24,7 +27,9 @@ view:
     heading: 节点
     columns:
     - {label: 节点, value: row.id}
-    - {label: 端点, value: row.endpoint}
+    - {label: 类型, badge: row.role|label}
+    - {label: 地址, value: row.endpoint_masked}
+    - {label: 暴露, badge: {when: row.public_exposed == true, text: 公网, off: 仅内网}}
     - {label: 传输, value: row.transport}
     - {label: 健康, value: row.health}
     - {label: 在跑, value: row.load.running}

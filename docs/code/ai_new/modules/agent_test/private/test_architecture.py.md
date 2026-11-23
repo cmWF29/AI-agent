@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_architecture.py
-hash: 6a77f188d0a0ddc771554b8d6defd44abc4b5f22555445e75c60672f14be4ccb
+hash: 09c4b2206c3bd2a8f625c66252fb8090225791249bfb68e1f90cc376e933acd5
 symbols:
 - src_files
 - runtime_modules
@@ -124,7 +124,7 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `test_no_cross_module_imports`（method）
-- 职责: 运行时模块之间不 import；agent_test 可以（评审者能看被评审对象，反之不行）。
+- 职责: 运行时模块之间不 import；agent_test 与 plat 平台设施除外。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

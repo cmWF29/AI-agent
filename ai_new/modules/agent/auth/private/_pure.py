@@ -2,6 +2,32 @@
 from __future__ import annotations
 
 
+DEFAULT_USERNAME = "admin"
+DEFAULT_PASSWORD = "123456"
+
+
+def default_password_state(p):
+    """判定是否仍是默认/空口令（纯计算，不读盘不计时钟）。
+
+    入参 ``p``：``auth`` 配置段（enabled/username/password_hash），``weak_digest``
+    为默认口令 ``salt:123456`` 的摘要（调用方经 codec 算好传入）。
+
+    规则：登录校验未开启不算告警；哈希为空，或用户名仍是默认账号且摘要命中默认口令，
+    判为默认弱口令。返回 ``{default, reason}``，reason 供日志区分，不回显给前端。
+    """
+    auth = p.get("auth") or {}
+    if not bool(auth.get("enabled")):
+        return {"default": False, "reason": ""}
+    username = str(auth.get("username") or "")
+    password_hash = str(auth.get("password_hash") or "").strip()
+    weak_digest = str(p.get("weak_digest") or "")
+    if not password_hash:
+        return {"default": True, "reason": "password_hash_empty"}
+    if username == DEFAULT_USERNAME and weak_digest and password_hash == weak_digest:
+        return {"default": True, "reason": "default_credentials"}
+    return {"default": False, "reason": ""}
+
+
 def credentials_ok(p):
     """用户名与摘要都相等才通过；不泄露出是哪一项错。"""
     username = str(p.get("username") or "")

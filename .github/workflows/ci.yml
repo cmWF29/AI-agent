@@ -30,7 +30,7 @@ jobs:
         run: python3 scripts/gate_demand_tests.py
       - name: 需求/架构/装配/传输/幂等/桩协议全量用例
         working-directory: ai_new/modules/agent_test/private
-        run: python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose
+        run: python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows
       - name: UI 回归（真实浏览器起桩遍历：控件状态机实拉 + 可点实例数核对）
         run: |
           pip install playwright
@@ -43,8 +43,9 @@ jobs:
           python3 scripts/ui_inventory.py --check
 
   isolation-windows:
-    # Windows 真机复跑同一批隔离/节点用例：纯判定层在 Linux 上先覆盖，
-    # 这里验证盘符/UNC/保留名/大小写/段尾点空格等 Win32 语义在真机成立。
+    # Windows 真机装配 + 路径语义 + 核心用例：纯判定层在 Linux 上先覆盖，
+    # 这里验证模块能在 Windows 装配起来，盘符/UNC/保留名/大小写/段尾点空格等
+    # Win32 语义在真机成立，并复跑平台适配/核心/节点/归属靶向用例。
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,8 +54,10 @@ jobs:
           python-version: "3.11"
       - name: 依赖
         run: pip install pyyaml
-      - name: Win32 路径语义 + 节点/归属用例（Windows 真机）
-        # POSIX 专属档（fcntl 锁 / unshare / chmod / uid）不在 Windows 跑：
-        # 那几档的平台边界写在 docs/isolation-status.md，标 verified=false。
+      - name: 装配烟测（全部模块 import + setup，plat 能力上报成形）
+        run: python scripts/smoke_boot.py
+      - name: Win32 路径语义 + 平台适配 + 核心/节点/归属用例（Windows 真机）
+        # POSIX 专属档（fcntl 跨进程锁互斥 / unshare / chmod / uid）不在 Windows 跑：
+        # 那几档由 skipUnless 标注，平台边界写在 docs/isolation-status.md，标 verified=false。
         working-directory: ai_new/modules/agent_test/private
-        run: python -m unittest test_isolation_windows test_nodes test_node_profile -v
+        run: python -m unittest test_isolation_windows test_plat test_core test_nodes test_node_profile -v

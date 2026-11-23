@@ -82,8 +82,8 @@ def smoke():
 
         modules = _get(base, "/api/health/self")["modules"]
         print("  模块: %d" % len(modules))
-        if len(modules) != 38:
-            failures.append("模块数不是 38: %s" % len(modules))
+        if len(modules) != 39:
+            failures.append("模块数不是 39: %s" % len(modules))
 
         demands = _get(base, "/api/demand_engine/list")
         points = _get(base, "/api/hooks/points")

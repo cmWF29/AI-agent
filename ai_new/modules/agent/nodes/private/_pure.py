@@ -29,6 +29,32 @@ DEFAULT_WEIGHTS = {"capacity": 1.0, "history": 2.0, "region": 1.0}
 MIG_DONE = "done"
 MIG_FAILED = "failed"
 
+# 节点在拓扑里的归属：entry=控制面入口（可对公网暴露），executor=内网执行节点。
+# 只读视图只下发 role / public_exposed / endpoint_masked，真实内网 IP 与端口不出控制面。
+NODE_ROLES = ("entry", "executor")
+
+
+def _coerce_role(value, prev=None):
+    """归一化节点归属：未声明默认执行节点；非法值回退执行节点，不写脏数据。"""
+    role = str(value or "").strip() or (prev or {}).get("role") or "executor"
+    return role if role in NODE_ROLES else "executor"
+
+
+def mask_endpoint(endpoint):
+    """把节点真实地址脱敏成只读展示串：保留协议名，主机/端口/套接字路径一律打码。
+
+    脱敏串用于运维页展示；真实内网 IP、端口与套接字路径不进只读视图，
+    前端拿不到可直连的地址。空地址返回空串。
+    """
+    raw = str(endpoint or "").strip()
+    if not raw:
+        return ""
+    scheme, sep, _rest = raw.partition("://")
+    if sep:
+        scheme = "".join(ch for ch in scheme.lower() if ch.isalnum() or ch in "+.-")
+        return "%s://***" % scheme if scheme else "***"
+    return "***"
+
 
 def empty_state():
     """空状态：纯函数不携带默认业务档案。"""
@@ -69,9 +95,12 @@ def register(state, node, now):
     nodes = state.setdefault("nodes", {})
     nid = str(node["id"]).strip()
     prev = nodes.get(nid)
+    exposed = node.get("public_exposed", (prev or {}).get("public_exposed", False))
     record = {
         "id": nid,
         "endpoint": str(node["endpoint"]).strip(),
+        "role": _coerce_role(node.get("role"), prev),
+        "public_exposed": bool(exposed),
         "transport": str(node.get("transport") or "direct"),
         "region": str(node.get("region") or (prev or {}).get("region") or ""),
         "capacity": dict(node.get("capacity") or {}),
@@ -253,6 +282,9 @@ def nodes_view(state, now, ttl=None):
         eff = float(ttl or rec.get("lease_ttl") or DEFAULT_TTL)
         health = "alive" if rec["last_seen"] + eff >= now else "lost"
         row = dict(rec)
+        # 只读视图不下发真实内网地址：原始 endpoint 剔除，只留脱敏串与归属标记。
+        row.pop("endpoint", None)
+        row["endpoint_masked"] = mask_endpoint(rec.get("endpoint", ""))
         row["health"] = health
         held_leases = lease_by_node.get(nid, [])
         row["lease_count"] = len(held_leases)

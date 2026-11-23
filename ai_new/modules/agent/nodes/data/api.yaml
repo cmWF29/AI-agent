@@ -8,6 +8,8 @@ routes:
       transport: {type: str, req: false}
       capacity: {type: dict, req: false}
       lease_ttl: {type: int, req: false}
+      role: {type: str, req: false}        # entry=控制面入口；executor=内网执行节点，缺省 executor
+      public_exposed: {type: bool, req: false}  # 是否对公网暴露；执行节点默认 false（仅内网）
     out:
       ok: {type: bool}
       node: {type: dict}
@@ -76,8 +78,10 @@ routes:
       nodes: {type: list}
       assignments: {type: list}
   nodes.status:
-    # 运维页只读组合视图。nodes 行字段：id, endpoint, transport, region,
-    # capacity, load, registered_at, last_seen, lease_ttl, status,
+    # 运维页只读组合视图。nodes 行字段：id, role(entry/executor),
+    # public_exposed(bool，执行节点 false=仅内网), endpoint_masked(脱敏地址，
+    # 不下发真实内网 IP/端口), transport, region, capacity, load,
+    # registered_at, last_seen, lease_ttl, status,
     # health(alive/lost 假死), lease_count, lease_remaining(剩余秒数/None),
     # projects(持有项目列表)；assignments 行字段：project, node, epoch,
     # state(held/released), tier, expires_at, remaining(剩余秒数/None)；

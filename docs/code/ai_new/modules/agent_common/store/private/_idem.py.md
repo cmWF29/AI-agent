@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_idem.py
-hash: 4e6edea08d8003114c84b692d686d61fb3c8dacef097c427fc736dc9ae0d9e22
+hash: feaec4013afaae95f03f4d1bc21d877697467c400b7e1ee7e2ea717fc32fb835
 symbols:
 - _bucket_dir
 - _key_name
@@ -74,7 +74,7 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `_lock`（function）
-- 职责: 对记录旁挂的 .lock 做独占锁；平台不支持 flock 时退化为进程内互斥。
+- 职责: 对记录旁挂的 .lock 做独占锁；OS 原语收口在 plat 适配层。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -4,8 +4,12 @@ server:
   token: ''
   version: 0.1.0
   auth:
+    # 登录校验：缺省 false 仅本机开发；对外提供服务前必须置 true 并改掉默认口令。
     enabled: false
+    # 默认账号 admin；生产必须改成非默认用户名。
     username: admin
+    # 口令摘要（salt:口令 的 sha256）：生产必须设置强口令摘要；留空即视为未改默认弱口令，
+    # 启动打显著告警，控制台横幅提示必须改密后才能对外。
     password_hash: ''
     salt: ''
     ttl: 86400

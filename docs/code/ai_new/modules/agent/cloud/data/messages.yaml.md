@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/data/messages.yaml
-hash: fa65efa4cf3701cf90ecffa5c250b95df70c7ec6d61bf1433d78b601f943fb23
+hash: 57b7d95aca7ee86ae63c55cc93436082f27fa4cf299aa34202f7dd392a87268e
 symbols:
 - forbidden_scope
 - not_found
@@ -28,6 +28,12 @@ symbols:
 - adapter_pending
 - s3_signing_pending
 - exec_wrapper_pending
+- signature_mismatch
+- access_denied
+- checksum_mismatch
+- multipart_error
+- rate_limited
+- connection_error
 - tool_cloud_profile_save_desc
 - tool_cloud_profile_switch_desc
 - tool_cloud_profile_delete_desc
@@ -201,6 +207,42 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `exec_wrapper_pending`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `signature_mismatch`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `access_denied`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `checksum_mismatch`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `multipart_error`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `rate_limited`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `connection_error`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

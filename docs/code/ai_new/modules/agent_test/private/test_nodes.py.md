@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_nodes.py
-hash: 10dfdc4ffaaa131e66a2897f1463b30f187b03581e52e00cd998d5d5281723ad
+hash: d203f296ef5fec16d459d166f12077e9c27dba243ed53aa935e261ea40f7499b
 symbols:
 - _seed
 - test_register_records_node_alive
@@ -29,6 +29,10 @@ symbols:
 - test_assignments_view_carries_remaining
 - test_backups_view_normalizes_time_and_state
 - test_status_view_composite_shape
+- test_default_role_executor_and_not_exposed
+- test_entry_node_marked_exposed
+- test_view_exposes_masked_address_only
+- test_mask_endpoint_hides_host_and_port
 - test_status_route_registered
 - test_plan_rejects_traversal_and_absolute
 - test_verify_manifest_reports_missing_and_mismatch
@@ -205,6 +209,30 @@ nodes 协调模块靶向单测：注册/心跳/租约/fencing/分配/快照台�
 - 关联需求/测试: 待人工补充
 
 ### `test_status_view_composite_shape`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_default_role_executor_and_not_exposed`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_entry_node_marked_exposed`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_view_exposes_masked_address_only`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_mask_endpoint_hides_host_and_port`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

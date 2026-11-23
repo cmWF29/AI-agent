@@ -142,8 +142,12 @@ class StructureTest(unittest.TestCase):
                       if p.parent != path / "private" and p.name != "__init__.py"]
             self.assertEqual(strays, [], "%s/%s 有跑到 private/ 之外的文件: %s" % (group, name, strays))
 
+    # plat 是平台适配设施（锁/传输/进程信号的 OS 原语收口），不是业务模块：
+    # 运行时模块允许依赖它，如同依赖标准库；除此之外模块之间仍不许互相 import。
+    _PLAT_PACKAGE = "ai_new.modules.agent_common.plat"
+
     def test_no_cross_module_imports(self):
-        """运行时模块之间不 import；agent_test 可以（评审者能看被评审对象，反之不行）。"""
+        """运行时模块之间不 import；agent_test 与 plat 平台设施除外。"""
         violations = []
         for path in src_files(ROOT / "ai_new"):
             owner = _module_of(path)
@@ -154,12 +158,16 @@ class StructureTest(unittest.TestCase):
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        if alias.name.startswith("ai_new.modules"):
+                        if alias.name.startswith("ai_new.modules") and not (
+                                alias.name == self._PLAT_PACKAGE
+                                or alias.name.startswith(self._PLAT_PACKAGE + ".")):
                             violations.append((str(path.relative_to(ROOT)), alias.name))
                 elif isinstance(node, ast.ImportFrom):
                     target = _resolve(own, node.level, node.module)
-                    if target.startswith("ai_new.modules") and not (
-                            target == own or target.startswith(own + ".")):
+                    allowed = (target == own or target.startswith(own + ".")
+                               or target == self._PLAT_PACKAGE
+                               or target.startswith(self._PLAT_PACKAGE + "."))
+                    if target.startswith("ai_new.modules") and not allowed:
                         violations.append((str(path.relative_to(ROOT)),
                                            "." * node.level + (node.module or ""), target))
         self.assertEqual(violations, [], "存在跨模块 import: %s" % violations)

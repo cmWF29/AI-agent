@@ -1,0 +1,25 @@
+id: nodes-role
+title: 节点归属与暴露面：入口/执行标记与脱敏地址
+description: "只读取节点归属（入口/执行）、是否对公网暴露与脱敏地址；真实内网 IP 与端口不进视图。"
+tags: [nodes, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.overview
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - nodes.overview
+  payload: {}
+  promise: 每行带 role(entry/executor)、public_exposed 与 endpoint_masked；执行节点默认仅内网，视图不下发真实内网地址
+evidence:
+  test: test_nodes
+  cases:
+  - test_default_role_executor_and_not_exposed
+  - test_view_exposes_masked_address_only
+  - test_mask_endpoint_hides_host_and_port
+  files:
+  - ai_new/modules/agent/nodes/data/api.yaml

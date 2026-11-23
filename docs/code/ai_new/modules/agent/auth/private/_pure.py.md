@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent/auth/private/_pure.py
-hash: 364951d85bf466d5a0d18844962b6d7fe680638239ee6ab523b9c50f8c3d0e95
+hash: d84e43be0e7a082d94a24dba7e73ec4c7941e6724b77688e51a056861e92bd2b
 symbols:
+- default_password_state
 - credentials_ok
 - change_password
 - build_session
@@ -22,6 +23,12 @@ updated_at: '2026-11-23T04:10:19'
 鉴权纯函数：凭据比对、会话成形与有效性判定。不读盘、不取时间、不碰 stdlib。
 
 ## 符号
+
+### `default_password_state`（function）
+- 职责: 判定是否仍是默认/空口令（纯计算，不读盘不计时钟）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `credentials_ok`（function）
 - 职责: 用户名与摘要都相等才通过；不泄露出是哪一项错。

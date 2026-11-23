@@ -1,10 +1,11 @@
 ---
 source: ai_new/modules/agent_common/net/private/_client.py
-hash: a84ec7eea4fac6490d9f6278fbd912f5c9e1fa6fcb237a486568a7b24f6d4113
+hash: 2ae571034c057e00f23c3db2f654dde10456646772ca3ff58e9dd713dbd135fc
 symbols:
 - _retryable
 - _backoff
 - _split_url
+- _raw_body
 - _build_request
 - _open
 - _read_status
@@ -43,6 +44,12 @@ HTTP(S) 出站实现（纯 stdlib，协程流）。失败是结果、不是异�
 
 ### `_split_url`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_raw_body`（function）
+- 职责: 请求体归一为字节：文本按 utf-8 编码；字节/字节透传（二进制对象通道用）。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

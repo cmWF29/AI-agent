@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent/web/data/console/nodes.js
-hash: e4252919a40f5a8fe248cdd7502d7694dd53902b6feddb02e9aa7e17864f3175
+hash: 941cec1b83cf8e889cc5b5ecd4d368a84a83c39437aeaf31af307862e0500c82
 symbols:
 - token
 - rpc
 - escNode
 - pill
+- rolePill
 - renderNodes
 - renderAssignments
 - renderBackups
@@ -46,6 +47,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `pill`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `rolePill`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

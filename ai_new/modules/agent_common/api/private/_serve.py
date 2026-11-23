@@ -12,13 +12,15 @@
 """
 from __future__ import annotations
 
-import fcntl
 import mmap
 import os
 import socket
 import threading
 import time
 from pathlib import Path
+
+from ai_new.modules.agent_common.plat.private import _lock as plat_lock
+from ai_new.modules.agent_common.plat.private import _net as plat_net
 
 from . import _wire
 
@@ -95,9 +97,12 @@ class Server:
     def _encode(self, value):
         return self.ctx.codec.yaml_encode_flow(value)["text"]
 
-    # ---- unix socket ----
+    # ---- unix socket（Windows 退 loopback TCP）----
     def _start_unix(self, path):
         path = str(path)
+        if not plat_net.supports_unix_socket():
+            self._start_unix_tcp_fallback(path)
+            return
         try:
             os.unlink(path)
         except OSError:
@@ -111,6 +116,18 @@ class Server:
         self._unlink = getattr(self, "_unlink", []) + [path]
         t = threading.Thread(target=self._accept, args=(srv,), daemon=True,
                              name="api-unix")
+        t.start()
+        self._threads.append(t)
+
+    def _start_unix_tcp_fallback(self, unix_path):
+        """无 AF_UNIX 的平台：绑 loopback 随机端口，地址写侧车文件供客户端回连。"""
+        srv, host, port = plat_net.loopback_listen()
+        addr_file = plat_net.addr_file_for(unix_path)
+        plat_net.write_addr_file(addr_file, host, port)
+        self._closed.append(srv.close)
+        self._unlink = getattr(self, "_unlink", []) + [addr_file]
+        t = threading.Thread(target=self._accept, args=(srv,), daemon=True,
+                             name="api-unix-tcp")
         t.start()
         self._threads.append(t)
 
@@ -167,14 +184,15 @@ class Server:
             body, seq = "", 0
             with open(req, "r+b") as fh:
                 mm = mmap.mmap(fh.fileno(), SHM_SIZE)
-                fcntl.flock(fh, fcntl.LOCK_EX)
+                req_lock = plat_lock.ExclusiveLock(fh, path=str(req))
+                req_lock.acquire()
                 try:
                     ln, sq = HDR.unpack_from(mm, 0)
                     if sq and sq != seen and 0 < ln <= SHM_SIZE - HDR.size:
                         body = mm[HDR.size:HDR.size + ln].decode("utf-8", "replace")
                         seq = sq
                 finally:
-                    fcntl.flock(fh, fcntl.LOCK_UN)
+                    req_lock.release()
                     mm.close()
             if not seq:
                 time.sleep(0.002)
@@ -183,12 +201,13 @@ class Server:
             text = self.handle(body).encode("utf-8")[:SHM_SIZE - HDR.size]
             with open(resp, "r+b") as fh:
                 mm = mmap.mmap(fh.fileno(), SHM_SIZE)
-                fcntl.flock(fh, fcntl.LOCK_EX)
+                resp_lock = plat_lock.ExclusiveLock(fh, path=str(resp))
+                resp_lock.acquire()
                 try:
                     HDR.pack_into(mm, 0, len(text), seq)
                     mm[HDR.size:HDR.size + len(text)] = text
                 finally:
-                    fcntl.flock(fh, fcntl.LOCK_UN)
+                    resp_lock.release()
                     mm.close()
 
 

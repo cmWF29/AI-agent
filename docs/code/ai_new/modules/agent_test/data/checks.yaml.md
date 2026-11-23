@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/data/checks.yaml
-hash: 4c08a6f513167a6c151e53ecb2a88dd2cd0adbcd01d0613c4781ec970438b623
+hash: ea2159f631b6692ec4adb6212a58204f828e41954dc4a8ab5909fb9563bc22e2
 symbols:
 - checks
 generated: gen_docs.py v1

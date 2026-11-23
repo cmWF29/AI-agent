@@ -303,6 +303,7 @@ async function boot() {
     history.replaceState(state, "", qsOf(state));   // 地址里的视图不认识：换成真实页，别留死链
   }
   await render({ pre });
+  mountAuthBanner();
   openInvalidate();
 }
 function adoptViews(items) {
@@ -453,6 +454,62 @@ async function mountSecretaryStatus(ctx) {
   box.innerHTML = `<h3>${esc(uiText("secretary_status_title") || "队列状态")}</h3>${rows}`;
 }
 
+/* 直连模块只读路由：不走需求 id，外壳不存第二份需求清单；取数失败由调用方兜底空态。 */
+async function rpcDirect(route) {
+  const resp = await fetch("/api/rpc/" + route.replace(".", "/"), {
+    method: "POST", headers: headers(), body: yamlBody({})
+  });
+  const body = await readYaml(resp).catch(() => ({ ok: false }));
+  return body.result || body || {};
+}
+
+/* 云端通道只读区块：运维页展示提供方、连通状态、最近同步与校验结果。
+   取数走 cloud 模块既有路由；未接入、缺字段或取数失败时渲染空态，不报错、不弹窗。 */
+async function mountCloudChannel(ctx) {
+  const host = $("view-body");
+  if (!host) return;
+  let box = document.getElementById("cloud-channel");
+  if (state.view !== "ops") { if (box) box.hidden = true; return; }
+  let status = null, providers = null;
+  try {
+    status = await rpcDirect("cloud.status");
+    providers = await rpcDirect("cloud.providers");
+  } catch (e) { status = null; providers = null; }
+  if (!box) {
+    box = document.createElement("aside");
+    box.id = "cloud-channel";
+    box.className = "side-card";
+    host.appendChild(box);
+  }
+  const profile = (status && status.profile) || {};
+  const lastRun = (status && status.last_run) || {};
+  const firstProvider = (providers && providers.items && providers.items[0]) || {};
+  const provider = profile.provider || profile.name || firstProvider.provider || firstProvider.name || "";
+  const configured = !!(status && status.configured);
+  const conn = configured ? "已配置" : "未接入";
+  const lastSync = lastRun.at ? when(lastRun.at) : "—";
+  const verify = lastRun.state || lastRun.reason || "—";
+  const kv = (label, val) => `<div class="kv"><span>${esc(label)}</span><div>${esc(val)}</div></div>`;
+  const title = uiText("cloud_channel_title") || "云端通道";
+  if (!configured && !provider) {
+    box.hidden = false;
+    box.innerHTML = `<h3>${esc(title)}</h3><div class="muted">${esc(uiText("cloud_channel_empty") || "未接入云端通道")}</div>`;
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = `<h3>${esc(title)}</h3>` +
+    kv("提供方", provider || "—") + kv("连通状态", conn) +
+    kv("最近同步", lastSync) + kv("校验结果", verify);
+}
+
+/* 默认口令横幅：启动读一次账号状态；仍是默认/空口令时顶部横幅提示改密，取数失败不阻塞页面。 */
+async function mountAuthBanner() {
+  try {
+    const me = await rpcDirect("auth.status");
+    if (me && me.default_password && me.warning) banner(me.warning, "err");
+  } catch (e) { /* 静默：不拿账号状态拦正常使用 */ }
+}
+
 /* 局部/整页重渲染会重建滚动容器，浏览器把 scrollTop 归零——表现就是「自己跳到最上面」。
    统一记账：渲染前记住每个可滚容器滚到哪、离底多远；渲染后按同类顺序还回去。
    贴底的（离底 ≤ 48px）继续贴底；用户上滑读历史的回到原位，不被打断。 */
@@ -561,6 +618,7 @@ async function render(opts) {
   renderView(spec, ctx);
   if (typeof stampCtl === "function") stampCtl(document.querySelector("#view-body"));
   mountSecretaryStatus(ctx);
+  mountCloudChannel(ctx);
   scrollRestore(marks);
   restoreDecks(deckStates);
   const ta = document.querySelector("#view-body .composer textarea");

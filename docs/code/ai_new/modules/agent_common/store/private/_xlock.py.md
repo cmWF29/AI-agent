@@ -1,12 +1,7 @@
 ---
 source: ai_new/modules/agent_common/store/private/_xlock.py
-hash: 06eeaf2d3e589f92c4914ee70980c7639e7eb1333287fe2be99d7a30243d19d4
+hash: 5d2786b4e02ac8225661de30170cf60c8cfc411f80b46834887b7007cfa301b0
 symbols:
-- __init__
-- acquire
-- release
-- __enter__
-- __exit__
 - lock_file
 - capability
 generated: gen_docs.py v1
@@ -20,39 +15,9 @@ updated_at: '2026-11-23T04:10:22'
 
 ## 概览
 
-跨进程项目锁：POSIX flock / Windows msvcrt.locking 双分支。
+跨进程项目锁：原语收口到 plat 平台适配层（POSIX flock / Windows msvcrt）。
 
 ## 符号
-
-### `__init__`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `acquire`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `release`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `__enter__`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `__exit__`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
 
 ### `lock_file`（function）
 - 职责: 按路径打开锁文件并返回跨进程锁上下文管理器。

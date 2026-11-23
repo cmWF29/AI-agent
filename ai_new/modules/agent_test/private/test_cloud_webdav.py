@@ -1,0 +1,336 @@
+"""WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连外网。
+
+覆盖：列目录解析、上传下载往返、同尺寸跳过、409/404 错误码、Digest 401 重试、
+XXE 拒绝、``..`` 路径穿越拒绝、10MB 级流式（内存峰值不随文件线性增长）、
+rsync 探测与真实目录幂等同步（无二进制时 skip 真实同步并断言 unsupported_platform）。
+"""
+import base64
+import hashlib
+import io
+import os
+import shutil
+import sys
+import tempfile
+import tracemalloc
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from ai_new.modules.agent.cloud.private import _webdav, _rsync  # noqa: E402
+import webdav_stub  # noqa: E402
+
+PATTERN_CHUNK = 64 * 1024
+BIG_SIZE = 10 * 1024 * 1024
+
+
+class _HashSink:
+    """落地收集器：边写边算 sha256，不保留完整正文。"""
+
+    def __init__(self):
+        self._hash = hashlib.sha256()
+        self.size = 0
+
+    def write(self, chunk):
+        self._hash.update(chunk)
+        self.size += len(chunk)
+
+    def hexdigest(self):
+        return self._hash.hexdigest()
+
+
+class _PatternSource:
+    """确定性流式源：按 64KB 模式切片产出，整对象不进内存；支持 seek 回卷。"""
+
+    def __init__(self, size, chunk=PATTERN_CHUNK):
+        self._size = size
+        self._chunk = chunk
+        self._pos = 0
+        self._pattern = bytes((i * 7) % 256 for i in range(chunk))
+
+    def read(self, n=-1):
+        if self._pos >= self._size:
+            return b""
+        want = min(n if n > 0 else self._chunk, self._size - self._pos)
+        out = self._pattern[:want]
+        self._pos += want
+        return out
+
+    def seek(self, offset):
+        self._pos = max(0, min(offset, self._size))
+
+    def expected_hash(self):
+        digest = hashlib.sha256()
+        pos = 0
+        while pos < self._size:
+            want = min(self._chunk, self._size - pos)
+            digest.update(self._pattern[:want])
+            pos += want
+        return digest.hexdigest()
+
+
+class _StubCodec:
+    """对齐 codec 能力面：digest / base64_encode（实现留在测试侧，模块侧不自带）。"""
+
+    def digest(self, text, algorithm="sha256"):
+        return getattr(hashlib, algorithm)(text.encode("utf-8")).hexdigest()
+
+    def base64_encode(self, data):
+        return base64.b64encode(data).decode("ascii")
+
+
+class _StubClock:
+    """对齐 clock 能力面：测试不真等退避。"""
+
+    def sleep(self, seconds):
+        return None
+
+
+class WebDavStubTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.server, self.thread, self.base_url = webdav_stub.start_stub(
+            directory=self.tmp.name)
+        self.store = self.server.store
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.tmp.cleanup()
+
+    def _client(self, credentials=None, **kw):
+        user = password = None
+        if credentials:
+            user, password = credentials["user"], credentials["password"]
+        kw.setdefault("codec", _StubCodec())
+        kw.setdefault("clock", _StubClock())
+        return _webdav.WebDavClient(self.base_url, username=user,
+                                    password=password, **kw)
+
+    def test_propfind_lists_directory(self):
+        client = self._client()
+        self.assertTrue(client.mkcol("docs")["ok"])
+        put = client.put("docs/a.txt", b"hello webdav")
+        self.assertTrue(put["ok"], put)
+
+        res = client.propfind("docs", depth=1)
+        self.assertTrue(res["ok"], res)
+        files = [e for e in res["entries"] if not e["is_dir"]]
+        self.assertEqual(len(files), 1)
+        entry = files[0]
+        self.assertEqual(entry["key"], "docs/a.txt")
+        self.assertEqual(entry["size"], 12)
+
+    def test_put_get_roundtrip(self):
+        client = self._client()
+        body = b"roundtrip-0123456789"
+        put = client.put("probe.txt", body)
+        self.assertTrue(put["ok"], put)
+
+        probe = client.head("probe.txt")
+        self.assertTrue(probe["ok"], probe)
+        self.assertEqual(probe["size"], len(body))
+
+        sink = _HashSink()
+        got = client.get("probe.txt", sink)
+        self.assertTrue(got["ok"], got)
+        self.assertEqual(sink.size, len(body))
+        expect = hashlib.sha256(body).hexdigest()
+        self.assertEqual(sink.hexdigest(), expect)
+        self.assertEqual(client.test_connection()["ok"], True)
+
+    def test_put_skips_identical(self):
+        client = self._client()
+        body = b"same-content"
+        first = client.put("dup.txt", body)
+        self.assertTrue(first["ok"])
+        puts_after_first = self.store.puts
+
+        second = client.put("dup.txt", body)
+        self.assertTrue(second["ok"])
+        self.assertTrue(second["skipped"])
+        self.assertEqual(self.store.puts, puts_after_first)
+
+    def test_mkcol_conflict_409(self):
+        client = self._client()
+        self.assertTrue(client.mkcol("d1")["ok"])
+        conflict = client.mkcol("d1")
+        self.assertFalse(conflict["ok"])
+        self.assertEqual(conflict["code"], "conflict")
+        self.assertEqual(conflict["status"], 409)
+
+    def test_delete_not_found(self):
+        client = self._client()
+        missing = client.delete("missing/nope.bin")
+        self.assertFalse(missing["ok"])
+        self.assertEqual(missing["code"], "not_found")
+
+        client.put("gone.bin", b"x")
+        self.assertTrue(client.delete("gone.bin")["ok"])
+        again = client.delete("gone.bin")
+        self.assertEqual(again["code"], "not_found")
+
+    # ------------------------------------------------------------ 认证
+
+    def test_digest_401_retry(self):
+        auth = {"mode": "digest", "user": "u", "password": "p"}
+        self.server.auth = auth
+        client = self._client(credentials=auth, auth="digest")
+        res = client.propfind("")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(self.store.challenges, 1)
+        self.assertGreaterEqual(self.store.authenticated, 1)
+
+    # ------------------------------------------------------------ 安全负向
+
+    def test_xxe_payload_rejected(self):
+        evil = (
+            '<?xml version="1.0"?>\n'
+            '<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/hostname">]>\n'
+            '<d:multistatus xmlns:d="DAV:">'
+            '<d:response><d:href>/evil/</d:href><d:prop><d:propstat>'
+            '<d:prop><d:getetag>&xxe;</d:getetag></d:prop>'
+            '<d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:prop></d:response>'
+            '</d:multistatus>'
+        ).encode("utf-8")
+        self.store.custom_propfind["/evil"] = evil
+
+        client = self._client()
+        with self.assertRaises(_webdav.WebDavError) as cm:
+            client.propfind("evil")
+        self.assertEqual(cm.exception.code, "xml_forbidden")
+
+        broken = b"<<<not-xml-at-all>>>"
+        self.store.custom_propfind["/broken"] = broken
+        with self.assertRaises(_webdav.WebDavError) as cm2:
+            client.propfind("broken")
+        self.assertEqual(cm2.exception.code, "malformed_xml")
+
+    def test_traversal_key_rejected(self):
+        client = self._client()
+        bad_keys = ["../secret", "a/../../etc", "/etc/passwd", "..%2fetc"]
+        for key in bad_keys:
+            with self.assertRaises(_webdav.WebDavError) as cm:
+                client.put(key, b"x")
+            self.assertEqual(cm.exception.code, "invalid_key")
+            with self.assertRaises(_webdav.WebDavError) as cm2:
+                client.get(key, _HashSink())
+            self.assertEqual(cm2.exception.code, "invalid_key")
+            with self.assertRaises(_webdav.WebDavError) as cm3:
+                client.delete(key)
+            self.assertEqual(cm3.exception.code, "invalid_key")
+            with self.assertRaises(_webdav.WebDavError) as cm4:
+                client.mkcol(key)
+            self.assertEqual(cm4.exception.code, "invalid_key")
+        self.assertEqual(self.store.puts, 0)
+        self.assertEqual(self.store.deletes, 0)
+
+    def test_capability_missing_when_not_injected(self):
+        # 未注入 codec/clock 且无 ctx：触发能力点显式 capability_missing，不自带实现兜底。
+        client = _webdav.WebDavClient(self.base_url, username="u", password="p")
+        with self.assertRaises(_webdav.WebDavError) as cm:
+            client.test_connection()
+        self.assertEqual(cm.exception.code, "capability_missing")
+
+    def test_key_guard_delegates(self):
+        self.assertIsNone(_webdav.sanitize_key("a/../b"))
+        self.assertIsNone(_webdav.sanitize_key("/etc/passwd"))
+        self.assertEqual(_webdav.sanitize_key("docs/2026/a.md"), "docs/2026/a.md")
+        verdict = _webdav.validate_endpoint("http://example.com/data")
+        self.assertIn("bad_scheme", verdict["errors"])
+
+    # ------------------------------------------------------------ 流式与续传
+
+    def test_large_file_streaming_bounded_memory(self):
+        client = self._client()
+        source = _PatternSource(BIG_SIZE)
+        expect_hash = source.expected_hash()
+
+        tracemalloc.start()
+        snap_before = tracemalloc.take_snapshot()
+        try:
+            put = client.put("big.bin", source, size=BIG_SIZE)
+            self.assertTrue(put["ok"], put)
+
+            sink = _HashSink()
+            got = client.get("big.bin", sink)
+            self.assertTrue(got["ok"], got)
+            self.assertEqual(sink.size, BIG_SIZE)
+            self.assertEqual(sink.hexdigest(), expect_hash)
+        finally:
+            snap_after = tracemalloc.take_snapshot()
+            tracemalloc.stop()
+
+        growth = sum(trace.size_diff for trace in
+                     snap_after.compare_to(snap_before, "lineno"))
+        # 10MB 正文不得一次性进内存：Python 侧驻留增量控制在 3MB 以内。
+        self.assertLess(growth, 3 * 1024 * 1024,
+                        "streaming held %d bytes resident" % growth)
+
+    def test_range_resume_partial(self):
+        client = self._client()
+        body = b"abcdefghijklmnopqrstuvwxyz"
+        self.assertTrue(client.put("resume.bin", body)["ok"])
+
+        sink = io.BytesIO()
+        sink.write(body[:5])  # 本地已有前 5 字节，从偏移 5 续传
+        got = client.get("resume.bin", sink, offset=5, resume=True)
+        self.assertTrue(got["ok"], got)
+        self.assertTrue(got["partial"])
+        self.assertEqual(sink.getvalue(), body)
+
+
+class RsyncChannelTest(unittest.TestCase):
+    def test_probe_reports_availability(self):
+        probe = _rsync.probe()
+        available = _rsync.is_available()
+        self.assertEqual(probe["ok"], available)
+        if available:
+            self.assertEqual(probe["code"], "available")
+            self.assertTrue(probe["path"])
+        else:
+            self.assertEqual(probe["code"], "unsupported_platform")
+            self.assertEqual(probe["detail"], "rsync not installed")
+
+    def test_sync_idempotent_when_available(self):
+        if not _rsync.is_available():
+            res = _rsync.sync("src/", "dst/")
+            self.assertFalse(res["ok"])
+            self.assertEqual(res["code"], "unsupported_platform")
+            self.skipTest("rsync binary not installed")
+
+        src = tempfile.mkdtemp(prefix="rsync-src-")
+        dst = tempfile.mkdtemp(prefix="rsync-dst-")
+        self.addCleanup(shutil.rmtree, src, ignore_errors=True)
+        self.addCleanup(shutil.rmtree, dst, ignore_errors=True)
+
+        os.makedirs(os.path.join(src, "nested", "deep"))
+        with open(os.path.join(src, "a.txt"), "wb") as fh:
+            fh.write(b"alpha-content")
+        with open(os.path.join(src, "nested", "deep", "b.bin"), "wb") as fh:
+            fh.write(bytes((i % 256) for i in range(512)))
+
+        first = _rsync.sync(src + "/", dst + "/")
+        self.assertTrue(first["ok"], first)
+
+        def _walk(root):
+            out = {}
+            for base, _dirs, files in os.walk(root):
+                for name in files:
+                    path = os.path.join(base, name)
+                    rel = os.path.relpath(path, root)
+                    with open(path, "rb") as fh:
+                        out[rel] = fh.read()
+            return out
+
+        self.assertEqual(_walk(dst), _walk(src))
+
+        second = _rsync.sync(src + "/", dst + "/")
+        self.assertTrue(second["ok"], second)
+        self.assertEqual(_walk(dst), _walk(src))
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

@@ -11,6 +11,6 @@ listen:
 routes: {}
 stats:
   bound: 0
-  modules: 39
-  route_literals: 373
+  modules: 40
+  route_literals: 374
 

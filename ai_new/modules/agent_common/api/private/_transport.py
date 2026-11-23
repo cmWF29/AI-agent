@@ -13,11 +13,13 @@
 """
 from __future__ import annotations
 
-import fcntl
 import mmap
 import socket
 import time
 from pathlib import Path
+
+from ai_new.modules.agent_common.plat.private import _lock as plat_lock
+from ai_new.modules.agent_common.plat.private import _net as plat_net
 
 from . import _wire
 
@@ -121,18 +123,34 @@ class Transport:
                                     code=rec.get("code") or "remote_error", status=502)
         return rec.get("result")
 
-    # ---- unix socket ----
+    # ---- unix socket（无 AF_UNIX 的平台退 loopback TCP）----
     def _unix(self, addr, route, body, expect=True):
         if not addr:
             raise self.ctx.ApiError("通道 unix 缺少 listen.unix.path: %s" % route,
                                     code="bad_transport", status=500)
-        conn = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        conn.settimeout(self._timeout())
+        timeout = self._timeout()
+        if plat_net.supports_unix_socket():
+            conn = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            conn.settimeout(timeout)
+            try:
+                conn.connect(str(addr))
+                return self._roundtrip(conn, route, body, expect)
+            except OSError as exc:
+                raise self.ctx.ApiError("本地 socket 调用失败: %s (%s)" % (route, exc),
+                                        code="remote_error", status=502)
+            finally:
+                conn.close()
+        row = plat_net.read_addr_file(plat_net.addr_file_for(str(addr)))
+        if row is None:
+            raise self.ctx.ApiError(
+                "通道 unix 在本机退 loopback，但连接文件缺失: %s" % addr,
+                code="bad_transport", status=500)
+        host, port = row
         try:
-            conn.connect(str(addr))
+            conn = plat_net.connect_loopback(host, port, timeout)
             return self._roundtrip(conn, route, body, expect)
         except OSError as exc:
-            raise self.ctx.ApiError("本地 socket 调用失败: %s (%s)" % (route, exc),
+            raise self.ctx.ApiError("本地回退 socket 调用失败: %s (%s)" % (route, exc),
                                     code="remote_error", status=502)
         finally:
             conn.close()
@@ -178,12 +196,13 @@ class Transport:
         try:
             with open(req, "r+b") as fh:
                 mm = mmap.mmap(fh.fileno(), 0)
-                fcntl.flock(fh, fcntl.LOCK_EX)
+                req_lock = plat_lock.ExclusiveLock(fh, path=str(req))
+                req_lock.acquire()
                 try:
                     HDR.pack_into(mm, 0, len(body), seq)
                     mm[8:8 + len(body)] = body
                 finally:
-                    fcntl.flock(fh, fcntl.LOCK_UN)
+                    req_lock.release()
                     mm.close()
         except OSError as exc:
             raise self.ctx.ApiError("共享内存写失败: %s (%s)" % (route, exc),
@@ -195,12 +214,13 @@ class Transport:
             try:
                 with open(resp, "r+b") as fh:
                     mm = mmap.mmap(fh.fileno(), 0)
-                    fcntl.flock(fh, fcntl.LOCK_EX)
+                    resp_lock = plat_lock.ExclusiveLock(fh, path=str(resp))
+                    resp_lock.acquire()
                     try:
                         ln, rseq = HDR.unpack_from(mm, 0)
                         text = mm[8:8 + ln].decode("utf-8", "replace") if rseq == seq and ln > 0 else None
                     finally:
-                        fcntl.flock(fh, fcntl.LOCK_UN)
+                        resp_lock.release()
                         mm.close()
             except OSError as exc:
                 raise self.ctx.ApiError("共享内存读失败: %s (%s)" % (route, exc),
