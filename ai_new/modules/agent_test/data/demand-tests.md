@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 179 条需求，绑定 15 个检查项。
+共 180 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -177,6 +177,7 @@
 | view-skill-decompose | view | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
 | view-skills | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-ticket-thread | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| view-tickets | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-timer | view | timer | test_timer.py | 定时器：调度推算、两路触发幂等、作用域隔离与审计 |
 | view-tools | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-trace | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |

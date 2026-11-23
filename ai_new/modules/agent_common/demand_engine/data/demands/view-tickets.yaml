@@ -1,0 +1,33 @@
+id: view-tickets
+title: 群聊视图：全部工单会话，按最近活动排列
+description: "群聊：跨项目列出全部工单会话，按最近活动倒序，点行进工单群聊。"
+tags: [view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  menu: {order: 5, label: 群聊, group: {name: 工作, order: 1}, mobile: true, tab: {order: 2}}
+  key: tickets
+  crumb: [群聊]
+  heading: 群聊
+  subheading: 按最近活动排列的工单群聊
+  data:
+  - {as: tickets, demand: ticket-list}
+  sections:
+  - kind: cards
+    as: tickets
+    layout: list
+    source: tickets.items
+    sort: {by: updated, order: desc}
+    title: row.title
+    sub: "{row.id} · {row.status|label} · {row.project}"
+    meta:
+    - {label: 更新, value: "row.updated|when"}
+    on_click: {view: ticket, params: {project: row.project, ticket: row.id}}
+    empty: {title: 还没有工单群聊, text: 在项目里新建工单后，这里会按最近活动列出来}
+expect:
+  given: {input: {}}
+  calls: []
+  payload: {}
+  promise: 群聊只声明区块，取数走 ticket-list

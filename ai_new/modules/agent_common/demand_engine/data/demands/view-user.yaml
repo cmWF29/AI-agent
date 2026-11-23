@@ -7,10 +7,10 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 3, label: 用户, group: {name: 系统, order: 3}, mobile: true}
+  menu: {order: 3, label: 我的, group: {name: 系统, order: 3}, mobile: true, tab: {order: 5}}
   key: user
-  crumb: [用户]
-  heading: 用户
+  crumb: [我的]
+  heading: 我的
   subheading: 账号与密码，暂不做权限
   data:
   - {as: me, demand: auth-status}
