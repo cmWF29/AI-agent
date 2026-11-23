@@ -30,7 +30,7 @@ jobs:
         run: python3 scripts/gate_demand_tests.py
       - name: 需求/架构/装配/传输/幂等/桩协议全量用例
         working-directory: ai_new/modules/agent_test/private
-        run: python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto
+        run: python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose
       - name: UI 回归（真实浏览器起桩遍历：控件状态机实拉 + 可点实例数核对）
         run: |
           pip install playwright

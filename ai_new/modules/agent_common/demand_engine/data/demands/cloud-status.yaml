@@ -1,0 +1,17 @@
+id: cloud-status
+title: 全局同步状态：当前 profile、最近运行、计数
+description: "只读返回全局云端同步状态：当前生效 profile（脱敏）、最近一次运行摘要、清单条目计数"
+tags: [cloud, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.status
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.status
+  payload: {}
+  promise: 状态视图不含凭证；各作用域只读可见

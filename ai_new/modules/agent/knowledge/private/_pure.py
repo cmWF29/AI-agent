@@ -146,7 +146,6 @@ def index(p):
 
     public_docs = []
     project_groups = {}   # pid -> {"docs": [], "tickets": {tid: [doc]}}
-    orphan_tickets = {}   # tid -> [doc]（工单档案缺失项目归属）
 
     def _doc(layer, pid, tid, name, rel):
         return {"type": "doc", "layer": layer, "layer_label": layer_label[layer],
@@ -174,12 +173,11 @@ def index(p):
             if pid:
                 grp = project_groups.setdefault(pid, {"docs": [], "tickets": {}})
                 grp["tickets"].setdefault(key, []).append(doc)
-            else:
-                orphan_tickets.setdefault(key, []).append(doc)
+            # 查不到项目归属的工单是孤儿：不挂顶层、不冒充项目层，交给清理脚本从数据里摘除
 
     counts["project_groups"] = len(project_groups)
     counts["placed"] = sum(len(grp["tickets"]) for grp in project_groups.values())
-    counts["orphan"] = len(orphan_tickets)
+    counts["orphan"] = 0
 
     tree = []
     # 公共层恒在：它是知识库的第一级，没文档也要露出来，否则用户不知道还有这一层
@@ -194,16 +192,6 @@ def index(p):
                              "badge": layer_label["ticket"], "children": grp["tickets"][key]})
         tree.append({"type": "project", "label": pid, "badge": layer_label["project"],
                      "children": children})
-    # 项目归属缺失的工单（档案里查不到 project）：不冒充项目层，也不平铺裸挂在顶层，
-    # 归成一个「工单 / 未归工单」分组——层级名仍是工单，组名说清为什么它不挂在项目下
-    if orphan_tickets:
-        kids = []
-        for key in sorted(orphan_tickets):
-            kids.append({"type": "ticket", "label": ticket_raw.get(key, key),
-                         "sub": ticket_title.get(key, ""),
-                         "badge": layer_label["ticket"], "children": orphan_tickets[key]})
-        tree.append({"type": "orphan", "label": layer_label["orphan"],
-                     "badge": layer_label["ticket"], "children": kids})
     return {"items": items, "counts": counts, "tree": tree}
 
 

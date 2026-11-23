@@ -24,8 +24,6 @@ view:
       value: row.public
     - label: 项目
       value: row.project
-    - label: 工单
-      value: row.ticket
   - kind: tree
     as: idx
     source: idx.tree

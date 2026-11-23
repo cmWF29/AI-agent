@@ -1,0 +1,30 @@
+id: cloud-profile-switch
+title: 切换当前生效云端 profile
+description: "公共级岗位/管理员把某套 profile 切为当前生效；切换写审计台账"
+tags: [cloud, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.profile_switch
+  with:
+    id:
+      get: input.id
+    caller:
+      get: input.caller
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.profile_switch
+  - runtime.apply
+  payload: {}
+  promise: 切换经 runtime.apply 落盘，项目角色调用被拒并留痕

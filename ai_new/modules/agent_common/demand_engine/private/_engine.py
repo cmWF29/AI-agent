@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import copy
 import re
 
 from . import _lang
@@ -19,6 +20,23 @@ WRITE_LIKE = {"projects-archive", "projects-rename", "projects-delete", "project
               "ticket-create", "ticket-close", "ticket-message", "ticket-note",
               "project-position-toggle", "project-tool-toggle", "project-skill-toggle",
               "project-override-toggle"}
+
+# 需求文件的解析缓存：键是（数据根, 文件名, 大小, 修改时刻）。
+# 只缓存"解析结果"，不缓存装载结果：改一条需求仍按指纹整体重装，但另外几百条
+# 不再重新 parse —— 否则逐条启停/逐条真投的用例会退化成 O(n²)（173 条 × 173 次）。
+_PARSE_CACHE = {}
+
+
+def _store_base(md):
+    """数据根的可比较标识：真实模块用 root，测试桩用 _real('demands')。"""
+    try:
+        return str(md.root)
+    except AttributeError:
+        pass
+    try:
+        return str(md._real("demands"))
+    except Exception:
+        return ""
 
 
 def _slug(label):
@@ -75,12 +93,27 @@ class Engine:
         return tuple(sig)
 
     def _read_all(self):
-        names = _md(self.ctx).list_dir("demands")
+        """按文件名+大小+修改时刻做单文件解析缓存：只重解被改过的那一条。
+
+        热加载的指纹是整目录的；但改一条需求（启停、菜单、标签）不该把另外几百条
+        重新 parse 一遍——那会让"逐条启停"的用例与线上热加载都退化成 O(n²)。
+        """
+        md = _md(self.ctx)
+        names = md.list_dir("demands")
+        base = _store_base(md)
         items = []
         for name in names:
             if not name.endswith(".yaml"):
                 continue
-            rec = _md(self.ctx).yaml_read("demands/%s" % name, {}) or {}
+            rel = "demands/%s" % name
+            key = (base, name, md.stat_size(rel), md.stat_mtime(rel))
+            hit = _PARSE_CACHE.get(key)
+            if hit is None:
+                hit = md.yaml_read(rel, {}) or {}
+                if len(_PARSE_CACHE) > 2000:
+                    _PARSE_CACHE.clear()
+                _PARSE_CACHE[key] = hit
+            rec = copy.deepcopy(hit)
             rec.setdefault("id", name[:-5])
             rec.setdefault("enabled", True)
             rec["on"] = _as_hooks(rec.get("on"))

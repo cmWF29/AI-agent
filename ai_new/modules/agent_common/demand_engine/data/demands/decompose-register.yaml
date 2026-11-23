@@ -1,0 +1,73 @@
+id: decompose-register
+title: 拆解登记：校验后新增角色 / 工具 / 流程，幂等重跑不重复建
+description: "模型拆出岗位职责、引用工具、流程规则与新工具定义后，先过登记守卫（builtin 核心字段受保护，只允许新增或覆盖非 builtin）与流程状态机契约，再经既有库登记路径成形岗位 / 工具 / 流程记录；同 skill+version 幂等重跑直接复用，不重复建岗位 / 工具 / 流程。生成物可被项目岗位清单引用并启停。"
+tags:
+- library
+- write
+- llm
+touch: [decompose-index, project-positions, project-tools]
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read_text
+  with:
+    module:
+      lit: agent/decompose
+    path:
+      lit: system.md
+  as: sys
+- call: decompose.run
+  with:
+    skill_md:
+      get: input.skill_md
+    requirements:
+      get: input.requirements
+    scripts:
+      get: input.scripts
+    system:
+      get: sys.value
+    base_url:
+      get: input.base_url
+    api_key:
+      get: input.api_key
+    model:
+      get: input.model
+    mode:
+      get: input.mode
+    cancel:
+      get: input.cancel
+  as: run
+- call: decompose.register
+  with:
+    task_key:
+      get: input.task_key
+    draft:
+      get: run.draft
+    meta:
+      get: run.meta
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input:
+      task_key: demo-key
+      skill_md: |
+        ---
+        name: demo_skill
+        description: 演示技能
+        ---
+        按包内步骤拆成岗位职责并自检交付。
+  calls:
+  - store.read_text
+  - decompose.run
+  - decompose.register
+  - runtime.apply
+  payload: {}
+  promise: 登记守卫与流程契约不过不落盘；通过后岗位 / 工具 / 流程登记入可被项目引用，幂等重跑数量不变

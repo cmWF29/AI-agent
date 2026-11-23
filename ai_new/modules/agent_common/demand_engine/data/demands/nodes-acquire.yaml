@@ -1,0 +1,26 @@
+id: nodes-acquire
+title: 项目租约申领：项目固定落在一个节点，签发 fencing token 与 epoch
+description: "按项目粒度申领租约：项目固定落在一个节点，项目内工单在该节点执行；接手过期租约时 epoch 单调 +1。"
+tags: [nodes, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.acquire
+  with:
+    project:
+      get: input.project
+    node:
+      get: input.node
+    ttl:
+      get: input.ttl
+    tier:
+      get: input.tier
+  as: out
+expect:
+  given:
+    input: {project: demo-proj, node: node-1, ttl: 30, tier: weak}
+  calls:
+  - nodes.acquire
+  payload: {}
+  promise: 同一项目同一时刻只被一个节点持有；冲突申领报 lease_held

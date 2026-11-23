@@ -1,0 +1,46 @@
+---
+source: ai_new/modules/agent_test/private/_fixtures.py
+hash: 4e08a03bf9fd8377f3cdc712386b7beb90f559548167cc6cc1ef825d0f9e2fd8
+symbols:
+- module_dir
+- module_data
+- stage
+- write_config
+generated: gen_docs.py v1
+updated_at: '2026-11-23T04:10:22'
+---
+
+# _fixtures.py
+
+> 由 `scripts/gen_docs.py` 生成；手改会被下次生成覆盖。
+> 职责/入参出参/副作用/依赖/不变量/关联需求由人工在下方补充；生成器只提取 docstring 与符号。
+
+## 概览
+
+验收用的路径与暂存：验证者只读被验证对象，不改它的数据。
+
+## 符号
+
+### `module_dir`（function）
+- 职责: 模块目录：组下面一层就是模块；"组即模块"（如 agent_test）也成立。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `module_data`（function）
+- 职责: 某个模块自己的数据目录（部署覆盖优先，布局镜像 modules/）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `stage`（function）
+- 职责: 把每个模块自己的数据拷到 dest（布局镜像 modules/），返回 dest。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `write_config`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充

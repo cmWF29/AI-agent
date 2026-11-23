@@ -1,0 +1,33 @@
+id: decompose-deps
+title: 拆解依赖隔离安装：白名单固定 argv、锁版本、写审计日志，失败回滚
+description: "按预检依赖计划隔离安装缺失 Python 包：--target 落到拆解模块自有目录，包名先过白名单校验，固定 argv 直传 pip，不进 shell、不 sudo 提权；记录来源 / 许可证 / 版本 / 包清单审计条目。安装失败回滚隔离目录并保留日志；cli/env/config 只列待人工处理，不自动安装。"
+tags:
+- library
+- write
+- exec
+touch: [decompose-index]
+enabled: true
+callable: true
+'on': []
+do:
+- call: decompose.deps_install
+  with:
+    task_key:
+      get: input.task_key
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input:
+      task_key: demo-key
+  calls:
+  - decompose.deps_install
+  - runtime.apply
+  payload: {}
+  promise: 依赖进隔离目录、固定 argv 不提权；审计留痕，失败回滚并保留日志，未就绪不进入登记

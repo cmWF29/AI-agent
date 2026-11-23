@@ -73,10 +73,6 @@ def result(p):
             "violations": p.get("violations") or []}
 
 
-def toolerr(p):
-    return {"error": p.get("message") or "", "code": p.get("code") or "tool_error"}
-
-
 # ---- 上下文治理：历史摘要、发往视图、大输出分级 ----
 
 def summary_msg(p):

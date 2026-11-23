@@ -1,0 +1,24 @@
+id: timer-index
+title: 定时器聚合：统计条数 + 列表行
+description: "定时器只读聚合：活动/暂停/本日触发统计，加列表行（项目、标题、规则、时区、下次触发、状态、最近结果）。"
+tags:
+- timer
+- read
+enabled: true
+callable: true
+'on': []
+do:
+- call: timer.index
+  with:
+    project:
+      get: input.project
+    caller:
+      get: input.caller
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - timer.index
+  payload: {}
+  promise: 只读聚合：统计与列表一次取回，先按作用域过滤

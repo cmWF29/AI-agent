@@ -72,6 +72,12 @@ tickets:
     walk_root: 'projects'
     walk_pattern: '*/tickets/*/ticket.yaml'
     root: 'projects'
+timer:
+  min_interval_s: 60       # once 距 now 最小间隔；cron 最小粒度校验
+  max_per_project: 20      # 单项目在档定时器上限，超限 quota_exceeded
+  tick_interval_s: 30      # 后台扫描周期（秒）
+  max_catchup: 5           # 宕机后单次最多补触发的槽位数
+  default_tz: Asia/Shanghai
 exec:
   error_chars: 400       # 子进程失败原因截断字符数
 asr:
@@ -149,3 +155,31 @@ logs:
 trace:
   enabled: true
   sample: 1.0
+
+# 存储治理：冷数据自动压缩归档 + 按需动态解压。
+# 压缩是写盘动作，由需求 archive-gc 编排触发；本配置只给阈值与扫描面。
+archive:
+  enabled: true
+  algorithm: gzip            # gzip | zstd；zstd 需环境装 zstandard，未装自动回落 gzip
+  compress_level: 6
+  min_file_bytes: 2048       # 小于该字节的文件不压（小文件压缩不抵开销）
+  grace_seconds: 3600        # 写入宽限窗口：近 1 小时内改过的文件判热，绝不边写边压
+  cache_max_bytes: 4194304   # 解压缓存内存上限（4 MiB）
+  cache_max_entries: 64      # 解压缓存条目上限
+  max_attempts: 2           # 压缩失败重试次数；半截临时文件必清理
+  categories:
+    session:  {age_days: 7,  min_bytes: 2048}
+    tool:     {age_days: 7,  min_bytes: 1024}
+    channel:  {age_days: 14, min_bytes: 1024}
+    trace:    {age_days: 3,  min_bytes: 1024}
+    system:   {age_days: 14, min_bytes: 4096}
+    artifact: {age_days: 30, min_bytes: 4096}
+  scan:
+    - {module: agent/logs,         category: session,  glob: 'sessions/*.yaml'}
+    - {module: agent/logs,         category: tool,     glob: 'projects/**/tool/*.txt'}
+    - {module: agent/logs,         category: tool,     glob: 'tickets/**/tool/*.txt'}
+    - {module: agent/logs,         category: channel,  glob: 'channels/*.jsonl'}
+    - {module: agent_common/trace, category: trace,    glob: 'trace/**/*.jsonl'}
+    - {module: agent/logs,         category: system,   glob: 'public/system/*.jsonl'}
+    - {module: agent/artifacts,    category: artifact, glob: 'public/**/*'}
+    - {module: agent/artifacts,    category: artifact, glob: 'projects/**/*'}

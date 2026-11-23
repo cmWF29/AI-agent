@@ -1,0 +1,128 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# in 字段来自路由入参与需求 with 键；api 模块装配后据此校验入参，架构闸据此断言路由必须有契约。
+module: secretary
+routes:
+  secretary.push:
+    in:
+      project:
+        type: string
+        req: true
+      msg_id:
+        type: string
+        req: true
+      text:
+        type: string
+        req: true
+      fields:
+        type: any
+        req: false
+      source:
+        type: string
+        req: false
+      timer_id:
+        type: string
+        req: false
+      slot:
+        type: string
+        req: false
+    out:
+      ok:
+        type: bool
+      created:
+        type: bool
+      entry:
+        type: any
+      counts:
+        type: any
+      effects:
+        type: list
+  secretary.flush:
+    in:
+      project:
+        type: string
+        req: true
+      roles_hint:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+      empty:
+        type: bool
+      reused:
+        type: bool
+      batch:
+        type: any
+      ticket:
+        type: string
+      counts:
+        type: any
+      effects:
+        type: list
+      code:
+        type: string
+      error:
+        type: string
+  secretary.list:
+    in:
+      project:
+        type: string
+        req: true
+    out:
+      counts:
+        type: any
+      rows:
+        type: list
+      batches:
+        type: list
+  secretary.discard:
+    in:
+      project:
+        type: string
+        req: true
+      msg_id:
+        type: string
+        req: true
+    out:
+      ok:
+        type: bool
+      entry:
+        type: any
+      counts:
+        type: any
+      effects:
+        type: list
+  secretary.status:
+    in:
+      project:
+        type: string
+        req: true
+      msg_id:
+        type: string
+        req: false
+    out:
+      statuses:
+        type: list
+      transitions:
+        type: any
+      entry:
+        type: any
+  secretary.timers:
+    in:
+      project:
+        type: string
+        req: true
+      session:
+        type: string
+        req: false
+    out:
+      ok:
+        type: bool
+      project:
+        type: string
+      items:
+        type: list
+      code:
+        type: string
+      error:
+        type: string

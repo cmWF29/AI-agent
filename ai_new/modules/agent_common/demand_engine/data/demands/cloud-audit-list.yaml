@@ -1,0 +1,20 @@
+id: cloud-audit-list
+title: 云端配置变更审计台账只读
+description: "只读读取云端配置变更审计：谁、何时、改了什么、结果与原因；不含凭证"
+tags: [cloud, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.audit_list
+  with:
+    limit:
+      get: input.limit
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.audit_list
+  payload: {}
+  promise: 审计台账只读返回，条目不带凭证字段

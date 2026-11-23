@@ -71,7 +71,8 @@ def build(p):
         "auto_retrospective": bool(p.get("auto_retrospective")),
         "created": now, "updated": now,
         "closed": "", "summary": "", "verdict": "",
-        "history": [{"at": now, "event": "created", "text": title}],
+        "history": [{"at": now, "event": "created", "text": title,
+                     "to": p.get("id") or "", "to_kind": "ticket"}],
         "meta": p.get("meta") or {},
     }
 
@@ -373,7 +374,9 @@ def bindrole(p):
                                         "display": p.get("display") or p.get("role"),
                                         "task": p.get("task") or "", "status": "spawned"})
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "role_spawn",
-                                          "text": "%s: %s" % (p.get("role"), p.get("task") or "")})
+                                          "text": "%s: %s" % (p.get("role"), p.get("task") or ""),
+                                          "to": p.get("display") or p.get("role") or "",
+                                          "to_kind": "role"})
     rec["updated"] = p.get("now") or ""
     return rec
 
@@ -382,7 +385,8 @@ def bindpm(p):
     rec = dict(p.get("rec") or {})
     rec["pm"] = p.get("session") or ""
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "pm_start",
-                                          "text": p.get("pm_text") or ""})
+                                          "text": p.get("pm_text") or "",
+                                          "to": p.get("session") or "PM", "to_kind": "pm"})
     rec["updated"] = p.get("now") or ""
     return rec
 
@@ -393,7 +397,8 @@ def bindchild(p):
     tpl = p.get("tpl") or ""
     child = p.get("child") or ""
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "child_split",
-                                          "text": tpl.format(child=child) if tpl else ""})
+                                          "text": tpl.format(child=child) if tpl else "",
+                                          "to": child, "to_kind": "ticket"})
     rec["updated"] = p.get("now") or ""
     return rec
 
@@ -454,7 +459,8 @@ def review_mark(p):
     if not hit:
         return rec
     event, text = hit
-    rec.setdefault("history", []).append({"at": p.get("now") or "", "event": event, "text": text})
+    rec.setdefault("history", []).append({"at": p.get("now") or "", "event": event, "text": text,
+                                          "to": rec.get("id") or "", "to_kind": "ticket"})
     rec["updated"] = p.get("now") or ""
     return rec
 

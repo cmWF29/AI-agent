@@ -1,0 +1,24 @@
+id: nodes-fence-check
+title: 写前 fencing 校验：token 与当前 epoch 吻合才放行
+description: "执行侧每次写前置校验持有 token 与 epoch 仍是当前；epoch 回退或 token 不符即拒写，防脑裂。"
+tags: [nodes, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.fence_check
+  with:
+    project:
+      get: input.project
+    token:
+      get: input.token
+    epoch:
+      get: input.epoch
+  as: out
+expect:
+  given:
+    input: {project: demo-proj, token: 'node-1:e1:0', epoch: 1}
+  calls:
+  - nodes.fence_check
+  payload: {}
+  promise: 过期 epoch 的旧写操作被拒写，不落到项目状态上

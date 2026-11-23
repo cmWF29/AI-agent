@@ -1,0 +1,29 @@
+id: nodes-register
+title: 节点登记：执行节点向控制面报到，上报端点与容量
+description: "执行节点向控制面报到：端点、传输方式与容量随登记进入节点表；重复登记只刷新活跃时间。"
+tags: [nodes, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.register
+  with:
+    id:
+      get: input.id
+    endpoint:
+      get: input.endpoint
+    transport:
+      get: input.transport
+    capacity:
+      get: input.capacity
+    lease_ttl:
+      get: input.lease_ttl
+  as: out
+expect:
+  given:
+    input: {id: node-1, endpoint: 'unix:///tmp/ai_new/node-1.sock', transport: unix, capacity: {
+    cpu: 2, memory_mb: 2048, disk_mb: 10240}}
+  calls:
+  - nodes.register
+  payload: {}
+  promise: 执行节点报到后进入控制面节点表，端点与容量随登记上报

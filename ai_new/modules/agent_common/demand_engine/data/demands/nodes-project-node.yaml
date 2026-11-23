@@ -1,0 +1,20 @@
+id: nodes-project-node
+title: 单项目归属查询：项目当前落在哪个节点
+description: "按项目 id 查当前归属节点、epoch 与档位；无租约返回空归属，供项目页展示当前节点。"
+tags: [nodes, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.project_node
+  with:
+    project:
+      get: input.project
+  as: out
+expect:
+  given:
+    input: {project: demo-proj}
+  calls:
+  - nodes.project_node
+  payload: {}
+  promise: 项目页只能看到自己项目的归属节点，看不到其他项目的分配

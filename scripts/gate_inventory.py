@@ -18,7 +18,8 @@ WEB = ROOT + "/ai_new/modules/agent/web/data/console"
 
 def source_sig():
     h = hashlib.sha256()
-    files = sorted([CONSOLE, WEB + "/render.js", WEB + "/boot.js", WEB + "/app.js", WEB + "/manage.html"]
+    files = sorted([CONSOLE, WEB + "/render.js", WEB + "/boot.js", WEB + "/app.js", WEB + "/manage.html",
+                    WEB + "/graph.js"]
                    + sorted(glob.glob(ROOT + "/ai_new/modules/agent_common/demand_engine/data/demands/view-*.yaml")))
     for p in files:
         if os.path.exists(p):

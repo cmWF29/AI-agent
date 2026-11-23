@@ -1,0 +1,17 @@
+id: sandbox-capability
+title: 隔离能力上报：本机两档机制、二进制探测与锁档位
+description: "组合本机隔离能力：档位描述、namespace/容器二进制在不在 PATH、跨进程锁与路径隔离档位；未验证项显式标未支持。"
+tags: [sandbox, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: sandbox.capability
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - sandbox.capability
+  payload: {}
+  promise: 隔离能力上报不冒充已支持；未在本机验证的档位 verified=false

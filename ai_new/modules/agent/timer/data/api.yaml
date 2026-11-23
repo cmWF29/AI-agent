@@ -1,0 +1,222 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# 字段来自：代码静态抽取（handler 读/回的键）、需求 with 键、需求里消费的 as.字段。
+module: timer
+routes:
+  timer.create:
+    in:
+      action:
+        type: any
+      caller:
+        type: any
+      creator:
+        type: any
+      expr:
+        type: any
+      kind:
+        type: any
+      payload:
+        type: any
+      project:
+        type: any
+      role:
+        type: any
+      source_session:
+        type: any
+      ticket:
+        type: any
+      title:
+        type: any
+      tz:
+        type: any
+    out:
+      code:
+        type: any
+      deduped:
+        type: bool
+      effects:
+        type: any
+      error:
+        type: any
+      id:
+        type: any
+      next_at:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: any
+      status_code:
+        type: any
+      tz:
+        type: any
+      view:
+        type: any
+  timer.list:
+    in:
+      caller:
+        type: any
+      id:
+        type: any
+      project:
+        type: any
+    out:
+      items:
+        type: any
+      project:
+        type: any
+      total:
+        type: any
+  timer.index:
+    in:
+      caller:
+        type: any
+      project:
+        type: any
+    out:
+      counts:
+        type: any
+      rows:
+        type: any
+      total:
+        type: any
+  timer.update:
+    in:
+      action:
+        type: any
+      caller:
+        type: any
+      expr:
+        type: any
+      id:
+        type: any
+      role:
+        type: any
+      ticket:
+        type: any
+      title:
+        type: any
+      tz:
+        type: any
+    out:
+      code:
+        type: any
+      effects:
+        type: any
+      error:
+        type: any
+      id:
+        type: any
+      next_at:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: any
+  timer.pause:
+    in:
+      caller:
+        type: any
+      id:
+        type: any
+    out:
+      code:
+        type: any
+      effects:
+        type: any
+      error:
+        type: any
+      id:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: any
+  timer.resume:
+    in:
+      caller:
+        type: any
+      id:
+        type: any
+    out:
+      code:
+        type: any
+      effects:
+        type: any
+      error:
+        type: any
+      id:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: any
+  timer.toggle:
+    in:
+      action:
+        type: any
+      caller:
+        type: any
+      id:
+        type: any
+    out:
+      code:
+        type: any
+      effects:
+        type: any
+      error:
+        type: any
+      id:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: any
+  timer.delete:
+    in:
+      caller:
+        type: any
+      id:
+        type: any
+    out:
+      code:
+        type: any
+      effects:
+        type: any
+      error:
+        type: any
+      id:
+        type: any
+      ok:
+        type: bool
+      status:
+        type: any
+  timer.tick:
+    in:
+      caller:
+        type: any
+      now:
+        type: any
+    out:
+      effects:
+        type: any
+      fired:
+        type: any
+      skipped:
+        type: any
+  timer.history:
+    in:
+      caller:
+        type: any
+      id:
+        type: any
+      limit:
+        type: any
+    out:
+      history:
+        type: any
+      id:
+        type: any
+      last_run:
+        type: any
+      project:
+        type: any

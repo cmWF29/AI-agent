@@ -1,0 +1,22 @@
+id: nodes-release
+title: 主动释放租约：token 匹配才放行
+description: "节点主动交回项目租约；token 不匹配拒放，防旧持有者误放新持有者的租约。"
+tags: [nodes, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.release
+  with:
+    project:
+      get: input.project
+    token:
+      get: input.token
+  as: out
+expect:
+  given:
+    input: {project: demo-proj, token: 'node-1:e1:0'}
+  calls:
+  - nodes.release
+  payload: {}
+  promise: 释放后项目可被重新调度；释放记录保留供审计

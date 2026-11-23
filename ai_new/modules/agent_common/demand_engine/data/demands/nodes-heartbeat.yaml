@@ -1,0 +1,22 @@
+id: nodes-heartbeat
+title: 节点心跳：上报负载与最后见活时间
+description: "执行节点周期上报负载；控制面刷新最后见活时间，失联判定由租约 TTL 与回收巡检完成。"
+tags: [nodes, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.heartbeat
+  with:
+    node:
+      get: input.node
+    load:
+      get: input.load
+  as: out
+expect:
+  given:
+    input: {node: node-1, load: {cpu: 0.2, memory_mb: 128, running: 2}}
+  calls:
+  - nodes.heartbeat
+  payload: {}
+  promise: 心跳刷新节点负载与见活时间，未知节点拒认

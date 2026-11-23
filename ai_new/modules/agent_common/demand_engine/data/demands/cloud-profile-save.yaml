@@ -1,0 +1,44 @@
+id: cloud-profile-save
+title: 保存云端 profile：端点校验、凭证密封落盘、审计留痕
+description: "公共级岗位/管理员保存或更新一套云端 profile；端点做协议/白名单/穿越校验，凭证密封后落盘，配置变更写审计台账"
+tags: [cloud, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.profile_save
+  with:
+    id:
+      get: input.id
+    provider:
+      get: input.provider
+    endpoint:
+      get: input.endpoint
+    root_dir:
+      get: input.root_dir
+    credentials:
+      get: input.credentials
+    categories:
+      get: input.categories
+    policy:
+      get: input.policy
+    exclude_projects:
+      get: input.exclude_projects
+    caller:
+      get: input.caller
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.profile_save
+  - runtime.apply
+  payload: {}
+  promise: 配置落盘与审计均经 runtime.apply 编排，项目角色调用被拒并留痕

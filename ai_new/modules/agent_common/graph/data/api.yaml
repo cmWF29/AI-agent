@@ -1,0 +1,6 @@
+# 消息契约：本模块每条能力收什么、回什么。
+# graph 四条能力（merge_branch_updates / step_limit / gate_reasons /
+# subprocess_checklist）是纯函数，只在模块内部与纯函数层调用，不注册为 API 路由，
+# 因此本模块没有对外路由契约。
+module: graph
+routes: {}

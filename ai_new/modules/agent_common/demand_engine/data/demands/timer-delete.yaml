@@ -1,0 +1,34 @@
+id: timer-delete
+title: 删除定时器：记录与执行审计一并清除
+description: "删除定时器：作用域守卫通过后清除记录与 runs 审计目录；落盘效果交 runtime.apply。"
+tags:
+- timer
+- write
+touch: [timer-index]
+enabled: true
+callable: true
+'on': []
+do:
+- call: timer.delete
+  with:
+    id:
+      get: input.id
+    caller:
+      get: input.caller
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input:
+      id: tm-0001
+  calls:
+  - timer.delete
+  - runtime.apply
+  payload: {}
+  promise: 删除清除记录与审计；越权删除在能力内拒绝并写审计

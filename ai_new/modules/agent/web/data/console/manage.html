@@ -15,6 +15,9 @@
   --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.06);
   --shadow-sm:0 1px 2px rgba(16,24,40,.06);
   --radius:12px;
+  /* 卡片尺寸与字号阶梯：进行中 / 已归档 / 详情页工单卡三处同一套 token */
+  --pcard-name:15px; --pcard-meta:12.5px; --pcard-stat-size:12.5px; --pcard-stat-num:18px;
+  --pcard-pad:14px 14px 12px; --pcard-gap:14px; --pcard-h:152px;
   /* 群聊 TG 手感：聊天底色与自己的气泡色（自己= TG 绿，成员=白卡） */
   --chat-bg:#e6ebf1;--out-bg:#effdde;--out-fg:#0f0f0f;
   /* 角色固定配色：PM 蓝 / developer 紫 / tester 青 / reviewer 橙 / user 绿 */
@@ -53,33 +56,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav-group{display:flex;flex-direction:column;gap:2px}
 .nav-group + .nav-group{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .nav-group-title{font-size:11px;letter-spacing:.08em;color:var(--muted);padding:0 12px 6px}
-/* 点击状态机图：宽 100% 自适应手机，节点按状态配色，边是允许的迁移 */
-.machine-wrap{display:flex;flex-direction:column;gap:8px}
-.mch-svg{width:100%;height:auto;display:block;background:var(--card);border:1px solid var(--line);border-radius:14px}
-.mch-edge-label{fill:#7c8798;font-size:11px;paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
-.mch-edge{fill:none;stroke:#a9b6c6;stroke-width:2;stroke-linecap:round}
-.mch-arrow-head{fill:currentColor}
-.mch-node rect{fill:var(--card);stroke:#cdd5e0;stroke-width:1.3}
-.mch-node .mch-cn{fill:var(--fg);font-size:13.5px;font-weight:600}
-.mch-node .mch-key{fill:var(--muted);font-size:10px;letter-spacing:.04em}
-.mch-node[data-state=idle] rect{fill:#eef4ff;stroke:#8fb2ff}
-.mch-node[data-state=press] rect{fill:#eaf9ee;stroke:#6ecf8b}
-.mch-node[data-state=drag] rect{fill:#e6f8f8;stroke:#4fc7c4}
-.mch-node[data-state=scroll] rect{fill:#eef0fb;stroke:#8f9de3}
-.mch-node[data-state=swallow] rect{fill:#f2f3f5;stroke:#c2c8d2}
-.mch-node[data-state=busy] rect{fill:#fff4e6;stroke:#f5b063}
-.mch-node[data-state=modal] rect{fill:#f6edff;stroke:#b689ec}
-.mch-legend{display:none}
-.mch-leg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--fg-2)}
-.mch-leg i{width:9px;height:9px;border-radius:3px;display:inline-block;background:#cdd5e0}
-.mch-leg[data-state=idle] i{background:#8fb2ff}
-.mch-leg[data-state=press] i{background:#6ecf8b}
-.mch-leg[data-state=drag] i{background:#4fc7c4}
-.mch-leg[data-state=scroll] i{background:#8f9de3}
-.mch-leg[data-state=swallow] i{background:#c2c8d2}
-.mch-leg[data-state=busy] i{background:#f5b063}
-.mch-leg[data-state=modal] i{background:#b689ec}
-.mch-note{font-size:11.5px;color:var(--muted);line-height:1.5}
+/* 交互状态迁移图：容器内独立 pan/zoom，样式与 dag 共用 .graph-wrap */
+.machine-wrap{display:flex;flex-direction:column;gap:8px;min-width:0}
 /* 可点位置清单：一行一类，手机上一屏看四五类 */
 /* ---- 用户视角的页面地图 / 跳转 / 元素 ---- */
 .pmap{display:flex;flex-direction:column;gap:10px}
@@ -114,15 +92,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 .elem-gate{color:var(--muted);font-size:11.5px;line-height:1.5}
 @media (max-width:720px){.elem-row{grid-template-columns:1fr;gap:2px}}
 .kind-list{display:flex;flex-direction:column}
-.kind-row{padding:9px 0;border-bottom:1px solid var(--line-2)}
+.kind-row{padding:9px 0;border-bottom:1px solid var(--line-2);min-width:0}
 .kind-row:last-child{border-bottom:0}
-.kind-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.kind-top b{font-size:13.5px;font-weight:600}
+.kind-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+.kind-top b{font-size:13.5px;font-weight:600;min-width:0;overflow-wrap:anywhere}
 .kind-top em{font-style:normal;font-size:10.5px;color:var(--muted);background:var(--bg);padding:1px 5px;border-radius:5px}
-.kind-flow{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;margin-left:auto}
+.kind-flow{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;margin-left:auto;min-width:0;flex:1 1 auto}
 .kind-flow i{font-style:normal;color:var(--muted);font-size:11px}
-.kind-flow .chip{padding:1px 8px;font-size:11px}
-.kind-row p{margin:3px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45}
+.kind-flow .chip{padding:1px 8px;font-size:11px;max-width:100%;overflow-wrap:anywhere}
+.kind-row p{margin:3px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45;min-width:0}
 .nav button{justify-content:flex-start;border:0;background:transparent;text-align:left;padding:9px 12px;border-radius:9px;color:var(--fg-2);font-size:13.5px}
 .nav button:hover{background:var(--line-2);color:var(--fg)}
 .nav button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
@@ -156,7 +134,7 @@ main .crumb{margin-bottom:14px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---- 项目卡片 ---- */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--pcard-gap);grid-auto-rows:1fr}
 /* 只有一张卡时不留多列缺口：一张卡就是一张全宽卡，与堆叠态的整宽口径一致 */
 .cards:has(> .pcard:only-child){grid-template-columns:minmax(0,1fr)}
 
@@ -205,28 +183,15 @@ main .crumb{margin-bottom:14px}
 .flow-node span{font-size:11px;color:var(--muted)}
 .flow-node.term{border-color:var(--ok);background:rgba(0,180,42,.06)}
 .flow-arrow{color:var(--muted);font-size:13px;padding-top:12px;flex:none}
-/* ---- DAG 渲染器：固定框、按层自动布局、可缩放（缩放只改画布 transform） ---- */
-.dag-zoom{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
-.dag-zoom button{width:26px;height:24px;padding:0;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--fg-2);font-size:13px;line-height:1}
-.dag-zoom button[data-dag="fit"]{width:auto;padding:0 8px;font-size:11.5px}
-.dag-pct{font-size:11px;color:var(--muted);min-width:34px;text-align:center}
-.dag-viewport{overflow:auto;border:1px dashed var(--line);border-radius:10px;background:
+/* ---- 状态机/流程图：图容器内独立 pan/zoom，滚轮/双指/拖拽不冒泡成整页滚动 ---- */
+.graph-wrap{position:relative;overflow:hidden;touch-action:none;border:1px dashed var(--line);border-radius:10px;
+  height:clamp(320px,48vh,520px);max-width:100%;background:
   linear-gradient(rgba(127,127,127,.05) 1px,transparent 1px) 0 0/100% 22px,
-  linear-gradient(90deg,rgba(127,127,127,.05) 1px,transparent 1px) 0 0/22px 100%;
-  padding:8px;max-height:60vh}
-.dag-stage{position:relative;transform-origin:0 0;transition:transform .16s ease}
-.dag-edges{position:absolute;left:0;top:0;color:#8a97a8;overflow:visible}
-.dag-edge path{fill:none;stroke:currentColor;stroke-width:1.4}
-.dag-edge.back path{stroke:#e2571e;stroke-dasharray:6 4}
-.dag-elabel{font-size:11px;fill:#8a97a8;text-anchor:middle}
-.dag-edge.back .dag-elabel{fill:#e2571e}
-.dag-stage .flow-node{position:absolute;display:flex;flex-direction:column;justify-content:center;
-  box-sizing:border-box;overflow:hidden;z-index:1}
-.dag-stage .flow-node span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.flow-node .gate-badge{font-style:normal;font-size:10.5px;color:#8a97a8;margin-top:2px;white-space:nowrap}
-.flow-node .on-badge{position:absolute;right:6px;top:5px;font-style:normal;font-size:10px;line-height:1.3;
-  padding:1px 5px;border-radius:999px;background:var(--accent);color:#fff}
-.dag-stage .flow-node.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+  linear-gradient(90deg,rgba(127,127,127,.05) 1px,transparent 1px) 0 0/22px 100%;}
+.graph-canvas{position:absolute;inset:0}
+.graph-zoom{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.graph-zoom button{width:26px;height:24px;padding:0;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--fg-2);font-size:13px;line-height:1}
+.graph-zoom button[data-graph="fit"]{width:auto;padding:0 8px;font-size:11.5px}
 .dag-legend{font-size:11px;color:var(--muted);padding:6px 2px 0;line-height:1.6}
 .gate-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .gate-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
@@ -241,19 +206,25 @@ main .crumb{margin-bottom:14px}
 .gate-forbid li{color:#c04a18}
 .gate-card code{font-size:10.5px;color:var(--muted);margin-right:5px;background:var(--line-2);padding:0 4px;border-radius:4px}
 
-.pcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 14px 12px;cursor:pointer;transition:border-color .15s,transform .08s}
+/* 跨 deck 统一固定高：任何卡片都不按内容多少变高；超出部分限行/裁切。
+   头部操作按钮在顶部行内完整保留，不被裁切。 */
+.pcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:var(--pcard-pad);height:var(--pcard-h);overflow:hidden;cursor:pointer;transition:border-color .15s,transform .08s;display:flex;flex-direction:column}
 .pcard:hover{border-color:var(--accent)}
 .pcard:active{transform:scale(.995)}
 .pcard:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
 .pcard.archived{cursor:default;opacity:.72}
-.pcard .phead{display:flex;align-items:center;gap:8px;min-width:0;padding-right:20px}
-.pcard .pname{font-size:15px;font-weight:600;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .phead{display:flex;align-items:center;flex-wrap:nowrap;gap:8px;min-width:0;padding-right:20px}
+.pcard .pname{font-size:var(--pcard-name);font-weight:600;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcard .phead .badge{flex:none}
 .pcard .phead .acts{flex:none}
-.pcard .meta{font-size:12.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+/* meta 固定 2 行省略；stat 单行；chips 单行横向裁切，都不把卡片撑高 */
+.pcard .meta{font-size:var(--pcard-meta);color:var(--muted);margin-top:8px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .pcard .meta span,.pcard .stat,.pcard .chips-row{overflow-wrap:anywhere}
-.pcard .stat{font-size:12.5px;color:var(--fg-2);margin-top:10px;display:flex;gap:8px;align-items:center}
-.pcard .stat b{font-size:18px;color:var(--fg);font-weight:600}
+.pcard .stat{font-size:var(--pcard-stat-size);color:var(--fg-2);margin-top:10px;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.pcard .stat b{font-size:var(--pcard-stat-num);color:var(--fg);font-weight:600}
+.pcard .chips-row{flex-wrap:nowrap;overflow:hidden}
+.pcard .chips{flex-wrap:nowrap;overflow:hidden;max-width:100%}
+.pcard .chip{white-space:nowrap}
 .pcard .acts{display:flex;gap:4px}
 .pcard .acts button{padding:3px 7px;font-size:11.5px;line-height:1.5;border-radius:7px;background:var(--card);border:1px solid var(--line);color:var(--fg-2)}
 .pcard .acts button:hover{border-color:var(--accent);color:var(--accent)}
@@ -328,6 +299,21 @@ tbody tr:last-child td{border-bottom:0}
 .chip.st-offline .dot{background:var(--muted)}
 .chip.st-offline{opacity:.55}
 td .chip{margin:0 4px 4px 0}
+/* ---- stack：分组堆叠列表，默认收起，展开态持久化 ---- */
+.stack{display:flex;flex-direction:column;gap:8px}
+.stack-bar{margin:2px 0}
+.stack-item{border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.stack-item>summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;cursor:pointer;list-style:none}
+.stack-item>summary::-webkit-details-marker{display:none}
+.stack-title{font-weight:600;font-size:13px;min-width:0;overflow-wrap:anywhere}
+.stack-badge{flex:none}
+.stack-body{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
+.stack-field{display:grid;grid-template-columns:minmax(70px,110px) minmax(0,1fr);gap:8px;font-size:12px}
+.stack-field>span{color:var(--muted)}
+.stack-field>div{min-width:0;overflow-wrap:anywhere}
+.stack-samples{display:flex;flex-direction:column;gap:6px}
+.stack-samples .chips-label{font-size:11.5px;color:var(--muted)}
+.stack-sample i{font-style:normal;color:var(--muted)}
 
 /* ---- 按钮 ---- */
 button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;transition:background .15s,border-color .15s,opacity .15s}
@@ -423,7 +409,7 @@ textarea{min-height:72px;resize:vertical}
 .chat-summary{flex:none;margin:10px 16px 0;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg-2,transparent);font-size:12px;color:var(--muted)}
 .chat-summary>summary{cursor:pointer;color:var(--fg-2)}
 .chat-summary-text{margin-top:6px;white-space:pre-wrap;line-height:1.6}
-.msg{display:flex;gap:8px;align-items:flex-end;max-width:78%}
+.msg{display:flex;gap:8px;align-items:flex-start;max-width:78%}
 .msg.right{align-self:flex-end;flex-direction:row}
 .msg.left{align-self:flex-start}
 .msg.system{align-self:center;max-width:76%}
@@ -437,6 +423,14 @@ textarea{min-height:72px;resize:vertical}
 .bubble-stack{display:flex;flex-direction:column;gap:2px}
 .msg.left .bubble-stack{align-items:flex-start}
 .msg.right .bubble-stack{align-items:flex-end}
+/* 报文两列：左列文字气泡，右列同一轮原始报文；窄屏降为上下两行，仍同卡同标题 */
+.wire-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;min-width:0;width:100%}
+.wire-side{min-width:0;min-height:0}
+.wire-side-raw{display:flex;flex-direction:column;gap:6px}
+.ev-to{display:inline-flex;align-items:center;font-size:11px;color:var(--fg-2);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-right:6px}
+@media (max-width:719px){
+  .wire-pair{grid-template-columns:minmax(0,1fr)}
+}
 .bubble-body{padding:7px 11px;border-radius:14px;background:var(--card);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;max-width:100%;box-shadow:0 1px 1.5px rgba(16,24,40,.08)}
 .msg.left .bubble-body{border-top-left-radius:5px}
 .msg.left .bubble-stack .bubble-body:last-child{border-bottom-left-radius:5px}
@@ -444,7 +438,8 @@ textarea{min-height:72px;resize:vertical}
 .msg.right .bubble-body{background:var(--out-bg);border-color:var(--out-bg);color:var(--out-fg);border-top-right-radius:5px;box-shadow:0 1px 2px rgba(16,24,40,.14)}
 .msg.right .bubble-stack .bubble-body:last-child{border-bottom-right-radius:5px}
 /* 时间在消息之上：和名字同一行（右边对齐自己），悬停看完整年月日 */
-.msg-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;min-width:0}
+/* 名字+时间固定高：展开原文/工具调用只让 bubble-stack 向下长，头像与名字时间不位移 */
+.msg-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;min-width:0;height:18px;line-height:18px;overflow:hidden}
 .msg.right .msg-head{justify-content:flex-end}
 .msg-time{font-size:11px;line-height:1;color:var(--muted);opacity:.8;user-select:none;flex:none}
 .msg.right .msg-time{color:var(--muted)}
@@ -461,10 +456,10 @@ textarea{min-height:72px;resize:vertical}
 .msg.right .bubble-body.md code{background:rgba(255,255,255,.2)}
 .cursor{display:inline-block;margin-left:1px;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.msg.system .sys-body{padding:6px 14px;border-radius:999px;background:rgba(127,127,127,.16);color:var(--fg-2);font-size:12px;text-align:center;box-shadow:none;border:0}
+.msg.system .sys-body{padding:6px 12px;border-radius:10px;width:fit-content;max-width:100%;background:rgba(127,127,127,.16);color:var(--fg-2);font-size:12px;box-shadow:none;border:0;overflow-wrap:anywhere}
 /* ---- 工单历程：系统事件气泡（TG 服务消息口径） ---- */
 .msg.event{align-self:center;max-width:78%}
-.msg.event .sys-body{display:block;background:rgba(127,127,127,.16);border:0;border-radius:999px;padding:6px 16px;font-size:12px;color:var(--fg-2);text-align:center;line-height:1.6;box-shadow:none}
+.msg.event .sys-body{display:block;width:fit-content;max-width:100%;background:rgba(127,127,127,.16);border:0;border-radius:10px;padding:6px 12px;font-size:12px;color:var(--fg-2);line-height:1.6;box-shadow:none;overflow-wrap:anywhere}
 .msg.event .ev-line{display:block}
 .msg.event .sys-body.clamp{cursor:pointer}
 .msg.event .sys-body.clamp:hover{background:rgba(127,127,127,.26)}
@@ -512,10 +507,12 @@ textarea{min-height:72px;resize:vertical}
 .tool-raw[open] summary::before{content:"▾ "}
 .tool-raw pre{margin:6px 0 0;padding:8px;border-radius:8px;background:rgba(127,127,127,.10);font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}
 /* ---- 输入区 TG 化：胶囊输入框 + 圆润按钮，贴在聊天底色上 ---- */
-.composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--card);align-items:flex-end}
-.composer textarea{min-height:44px;max-height:140px;flex:1;background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:10px 14px;resize:none;line-height:1.5}
+/* 会话输入卡：textarea 左侧，右侧竖排语音/发送；追加备注是卡内一行小按钮 */
+.composer{display:flex;gap:10px;padding:10px 12px;border:1px solid var(--line);background:var(--card);align-items:stretch;border-radius:var(--radius)}
+.composer textarea{min-height:56px;max-height:140px;flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px 14px;resize:none;line-height:1.5}
 .composer textarea:focus{outline:none;border-color:var(--accent)}
-.composer button{flex:none;border-radius:999px;padding:9px 16px}
+.composer-actions{display:flex;flex-direction:column;gap:6px;justify-content:flex-end;flex:none}
+.composer button{flex:none;border-radius:999px;padding:8px 14px}
 .composer .primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .composer .primary:hover{filter:brightness(1.06)}
 .composer button.voice{color:var(--accent);border-color:rgba(36,87,224,.4);background:var(--accent-weak)}
@@ -637,11 +634,9 @@ textarea{min-height:72px;resize:vertical}
   /* 离屏区块交给浏览器跳过渲染；带卡片堆叠的区块要量高度，不能跳 */
   .view-scroll>.vsec:not(:has([data-deck])){content-visibility:auto;contain-intrinsic-size:auto 220px}
   .view-scroll .vsec>.cards.deck{overflow:visible}
-  .cards>.pcard{min-height:0}
-  .cards>.pcard .chips{flex-wrap:wrap}
-  .cards>.pcard{padding:18px 18px}
-  .cards>.pcard .pname{font-size:17.5px;letter-spacing:.01em}
-  .cards>.pcard .stat b{font-size:26px}
+  /* 移动档沿用同一套 pcard token，只按比例略放大；不再单独把 pname 拉到 17.5px */
+  :root{--pcard-name:16px;--pcard-meta:12.5px;--pcard-stat-size:12.5px;--pcard-stat-num:20px;--pcard-pad:16px 16px 14px;--pcard-h:160px}
+  .cards>.pcard .chips{flex-wrap:nowrap;overflow:hidden}
   /* 表格折成「字段名 + 值」的行式卡片：不用横向拖表，列不会被裁掉 */
   .tbl-wrap{overflow-x:visible}
   .tbl-wrap table{min-width:0;width:100%}
@@ -783,6 +778,9 @@ textarea{min-height:72px;resize:vertical}
 .vsec-fold>details[open]>summary{border-bottom:1px solid var(--line-2)}
 .vsec-fold>details>*:not(summary) .tbl-wrap,.vsec-fold>details>*:not(summary) .tree{box-shadow:none;border:0;border-radius:0}
 .vsec-fold>details>*:not(summary){padding:0}
+/* 嵌套折叠不叠边框：内层折叠去掉阴影与重边框，避免一圈套一圈 */
+.vsec-fold>details .elem-page,.vsec-fold>details .tree-node{box-shadow:none}
+.vsec-fold>details .elem-page{border-color:var(--line-2)}
 
 /* ---- 链路瀑布：左侧层级标签 + 右侧时间轴 ---- */
 .wf{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 16px 16px}
@@ -909,6 +907,10 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- 六个脚本由服务端按 web.bundle 清单合成一个响应：首屏只剩一次脚本往返 -->
+<script defer src="assets/dagre.min.js"></script>
+<script defer src="assets/cytoscape.min.js"></script>
+<script defer src="assets/cytoscape-dagre.js"></script>
+<script defer src="graph.js"></script>
 <script defer src="/console.js"></script>
 </body>
 </html>

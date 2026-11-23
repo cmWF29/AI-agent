@@ -2,6 +2,25 @@ comment: 聚合能力内部路由清单：B1 下沉后，业务能力在 handler
   这些路由不出现在需求 do 树里，但只要所属聚合能力被某条需求编排，即视为受管辖。静态闸据此把内部路由并入 demand_bound。
   新增聚合能力时，必须在此登记它内部调用的全部路由；漏登记会被 stray/写管辖闸拦下。
 capabilities:
+  archive.scan:
+    calls:
+    - clock.now
+  archive.compress:
+    calls:
+    - clock.now
+    - codec.digest
+  archive.read_text:
+    calls:
+    - codec.digest
+  archive.read_bytes:
+    calls:
+    - codec.digest
+  archive.read_lines:
+    calls:
+    - codec.digest
+  archive.index_query:
+    calls:
+    - clock.now
   llm.chat:
     calls:
     - config.get
@@ -25,8 +44,9 @@ capabilities:
     - store.id
     - knowledge.scope
     - knowledge.doc
-    - store.append_text
-    - store.write_text
+    - store.doc_revision
+    - store.read
+    - store.write
     - knowledge.view
   artifacts.save:
     calls:
@@ -282,3 +302,90 @@ capabilities:
     - channel.read_tail
     - demand_engine.run
     - channel.post
+  cloud.profile_save:
+    calls:
+    - config.get
+    - store.read
+    - clock.now
+    - codec.nonce
+    - codec.digest
+  cloud.profile_list:
+    calls:
+    - store.read
+  cloud.profile_get:
+    calls:
+    - store.read
+  cloud.profile_switch:
+    calls:
+    - store.read
+    - clock.now
+  cloud.profile_delete:
+    calls:
+    - store.read
+    - clock.now
+  cloud.connection_test:
+    calls:
+    - store.read
+    - host.env
+    - codec.nonce
+    - codec.digest
+    - codec.base64_encode
+    - codec.base64_decode
+    - net.request
+  cloud.probe_roundtrip:
+    calls:
+    - store.read
+    - host.env
+    - codec.nonce
+    - codec.digest
+    - codec.base64_decode_bytes
+    - net.request
+  cloud.sync_plan:
+    calls:
+    - store.read
+    - store.glob
+    - store.read_bytes
+    - codec.base64_decode_bytes
+    - codec.digest
+    - archive.index_query
+  cloud.sync_run:
+    calls:
+    - store.read
+    - store.glob
+    - store.read_bytes
+    - codec.base64_decode_bytes
+    - codec.digest
+    - archive.index_query
+    - archive.read_bytes
+    - clock.now
+    - clock.sleep
+    - host.env
+    - net.request
+  cloud.status:
+    calls:
+    - store.read
+  cloud.project_status:
+    calls:
+    - store.read
+  cloud.audit_list:
+    calls:
+    - store.read_text
+    - codec.json_decode
+  timer.toggle:
+    calls:
+    - timer.pause
+    - timer.resume
+
+
+# ---- 能力模块台账（架构闸豁免依据，可执行清单）----
+# 判定口径：模块自持落盘/压缩/解压/网络/主机/传输/进程等职责；路由被需求 do 树
+# 编排或平台清单登记；自身不含业务规则。架构闸从下列两张名单读豁免，不在测试里
+# 维护第二份名单。新增能力模块先在此登记归属面，再跑 test_architecture 复核。
+# 证据：archive 的 8 条路由登记在 archive/__init__.py（setup），契约在 archive/data/api.yaml；
+# 需求编排见 demand_engine/data/demands/archive-gc.yaml（scan/compress/stats）；
+# 聚合内部调用 cloud.sync_plan / cloud.sync_run 调 index_query / read_bytes。
+capability_modules:
+  stdlib_io:
+    modules: [store, net, host, http, exec, archive]
+  clock_codec:
+    modules: [clock, codec, store, host, net, http, exec, boot, api, config, trace, archive]

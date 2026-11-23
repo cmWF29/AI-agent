@@ -30,6 +30,11 @@ checks:
   module: test_demands
   kind: runtime
   enabled: true
+- id: isolation
+  title: 项目/工单工作区路径解析与越界校验
+  module: test_isolation
+  kind: static
+  enabled: true
   demands:
   - api-snapshot
   - view-ops
@@ -157,3 +162,98 @@ checks:
   - skill-uninstall
   - todo-write
   - todo-context
+- id: role-gates
+  title: 岗位门禁清单（must/forbid 完整性、唯一性与迁移门禁）
+  module: test_role_gates
+  kind: runtime
+  enabled: true
+  demands: []
+- id: secretary
+  title: 项目秘书：队列、批量合并、后发修正、幂等与失败保留
+  module: test_secretary
+  kind: runtime
+  enabled: true
+  demands:
+  - secretary-intake
+  - secretary-flush
+  - secretary-discard
+  - secretary-index
+  - secretary-timers
+  - view-secretary
+- id: timer
+  title: 定时器：调度推算、两路触发幂等、作用域隔离与审计
+  module: test_timer
+  kind: runtime
+  enabled: true
+  demands:
+  - timer-create
+  - timer-update
+  - timer-toggle
+  - timer-delete
+  - timer-list
+  - timer-index
+  - view-timer
+- id: cloud
+  title: 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝
+  module: test_cloud
+  kind: runtime
+  enabled: true
+  demands:
+  - cloud-audit-list
+  - cloud-connection-test
+  - cloud-probe-roundtrip
+  - cloud-profile-delete
+  - cloud-profile-get
+  - cloud-profile-list
+  - cloud-profile-save
+  - cloud-profile-switch
+  - cloud-project-status
+  - cloud-provider-list
+  - cloud-status
+  - cloud-sync-plan
+  - cloud-sync-run
+  - view-cloud
+- id: nodes
+  title: 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账
+  module: test_nodes
+  kind: runtime
+  enabled: true
+  demands:
+  - nodes-acquire
+  - nodes-backups
+  - nodes-fence-check
+  - nodes-heartbeat
+  - nodes-list
+  - nodes-migrations
+  - nodes-project-node
+  - nodes-reassign
+  - nodes-register
+  - nodes-release
+  - nodes-renew
+  - view-nodes
+- id: skill-decompose
+  title: 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑
+  module: test_skill_decompose
+  kind: runtime
+  enabled: true
+  demands:
+  - decompose-deps
+  - decompose-index
+  - decompose-inspect
+  - decompose-register
+  - view-skill-decompose
+- id: sandbox
+  title: 隔离执行：两档策略、执行计划、跨进程锁互斥与能力上报
+  module: test_isolation_tiers
+  kind: static
+  enabled: true
+  demands:
+  - sandbox-capability
+  - sandbox-plan
+- id: archive
+  title: 存储治理：压缩/解压一致性、幂等、损坏校验、LRU 与透明兼容
+  module: test_archive
+  kind: static
+  enabled: true
+  demands:
+  - archive-gc

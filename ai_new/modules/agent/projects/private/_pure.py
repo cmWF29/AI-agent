@@ -13,6 +13,7 @@ def build(rec):
         "created": rec.get("created") or "",
         "archived": False,
         "idle": {},
+        "root": rec.get("root") or "",
         "overrides": {kind: [] for kind in _OVERRIDE_KINDS},
     }
 
@@ -21,7 +22,8 @@ def view(p):
     rec = p.get("rec") or p
     return {"id": rec.get("id"), "name": rec.get("name"),
             "archived": rec.get("archived", False),
-            "created": rec.get("created")}
+            "created": rec.get("created"),
+            "root": rec.get("root") or ""}
 
 
 def present(p):

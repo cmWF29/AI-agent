@@ -1,0 +1,69 @@
+id: view-nodes
+title: 节点与分配视图：节点健康、项目→节点归属、备份状态
+description: "运维只读视图：节点列表与健康度、项目→节点分配表、各项目备份状态；面板只声明区块，取数归 nodes-list / nodes-backups 需求"
+tags: [nodes, view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  menu: {order: 3, label: 节点, group: {name: 系统, order: 3}, mobile: true}
+  key: nodes
+  crumb: [节点]
+  heading: 节点
+  subheading: 控制面只读视图：节点健康、项目归属、备份状态
+  data:
+  - {as: nodes, demand: nodes-list}
+  - {as: assignments, demand: nodes-list}
+  - {as: backups, demand: nodes-backups}
+  - {as: migrations, demand: nodes-migrations}
+  sections:
+  - kind: table
+    as: nodes
+    source: data.nodes.result.nodes
+    heading: 节点
+    columns:
+    - {label: 节点, value: row.id}
+    - {label: 端点, value: row.endpoint}
+    - {label: 传输, value: row.transport}
+    - {label: 健康, value: row.health}
+    - {label: 在跑, value: row.load.running}
+    - {label: 持有项目, value: row.projects|count}
+  - kind: table
+    as: assignments
+    source: data.nodes.result.assignments
+    heading: 项目归属
+    columns:
+    - {label: 项目, value: row.project}
+    - {label: 节点, value: row.node}
+    - {label: Epoch, value: row.epoch}
+    - {label: 状态, value: row.state}
+    - {label: 档位, value: row.tier}
+    - {label: 过期时间, value: row.expires_at|when}
+  - kind: table
+    as: backups
+    source: data.backups.result.backups
+    heading: 备份状态
+    columns:
+    - {label: 项目, value: row.project}
+    - {label: 快照, value: row.snapshot_id}
+    - {label: 校验, value: row.state}
+    - {label: 时间, value: row.created_at|when}
+  - kind: table
+    as: migrations
+    source: data.migrations.result.migrations
+    heading: 迁移记录
+    columns:
+    - {label: 项目, value: row.project}
+    - {label: 从节点, value: row.from_node}
+    - {label: 到节点, value: row.to_node}
+    - {label: 原因, value: row.reason}
+    - {label: Epoch, value: row.epoch}
+    - {label: 状态, value: row.state}
+    - {label: 时间, value: row.migrated_at|when}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 运维视图只声明区块，节点、分配与备份数据由对应需求取齐

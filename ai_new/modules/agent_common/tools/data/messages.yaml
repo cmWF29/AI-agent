@@ -3,6 +3,7 @@ external_pending: '外部工具「{name}」后端尚未接入，参数与依赖�
 tool_disabled: '工具已在本项目禁用: {name}'
 tool_missing: '工具不存在: {name}'
 tool_forbidden: '该会话不可用此工具: {name}'
+tool_unavailable: '工具依赖缺失，当前节点不可用: {name}'
 argv_required: '缺少 argv'
 label_all: '全部'
 label_ready: '就绪'

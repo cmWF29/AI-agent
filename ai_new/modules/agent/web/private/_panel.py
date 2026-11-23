@@ -17,6 +17,13 @@ class WebPanel:
         parts = [seg for seg in rel.split("/") if seg not in ("", ".")]
         if any(seg == ".." for seg in parts):
             raise ctx.ApiError("路径越界: %s" % rel, code="path_escape", status=403)
+        # 符号链接逃逸：realpath 后必须仍在本模块数据根之内，不许跟出数据目录。
+        root_real = ctx.storage.own(__file__).root.resolve(strict=False)
+        real = (root_real / "/".join(parts)).resolve(strict=False)
+        try:
+            real.relative_to(root_real)
+        except ValueError:
+            raise ctx.ApiError("路径越界(链接): %s" % rel, code="path_escape", status=403)
         for b in (ctx.api.call("config.get", {"key": "web.bundle"},
                                caller=None).get("value") or []):
             if rel == str(b.get("out") or ""):

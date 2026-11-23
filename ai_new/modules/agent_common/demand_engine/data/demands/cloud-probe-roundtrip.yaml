@@ -1,0 +1,22 @@
+id: cloud-probe-roundtrip
+title: 云端往返验证：上传探针→下载→摘要校验→清理
+description: "公共级岗位/管理员完成一次真实往返：上传探针文件、下载回比摘要、校验通过后清理探针；结果写审计"
+tags: [cloud]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.probe_roundtrip
+  with:
+    id:
+      get: input.id
+    caller:
+      get: input.caller
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.probe_roundtrip
+  payload: {}
+  promise: 往返摘要一致才记 verified，探针用后即删；项目角色调用被拒

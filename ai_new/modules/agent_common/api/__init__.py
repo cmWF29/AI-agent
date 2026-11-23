@@ -103,11 +103,6 @@ def contract(ctx, name=None):
     return ctx.api.contract(name) if name else ctx.api._load_contracts()
 
 
-def contract_warnings(ctx):
-    """契约校验的告警（warn 模式下缺必填字段的记录，最多留 200 条）。"""
-    return ctx.api.warn_log()
-
-
 def transport(ctx):
     """当前通信通道绑定（direct / memory / http 的分布与来源）。"""
     return ctx.api.transport.describe()

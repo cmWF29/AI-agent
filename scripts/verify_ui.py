@@ -5,7 +5,7 @@
   1. 每个可点动作按钮都有控件状态机（data-ctl 不为空）
   2. 归档项目单独一摞，卡内只剩「删除」，没有改名/归档
   3. 已归档项目详情带「已归档·只读」，重命名/新建工单是 disabled
-  4. 已结单工单：追加备注/结单/语音/发送四个控件一起 disabled
+  4. 已结单工单：composer 内追加备注/语音/发送三个控件 + chat 头部结单项一起 disabled
   5. 消息时间带年月日
   6. 岗位流程是 DAG：有节点、有回边，缩放按钮能改百分比
   7. 报文/原文展开后重渲染不回收
@@ -90,9 +90,15 @@ async def main():
         }""")
         if tid:
             await open_view(pg, "view=ticket&ticket=%s&project=%s" % (tid["id"], tid["project"]))
-            ctl = await pg.evaluate("""() => [...document.querySelectorAll('.composer [data-ctl]')]
+            composer = await pg.evaluate("""() => [...document.querySelectorAll('.composer-actions [data-ctl]')]
               .map((e) => ({ctl: e.dataset.ctl, off: e.disabled, st: e.dataset.ctlState}))""")
-            check("结单后四个控件一起灰", len(ctl) == 4 and all(x["off"] for x in ctl), ctl)
+            check("结单后 composer 三个控件一起灰", len(composer) == 3 and all(x["off"] for x in composer), composer)
+            closeBtn = await pg.evaluate("""() => {
+              const b = [...document.querySelectorAll('.chat-head-actions [data-ctl]')]
+                .find((x) => /结单/.test(x.textContent || ""));
+              return b ? {ctl: b.dataset.ctl, off: b.disabled, st: b.dataset.ctlState} : null;
+            }""")
+            check("chat 头部结单项置灰", bool(closeBtn) and closeBtn["off"] is True, closeBtn)
             # 5. 时间口径：气泡内 HH:MM（悬停 title 带完整年月日）；纯工具组退回组尾 .msg-ts
             tss = await pg.evaluate("""() => [...document.querySelectorAll('.msg-time,.msg-ts')]
               .map(e => ({t: e.textContent, title: e.getAttribute('title') || ''}))""")
@@ -134,13 +140,17 @@ async def main():
 
         # 6. DAG
         await open_view(pg, "view=position&position=architect")
-        dag = await pg.evaluate("""() => ({n: document.querySelectorAll('.dag-stage .flow-node').length,
-          e: document.querySelectorAll('.dag-edge').length,
-          b: document.querySelectorAll('.dag-edge.back').length})""")
+        dag = await pg.evaluate("""() => {
+          const w = document.querySelector('.graph-wrap');
+          if (!w) return {n: 0, e: 0, b: 0};
+          return {n: Number(w.dataset.graphNodes || 0),
+                  e: Number(w.dataset.graphEdges || 0),
+                  b: Number(w.dataset.graphBack || 0)};
+        }""")
         check("岗位流程渲染成 DAG", dag["n"] > 0 and dag["e"] > 0, dag)
         check("DAG 有回边（不是纯顺序）", dag["b"] > 0, dag)
         if dag["n"]:
-            await pg.click('.flow-card .dag-zoom button[data-dag="in"]')
+            await pg.click('.flow-card .graph-zoom button[data-dag="in"]')
             pct = await pg.evaluate("() => document.querySelector('.dag-pct').textContent")
             check("DAG 缩放生效", pct.strip() != "100%", pct)
 

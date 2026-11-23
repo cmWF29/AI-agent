@@ -144,7 +144,8 @@ class CoreTest(unittest.TestCase):
                   "knowledge", "artifacts", "library", "sessions", "projects",
                   "tickets", "health", "ops", "web", "http",
                   "channel", "net", "host", "codec", "clock", "auth", "runtime", "exec",
-                  "decompose", "asr", "logs", "todos", "trace"}
+                  "decompose", "asr", "logs", "todos", "trace",
+                  "archive", "cloud", "graph", "nodes", "sandbox", "secretary", "timer"}
         self.assertEqual(set(self.loaded), expect)
 
     def test_modules_have_no_log_capability(self):
@@ -556,17 +557,13 @@ class CoreTest(unittest.TestCase):
             self.assertEqual(len(node["children"]), 1)
             self.assertEqual(node["children"][0]["project"], "重构")
             self.assertTrue(node["label"].startswith("T-"))
-        # 工单档案缺失项目归属时，归到「工单 / 未归工单」分组，条目不能丢，也不平铺冒充项目层
+        # 工单档案缺失项目归属时是孤儿：不挂顶层、不冒充项目层，由清理脚本从数据摘除
         orphan = self.ctx.api.call("knowledge.index", {
             "rows": [{"path": "tickets/t-orphan/note.md"}], "tickets": []})
         self.assertEqual(orphan["tree"][0]["type"], "public")
-        grp = orphan["tree"][-1]
-        self.assertEqual(grp["type"], "orphan")
-        self.assertEqual(grp["label"], "未归工单")
-        self.assertEqual(grp["badge"], "工单")
-        self.assertEqual([c["type"] for c in grp["children"]], ["ticket"])
-        self.assertEqual(grp["children"][0]["label"].lower(), "t-orphan")
-        self.assertEqual(orphan["counts"]["orphan"], 1)
+        self.assertEqual(len(orphan["tree"]), 1)
+        self.assertEqual(orphan["counts"]["orphan"], 0)
+        self.assertFalse(any(n["type"] == "orphan" for n in orphan["tree"]))
 
     def test_channel_post_tail_roundtrip(self):
         """频道：需求发两条、按序读回；watch 门面按游标回 {items, cursor}。"""
@@ -1005,7 +1002,7 @@ class CoreTest(unittest.TestCase):
         out = self.ctx.api.call("artifacts.group", {"entries": rows, "tickets": tickets})
         self.assertEqual(out["counts"], {"public": 1, "project": 1, "ticket": 1})
         top = {n["type"] + ":" + n.get("label", ""): n for n in out["tree"]}
-        self.assertIn("public:公共文档", top)
+        self.assertIn("public:公共", top)
         proj = top["project:重构"]
         kinds = [c["type"] for c in proj["children"]]
         self.assertEqual(kinds.count("doc"), 1)
@@ -1295,8 +1292,9 @@ class CoreTest(unittest.TestCase):
         c = ctx_msg["constraint"]
         self.assertEqual(c["flow"]["id"], "developer")
         self.assertIn("understand", c["active"])
+        # 开发岗真实 git 流程：理解 → 特性分支 → 实现 → 自验 → CI → 评审合并
         self.assertEqual([s["id"] for s in c["states"]],
-                         ["understand", "implement", "verify"])
+                         ["understand", "branch", "implement", "verify", "ci", "merge"])
         self.assertTrue(c["checks"])
         self.assertEqual(sp["result"]["meta"]["flow"]["id"], "developer")
         self._run("session-send", {"id": sid, "text": "开始"})
@@ -1929,6 +1927,81 @@ class CoreTest(unittest.TestCase):
         role_msgs = arch["transcript"]["roles"][0]["messages"]
         self.assertEqual([m["content"] for m in role_msgs], ["交付完成"])
 
+    def test_history_event_carries_recipient(self):
+        """历程事件带接收人 to/to_kind：建单→本单，PM 开工→PM，派角色→岗位，拆子单→子工单，评审/回催→本单。"""
+        rec = ticket_pure.build({"id": "T-1", "title": "建单", "now": 1})
+        created = rec["history"][0]
+        self.assertEqual((created["to"], created["to_kind"]), ("T-1", "ticket"))
+
+        rec = ticket_pure.bindpm({"rec": rec, "session": "pm-1", "pm_text": "PM 开工", "now": 2})
+        pm = rec["history"][-1]
+        self.assertEqual((pm["to"], pm["to_kind"]), ("pm-1", "pm"))
+
+        rec = ticket_pure.bindrole({"rec": rec, "session": "role-1", "role": "developer",
+                                    "display": "开发", "task": "交付", "now": 3})
+        role = rec["history"][-1]
+        self.assertEqual((role["to"], role["to_kind"]), ("开发", "role"))
+
+        rec = ticket_pure.bindchild({"rec": rec, "child": "T-2",
+                                     "tpl": "拆出子单 {child}", "now": 4})
+        child = rec["history"][-1]
+        self.assertEqual((child["to"], child["to_kind"]), ("T-2", "ticket"))
+
+        for verdict, event in (("repush", "repush"), ("pass", "review_pass"),
+                               ("exhausted", "exhausted")):
+            out = ticket_pure.review_mark({"rec": rec, "verdict": verdict, "now": 5,
+                                           "repush_text": "补缺口", "pass_text": "达标",
+                                           "exhausted_text": "卡点"})
+            ev = out["history"][-1]
+            self.assertEqual(ev["event"], event)
+            self.assertEqual((ev["to"], ev["to_kind"]), ("T-1", "ticket"))
+
+    def test_purge_orphan_tickets_script(self):
+        """孤儿工单清理脚本：盘点→备份→删除→清清单，幂等；在册工单条目保留。"""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "purge_orphan_tickets", ROOT / "scripts" / "purge_orphan_tickets.py")
+        purge = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(purge)
+        with tempfile.TemporaryDirectory() as td:
+            agent = Path(td) / "ai_new" / "modules" / "agent"
+            # 在册工单：挂在项目下，清理后保留
+            tdir = agent / "tickets" / "data" / "projects" / "重构" / "tickets" / "T-1"
+            tdir.mkdir(parents=True)
+            (tdir / "ticket.yaml").write_text(
+                yaml.safe_dump({"id": "T-1", "project": "重构"}), encoding="utf-8")
+            # knowledge：在册条目 + 孤儿条目与孤儿目录
+            kdata = agent / "knowledge" / "data"
+            (kdata / "tickets" / "t-x").mkdir(parents=True)
+            (kdata / "tickets" / "t-x" / "note.md").write_text("x", encoding="utf-8")
+            (kdata / "index.yaml").write_text(yaml.safe_dump({"entries": [
+                {"layer": "ticket", "ticket": "T-1", "path": "tickets/T-1/note.md"},
+                {"layer": "ticket", "ticket": "t-x", "path": "tickets/t-x/note.md"}]}),
+                encoding="utf-8")
+            # artifacts：孤儿目录与清单条目
+            adir = agent / "artifacts" / "data" / "projects" / "p" / "tickets" / "t-y"
+            adir.mkdir(parents=True)
+            (adir / "plan.md").write_text("y", encoding="utf-8")
+            (agent / "artifacts" / "data" / "index.yaml").write_text(yaml.safe_dump(
+                {"entries": [{"layer": "ticket", "ticket": "t-y",
+                              "path": "projects/p/tickets/t-y/plan.md"}]}),
+                encoding="utf-8")
+
+            plan = purge.plan(agent)
+            tids = {t for g in plan["orphans"] for t in g["tids"]}
+            self.assertEqual(tids, {"t-x", "t-y"})
+
+            result = purge.apply(plan, timestamp="test-001")
+            self.assertTrue(Path(result["manifest"]).is_file())
+            # 孤儿目录与文件已删
+            self.assertFalse((kdata / "tickets" / "t-x").exists())
+            self.assertFalse(adir.exists())
+            # 清单条目已摘除，在册工单条目保留
+            kidx = yaml.safe_load((kdata / "index.yaml").read_text(encoding="utf-8"))
+            self.assertEqual([e["ticket"] for e in kidx["entries"]], ["T-1"])
+            # 幂等：第二次盘点为空
+            self.assertEqual(purge.plan(agent)["orphans"], [])
+
     def test_stage_state_machine(self):
         stages = [
             {"id": "a", "cn": "甲", "desc": "d-a", "tools": ["t1"], "next": ["b"]},
@@ -2111,7 +2184,9 @@ class CoreTest(unittest.TestCase):
         ops = lib_pure.stage_contractp({"states": roles["ops"]["states"], "refs": refs,
                                         "checks": roles["ops"].get("checks")})
         self.assertEqual(ops["initial"], "health")
-        self.assertEqual(ops["terminals"], ["health.audit.close"])
+        # 终态含归档收口与“判定正常在跑”的跳过分支，按集合比对，不写死顺序。
+        self.assertEqual(sorted(ops["terminals"]),
+                         sorted(["health.audit.close", "health.scan.skip"]))
         self.assertIn("health.ops.diagnose", [s["path"] for s in ops["states"]])
         self.assertIn("requirement-owner", refs)
         self.assertIn("ticket-health", refs)

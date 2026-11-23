@@ -1,0 +1,93 @@
+id: view-timer
+title: 定时器视图：调度统计、列表与暂停/恢复/删除/改表达式
+description: "定时器页：活动/暂停/本日触发统计，列表行带项目、规则、时区、下次触发、状态与最近结果；行内动作按状态禁用。"
+tags:
+- view
+- web
+- read
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  screen_label: 定时器
+  key: timers
+  menu: {order: 4, label: 定时器, group: {name: 系统, order: 3}, mobile: true}
+  crumb:
+  - 定时器
+  heading: 定时器
+  subheading: 到点自动通知秘书队列或建工单；重复触发按槽位幂等，失败保留重试
+  data:
+  - {as: index, demand: timer-index}
+  sections:
+  - kind: stats
+    as: index
+    heading: 调度概览
+    rows:
+    - {label: 活动, value: data.index.counts.active, note: 条运行中}
+    - {label: 暂停, value: data.index.counts.paused, note: 条已暂停}
+    - {label: 本日触发, value: data.index.counts.today, note: 个槽位已执行}
+  - kind: table
+    as: index
+    source: index.rows
+    heading: 定时任务
+    count_note: "共 {data.index.rows|count} 条"
+    columns:
+    - {label: 项目, value: row.project}
+    - {label: 标题, value: row.title}
+    - {label: 规则, value: row.kind_expr}
+    - {label: 时区, value: row.tz}
+    - {label: 下次触发, value: row.next_at, format: when, fallback: "—"}
+    - {label: 状态, value: row.status|label}
+    - {label: 最近结果, value: row.last_run.detail, fallback: "—"}
+    actions:
+    - label: 暂停
+      demand: timer-toggle
+      params: {id: row.id, action: pause}
+      disabled_when: "row.status != active"
+      disabled_hint: 仅运行中的定时器可暂停
+      flash: 已暂停：{row.title}
+      stay: true
+    - label: 恢复
+      demand: timer-toggle
+      params: {id: row.id, action: resume}
+      disabled_when: "row.status != paused"
+      disabled_hint: 仅已暂停的定时器可恢复
+      flash: 已恢复：{row.title}
+      stay: true
+    - label: 改表达式
+      modal: timer.edit
+      disabled_when: "row.status != active"
+      disabled_hint: 仅运行中的定时器可改表达式
+    - label: 删除
+      demand: timer-delete
+      params: {id: row.id}
+      disabled_when: "row.status == done || row.status == error"
+      disabled_hint: 已完结或异常的定时器不可删除
+      tone: danger
+      confirm: "删除定时器「{row.title}」？记录与执行审计将一并清除。"
+      flash: 已删除：{row.title}
+    empty: {text: 还没有定时器；让项目秘书按周期安排提醒或建单}
+  forms:
+  - id: timer.edit
+    title: 改表达式
+    hint: 改完按新表达式重排下次触发；时区留空沿用原时区。
+    fields:
+    - name: expr
+      label: 表达式
+      placeholder: cron 五段（分 时 日 月 周）；once 填触发时间
+    - name: tz
+      label: 时区
+      placeholder: 如 Asia/Shanghai
+    submit:
+      demand: timer-update
+      params: {id: row.id, expr: $expr, tz: $tz}
+      disabled_when: "row.status != active"
+      ok: 保存
+      flash: 定时器已更新
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 页面只声明区块与动作；取数走 timer-index，写操作按作用域在能力内守卫

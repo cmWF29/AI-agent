@@ -71,9 +71,18 @@ view:
     - system
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.members
+    roles_label: 岗位状态（每个岗位在自己流程里走到哪一步）
+    todos_label: PM 的待办计划（属于 PM 会话）
     wire_demand: message-wire
     wire_chars: 8000
     raw_chars: 6000
+    actions:
+    - label: 结单
+      modal: ticket.close
+      tone: danger
+      # 只读只有一处判据：后端算好 locked（已结单或所在项目已归档），结单按钮共用
+      disabled_when: '{thread.locked}'
+      disabled_hint: '{thread.lock_reason}'
   - kind: composer
     lane: left
     placeholder: 发给 PM 的消息，Enter 发送
@@ -104,10 +113,7 @@ view:
       flash: 备注已追加
       clear: true
       empty_hint: 请先输入备注内容
-    - label: 结单
-      modal: ticket.close
-      tone: danger
-    # 只读只有一处判据：后端算好 locked（已结单或所在项目已归档），四个控件共用
+    # 只读只有一处判据：后端算好 locked（已结单或所在项目已归档），输入卡控件共用
     disabled_when: '{thread.locked}'
     disabled_hint: '{thread.lock_reason}'
 expect:

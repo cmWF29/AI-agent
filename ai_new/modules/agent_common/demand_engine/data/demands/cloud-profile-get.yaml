@@ -1,0 +1,20 @@
+id: cloud-profile-get
+title: 单个云端 profile 详情：脱敏只读
+description: "按 id 读取单个云端 profile 详情；凭证脱敏"
+tags: [cloud, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.profile_get
+  with:
+    id:
+      get: input.id
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.profile_get
+  payload: {}
+  promise: 详情视图凭证脱敏，不存在返回 404

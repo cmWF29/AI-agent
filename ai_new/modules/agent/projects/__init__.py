@@ -57,6 +57,7 @@ def _route_create(ctx, payload):
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.build", {
         "id": pid.get("id"), "name": payload.get("name"),
+        "root": payload.get("root") or "",
         "created": now.get("ts")}, caller=None)
     ex = ctx.api.call("store.exists", {"module": "agent/projects",
         "path": _record(paths, pid.get("id"))}, caller=None)

@@ -1,0 +1,22 @@
+id: nodes-renew
+title: 租约续租：token 匹配且未过期才延后过期时间
+description: "执行体在租约到期前续租；token 不匹配或已过期拒续，防旧持有者续命。"
+tags: [nodes, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.renew
+  with:
+    project:
+      get: input.project
+    token:
+      get: input.token
+  as: out
+expect:
+  given:
+    input: {project: demo-proj, token: 'node-1:e1:0'}
+  calls:
+  - nodes.renew
+  payload: {}
+  promise: 续租只延后 expires_at，epoch 与 token 不变

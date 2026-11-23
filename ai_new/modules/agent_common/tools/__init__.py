@@ -132,6 +132,18 @@ async def _route_execute(ctx, payload):
     if name in set(disabled_names):
         tpl = _msg_tpl(ctx).get("tool_disabled") or ""
         raise ctx.ApiError(tpl.format(name=name) if tpl else "", code="no_tool", status=404)
+    record = None
+    if ctx.tools.has(name):
+        record = next((t for t in ctx.tools.list_tools() if t["name"] == name), None)
+    else:
+        record = external.get(name)
+    if record is not None:
+        ready = ctx.api.call("host.readiness", {"tool": record}, caller=None)
+        if not ready.get("ready"):
+            tpl = _msg_tpl(ctx).get("tool_unavailable") or "工具依赖缺失，当前节点不可用"
+            raise ctx.ApiError(tpl.format(name=name) if tpl else tpl,
+                               code="tool_unavailable", status=503,
+                               payload={"tool": name, "missing": ready.get("missing")})
     if ctx.tools.has(name):
         return await ctx.tools.execute(name, payload.get("args"), session=session,
                                        defer=bool(payload.get("defer")))

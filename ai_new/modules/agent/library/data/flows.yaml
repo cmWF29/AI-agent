@@ -1,27 +1,39 @@
-# 岗位流程：状态 + 迁移。next 是能去哪，when 是"什么条件下走这条"。
-# 只写顺序一条线是假的状态机：验收不过要打回、实现发现计划不成立要回退、
-# 扫描判定不成立就不开单——这些分支和回边本来就在真实流程里。
+# 本文件由 scripts/sync_library_mirror.py 从 seed.yaml 派生，勿手改内置条目。
+# 唯一事实源是 seed.yaml；运行时用户自建条目才写本覆盖层。
 requirement-owner:
   id: requirement-owner
-  cn: 需求流转
   kind: process
   states:
   - id: req.intake
     gate:
       must:
-      - {id: intake.m1, text: 收齐目标、边界与验收口径}
+      - id: req.intake.m1
+        text: 收齐目标、边界与验收口径，记录待澄清要点
       forbid:
       - 未澄清前不分单、不派角色
-    cn: 接需求
+      - 不脑补默认值填补未澄清缺口
+    cn: 需求受理
+    desc: 接收工单、澄清目标与边界，记录待核对要点
+    tools:
+    - ticket_read_doc
+    - ticket_note
+    - todo
     next:
     - req.structure
   - id: req.structure
     gate:
       must:
-      - {id: structure.m1, text: 整理成可逐条核对的验收规格}
+      - id: req.structure.m1
+        text: 整理成可逐条核对的验收规格，每条可判定完成
       forbid:
       - 不把模糊诉求当规格
-    cn: 结构化
+      - 不写不可验收条目
+    cn: 规格澄清
+    desc: 把诉求整理成可逐条核对的验收规格
+    tools:
+    - ticket_read_doc
+    - ticket_note
+    - todo
     next:
     - req.plan
     when:
@@ -29,10 +41,19 @@ requirement-owner:
   - id: req.plan
     gate:
       must:
-      - {id: plan.m1, text: 明确分工与交付节奏}
+      - id: req.plan.m1
+        text: 明确分工、交付节奏与依赖；角色数量克制（默认 2-3 个）
       forbid:
-      - 不超编派角色（默认 2-3 个）
-    cn: 定计划
+      - 不超编派角色
+      - 不排无验收标准的活
+    cn: 编排计划
+    desc: 拆结构化计划、明确分工与交付节奏
+    tools:
+    - role_spawn
+    - role_task
+    - ticket_read_doc
+    - ticket_note
+    - todo
     next:
     - req.split
     - req.structure
@@ -42,19 +63,34 @@ requirement-owner:
   - id: req.split
     gate:
       must:
-      - {id: split.m1, text: 每个子单给目标、路径、验收标准与边界}
+      - id: req.split.m1
+        text: 每个子单给目标、路径、验收标准与边界
       forbid:
       - 不给没有验收标准的活
-    cn: 拆子单
+      - 不拆无法独立验收的子单
+    cn: 分派拆分
+    desc: 按计划分派角色、拆分并行子任务
+    tools:
+    - role_spawn
+    - ticket_split
+    - ticket_note
+    - todo
     next:
     - req.execute
   - id: req.execute
     gate:
       must:
-      - {id: execute.m1, text: 跟踪进度并回收产出与缺口}
+      - id: req.execute.m1
+        text: 跟踪进度，回收产出与缺口，记录卡点
       forbid:
       - 不替执行角色写实现
-    cn: 执行
+      - 不监工式催办替代交付
+    cn: 执行跟踪
+    desc: 跟踪各角色执行进度，回收产出与缺口
+    tools:
+    - ticket_read_doc
+    - ticket_note
+    - todo
     next:
     - req.accept
     - req.plan
@@ -64,10 +100,17 @@ requirement-owner:
   - id: req.accept
     gate:
       must:
-      - {id: accept.m1, text: 对照验收标准逐项核对交付件}
+      - id: req.accept.m1
+        text: 对照验收标准逐项核对交付件，给出接受/打回结论与依据
       forbid:
       - 不跳过缺口直接结单
-    cn: 验收
+      - 不把未验收件当通过
+    cn: 验收核对
+    desc: 对照验收标准逐项核对交付件与结论
+    tools:
+    - ticket_read_doc
+    - ticket_note
+    - todo
     next:
     - req.close
     - req.execute
@@ -77,34 +120,54 @@ requirement-owner:
   - id: req.close
     gate:
       must:
-      - {id: close.m1, text: 结论与交付件一致并沉淀}
+      - id: req.close.m1
+        text: 结论与交付件一致，沉淀结论与遗留项
       forbid:
       - 不假装完成
-    cn: 结单
+      - 不遗留未说明的异常
+    cn: 闭环结单
+    desc: 验收通过后闭环结单，沉淀结论
+    tools:
+    - ticket_close
+    - ticket_note
+    - todo
     next: []
     terminal: true
-  builtin: true
 ticket-health:
   id: ticket-health
-  cn: 工单体检
   kind: process
   states:
   - id: scan.run
     gate:
       must:
-      - {id: scan.m1, text: 按阈值扫描在途工单}
+      - id: scan.run.m1
+        text: 按阈值扫描在途工单/服务状态/日志，记录扫描范围与线索
       forbid:
       - 不臆造停滞
-    cn: 扫描
+      - 不跳过阈值内工单
+    cn: 巡检扫描
+    desc: 扫描服务状态、日志与停滞工单，定位异常线索
+    tools:
+    - artifact_read
+    - knowledge_search
+    - ticket_read_doc
+    - todo
     next:
     - scan.judge
   - id: scan.judge
     gate:
       must:
-      - {id: judge.m1, text: stale 判定写明依据}
+      - id: scan.judge.m1
+        text: stale 判定写明依据（停滞时长/信号/证据），区分正常在跑
       forbid:
       - 不把正常在跑判停滞
-    cn: 判停滞
+      - 不凭印象判停滞
+    cn: 异常判定
+    desc: 判定线索是否构成停滞或故障，区分待审计项
+    tools:
+    - knowledge_read
+    - ticket_read_doc
+    - todo
     next:
     - scan.audit
     - scan.skip
@@ -114,19 +177,34 @@ ticket-health:
   - id: scan.audit
     gate:
       must:
-      - {id: audit.m1, text: 审计单写清卡点与证据}
+      - id: scan.audit.m1
+        text: 审计单写清卡点、现象与证据，不重复开单
       forbid:
       - 不重复开单
-    cn: 开审计单
+      - 不在无证据下开审计
+    cn: 停滞审计
+    desc: 复核停滞工单现象、根因与影响范围
+    tools:
+    - ticket_read_doc
+    - ticket_note
+    - todo
     next:
     - ops.diagnose
   - id: ops.diagnose
     gate:
       must:
-      - {id: diagnose.m1, text: 定位根因并给出恢复方案}
+      - id: ops.diagnose.m1
+        text: 定位根因并给出恢复方案与依据
       forbid:
       - 不改业务数据绕过诊断
-    cn: 诊断
+      - 不跳过根因直接处置
+    cn: 根因诊断
+    desc: 查日志与资源，定位根因并给出处置方向
+    tools:
+    - artifact_read
+    - knowledge_read
+    - ticket_read_doc
+    - todo
     next:
     - ops.recover
     - ops.escalate
@@ -136,32 +214,62 @@ ticket-health:
   - id: ops.recover
     gate:
       must:
-      - {id: recover.m1, text: 记录恢复动作与结果}
+      - id: ops.recover.m1
+        text: 记录恢复动作、结果与恢复标准达成情况
       forbid:
       - 不隐瞒恢复失败
-    cn: 自动恢复
+      - 不把部分恢复当完全恢复
+    cn: 处置恢复
+    desc: 执行恢复或规避措施，达到恢复标准
+    tools:
+    - knowledge_read
+    - ticket_read_doc
+    - artifact_write
+    - todo
     next:
     - audit.close
   - id: ops.escalate
     gate:
       must:
-      - {id: escalate.m1, text: 上抛证据与建议裁决}
+      - id: ops.escalate.m1
+        text: 上抛证据、影响面与建议裁决
       forbid:
       - 不自行结单
+      - 不隐瞒上抛事项
     cn: 上抛裁决
+    desc: 证据与影响面上抛，建议上层裁决
+    tools:
+    - ticket_read_doc
+    - ticket_note
+    - todo
     next:
     - audit.close
   - id: scan.skip
+    gate:
+      must:
+      - id: scan.skip.m1
+        text: 记录判定为正常在跑的依据，归档跳过记录
+      forbid:
+      - 不跳过即丢弃工单记录
     cn: 跳过
+    desc: 判定正常在跑，记录依据后归档跳过
+    tools:
+    - ticket_read_doc
+    - todo
     next: []
     terminal: true
   - id: audit.close
     gate:
       must:
-      - {id: close.m1, text: 收口结论与证据}
+      - id: audit.close.m1
+        text: 收口结论与证据，遗留异常逐条说明
       forbid:
       - 不遗留未说明的异常
-    cn: 收口
+    cn: 闭环归档
+    desc: 处置结论落档，闭环归档审计记录
+    tools:
+    - ticket_read_doc
+    - artifact_write
+    - todo
     next: []
     terminal: true
-  builtin: true

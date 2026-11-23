@@ -1,0 +1,18 @@
+# 定时器文案表：面向模型/用户的句子只在这里，代码不内置中文业务文案。
+forbidden_scope: 无权操作其他项目或工单的定时器
+quota_exceeded: 项目内定时器数量已达上限，请先暂停或删除部分定时器
+bad_cron: 表达式非法：cron 需五段（分 时 日 月 周），once 需可解析的触发时间
+bad_tz: 时区无法解析，请使用 IANA 时区名（如 Asia/Shanghai）
+interval_too_short: 触发时间距现在过近，低于最小间隔
+bad_kind: 定时器类型只能是 once 或 cron
+bad_action: 触发动作只能是 notify 或 spawn_ticket
+bad_title: 定时器标题不能为空
+missing_project: 定时器必须绑定到某个项目
+missing: '定时器不存在: {id}'
+trigger_failed: 触发失败，槽位保留待重试
+tool_timer_create_desc: 登记一个定时任务：到点通知项目秘书队列，或自动建工单
+tool_timer_list_desc: 列出当前作用域可见的定时器及其下次触发与最近结果
+tool_timer_pause_desc: 暂停指定定时器，暂停后不再触发
+tool_timer_resume_desc: 恢复已暂停的定时器并重排下次触发
+tool_timer_delete_desc: 删除指定定时器，记录与执行审计一并清除
+notify_text: 定时任务「{title}」到点触发

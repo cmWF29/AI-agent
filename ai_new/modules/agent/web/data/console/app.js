@@ -595,6 +595,7 @@ function restorePage(k) {
   openStream(th.id);
   schedulePoll(viewSpec(k.view));
   if (typeof mountDecks === "function") mountDecks();
+  if (typeof mountGraphs === "function") mountGraphs();
   if (typeof highlightNav === "function") highlightNav();
   banner("");
 }
@@ -678,6 +679,7 @@ async function refreshAs(list) {
   }
   scrollRestore(marks);
   if (typeof mountDecks === "function") mountDecks();
+  if (typeof mountGraphs === "function") mountGraphs();
   restoreDecks(deckStates);
   if (typeof expandFolds === "function") expandFolds();
   pruneActs();

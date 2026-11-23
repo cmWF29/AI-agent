@@ -1,0 +1,121 @@
+# 消息契约：本模块每条能力收什么、回什么。
+module: archive
+routes:
+  archive.resolve_abs:
+    in:
+      abs:
+        type: any
+        req: true
+    out:
+      exists:
+        type: bool
+      raw:
+        type: any
+      cached:
+        type: bool
+  archive.scan:
+    in:
+      paths:
+        type: any
+        req: false
+    out:
+      candidates:
+        type: list
+      summary:
+        type: any
+  archive.compress:
+    in:
+      paths:
+        type: any
+        req: false
+      category:
+        type: any
+        req: false
+    out:
+      items:
+        type: list
+      summary:
+        type: any
+  archive.read_text:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      exists:
+        type: bool
+      value:
+        type: any
+      cached:
+        type: bool
+  archive.read_bytes:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      exists:
+        type: bool
+      size:
+        type: int
+      value:
+        type: str
+      cached:
+        type: bool
+  archive.read_lines:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+      start:
+        type: any
+        req: false
+      end:
+        type: any
+        req: false
+      limit:
+        type: any
+        req: false
+    out:
+      exists:
+        type: bool
+      lines:
+        type: list
+      total:
+        type: int
+      cached:
+        type: bool
+  archive.stats:
+    in: {}
+    out:
+      index:
+        type: any
+      cache:
+        type: any
+      backend:
+        type: any
+      lock:
+        type: any
+  archive.index_query:
+    in:
+      category:
+        type: any
+        req: false
+      older_than:
+        type: any
+        req: false
+      limit:
+        type: any
+        req: false
+    out:
+      rows:
+        type: list

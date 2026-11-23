@@ -1,0 +1,17 @@
+id: cloud-provider-list
+title: 云端提供方清单：类型、通道、落地状态只读
+description: "云端资料库：列出全部适配的提供方类型及其通道与落地状态；只读，不返回任何凭证"
+tags: [cloud, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.providers
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.providers
+  payload: {}
+  promise: 提供方清单只读返回，不含凭证与端点敏感信息

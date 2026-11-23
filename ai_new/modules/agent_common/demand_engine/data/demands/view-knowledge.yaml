@@ -26,8 +26,6 @@ view:
       value: row.project_groups
     - label: 已归项目
       value: row.placed
-    - label: 未归工单
-      value: row.orphan
   - kind: tree
     as: idx
     source: idx.tree

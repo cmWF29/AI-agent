@@ -19,6 +19,15 @@ routes:
   demand_engine.click_machine:
     caller: http-frontend
     reason: 控制台外壳的点击状态机规格随外壳下发；页面只按规格门禁，不自己存一份状态表。
+  secretary.status:
+    caller: view
+    reason: 秘书队列状态机规格只读下发：回包状态枚举与合法迁移（可带单条 entry 当前态与可去态），供秘书页只读展示状态流转；不经需求 do 树编排，与 demand_engine.click_machine 同类的规格读出口。
+  timer.tick:
+    caller: internal
+    reason: 定时器后台扫描循环由 timer.start 拉起，幂等扫描到期槽位并按 next_at/max_catchup 补触发漏跑；引擎内部调用，不经需求 do 树编排。
+  timer.history:
+    caller: view
+    reason: 定时器执行历史只读出口：经作用域守卫读回最近执行结果与 runs 审计条目，供定时任务详情/历史面板；不经需求 do 树编排。
   clock.sleep:
     caller: engine
     reason: 需求语言 wait 语句与 SSE 轮询直接调用；平台计时等待，不是业务能力。
@@ -70,3 +79,66 @@ routes:
   trace.slow:
     caller: view
     reason: 按名字聚合 p50/p95/max，供慢调用榜。
+  store.workspace:
+    caller: view
+    reason: 只读解析项目工作区（含 ticket 子目录）各层目录的绝对路径并做越界校验；不写盘，不归属需求编排。
+  store.resolve_doc:
+    caller: internal
+    reason: 文档相对路径越界校验原语：realpath 后必须落在模块数据根之内；只读不写盘。
+  store.doc_lock_capability:
+    caller: internal
+    reason: 文档锁档位只读上报；跨进程 OS 锁未落地，显式标未支持，不归属需求编排。
+  store.doc_revision:
+    caller: internal
+    reason: 文档修订闭环平台原语：加锁校验版本令牌 → 落正文 → 记修订历史；由 runtime.apply 内部调用，不对外、不归属需求编排。
+  knowledge.doc_meta:
+    caller: internal
+    reason: 只读读取文档版本元数据（版本/作者/更新时间/修订历史）；路径越界即拒，不写盘。
+  host.profile:
+    caller: internal
+    reason: 只读节点环境 profile 快照；节点事实由 host 探针实时取，不固化进知识层、不跨机泄漏。
+  host.readiness:
+    caller: internal
+    reason: 工具就绪度只读判定；缺依赖列具体缺失项并拦截执行，不静默放行，不归属需求编排。
+  archive.read_text:
+    caller: view/ops
+    reason: 透明读出口：视图/排障读日志、链路、报文时，原文缺失则按索引读压缩流；只读不写盘。
+  archive.read_bytes:
+    caller: view/ops
+    reason: 透明读二进制交付件/报文；只读不写盘。
+  archive.read_lines:
+    caller: view/ops
+    reason: 按行区间读压缩日志/链路；只读不写盘。
+  archive.index_query:
+    caller: view/sync
+    reason: 压缩索引只读查询：按类别/年龄返回已压缩与未压缩条目，供同步清单拼取；只读不写盘。
+  archive.resolve_abs:
+    caller: internal
+    reason: 内部解析出口：只给 store 读路径按绝对路径回调，不对外暴露 HTTP；只读不写盘。
+  nodes.nodes_view:
+    caller: http-ops
+    reason: 运维只读视图读取节点健康度与负载；控制面只读面，不归属需求编排。
+  nodes.assignments:
+    caller: http-ops
+    reason: 运维只读视图读取项目→节点分配表；控制面只读面，不归属需求编排。
+  nodes.overview:
+    caller: http-ops
+    reason: 运维只读视图聚合节点与分配；只读面登记，节点列表需求经此取数。
+  nodes.backup_record:
+    caller: internal
+    reason: 备份台账登记由控制面快照流程内部调用；登记的是元数据，快照文件由 store 能力落地。
+  nodes.snapshot_plan:
+    caller: internal
+    reason: 快照清单计划纯计算原语：条目相对路径越界校验；备份流程内部调用，不对外。
+  nodes.verify_snapshot:
+    caller: internal
+    reason: 快照摘要校验纯计算原语：缺摘要/摘要不符判定；备份恢复流程内部调用，不对外。
+  sandbox.pick_tier:
+    caller: internal
+    reason: 隔离档位选择纯计算原语；sandbox-plan 需求与执行路径内部调用，不对外暴露。
+  nodes.pick_node:
+    caller: internal
+    reason: 选节点纯计算原语：容量余量 + 亲和性（历史节点/同区域）打分；回迁流程内部调用，不对外暴露。
+  nodes.migrations:
+    caller: http-ops
+    reason: 运维只读视图读取迁移台账（去向/原因/epoch/时间）；控制面只读面，不归属需求编排。

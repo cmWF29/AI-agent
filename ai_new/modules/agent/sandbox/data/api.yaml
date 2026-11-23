@@ -1,0 +1,37 @@
+# 消息契约：sandbox 模块隔离档位路由收什么、回什么。
+module: sandbox
+routes:
+  sandbox.capability:
+    in: {}
+    out:
+      ok: {type: bool}
+      tiers: {type: dict}
+      binaries: {type: dict}
+      lock: {type: dict}
+      path_isolation: {type: dict}
+  sandbox.pick_tier:
+    in:
+      tier: {type: str, req: false}
+      untrusted_code: {type: bool, req: false}
+      multi_tenant: {type: bool, req: false}
+      network_restrict: {type: bool, req: false}
+      audit_isolation: {type: bool, req: false}
+    out:
+      ok: {type: bool}
+      tier: {type: str}
+      reason: {type: str}
+      flags: {type: list}
+      conditions: {type: list}
+  sandbox.plan:
+    in:
+      project: {type: str, req: true}
+      tier: {type: str, req: false}
+      workspace: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      project: {type: str}
+      tier: {type: str}
+      cwd: {type: str}
+      lock_path: {type: str}
+      env: {type: dict}
+      strong_wrap: {type: dict}

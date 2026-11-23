@@ -1,0 +1,20 @@
+id: cloud-project-status
+title: 项目只读视图：是否已纳入云端同步
+description: "按项目返回是否纳入全局同步；不返回端点、凭证与其他项目信息"
+tags: [cloud, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.project_status
+  with:
+    project:
+      get: input.project
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.project_status
+  payload: {}
+  promise: 项目页只读展示纳入状态，不接触配置与凭证

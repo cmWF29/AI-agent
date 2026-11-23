@@ -1,0 +1,23 @@
+id: archive-gc
+title: 存储治理：扫描冷候选 → 压缩归档 → 登记索引 → 汇总观测
+description: "冷数据自动压缩归档的编排需求：先只读扫描判定冷热，再压缩命中的冷候选，最后汇总压缩率与缓存观测。压缩是写盘动作，只能由本需求编排触发，能力不在后台隐式写盘。"
+tags: [archive, write, ops]
+enabled: true
+callable: true
+'on': []
+do:
+- call: archive.scan
+  as: scanned
+- call: archive.compress
+  as: archived
+- call: archive.stats
+  as: stats
+expect:
+  given:
+    input: {}
+  calls:
+  - archive.scan
+  - archive.compress
+  - archive.stats
+  payload: {}
+  promise: 压缩归档由需求编排触发；原文与压缩流一致、校验和可校验，热数据不被边写边压

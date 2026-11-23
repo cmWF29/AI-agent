@@ -188,25 +188,24 @@ const CLICK_HANDLERS = {
   raw_fold() {},
   /* 弹窗三个入口在 actions.js 里自己过门禁并执行，这里只登记，不重复执行 */
   dag_zoom(el) {
-    // 缩放只改画布 transform：不动布局，也不重取数据
-    const card = el.closest("[data-dag-card]");
-    const stage = card && card.querySelector("[data-dag-stage]");
-    if (!stage) return;
-    const mode = el.dataset.dag || "in";
-    let z = Number(stage.dataset.z || 1);
-    if (mode === "in") z = Math.min(2, z + 0.2);
-    else if (mode === "out") z = Math.max(0.5, z - 0.2);
-    else {
-      const box = card.querySelector(".dag-viewport");
-      const w = Number(stage.style.width.replace("px", "")) || stage.offsetWidth || 1;
-      z = box ? Math.min(1, (box.clientWidth - 16) / w) : 1;
-      if (!isFinite(z) || z <= 0) z = 1;
-    }
-    stage.dataset.z = String(z);
-    stage.style.transform = "scale(" + z + ")";
-    const pct = card.querySelector("[data-dag-pct]");
-    if (pct) pct.textContent = Math.round(z * 100) + "%";
+    // 缩放只作用于图容器内部：不动整页布局，也不重取数据。
+    // graph-wrap 是卡片内与工具栏并列的兄弟节点，从卡片壳里反查容器。
+    const card = el.closest(".flow-card");
+    const wrap = card && card.querySelector(".graph-wrap");
+    if (!wrap || !window.HiveGraph) return;
+    const mode = el.dataset.graph || "in";
+    if (mode === "fit") HiveGraph.fit(wrap);
+    else HiveGraph.zoomBy(wrap, mode);
   },
+  /* stack 条目：纯本地展开/收起，折叠态写 sessionStorage（foldSet）；
+     不取数、不换页。代表链路 chips 走 stack_link 另一条出口。 */
+  stack_open(el, e) {
+    if (e && e.cancelable) e.preventDefault();
+    const d = el.closest("details.stack-item");
+    if (d) d.open = !d.open;
+  },
+  /* stack 代表链路 chips：点开进链路详情，与卡片跳转同一条出口 */
+  stack_link(el) { return runGo(el, "stack_link"); },
   modal_ok() {},
   modal_cancel() {},
   modal_backdrop() {},
@@ -447,8 +446,22 @@ function renderMenus(menus) {
     if (last && last.name === name) last.items.push(m);
     else groups.push({ name, items: [m] });
   });
-  // 二级菜单：parent 指向父项 key 的挂到父项下面缩进渲染；父项自己也是可点的页
-  const btn = (m, cls) => `<button${cls ? ` class="${cls}"` : ""} data-clk="nav" data-nav="${esc(m.key)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</button>`;
+  // 二级菜单：parent 指向父项 key 的挂到父项下面缩进渲染；父项自己也是可点的页。
+  // data-nav 挂视图自身的 key：高亮按叶子自身点亮，父项不跟着选中。
+  const viewByMenu = (m) => {
+    for (const k of Object.keys(VIEWS)) {
+      const v = VIEWS[k] || {};
+      const cfg = v.menu || {};
+      const label = cfg.label || v.heading || k;
+      if (label === m.label && (cfg.parent || "") === (m.parent || "")) return v;
+    }
+    return null;
+  };
+  const btn = (m, cls) => {
+    const v = viewByMenu(m);
+    const navKey = (v && v.key) || m.key;
+    return `<button${cls ? ` class="${cls}"` : ""} data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</button>`;
+  };
   side.innerHTML = groups.map((g) => {
     const kids = {};
     g.items.forEach((m) => {
@@ -462,7 +475,9 @@ function renderMenus(menus) {
   if (typeof stampCtl === "function") stampCtl(side);
 }
 function highlightNav() {
-  const cur = navTarget(state.view);
+  // 只亮叶子：按当前视图自身的 key 点亮；父项只保留"有子项"的层级，不进选中态。
+  const spec = viewSpec(state.view) || {};
+  const cur = spec.key || state.view;
   document.querySelectorAll("[data-nav]").forEach((b) =>
     b.classList.toggle("on", b.dataset.nav === cur));
 }

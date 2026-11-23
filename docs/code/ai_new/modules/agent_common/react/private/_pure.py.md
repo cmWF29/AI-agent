@@ -1,0 +1,144 @@
+---
+source: ai_new/modules/agent_common/react/private/_pure.py
+hash: cba9f011af2973e11e8b6551fdcf588fdbc592185f05e08feb1149dcfd0f56b2
+symbols:
+- schema
+- schemas
+- assistant
+- toolnames
+- args
+- toolmsg
+- step
+- result
+- summary_msg
+- context_view
+- checkpoint
+- classify_tool
+- strip_fence
+- extract_json
+- _textify
+- parse_final
+- summarize
+- attach_protocol
+generated: gen_docs.py v1
+updated_at: '2026-11-23T04:10:22'
+---
+
+# _pure.py
+
+> 由 `scripts/gen_docs.py` 生成；手改会被下次生成覆盖。
+> 职责/入参出参/副作用/依赖/不变量/关联需求由人工在下方补充；生成器只提取 docstring 与符号。
+
+## 概览
+
+ReAct 纯函数：把响应切成消息、把工具定义切成模型能吃的形状。循环在 react-run 需求里。
+
+## 符号
+
+### `schema`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `schemas`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `assistant`（function）
+- 职责: 助手消息成形：正文 + 工具调用 + 时刻；带了上游网络报文就一并挂上，方便回查原文。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `toolnames`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `args`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `toolmsg`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `step`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `result`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `summary_msg`（function）
+- 职责: 滚动摘要消息成形：role 留 assistant 供上游识别，kind 标记摘要只供展示/治理。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `context_view`（function）
+- 职责: 构造发往上游的上下文视图。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `checkpoint`（function）
+- 职责: 轮内检查点成形：在会话快照上覆盖本轮累积消息/摘要/步数与时间，供中间落盘。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `classify_tool`（function）
+- 职责: 工具输出分级：按字符数判定是否超限需落盘只回路径。纯计算，不碰盘。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `strip_fence`（function）
+- 职责: 剥掉模型常见的 ```json 代码围栏，留出可解析正文；纯字符串处理，不解析 JSON。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `extract_json`（function）
+- 职责: 从夹带前后解释文字的正文里截取首个 { 到末个 } 的 JSON 区间；无括号则原样返回。纯字符串处理。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_textify`（function）
+- 职责: 收口字段定型为字符串：None 为空，其余类型转文本；不做结构化序列化（归 codec）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `parse_final`（function）
+- 职责: 拆分收口步的结构化输出：reply 进气泡，summary 存滚动摘要。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `summarize`（function）
+- 职责: 滚动摘要收口：模型给了就听模型的，没给就把本轮工具往返压成一段系统兜底。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `attach_protocol`（function）
+- 职责: 把收口输出协议约定追加到首条 system 消息；无 system 或无协议文本则原样返回。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充

@@ -31,6 +31,12 @@ from pathlib import Path
 
 
 from . import _files
+from . import _isolate
+from . import _docpath
+from . import _doclock
+from . import _xlock
+from . import _archive_read
+from . import _revision
 
 
 
@@ -134,11 +140,12 @@ class ModuleData:
 
         """解析不是存储的事：读字节归我，认格式归 codec。"""
 
-        if not (self.root / rel).is_file():
+        text = self.read_text(rel)
+        if text is None:
 
             return default
 
-        out = self.ctx.codec.json_decode(self.read_text(rel))
+        out = self.ctx.codec.json_decode(text)
 
         return out["value"] if out.get("ok") else default
 
@@ -182,7 +189,7 @@ class ModuleData:
 
     def read_text(self, rel):
 
-        return _files.read_text(self.root / rel)
+        return _archive_read.read_text_resolved(self.ctx, self.root / rel)
 
 
 
@@ -292,7 +299,7 @@ class ModuleData:
 
     def read_bytes(self, rel):
 
-        return (self.root / rel).read_bytes()
+        return _archive_read.read_bytes_resolved(self.ctx, self.root / rel)
 
 
 
@@ -302,13 +309,80 @@ class ModuleData:
 
 
 
-    def append_text(self, rel, text):
+    @staticmethod
+    def _meta_rel(rel):
+        """文档侧车元数据路径：``<doc>.meta.yaml``。"""
+        if rel.endswith(".md"):
+            return rel[:-3] + ".meta.yaml"
+        return rel + ".meta.yaml"
 
-        path = self.path(rel)
+    def _lock_path(self, rel):
+        lock_dir = self.root / ".locks"
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        return lock_dir / (_files.safe_id(rel) + ".lock")
 
-        with path.open("a", encoding="utf-8") as handle:
+    def write_text_locked(self, rel, text):
+        """覆盖写：跨进程锁 → 进程内锁 → 原子改名。"""
+        real = (self.root / rel).resolve(strict=False)
+        with _xlock.lock_file(str(self._lock_path(rel))):
+            with _doclock.locked(real):
+                return _files.write_text_atomic(real, text)
 
-            handle.write(text)
+    def append_text_locked(self, rel, text):
+        """追加写：跨进程锁 → 进程内锁 → 读全量 + 原子改名。"""
+        real = (self.root / rel).resolve(strict=False)
+        with _xlock.lock_file(str(self._lock_path(rel))):
+            with _doclock.locked(real):
+                return _files.append_text_atomic(real, text)
+
+    def revision(self, rel, mode, text, author, token, now=None, force=False):
+        """加锁临界区内做「读元数据 → 令牌校验 → 落正文 → 记修订历史」。
+
+        语义：
+        - 新建文档：令牌 None/0 放行；令牌 >0 视为冲突（服务端无该版本），不落盘。
+        - 已存在文档：缺令牌 → 409 token_required；令牌不符 → 409 conflict；
+          force=True 跳过比对，仍落盘并记修订，历史条目标 forced。
+        冲突一律不落正文、不静默覆盖。
+        """
+        real = (self.root / rel).resolve(strict=False)
+        meta_rel = self._meta_rel(rel)
+        with _xlock.lock_file(str(self._lock_path(rel))):
+            with _doclock.locked(real):
+                old = self.yaml_read(meta_rel, default=None)
+                is_new = old is None
+                if is_new:
+                    meta = _revision.init_meta(author, now, text)
+                    if not force and _revision.token_int(token) > 0:
+                        return {"ok": False, "code": "conflict", "status": 409,
+                                "current_version": 0, "current_author": "",
+                                "current_updated": "", "token": token}
+                else:
+                    meta = old
+                    if force:
+                        pass
+                    elif token is None or token == "":
+                        return {"ok": False, "code": "token_required", "status": 409,
+                                "current_version": meta.get("version", 0),
+                                "current_author": meta.get("author", ""),
+                                "current_updated": meta.get("updated", ""),
+                                "token": None}
+                    else:
+                        chk = _revision.check(meta, token)
+                        if not chk["ok"]:
+                            return {"ok": False, "code": "conflict", "status": 409,
+                                    "current_version": chk["current_version"],
+                                    "current_author": chk["current_author"],
+                                    "current_updated": meta.get("updated", ""),
+                                    "token": token}
+                if mode == "append":
+                    _files.append_text_atomic(real, text)
+                else:
+                    _files.write_text_atomic(real, text)
+                new = meta if is_new else _revision.bump(meta, author, now, text, forced=force)
+                self.yaml_write(meta_rel, new)
+                return {"ok": True, "version": new["version"], "author": new["author"],
+                        "updated": new["updated"], "chars": new["chars"],
+                        "history": new["history"]}
 
 
 
@@ -383,81 +457,11 @@ class Storage:
 
 
 
-    def all_data(self):
-
-        """所有模块的数据目录（模块名 → 目录）。给"打包/巡检"这类整体动作，不给业务读别人内容。"""
-
-        roots = _files.modules_root()
-
-        out = {}
-
-        for group in sorted(p for p in roots.iterdir() if p.is_dir()):
-
-            for module in sorted(p for p in group.iterdir() if p.is_dir()):
-
-                data = module / "data"
-
-                if data.is_dir():
-
-                    out["%s/%s" % (group.name, module.name)] = data
-
-        external = os.environ.get("AI_NEW_DATA")
-
-        if external:
-
-            base = Path(external)
-
-            out = {}
-
-            for group in sorted(p for p in base.iterdir() if p.is_dir()):
-
-                for module in sorted(p for p in group.iterdir() if p.is_dir()):
-
-                    out["%s/%s" % (group.name, module.name)] = module
-
-        return out
-
-
-
     def pack(self, dest_rel, entries):
 
         """把若干 (目录, 归档前缀) 打成 zip，落在自己数据里的 dest_rel。"""
 
         return _files.pack(self.root / dest_rel, entries)
-
-
-
-    def glob_at(self, root, pattern):
-
-        """在给定根下做匹配（根由调用方显式给出，例如用户的项目目录）。"""
-
-        base = Path(root)
-
-        if not base.is_dir():
-
-            return []
-
-        return sorted(item.relative_to(base).as_posix()
-
-                      for item in base.glob(pattern) if item.is_file())
-
-
-
-    def read_at(self, root, rel):
-
-        return Path(root, rel).read_text(encoding="utf-8", errors="replace")
-
-
-
-    def size_at(self, root, rel):
-
-        try:
-
-            return Path(root, rel).stat().st_size
-
-        except OSError:
-
-            return 0
 
 
 
@@ -511,9 +515,10 @@ def _route_exists(payload):
 def _route_read(ctx, payload):
     path = _p(payload.get("module"), payload.get("path"))
     fallback = payload.get("fallback")
-    if not path.is_file():
+    text = _archive_read.read_text_resolved(ctx, path)
+    if text is None:
         return {"value": fallback, "exists": False}
-    out = ctx.codec.yaml_decode(path.read_text(encoding="utf-8"))
+    out = ctx.codec.yaml_decode(text)
     if not out.get("ok"):
         return {"value": fallback, "exists": True, "bad": True}
     return {"value": out["value"], "exists": True}
@@ -578,25 +583,34 @@ def _route_walk_text(payload):
                      "text": item.read_text(encoding="utf-8", errors="replace")})
     return {"rows": rows}
 
-def _route_read_text(payload):
+def _route_read_text(ctx, payload):
     path = _p(payload.get("module"), payload.get("path"))
-    if not path.is_file():
+    text = _archive_read.read_text_resolved(ctx, path)
+    if text is None:
         return {"value": payload.get("fallback") or "", "exists": False}
-    return {"value": path.read_text(encoding="utf-8", errors="replace"), "exists": True}
+    return {"value": text, "exists": True}
 
 
-def _route_write_text(payload):
-    path = _p(payload.get("module"), payload.get("path"))
-    _files.write_text_atomic(path, str(payload.get("text") or ""))
-    return {"written": True, "path": str(path)}
+def _route_write_text(ctx, payload):
+    md = ModuleData(_dir_of(payload.get("module")), ctx)
+    md.write_text_locked(payload.get("path"), str(payload.get("text") or ""))
+    return {"written": True, "path": str(_p(payload.get("module"), payload.get("path")))}
 
 
-def _route_append_text(payload):
-    path = _p(payload.get("module"), payload.get("path"))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(str(payload.get("text") or ""))
+def _route_append_text(ctx, payload):
+    md = ModuleData(_dir_of(payload.get("module")), ctx)
+    md.append_text_locked(payload.get("path"), str(payload.get("text") or ""))
     return {"appended": True}
+
+
+def _route_doc_revision(ctx, payload):
+    """文档修订闭环：加锁校验令牌 → 落正文 → 记历史；冲突回 409，不覆盖。"""
+    md = ModuleData(_dir_of(payload.get("module")), ctx)
+    now = ctx.api.call("clock.now", {}, caller=None).get("iso")
+    return md.revision(
+        payload.get("path"), payload.get("mode") or "overwrite",
+        str(payload.get("text") or ""), str(payload.get("author") or ""),
+        payload.get("version"), now, force=bool(payload.get("force")))
 
 
 def _route_remove_dir(payload):
@@ -608,12 +622,12 @@ def _route_remove_dir(payload):
     return {"removed": False}
 
 
-def _route_read_bytes(payload):
+def _route_read_bytes(ctx, payload):
     import base64
     path = _p(payload.get("module"), payload.get("path"))
-    if not path.is_file():
+    raw = _archive_read.read_bytes_resolved(ctx, path)
+    if raw is None:
         return {"value": "", "hex": "", "size": 0, "exists": False}
-    raw = path.read_bytes()
     return {"value": base64.b64encode(raw).decode(), "hex": raw.hex(),
             "size": len(raw), "exists": True}
 
@@ -628,6 +642,21 @@ def _route_write_bytes(payload):
         raw = base64.b64decode(str(payload.get("value") or ""))
     _files.write_bytes_atomic(path, raw)
     return {"written": True, "path": str(path), "bytes": len(raw)}
+
+
+def _route_workspace(ctx, payload):
+    """只读：解析项目工作区（含 ticket 子目录）各层绝对目录并做越界校验；不写盘。"""
+    return _isolate.resolve_workspace(payload)
+
+
+def _route_resolve_doc(ctx, payload):
+    """只读：校验文档相对路径落在模块数据根之内，返回 realpath；不写盘。"""
+    return _docpath.resolve(payload.get("module"), payload.get("path"))
+
+
+def _route_doc_lock_capability(ctx, payload):
+    """文档锁档位上报：进程内锁具备，跨进程 OS 锁未落地，不冒充已支持。"""
+    return _doclock.lock_capability()
 
 
 def _route_archive(payload):
@@ -653,10 +682,14 @@ def setup(ctx):
         ("store.read_text", _route_read_text),
         ("store.write_text", _route_write_text),
         ("store.append_text", _route_append_text),
+        ("store.doc_revision", _route_doc_revision),
         ("store.remove_dir", _route_remove_dir),
         ("store.read_bytes", _route_read_bytes),
         ("store.write_bytes", _route_write_bytes),
         ("store.archive", _route_archive),
+        ("store.workspace", _route_workspace),
+        ("store.resolve_doc", _route_resolve_doc),
+        ("store.doc_lock_capability", _route_doc_lock_capability),
     ]:
         ctx.api.register(name, fn, module="store")
     return True

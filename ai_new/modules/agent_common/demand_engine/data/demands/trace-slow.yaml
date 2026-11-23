@@ -9,7 +9,7 @@ do:
 - call: trace.slow
   with:
     limit:
-      lit: 16
+      lit: 200
   as: out
 expect:
   given:

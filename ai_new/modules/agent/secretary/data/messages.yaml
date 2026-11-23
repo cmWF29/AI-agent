@@ -1,0 +1,31 @@
+# 项目秘书模块词表：面向用户/模型的中文文案只在这里，纯函数与路由不写死文案。
+missing_project: 消息必须绑定到某个项目
+project_archived: 项目已归档，只能查看，不能再向秘书发消息
+msg_id_missing: 缺少消息幂等键 msg_id
+empty_text: 消息内容不能为空
+not_found: 没有这条消息：{id}
+invalid_state: 只有待处理或处理中的消息可以撤回
+flush_failed: 秘书处理失败：{error}
+fallback_title: 项目需求
+fallback_goal: （秘书尚未整理出需求正文）
+# 队列状态词：视图用 status|label 映射
+status_pending: 待处理
+status_processing: 处理中
+status_merged: 已并入
+status_discarded: 已废弃
+# 页面说明
+intro: 把零散想法发给项目秘书；秘书会把多条消息合并成一份需求，统一建单分派给执行岗位。
+queue_note: 后发的消息可以补充或修正前面的内容；撤回的消息不参与合并。
+batch_note: 每条批次记录追溯：由哪几条消息合并、并入了哪张工单。
+# 来源标记
+source_user: 用户
+source_timer: 定时器
+from_timer: 来自定时器 {timer_id}
+forbidden_scope: 无权操作其他项目/工单的定时器：{reason}
+timer_unavailable: 定时器能力暂不可用
+# 定时器工具描述（工具 schema 的 desc 属接口元数据）
+tool_timer_create_desc: "用户提到时间、周期、提醒、定时就用它：创建定时器。once 一次性提醒，cron 按周期重复；action=notify 提醒进项目秘书队列，spawn_ticket 到点建工单。只能作用于当前项目。"
+tool_timer_list_desc: "列出当前项目的定时器：标题、周期、下次触发、状态与最近一次结果。"
+tool_timer_pause_desc: "暂停当前项目的一个定时器（不再触发），按定时器 id。"
+tool_timer_resume_desc: "恢复当前项目已暂停的定时器，按定时器 id。"
+tool_timer_delete_desc: "删除当前项目的一个定时器，按定时器 id。"

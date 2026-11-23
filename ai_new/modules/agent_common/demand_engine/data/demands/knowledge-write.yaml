@@ -21,6 +21,14 @@ do:
       get: input.content
     mode:
       get: input.mode
+    author:
+      get: input.author
+    base_version:
+      get: input.base_version
+    version:
+      get: input.version
+    force:
+      get: input.force
   as: out
 - call: runtime.apply
   with:

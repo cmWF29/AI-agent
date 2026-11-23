@@ -306,16 +306,3 @@ def _extract_token(handler):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
         got = (query.get("token") or [""])[0]
     return got
-
-
-def _content_type(suffix):
-    return {
-        ".html": "text/html; charset=utf-8",
-        ".js": "text/javascript; charset=utf-8",
-        ".css": "text/css; charset=utf-8",
-        ".json": "application/json; charset=utf-8",
-        ".yaml": "application/yaml; charset=utf-8",
-        ".svg": "image/svg+xml",
-        ".png": "image/png",
-        ".ico": "image/x-icon",
-    }.get(suffix, "application/octet-stream")

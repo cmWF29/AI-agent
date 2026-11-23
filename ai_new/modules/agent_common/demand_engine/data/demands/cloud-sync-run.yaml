@@ -1,0 +1,30 @@
+id: cloud-sync-run
+title: 执行增量推送：重试退避、冲突记录、清单与摘要落盘
+description: "按当前 profile 执行一次增量推送；失败重试指数退避，远端冲突记录不覆盖；推送清单与运行摘要经 runtime.apply 落盘，写审计"
+tags: [cloud, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.sync_run
+  with:
+    id:
+      get: input.id
+    caller:
+      get: input.caller
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.sync_run
+  - runtime.apply
+  payload: {}
+  promise: 增量幂等：重复推不产生新版本；冲突不静默覆盖；项目角色触发被拒

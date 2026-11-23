@@ -16,7 +16,7 @@ view:
   subheading: 一次请求一条；点开看每段耗时
   data:
   - {as: list, demand: trace-list}
-  - {as: slow, demand: trace-slow, params: {limit: 8}}
+  - {as: slow, demand: trace-slow}
   sections:
   - kind: stats
     rows:
@@ -35,17 +35,31 @@ view:
     - {label: 错误, value: row.err}
     on_click: {view: trace, params: {trace: row.trace}}
     empty: {text: 今天还没有链路采样（config.trace.sample 调高可全采）}
-  - kind: table
+  - kind: stack
     as: slow
-    source: data.slow.items
     heading: 按阶段聚合（P95 排序）
-    columns:
-    - {label: 阶段, value: row.name}
+    note: 按 P95 从慢到快；点开任意一条看 P50/峰值/错误和代表链路
+    source: data.slow.items
+    sort: {by: row.p95_ms, order: desc}
+    count_note: "共 {data.slow.items|count} 条，全部可展开"
+    item:
+      title: row.name
+      sub: "row.n 次"
+      badge: row.p95_ms
+      badge_suffix: ms
+    fields:
     - {label: 次数, value: row.n}
-    - {label: P50, value: row.p50_ms, suffix: ms, muted: true}
+    - {label: P50, value: row.p50_ms, suffix: ms}
     - {label: P95, value: row.p95_ms, suffix: ms}
-    - {label: 峰值, value: row.max_ms, suffix: ms, muted: true}
-    - {label: 错误, value: row.err, muted: true}
+    - {label: 峰值, value: row.max_ms, suffix: ms}
+    - {label: 错误, value: row.err}
+    samples:
+      label: 代表链路
+      from: row.samples
+      text: row.trace
+      value: row.dur_ms
+      max: 5
+      on_click: {view: trace, params: {trace: row.trace}}
     empty: {text: 暂无采样}
 expect:
   given:

@@ -1,1 +1,36 @@
-items: []
+items:
+- hook: sessions.finished
+  level: info
+  data:
+    id: pm-5
+    kind: pm
+    role: pm
+    ticket: T-20261122-0002
+- hook: sessions.finished
+  level: info
+  data:
+    id: pm-6
+    kind: pm
+    role: pm
+    ticket: T-20261122-0003
+- hook: sessions.finished
+  level: info
+  data:
+    id: pm-7
+    kind: pm
+    role: pm
+    ticket: T-20261122-0004
+- hook: sessions.finished
+  level: info
+  data:
+    id: pm-8
+    kind: pm
+    role: pm
+    ticket: T-20261122-0005
+- hook: sessions.finished
+  level: info
+  data:
+    id: pm-9
+    kind: pm
+    role: pm
+    ticket: T-20261122-0006

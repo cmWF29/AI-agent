@@ -190,3 +190,108 @@ routes:
         type: any
       meta:
         type: any
+  decompose.inspect:
+    doc: 安全读包 + 环境探测 + 依赖检查；只扫描探测，不执行任何外壳
+    in:
+      bundle:
+        type: any
+        req: false
+      limits:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+      code:
+        type: str
+      scan:
+        type: any
+      env:
+        type: any
+      deps:
+        type: any
+      blocked:
+        type: bool
+      status:
+        type: str
+      task_key:
+        type: str
+      effects:
+        type: list
+      error:
+        type: any
+  decompose.deps_install:
+    doc: 隔离安装依赖：固定 argv、锁版本、写审计日志，失败回滚并保留日志
+    in:
+      task_key:
+        type: any
+        req: false
+      key:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+      plan:
+        type: any
+      installs:
+        type: any
+      status:
+        type: str
+      task_key:
+        type: str
+      audit:
+        type: any
+      effects:
+        type: list
+      code:
+        type: str
+      error:
+        type: any
+  decompose.register:
+    doc: 校验后登记角色 / 工具 / 流程；同 skill+version 幂等重跑不重复建
+    in:
+      draft:
+        type: any
+        req: false
+      meta:
+        type: any
+        req: false
+      task_key:
+        type: any
+        req: false
+      key:
+        type: any
+        req: false
+      now:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+      reused:
+        type: bool
+      task_key:
+        type: str
+      parts:
+        type: any
+      products:
+        type: any
+      audit:
+        type: any
+      guard:
+        type: any
+      effects:
+        type: list
+      code:
+        type: str
+      error:
+        type: any
+  decompose.status:
+    doc: 拆解任务状态与产物清单只读视图数据
+    in: {}
+    out:
+      tasks:
+        type: any
+      counts:
+        type: any

@@ -4,7 +4,7 @@
 module: knowledge
 routes:
   knowledge.save:
-    doc: 写知识：归一→算路径→append/覆盖→回执
+    doc: 写知识：归一→算路径→令牌强校验→落正文→记修订历史；冲突回 409 不静默覆盖
     in:
       content:
         type: any
@@ -24,8 +24,58 @@ routes:
       ticket:
         type: any
         req: false
+      author:
+        type: any
+        req: false
+      base_version:
+        type: any
+        req: false
+      version:
+        type: any
+        req: false
+      force:
+        type: any
+        req: false
     out:
       effects:
+        type: any
+      revision:
+        type: any
+      ok:
+        type: bool
+      code:
+        type: any
+      status:
+        type: any
+      current_version:
+        type: any
+      current_author:
+        type: any
+      current_updated:
+        type: any
+      token:
+        type: any
+      requester:
+        type: any
+      error:
+        type: any
+      hint:
+        type: any
+  knowledge.doc_meta:
+    in:
+      path:
+        type: any
+        req: true
+    out:
+      ok:
+        type: bool
+      version:
+        type: any
+      author:
+        type: any
+      updated:
+        type: any
+      history:
         type: any
   knowledge.compose:
     in:

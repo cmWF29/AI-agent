@@ -1,0 +1,83 @@
+id: view-skill-decompose
+title: 技能拆解视图：拆解任务阶段、登记产物引用、环境依赖检查与审计许可证留痕
+description: "技能拆解页：看每个外部 Skill 包拆出了哪些岗位 / 工具 / 流程、是否可被项目引用、环境与缺失依赖检查结果，以及来源 / 许可证 / 版本审计条目。视图只声明区块，取数走 decompose-index 需求。"
+tags:
+- view
+- web
+- read
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  menu: {order: 5, label: 技能拆解, group: {name: 资产, order: 2}, mobile: true}
+  key: skill-decompose
+  crumb: [技能拆解]
+  heading: 技能拆解
+  subheading: 外部 Skill 包 → 岗位 / 工具 / 流程；安全扫描、依赖预检、登记入库全程留痕
+  labels:
+    inspected: 已扫描待装
+    deps_ready: 依赖就绪
+    blocked_missing_deps: 缺依赖阻断
+    registered: 已登记入库
+    rejected: 已拒绝
+  data:
+  - {as: index, demand: decompose-index}
+  sections:
+  - kind: stats
+    as: index
+    source: index.counts
+    heading: 拆解任务概览
+    rows:
+    - {label: 已扫描待装, value: "data.counts.inspected", note: 个任务待装依赖}
+    - {label: 依赖就绪, value: "data.counts.deps_ready", note: 个任务依赖就绪}
+    - {label: 缺依赖阻断, value: "data.counts.blocked_missing_deps", note: 个任务被阻断}
+    - {label: 已登记入库, value: "data.counts.registered", note: 个任务已登记}
+    - {label: 已拒绝, value: "data.counts.rejected", note: 个任务被拒绝}
+  - kind: table
+    as: index
+    source: index.tasks
+    heading: 拆解任务
+    count_note: "每个任务：来自哪个包、拆出哪些岗位 / 工具 / 流程、当前阶段状态"
+    columns:
+    - {label: 包标识, value: row.id}
+    - {label: 版本, value: row.version, fallback: "—"}
+    - {label: 来源, value: row.source, fallback: "—"}
+    - {label: 许可证, value: row.license, fallback: "—"}
+    - {label: 状态, value: row.status|label}
+    empty: {title: 暂无拆解任务, text: 还没有拆解任务：从一份 Skill.md 包开始扫描、探测并登记。}
+  - kind: stack
+    as: index
+    source: index.tasks
+    heading: 登记产物与引用
+    count_note: "拆出的岗位 / 工具 / 流程及其引用；已登记产物可被项目岗位清单引用并启停"
+    item:
+      title: row.id
+      sub: "row.products.role"
+      badge: row.status|label
+    fields:
+    - {label: 拆出岗位, value: row.products.role}
+    - {label: 拆出工具, value: row.products.tools, chips: true}
+    - {label: 对应流程, value: row.products.flow, fallback: "—"}
+    empty: {text: 暂无登记产物}
+  - kind: kv
+    as: index
+    source: index.summary
+    heading: 环境与依赖检查
+    rows:
+    - {label: 缺命令, value: row.missing_cli, suffix: 个}
+    - {label: 缺环境变量, value: row.missing_env, suffix: 个}
+    - {label: 缺 Python 包, value: row.missing_pkg, suffix: 个}
+    - {label: 缺依赖阻断任务, value: row.blocked, suffix: 个}
+    - {label: 已登记任务, value: row.registered, suffix: 个}
+  - kind: tree
+    as: index
+    source: index.audit_tree
+    heading: 审计条目
+    empty: {title: 暂无审计条目, text: 扫描、装依赖与登记各阶段都会留下来源 / 许可证 / 版本留痕。}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 拆解页只声明概览统计、任务表、产物引用、环境依赖汇总与审计树；数据源走 decompose-index

@@ -1,0 +1,100 @@
+# 消息契约：cloud 模块每条云端能力收什么、回什么。
+module: cloud
+routes:
+  cloud.providers:
+    out:
+      items: {type: list}
+  cloud.profile_save:
+    in:
+      id: {type: str, req: true}
+      provider: {type: str, req: true}
+      endpoint: {type: str, req: true}
+      root_dir: {type: str, req: false}
+      credentials: {type: dict, req: false}
+      categories: {type: list, req: false}
+      policy: {type: dict, req: false}
+      exclude_projects: {type: list, req: false}
+      caller: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      id: {type: str}
+      view: {type: dict}
+      effects: {type: list}
+  cloud.profile_list:
+    out:
+      items: {type: list}
+      active: {type: str}
+  cloud.profile_get:
+    in:
+      id: {type: str, req: true}
+    out:
+      view: {type: dict}
+  cloud.profile_switch:
+    in:
+      id: {type: str, req: true}
+      caller: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      id: {type: str}
+      effects: {type: list}
+  cloud.profile_delete:
+    in:
+      id: {type: str, req: true}
+      caller: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      id: {type: str}
+      effects: {type: list}
+  cloud.connection_test:
+    in:
+      id: {type: str, req: true}
+      caller: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      result: {type: dict}
+      effects: {type: list}
+  cloud.probe_roundtrip:
+    in:
+      id: {type: str, req: true}
+      caller: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      verified: {type: bool}
+      probe_key: {type: str}
+      remote_digest: {type: str}
+      expected_digest: {type: str}
+      effects: {type: list}
+  cloud.sync_plan:
+    in:
+      id: {type: str, req: false}
+    out:
+      profile: {type: str}
+      plan: {type: dict}
+      local_count: {type: int}
+  cloud.sync_run:
+    in:
+      id: {type: str, req: false}
+      caller: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      ledger: {type: dict}
+      effects: {type: list}
+  cloud.status:
+    out:
+      active: {type: str}
+      configured: {type: bool}
+      profile: {type: dict}
+      last_run: {type: dict}
+      counts: {type: dict}
+  cloud.project_status:
+    in:
+      project: {type: str, req: true}
+    out:
+      project: {type: str}
+      included: {type: bool}
+      reason: {type: str}
+  cloud.audit_list:
+    in:
+      limit: {type: int, req: false}
+    out:
+      items: {type: list}

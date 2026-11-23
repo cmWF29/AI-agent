@@ -23,3 +23,9 @@ tags:
 - {id: ops, name: 运维, group: 性质, color: gray}
 - {id: contract, name: 契约, group: 性质, color: gray}
 - {id: core, name: 基础, group: 性质, color: gray}
+- {id: nodes, name: 节点, group: 业务域, color: indigo}
+- {id: sandbox, name: 隔离, group: 性质, color: gray}
+- {id: archive, name: 归档存储, group: 业务域, color: indigo}
+- {id: cloud, name: 云端资料库, group: 业务域, color: indigo}
+- {id: secretary, name: 项目秘书, group: 业务域, color: indigo}
+- {id: timer, name: 定时器, group: 业务域, color: indigo}

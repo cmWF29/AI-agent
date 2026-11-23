@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>节点与分配</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6f8; color: #1f2329; }
+    main { max-width: 1080px; margin: 0 auto; padding: 24px 20px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #646a73; margin-bottom: 20px; }
+    .card { background: #fff; border: 1px solid #e5e6eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .card h2 { font-size: 15px; margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0f1f3; vertical-align: top; }
+    th { color: #646a73; font-weight: 600; }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; }
+    .alive { background: #e8f5e9; color: #2e7d32; }
+    .lost { background: #fdecea; color: #c62828; }
+    .held { background: #e8f0fe; color: #1a56c4; }
+    .released { background: #f2f3f5; color: #646a73; }
+    .row-tools { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    input { padding: 6px 10px; border: 1px solid #d0d3d9; border-radius: 6px; }
+    button { padding: 6px 12px; border: 0; border-radius: 6px; background: #1a56c4; color: #fff; cursor: pointer; }
+    .muted { color: #8f959e; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>节点与分配</h1>
+  <div class="sub">控制面只读视图：节点健康、项目→节点归属、备份状态、迁移记录。跨项目不可见彼此的定时器/知识/文件。</div>
+
+  <div class="card">
+    <div class="row-tools">
+      <input id="project-lookup" placeholder="输入项目 id 查询归属" />
+      <button id="lookup-btn">查询</button>
+      <span id="lookup-result" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>节点</h2>
+    <table>
+      <thead><tr>
+        <th>节点</th><th>端点</th><th>传输</th><th>健康</th><th>在跑</th><th>持有项目</th>
+      </tr></thead>
+      <tbody id="nodes-body"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>项目归属</h2>
+    <table>
+      <thead><tr>
+        <th>项目</th><th>节点</th><th>Epoch</th><th>状态</th><th>档位</th><th>过期时间</th>
+      </tr></thead>
+      <tbody id="assignments-body"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>备份状态</h2>
+    <table>
+      <thead><tr><th>项目</th><th>快照</th><th>校验</th><th>条目</th></tr></thead>
+      <tbody id="backups-body"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>迁移记录</h2>
+    <table>
+      <thead><tr>
+        <th>项目</th><th>从节点</th><th>到节点</th><th>原因</th><th>Epoch</th><th>状态</th><th>时间</th>
+      </tr></thead>
+      <tbody id="migrations-body"></tbody>
+    </table>
+  </div>
+</main>
+<script src="nodes.js"></script>
+</body>
+</html>

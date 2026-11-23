@@ -261,11 +261,6 @@ def setup(ctx):
     return ctx.demand_engine
 
 
-def list_demands(ctx):
-    """当前全部需求（含 on/do/enabled）。"""
-    return ctx.demand_engine.items()
-
-
 def dispatch(ctx, hook, envelope):
     """把一次 hook 触发交给需求引擎。"""
     return ctx.demand_engine.dispatch(hook, envelope)

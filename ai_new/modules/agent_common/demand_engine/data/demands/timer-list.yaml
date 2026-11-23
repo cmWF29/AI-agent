@@ -1,0 +1,26 @@
+id: timer-list
+title: 列定时器：先按作用域过滤再返回
+description: "列定时器：project/ticket/global 作用域先过滤可见记录，再回列表行（下次触发、状态、最近结果）。"
+tags:
+- timer
+- read
+enabled: true
+callable: true
+'on': []
+do:
+- call: timer.list
+  with:
+    project:
+      get: input.project
+    id:
+      get: input.id
+    caller:
+      get: input.caller
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - timer.list
+  payload: {}
+  promise: 先作用域过滤再返回；跨项目/跨工单不可见

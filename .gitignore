@@ -27,6 +27,23 @@ ai_new/modules/agent_common/config/data/config.json
 certs/
 *.log
 
+# 运行期幂等缓存 / 事件台账（由需求编排产生，不随源码入仓）
+ai_new/modules/agent/sessions/data/idem/
+ai_new/modules/agent/tickets/data/idem/
+ai_new/modules/agent_common/demand_engine/data/idem/
+ai_new/modules/agent_common/trace/data/trace/
+
+# 运行期日志与验证残留（验收时点出来的页面快照，不是源码）
+ai_new/modules/agent/logs/data/sessions/
+ai_new/modules/agent/logs/data/projects/
+ai_new/modules/agent/logs/data/tickets/
+ai_new/modules/agent/tickets/data/projects/
+ai_new/modules/agent/knowledge/data/_archive_orphans/
+
 # Python 缓存
 __pycache__/
 *.pyc
+
+# 运行期锁目录
+ai_new/modules/agent_common/trace/data/.locks/
+ai_new/modules/**/data/.locks/

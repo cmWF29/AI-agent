@@ -1,0 +1,17 @@
+id: nodes-list
+title: 节点与分配只读视图：节点健康、负载、项目归属
+description: "一次取节点列表与项目→节点分配表，供运维视图摊成节点表与分配表；只读不写盘。"
+tags: [nodes, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.overview
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - nodes.overview
+  payload: {}
+  promise: 运维视图只声明区块，节点与分配数据由本需求取齐

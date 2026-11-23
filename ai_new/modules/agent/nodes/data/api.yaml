@@ -1,0 +1,139 @@
+# 消息契约：nodes 模块每条协调路由收什么、回什么。
+module: nodes
+routes:
+  nodes.register:
+    in:
+      id: {type: str, req: true}
+      endpoint: {type: str, req: true}
+      transport: {type: str, req: false}
+      capacity: {type: dict, req: false}
+      lease_ttl: {type: int, req: false}
+    out:
+      ok: {type: bool}
+      node: {type: dict}
+      effects: {type: list}
+  nodes.heartbeat:
+    in:
+      node: {type: str, req: true}
+      load: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      node: {type: dict}
+      effects: {type: list}
+  nodes.acquire:
+    in:
+      project: {type: str, req: true}
+      node: {type: str, req: true}
+      ttl: {type: int, req: false}
+      tier: {type: str, req: false}
+      checkpoint: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      lease: {type: dict}
+      reused: {type: bool}
+      effects: {type: list}
+  nodes.renew:
+    in:
+      project: {type: str, req: true}
+      token: {type: str, req: true}
+      checkpoint: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      lease: {type: dict}
+      effects: {type: list}
+  nodes.release:
+    in:
+      project: {type: str, req: true}
+      token: {type: str, req: true}
+    out:
+      ok: {type: bool}
+      lease: {type: dict}
+      effects: {type: list}
+  nodes.fence_check:
+    in:
+      project: {type: str, req: true}
+      token: {type: str, req: true}
+      epoch: {type: int, req: true}
+    out:
+      ok: {type: bool}
+      code: {type: str}
+      epoch: {type: int}
+  nodes.nodes_view:
+    in:
+      ttl: {type: int, req: false}
+    out:
+      ok: {type: bool}
+      nodes: {type: list}
+  nodes.assignments:
+    in: {}
+    out:
+      ok: {type: bool}
+      assignments: {type: list}
+  nodes.overview:
+    in: {}
+    out:
+      ok: {type: bool}
+      nodes: {type: list}
+      assignments: {type: list}
+  nodes.project_node:
+    in:
+      project: {type: str, req: true}
+    out:
+      ok: {type: bool}
+      assignment: {type: dict}
+  nodes.backups:
+    in: {}
+    out:
+      ok: {type: bool}
+      backups: {type: list}
+  nodes.backup_record:
+    in:
+      project: {type: str, req: true}
+      snapshot: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      backup: {type: dict}
+      effects: {type: list}
+  nodes.snapshot_plan:
+    in:
+      project: {type: str, req: true}
+      entries: {type: list, req: false}
+    out:
+      ok: {type: bool}
+      manifest: {type: dict}
+      rejected: {type: list}
+  nodes.verify_snapshot:
+    in:
+      manifest: {type: dict, req: true}
+      digests: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      missing: {type: list}
+      mismatch: {type: list}
+  nodes.pick_node:
+    in:
+      project: {type: str, req: true}
+      policy: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      node: {type: str}
+      score: {type: float}
+      reasons: {type: list}
+  nodes.reassign:
+    in:
+      project: {type: str, req: true}
+      policy: {type: dict, req: false}
+      candidate: {type: str, req: false}
+      reason: {type: str, req: false}
+      checkpoint: {type: dict, req: false}
+    out:
+      ok: {type: bool}
+      lease: {type: dict}
+      migration: {type: dict}
+      steps: {type: list}
+      effects: {type: list}
+  nodes.migrations:
+    in: {}
+    out:
+      ok: {type: bool}
+      migrations: {type: list}

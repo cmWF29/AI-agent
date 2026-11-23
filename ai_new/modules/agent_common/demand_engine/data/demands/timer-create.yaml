@@ -1,0 +1,54 @@
+id: timer-create
+title: 建定时器：闭环在 timer.create 能力内，需求只做顺序编排
+description: "建定时器：作用域守卫、配额、幂等去重与下次触发推算都在能力内部；需求树只有一次顺序调用，落盘效果交 runtime.apply。"
+tags:
+- timer
+- write
+touch: [timer-index]
+enabled: true
+callable: true
+'on': []
+do:
+- call: timer.create
+  with:
+    project:
+      get: input.project
+    kind:
+      get: input.kind
+    expr:
+      get: input.expr
+    tz:
+      get: input.tz
+    title:
+      get: input.title
+    action:
+      get: input.action
+    ticket:
+      get: input.ticket
+    role:
+      get: input.role
+    payload:
+      get: input.payload
+    creator:
+      get: input.creator
+    source_session:
+      get: input.source_session
+    caller:
+      get: input.caller
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input:
+      project: p1
+  calls:
+  - timer.create
+  - runtime.apply
+  payload: {}
+  promise: 作用域/配额/幂等都在能力内部闭环，需求树不分岔

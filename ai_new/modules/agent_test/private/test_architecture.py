@@ -103,6 +103,21 @@ def _resolve(package, level, module):
     return ".".join(base)
 
 
+def _capability_exemptions():
+    """从能力台账读豁免集合：自持标准库 IO / 自持时钟编解码的模块不在此闸扫描范围。
+
+    名单只维护在 capability-routes.yaml 的 capability_modules 里；这里不复制第二份。
+    返回 (stdlib_io 集合, clock_codec 集合)。
+    """
+    manifest = yaml.safe_load(
+        (module_dir("agent_common", "api") / "data" / "capability-routes.yaml")
+        .read_text(encoding="utf-8")) or {}
+    ledger = manifest.get("capability_modules") or {}
+    io = set((ledger.get("stdlib_io") or {}).get("modules") or [])
+    clock_codec = set((ledger.get("clock_codec") or {}).get("modules") or [])
+    return io, clock_codec
+
+
 class StructureTest(unittest.TestCase):
     def test_groups_are_declared(self):
         """装配清单只引用存在的组 —— 换组等于换一套装配。"""
@@ -191,7 +206,7 @@ class StructureTest(unittest.TestCase):
         装配期例外：boot（组合根，装配前读 profiles/源码）、api（绑定生成）、
         config（任何模块之前就要知道配置）。
         """
-        capabilities = {"store", "net", "host", "http", "exec"}
+        capabilities, _owners = _capability_exemptions()
         bootstrap = {"boot", "api", "config"}
         banned = ("import pathlib", "from pathlib import", "import os", "import shutil",
                   "import zipfile", "import tempfile", "import glob", "from glob import",
@@ -221,8 +236,7 @@ class StructureTest(unittest.TestCase):
         允许自带的一方是能力模块本身（clock/codec/store/host 的实现里必然要用），
         以及装配期的 boot/api/config/net/http。
         """
-        owners = {"clock", "codec", "store", "host", "net", "http", "exec",
-                  "boot", "api", "config", "trace"}
+        _io, owners = _capability_exemptions()
         banned = ("import time", "from time import", "import datetime",
                   "from datetime import", "import json", "from json import", "import yaml", "from yaml import",
                   "import base64", "import binascii", "import hashlib",
@@ -384,8 +398,15 @@ class StructureTest(unittest.TestCase):
             if rec.get("module") != name:
                 bad.append((str(path.relative_to(ROOT)), "module 名与目录不一致"))
             routes = rec.get("routes")
-            if not isinstance(routes, dict) or not routes:
-                bad.append((str(path.relative_to(ROOT)), "routes 为空或不是字典"))
+            if not isinstance(routes, dict):
+                bad.append((str(path.relative_to(ROOT)), "routes 不是字典"))
+            elif not routes:
+                # 纯进程内直调、不注册对外路由的模块允许空契约；若 __init__ 仍有
+                # register 调用，说明契约漏登记（以注册表真实内容为准）。
+                init = mdir / "__init__.py"
+                body = init.read_text(encoding="utf-8") if init.is_file() else ""
+                if "ctx.api.register(" in body:
+                    bad.append((str(path.relative_to(ROOT)), "注册了路由但契约 routes 为空"))
             for route, spec in (routes or {}).items():
                 if not isinstance(spec, dict):
                     bad.append((route, "契约不是字典"))
@@ -435,7 +456,10 @@ class StructureTest(unittest.TestCase):
                    # VCS 元数据；部署副本运行期产物（TLS 材料目录、运行日志）
                    ".git", ".gitignore", "certs", "run.log",
                    # CI 工作流定义目录（门禁本身也是契约的一部分）
-                   ".github"}
+                   ".github",
+                   # 代码-文档同步产物：docs 是源码的契约镜像，由 gate_docsync 生成并对账，
+                   # 与 README/ARCHITECTURE 一样属契约的一部分，不是第三个特殊业务目录。
+                   "docs"}
         self.assertEqual(sorted(entries - allowed), [],
                          "根目录多出了东西: %s" % sorted(entries - allowed))
         self.assertTrue((ROOT / "agent_start.py").is_file())

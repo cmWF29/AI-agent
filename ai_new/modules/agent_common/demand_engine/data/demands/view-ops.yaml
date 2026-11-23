@@ -15,12 +15,10 @@ view:
   actions:
   - {label: 扫停滞, demand: ops-scan, confirm: 扫一遍在途工单，命中停滞的按配置开审计单。继续？, flash: 扫描完成}
   - {label: 导出数据, modal: ops.export}
-  - {label: 链路追踪, view: traces}
   data:
   - {as: overview, demand: ops-overview}
   - {as: logs, demand: ops-logs}
-  - {as: slow, demand: trace-slow, params: {limit: 8}}
-  - {as: api, demand: api-snapshot}
+  - {as: slow, demand: trace-slow}
   forms:
   - id: ops.export
     title: 导出模块数据
@@ -63,34 +61,31 @@ view:
     - {label: 版本, value: row.config.server.version}
     - {label: 登录校验, value: row.config.server.auth.enabled, format: switch}
     - {label: 模型接入, value: row.config.llm.base_url}
-  - kind: table
-    as: api
-    source: data.api.items
-    limit: 40
-    count_note: "共 {data.api.items|count} 条；只列前 40 条，完整清单走 scripts/ui_inventory.py"
-    heading: 路由与调用（全部）
-    fold: {title: "路由与调用（全部 · {data.api.items|count} 条）"}
-    note: 在库全部可调用能力；契约页只摆前 10 条看形状，运行期的完整清单与链路追踪归这里
-    columns:
-    - {label: 路由, value: row.name, sub: row.module}
-    - {label: 通道, value: row.stream, fallback: 直连, muted: true}
-    - {label: 入参, value: "row.in|count", suffix: 项}
-    - {label: 出参, value: "row.out|count", suffix: 项}
-    - {label: 说明, value: row.doc, muted: true}
-    empty: {text: 暂无路由}
-  - kind: table
+  - kind: stack
     as: slow
+    heading: 今日请求
+    note: 按 P95 从慢到快；点开任意一条看 P50/峰值/错误和代表链路
     source: data.slow.items
-    limit: 8
-    heading: 今日慢请求（按 P95 排序）
-    note: 链路采样按阶段聚合，P95 排前面；点「链路追踪」看单次请求的瀑布
-    columns:
-    - {label: 阶段, value: row.name}
+    sort: {by: row.p95_ms, order: desc}
+    count_note: "共 {data.slow.items|count} 条，全部可展开"
+    item:
+      title: row.name
+      sub: "row.n 次"
+      badge: row.p95_ms
+      badge_suffix: ms
+    fields:
     - {label: 次数, value: row.n}
-    - {label: P50, value: row.p50_ms, suffix: ms, muted: true}
+    - {label: P50, value: row.p50_ms, suffix: ms}
     - {label: P95, value: row.p95_ms, suffix: ms}
-    - {label: 峰值, value: row.max_ms, suffix: ms, muted: true}
-    - {label: 错误, value: row.err, muted: true}
+    - {label: 峰值, value: row.max_ms, suffix: ms}
+    - {label: 错误, value: row.err}
+    samples:
+      label: 代表链路
+      from: row.samples
+      text: row.trace
+      value: row.dur_ms
+      max: 5
+      on_click: {view: trace, params: {trace: row.trace}}
     empty: {text: 今日暂无链路采样（trace 采样率可在 config.trace.sample 调高）}
   - kind: table
     as: logs
@@ -99,7 +94,7 @@ view:
     count_note: "共 {data.logs.events|count} 条；只列最近 30 条"
     heading: 运行记录
     fold: {title: "运行记录 · {data.logs.events|count} 条"}
-    note: 每一次需求执行都是一条系统动作；点进链路追踪看完整瀑布
+    note: 每一次需求执行都是一条系统动作；完整瀑布在「链路」页查看
     columns:
     - {label: 时间, value: row.ts, format: when, muted: true}
     - {label: 级别, value: row.level}

@@ -163,13 +163,6 @@ class _Storage:
         return [p.name for p in sorted(
             (_fixtures.module_data("agent_common", "demand_engine") / rel).glob("*"))]
 
-    def list_data_dir(self, rel):
-        names = self.list_dir(rel)
-        for key in self.written:
-            if key.startswith(rel + "/") and key.rsplit("/", 1)[-1] not in names:
-                names.append(key.rsplit("/", 1)[-1])
-        return sorted(names)
-
     def json_read(self, rel, default=None):
         if rel in self.written:
             return self.written[rel]

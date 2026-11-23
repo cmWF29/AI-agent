@@ -1,0 +1,17 @@
+id: nodes-backups
+title: 备份状态只读视图：各项目最近快照与校验状态
+description: "列出项目备份台账：快照时间、条目数、校验状态；只读，快照文件由 store 能力落地。"
+tags: [nodes, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.backups
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - nodes.backups
+  payload: {}
+  promise: 运维视图可查各项目备份状态，备份清单与摘要可复核

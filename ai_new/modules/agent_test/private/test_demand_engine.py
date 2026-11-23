@@ -38,9 +38,6 @@ class FakeStorage:
     def list_dir(self, rel=""):
         return sorted(name + ".yaml" for name in self.records)
 
-    def list_data_dir(self, rel):
-        return self.list_dir(rel)
-
     def json_read(self, rel, default=None):
         key = rel.split("/")[-1][:-5]
         return self.records.get(key, default)

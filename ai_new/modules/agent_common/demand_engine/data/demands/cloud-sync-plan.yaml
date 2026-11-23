@@ -1,0 +1,20 @@
+id: cloud-sync-plan
+title: 增量同步计划：本地清单 × 上次推送 × 远端现状差分
+description: "只读生成增量计划：待推送、未变化、远端冲突、远端缺失；合并 archive 压缩索引，不落盘"
+tags: [cloud, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.sync_plan
+  with:
+    id:
+      get: input.id
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.sync_plan
+  payload: {}
+  promise: 计划只读返回；冲突条目只记录不覆盖

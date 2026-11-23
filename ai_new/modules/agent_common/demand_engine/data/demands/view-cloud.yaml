@@ -1,0 +1,64 @@
+id: view-cloud
+title: 云端配置视图：提供方、连通状态、最近同步与审计
+description: "全局设置只读视图：当前云端 profile（脱敏）、最近一次同步摘要、失败原因与配置变更审计；项目页接入状态由 cloud-project-status 提供"
+tags: [cloud, view, web, read]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  menu: {order: 4, label: 云端资料库, group: {name: 系统, order: 3}, mobile: true}
+  key: cloud
+  crumb: [云端资料库]
+  heading: 云端资料库
+  subheading: 全局同步配置与状态只读视图；配置动作仅公共级岗位/管理员可用
+  data:
+  - {as: status, demand: cloud-status}
+  - {as: audit, demand: cloud-audit-list}
+  sections:
+  - kind: kv
+    as: status
+    source: status.profile
+    heading: 当前 profile
+    rows:
+    - label: 提供方
+      value: row.provider
+    - label: 端点
+      value: row.endpoint
+    - label: 根目录
+      value: row.root_dir
+    - label: 同步类别
+      value: row.categories
+  - kind: kv
+    as: status
+    source: status.last_run
+    heading: 最近同步
+    rows:
+    - label: 时间
+      value: row.at|when
+    - label: 已推送
+      value: row.pushed
+    - label: 未变化
+      value: row.unchanged
+    - label: 冲突
+      value: row.conflicts
+    - label: 失败
+      value: row.failures
+    - label: 原因
+      value: row.reason
+  - kind: table
+    as: audit
+    source: data.audit.items
+    heading: 配置变更审计
+    columns:
+    - {label: 时间, value: row.at|when}
+    - {label: 动作, value: row.action}
+    - {label: 目标, value: row.target_id}
+    - {label: 结果, value: row.decision}
+    - {label: 原因, value: row.reason}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 视图只声明区块，profile 与审计数据由 cloud-status / cloud-audit-list 取齐，凭证不进前端

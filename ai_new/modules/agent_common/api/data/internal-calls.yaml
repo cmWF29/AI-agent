@@ -80,6 +80,15 @@ calls:
   - projects
   - store
   reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: timer
+  targets:
+  - clock
+  - codec
+  - config
+  - secretary
+  - store
+  - tickets
+  reason: 定时器到期触发：notify 转 secretary.push，spawn_ticket 转 tickets.create
 - caller: todos
   targets:
   - config
@@ -99,3 +108,13 @@ calls:
   - config
   - store
   reason: 存量直调：待迁移为「能力产 effect，需求 apply」
+- caller: cloud
+  targets:
+  - clock
+  - codec
+  - config
+  - host
+  - store
+  - archive
+  - net
+  reason: 云端资料库：配置/台账读写、摘要与非对称编码、主密钥环境变量、archive 只读索引、出站 HTTP

@@ -180,6 +180,108 @@ routes:
     out:
       rows:
         type: list
+  store.workspace:
+    in:
+      project:
+        type: any
+        req: true
+      ticket:
+        type: any
+        req: false
+      root:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+      mode:
+        type: any
+      root:
+        type: any
+      dirs:
+        type: any
+      capability:
+        type: any
+      project:
+        type: any
+      ticket:
+        type: any
+  store.resolve_doc:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+    out:
+      ok:
+        type: bool
+      code:
+        type: any
+      error:
+        type: any
+      rel:
+        type: any
+      real:
+        type: any
+      root:
+        type: any
+  store.doc_lock_capability:
+    in: {}
+    out:
+      in_process:
+        type: any
+      cross_process:
+        type: any
+  store.doc_revision:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+      mode:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+      author:
+        type: any
+        req: false
+      version:
+        type: any
+        req: false
+      force:
+        type: any
+        req: false
+    out:
+      ok:
+        type: bool
+      version:
+        type: any
+      author:
+        type: any
+      updated:
+        type: any
+      chars:
+        type: any
+      history:
+        type: any
+      code:
+        type: any
+      status:
+        type: any
+      current_version:
+        type: any
+      current_author:
+        type: any
+      current_updated:
+        type: any
+      token:
+        type: any
   store.write:
     in:
       module:

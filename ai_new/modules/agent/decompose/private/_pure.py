@@ -4,6 +4,9 @@
 Skill.md 的 frontmatter 与 requirements.txt 都是纯文本，这里手写极简解析，
 不借 yaml/json 标准库（编解码归 codec，文件读取归 store）。
 拆解结果直接成形为一个 Skill 单元（岗位 + 流程 + 工具），不再经过草稿待确认。
+
+安全边界相关纯函数（包扫描 / 环境探测 / 依赖计划 / 审计条目 / 登记守卫 / 幂等键）
+同样不读盘、不起进程、不带业务默认数据；主机事实由路由层探测后整份传入。
 """
 from __future__ import annotations
 
@@ -240,6 +243,32 @@ def _norm_tool(rec, whitelist, fallback_pip, fallback_scripts):
     return tool, []
 
 
+def _norm_check(rec):
+    """模型给的交付件检查项 → 岗位记录里的契约检查对象；裸文本收成 note 备注。
+
+    契约字段：kind / paths / match / min_bytes / min_len / text。非对象、空文本丢弃。
+    """
+    if isinstance(rec, dict):
+        kind = str(rec.get("kind") or "").strip() or "note"
+        out = {"kind": kind}
+        paths = [str(x).strip() for x in (rec.get("paths") or []) if str(x).strip()]
+        if paths:
+            out["paths"] = paths
+        if rec.get("match"):
+            out["match"] = rec["match"]
+        if rec.get("text") is not None:
+            out["text"] = str(rec["text"])
+        if rec.get("min_bytes") is not None:
+            out["min_bytes"] = rec["min_bytes"]
+        if rec.get("min_len") is not None:
+            out["min_len"] = rec["min_len"]
+        return out
+    text = str(rec or "").strip()
+    if not text:
+        return None
+    return {"kind": "note", "text": text}
+
+
 def parse(p):
     """模型返回对象 → 结构化草稿；引用现有工具核对白名单，新工具定义成形。
 
@@ -268,6 +297,8 @@ def parse(p):
         else:
             tool_dropped.extend(bad)
 
+    checks = [c for c in (_norm_check(x) for x in flow.get("checks") or []) if c]
+
     draft_id = (meta.get("id") or "").strip()
     draft = {
         "id": draft_id,
@@ -275,7 +306,7 @@ def parse(p):
                  "must_dos": list(role.get("must_dos") or []),
                  "forbidden": list(role.get("forbidden") or []),
                  "tools": kept},
-        "flow": {"checks": list(flow.get("checks") or []),
+        "flow": {"checks": checks,
                  "nodes": list(flow.get("nodes") or []),
                  "edges": list(flow.get("edges") or [])},
         "tools": new_tools,
@@ -293,9 +324,10 @@ def install_parts(p):
     """
     draft = p.get("draft") or {}
     meta = p.get("meta") or {}
-    # 标识优先取模型给的 id，其次取包 frontmatter 的 name：包名本来就是业界通用的技能名。
+    # 标识优先取预检任务登记的技能 id（bundle.id），其次模型草稿 id，再回退包
+    # frontmatter 的 name：包名本来就是业界通用的技能名。
     # 只去首尾空白，不改写大小写与分隔符——标识是外部生态里的原名，改了就对不上。
-    rid = str(draft.get("id") or meta.get("id") or meta.get("name") or "").strip()
+    rid = str(p.get("id") or draft.get("id") or meta.get("id") or meta.get("name") or "").strip()
     if not rid:
         tpl = p.get("tpl") or {}
         return {"ok": False, "code": "missing_id", "status": 400,
@@ -371,4 +403,231 @@ def install_effects(p):
          "path": "skills.yaml", "value": skills},
     ]
     return {"ok": True, "effects": effects}
+
+
+# ---------------------------------------------------------------- 包安全扫描
+
+# 扫描上限策略默认值（可由 payload.limits 覆盖）；是策略常量，不是业务数据。
+_SCAN_DEFAULTS = {
+    "max_files": 32,
+    "max_file_bytes": 64 * 1024,
+    "max_text_chars": 16000,
+    "max_bundle_bytes": 256 * 1024,
+}
+# 包内允许出现的文件名 / 后缀：说明文档、清单与文本资源；脚本一律不收进包。
+_ALLOWED_NAMES = {"LICENSE", "README", "requirements.txt", "pyproject.toml"}
+_ALLOWED_SUFFIX = (".md", ".txt", ".yaml", ".yml", ".toml")
+
+
+def _scan_limits(overrides):
+    limits = dict(_SCAN_DEFAULTS)
+    for key, val in (overrides or {}).items():
+        if isinstance(val, int) and val > 0:
+            limits[key] = val
+    return limits
+
+
+def _segments(path):
+    return [seg for seg in str(path or "").split("/") if seg not in ("", ".")]
+
+
+def scan_bundle(p):
+    """不可信包清单安全校验：白名单后缀、路径穿越 / 绝对路径 / 符号链接逃逸、大小与数量上限。
+
+    入参: files=[{path, text, link?, is_link?}], limits?(可选覆盖), tpl?(文案)
+    回包: ok / accepted / rejected / totals / limits。任一文件越界即 ok=False，
+    被拒条目带 code 与原因；不落盘、不起进程。
+    """
+    limits = _scan_limits(p.get("limits"))
+    files = p.get("files") or []
+    tpl = p.get("tpl") or {}
+    accepted, rejected = [], []
+    total_bytes = 0
+
+    def reject(path, code):
+        rejected.append({"path": path, "code": code, "reason": tpl.get(code) or ""})
+
+    for entry in files:
+        if not isinstance(entry, dict):
+            reject("", "bad_entry")
+            continue
+        path = str(entry.get("path") or "").strip()
+        text = entry.get("text")
+        text = text if isinstance(text, str) else ""
+        if not path:
+            reject(path, "empty_path")
+            continue
+        if "\\" in path:
+            reject(path, "bad_separator")
+            continue
+        if path.startswith("/") or path.startswith("~") or (len(path) > 1 and path[1] == ":"):
+            reject(path, "absolute_path")
+            continue
+        segs = _segments(path)
+        if any(seg == ".." for seg in segs):
+            reject(path, "path_traversal")
+            continue
+        link = str(entry.get("link") or "").strip()
+        if entry.get("is_link") or link:
+            if link.startswith("/") or link.startswith("~") or any(s == ".." for s in _segments(link)):
+                reject(path, "symlink_escape")
+                continue
+        name = segs[-1] if segs else path
+        ok_name = name in _ALLOWED_NAMES or name.endswith(_ALLOWED_SUFFIX)
+        if not ok_name:
+            reject(path, "disallowed_type")
+            continue
+        raw_bytes = len(text.encode("utf-8"))
+        if raw_bytes > limits["max_file_bytes"]:
+            reject(path, "oversized_file")
+            continue
+        if len(text) > limits["max_text_chars"]:
+            reject(path, "oversized_text")
+            continue
+        accepted.append({"path": path, "bytes": raw_bytes})
+        total_bytes += raw_bytes
+
+    if len(files) > limits["max_files"]:
+        rejected.append({"path": "", "code": "too_many_files",
+                         "reason": tpl.get("too_many_files") or ""})
+    if total_bytes > limits["max_bundle_bytes"]:
+        rejected.append({"path": "", "code": "oversized_bundle",
+                         "reason": tpl.get("oversized_bundle") or ""})
+    if not files:
+        rejected.append({"path": "", "code": "empty_bundle", "reason": tpl.get("empty_bundle") or ""})
+
+    return {"ok": not rejected, "accepted": accepted, "rejected": rejected,
+            "totals": {"files": len(files), "bytes": total_bytes}, "limits": limits}
+
+
+# ---------------------------------------------------------------- 环境探测
+
+def env_probe(p):
+    """从包声明的运行时 / 依赖推导缺失命令与环境变量；纯计算，不碰主机。
+
+    入参: runtime?(命令清单), deps?{cli, env}, snapshot?{cli:{name:found}, env:{name:value}}
+    回包: ready / missing{cli,env} / checked{cli,env}。主机探测结果由路由层传入。
+    """
+    deps = p.get("deps") or {}
+    cli = _as_list(deps.get("cli")) or _as_list(p.get("runtime"))
+    env = _as_list(deps.get("env"))
+    snap = p.get("snapshot") or {}
+    cli_snap = snap.get("cli") or {}
+    env_snap = snap.get("env") or {}
+    missing_cli = [c for c in cli if not cli_snap.get(c)]
+    missing_env = [e for e in env if not str(env_snap.get(e) or "").strip()]
+    return {"ready": not missing_cli and not missing_env,
+            "missing": {"cli": missing_cli, "env": missing_env},
+            "checked": {"cli": cli, "env": env}}
+
+
+# ---------------------------------------------------------------- 依赖计划
+
+def dep_plan(p):
+    """requirements 清单 ∩ 已装快照 → 缺失清单与固定 argv 安装计划。
+
+    入参: requirements=[str], installed=[pkg 名], tpl?(文案)
+    回包: plan / missing / rejected / installed。包名先过 safe_pkg 白名单校验，
+    非法条目进 rejected（code=bad_pkg），不进安装计划；不在这里起进程装包。
+    """
+    requirements = p.get("requirements") or []
+    installed = list(p.get("installed") or [])
+    installed_set = {str(x).strip().lower() for x in installed}
+    plan, missing, rejected = [], [], []
+    for req in requirements:
+        line = str(req or "").strip()
+        if not line or line.startswith("#"):
+            continue
+        chk = safe_pkg(line, p.get("tpl") or {})
+        if not chk["ok"]:
+            rejected.append({"requirement": line, "code": "bad_pkg",
+                             "error": chk["error"]})
+            continue
+        pkg = chk["pkg"]
+        entry = {"pkg": pkg, "requirement": line,
+                 "installed": pkg.lower() in installed_set}
+        plan.append(entry)
+        if not entry["installed"]:
+            missing.append(entry)
+    return {"plan": plan, "missing": missing, "rejected": rejected,
+            "installed": sorted(installed_set)}
+
+
+# ---------------------------------------------------------------- 审计条目
+
+def audit_record(p):
+    """组装一条拆解审计条目：来源 / 许可证 / 版本 / 时间 / 包清单 / 依赖与结果。
+
+    纯字典成形；时间戳与主机事实由路由层传入。许可证与来源必须留痕，缺失也显式记空。
+    """
+    return {
+        "action": str(p.get("action") or ""),
+        "at": p.get("at") or "",
+        "source": str(p.get("source") or ""),
+        "license": str(p.get("license") or ""),
+        "version": str(p.get("version") or ""),
+        "skill": str(p.get("skill") or ""),
+        "bundle": p.get("bundle") or {"files": [], "bytes": 0},
+        "deps": p.get("deps") or {},
+        "result": p.get("result") or {},
+    }
+
+
+# ---------------------------------------------------------------- 登记守卫
+
+def register_guard(p):
+    """生成物与既有库 / builtin 的冲突判定：builtin 核心字段受保护，只允许新增或覆盖非 builtin。
+
+    入参: products={role:{id}, tools:[{name}]}, existing={roles,tools},
+          builtin_ids=[岗位], builtin_tools=[工具]
+    回包: ok / writable{role,tools} / rejected[{kind,id,code,reason}]。
+    命中 builtin 岗位或内置工具即拒绝并给错误码；非 builtin 同名记 override 允许覆盖。
+    """
+    products = p.get("products") or {}
+    existing = p.get("existing") or {}
+    roles = existing.get("roles") or {}
+    tools = existing.get("tools") or {}
+    builtin_ids = set(p.get("builtin_ids") or [])
+    builtin_tools = set(p.get("builtin_tools") or [])
+    tpl = p.get("tpl") or {}
+    rejected = []
+
+    role = products.get("role") or {}
+    rid = str(role.get("id") or "").strip()
+    writable_role = None
+    if rid:
+        if rid in builtin_ids:
+            rejected.append({"kind": "role", "id": rid, "code": "builtin_protected",
+                             "reason": tpl.get("builtin_protected") or ""})
+        else:
+            writable_role = {"id": rid, "override": rid in roles}
+
+    writable_tools = []
+    for tool in products.get("tools") or []:
+        if not isinstance(tool, dict):
+            continue
+        name = str(tool.get("name") or "").strip()
+        if not name:
+            continue
+        if name in builtin_tools:
+            rejected.append({"kind": "tool", "id": name, "code": "builtin_tool_collision",
+                             "reason": tpl.get("builtin_tool_collision") or ""})
+        else:
+            writable_tools.append({"name": name, "override": name in tools})
+
+    return {"ok": not rejected,
+            "writable": {"role": writable_role, "tools": writable_tools},
+            "rejected": rejected}
+
+
+# ---------------------------------------------------------------- 幂等键
+
+def idempotent_key(p):
+    """同一 skill 标识 + 版本 → 标识与版本归一；摘要由路由层走 codec.digest。
+
+    回包: id / version。不取用外部自报的幂等号。
+    """
+    rid = str(p.get("id") or "").strip()
+    version = str(p.get("version") or "").strip()
+    return {"id": rid, "version": version}
 

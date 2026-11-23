@@ -98,7 +98,8 @@ python test_start.py --smoke    # 额外真的执行 agent_start.py，核对模�
 demand_engine · tools · llm · react · http · ops · net（出站网络） · host（主机资源） · codec（JSON/SSE/编码） · clock（时间）
 
 **agent（业务能力）**：knowledge · artifacts · library · sessions · projects · tickets ·
-asr · auth · decompose · todos · logs · health · web · channel
+asr · auth · decompose · todos · logs · health · web · channel · cloud ·
+nodes（节点协调与分配） · sandbox（隔离档位选择） · secretary（项目秘书队列） · timer（跨期定时调度）
 
 **agent_test（评审者）**：按 `data/checks.yaml` 跑验收（不在 `agent` 装配里，因为 profile 没写它）
 

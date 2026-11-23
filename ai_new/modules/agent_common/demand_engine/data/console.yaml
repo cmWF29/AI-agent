@@ -131,6 +131,14 @@ ui:
   wire_resp: 响应
   wire_req_body: 请求体
   wire_resp_body: 响应原文
+  ev_to: "发给 {}"
+  ev_to_all: "发给 全体"
+  role_board: 岗位状态
+  wire_left: 消息
+  wire_right: 原始报文
+  composer_more: 更多操作
+  roles_label: 岗位状态
+  todos_label: 待办计划
 click_machine:                          # 点击状态机：前端每一个可点位置都在这里登记种类与门禁
   states:
   - {key: idle,    label: 空闲,      at: [0.50, 0.14], note: 可以正常点击}
@@ -183,6 +191,8 @@ click_machine:                          # 点击状态机：前端每一个可�
   - {key: modal_cancel,   label: 弹窗取消,     allow: [modal],          enter: "",    exit: "",   note: 关闭由 closeModal 负责}
   - {key: modal_backdrop, label: 点遮罩关闭,   allow: [modal],          enter: "",    exit: "",   note: 只关弹窗}
   - {key: dag_zoom,       label: 流程图缩放,   allow: [idle],           enter: "",    exit: "",   note: 只改画布缩放，不取数}
+  - {key: stack_open,     label: 展开堆叠条目, allow: [idle, swallow],  enter: "",    exit: "",   note: 只展开收起本条，不取数}
+  - {key: stack_link,     label: 堆叠代表链路, allow: [idle],          enter: busy,  exit: idle, note: 点开代表链路进 trace 详情}
 
 # 控件级状态机：每一个按钮/控件一条，id 由「种类 + 标签」算（render.js 的 ctlOf 同算法）。
 # 增删一个按钮而不登记这里，scripts/gate_controls.py 会直接报错——门禁不是靠人记得。
@@ -241,13 +251,6 @@ controls:
     states: [idle, busy]
     transitions: {idle: [busy], busy: [idle]}
     note: 宽屏从图标条展开
-  ctl.head_act.链路追踪:
-    label: 链路追踪
-    kind: head_act
-    where: [ops]
-    states: [idle, busy, done, disabled]
-    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
-    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
   ctl.head_act.扫停滞:
     label: 扫停滞
     kind: head_act
@@ -355,7 +358,7 @@ controls:
     note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
   ctl.card_act.结单:
     label: 结单
-    kind: composer_voice
+    kind: card_act
     where: [ticket-thread]
     states: [idle, busy, done, disabled]
     transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
@@ -388,6 +391,34 @@ controls:
     states: [idle, busy, done, disabled]
     transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
     note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.row_act.暂停:
+    label: 暂停
+    kind: row_act
+    where: [timers]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 行内暂停定时器（timer-toggle/pause）；仅运行中可点，点击置 busy，成功 done 回 idle，失败回 idle；disabled 是只读态，点了不响应
+  ctl.row_act.恢复:
+    label: 恢复
+    kind: row_act
+    where: [timers]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 行内恢复已暂停定时器（timer-toggle/resume）；仅已暂停可点，点击置 busy，成功 done 回 idle，失败回 idle；disabled 是只读态，点了不响应
+  ctl.row_act.改表达式:
+    label: 改表达式
+    kind: row_act
+    where: [timers]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 打开弹窗 timer.edit（不直接写队列）；弹窗内保存走 modal_ok；仅运行中可点；disabled 是只读态，点了不响应
+  ctl.row_act.删除:
+    label: 删除
+    kind: row_act
+    where: [timers]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 行内删除定时器（timer-delete），danger 色并先弹确认；已完结/异常不可删；点击置 busy，成功 done 回 idle，失败回 idle；disabled 是只读态，点了不响应
 
 roles:
   colors:

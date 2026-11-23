@@ -16,7 +16,6 @@ import fcntl
 import mmap
 import os
 import socket
-import struct
 import threading
 import time
 from pathlib import Path

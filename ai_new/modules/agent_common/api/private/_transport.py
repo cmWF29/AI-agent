@@ -16,7 +16,6 @@ from __future__ import annotations
 import fcntl
 import mmap
 import socket
-import struct
 import time
 from pathlib import Path
 

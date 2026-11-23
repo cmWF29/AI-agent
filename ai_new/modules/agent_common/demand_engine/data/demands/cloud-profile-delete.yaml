@@ -1,0 +1,30 @@
+id: cloud-profile-delete
+title: 删除云端 profile 及其清单与运行摘要
+description: "公共级岗位/管理员删除一套 profile；其推送清单与最近运行摘要一并清除，写审计台账"
+tags: [cloud, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.profile_delete
+  with:
+    id:
+      get: input.id
+    caller:
+      get: input.caller
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.profile_delete
+  - runtime.apply
+  payload: {}
+  promise: 删除经 runtime.apply 落盘，项目角色调用被拒并留痕

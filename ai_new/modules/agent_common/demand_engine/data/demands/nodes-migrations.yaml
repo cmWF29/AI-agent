@@ -1,0 +1,17 @@
+id: nodes-migrations
+title: 迁移台账只读视图：项目迁到哪台、原因、epoch 与迁移时间
+description: "列出回迁记录：项目、从节点、到节点、原因（下线/容量/亲和性）、epoch、迁移时间与检查点；只读不写盘。"
+tags: [nodes, view, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.migrations
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - nodes.migrations
+  payload: {}
+  promise: 运维与项目页可查项目迁移去向与原因；台账含失败记录供告警

@@ -124,9 +124,10 @@ class StubProtoTest(unittest.TestCase):
             else:
                 closed = json.loads(text)
                 break
-        # 七步工具序列全走完，收口带 understand 的下一态 implement。
+        # 工具序列全走完，收口带 understand 的下一态 branch（seed.yaml 里 developer 的
+        # 状态链是 understand → branch → implement → verify → ci → merge）。
         self.assertEqual(tool_seq, stub_llm._ROLE_STEPS)
-        self.assertEqual(closed["stage"], "implement")
+        self.assertEqual(closed["stage"], "branch")
         self.assertGreater(len(closed["reply"]), 0)
         # 发言轮次 = 7 个工具步轮 + 1 次收口轮。
         self.assertEqual(rounds, len(stub_llm._ROLE_STEPS) + 1)

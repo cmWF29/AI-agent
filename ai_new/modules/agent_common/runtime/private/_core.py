@@ -5,8 +5,8 @@
 2. 只有这里驱动别的需求。能力交出 demand effect，同样由 apply 执行。
 
 并发模型：后台会话任务提交到有界会话池（线程复用），阻塞的同步需求链在
-池线程内跑；工具/子进程执行走独立工具池，与会话调度池分离，互不占坑。
-容量由 config.runtime.session_workers / tool_workers 显性声明。
+池线程内跑；同一轮的多条工具协程由 react 经 gather 并发收口，写盘与消息
+组装仍在主循环串行，避免并发落盘竞争。容量由 config.runtime.session_workers 显性声明。
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ STORE_ROUTES = {
     "append_text": "store.append_text",
     "archive": "store.archive",
     "write_text": "store.write_text",
+    "doc_revision": "store.doc_revision",
     "write_bytes": "store.write_bytes",
 }
 
@@ -39,9 +40,6 @@ class Runtime:
         self._session_pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=self._cfg_int("session_workers", 8),
             thread_name_prefix="session")
-        self._tool_pool = concurrent.futures.ThreadPoolExecutor(
-            max_workers=self._cfg_int("tool_workers", 8),
-            thread_name_prefix="tool")
         self._restore_hooks()
 
     # ---- defer 事件队列（持久化）----
@@ -311,11 +309,3 @@ class Runtime:
     def _run_demand(self, demand, data):
         return self.ctx.api.call("demand_engine.run",
                                  {"id": demand, "input": data}, caller=None)
-
-    def submit_tool(self, fn, *args, **kwargs):
-        """把一条工具/子进程执行提交到独立工具池，返回 future；与会话调度池互不占坑。
-
-        并发模型：调用方先把同一轮的多条工具执行全部 submit，再逐个收 future 回填，
-        工具在工具池线程内并发跑；写盘/回填仍由会话线程串行收口，避免并发落盘竞争。
-        """
-        return self._tool_pool.submit(fn, *args, **kwargs)

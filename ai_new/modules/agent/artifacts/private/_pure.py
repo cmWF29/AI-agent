@@ -158,7 +158,7 @@ def group(p):
             ticket_title[tid.lower()] = t.get("title") or ""
             ticket_raw[tid.lower()] = tid
 
-    public_items, project_groups, orphan = [], {}, {}
+    public_items, project_groups = [], {}
     counts = {"public": 0, "project": 0, "ticket": 0}
     items = []
     for row in entries:
@@ -179,11 +179,10 @@ def group(p):
             pid = pid or ticket_project.get(key, "")
             item["project"] = pid
             counts["ticket"] += 1
+            # 查不到项目归属的工单是孤儿：不挂顶层、不冒充项目层，交给清理脚本从数据里摘除
             if pid:
                 grp = project_groups.setdefault(pid, {"docs": [], "tickets": {}})
                 grp["tickets"].setdefault(key, []).append(item)
-            else:
-                orphan.setdefault(key, []).append(item)
         else:
             counts["project"] += 1
             project_groups.setdefault(pid, {"docs": [], "tickets": {}})["docs"].append(item)
@@ -201,7 +200,4 @@ def group(p):
                              "badge": layer_label["ticket"], "children": grp["tickets"][key]})
         tree.append({"type": "project", "label": pid, "badge": layer_label["project"],
                      "children": children})
-    for key in sorted(orphan):
-        tree.append({"type": "ticket", "label": key, "badge": layer_label["ticket"],
-                     "children": orphan[key]})
     return {"items": items, "counts": counts, "tree": tree}

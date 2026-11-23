@@ -1,0 +1,22 @@
+id: cloud-connection-test
+title: 云端连通性测试：按 profile 探活
+description: "公共级岗位/管理员对指定 profile 做连通性测试；不落盘，结果写审计"
+tags: [cloud]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.connection_test
+  with:
+    id:
+      get: input.id
+    caller:
+      get: input.caller
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.connection_test
+  payload: {}
+  promise: 探活结果按成功/失败留审计，项目角色调用被拒

@@ -30,7 +30,8 @@ CHROME = os.environ.get("CHROME", "/usr/local/bin/chromium")
 
 # 决定可点 DOM 的全部源：YAML 声明 + 前端脚本。任何一个变了，清单就必须重扫。
 WEB = ROOT + "/ai_new/modules/agent/web/data/console"
-SIG_FILES = [CONSOLE, WEB + "/render.js", WEB + "/boot.js", WEB + "/app.js", WEB + "/manage.html"]
+SIG_FILES = [CONSOLE, WEB + "/render.js", WEB + "/boot.js", WEB + "/app.js", WEB + "/manage.html",
+             WEB + "/graph.js"]
 
 
 def source_sig():
@@ -44,7 +45,7 @@ def source_sig():
 
 TOGGLE_KINDS = {"fold_text", "summary_fold", "wire_fold", "raw_fold", "tree_group",
                 "section_fold", "deck_toggle", "member_chip", "popover_close",
-                "filter", "dag_zoom", "deck_swipe"}
+                "filter", "dag_zoom", "deck_swipe", "stack_open"}
 NAV_KINDS = {"nav", "crumb_up", "rail_open", "rail_close", "drawer_open", "drawer_scrim"}
 
 

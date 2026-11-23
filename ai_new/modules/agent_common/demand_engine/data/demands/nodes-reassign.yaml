@@ -1,0 +1,29 @@
+id: nodes-reassign
+title: 项目下线回迁：失联项目按容量与亲和性重选节点，epoch 单调递增
+description: "节点失联回收后，项目按容量余量与亲和性（历史节点/同区域）重选节点；迁移前 fence 旧 epoch，默认不抢回活租约；迁移台账记录从哪到哪、原因与时间。"
+tags: [nodes, write]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.reassign
+  with:
+    project:
+      get: input.project
+    policy:
+      get: input.policy
+    candidate:
+      get: input.candidate
+    reason:
+      get: input.reason
+    checkpoint:
+      get: input.checkpoint
+  as: out
+expect:
+  given:
+    input: {project: demo-proj, policy: {preempt_back: false}, candidate: '', reason: node_lost,
+  checkpoint: null}
+  calls:
+  - nodes.reassign
+  payload: {}
+  promise: 回迁只把项目交到一个新节点；旧 epoch 作废，旧节点回写被 fencing 拒；无可选节点记 failed 待调度

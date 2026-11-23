@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import json
-import os
 import random
 import re
 import threading
@@ -106,15 +105,16 @@ _ROLE_STEPS = [
 ]
 # 压测桩内置岗位状态链（与 roles.yaml 契约对齐；正式流程以后端契约为准）。
 _ROLE_NEXT = {
-    "developer": ["understand", "implement", "verify"],
+    "developer": ["understand", "branch", "implement", "verify", "ci", "merge"],
     "tester": ["design", "run", "report"],
     "reviewer": ["study", "review", "deliver"],
-    "architect": ["study", "design", "deliver"],
+    "architect": ["study", "design", "review", "deliver"],
     "ops": ["diagnose", "plan", "deliver"],
-    "researcher": ["scope", "search", "deliver"],
-    "writer": ["gather", "draft", "deliver"],
-    "process": ["survey", "design", "deliver"],
-    "skill-decomposer": ["inspect", "split", "deliver"],
+    "researcher": ["scope", "search", "analyze", "deliver"],
+    "writer": ["gather", "draft", "proofread", "deliver"],
+    "process": ["survey", "design", "review", "deliver"],
+    "skill-decomposer": ["sd.intake", "sd.env", "sd.deps", "sd.install", "sd.analyze",
+                         "sd.roles", "sd.tools", "sd.flow", "sd.verify", "sd.deliver"],
 }
 _ROLE_READ = {"knowledge_search", "knowledge_read", "ticket_read_doc", "artifact_read"}
 _ROLE_WRITE = {"artifact_write", "knowledge_write"}

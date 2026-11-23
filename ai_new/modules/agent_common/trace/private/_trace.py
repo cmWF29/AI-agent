@@ -219,12 +219,15 @@ def _route_slow(ctx, payload):
     date = str(payload.get("date") or _day(_now()))
     rows = _read_day(date)
     agg = {}
+    updated_at = 0.0
     for r in rows:
         name = r.get("name") or ""
         if not name:
             continue
+        start = float(r.get("start") or 0)
+        updated_at = max(updated_at, start)
         a = agg.setdefault(name, {"name": name, "n": 0, "sum": 0.0, "max": 0.0,
-                                  "err": 0, "vals": []})
+                                  "err": 0, "vals": [], "samples": []})
         dur = float(r.get("dur_ms") or 0)
         a["n"] += 1
         a["sum"] += dur
@@ -232,18 +235,24 @@ def _route_slow(ctx, payload):
         if str(r.get("status") or "") not in ("ok", ""):
             a["err"] += 1
         a["vals"].append(dur)
+        a["samples"].append({"trace": r.get("trace") or "",
+                             "start": r.get("start") or 0, "dur_ms": dur})
     items = []
     for a in agg.values():
         vals = sorted(a["vals"])
         n = len(vals)
+        # 代表链路：该阶段最近的几条，供堆叠列表点开进 trace 详情
+        samples = sorted(a["samples"], key=lambda s: s["start"], reverse=True)[:5]
         items.append({"name": a["name"], "n": n,
                       "avg_ms": round(a["sum"] / n, 2), "max_ms": round(a["max"], 2),
                       "p50_ms": round(vals[int(n * 0.5) - 1] if n >= 2 else vals[0], 2),
                       "p95_ms": round(vals[min(n - 1, int(n * 0.95))], 2),
-                      "err": a["err"]})
+                      "err": a["err"], "samples": samples})
     items.sort(key=lambda x: x["p95_ms"], reverse=True)
-    return {"date": date, "items": items[:int(payload.get("limit") or 20)],
-            "spans": len(rows)}
+    # 堆叠列表不截断：默认给足 200 条，行数受源数据量约束；前端全部可展开
+    limit = int(payload.get("limit") or 200)
+    return {"date": date, "items": items[:limit], "spans": len(rows),
+            "updated_at": updated_at or None}
 
 
 def _route_recent(ctx, payload):

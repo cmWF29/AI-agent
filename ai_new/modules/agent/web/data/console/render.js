@@ -23,6 +23,16 @@ function foldAttr(key) {
   if (!key) return "";
   return ` data-fold="${esc(key)}"${FOLDS.get(key) ? " open" : ""}`;
 }
+/* 折叠唯一出口：section / 元素页 / 树分组 / 工具卡全部走这里一套 summary 视觉与持久化。
+   key 用 foldAttr 生成；未记录过状态的键由 expandFolds 在移动端默认摊开，已记录的不覆盖。 */
+function foldBox(key, title, note, body, cls) {
+  const clsAttr = cls ? ` ${cls}` : "";
+  const noteHtml = note ? `<span class="muted">${esc(note)}</span>` : "";
+  return `<details class="fold-box${clsAttr}"${foldAttr(key)}>
+    <summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><strong>${esc(title)}</strong>${noteHtml}</summary>
+    ${body}
+  </details>`;
+}
 
 function regAct(binding) {
   ACT_SEQ += 1;
@@ -328,11 +338,16 @@ function eventGroupHtml(g) {
   const label = eventLabel(g.event);
   const cnt = n > 1 ? ` ×${n}` : "";
   const first = g.items[0] || {};
+  // 接收人：事件带 to 就标「发给 <to>」；旧数据没有 to 才退回全员口径。文案读词表，不写中文常量。
+  const toLabel = first.to
+    ? uiText("ev_to", first.to)
+    : uiText("ev_to_all");
+  const toHtml = toLabel ? `<span class="ev-to">${esc(toLabel)}</span>` : "";
   const text = eventText(g);
   const long = text.length > 60;
   const shown = long ? text.slice(0, 58) + "…" : text;
   const fold = long ? ` data-clk="fold_text" data-expand data-full="${esc(text)}" data-short="${esc(shown)}"` : "";
-  return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(first.at))}</span></div></div>`;
+  return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${toHtml}${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(first.at))}</span></div></div>`;
 }
 
 /* 工具调用与它自己的结果合并成一张卡：assistant.tool_calls + 对应 tool_call_id 的回填 */
@@ -486,7 +501,12 @@ function renderBubbles(msgs, roles, wireDemand, wireChars, rawChars) {
   }
   return groups.map((g) => {
     if (g.cls === "system") {
-      return g.items.map((it) => `<div class="msg system"><div class="sys-body md">${renderMarkdown((it.m || {}).content == null ? "" : it.m.content)}</div></div>`).join("");
+      return g.items.map((it) => {
+        const m = it.m || {};
+        const toLabel = m.to ? uiText("ev_to", m.to) : uiText("ev_to_all");
+        const toHtml = toLabel ? `<span class="ev-to">${esc(toLabel)}</span>` : "";
+        return `<div class="msg system"><div class="sys-body md">${toHtml}${renderMarkdown(m.content == null ? "" : m.content)}</div></div>`;
+      }).join("");
     }
     const side = g.cls === "user" ? "right" : "left";
     const bodies = groupBody(g);
@@ -500,11 +520,15 @@ function renderBubbles(msgs, roles, wireDemand, wireChars, rawChars) {
     // 自己的消息不显示名字（TG 口径）；成员消息名字用该角色专属色
     const name = side === "left"
       ? `<div class="msg-name" style="color:${avatarColor(g.who)}">${esc(g.who)}</div>` : "";
+    // 左右两列：左列给用户的文字气泡，右列同一轮原始报文（默认折叠，展开走 message-wire 回读）
+    const wire = wireHtml(g.items, wireDemand, wireChars);
+    const raw = rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), uiText("raw_title"), rawChars);
     return `<div class="msg ${side}">${side === "left" ? av : ""}
       <div class="msg-main"><div class="msg-head">${name}${ts}</div>
-      <div class="bubble-stack">${bodies}</div>
-      ${wireHtml(g.items, wireDemand, wireChars)}
-      ${rawHtml(g.items.map((it) => it.owner || it.m).filter(Boolean), uiText("raw_title"), rawChars)}</div>${side === "right" ? av : ""}</div>`;
+      <div class="wire-pair">
+        <div class="wire-side wire-side-body">${bodies}</div>
+        <div class="wire-side wire-side-raw">${wire}${raw}</div>
+      </div></div>${side === "right" ? av : ""}</div>`;
   }).join("");
 }
 
@@ -538,7 +562,7 @@ function streamHtml(msgs, events, roles, wireDemand, wireChars, rawChars) {
 }
 
 /* 角色状态条：每个角色当前阶段与活跃状态，点开是同一个人（data-member 复用成员卡） */
-function roleBoardHtml(roles) {
+function roleBoardHtml(roles, label) {
   const rows = arr(roles).filter((r) => r && ((r.machine || {}).states || []).length);
   if (!rows.length) return "";
   const cells = rows.map((r) => {
@@ -554,11 +578,12 @@ function roleBoardHtml(roles) {
       ${acts.length ? `<span class="rm-active">${esc(acts.join("/"))}</span>` : ""}
     </button>`;
   }).join("");
-  // 这一条是每个岗位"走到流程哪一步"的状态机：没有标题读者会以为是工单状态
-  return `<div class="role-board"><span class="board-lab" title="每个岗位在自己的流程里走到哪一步、并行在做哪几步">岗位状态</span>${cells}</div>`;
+  // 标题由 YAML roles_label 传入；缺词表条目时退回 roles_label 词表键，前端不写中文常量
+  const title = label || uiText("roles_label");
+  return `<div class="role-board"><span class="board-lab">${esc(title)}</span>${cells}</div>`;
 }
 /* 待办板：模型自己排的分步计划，和岗位流程状态机不是一回事，单独一条 */
-function todoBoardHtml(todos) {
+function todoBoardHtml(todos, label) {
   const list = arr(todos);
   if (!list.length) return "";
   const done = list.filter((t) => (t.status || "") === "done").length;
@@ -569,7 +594,11 @@ function todoBoardHtml(todos) {
       : (st === "doing" ? uiText("todo_state_doing") : uiText("todo_state_pending"));
     return `<div class="td-row"><i class="td-dot ${esc(st)}"></i><span class="td-id">${esc(t.id || "")}</span><span class="td-text ${st === "done" ? "off" : ""}">${esc(t.text || "")}</span><em>${esc(word)}</em></div>`;
   }).join("");
-  return `<details class="todo-board"><summary data-clk="summary_fold"${esc(uiText("todo_title", done, list.length))}${doing ? esc(uiText("todo_doing", doing.text || "")) : ""}</summary><div class="td-list">${rows}</div></details>`;
+  // 主体标题由 YAML todos_label 传入；待办 id（T1/T2/T3）只是行内标识，不裸露成无主体状态机
+  const prefix = label || uiText("todos_label");
+  const head = (prefix ? `${esc(prefix)} ` : "") + esc(uiText("todo_title", done, list.length)) +
+    (doing ? esc(uiText("todo_doing", doing.text || "")) : "");
+  return `<details class="todo-board"><summary data-clk="summary_fold">${head}</summary><div class="td-list">${rows}</div></details>`;
 }
 
 /* 网络报文：这一轮真实发出去/收回来的东西。视图只带摘要（模型、状态、字节量），
@@ -635,12 +664,15 @@ function chatHtml(sec, ctx) {
   const hiddenMsgs = arr(src.messages).filter((m) => hidden.includes(m.role || ""));
   const inject = hiddenMsgs.length
     ? `<div class="inject"><div class="inject-note">${esc(uiText("inject_note"))}</div>${rawHtml(hiddenMsgs, uiText("inject_title", hiddenMsgs.length))}</div>` : "";
-  const body = inject + todoBoardHtml(src.todos) +
+  // chat 头部右侧动作区：结单等动作由 YAML actions 传入，disabled_when 由 buttonHtml 统一判灰态
+  const headActions = arr(sec.actions || [])
+    .map((a) => buttonHtml(a, ctx, { clk: a.clk || "card_act" })).join("");
+  const body = inject + todoBoardHtml(src.todos, sec.todos_label) +
     (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
   return `<section class="chat-card card">
-    ${headMain || chips ? `<div class="chat-head">${headMain}<div class="members">${chips}</div></div>` : ""}
+    ${headMain || chips || headActions ? `<div class="chat-head">${headMain}<div class="members">${chips}</div><div class="chat-head-actions">${headActions}</div></div>` : ""}
     ${summaryHtml}
-    ${roleBoardHtml(roles)}
+    ${roleBoardHtml(roles, sec.roles_label)}
     <div class="chat">${body}</div>
   </section>`;
 }
@@ -711,7 +743,7 @@ function treeNodeHtml(node, sec, ctx, path) {
   // 折叠是用户意图：键挂内容身份，重渲染/刷新按原状恢复；没动过按声明默认展开
   const stored = FOLDS.get(here);
   const openAttr = (stored === undefined ? !sec.collapsed : !!stored) ? " open" : "";
-  return `<details class="tree-node" data-fold="${esc(here)}"${openAttr}>
+  return `<details class="tree-node"${foldAttr(here)}${openAttr}>
     <summary data-clk="tree_group">${node.badge && node.badge !== node.label ? `<span class="badge">${esc(node.badge)}</span>` : ""}<span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
     <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx, here)).join("")}</div>
   </details>`;
@@ -866,22 +898,16 @@ function flowHtml(sec, ctx) {
   return head + `<div class="flow-grid">${body}</div>`;
 }
 
-/* DAG 渲染器：固定框、按层自动布局、支持缩放；回边（环）画虚线并标注条件。
-   图上的每个节点就是岗位流程状态机的一个状态，边就是一次允许的迁移——
-   顺序条看不出"打回重做"和"分支裁决"，这里一眼能看到。 */
+/* 状态机/流程图：唯一出口 HiveGraph（离线 cytoscape + dagre 布局）。
+   节点是岗位/流程状态，边是允许的迁移；回边（环）虚线橙色，边上文字是迁移条件。 */
 function dagEdgeTo(x) {
   return x && typeof x === "object" ? String(x.to || x.id || "") : String(x || "");
 }
-function dagNodes(states) {
+/* DFS 找出成环的回边（回到栈上的点）：这些边只影响画法，不参与 dagre 分层。 */
+function dagBackSet(states) {
   const by = new Map();
   arr(states).forEach((s) => { if (s && s.id) by.set(s.id, s); });
-  return by;
-}
-function dagLayout(states) {
-  const by = dagNodes(states);
-  const ids = [...by.keys()];
-  // 先用 DFS 找出成环的边（回到栈上的点）：这些是"回边"，只影响画法，不参与分层
-  const state = new Map(), backSet = new Set();
+  const state = new Map(), back = new Set();
   const dfs = (start) => {
     const stack = [[start, 0]];
     state.set(start, 1);
@@ -892,107 +918,61 @@ function dagLayout(states) {
       if (i >= outs.length) { state.set(id, 2); stack.pop(); continue; }
       fr[1] += 1;
       const to = outs[i];
-      if (state.get(to) === 1) { backSet.add(id + "|" + to); continue; }
+      if (state.get(to) === 1) { back.add(id + "|" + to); continue; }
       if (state.get(to) === 2) continue;
       state.set(to, 1);
       stack.push([to, 0]);
     }
   };
-  ids.forEach((id) => { if (!state.get(id)) dfs(id); });
-  // 分层：只在非回边上做最长路径松弛，几轮就稳定
-  const level = new Map(ids.map((id) => [id, 0]));
-  for (let it = 0; it < ids.length; it += 1) {
-    let moved = false;
-    ids.forEach((id) => {
-      arr((by.get(id) || {}).next).forEach((n) => {
-        const to = dagEdgeTo(n);
-        if (!by.has(to) || backSet.has(id + "|" + to)) return;
-        const want = (level.get(id) || 0) + 1;
-        if (want > (level.get(to) || 0)) { level.set(to, want); moved = true; }
-      });
-    });
-    if (!moved) break;
-  }
-  const edges = [], back = [];
-  ids.forEach((id) => {
-    arr((by.get(id) || {}).next).forEach((n) => {
-      const to = dagEdgeTo(n);
-      if (!by.has(to)) return;
-      const e = { from: id, to, when: ((by.get(id) || {})["when"] || {})[to] || "" };
-      (backSet.has(id + "|" + to) ? back : edges).push(e);
-    });
-  });
-  const cols = new Map();
-  ids.slice().sort((a, b) => (level.get(a) - level.get(b)) || (a < b ? -1 : 1))
-    .forEach((id) => {
-      const lv = level.get(id) || 0;
-      if (!cols.has(lv)) cols.set(lv, []);
-      cols.get(lv).push(id);
-    });
-  const COL_W = 196, ROW_H = 104, NODE_W = 152, NODE_H = 68, PAD = 20;
-  const rows = Math.max(1, ...[...cols.values()].map((c) => c.length));
-  const maxLv = Math.max(0, ...[...cols.keys()]);
-  const pos = new Map();
-  [...cols.entries()].forEach(([lv, list]) => list.forEach((id, i) => {
-    pos.set(id, { x: PAD + lv * COL_W, y: PAD + i * ROW_H });
-  }));
-  return { by, pos, edges: edges.concat(back), cols, rows, maxLv,
-           width: PAD * 2 + maxLv * COL_W + NODE_W,
-           height: PAD * 2 + rows * ROW_H,
-           w: NODE_W, h: NODE_H };
+  [...by.keys()].forEach((id) => { if (!state.get(id)) dfs(id); });
+  return back;
 }
-function dagSvg(L) {
-  const path = (e) => {
-    const a = L.pos.get(e.from), b = L.pos.get(e.to);
-    if (!a || !b) return "";
-    const x1 = a.x + L.w, y1 = a.y + L.h / 2;
-    const x2 = b.x, y2 = b.y + L.h / 2;
-    const isBack = (L.pos.get(e.to) || {}).x <= (L.pos.get(e.from) || {}).x;
-    const mx = (x1 + x2) / 2;
-    // 回边从上方绕回：控制点都落在两端之间，不会被画到画布外
-    const yTop = Math.max(4, Math.min(y1, y2) - 30);
-    const fromTop = Math.max(4, y1 - 26), toTop = Math.max(4, y2 - 26);
-    const d = isBack
-      ? `M${x1},${y1} C${x1 - 26},${fromTop} ${x2 + 26},${toTop} ${x2},${y2}`
-      : `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
-    const label = e.when
-      ? `<text x="${mx}" y="${(isBack ? Math.min(y1, y2) - 34 : (y1 + y2) / 2 - 6)}" class="dag-elabel">${esc((isBack ? uiText("dag_back") + "：" : "") + e.when)}</text>` : "";
-    return `<g class="dag-edge${isBack ? " back" : ""}"><path d="${d}" marker-end="url(#dag-arrow${isBack ? "-back" : ""})"/>${label}</g>`;
-  };
-  return `<defs>
-      <marker id="dag-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
-      <marker id="dag-arrow-back" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e2571e"/></marker>
-    </defs>${L.edges.map(path).join("")}`;
-}
-function dagCard(row, sec, index, ctx) {
+function dagGraphSpec(row) {
   const states = arr(row.states && row.states.length ? row.states : (row.flow || {}).states);
-  if (!states.length) return "";
-  const L = dagLayout(states);
+  if (!states.length) return null;
+  const by = new Map();
+  states.forEach((s) => { if (s && s.id) by.set(s.id, s); });
+  const back = dagBackSet(states);
   const active = new Set(arr(row.active));
-  const nodes = [...L.pos.entries()].map(([id, p]) => {
-    const s = L.by.get(id) || {};
+  const nodes = states.map((s) => {
     const g = s.gate || {};
     const nm = arr(g.must).length, nf = arr(g.forbid).length;
-    const badge = (nm || nf)
-      ? `<i class="gate-badge">${nm ? esc(uiText("dag_must", nm)) : ""}${nm && nf ? " · " : ""}${nf ? esc(uiText("dag_forbid", nf)) : ""}</i>` : "";
-    const on = active.has(id) ? `<em class="on-badge">${esc(uiText("dag_current"))}</em>` : "";
-    return `<div class="flow-node${s.terminal ? " term" : ""}${active.has(id) ? " on" : ""}" style="left:${p.x}px;top:${p.y}px;width:${L.w}px;height:${L.h}px" title="${esc(s.desc || "")}">
-      ${on}<b>${esc(s.cn || s.id)}</b><span>${esc(s.id)}</span>${badge}</div>`;
-  }).join("");
-  const zoom = `<div class="dag-zoom">
-      <button data-clk="dag_zoom" data-dag="out" data-dag-i="${index}" aria-label="缩小">−</button>
-      <span class="dag-pct" data-dag-pct="${index}">100%</span>
-      <button data-clk="dag_zoom" data-dag="in" data-dag-i="${index}" aria-label="放大">＋</button>
-      <button data-clk="dag_zoom" data-dag="fit" data-dag-i="${index}">适应</button>
+    const parts = [];
+    if (active.has(s.id)) parts.push(uiText("dag_current"));
+    if (nm) parts.push(uiText("dag_must", nm));
+    if (nf) parts.push(uiText("dag_forbid", nf));
+    return { id: s.id, label: s.cn || s.id, sub: s.id, badge: parts.join(" · "),
+             terminal: !!s.terminal, active: active.has(s.id) };
+  });
+  const edges = [];
+  states.forEach((s) => {
+    arr(s.next).forEach((n) => {
+      const to = dagEdgeTo(n);
+      if (!by.has(to)) return;
+      const when = ((s.when || {})[to]) || "";
+      const isBack = back.has(s.id + "|" + to);
+      edges.push({ from: s.id, to, back: isBack,
+                   label: isBack ? (uiText("dag_back") + "：" + when) : when });
+    });
+  });
+  return { nodes, edges, direction: "LR" };
+}
+function dagCard(row, sec, index, ctx) {
+  const spec = dagGraphSpec(row);
+  if (!spec) return "";
+  const backCount = spec.edges.filter((e) => e.back).length;
+  const zoom = `<div class="graph-zoom">
+      <button data-clk="dag_zoom" data-dag="out" data-graph="out" aria-label="−">−</button>
+      <button data-clk="dag_zoom" data-dag="in" data-graph="in" aria-label="＋">＋</button>
+      <button data-clk="dag_zoom" data-dag="fit" data-graph="fit">${esc(uiText("dag_fit"))}</button>
+      <span class="dag-pct" data-graph-pct="${index}">100%</span>
     </div>`;
   const title = row.cn || row.id || (sec.title ? fill(sec.title, ctx || {}) : "");
-  return `<article class="flow-card" data-dag-card="${index}">
+  return `<article class="flow-card" data-graph-card="${index}">
     <header><h4>${esc(title)}</h4>
-      <span class="muted">${esc(row.id || "")} · ${esc(uiText("flow_states", states.length))} · ${esc(uiText("dag_edges", L.edges.length))}</span>${zoom}</header>
-    <div class="dag-viewport"><div class="dag-stage" data-dag-stage="${index}" style="width:${L.width}px;height:${L.height}px">
-      <svg class="dag-edges" width="${L.width}" height="${L.height}" viewBox="0 0 ${L.width} ${L.height}">${dagSvg(L)}</svg>
-      ${nodes}
-    </div><div class="dag-legend">${esc(uiText("dag_legend"))}</div></div>
+      <span class="muted">${esc(row.id || "")} · ${esc(uiText("flow_states", spec.nodes.length))} · ${esc(uiText("dag_edges", spec.edges.length))}</span>${zoom}</header>
+    <div class="graph-wrap dag-stage" data-graph="1" data-graph-nodes="${spec.nodes.length}" data-graph-edges="${spec.edges.length}" data-graph-back="${backCount}" data-spec="${esc(JSON.stringify(spec))}"><div class="graph-canvas"></div></div>
+    <div class="dag-legend">${esc(uiText("dag_legend"))}</div>
   </article>`;
 }
 function dagHtml(sec, ctx) {
@@ -1076,71 +1056,40 @@ function composerHtml(sec, ctx) {
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
       <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
-      ${acts}
-      ${voiceBtn}
-      <button class="primary" data-clk="composer_send" data-act="${submitId}" data-ctl="${esc(submitCtl)}" data-ctl-state="${st}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
+      <div class="composer-actions">${acts}${voiceBtn}
+        <button class="primary" data-clk="composer_send" data-act="${submitId}" data-ctl="${esc(submitCtl)}" data-ctl-state="${st}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
+      </div>
     </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
     ${busy ? `<div class="composer-hint busy">${esc(fill(sec.busy_text || "", ctx))}</div>` : ""}
   </div>`;
 }
-/* 点击状态机图：规格驱动，7 个状态环形排布，有向边是允许的迁移 */
+/* 交互状态迁移图：规格驱动，节点是界面状态，有向边是允许的迁移；布局走 HiveGraph/dagre。 */
 function clickMachineHtml(sec, ctx) {
   const m = ref(sec.source, ctx) || {};
   const states = arr(m.states);
   let trans = m.transitions || {};
   if (typeof trans !== "object" || Array.isArray(trans)) trans = {};
   if (!states.length) return emptyHtml(sec.empty);
-  // 手机竖排：画布按竖比例给，字号才能在 390 宽下保持可读（横版会被等比缩成蚂蚁字）
-  const W = 380, H = 364, NW = 88, NH = 40;
-  // 边按来源状态着色：20 条边都连到 idle，颜色是分辨"从哪出发"的唯一线索
-  const TONE = { idle: "#5f87dd", press: "#3fae68", drag: "#2aa9a4", scroll: "#6f7fd0", swallow: "#98a2b1", busy: "#dd8f3f", modal: "#9a6adb" };
   const notes = m.edge_notes || {};
-  // 坐标由规格给（at 为归一化位置）；没给就退回环形，规格漏了也不会白屏
-  const pos = {};
-  states.forEach((s, i) => {
-    if (Array.isArray(s.at) && s.at.length === 2) pos[s.key] = { x: s.at[0] * W, y: s.at[1] * H };
-    else {
-      const a = -Math.PI / 2 + (i * 2 * Math.PI) / states.length;
-      pos[s.key] = { x: W / 2 + 150 * Math.cos(a), y: H / 2 + 150 * Math.sin(a) };
-    }
-  });
-  const edge = (from, to) => {
-    const a = pos[from], b = pos[to];
-    if (!a || !b) return "";
-    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
-    const ux = dx / len, uy = dy / len;
-    // 从矩形边界出发：按方向分量换算到边框上，箭头才不会被节点盖住
-    const k = 1 / (Math.abs(ux) / (NW / 2 + 8) + Math.abs(uy) / (NH / 2 + 8));
-    const sx = a.x + ux * k, sy = a.y + uy * k, ex = b.x - ux * k, ey = b.y - uy * k;
-    const mx = (sx + ex) / 2, my = (sy + ey) / 2;
-    // 互为反向的两条边各自外偏，避免重叠成一条；单向边也带一点弧度更好认
-    const both = !!(trans[to] || []).includes(from);
-    const bend = (both ? (String(from) < String(to) ? 1 : -1) * 16 : 8);
-    const qx = mx - uy * bend, qy = my + ux * bend;
-    const tone = TONE[from] || "#a9b6c6";
-    const label = notes[from + ">" + to];
-    // 标签再往外让 9px，不然会压在弧线或节点边上
-    const lx = Math.min(Math.max(mx - uy * (bend + 9), 26), W - 26);
-    const ly = Math.min(Math.max(my + ux * (bend + 9), 18), H - 12);
-    const tag = label ? `<text class="mch-edge-label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle">${esc(label)}</text>` : "";
-    return `<path class="mch-edge" style="stroke:${tone}" d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" marker-end="url(#mch-arrow-${from})"/>${tag}`;
-  };
-  const edges = Object.keys(trans).map((from) => arr(trans[from]).map((to) => edge(from, to)).join("")).join("");
-  const nodes = states.map((s) => {
-    const p = pos[s.key];
-    return `<g class="mch-node" data-state="${esc(s.key)}" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})">
-      <rect x="${-NW / 2}" y="${-NH / 2}" width="${NW}" height="${NH}" rx="11"/>
-      <text class="mch-cn" y="-3" text-anchor="middle">${esc(s.label || s.key)}</text>
-      <text class="mch-key" y="13" text-anchor="middle">${esc(s.key)}</text></g>`;
-  }).join("");
-  return `<div class="machine-wrap">
-    <svg class="mch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(uiText("machine_svg_alt"))}">
-      <defs>${states.map((s) => `<marker id="mch-arrow-${esc(s.key)}" viewBox="0 0 10 10" refX="8" refY="5"
-        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M0,0 L10,5 L0,10 z" fill="${TONE[s.key] || "#a9b6c6"}"/></marker>`).join("")}</defs>
-      ${edges}${nodes}
-    </svg>
+  const nodes = states.map((s) => ({
+    id: s.key, label: s.label || s.key, sub: s.key, tone: s.key,
+  }));
+  const edges = [];
+  Object.keys(trans).forEach((from) => arr(trans[from]).forEach((to) => {
+    edges.push({ from, to, label: notes[from + ">" + to] || "", back: false });
+  }));
+  const spec = { nodes, edges, direction: "TB" };
+  const backCount = edges.filter((e) => e.back).length;
+  const zoom = `<div class="graph-zoom">
+      <button data-clk="dag_zoom" data-dag="out" data-graph="out" aria-label="−">−</button>
+      <button data-clk="dag_zoom" data-dag="in" data-graph="in" aria-label="＋">＋</button>
+      <button data-clk="dag_zoom" data-dag="fit" data-graph="fit">${esc(uiText("dag_fit"))}</button>
+      <span class="dag-pct" data-graph-pct>100%</span>
+    </div>`;
+  return `<div class="machine-wrap flow-card">
+    <header class="machine-head">${zoom}</header>
+    <div class="graph-wrap dag-stage" data-graph="1" data-graph-nodes="${nodes.length}" data-graph-edges="${edges.length}" data-graph-back="${backCount}" data-spec="${esc(JSON.stringify(spec))}"><div class="graph-canvas"></div></div>
   </div>`;
 }
 
@@ -1214,13 +1163,70 @@ function userElemsHtml(sec, ctx) {
       const uniq = {};
       rows.forEach((r) => { (uniq[r.ctl] = uniq[r.ctl] || { row: r, n: 0 }).n += 1; });
       const list = Object.keys(uniq).map((c) => Object.assign({}, uniq[c].row, { count: uniq[c].n }));
-      return `<details class="elem-page"><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><b>${esc(labels[k])}</b><span class="elem-count">${list.length}</span></summary>
+      const elemKey = "view:" + (((ctx || {}).route || {}).view || "") + ":elem:" + k;
+      return `<details class="elem-page"${foldAttr(elemKey)}><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><b>${esc(labels[k])}</b><span class="elem-count">${list.length}</span></summary>
         <div class="elem-list">${list.map((r) =>
           `<div class="elem-row"><span class="elem-label">${esc(r.label || r.ctl)}${r.count > 1 ? `<i class="elem-n">×${r.count}</i>` : ""}</span><span class="elem-tag">${esc(r.tag || "")}</span>
             <span class="elem-eff">${esc(r.effect || "")}</span>
             <span class="elem-gate">${esc(gateOf(r))}</span></div>`).join("")}</div>
       </details>`;
     }).join("")}</div>`;
+}
+
+/* stack：只列前 N 条 + "还有 N 条点不开" 的替代原语。行数不截断，默认全部收起，
+   展开态走 foldAttr 持久化；代表链路 chips 可点进链路详情。 */
+const STACK_OPEN = "stack_open";
+const STACK_LINK = "stack_link";
+function stackRowKey(row, i) { return String(row.key || row.id || row.trace || i); }
+function stackHtml(sec, ctx) {
+  let rows = arr(ref(sec.source, ctx));
+  if (!rows.length) return emptyHtml(sec.empty || {});
+  if (sec.sort && sec.sort.by) {
+    const dir = sec.sort.order === "asc" ? 1 : -1;
+    rows = rows.slice().sort((a, b) => dir * String(dig(a, sec.sort.by) || "").localeCompare(String(dig(b, sec.sort.by) || "")));
+  }
+  const item = sec.item || {};
+  const view = ((ctx.route || {}).view) || "";
+  const bar = sec.count_note
+    ? `<div class="stack-bar"><span class="muted">${esc(fill(sec.count_note, ctx))}</span></div>` : "";
+  const items = rows.map((row, i) => {
+    const c = { ...ctx, row };
+    const key = "stack:" + view + ":" + (sec.as || "") + ":" + stackRowKey(row, i);
+    const title = fill(item.title, c);
+    const sub = item.sub ? fill(item.sub, c) : "";
+    const badge = item.badge ? fill(item.badge, c) : "";
+    const badgeSuffix = item.badge_suffix ? ` ${esc(item.badge_suffix)}` : "";
+    const fields = (sec.fields || []).map((f) => {
+      const raw = fmtVal(f, c);
+      const v = raw === undefined || raw === null || raw === "" ? (f.fallback || "—") : raw;
+      const suffix = f.suffix ? ` ${esc(f.suffix)}` : "";
+      return `<div class="stack-field"><span>${esc(f.label || "")}</span><div>${esc(v)}${suffix}</div></div>`;
+    }).join("");
+    let samplesHtml = "";
+    if (sec.samples) {
+      const sp = sec.samples;
+      const list = arr(fill(sp.from, c)).slice(0, sp.max || 5);
+      if (list.length) {
+        const chips = list.map((x) => {
+          const t = dig(x, sp.text);
+          const v = sp.value ? dig(x, sp.value) : "";
+          let go = "";
+          if (sp.on_click) {
+            go = ` data-go="${actIndex({ view: sp.on_click.view, params: sp.on_click.params || {} }, c)}"`;
+          }
+          return `<span class="chip stack-sample" data-clk="${STACK_LINK}"${go}>${esc(t)}${v ? ` <i>${esc(v)}</i>` : ""}</span>`;
+        }).join("");
+        samplesHtml = `<div class="stack-samples"><span class="chips-label">${esc(fill(sp.label || "", c))}</span><div class="chips">${chips}</div></div>`;
+      }
+    }
+    return `<details class="stack-item"${foldAttr(key)}>
+      <summary data-clk="${STACK_OPEN}" data-ctl="ctl.stack_open" data-ctl-state="idle">
+        <span class="stack-title">${esc(title)}</span>${sub ? `<span class="muted">${esc(sub)}</span>` : ""}${badge ? `<span class="chip stack-badge">${esc(badge)}${badgeSuffix}</span>` : ""}
+      </summary>
+      <div class="stack-body">${fields}${samplesHtml}</div>
+    </details>`;
+  }).join("");
+  return `<div class="stack">${bar}${items}</div>`;
 }
 
 function sectionHtml(sec, ctx, idx) {
@@ -1235,9 +1241,9 @@ function sectionHtml(sec, ctx, idx) {
   else if (kind === "gate") html = secHead(sec, ctx) + gateHtml(sec, ctx);
   else if (kind === "machine") html = secHead(sec, ctx) + clickMachineHtml(sec, ctx);
   else if (kind === "kinds") html = secHead(sec, ctx) + clickKindsHtml(sec, ctx);
-  else if (kind === "pages") html = secHead(sec, ctx) + userPagesHtml(sec, ctx);
-  else if (kind === "routes") html = secHead(sec, ctx) + userRoutesHtml(sec, ctx);
-  else if (kind === "elems") html = secHead(sec, ctx) + userElemsHtml(sec, ctx);
+  else if (kind === "pages") html = userPagesHtml(sec, ctx);
+  else if (kind === "routes") html = userRoutesHtml(sec, ctx);
+  else if (kind === "elems") html = userElemsHtml(sec, ctx);
   else if (kind === "map") html = mapHtml(sec, ctx);
   else if (kind === "waterfall") html = waterfallHtml(sec, ctx);
   else if (kind === "table") html = tableHtml(sec, ctx);
@@ -1245,12 +1251,20 @@ function sectionHtml(sec, ctx, idx) {
   else if (kind === "kv") html = kvHtml(sec, ctx);
   else if (kind === "tree") html = secHead(sec, ctx) + treeHtml(sec, ctx);
   else if (kind === "doc") html = docHtml(sec, ctx);
+  else if (kind === "stack") html = stackHtml(sec, ctx);
   else if (kind === "composer") html = composerHtml(sec, ctx);
   else html = emptyHtml({ text: uiText("unknown_kind", kind) });
+  // sec.fold 是规格声明的折叠；pages/routes/elems 三个主区块内容过多，默认同样收起。
+  const viewKey = "view:" + (((ctx || {}).route || {}).view || "") + ":sec:" + idx;
+  let fold = null;
   if (sec.fold) {
-    const title = fill((sec.fold || {}).title || sec.heading || "", ctx);
-    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"${marks}><details><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><strong>${esc(title)}</strong>${
-      sec.note ? `<span class="muted">${esc(fill(sec.note, ctx))}</span>` : ""}</summary>${html}</details></div>`;
+    fold = { title: fill((sec.fold || {}).title || sec.heading || "", ctx),
+             note: sec.note ? fill(sec.note, ctx) : "" };
+  } else if (kind === "pages" || kind === "routes" || kind === "elems") {
+    fold = { title: fill(sec.heading || "", ctx), note: sec.note ? fill(sec.note, ctx) : "" };
+  }
+  if (fold) {
+    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"${marks}>${foldBox(viewKey, fold.title, fold.note, html)}</div>`;
   }
   return `<div class="vsec${sec.list ? " vsec-list" : ""}" data-kind="${esc(kind)}"${marks}>${html}</div>`;
 }
@@ -1272,11 +1286,15 @@ function expandFolds() {
     return !grid || getComputedStyle(grid).display === "contents";
   });
   if (!cards.length) return;
-  // 手机上是纵向卡片堆叠：折叠块默认摊开，免得只看到一行标题不知道这页是什么
+  // 手机上是纵向卡片堆叠：折叠块默认摊开，免得只看到一行标题不知道这页是什么。
+  // 只摊开"本次渲染未记录过状态"的键；用户手动收起/展开过的，按 foldAttr 持久化态恢复，不覆盖。
   if (getComputedStyle(rail).flexDirection === "column") {
-    // 只摊开区块级的折叠（整块内容），组/条目级保持可点，否则一棵树会展开成几万像素
     cards.forEach((c) => c.querySelectorAll(":scope > details, :scope > .orphans > details")
-      .forEach((d) => { d.open = true; }));
+      .forEach((d) => {
+        const key = d.dataset.fold;
+        if (!key) return;
+        if (!FOLDS.has(key)) d.open = true;
+      }));
   }
 }
 
@@ -1290,6 +1308,17 @@ function headHtml(spec, ctx) {
       <div class="spacer"></div>
       <div class="actions">${(spec.actions || []).map((a) => buttonHtml(a, ctx, { clk: "head_act" })).join("")}</div>
     </div>`;
+}
+
+/* 图容器挂载：每个 .graph-wrap 按自己 data-spec 里的规格挂一张 HiveGraph。
+   保活恢复 / 局部刷新重渲染后都要重挂，旧实例由 HiveGraph.mount 销毁重建。 */
+function mountGraphs() {
+  if (!window.HiveGraph) return;
+  document.querySelectorAll("#view-body .graph-wrap").forEach((el) => {
+    let spec = null;
+    try { spec = JSON.parse(el.dataset.spec || "null"); } catch (e) { spec = null; }
+    if (spec) HiveGraph.mount(el, spec);
+  });
 }
 
 function renderView(spec, ctx) {
@@ -1316,6 +1345,7 @@ function renderView(spec, ctx) {
   pruneEmptyCards();
   expandFolds();
   if (typeof mountDecks === "function") mountDecks();
+  if (typeof mountGraphs === "function") mountGraphs();
   // 浏览器标题也由外壳词表拼：视图名走规格，品牌名走后端
   const name = String(fill(spec.heading || spec.heading_from || "", ctx) || "").trim();
   if (BRAND.title_view && name) {

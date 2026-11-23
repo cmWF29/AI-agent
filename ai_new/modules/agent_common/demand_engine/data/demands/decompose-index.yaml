@@ -1,0 +1,20 @@
+id: decompose-index
+title: 拆解台账只读：任务状态、登记产物引用、环境 / 依赖检查与审计条目
+description: "读拆解任务台账：每个任务所处阶段状态、拆出的岗位 / 工具 / 流程及其引用、环境与缺失依赖检查结果、来源 / 许可证 / 版本审计条目。只读取数，不写正式库。"
+tags:
+- library
+- read
+touch: []
+enabled: true
+callable: true
+'on': []
+do:
+- call: decompose.status
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - decompose.status
+  payload: {}
+  promise: 任务状态、产物引用、环境依赖检查与审计条目一次取回，只读不改

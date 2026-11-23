@@ -20,6 +20,7 @@ view:
   - {as: params, demand: runtime-params}
   sections:
   - kind: map
+    fold: {title: "一条需求怎么变成一次调用", note: "从上往下是数据流向，框里是当前在库数量"}
     heading: 一条需求怎么变成一次调用
     note: 从上往下是数据流向，框里是当前在库数量
     cols:
@@ -42,6 +43,7 @@ view:
     as: mf
     source: data.mf.items
     limit: 40
+    fold: {title: "需求清单（声明 vs 编译）", note: "偏差为非 0 的排前面；全量清单走 scripts/gate_demand_tests.py"}
     count_note: "共 {data.mf.items|count} 条；只列前 40 条（偏差为非 0 的排前面），全量清单走 scripts/gate_demand_tests.py"
     heading: 需求清单（声明 vs 编译）
     note: 偏差 = 需求自己声明的预期调用与编译出来的实际调用不一致；不是 0 就是需求变形或用例过期
@@ -58,6 +60,7 @@ view:
   - kind: table
     as: params
     source: data.params.rows
+    fold: {title: "运行时隐藏参数", note: "这些值不在页面上就没人知道重试几次、并发多少、超时多少；改值去 config"}
     heading: 运行时隐藏参数
     note: 这些值不在页面上就没人知道"重试几次、并发多少、超时多少"；改值去 config，说明留在这里
     columns:
@@ -79,10 +82,10 @@ view:
   - kind: table
     as: api
     source: data.api.items
-    limit: 10
+    limit: 40
     list: true
-    fold: {title: "路由与契约"}
-    note: 只列前 10 条看契约形状；运行期的调用与链路观测在「运维」页，那里有完整清单和链路追踪
+    fold: {title: "路由与契约（全部 · {data.api.items|count} 条）"}
+    note: 在库全部可调用能力；每条看通道、入参出参与契约说明
     columns:
     - {label: 路由, value: row.name, sub: row.module}
     - {label: 通道, value: row.stream, fallback: 直连, muted: true}

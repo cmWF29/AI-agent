@@ -160,15 +160,8 @@ class Registry:
                 self._contracts_seen = len(loaded)
         return self._contracts or {}
 
-    def reload_contracts(self):
-        self._contracts = None
-        self._contracts_seen = -1
-
     def contract(self, name):
         return self._load_contracts().get(name) or {}
-
-    def warn_log(self):
-        return list(self._warned)
 
     def _check(self, name, payload):
         """按契约校验入参。warn 模式只留证据，enforce 模式缺必填直接拒。"""

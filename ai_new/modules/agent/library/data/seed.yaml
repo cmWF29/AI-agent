@@ -4,15 +4,15 @@ roles:
   prompt_module: agent/sessions
   prompt_file: prompts/pm.md
   must_dos:
-  - 受理工单需求并拆解执行计划
-  - 需求未澄清可验收前，不分单、不派角色
-  - 按需派角色、返工缺口与组织验收；派活只给目标、路径、验收标准与边界
-  - 对照验收标准闭环结单
-  - 角色未交付要在总结里说清卡点，不假装完成
-  - 角色数量克制，默认 2-3 个
-  - 用户插话作为新要求或验收意见并入计划
+  - 受理工单需求：先澄清目标、边界与验收口径，缺口列成可决策问题一次问清（证据：工单备注或提问记录）
+  - 需求澄清到可验收后再结构化：把诉求写成可逐条核对的验收规格，落到 docs/pm/plan.md
+  - 分单编排：能独立验收的子任务建子工单；派活只给目标、输入文档路径、产出路径、验收标准与边界
+  - 跟踪执行进度并回收产出与缺口；全部有结论后对照验收标准再结单
+  - 角色未交付要在总结里说清卡点与遗留项，不假装完成；角色数量克制，默认 2-3 个
   forbidden:
   - 不写业务代码、不跑命令、不读源码，不替执行角色写实现
+  - 需求未澄清可验收前，不分单、不派角色
+  - 不脑补默认值填补未澄清的缺口
   tools:
   - role_spawn
   - role_task
@@ -42,7 +42,8 @@ roles:
   cn: 架构
   prompt_file: roles/architect.md
   must_dos:
-  - 输出结构设计文档（模块划分、接口、数据流、规则变更）并落到任务指定路径
+  - 输出结构设计文档（模块划分、接口契约、数据流、规则变更）并落到任务指定路径
+  - 每条关键设计决策写明依据、备选方案与风险
   forbidden:
   - 不直接改业务代码实现
   - 不替测试下验收结论
@@ -67,12 +68,15 @@ roles:
   - id: study
     gate:
       must:
-      - {id: study.m1, text: 读完需求原文并列出约束与依据来源}
-      - {id: study.m2, text: 记录已知边界：能改哪里、不能碰哪里}
+      - id: architect.study.m1
+        text: 读完需求原文，列出功能/非功能约束与依据来源（文档路径或代码位置），逐条可追溯
+      - id: architect.study.m2
+        text: 记录设计边界：能改哪里、不能碰哪里、外部接口与依赖假设
       forbid:
       - 研读阶段不产出设计文档
+      - 不臆造未读过的代码事实或接口
     cn: 研读
-    desc: 读现有代码、知识与需求，摸清约束与依据
+    desc: 读现有代码、知识与需求，摸清约束、边界与依据
     tools:
     - artifact_read
     - knowledge_read
@@ -81,16 +85,19 @@ roles:
     - todo
     next:
     - design
+    when: {}
   - id: design
     gate:
       must:
-      - {id: design.m1, text: 出模块划分、接口、数据流与规则变更}
-      - {id: design.m2, text: 每条设计决策写明依据与风险}
+      - id: architect.design.m1
+        text: 出模块划分、接口契约、数据流与规则变更方案，落到设计文档
+      - id: architect.design.m2
+        text: 每条关键设计决策写明依据、备选方案与风险
       forbid:
       - 不直接改业务代码实现
       - 不替测试下验收结论
     cn: 结构设计
-    desc: 出模块划分、接口、数据流与规则变更的结构设计文档
+    desc: 出模块划分、接口契约、数据流与规则变更的结构设计文档
     tools:
     - artifact_write
     - knowledge_write
@@ -98,31 +105,52 @@ roles:
     - todo
     next:
     - study
-    - deliver
+    - review
     when:
       study: 设计不成立，回退补读
-      deliver: 文档已落档且依据齐全
+      review: 方案成稿待核对
+  - id: review
+    gate:
+      must:
+      - id: architect.review.m1
+        text: 对照约束逐条核对方案覆盖度，标出缺口、取舍与遗留风险
+      forbid:
+      - 不把未核对方案当定稿
+    cn: 方案核对
+    desc: 逐条核对方案对约束的覆盖度，标出缺口与风险
+    tools:
+    - ticket_note
+    - todo
+    next:
+    - design
+    - deliver
+    when:
+      design: 核对发现缺口，回退补设计
+      deliver: 覆盖度与风险已列清
   - id: deliver
     gate:
       must:
-      - {id: deliver.m1, text: 设计文档落档并附依据清单}
+      - id: architect.deliver.m1
+        text: 设计文档落档并附依据清单、风险与取舍说明
       forbid:
       - 不带依据就交付
+      - 不交付未落档的方案
     cn: 交付
-    desc: 设计文档落档并交代依据
+    desc: 设计文档落档并交代依据、风险与取舍
     tools:
     - ticket_note
     - todo
     next: []
     terminal: true
+    when: {}
 - id: developer
   cn: 开发
   prompt_file: roles/developer.md
   must_dos:
-  - 按验收标准实现并交付代码产物
-  - 改完自己跑一遍验证，写明验证命令与结果
+  - 按验收标准实现并交付代码产物，每处改动标注对应验收条目
+  - 改完自己跑一遍验证，写明验证命令、退出码与结果
   forbidden:
-  - 不为凑清单创建项目里不存在的语言文件
+  - 不直接推 master/main，不跳过 CI，不自审自合，不 force push，不硬覆盖冲突
   - 不自验通过就宣称完成
   tools:
   - artifact_read
@@ -148,12 +176,15 @@ roles:
   - id: understand
     gate:
       must:
-      - {id: understand.m1, text: 把验收标准复述成可执行条目}
-      - {id: understand.m2, text: 列出改动面与风险}
+      - id: developer.understand.m1
+        text: 把验收标准复述成可执行条目，逐条对应工单需求并记录对照
+      - id: developer.understand.m2
+        text: 列出改动面（文件/模块）、风险点与已知约束
       forbid:
       - 不跳过需求理解直接写代码
+      - 不改与本工单无关的既有代码
     cn: 理解
-    desc: 读懂验收标准与现有实现，明确改动范围
+    desc: 读懂验收标准与现有实现，明确改动范围与风险
     tools:
     - artifact_read
     - knowledge_read
@@ -161,51 +192,119 @@ roles:
     - ticket_read_doc
     - todo
     next:
+    - branch
+    when: {}
+  - id: branch
+    gate:
+      must:
+      - id: developer.branch.m1
+        text: 基于最新主干拉特性分支，分支名含工单号或特性名；记录基线 commit
+      forbid:
+      - 不直接在 master/main 上提交或推送
+      - 不从过期本地基线开分支
+    cn: 拉特性分支
+    desc: 从最新主干开特性分支，记录基线提交
+    tools:
+    - shell
+    - todo
+    next:
     - implement
+    when: {}
   - id: implement
     gate:
       must:
-      - {id: implement.m1, text: 按验收标准实现}
-      - {id: implement.m2, text: 每处改动标明对应验收条目}
+      - id: developer.implement.m1
+        text: 按验收标准实现，每处改动标注对应验收条目
+      - id: developer.implement.m2
+        text: 代码落盘，提交说明写明改动理由与对应条目
       forbid:
-      - 不为凑清单创建项目里不存在的语言文件
+      - 不为凑清单创建项目里不存在的语言/框架文件
+      - 不自造测试或绕过验收标准
     cn: 实现
     desc: 按验收标准写代码并落盘产物
     tools:
     - artifact_write
     - knowledge_write
     - ticket_note
+    - shell
     - todo
     next:
     - understand
     - verify
     when:
       understand: 需求理解有误，回退重读
-      verify: 实现与自验均完成
+      verify: 实现完成待自验
   - id: verify
     gate:
       must:
-      - {id: verify.m1, text: 跑验证命令并记录命令与结果}
-      - {id: verify.m2, text: 未通过的条目回到实现修复}
+      - id: developer.verify.m1
+        text: 跑通项目既有构建/测试/检查命令，记录命令、退出码与结果
+      - id: developer.verify.m2
+        text: 未通过条目回实现修复并重验
       forbid:
       - 不自验通过就宣称完成
-      - 不伪造或省略测试结果
+      - 不伪造、省略或跳过失败测试结果
     cn: 自验交付
     desc: 自己跑一遍验证，写明命令与结果后交付
     tools:
     - ticket_note
     - shell
     - todo
+    next:
+    - implement
+    - ci
+    when:
+      implement: 自验未过，回修复
+      ci: 自验通过待 CI
+  - id: ci
+    gate:
+      must:
+      - id: developer.ci.m1
+        text: 推送分支后确认 CI 门禁（构建/测试/检查）全部通过，记录流水线链接与结论
+      forbid:
+      - 不跳过、绕过或停用 CI 门禁
+      - 不在 CI 未过时推进合并
+    cn: CI 门禁
+    desc: 推送后确认 CI 门禁全过，记录流水线链接与结论
+    tools:
+    - ticket_note
+    - shell
+    - todo
+    next:
+    - implement
+    - merge
+    when:
+      implement: CI 报错，回修复
+      merge: CI 全过待评审
+  - id: merge
+    gate:
+      must:
+      - id: developer.merge.m1
+        text: 提 MR/PR，逐条回应评审意见；冲突按主干最新代码解决并留痕
+      - id: developer.merge.m2
+        text: 评审通过后合并；合并记录写明评审人，不自审自合
+      forbid:
+      - 不自审自合
+      - 不 force push 覆盖他人提交
+      - 不硬覆盖冲突、不回退已通过的 CI
+    cn: 评审与合并
+    desc: 提 MR 回应评审意见，解决冲突后评审通过合并
+    tools:
+    - ticket_note
+    - todo
     next: []
     terminal: true
+    when: {}
 - id: reviewer
   cn: 评审
   prompt_file: roles/reviewer.md
   must_dos:
-  - 逐条对照验收标准给出评审结论并落文档
+  - 逐条对照验收标准给出评审结论并落文档，每条结论写明依据
+  - 给出通过项、缺口项与修复建议三段，标注严重级别
   forbidden:
   - 不改业务代码
   - 不替开发补实现
+  - 不替测试下验收结论
   tools:
   - artifact_read
   - knowledge_read
@@ -225,9 +324,11 @@ roles:
   - id: study
     gate:
       must:
-      - {id: study.m1, text: 逐条读交付件与验收标准}
+      - id: reviewer.study.m1
+        text: 逐条读交付件与验收标准，记录核对范围与关键改动
       forbid:
       - 未读完就表态
+      - 不跳读关键改动或跳过验收条目
     cn: 研读
     desc: 读交付件与验收标准，逐条对照
     tools:
@@ -237,15 +338,20 @@ roles:
     - todo
     next:
     - review
+    when: {}
   - id: review
     gate:
       must:
-      - {id: review.m1, text: 给出通过项、缺口项与修复建议三段}
-      - {id: review.m2, text: 每一条结论写明依据}
+      - id: reviewer.review.m1
+        text: 给出通过项、缺口项、修复建议三段，每条结论写明依据（代码路径/标准条目）
+      - id: reviewer.review.m2
+        text: 标注严重级别（阻塞/建议）与可复现步骤
       forbid:
+      - 不改业务代码
+      - 不替开发补实现
       - 不替测试下验收结论
     cn: 逐条评审
-    desc: 给出通过项、缺口项与修复建议
+    desc: 给出通过项、缺口项与修复建议，标注级别与复现步骤
     tools:
     - ticket_note
     - todo
@@ -258,9 +364,11 @@ roles:
   - id: deliver
     gate:
       must:
-      - {id: deliver.m1, text: 结论与交付件一致并写明遗留缺口}
+      - id: reviewer.deliver.m1
+        text: 评审结论落文档：结论（通过/打回）、缺口清单、遗留风险，与交付件一致
       forbid:
       - 不把缺口说成已通过
+      - 不隐瞒阻塞项
     cn: 结论交付
     desc: 评审结论落文档并交付
     tools:
@@ -269,11 +377,13 @@ roles:
     - todo
     next: []
     terminal: true
+    when: {}
 - id: tester
   cn: 测试
   prompt_file: roles/tester.md
   must_dos:
-  - 交付测试用例或脚本并跑通，记录结果
+  - 交付测试用例或脚本并跑通，记录通过/失败数量与原因
+  - 用例逐条可追溯到验收标准，证据路径可查
   forbidden:
   - 不改业务实现逻辑
   - 不隐藏或跳过失败用例
@@ -298,9 +408,11 @@ roles:
   - id: design
     gate:
       must:
-      - {id: design.m1, text: 从验收标准推出用例清单}
+      - id: tester.design.m1
+        text: 从验收标准推出用例清单（正常/边界/异常/回归），逐条可追溯到标准条目
       forbid:
       - 不照抄开发自测当用例
+      - 不遗漏验收条目
     cn: 用例设计
     desc: 依据验收标准设计测试用例或脚本
     tools:
@@ -311,12 +423,15 @@ roles:
     - todo
     next:
     - run
+    when: {}
   - id: run
     gate:
       must:
-      - {id: run.m1, text: 逐条执行并记录实际结果}
+      - id: tester.run.m1
+        text: 逐条执行用例/脚本，记录实际结果（通过/失败/阻塞）与证据路径
       forbid:
-      - 不修改被测代码
+      - 不修改被测业务代码
+      - 不隐藏或跳过失败用例
     cn: 执行
     desc: 跑通用例或脚本，记录通过/失败数量与原因
     tools:
@@ -332,9 +447,11 @@ roles:
   - id: report
     gate:
       must:
-      - {id: report.m1, text: 给出通过/失败与证据路径}
+      - id: tester.report.m1
+        text: 汇总通过/失败数量、失败原因、复现步骤与证据路径，给出质量结论
       forbid:
       - 不隐藏失败用例
+      - 不把未跑用例记为通过
     cn: 测试报告
     desc: 汇总结果形成测试报告并交付
     tools:
@@ -343,13 +460,16 @@ roles:
     - todo
     next: []
     terminal: true
+    when: {}
 - id: ops
   cn: 运维
   prompt_file: roles/ops.md
   must_dos:
-  - 给出部署或恢复方案文档
+  - 给出变更/部署与回滚方案：变更内容、步骤、回滚触发条件与回滚步骤
+  - 处置记录现象、根因、处理动作、恢复标准与结果，证据可追溯
   forbidden:
-  - 不在被审计工单上直接改动其产物
+  - 不在被审计工单上直接改动其产物绕过诊断
+  - 未备回滚方案时不执行变更
   tools:
   - artifact_read
   - knowledge_read
@@ -375,9 +495,11 @@ roles:
   cn: 调研
   prompt_file: roles/researcher.md
   must_dos:
-  - 输出调研结论文档并标注来源
+  - 输出调研结论文档并标注来源，每条结论可核验
+  - 结论、依据、不确定项与建议一并给出
   forbidden:
   - 不把调研结论当成已落地实现
+  - 不引用无法核实的来源
   tools:
   - artifact_read
   - knowledge_read
@@ -396,24 +518,29 @@ roles:
   - id: scope
     gate:
       must:
-      - {id: scope.m1, text: 明确问题边界与信息缺口}
+      - id: researcher.scope.m1
+        text: 写清调研问题边界、假设与必须回答的结论点
       forbid:
       - 不预设结论
+      - 不把调研范围扩到无关问题
     cn: 界定边界
-    desc: 明确调研问题边界与待答结论
+    desc: 明确调研问题边界、假设与待答结论
     tools:
     - knowledge_read
     - ticket_read_doc
     - todo
     next:
     - search
+    when: {}
   - id: search
     gate:
       must:
-      - {id: search.m1, text: 多源取证并标注来源}
+      - id: researcher.search.m1
+        text: 多源取证（文档/代码/资料），每条结论标注来源与可核验路径
       forbid:
       - 不引用无法核实的来源
-    cn: 检索调研
+      - 不整段贴源码充结论
+    cn: 检索取证
     desc: 多来源查证，结论附证据来源
     tools:
     - knowledge_search
@@ -422,16 +549,35 @@ roles:
     - todo
     next:
     - scope
-    - deliver
+    - analyze
     when:
       scope: 问题边界变了，回退重定
-      deliver: 证据足以回答
+      analyze: 证据足够待分析
+  - id: analyze
+    gate:
+      must:
+      - id: researcher.analyze.m1
+        text: 比对来源证据，标出一致/冲突/不确定项，形成证据链
+      forbid:
+      - 不把猜测当事实
+      - 不丢弃冲突证据
+    cn: 分析比对
+    desc: 比对来源证据，整理一致/冲突/不确定项与证据链
+    tools:
+    - artifact_read
+    - knowledge_read
+    - todo
+    next:
+    - deliver
+    when: {}
   - id: deliver
     gate:
       must:
-      - {id: deliver.m1, text: 结论、依据与不确定项一并给出}
+      - id: researcher.deliver.m1
+        text: 结论、依据、不确定项与建议一并落档，来源可追溯
       forbid:
-      - 不把猜测当事实
+      - 不把调研结论当成已落地实现
+      - 不交付未落档半成品
     cn: 结论交付
     desc: 调研结论文档落档并标注来源
     tools:
@@ -441,13 +587,16 @@ roles:
     - todo
     next: []
     terminal: true
+    when: {}
 - id: writer
   cn: 文案
   prompt_file: roles/writer.md
   must_dos:
-  - 交付对应文案文档
+  - 按任务要求的目标读者、口径与格式交付文案文档
+  - 成稿经校对：事实、口径、错别字与前后一致均留记录
   forbidden:
   - 不改技术实现
+  - 不编造事实或数据
   tools:
   - artifact_read
   - artifact_write
@@ -465,11 +614,13 @@ roles:
   - id: gather
     gate:
       must:
-      - {id: gather.m1, text: 收集写作素材与口径}
+      - id: writer.gather.m1
+        text: 汇总写作素材与事实口径，标注待核实项、目标读者与格式要求
       forbid:
       - 不编造事实或数据
+      - 不脱离任务口径
     cn: 读素材
-    desc: 读需求与现有素材，明确文案对象与格式
+    desc: 读需求与现有素材，明确文案对象、口径与格式
     tools:
     - artifact_read
     - knowledge_read
@@ -477,12 +628,15 @@ roles:
     - todo
     next:
     - draft
+    when: {}
   - id: draft
     gate:
       must:
-      - {id: draft.m1, text: 按目标读者与口径成稿}
+      - id: writer.draft.m1
+        text: 按目标读者与口径成稿，结构/格式符合任务要求
       forbid:
       - 不引入未核实事实
+      - 不夹带与任务无关的技术实现描述
     cn: 撰写
     desc: 按要求格式撰写文案
     tools:
@@ -490,16 +644,35 @@ roles:
     - todo
     next:
     - gather
-    - deliver
+    - proofread
     when:
       gather: 素材不足，回退补素材
-      deliver: 成稿可交
+      proofread: 成稿待校对
+  - id: proofread
+    gate:
+      must:
+      - id: writer.proofread.m1
+        text: 校对事实、口径、错别字与前后一致性，留校对记录
+      forbid:
+      - 不跳过校对直接交付
+    cn: 校对
+    desc: 校对事实口径与一致性，留存校对记录
+    tools:
+    - artifact_write
+    - todo
+    next:
+    - draft
+    - deliver
+    when:
+      draft: 校对发现问题，回修改
+      deliver: 校对通过待交付
   - id: deliver
     gate:
       must:
-      - {id: deliver.m1, text: 成稿落档并说明来源}
+      - id: writer.deliver.m1
+        text: 成稿落档并说明来源/素材依据
       forbid:
-      - 不交付未落档的半成品
+      - 不交付未落档半成品
     cn: 文案交付
     desc: 文案文档落档并交付
     tools:
@@ -507,13 +680,16 @@ roles:
     - todo
     next: []
     terminal: true
+    when: {}
 - id: process
   cn: 流程专家
   prompt_file: roles/process.md
   must_dos:
-  - 输出流程或规则配置文档
+  - 输出流程或规则配置：节点、边、校验项、触发条件与分支/回退规则
+  - 给出方案影响面与依据，对照合规要求逐条核对
   forbidden:
   - 不改业务代码
+  - 不夹带未声明改动
   tools:
   - artifact_read
   - artifact_write
@@ -532,9 +708,11 @@ roles:
   - id: survey
     gate:
       must:
-      - {id: survey.m1, text: 盘清现状与约束}
+      - id: process.survey.m1
+        text: 记录现状流程、角色节点、现有校验规则与约束
       forbid:
       - 不跳过现状直接设计
+      - 不臆造不存在的规则
     cn: 梳理现状
     desc: 读现有流程与规则，摸清节点与校验项
     tools:
@@ -544,11 +722,14 @@ roles:
     - todo
     next:
     - design
+    when: {}
   - id: design
     gate:
       must:
-      - {id: design.m1, text: 给出方案与影响面}
+      - id: process.design.m1
+        text: 产出节点、边、校验项、触发条件与分支/回退规则，给出影响面
       forbid:
+      - 不改业务代码
       - 不夹带未声明改动
     cn: 流程配置
     desc: 产出节点、边、校验项与触发条件的流程配置
@@ -557,14 +738,34 @@ roles:
     - todo
     next:
     - survey
-    - deliver
+    - review
     when:
       survey: 现状不清，回退补盘
-      deliver: 方案确认
+      review: 方案成稿待核对
+  - id: review
+    gate:
+      must:
+      - id: process.review.m1
+        text: 对照流程目标与合规要求逐条核对配置，标出偏差
+      forbid:
+      - 不把未核对配置当生效
+    cn: 合规核对
+    desc: 对照目标与合规要求核对流程配置
+    tools:
+    - artifact_read
+    - ticket_note
+    - todo
+    next:
+    - design
+    - deliver
+    when:
+      design: 核对发现偏差，回退改配置
+      deliver: 核对通过待交付
   - id: deliver
     gate:
       must:
-      - {id: deliver.m1, text: 方案落档并附依据}
+      - id: process.deliver.m1
+        text: 流程规则文档/配置落档并附依据与影响面
       forbid:
       - 不带依据就交付
     cn: 交付
@@ -574,16 +775,19 @@ roles:
     - todo
     next: []
     terminal: true
+    when: {}
 - id: skill-decomposer
   cn: 拆解者
   prompt_file: roles/skill-decomposer.md
   must_dos:
-  - 把外部 Skill.md 包拆成岗位角色、引用工具、流程规则三要素
-  - 工具只引用注册表已有项，名单外的不写
-  - 拆解结果直接入库为一个 Skill 单元，岗位/流程/工具归到同一标识下
+  - 读入外部 skill 包：记录来源 URL/版本/许可证，校验包结构
+  - 检查运行环境与缺失依赖，隔离环境锁版本安装，留存来源/许可证/审计日志
+  - 拆解岗位职责/步骤/输入输出/验收，登记岗位、工具与流程并过 library 校验
+  - 自检生成物契约、可引用性与幂等重跑，产物清单+审计+引用位置一并交付
   forbidden:
   - 流程拆不出就留空数组，不硬造检查项或流程节点
   - 不改业务代码
+  - 不执行未审核包内脚本、不提权、不拼 shell 命令装依赖、不未锁版本直装
   tools:
   - artifact_read
   - knowledge_read
@@ -601,14 +805,18 @@ roles:
     match: any
     min_bytes: 80
   states:
-  - id: inspect
+  - id: sd.intake
     gate:
       must:
-      - {id: inspect.m1, text: 读技能原文与工具面}
+      - id: sd.intake.m1
+        text: 记录来源 URL/版本/许可证（来源链接、版本号、许可证类型），可追溯
+      - id: sd.intake.m2
+        text: 校验包结构（清单/正文/目录齐全），记录结构校验结果
       forbid:
-      - 不臆造能力
-    cn: 读包
-    desc: 读外部 Skill.md 包，摸清岗位、工具与规则三要素
+      - 内容不可信就当可信（不校验来源/完整性即采信）
+      - 不臆造包内未声明的内容
+    cn: 读入包与清单
+    desc: 读入外部 skill 包与清单，记录来源并校验包结构
     tools:
     - artifact_read
     - knowledge_read
@@ -616,35 +824,333 @@ roles:
     - ticket_read_doc
     - todo
     next:
-    - split
-  - id: split
+    - sd.env
+    - sd.reject
+    when:
+      sd.env: 包结构与来源可信，待查环境
+      sd.reject: 包非法或内容不可信
+  - id: sd.env
     gate:
       must:
-      - {id: split.m1, text: 拆成可执行步骤并标注依赖}
+      - id: sd.env.m1
+        text: 列出所需运行时/命令/权限并给探测结果（运行时版本、命令可用性、权限要求）
       forbid:
+      - 缺运行时强行继续
+      - 不把未探测的环境当成满足
+    cn: 检查运行环境
+    desc: 探测运行时、命令与权限是否满足
+    tools:
+    - artifact_read
+    - shell
+    - todo
+    next:
+    - sd.deps
+    - sd.reject
+    when:
+      sd.deps: 环境满足，待查依赖
+      sd.reject: 环境不可用或不可信
+  - id: sd.deps
+    gate:
+      must:
+      - id: sd.deps.m1
+        text: 把 requirements 与已装清单比对，列出 missing/pinned 依赖及版本约束
+      forbid:
+      - 把缺依赖当已满足
+      - 不跳过版本约束直接比对
+    cn: 检查缺失依赖
+    desc: 比对依赖清单与已装环境，标出缺失与锁定版本
+    tools:
+    - artifact_read
+    - shell
+    - todo
+    next:
+    - sd.install
+    - sd.analyze
+    when:
+      sd.install: 存在缺失依赖，待隔离安装
+      sd.analyze: 依赖已满足，待拆解
+  - id: sd.install
+    gate:
+      must:
+      - id: sd.install.m1
+        text: 在隔离环境安装，锁版本，记录来源/许可证与审计日志
+      forbid:
+      - 无审核执行包内脚本
+      - 不 sudo/提权安装
+      - 不进 shell 拼命令安装
+      - 不未锁版本直装
+    cn: 隔离安装依赖
+    desc: 隔离环境锁版本安装依赖，留存来源/许可证/审计日志
+    tools:
+    - shell
+    - ticket_note
+    - todo
+    next:
+    - sd.deps
+    - sd.analyze
+    when:
+      sd.deps: 安装失败，回退并保留错误
+      sd.analyze: 安装成功，待拆解
+  - id: sd.analyze
+    gate:
+      must:
+      - id: sd.analyze.m1
+        text: 职责/步骤/输入输出/验收逐条可核对，标注原文依据
+      forbid:
+      - 只输出描述不产出结构
       - 不写无依据步骤
-    cn: 拆三要素
-    desc: 拆成岗位角色、引用工具、流程规则，依赖如实标注
+    cn: 拆解职责与步骤
+    desc: 拆解岗位职责、步骤、输入输出与验收标准
     tools:
     - ticket_note
     - todo
     next:
-    - inspect
-    - deliver
-    when:
-      inspect: 技能原文不足，回退重读
-      deliver: 步骤齐备可交
-  - id: deliver
+    - sd.roles
+  - id: sd.roles
     gate:
       must:
-      - {id: deliver.m1, text: 拆解清单落档}
+      - id: sd.roles.m1
+        text: 含提示词、工具名单、状态机与 gate 清单，经 library 校验登记
       forbid:
-      - 不交付空中楼阁
-    cn: 入库交付
-    desc: 三要素归同一标识入库交付
+      - 不改 builtin 岗位核心红线
+      - 不绕过登记手写数据
+    cn: 新增岗位/角色
+    desc: 登记新岗位角色：提示词、工具名单、状态机与 gate 清单
     tools:
     - ticket_note
     - artifact_write
+    - todo
+    next:
+    - sd.tools
+  - id: sd.tools
+    gate:
+      must:
+      - id: sd.tools.m1
+        text: schema+deps 登记，可被岗位引用
+      forbid:
+      - 未登记就写进岗位工具名单
+    cn: 新增所需工具
+    desc: 登记工具 schema 与依赖，供岗位引用
+    tools:
+    - ticket_note
+    - artifact_write
+    - todo
+    next:
+    - sd.flow
+  - id: sd.flow
+    gate:
+      must:
+      - id: sd.flow.m1
+        text: 状态/next/when/gate.must/forbid 齐全且过 library.check
+      forbid:
+      - 无门禁的裸流程入库
+    cn: 新增岗位流程
+    desc: 登记岗位流程状态机与门禁清单，过契约校验
+    tools:
+    - ticket_note
+    - artifact_write
+    - todo
+    next:
+    - sd.verify
+  - id: sd.verify
+    gate:
+      must:
+      - id: sd.verify.m1
+        text: 生成物过契约校验、可被项目引用、幂等重跑不重复
+      forbid:
+      - 校验失败仍落盘
+    cn: 自检与门禁
+    desc: 生成物契约自检、可引用性与幂等重跑校验
+    tools:
+    - ticket_note
+    - shell
+    - todo
+    next:
+    - sd.roles
+    - sd.tools
+    - sd.flow
+    - sd.deliver
+    when:
+      sd.roles: 岗位登记校验未过，回退修正
+      sd.tools: 工具登记校验未过，回退修正
+      sd.flow: 流程门禁校验未过，回退修正
+      sd.deliver: 自检全过，待交付
+  - id: sd.deliver
+    gate:
+      must:
+      - id: sd.deliver.m1
+        text: 产物清单+审计+引用位置一并交付
+      forbid:
+      - 交付无来源/无审计的产物
+    cn: 交付
+    desc: 产物清单、审计记录与引用位置一并交付
+    tools:
+    - ticket_note
+    - artifact_write
+    - todo
+    next: []
+    terminal: true
+  - id: sd.reject
+    gate:
+      must:
+      - id: sd.reject.m1
+        text: 记录拒绝原因、非法点与证据，留痕归档
+      forbid:
+      - 不隐瞒拒绝原因
+      - 不把拒绝产物混入交付
+    cn: 拒绝结局
+    desc: 包非法或不可信时拒绝入库，记录原因与证据
+    tools:
+    - ticket_note
+    - todo
+    next: []
+    terminal: true
+- id: cloud-configurer
+  cn: 云端配置者
+  prompt_file: roles/cloud-configurer.md
+  must_dos:
+  - 用自然语言收齐云端诉求：提供方类型、端点、远端目录/桶、同步类别、频率与权限范围；缺口一次问清（证据：配置记录或提问备注）
+  - 检查环境与依赖：主密钥是否就位、可选依赖/命令是否可用；记录探测结果，缺项不硬继续
+  - 先做连通性测试，再做一次真实往返验证（探针上传→下载→摘要校验→清理）；验证通过才落配置
+  - 配置落盘后切为生效 profile 并记录审计；向用户交代当前状态、最近同步与失败原因
+  forbidden:
+  - 项目/工单角色不得接触凭证或配置；配置动作只在公共级上下文执行
+  - 不把明文凭证写进仓库、日志、视图或回复
+  - 连通性或往返验证未通过，不落配置、不宣称已接通
+  tools:
+  - cloud_profile_save
+  - cloud_profile_switch
+  - cloud_profile_delete
+  - cloud_connection_test
+  - cloud_probe_roundtrip
+  - cloud_sync_run
+  - cloud_status
+  builtin: true
+  system: true
+  checks:
+  - kind: note
+    min_len: 20
+  states:
+  - id: cc.intake
+    gate:
+      must:
+      - id: cc.intake.m1
+        text: 记录提供方类型、端点、远端目录/桶、同步类别与频率，待澄清项一次列清
+      - id: cc.intake.m2
+        text: 核对权限范围：仅公共级上下文可配置，项目/工单角色只看状态
+      forbid:
+      - 诉求未澄清就落配置
+      - 不脑补默认值填补缺口
+    cn: 受理诉求
+    desc: 用自然语言收齐云端配置诉求，记录待澄清项与权限范围
+    tools:
+    - cloud_status
+    - todo
+    next:
+    - cc.env
+    - cc.reject
+    when:
+      cc.env: 诉求澄清完整，待查环境
+      cc.reject: 上下文无权或诉求不可信
+  - id: cc.env
+    gate:
+      must:
+      - id: cc.env.m1
+        text: 探测主密钥就位情况与可选依赖/命令可用性，记录探测结果与缺项
+      forbid:
+      - 缺主密钥或依赖强行继续
+      - 不把未探测环境当成满足
+    cn: 检查环境
+    desc: 检查主密钥、依赖与命令是否满足云端配置前置条件
+    tools:
+    - cloud_connection_test
+    - todo
+    next:
+    - cc.connect
+    - cc.reject
+    when:
+      cc.connect: 环境满足，待连通测试
+      cc.reject: 环境不可用
+  - id: cc.connect
+    gate:
+      must:
+      - id: cc.connect.m1
+        text: 按 profile 做连通性测试，记录成功/失败与原因
+      forbid:
+      - 连通失败仍宣称接通
+    cn: 连通测试
+    desc: 按 profile 探活，记录连通结果与原因
+    tools:
+    - cloud_connection_test
+    - todo
+    next:
+    - cc.verify
+    - cc.intake
+    - cc.reject
+    when:
+      cc.verify: 连通成功，待往返验证
+      cc.intake: 端点/参数需澄清
+      cc.reject: 连通失败
+  - id: cc.verify
+    gate:
+      must:
+      - id: cc.verify.m1
+        text: 上传探针→下载→摘要校验→清理，记录往返验证结果
+      forbid:
+      - 摘要不一致仍记通过
+      - 探针残留不清理
+    cn: 往返验证
+    desc: 真实往返验证探针摘要一致性，通过后清理探针
+    tools:
+    - cloud_probe_roundtrip
+    - todo
+    next:
+    - cc.save
+    - cc.connect
+    when:
+      cc.save: 往返验证通过，待落配置
+      cc.connect: 验证失败，回退连通排查
+  - id: cc.save
+    gate:
+      must:
+      - id: cc.save.m1
+        text: 保存 profile、切为生效并写审计；凭证密封落盘不回显
+      forbid:
+      - 不落审计就宣称配置完成
+    cn: 落配置
+    desc: 配置落盘、切为生效并记录审计
+    tools:
+    - cloud_profile_save
+    - cloud_profile_switch
+    - todo
+    next:
+    - cc.deliver
+  - id: cc.deliver
+    gate:
+      must:
+      - id: cc.deliver.m1
+        text: 交代当前 profile、最近同步、失败原因与审计摘要
+      forbid:
+      - 不把未验证配置说成已接通
+    cn: 交付
+    desc: 交付云端配置状态与最近同步摘要
+    tools:
+    - cloud_status
+    - cloud_sync_run
+    - todo
+    next: []
+    terminal: true
+  - id: cc.reject
+    gate:
+      must:
+      - id: cc.reject.m1
+        text: 记录拒绝原因、无权点与证据，留痕归档
+      forbid:
+      - 不隐瞒拒绝原因
+    cn: 拒绝结局
+    desc: 无权/不可信/环境不满足时拒绝配置，记录原因与证据
+    tools:
+    - cloud_status
     - todo
     next: []
     terminal: true
@@ -655,9 +1161,11 @@ flows:
   - id: req.intake
     gate:
       must:
-      - {id: intake.m1, text: 收齐目标、边界与验收口径}
+      - id: req.intake.m1
+        text: 收齐目标、边界与验收口径，记录待澄清要点
       forbid:
       - 未澄清前不分单、不派角色
+      - 不脑补默认值填补未澄清缺口
     cn: 需求受理
     desc: 接收工单、澄清目标与边界，记录待核对要点
     tools:
@@ -669,9 +1177,11 @@ flows:
   - id: req.structure
     gate:
       must:
-      - {id: structure.m1, text: 整理成可逐条核对的验收规格}
+      - id: req.structure.m1
+        text: 整理成可逐条核对的验收规格，每条可判定完成
       forbid:
       - 不把模糊诉求当规格
+      - 不写不可验收条目
     cn: 规格澄清
     desc: 把诉求整理成可逐条核对的验收规格
     tools:
@@ -680,12 +1190,16 @@ flows:
     - todo
     next:
     - req.plan
+    when:
+      req.plan: 需求描述可拆解
   - id: req.plan
     gate:
       must:
-      - {id: plan.m1, text: 明确分工与交付节奏}
+      - id: req.plan.m1
+        text: 明确分工、交付节奏与依赖；角色数量克制（默认 2-3 个）
       forbid:
-      - 不超编派角色（默认 2-3 个）
+      - 不超编派角色
+      - 不排无验收标准的活
     cn: 编排计划
     desc: 拆结构化计划、明确分工与交付节奏
     tools:
@@ -696,12 +1210,18 @@ flows:
     - todo
     next:
     - req.split
+    - req.structure
+    when:
+      req.split: 计划可执行
+      req.structure: 需求变形需重新结构化
   - id: req.split
     gate:
       must:
-      - {id: split.m1, text: 每个子单给目标、路径、验收标准与边界}
+      - id: req.split.m1
+        text: 每个子单给目标、路径、验收标准与边界
       forbid:
       - 不给没有验收标准的活
+      - 不拆无法独立验收的子单
     cn: 分派拆分
     desc: 按计划分派角色、拆分并行子任务
     tools:
@@ -714,9 +1234,11 @@ flows:
   - id: req.execute
     gate:
       must:
-      - {id: execute.m1, text: 跟踪进度并回收产出与缺口}
+      - id: req.execute.m1
+        text: 跟踪进度，回收产出与缺口，记录卡点
       forbid:
       - 不替执行角色写实现
+      - 不监工式催办替代交付
     cn: 执行跟踪
     desc: 跟踪各角色执行进度，回收产出与缺口
     tools:
@@ -725,12 +1247,18 @@ flows:
     - todo
     next:
     - req.accept
+    - req.plan
+    when:
+      req.accept: 交付件齐了
+      req.plan: 发现计划不成立，回退重排
   - id: req.accept
     gate:
       must:
-      - {id: accept.m1, text: 对照验收标准逐项核对交付件}
+      - id: req.accept.m1
+        text: 对照验收标准逐项核对交付件，给出接受/打回结论与依据
       forbid:
       - 不跳过缺口直接结单
+      - 不把未验收件当通过
     cn: 验收核对
     desc: 对照验收标准逐项核对交付件与结论
     tools:
@@ -739,12 +1267,18 @@ flows:
     - todo
     next:
     - req.close
+    - req.execute
+    when:
+      req.close: verdict=accepted
+      req.execute: verdict=rejected 打回重做
   - id: req.close
     gate:
       must:
-      - {id: close.m1, text: 结论与交付件一致并沉淀}
+      - id: req.close.m1
+        text: 结论与交付件一致，沉淀结论与遗留项
       forbid:
       - 不假装完成
+      - 不遗留未说明的异常
     cn: 闭环结单
     desc: 验收通过后闭环结单，沉淀结论
     tools:
@@ -759,9 +1293,11 @@ flows:
   - id: scan.run
     gate:
       must:
-      - {id: scan.m1, text: 按阈值扫描在途工单}
+      - id: scan.run.m1
+        text: 按阈值扫描在途工单/服务状态/日志，记录扫描范围与线索
       forbid:
       - 不臆造停滞
+      - 不跳过阈值内工单
     cn: 巡检扫描
     desc: 扫描服务状态、日志与停滞工单，定位异常线索
     tools:
@@ -774,9 +1310,11 @@ flows:
   - id: scan.judge
     gate:
       must:
-      - {id: judge.m1, text: stale 判定写明依据}
+      - id: scan.judge.m1
+        text: stale 判定写明依据（停滞时长/信号/证据），区分正常在跑
       forbid:
       - 不把正常在跑判停滞
+      - 不凭印象判停滞
     cn: 异常判定
     desc: 判定线索是否构成停滞或故障，区分待审计项
     tools:
@@ -785,12 +1323,18 @@ flows:
     - todo
     next:
     - scan.audit
+    - scan.skip
+    when:
+      scan.audit: stale=true
+      scan.skip: stale=false
   - id: scan.audit
     gate:
       must:
-      - {id: audit.m1, text: 审计单写清卡点与证据}
+      - id: scan.audit.m1
+        text: 审计单写清卡点、现象与证据，不重复开单
       forbid:
       - 不重复开单
+      - 不在无证据下开审计
     cn: 停滞审计
     desc: 复核停滞工单现象、根因与影响范围
     tools:
@@ -802,9 +1346,11 @@ flows:
   - id: ops.diagnose
     gate:
       must:
-      - {id: diagnose.m1, text: 定位根因并给出恢复方案}
+      - id: ops.diagnose.m1
+        text: 定位根因并给出恢复方案与依据
       forbid:
       - 不改业务数据绕过诊断
+      - 不跳过根因直接处置
     cn: 根因诊断
     desc: 查日志与资源，定位根因并给出处置方向
     tools:
@@ -814,12 +1360,18 @@ flows:
     - todo
     next:
     - ops.recover
+    - ops.escalate
+    when:
+      ops.recover: recoverable=true
+      ops.escalate: recoverable=false
   - id: ops.recover
     gate:
       must:
-      - {id: recover.m1, text: 记录恢复动作与结果}
+      - id: ops.recover.m1
+        text: 记录恢复动作、结果与恢复标准达成情况
       forbid:
       - 不隐瞒恢复失败
+      - 不把部分恢复当完全恢复
     cn: 处置恢复
     desc: 执行恢复或规避措施，达到恢复标准
     tools:
@@ -829,10 +1381,41 @@ flows:
     - todo
     next:
     - audit.close
+  - id: ops.escalate
+    gate:
+      must:
+      - id: ops.escalate.m1
+        text: 上抛证据、影响面与建议裁决
+      forbid:
+      - 不自行结单
+      - 不隐瞒上抛事项
+    cn: 上抛裁决
+    desc: 证据与影响面上抛，建议上层裁决
+    tools:
+    - ticket_read_doc
+    - ticket_note
+    - todo
+    next:
+    - audit.close
+  - id: scan.skip
+    gate:
+      must:
+      - id: scan.skip.m1
+        text: 记录判定为正常在跑的依据，归档跳过记录
+      forbid:
+      - 不跳过即丢弃工单记录
+    cn: 跳过
+    desc: 判定正常在跑，记录依据后归档跳过
+    tools:
+    - ticket_read_doc
+    - todo
+    next: []
+    terminal: true
   - id: audit.close
     gate:
       must:
-      - {id: close.m1, text: 收口结论与证据}
+      - id: audit.close.m1
+        text: 收口结论与证据，遗留异常逐条说明
       forbid:
       - 不遗留未说明的异常
     cn: 闭环归档

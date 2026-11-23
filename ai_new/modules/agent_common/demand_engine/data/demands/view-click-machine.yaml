@@ -26,16 +26,19 @@ view:
   - kind: pages
     as: machine
     source: machine
+    fold: {title: "有哪些页面", note: "每行一页：这页只干一件事（视图自己声明的副标题）、从哪页点什么进来、点哪个控件能出去"}
     heading: 有哪些页面
     note: 每行一页：这页只干一件事（视图自己声明的副标题）、从哪页点什么进来、点哪个控件能出去
   - kind: routes
     as: machine
     source: machine
+    fold: {title: "页面之间怎么跳", note: "一条就是在哪页、点哪个、到了哪页；弹窗（浮层）也算一步落点"}
     heading: 页面之间怎么跳
     note: 一条就是"在哪页、点哪个、到了哪页"；弹窗（浮层）也算一步落点，因为它会打断当前页
   - kind: elems
     as: machine
     source: machine
+    fold: {title: "一页里有哪些元素、点了以后什么态", note: "按页折叠；每行写清元素叫什么、点下去发生什么、只在哪个态点得动"}
     heading: 一页里有哪些元素、点了以后什么态
     note: 按页折叠；每行写清元素叫什么、点下去发生什么、以及只在哪个态点得动（点不动就是灰的、吞掉点击）
   - kind: stats

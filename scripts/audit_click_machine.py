@@ -6,7 +6,7 @@
 
 用法：
   python3 scripts/audit_click_machine.py                      # 本地 http://127.0.0.1:8787
-  python3 scripts/audit_click_machine.py --base https://104.168.148.112:8788 --user admin --password 123456
+  python3 scripts/audit_click_machine.py --base "$AI_NEW_BASE" --user "$AI_NEW_USER" --password "$AI_NEW_PASSWORD"
   python3 scripts/audit_click_machine.py --views projects,project,home
 
 审计模式 `audit=1` 让前端只过门禁、走一遍进入/回落，不真正执行动作，所以不会写脏数据。

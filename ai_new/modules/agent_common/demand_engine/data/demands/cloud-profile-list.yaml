@@ -1,0 +1,17 @@
+id: cloud-profile-list
+title: 云端 profile 列表：脱敏只读
+description: "列出全部云端 profile；凭证值一律脱敏，不返回密封串与明文"
+tags: [cloud, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.profile_list
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - cloud.profile_list
+  payload: {}
+  promise: 列表视图凭证脱敏，各作用域只读可见

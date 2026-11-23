@@ -1,0 +1,46 @@
+id: timer-update
+title: 改定时器：标题/表达式/时区/动作/工单/岗位，改完重排下次触发
+description: "改定时器：作用域守卫通过后落编辑，表达式或时区变更后重排下次触发；落盘效果交 runtime.apply。"
+tags:
+- timer
+- write
+touch: [timer-index]
+enabled: true
+callable: true
+'on': []
+do:
+- call: timer.update
+  with:
+    id:
+      get: input.id
+    title:
+      get: input.title
+    expr:
+      get: input.expr
+    tz:
+      get: input.tz
+    action:
+      get: input.action
+    ticket:
+      get: input.ticket
+    role:
+      get: input.role
+    caller:
+      get: input.caller
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input:
+      id: tm-0001
+  calls:
+  - timer.update
+  - runtime.apply
+  payload: {}
+  promise: 改完重排下次触发；越权修改在能力内拒绝并写审计

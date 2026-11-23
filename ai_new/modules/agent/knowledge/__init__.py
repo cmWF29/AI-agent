@@ -23,6 +23,9 @@ def setup(ctx):
         ("knowledge.project_dir", _pure.project_dir),
         ("knowledge.project_prefix", _pure.project_prefix),
     ]
+    ctx.api.register("knowledge.doc_meta", _route_doc_meta,
+                     "只读：读文档版本元数据（版本/作者/更新时间/修订历史）；路径越界即拒",
+                     module="knowledge")
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="knowledge")
     ctx.api.register("knowledge.save", _route_save, "写知识：归一→算路径→append/覆盖→回执", module="knowledge")
@@ -67,13 +70,42 @@ def _route_save(ctx, payload):
         return doc
     content = payload.get("content") or ""
     rel_path = doc.get("path") or ""
-    if payload.get("mode") == "append":
-        body_effect = {"kind": "append_text", "module": "agent/knowledge",
-                       "path": rel_path, "text": "\n\n" + content}
-    else:
-        body_effect = {"kind": "write_text", "module": "agent/knowledge",
-                       "path": rel_path, "text": content}
     now = ctx.api.call("clock.now", {}, caller=None)
+
+    author = payload.get("author") or ""
+    # 版本令牌：优先 base_version，回退 version；force 为显式覆盖，跳过令牌比对（仍记修订）。
+    token = payload.get("base_version")
+    if token is None:
+        token = payload.get("version")
+    force = bool(payload.get("force"))
+    mode = payload.get("mode") or "overwrite"
+
+    # 正文落盘走文档修订闭环：跨进程锁内完成「读版本 → 令牌强校验 → 落正文 → 记修订历史」。
+    # 令牌不符由 store.doc_revision 回 409 冲突，不落正文、不静默覆盖。
+    rev = ctx.api.call("store.doc_revision", {
+        "module": "agent/knowledge", "path": rel_path, "mode": mode,
+        "text": ("\n\n" + content) if mode == "append" else content,
+        "author": author, "version": token, "force": force}, caller=None)
+
+    if not rev.get("ok"):
+        code = rev.get("code") or "conflict"
+        conflict_tpl = tpl.get("conflict") or ""
+        token_required_tpl = tpl.get("token_required") or ""
+        hint_tpl = tpl.get("conflict_hint") or ""
+        tpl_text = token_required_tpl if code == "token_required" else conflict_tpl
+        return {"ok": False, "code": code, "status": 409,
+                "current_version": rev.get("current_version"),
+                "current_author": rev.get("current_author"),
+                "current_updated": rev.get("current_updated", ""),
+                "token": token,
+                "requester": {"version": token, "author": author},
+                "forced": force,
+                "error": tpl_text.format(
+                    current_version=rev.get("current_version"),
+                    current_author=rev.get("current_author"),
+                    token=token) if tpl_text else "",
+                "hint": hint_tpl}
+
     entry = _pure.entry({
         "path": rel_path,
         "source": tax.get("knowledge_source") or "llm",
@@ -90,12 +122,32 @@ def _route_save(ctx, payload):
     merged = _pure.index_upsert({
         "entries": (old.get("value") or {}).get("entries") or [],
         "entry": entry})
-    effects = [body_effect, {"kind": "write", "module": "agent/knowledge",
-                             "path": index_path, "value": merged}]
+    effects = [{"kind": "write", "module": "agent/knowledge",
+                "path": index_path, "value": merged}]
     view = ctx.api.call("knowledge.view", {"path": rel_path,
         "content": content}, caller=None)
     view["effects"] = effects
+    view["revision"] = {"version": rev.get("version"), "author": rev.get("author"),
+                         "updated": rev.get("updated"), "chars": rev.get("chars"),
+                         "history": rev.get("history") or [], "forced": force}
     return view
+
+
+def _route_doc_meta(ctx, payload):
+    """只读：读文档版本元数据；先做越界校验，路径落在知识模块数据根之内才读。"""
+    rel = str(payload.get("path") or "")
+    chk = ctx.api.call("store.resolve_doc",
+                       {"module": "agent/knowledge", "path": rel}, caller=None)
+    if not chk.get("ok"):
+        return chk
+    meta_rel = rel[:-3] + ".meta.yaml" if rel.endswith(".md") else rel + ".meta.yaml"
+    row = ctx.api.call("store.read", {
+        "module": "agent/knowledge", "path": meta_rel,
+        "fallback": {"version": 0, "author": "", "updated": "", "history": []}}, caller=None)
+    meta = row.get("value") or {}
+    return {"ok": True, "version": meta.get("version", 0),
+            "author": meta.get("author", ""), "updated": meta.get("updated", ""),
+            "history": meta.get("history") or []}
 
 
 def _as_handler(fn):

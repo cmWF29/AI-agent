@@ -405,14 +405,17 @@ def _route_close(ctx, payload):
         return _err(ctx, "project_archived", 409,
                     _msg_tpl(ctx).get("project_archived") or "")
     tpl_child_open = _msg_tpl(ctx).get("child_open") or ""
+    children = []
     for cid in rec.get("children") or []:
         child = ctx.api.call("store.read", {"module": "agent/tickets",
                                             "path": _ticket_path(ctx, cid)}, caller=None)
-        cv = child.get("value")
-        if cv is not None and cv.get("status") != "closed":
-            msg_open = tpl_child_open.format(id=cid) if tpl_child_open else ""
-            return {"ok": False, "code": "children_open", "status": 409,
-                    "error": msg_open}
+        if child.get("value") is not None:
+            children.append(child.get("value"))
+    guard = _pure.branch({"children": children})
+    if not guard["all_closed"]:
+        open_child = guard["open"][0]
+        msg_open = tpl_child_open.format(id=open_child.get("id") or "") if tpl_child_open else ""
+        return {"ok": False, "code": "children_open", "status": 409, "error": msg_open}
     now = ctx.api.call("clock.now", {}, caller=None)
     closed = ctx.api.call("tickets.closefin", {
         "rec": rec, "summary": payload.get("summary"),
