@@ -13,16 +13,14 @@
 - 幂等：PUT 前 HEAD 比对 ETag / 大小，相同则跳过；传输失败指数退避重试；
   GET 支持 Range 续传（服务端回 206 时续传，回 200 时整体重拉）。
 
-上传侧断点方案（选型 ①，纯 WebDAV 通用路径）：
+上传侧大对象方案：
 
-- ① 分块 PUT 临时对象 + MOVE 组装：正文按固定块（默认 1MiB）PUT 到临时集合
-  ``.upload/<key>/<块号>``；中断后续跑先 PROPFIND 临时集合，已完成块跳过，
-  补缺块后 ``MOVE`` 临时集合到最终键完成组装（Nextcloud/ownCloud 风格块上传
-  约定；服务端按块号顺序拼接）。
-- ② Content-Range 直传：标准 WebDAV 极少通告该能力；``_probe_range_put`` 经
-  OPTIONS/Allow 头探测，当前无服务器通告时回落 ①，不做无把握的断点直写。
-- 未支持块上传约定的服务端，MOVE 组装失败后由调用方走整对象重 PUT，绝不留
-  半截对象顶替完整对象。
+- 标准 WebDAV（RFC 4918）没有服务端拼接原语：把分块集合 ``MOVE`` 到对象键只会
+  得到一个集合，而不是拼好的文件。因此不在标准端点上做伪分块组装；
+- ``put_resumable`` 在标准端点退化为整对象流式 PUT（逐块发送、失败指数退避重试），
+  语义等价于 ``put``，不做半截对象顶替，也不留临时块集合；
+- 真正的断点续传依赖服务端扩展（如 Nextcloud 分块上传约定）。只有显式确认
+  该能力时才应启用，本模块当前不猜测、不冒用。
 
 TLS / 自定义 CA：
 
@@ -433,6 +431,21 @@ class WebDavClient:
         tail = (self._base_path + "/" + safe) if safe else self._base_path
         return urllib.parse.quote(tail, safe="/:")
 
+    def _ensure_parents(self, safe):
+        """逐级 MKCOL 父集合；405/已存在视为成功。
+
+        WebDAV 的 PUT 不会自动建父目录，缺父集合时服务端回 409。S3 允许任意键，
+        但同一套对象键在 WebDAV 上必须先有集合层级，否则首次上传必失败。
+        """
+        parts = [p for p in safe.split("/") if p][:-1]
+        cur = ""
+        for part in parts:
+            cur = part if not cur else cur + "/" + part
+            res = self.mkcol(cur)
+            if not res.get("ok") and res.get("status") not in (405, 409):
+                return res
+        return {"ok": True}
+
     # ------------------------------------------------------------ 公共方法
 
     def test_connection(self):
@@ -499,6 +512,11 @@ class WebDavClient:
                             "skipped": True, "etag": probe.get("etag")}
 
         last = {"ok": False, "code": "transient", "offset": 0}
+        ensured = self._ensure_parents(safe)
+        if not ensured.get("ok"):
+            return {"ok": False, "code": ensured.get("code") or "conflict",
+                    "status": ensured.get("status") or 0, "offset": 0,
+                    "stage": "ensure-parents"}
         for attempt in range(self._max_attempts):
             self._rewind(body)
             try:
@@ -529,89 +547,15 @@ class WebDavClient:
 
     # ------------------------------------------------------------ 断点分块上传
 
-    def _absolute_url(self, safe):
-        """MOVE/COPY 的 Destination 头须为绝对 URI（RFC 4918）。"""
-        path = self._path(safe)
-        return "%s://%s:%d%s" % (self._scheme, self._host, self._port, path)
-
-    def _existing_chunks(self, temp_dir):
-        """PROPFIND 临时集合，返回已落块号集合；集合缺失按空处理。"""
-        res = self.propfind(temp_dir, depth=1)
-        done = set()
-        if not res.get("ok"):
-            return done
-        prefix = temp_dir + "/"
-        for entry in res.get("entries") or []:
-            key = entry.get("key") or ""
-            if key.startswith(prefix):
-                done.add(key[len(prefix):])
-        return done
-
-    def _probe_range_put(self):
-        """探测服务端是否通告 Content-Range 直传 PUT；未通告返回 False 走方案 ①。"""
-        try:
-            resp = self._request("OPTIONS", self._path(""))
-            allow = (resp.getheader("Allow") or "").upper()
-            custom = (resp.getheader("X-WebDAV-Range-PUT") or "").strip().lower()
-            resp.read()
-            return custom in ("1", "true", "yes") or "PUT-RANGE" in allow
-        except (OSError, http.client.HTTPException):
-            return False
-
     def put_resumable(self, key, source, size, *, etag=None, skip_identical=True):
-        """方案 ① 断点分块上传：块 PUT 临时集合 → MOVE 组装。
+        """标准 WebDAV 无服务端拼接：退化为整对象流式 PUT（带退避重试）。
 
-        - 块大小默认 1MiB，块内驻留内存；整对象不一次性读入；
-        - 中断续跑：PROPFIND 临时集合跳过已完成块，只补缺块；
-        - 组装失败返回 ``stage=assemble``，临时块保留供下次续跑，不冒充完整对象。
+        真实 wsgidav/Nextcloud 实测：分块目录 MOVE 到对象键得到的是集合，
+        后续 GET 回 301，不是完整对象。故不做伪分块组装。
+        服务端若提供官方分块约定，应在适配层单独实现并显式声明能力。
         """
-        safe = self._require_key(key)
-        size = int(size or 0)
-        if self._max_body > 0 and size > self._max_body:
-            return {"ok": False, "code": "body_too_large", "offset": 0,
-                    "detail": "body exceeds %d bytes" % self._max_body}
-
-        if skip_identical:
-            probe = self.head(safe)
-            if probe.get("ok"):
-                same_size = probe.get("size") == size
-                same_etag = etag is not None and probe.get("etag") == etag
-                if same_size and (etag is None or same_etag):
-                    return {"ok": True, "size": size, "offset": size,
-                            "skipped": True, "etag": probe.get("etag")}
-
-        # 能力探测：通告 Content-Range 直传时预留方案 ②；标准 WebDAV 未通告，走方案 ①。
-        supports_range_put = self._probe_range_put()
-        temp_dir = ".upload/" + safe
-        done = self._existing_chunks(temp_dir)
-        chunk = self._upload_chunk
-        offsets = list(range(0, size, chunk))
-        for index, offset in enumerate(offsets, start=1):
-            name = "%04d" % index
-            if name in done:
-                continue
-            length = min(chunk, size - offset)
-            source.seek(offset)
-            part = source.read(length)
-            resp = self._request(
-                "PUT", self._path(temp_dir + "/" + name),
-                headers={"Content-Type": "application/octet-stream"},
-                body_source=io.BytesIO(part), content_length=length)
-            if resp.status not in (200, 201, 204):
-                return {"ok": False, "code": _map_status(resp.status),
-                        "status": resp.status, "offset": offset,
-                        "stage": "chunk-put", "chunk": name}
-
-        resp = self._request(
-            "MOVE", self._path(temp_dir),
-            headers={"Destination": self._absolute_url(safe),
-                     "Overwrite": "T"})
-        if resp.status not in (200, 201, 204):
-            return {"ok": False, "code": _map_status(resp.status),
-                    "status": resp.status, "offset": size, "stage": "assemble",
-                    "range_put": supports_range_put}
-        return {"ok": True, "size": size, "offset": size, "skipped": False,
-                "etag": resp.getheader("ETag"), "range_put": supports_range_put}
+        return self.put(key, source, size=size, etag=etag,
+                        skip_identical=skip_identical)
 
     def get(self, key, sink, *, offset=0, resume=False):
         safe = self._require_key(key)

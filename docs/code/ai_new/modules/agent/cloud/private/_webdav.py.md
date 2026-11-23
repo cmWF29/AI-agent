@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/private/_webdav.py
-hash: 41248cc08d5b00babb5b8b8604933ef67b669bdc2fea8c726d5a45b538a5f200
+hash: 5b04194b5940561a71894c58053228ea5bd4da01393e5afee1fa78b183930f1c
 symbols:
 - __init__
 - sanitize_key
@@ -25,13 +25,11 @@ symbols:
 - _drain
 - _require_key
 - _path
+- _ensure_parents
 - test_connection
 - head
 - propfind
 - put
-- _absolute_url
-- _existing_chunks
-- _probe_range_put
 - put_resumable
 - get
 - mkcol
@@ -190,6 +188,12 @@ WebDAV 通道：客户端（PROPFIND / PUT / GET / MKCOL / DELETE / HEAD）。
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_ensure_parents`（method）
+- 职责: 逐级 MKCOL 父集合；405/已存在视为成功。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_connection`（method）
 - 职责: 探活：HEAD 根路径；返回结构化结果，不抛掀翻路由层。
 - 入参/出参: 待人工补充
@@ -214,26 +218,8 @@ WebDAV 通道：客户端（PROPFIND / PUT / GET / MKCOL / DELETE / HEAD）。
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `_absolute_url`（method）
-- 职责: MOVE/COPY 的 Destination 头须为绝对 URI（RFC 4918）。
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `_existing_chunks`（method）
-- 职责: PROPFIND 临时集合，返回已落块号集合；集合缺失按空处理。
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `_probe_range_put`（method）
-- 职责: 探测服务端是否通告 Content-Range 直传 PUT；未通告返回 False 走方案 ①。
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
 ### `put_resumable`（method）
-- 职责: 方案 ① 断点分块上传：块 PUT 临时集合 → MOVE 组装。
+- 职责: 标准 WebDAV 无服务端拼接：退化为整对象流式 PUT（带退避重试）。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

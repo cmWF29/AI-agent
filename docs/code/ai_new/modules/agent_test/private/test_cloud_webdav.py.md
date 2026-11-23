@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_webdav.py
-hash: 9ba0fc947243ff2289ddf64ca90856c6ae60226712440665fefa07c61d736459
+hash: 4d108e904c95257d33fe75f53af6c5952c8dfd2124b92f0c8796eee9ca532763
 symbols:
 - __init__
 - write
@@ -17,6 +17,7 @@ symbols:
 - setUp
 - tearDown
 - _client
+- test_nested_put_creates_parent_collections
 - test_propfind_lists_directory
 - test_put_get_roundtrip
 - test_put_skips_identical
@@ -30,8 +31,7 @@ symbols:
 - test_key_guard_delegates
 - test_large_file_streaming_bounded_memory
 - test_range_resume_partial
-- test_resumable_chunked_upload_skips_done_chunks
-- test_range_put_capability_probe
+- test_resumable_degrades_to_single_stream_put
 - test_custom_ca_trust_chain
 - test_probe_reports_availability
 - test_sync_idempotent_when_available
@@ -140,6 +140,12 @@ WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `test_nested_put_creates_parent_collections`（method）
+- 职责: 真 WebDAV 的 PUT 不会自动建父集合；缺父层级会 409。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_propfind_lists_directory`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -218,14 +224,8 @@ WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_resumable_chunked_upload_skips_done_chunks`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `test_range_put_capability_probe`（method）
-- 职责: （无 docstring）
+### `test_resumable_degrades_to_single_stream_put`（method）
+- 职责: 标准 WebDAV 无服务端拼接，put_resumable 必须整对象 PUT。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

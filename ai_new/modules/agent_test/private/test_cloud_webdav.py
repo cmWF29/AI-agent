@@ -129,6 +129,22 @@ class WebDavStubTest(unittest.TestCase):
         return _webdav.WebDavClient(self.base_url, username=user,
                                     password=password, **kw)
 
+    def test_nested_put_creates_parent_collections(self):
+        """真 WebDAV 的 PUT 不会自动建父集合；缺父层级会 409。"""
+        client = self._client()
+        calls = []
+        original = client._request
+
+        def record(method, path, **kw):
+            calls.append(method)
+            return original(method, path, **kw)
+
+        client._request = record
+        res = client.put("nested/deep/a.txt", b"hello")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual([m for m in calls if m == "MKCOL"],
+                         ["MKCOL", "MKCOL"], calls)
+
     def test_propfind_lists_directory(self):
         client = self._client()
         self.assertTrue(client.mkcol("docs")["ok"])
@@ -319,20 +335,19 @@ class WebDavStubTest(unittest.TestCase):
         self.assertTrue(got["partial"])
         self.assertEqual(sink.getvalue(), body)
 
-    def test_resumable_chunked_upload_skips_done_chunks(self):
-        chunk = 20 * 1024
+    def test_resumable_degrades_to_single_stream_put(self):
+        """标准 WebDAV 无服务端拼接，put_resumable 必须整对象 PUT。"""
         size = 100 * 1024
-        client = self._client(upload_chunk_size=chunk)
+        client = self._client(upload_chunk_size=20 * 1024)
         source = _PatternSource(size)
         expect = source.expected_hash()
 
-        orig_request = client._request
-        state = {"chunk2": True}
-        put_paths = []
+        original = client._request
+        state = {"fail": True}
 
-        def flaky_request(method, path, **kw):
-            if "/0002" in path and state["chunk2"]:
-                state["chunk2"] = False
+        def flaky(method, path, **kw):
+            if method == "PUT" and state["fail"]:
+                state["fail"] = False
 
                 class _Resp:
                     status = 500
@@ -344,39 +359,22 @@ class WebDavStubTest(unittest.TestCase):
                         return b""
 
                 return _Resp()
-            put_paths.append((method, path))
-            return orig_request(method, path, **kw)
+            return original(method, path, **kw)
 
-        client._request = flaky_request
+        client._request = flaky
+        res = client.put_resumable("resume.bin", source, size)
+        self.assertTrue(res["ok"], res)
 
-        failed = client.put_resumable("resume-chunk.bin", source, size)
-        self.assertFalse(failed["ok"], failed)
-        self.assertEqual(failed["stage"], "chunk-put")
-
-        # 续跑：已完成块跳过，补缺块后 MOVE 组装为完整对象。
-        resumed = client.put_resumable("resume-chunk.bin", source, size)
-        self.assertTrue(resumed["ok"], resumed)
         sink = _HashSink()
-        got = client.get("resume-chunk.bin", sink)
+        got = client.get("resume.bin", sink)
         self.assertTrue(got["ok"], got)
         self.assertEqual(sink.size, size)
         self.assertEqual(sink.hexdigest(), expect)
-        # 第 1 块只上传一次；5 个块全部落过一次。
-        chunk1 = [p for _m, p in put_paths if "/0001" in p]
-        self.assertEqual(len(chunk1), 1)
-        self.assertEqual(self.store.chunk_puts, 5)
-
-    def test_range_put_capability_probe(self):
-        plain = self._client()
-        self.assertFalse(plain._probe_range_put())
-        advertised, _, _ = webdav_stub.start_stub(range_put=True)
-        try:
-            client = _webdav.WebDavClient(
-                "http://127.0.0.1:%d/" % advertised.server_address[1],
-                codec=_StubCodec(), clock=_StubClock())
-            self.assertTrue(client._probe_range_put())
-        finally:
-            advertised.shutdown()
+        # 只有最终对象一次落盘，不留 .upload 临时块集合。
+        self.assertEqual(self.store.puts, 1)
+        self.assertEqual(self.store.chunk_puts, 0)
+        self.assertFalse(os.path.exists(
+            os.path.join(self.tmp.name, ".upload")))
 
     def test_custom_ca_trust_chain(self):
         if not shutil.which("openssl"):
