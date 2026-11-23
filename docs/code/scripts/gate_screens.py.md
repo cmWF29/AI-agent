@@ -1,6 +1,6 @@
 ---
 source: scripts/gate_screens.py
-hash: 2f8474d09f780d4c287ccd23681e453357c10ce7cba1571133b83e290dc5619e
+hash: cfed8213c2864ba7c54d89239aff5e813a6d0aff0fd55c8b3c92e1ed423ad70f
 symbols:
 - slug
 - load

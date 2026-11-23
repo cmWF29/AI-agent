@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-timer.yaml
-hash: e2c45c3ea63cafa41408a4e517a0cdc290bc75428b3119ac6af43779653721a2
+hash: bf5452f3517a91cee8b7330030f9de3b41e9f2c308e7511443ac03d3b078bad9
 symbols:
 - id
 - title

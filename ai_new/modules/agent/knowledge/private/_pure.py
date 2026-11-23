@@ -146,6 +146,16 @@ def index(p):
 
     public_docs = []
     project_groups = {}   # pid -> {"docs": [], "tickets": {tid: [doc]}}
+    project_names = {}
+    # 项目清单先落进树：没有文档的项目也要有一层，点开后由空层提示"这一层还没有文档"
+    for rec in p.get("projects") or []:
+        if not isinstance(rec, dict):
+            continue
+        pid = str(rec.get("id") or "")
+        if not pid:
+            continue
+        project_names[pid] = str(rec.get("name") or pid)
+        project_groups.setdefault(pid, {"docs": [], "tickets": {}})
 
     def _doc(layer, pid, tid, name, rel):
         return {"type": "doc", "layer": layer, "layer_label": layer_label[layer],
@@ -190,8 +200,8 @@ def index(p):
             children.append({"type": "ticket", "label": ticket_raw.get(key, key),
                              "sub": ticket_title.get(key, ""),
                              "badge": layer_label["ticket"], "children": grp["tickets"][key]})
-        tree.append({"type": "project", "label": pid, "badge": layer_label["project"],
-                     "children": children})
+        tree.append({"type": "project", "label": project_names.get(pid, pid),
+                     "badge": layer_label["project"], "children": children})
     return {"items": items, "counts": counts, "tree": tree}
 
 

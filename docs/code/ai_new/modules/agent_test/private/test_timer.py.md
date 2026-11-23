@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_timer.py
-hash: a61acc587c4a5d3fd863f698c8777da9c969576bcb90335c6fba7c02436d732c
+hash: 4f2717ebb9f1e3937e42b16f3279e519fc795bdc975b4c64b70cad58c714974b
 symbols:
 - _future_iso
 - setUpClass
@@ -27,6 +27,7 @@ symbols:
 - test_pause_resume_delete
 - test_bad_cron_bad_tz_rejected
 - test_failure_preserved_visible_and_retryable
+- test_index_groups_by_project
 - test_history_rejects_cross_scope
 - __call__
 generated: gen_docs.py v1
@@ -190,6 +191,12 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_failure_preserved_visible_and_retryable`（method）
 - 职责: 触发失败：last_run 留可见错误、attempts 累加、槽位保留；恢复后可重试成功。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_index_groups_by_project`（method）
+- 职责: 定时器总览必须按项目分组，而不是只在表格里放一列项目名。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -1,0 +1,35 @@
+id: node-bind
+title: 项目绑定节点：申领租约 → runtime.apply 落盘
+description: "项目绑定节点：按项目申领租约，记录 fencing token/epoch；冲突不覆盖已有租约。"
+tags: [nodes, write]
+touch: [nodes-list]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.acquire
+  with:
+    project:
+      get: input.project
+    node:
+      get: input.node
+    ttl:
+      get: input.ttl
+    tier:
+      get: input.tier
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input: {project: demo-proj, node: node-1, ttl: 30, tier: weak}
+  calls:
+  - nodes.acquire
+  - runtime.apply
+  payload: {}
+  promise: 项目归属与 fencing token 落盘，冲突保留已有租约

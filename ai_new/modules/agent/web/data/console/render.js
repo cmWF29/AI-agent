@@ -1132,55 +1132,71 @@ function clickMachineHtml(sec, ctx) {
   </div>`;
 }
 
-/* 可点位置清单：一行一类，允许态 → 进入 → 回落；比多列表格省一半高度 */
+/* 可点位置清单：一类一张可展开的堆叠条；收起只露种类，点开才看门禁。 */
 function clickKindsHtml(sec, ctx) {
   const rows = arr(ref(sec.source, ctx));
   if (!rows.length) return emptyHtml(sec.empty);
   const chip = (v) => `<span class="chip">${esc(v)}</span>`;
-  return `<div class="kind-list">${rows.map((r) =>
-    `<div class="kind-row">
-      <div class="kind-top"><b>${esc(r.label || r.key)}</b><em>${esc(r.key)}</em>
-        <span class="kind-flow">${arr(r.allow).map(chip).join("")}${
-          r.enter ? `<i>→</i>${chip(r.enter)}` : ""}${r.exit ? `<i>→</i>${chip(r.exit)}` : ""}</span>
-      </div>
-      ${r.note ? `<p>${esc(r.note)}</p>` : ""}
-    </div>`).join("")}</div>`;
-}
-
-/* 用户视角：页面地图 = 一页一行，"从哪进 / 点哪里走 / 这页只做一件事" */
-function userPagesHtml(sec, ctx) {
-  const m = ((ctx || {}).data || {}).machine || {};
-  // pages/routes 挂在 screen_machine 下：由页面与控件推导，不手维护
-  const pages = arr((m.screen_machine || {}).pages);
-  if (!pages.length) return emptyHtml(sec.empty);
-  const chip = (x) => `<span class="pmp-chip"><i>${esc(x.by)}</i>${esc(x.label)}</span>`;
-  return `<div class="pmap">${pages.map((p) => {
-    const inChips = (p.from || []).length ? p.from.map(chip).join("") : `<span class="pmp-none">${esc(uiText("pmap_none"))}</span>`;
-    const outChips = (p.to || []).length ? p.to.map(chip).join("") : `<span class="pmp-none">${esc(uiText("pmap_end"))}</span>`;
-    return `<div class="pmap-row${p.entry ? " is-entry" : ""}">
-      <div class="pmap-top"><b>${esc(p.label)}</b>${p.entry ? `<span class="pmp-pin">${esc(uiText("pmap_entry"))}</span>` : ""}</div>
-      ${p.main ? `<div class="pmap-main">${esc(p.main)}</div>` : ""}
-      <div class="pmap-flow"><span class="pmp-lab">${esc(uiText("pmap_in"))}</span>${inChips}<span class="pmp-arrow">→</span><span class="pmp-lab">${esc(uiText("pmap_out"))}</span>${outChips}</div>
-    </div>`;
+  const view = ((ctx.route || {}).view) || "";
+  return `<div class="stack">${rows.map((r, i) => {
+    const key = "stack:" + view + ":kinds:" + (r.key || i);
+    return `<details class="stack-item"${foldAttr(key)}>
+      <summary data-clk="stack_open" data-ctl="ctl.stack_open" data-ctl-state="idle">
+        <span class="stack-title">${esc(r.label || r.key)}</span><em class="kind-key">${esc(r.key)}</em>
+        <span class="kind-flow">${arr(r.allow).map(chip).join("")}${r.enter ? `<i>→</i>${chip(r.enter)}` : ""}${r.exit ? `<i>→</i>${chip(r.exit)}` : ""}</span>
+      </summary>
+      <div class="stack-body">${r.note ? `<div class="kind-note">${esc(r.note)}</div>` : ""}</div>
+    </details>`;
   }).join("")}</div>`;
 }
 
-/* 页面之间的跳转：一行一条"从这页点这个到那页" */
+/* 用户视角：页面地图 = 一页一张可展开的堆叠条。
+   24 页平铺会拉成一屏灰块；收起后只露标题，点开才看入口与出口。 */
+function userPagesHtml(sec, ctx) {
+  const m = ((ctx || {}).data || {}).machine || {};
+  const pages = arr((m.screen_machine || {}).pages);
+  if (!pages.length) return emptyHtml(sec.empty);
+  const chip = (x) => `<span class="pmp-chip"><i>${esc(x.by)}</i>${esc(x.label)}</span>`;
+  const view = ((ctx.route || {}).view) || "";
+  return `<div class="stack pmap-stack">${pages.map((p, i) => {
+    const key = "stack:" + view + ":pages:" + (p.key || i);
+    const inChips = (p.from || []).length ? p.from.map(chip).join("") : `<span class="pmp-none">${esc(uiText("pmap_none"))}</span>`;
+    const outChips = (p.to || []).length ? p.to.map(chip).join("") : `<span class="pmp-none">${esc(uiText("pmap_end"))}</span>`;
+    return `<details class="stack-item"${foldAttr(key)}>
+      <summary data-clk="stack_open" data-ctl="ctl.stack_open" data-ctl-state="idle">
+        <span class="stack-title">${esc(p.label)}</span>
+        ${p.entry ? `<span class="chip stack-badge">${esc(uiText("pmap_entry"))}</span>` : ""}
+        ${p.main ? `<span class="muted pmap-sub">${esc(p.main)}</span>` : ""}
+      </summary>
+      <div class="stack-body"><div class="pmap-flow"><span class="pmp-lab">${esc(uiText("pmap_in"))}</span>${inChips}<span class="pmp-arrow">→</span><span class="pmp-lab">${esc(uiText("pmap_out"))}</span>${outChips}</div></div>
+    </details>`;
+  }).join("")}</div>`;
+}
+
+/* 页面之间的跳转：同样收成堆叠条，标题就是"从哪到哪"，点开看是哪个控件。 */
 function userRoutesHtml(sec, ctx) {
   const m = ((ctx || {}).data || {}).machine || {};
   const rows = arr((m.screen_machine || {}).routes);
   if (!rows.length) return emptyHtml(sec.empty);
-  return `<div class="route-list">${rows.map((r) =>
-    `<div class="route-row"><span class="rt-from">${esc(r.from)}</span><span class="rt-arrow">→</span><span class="rt-by">点「${esc(r.by)}」</span><span class="rt-arrow">→</span><span class="rt-to">${esc(r.to)}</span></div>`).join("")}</div>`;
+  const view = ((ctx.route || {}).view) || "";
+  return `<div class="stack">${rows.map((r, i) => {
+    const key = "stack:" + view + ":routes:" + i;
+    return `<details class="stack-item"${foldAttr(key)}>
+      <summary data-clk="stack_open" data-ctl="ctl.stack_open" data-ctl-state="idle">
+        <span class="stack-title">${esc(r.from)}</span><span class="muted">→</span><span class="stack-title">${esc(r.to)}</span>
+        <span class="chip stack-badge">${esc(r.by)}</span>
+      </summary>
+      <div class="stack-body"><div class="route-row"><span class="rt-by">点「${esc(r.by)}」</span><span class="rt-arrow">→</span><span class="rt-to">${esc(r.to)}</span></div></div>
+    </details>`;
+  }).join("")}</div>`;
 }
 
-/* 一页里的元素：按页面折叠，每个元素写清"是什么、点下去发生什么、什么时候点不动" */
+/* 一页里的元素：每页一张堆叠条，默认收起；点开才看这一页控件。 */
 function userElemsHtml(sec, ctx) {
   const m = ((ctx || {}).data || {}).machine || {};
   const inv = (m.inventory || {}).rows || [];
   const labels = {};
   arr((m.screen_machine || {}).states).forEach((s) => { labels[s.id] = s.cn; });
-  // 控件种类 → 允许态：门禁写成"什么时候点不动"，不写内部状态名
   const cm = m.click_machine || {};
   const stLabel = {};
   arr(cm.states).forEach((s) => { stLabel[s.key] = s.label || s.key; });
@@ -1195,19 +1211,22 @@ function userElemsHtml(sec, ctx) {
     if (!g) return "";
     return g.note ? `${g.note}｜只在「${g.allow}」时点得动` : `只在「${g.allow}」时点得动`;
   };
-  return `<div class="elem-pages">${Object.keys(labels).filter((k) => inv.some((r) => ("view:" + r.view) === k))
+  const view = ((ctx.route || {}).view) || "";
+  return `<div class="stack">${Object.keys(labels).filter((k) => inv.some((r) => ("view:" + r.view) === k))
     .map((k) => {
       const rows = inv.filter((r) => ("view:" + r.view) === k);
-      // 同一控件在一页上出现多次（每行一个实例）只列一条，数量当计数
       const uniq = {};
       rows.forEach((r) => { (uniq[r.ctl] = uniq[r.ctl] || { row: r, n: 0 }).n += 1; });
       const list = Object.keys(uniq).map((c) => Object.assign({}, uniq[c].row, { count: uniq[c].n }));
-      const elemKey = "view:" + (((ctx || {}).route || {}).view || "") + ":elem:" + k;
-      return `<details class="elem-page"${foldAttr(elemKey)}><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><b>${esc(labels[k])}</b><span class="elem-count">${list.length}</span></summary>
-        <div class="elem-list">${list.map((r) =>
+      const elemKey = "stack:" + view + ":elem:" + k;
+      return `<details class="stack-item"${foldAttr(elemKey)}>
+        <summary data-clk="stack_open" data-ctl="ctl.stack_open" data-ctl-state="idle">
+          <span class="stack-title">${esc(labels[k])}</span><span class="chip stack-badge">${list.length}</span>
+        </summary>
+        <div class="stack-body"><div class="elem-list">${list.map((r) =>
           `<div class="elem-row"><span class="elem-label">${esc(r.label || r.ctl)}${r.count > 1 ? `<i class="elem-n">×${r.count}</i>` : ""}</span><span class="elem-tag">${esc(r.tag || "")}</span>
             <span class="elem-eff">${esc(r.effect || "")}</span>
-            <span class="elem-gate">${esc(gateOf(r))}</span></div>`).join("")}</div>
+            <span class="elem-gate">${esc(gateOf(r))}</span></div>`).join("")}</div></div>
       </details>`;
     }).join("")}</div>`;
 }

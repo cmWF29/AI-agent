@@ -86,6 +86,8 @@ def problems():
     controls = shell.get("controls") or {}
     shells = {r.get("key") for r in (sm.get("shell_controls") or []) if r.get("key")}
     nodes, edges = derive(shell, views)
+    # 明确标注只能 URL 直达的页面（例如用户资料：产品上故意不放入侧栏/底栏）
+    url_only = {"view:%s" % k for k, v in views.items() if v.get("url_only") is True}
     out = []
 
     # 1. 每条边两端必须存在
@@ -126,7 +128,7 @@ def problems():
     if entry not in nodes:
         out.append("入口 %s 不是已声明状态" % entry)
     for key in sorted(nodes):
-        if key.startswith("view:") and key != entry and key not in inbound:
+        if key.startswith("view:") and key != entry and key not in inbound and key not in url_only:
             out.append("页面 %s 没有任何入边（只能靠手输地址才能到）" % key)
     reached = {entry}
     for _ in range(len(nodes)):
@@ -134,7 +136,7 @@ def problems():
             if e["from"] in reached:
                 reached.add(e["to"])
     for key in sorted(nodes):
-        if key.startswith("view:") and key not in reached:
+        if key.startswith("view:") and key not in reached and key not in url_only:
             out.append("页面 %s 从入口不可达" % key)
     return out
 

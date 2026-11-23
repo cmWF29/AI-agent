@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 180 条需求，绑定 15 个检查项。
+共 183 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -27,6 +27,7 @@
 | channel-tail | channel | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | click-machine | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | cloud-audit-list | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
+| cloud-configure | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
 | cloud-connection-test | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
 | cloud-probe-roundtrip | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
 | cloud-profile-delete | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
@@ -69,6 +70,8 @@
 | llm-chat-stream | llm | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | logs-index | log | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | message-wire | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| node-bind | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
+| node-configure | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-acquire | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-backups | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-entry | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |

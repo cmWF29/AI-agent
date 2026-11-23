@@ -123,7 +123,10 @@ function runAct(el, kind) {
     return null;
   }
   if (binding.voice) return uiRun(() => executeVoice(binding, el), kind, el);
-  if (binding.composer && !binding.act.modal) {
+  // 打开弹窗不是一次“忙等”动作：openForm 自己把界面切到 modal 态。
+  // 若仍套 uiRun，execute 立即返回后 done() 会把状态打回 idle，弹窗里的确定键就全部点不动。
+  if (binding.act.modal) return execute(binding, {});
+  if (binding.composer) {
     const box = $("view-body").querySelector(".composer textarea");
     const text = (box && box.value || "").trim();
     if (!text) {
@@ -148,6 +151,17 @@ document.addEventListener("toggle", (e) => {
 
 const CLICK_HANDLERS = {
   drawer_open() { openDrawer(); },
+  nav_group(el) {
+    if (el.dataset.navBack) { $("drawer").classList.remove("group-open"); return; }
+    NAV_GROUP = el.dataset.group || "";
+    $("drawer").classList.add("group-open");
+    renderNavPanels();
+  },
+  tab_config() {
+    NAV_CONFIG_OPEN = !NAV_CONFIG_OPEN;
+    renderTabConfig(NAV_MENUS);
+    $("tab-config-btn").classList.toggle("on", NAV_CONFIG_OPEN);
+  },
   drawer_scrim() { closeDrawer(); },
   rail_close() { setRail(true); },
   rail_open() { setRail(false); },
@@ -434,7 +448,13 @@ function navTarget(view) {
   return viewSpec(view).nav || view;
 }
 /* 导航完全由后端菜单渲染：桌面侧栏与移动底栏都读同一份 shell.menus。
-   加一个视图 = 视图规格里多一行 menu，这里零改动。 */
+   侧栏是两级：一级分组（工作/资产/系统）→ 点进去才展开该组的二级页面。
+   底栏是用户可配置的快捷入口：只存视图 key 到 localStorage，不复制业务菜单。 */
+const TAB_LIMIT = 5;
+let NAV_MENUS = [];
+let NAV_GROUP = "";
+let NAV_CONFIG_OPEN = false;
+
 /* 菜单项 -> 视图规格：按 label 与 parent 对上；侧栏与底栏共用同一份解析 */
 function viewByMenuKey(m) {
   for (const k of Object.keys(VIEWS)) {
@@ -445,8 +465,60 @@ function viewByMenuKey(m) {
   }
   return null;
 }
+function menuNavKey(m) {
+  const v = viewByMenuKey(m);
+  return (v && v.key) || m.key;
+}
+function menuGroup(m) { return m.group || ""; }
+function navGroupList(menus) {
+  const groups = [];
+  arr(menus).forEach((m) => {
+    const name = menuGroup(m);
+    let g = groups.find((x) => x.name === name);
+    if (!g) { g = { name, order: Number(m.group_order == null ? 99 : m.group_order), items: [] }; groups.push(g); }
+    g.items.push(m);
+  });
+  groups.sort((a, b) => a.order - b.order || (a.name < b.name ? -1 : 1));
+  return groups;
+}
+function currentViewKey() {
+  const q = new URLSearchParams(location.search).get("view");
+  const v = (q && typeof VIEWS !== "undefined" && VIEWS[q]) || (typeof state !== "undefined" ? state.view : "");
+  return v || "projects";
+}
+function currentMenu(menus) {
+  const cur = currentViewKey();
+  const spec = (typeof viewSpec === "function" ? viewSpec(cur) : null) || {};
+  const want = spec.nav || spec.key || cur;
+  return arr(menus).find((m) => menuNavKey(m) === want || m.key === want) || null;
+}
+function readTabKeys() {
+  try {
+    const v = JSON.parse(localStorage.getItem("hive.tabs") || "null");
+    if (Array.isArray(v)) return v.map(String).filter(Boolean);
+  } catch (e) {}
+  return null;
+}
+function saveTabKeys(keys) {
+  try { localStorage.setItem("hive.tabs", JSON.stringify(keys)); } catch (e) {}
+}
+function defaultTabKeys(menus) {
+  const byDecl = arr(menus).filter((m) => Number(m.tab_order) > 0)
+    .sort((a, b) => Number(a.tab_order) - Number(b.tab_order) || (a.key < b.key ? -1 : 1))
+    .map((m) => m.key);
+  if (byDecl.length) return byDecl.slice(0, TAB_LIMIT);
+  return arr(menus).filter((m) => m.mobile !== false).slice(0, 3).map((m) => m.key);
+}
+function activeTabKeys(menus) {
+  const pool = arr(menus).filter((m) => m.mobile !== false);
+  const saved = readTabKeys();
+  if (!saved) return defaultTabKeys(menus);
+  const valid = saved.filter((k) => pool.some((m) => m.key === k)).slice(0, TAB_LIMIT);
+  return valid.length ? valid : defaultTabKeys(menus);
+}
 /* 底栏图标：只取 vendored 图标子集；子集没有的用圆形首字块，不引外链/字体 */
-const TAB_ICON_BY_KEY = { projects: "folder2", tickets: "send", knowledge: "book", user: "person-circle" };
+const TAB_ICON_BY_KEY = { projects: "folder2", tickets: "send", knowledge: "book", user: "person-circle",
+  artifacts: "book", logs: "book", timers: "send", nodes: "folder2", cloud: "book", positions: "person-circle" };
 function tabIcon(m) {
   const name = TAB_ICON_BY_KEY[m.key] || "";
   if (name) return `<span class="tab-ico"><sl-icon name="${esc(name)}"></sl-icon></span>`;
@@ -457,59 +529,101 @@ function tabIcon(m) {
 function renderTabbar(menus) {
   const bar = $("tabbar");
   if (!bar) return;
-  const all = arr(menus);
-  // 只进底栏的视图在规格里声明 tab.order；按序号升序，序号相同再按 key 排
-  let tabs = all.filter((m) => Number(m.tab_order) > 0)
-    .sort((a, b) => Number(a.tab_order) - Number(b.tab_order) || (a.key < b.key ? -1 : 1));
-  // 退化：后端一条 tab 序号都没声明时，取前 5 个 mobile 菜单，保证底栏不空
-  if (!tabs.length) tabs = all.filter((m) => m.mobile !== false).slice(0, 5);
+  const pool = arr(menus).filter((m) => m.mobile !== false);
+  let tabs = activeTabKeys(menus).map((k) => pool.find((m) => m.key === k)).filter(Boolean);
+  if (!tabs.length) tabs = defaultTabKeys(menus).map((k) => pool.find((m) => m.key === k)).filter(Boolean);
   const btn = (m) => {
-    const v = viewByMenuKey(m);
-    const navKey = (v && v.key) || m.key;
-    const label = m.label || m.key;
+    const navKey = menuNavKey(m);
+    const label = m.short || m.label || m.key;
     return `<sl-button class="tab" variant="text" data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(label))}" data-ctl-state="idle">${tabIcon(m)}<span class="tab-label">${esc(label)}</span></sl-button>`;
   };
   bar.setAttribute("aria-label", uiText("tabbar") || "");
   bar.innerHTML = tabs.map(btn).join("");
   if (typeof stampCtl === "function") stampCtl(bar);
 }
+function renderTabConfig(menus) {
+  const box = $("tab-config");
+  if (!box) return;
+  box.hidden = !NAV_CONFIG_OPEN;
+  if (box.hidden) return;
+  const pool = arr(menus).filter((m) => m.mobile !== false);
+  const keys = activeTabKeys(menus);
+  box.innerHTML = `<div class="tcfg-head"><b>${esc(uiText("tab_config") || "底栏入口")}</b><span class="muted">${esc(uiText("tab_config_note") || "最多 5 个；没选的回到侧栏")}</span></div>
+    <div class="tcfg-list">${pool.map((m) => `<label class="tcfg-row">
+      <sl-checkbox data-tab-key="${esc(m.key)}"${keys.indexOf(m.key) >= 0 ? " checked" : ""}>${esc(m.label || m.key)}</sl-checkbox>
+      <span class="muted">${esc(m.group || "")}</span></label>`).join("")}</div>`;
+  box.querySelectorAll("sl-checkbox").forEach((el) => {
+    el.addEventListener("sl-change", () => toggleTab(el.dataset.tabKey, el.checked));
+  });
+}
+function toggleTab(key, on) {
+  let keys = activeTabKeys(NAV_MENUS);
+  if (on) {
+    if (keys.length >= TAB_LIMIT) { banner(uiText("tab_config_full") || "底栏最多 5 个入口", "err"); renderTabConfig(NAV_MENUS); return; }
+    if (keys.indexOf(key) < 0) keys = keys.concat([key]);
+  } else {
+    if (keys.length <= 1) { banner(uiText("tab_config_min") || "底栏至少保留 1 个入口", "err"); renderTabConfig(NAV_MENUS); return; }
+    keys = keys.filter((k) => k !== key);
+  }
+  saveTabKeys(keys);
+  renderMenus(NAV_MENUS);
+}
 function renderMenus(menus) {
+  NAV_MENUS = arr(menus);
+  renderTabbar(NAV_MENUS);
+  renderTabConfig(NAV_MENUS);
+  const groups = navGroupList(NAV_MENUS);
+  const curMenu = currentMenu(NAV_MENUS);
+  if (!NAV_GROUP || !groups.some((g) => g.name === NAV_GROUP)) {
+    const g = groups.find((x) => x.items.indexOf(curMenu) >= 0);
+    NAV_GROUP = (g && g.name) || (groups[0] || {}).name || "";
+  }
+  renderNavPanels();
+  highlightNav();
+}
+
+function renderNavPanels() {
   const side = $("side-nav");
   if (!side) return;
-  // 同组相邻：组内按后端 order 排，组间留一道分隔，跟 App 的分区一致
-  const groups = [];
-  arr(menus).forEach((m) => {
-    const name = m.group || "";
-    const last = groups[groups.length - 1];
-    if (last && last.name === name) last.items.push(m);
-    else groups.push({ name, items: [m] });
-  });
-  // 二级菜单：parent 指向父项 key 的挂到父项下面缩进渲染；父项自己也是可点的页。
-  // data-nav 挂视图自身的 key：高亮按叶子自身点亮，父项不跟着选中。
-  const btn = (m, cls) => {
-    const v = viewByMenuKey(m);
-    const navKey = (v && v.key) || m.key;
-    return `<sl-button variant="text"${cls ? ` class="${cls}"` : ""} data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</sl-button>`;
+  const groups = navGroupList(NAV_MENUS);
+  const tabKeys = activeTabKeys(NAV_MENUS);
+  const groupButton = (g) => {
+    const icon = ({ "工作": "folder2", "资产": "book", "系统": "check-lg" })[g.name] || "";
+    const ch = [...String(g.name || "?")][0] || "?";
+    const ico = icon ? `<sl-icon name="${esc(icon)}"></sl-icon>` : `<span class="ico-ph">${esc(ch)}</span>`;
+    return `<sl-button variant="text" class="nav-group-btn${g.name === NAV_GROUP ? " on" : ""}" data-clk="nav_group" data-group="${esc(g.name)}" data-ctl="ctl.nav_group.${esc(ctlSlug(g.name))}" data-ctl-state="idle"><span class="nav-group-ico">${ico}</span><span class="nav-group-label">${esc(g.name)}</span></sl-button>`;
   };
-  side.innerHTML = groups.map((g) => {
-    const kids = {};
-    g.items.forEach((m) => {
-      if (m.parent) (kids[m.parent] = kids[m.parent] || []).push(m);
-    });
-    const sub = (k) => (kids[k] || []).length
-      ? `<div class="nav-sub">${kids[k].map((c) => btn(c, "nav-child")).join("")}</div>` : "";
-    return `<div class="nav-group">${g.name ? `<div class="nav-group-title">${esc(g.name)}</div>` : ""}${
-      g.items.filter((m) => !m.parent).map((m) => btn(m) + sub(m.key)).join("")}</div>`;
-  }).join("");
+  const navButton = (m) => {
+    const navKey = menuNavKey(m);
+    return `<sl-button variant="text" class="nav-leaf" data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</sl-button>`;
+  };
+  const group = groups.find((g) => g.name === NAV_GROUP) || { name: "", items: [] };
+  const leaves = group.items.filter((m) => tabKeys.indexOf(m.key) < 0);
+  side.innerHTML = `<div class="nav-primary">${groups.map(groupButton).join("")}</div>
+    <div class="nav-secondary">
+      <sl-button variant="text" class="nav-back" data-clk="nav_group" data-nav-back="1" data-ctl="ctl.nav_group.返回" data-ctl-state="idle">← ${esc(uiText("nav_all") || "全部分组")}</sl-button>
+      <div class="nav-sec-head"><span>${esc(group.name)}</span><em>${leaves.length}</em></div>
+      <div class="nav-items">${leaves.length ? leaves.map(navButton).join("") : `<div class="nav-empty">${esc(uiText("nav_all_pinned") || "这一组都已收进底栏，可在「底栏配置」里调整")}</div>`}</div>
+    </div>`;
   if (typeof stampCtl === "function") stampCtl(side);
-  renderTabbar(menus);
+  applyNavGroup();
+}
+
+function applyNavGroup() {
+  const side = $("side-nav");
+  if (!side) return;
+  side.querySelectorAll(".nav-group-btn").forEach((b) => b.classList.toggle("on", b.dataset.group === NAV_GROUP));
+  const sec = side.querySelector(".nav-sec-head>span");
+  if (sec) sec.textContent = NAV_GROUP;
 }
 function highlightNav() {
-  // 只亮叶子：按当前视图自身的 key 点亮；父项只保留"有子项"的层级，不进选中态。
-  const spec = viewSpec(state.view) || {};
-  const cur = spec.key || state.view;
+  const spec = (typeof viewSpec === "function" ? viewSpec(currentViewKey()) : {}) || {};
+  const cur = spec.nav || spec.key || currentViewKey();
   document.querySelectorAll("[data-nav]").forEach((b) =>
     b.classList.toggle("on", b.dataset.nav === cur));
+  const curMenu = currentMenu(NAV_MENUS);
+  const g = curMenu && curMenu.group;
+  if (g && g !== NAV_GROUP) { NAV_GROUP = g; applyNavGroup(); }
 }
 function openDrawer() {
   $("drawer").classList.add("open");
@@ -518,6 +632,7 @@ function openDrawer() {
 function closeDrawer() {
   $("drawer").classList.remove("open");
   $("scrim").classList.remove("open");
+  $("drawer").classList.remove("group-open");
 }
 /* 桌面侧栏收起：记忆偏好；手机不受影响（样式只作用于宽屏） */
 function setRail(on) {

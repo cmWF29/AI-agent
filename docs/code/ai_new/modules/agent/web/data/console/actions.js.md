@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/actions.js
-hash: 1ae8539975cd1e43735edccc9dfd70991356f4a90873de0a9337a124feea88ed
+hash: 81c43ba793384bc05cdbd49fbd1b64a1cb08cdcbad439cd9e6b18ad480034ef3
 symbols:
 - execute
 - voiceBtnLabel
@@ -17,6 +17,7 @@ symbols:
 - casc
 - cnames
 - opts
+- focus
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:21'
 ---
@@ -117,6 +118,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `opts`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `focus`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

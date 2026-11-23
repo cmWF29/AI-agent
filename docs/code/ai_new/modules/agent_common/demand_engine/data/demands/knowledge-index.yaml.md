@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/knowledge-index.yaml
-hash: e83cbad4ca7aee22dc6c672a5eeb1421024f7edb37d048b7cc2a98b032da82a1
+hash: 26f21b0ec6701adc863ca77aa6835f2849b446a38921a6c9c37a01be0bd38e85
 symbols:
 - id
 - title

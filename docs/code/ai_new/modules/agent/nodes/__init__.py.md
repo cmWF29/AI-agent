@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/nodes/__init__.py
-hash: ecd0615691502ef37d47ea287f9cae28dbd737f304b318ba9e1d5e14fae0e40b
+hash: c7936ef29f56d97d8e22bea0f73878d3564a864b98d4ac4e48dbbe1171c57717
 symbols:
 - _now
 - _read_state
@@ -8,6 +8,9 @@ symbols:
 - _node_secret
 - _auth_node
 - setup
+- _msg
+- _register_tools
+- _tool_fn
 - _route_register
 - _route_heartbeat
 - _route_push_register
@@ -75,6 +78,24 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `setup`（function）
 - 职责: 装配入口：读自持台账，注册协调路由；不产生外部效果。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_msg`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_register_tools`（function）
+- 职责: 节点配置岗位的工具接线：只暴露登记、观测与租约申领，不暴露内部台账写。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_tool_fn`（function）
+- 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

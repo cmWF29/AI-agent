@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/library/data/roles.yaml
-hash: 8ab0d73c1e89aac2275cbd36bca514e11f990058f33424ab7964d9eda4fccb38
+hash: b727db385a2956c65e4799916913fb345df20e210da34a2916ac086c296e2fb2
 symbols:
 - pm
 - architect
@@ -13,6 +13,7 @@ symbols:
 - process
 - skill-decomposer
 - cloud-configurer
+- node-configurer
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:19'
 ---
@@ -89,6 +90,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `cloud-configurer`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `node-configurer`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

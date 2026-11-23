@@ -13,7 +13,7 @@ do:
     project:
       get: input.project
     caller:
-      get: input.caller
+      lit: {scope: global, project: "", ticket: "", session: "view", role: "admin"}
   as: out
 expect:
   given:

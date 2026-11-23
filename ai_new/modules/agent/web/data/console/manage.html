@@ -46,7 +46,7 @@
   --bg:#f3f5f9;--card:#ffffff;--line:#e6e9f0;--line-2:#f0f2f6;
   --accent:#2f6bff;--accent-weak:rgba(47,107,255,.10);
   --ok:#00b42a;--warn:#ff7d00;--danger:#f53f3f;--purple:#722ed1;--teal:#0fc6c2;
-  --sidebar-w:248px;
+  --sidebar-w:272px;
   --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.06);
   --shadow-sm:0 1px 2px rgba(16,24,40,.06);
   --radius:12px;
@@ -187,6 +187,9 @@ main .crumb{margin-bottom:14px}
 /* 展开态就回到普通卡片排列：一张一行、整宽，与收缩态的整宽口径一致
    （原先 auto-fill 多列会把卡压成 300px 列宽，和叠起来那张整宽卡对不上） */
 .deck[data-open="1"] .deck-stage{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+/* 展开态每张牌都必须是整宽同高：不能继承收缩态的 right/transform，
+   否则后几张会比第一张窄 8px，看上去像尺寸不一致的另一套卡。 */
+.deck[data-open="1"] .deck-stage>.pcard{position:relative;left:auto;right:auto;width:100%;max-width:100%;height:var(--pcard-h);transform:none!important;transition:none!important}
 .deck-stage{--ox:9px;--oy:13px;isolation:isolate;will-change:transform}
 .deck[data-open="0"] .deck-stage>.pcard{position:absolute;left:0;right:calc(var(--pos,0) * var(--ox));top:0;
   z-index:calc(20 - var(--pos,0));
@@ -357,6 +360,9 @@ td .chip{margin:0 4px 4px 0}
 .stack-samples{display:flex;flex-direction:column;gap:6px}
 .stack-samples .chips-label{font-size:11.5px;color:var(--muted)}
 .stack-sample i{font-style:normal;color:var(--muted)}
+.kind-key{font-style:normal;font-size:10.5px;color:var(--muted);background:var(--bg);padding:1px 5px;border-radius:5px}
+.kind-note{font-size:11.5px;color:var(--muted);line-height:1.5}
+.pmap-sub{font-size:12px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 100%}
 
 /* ---- 按钮 ---- */
 button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;transition:background .15s,border-color .15s,opacity .15s}
@@ -580,6 +586,34 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 #banner.info{display:block;background:var(--accent-weak);color:var(--accent)}
 #status{font-size:12px;color:var(--muted);padding:10px 16px;border-top:1px solid var(--line-2)}
 
+/* ---- 两级侧栏：一级分组、二级页面；移动底栏固定在安全区之上 ---- */
+.nav{display:flex;flex-direction:column;gap:8px;min-height:0;flex:1 1 auto;overflow:hidden}
+.nav-primary{display:flex;flex-direction:column;gap:4px;min-width:0;flex:none}
+.nav-group-btn::part(base){width:100%;min-width:0;justify-content:flex-start;gap:8px;min-height:44px;padding:9px 10px;border-radius:12px;color:var(--fg-2);font-size:13px}
+.nav-group-btn.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:600}
+.nav-group-label{white-space:nowrap}
+.nav-group-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none;font-size:18px}
+.nav-secondary{display:none;flex-direction:column;gap:4px;min-height:0;overflow-y:auto}
+.nav-back::part(base){justify-content:flex-start;padding:7px 10px;color:var(--muted);font-size:12px}
+.nav-sec-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 4px}
+.nav-sec-head span{font-size:12px;font-weight:600;color:var(--fg-2);letter-spacing:.04em}
+.nav-sec-head em{font-style:normal;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nav-items{display:flex;flex-direction:column;gap:2px}
+.nav-leaf::part(base){justify-content:flex-start;padding:9px 12px;border-radius:10px;color:var(--fg-2);font-size:13px}
+.nav-leaf.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:600}
+.nav-empty{font-size:11.5px;color:var(--muted);line-height:1.6;padding:8px 12px;border:1px dashed var(--line);border-radius:10px}
+/* 底栏配置：入口在侧栏底部，勾选即存本地，不复制一份菜单数据 */
+.tab-config{flex:none;padding:10px 4px 2px;border-top:1px solid var(--line-2);margin-top:8px;background:var(--card)}
+.tcfg-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 6px 8px}
+.tcfg-head b{font-size:12.5px;color:var(--fg)}
+.tcfg-head span{font-size:11px;color:var(--muted)}
+.tcfg-list{display:flex;flex-direction:column;gap:2px;max-height:30vh;overflow-y:auto}
+.tcfg-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px;padding:2px 8px;border-radius:8px;cursor:pointer}
+.tcfg-row:hover{background:var(--line-2)}
+.tcfg-row sl-checkbox{font-size:12.5px;color:var(--fg-2)}
+.tcfg-row>span{font-size:10.5px;color:var(--muted);flex:none}
+#tab-config-btn.on::part(base){background:var(--accent-weak);color:var(--accent)}
+
 /* ---- IM 风外壳：分组标题 + 圆角高亮行；移动底栏固定在安全区之上 ---- */
 .nav{gap:2px}
 .nav-group{gap:2px;padding:0 4px}
@@ -645,11 +679,18 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .shell{align-items:stretch}
   .sidebar.collapsed{width:0;padding:0;border-right:0;overflow:hidden}
   .sidebar.collapsed+.scrim{display:none}
+  .nav{flex-direction:row;gap:8px;align-items:flex-start;overflow:hidden}
+  .nav-primary{flex:0 0 72px;width:72px;min-width:0}
+  .nav-group-btn::part(base){flex-direction:column;justify-content:center;gap:4px;min-width:0;min-height:58px;padding:7px 2px;font-size:10.5px}
+  .nav-secondary{display:flex;flex:1;min-width:0;max-height:100%;overflow-y:auto}
+  .nav-back{display:none}
   body.rail .rail-open{display:flex}
   body.rail main{padding-top:62px}
 }
 @media (max-width: 899px) {
   .rail-btn{display:none}
+  .sidebar.group-open .nav-primary{display:none}
+  .sidebar.group-open .nav-secondary{display:flex}
 }
 
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
@@ -948,6 +989,17 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
   .wf-meta{width:100%;margin-left:0;order:2;font-size:10.5px}
   .side-foot{padding-bottom:20px}
 }
+#ops-insight{display:grid;gap:10px;margin-top:16px}
+#ops-insight .ops-fold{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow);overflow:hidden}
+#ops-insight .ops-fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:13px 16px;font-size:13px}
+#ops-insight .ops-fold>summary::-webkit-details-marker{display:none}
+#ops-insight .ops-fold>summary::before{content:"▸";color:var(--muted);font-size:12px}
+#ops-insight .ops-fold[open]>summary::before{content:"▾"}
+#ops-insight .ops-fold>summary strong{font-size:14px}
+#ops-insight .ops-fold>summary span{color:var(--muted);flex:1}
+#ops-insight .ops-fold>summary em{font-style:normal;color:var(--primary);font-size:12px}
+#ops-insight .ops-fold[open]>summary em{display:none}
+#ops-insight .ops-fold-body{padding:0 14px 14px;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -960,7 +1012,9 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
     </div>
     <!-- 导航项由后端菜单渲染：视图规格里的 menu 决定顺序与名称，页面不存清单 -->
     <nav class="nav" id="side-nav"></nav>
+    <div class="tab-config" id="tab-config" hidden></div>
     <div class="side-foot">
+      <sl-button id="tab-config-btn" variant="text" data-ui="tab_config" data-clk="tab_config" data-ctl="ctl.shell.tab_config" data-ctl-state="idle">底栏配置</sl-button>
       <sl-button id="logout" variant="text" data-ui="logout" data-clk="logout" data-ctl="ctl.shell.logout" data-ctl-state="idle"></sl-button>
     </div>
   </aside>

@@ -36,6 +36,17 @@ MIG_FAILED = "failed"
 NODE_ROLES = ("entry", "executor")
 
 
+def _coerce_bool(value, default=False):
+    """表单/工具都可能把布尔写成字符串；只有显式真值才算 true。"""
+    if value is None or value == "":
+        return bool(default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
 def _coerce_role(value, prev=None):
     """归一化节点归属：未声明默认执行节点；非法值回退执行节点，不写脏数据。"""
     role = str(value or "").strip() or (prev or {}).get("role") or "executor"
@@ -109,12 +120,12 @@ def register(state, node, now):
     nodes = state.setdefault("nodes", {})
     nid = str(node["id"]).strip()
     prev = nodes.get(nid)
-    exposed = node.get("public_exposed", (prev or {}).get("public_exposed", False))
+    exposed = _coerce_bool(node.get("public_exposed"), (prev or {}).get("public_exposed", False))
     record = {
         "id": nid,
         "endpoint": str(node["endpoint"]).strip(),
         "role": _coerce_role(node.get("role"), prev),
-        "public_exposed": bool(exposed),
+        "public_exposed": _coerce_bool(exposed),
         "transport": str(node.get("transport") or "direct"),
         "region": str(node.get("region") or (prev or {}).get("region") or ""),
         "capacity": dict(node.get("capacity") or {}),

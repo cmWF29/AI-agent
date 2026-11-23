@@ -31,6 +31,12 @@ login:                                 # 登录页（未登录可读，不含导
 ui:
   crumb_root: 工作台
   tabbar: 主导航
+  tab_config: 底栏配置
+  tab_config_note: 最多 5 个；没选的回到侧栏
+  tab_config_full: 底栏最多 5 个入口
+  tab_config_min: 底栏至少保留 1 个入口
+  nav_all: 全部分组
+  nav_all_pinned: 这一组都已收进底栏，可在「底栏配置」里调整
   need_param: 从列表里点一个进来，这一页只显示选中的那个
   perf_probe: "{} fps · 最差 {}ms · 长任务 {}"   # 手机端性能自检浮层（?perf=1 打开）
   deck_expand: "铺开 {} 张"                 # 卡片堆叠：收起状态下的展开按钮
@@ -163,6 +169,8 @@ click_machine:                          # 点击状态机：前端每一个可�
     modal:   [idle, busy]
   kinds:                                # 每个可点位置一类：允许态 allow / 进入 enter / 回落 exit
   - {key: nav,            label: 侧栏导航,     allow: [idle],           enter: busy,  exit: idle, note: 切页前先收好当前页}
+  - {key: nav_group,      label: 侧栏分组,     allow: [idle],           enter: "",    exit: "",   note: 只展开二级菜单，不取数}
+  - {key: tab_config,     label: 底栏配置,     allow: [idle],           enter: "",    exit: "",   note: 只开配置面板，不换页}
   - {key: drawer_open,    label: 打开侧栏,     allow: [idle],           enter: "",    exit: "",   note: 只开抽屉}
   - {key: drawer_scrim,   label: 点暗处关侧栏, allow: [idle],           enter: "",    exit: "",   note: 只关抽屉}
   - {key: rail_close,     label: 收起侧栏,     allow: [idle],           enter: "",    exit: "",   note: 宽屏折叠}
@@ -206,6 +214,7 @@ screen_machine:                       # 界面状态图：节点是"界面状态
   - {key: ctl.shell.rail_open,  label: 展开侧栏, note: 宽屏展开}
   - {key: ctl.crumb_up,         label: 面包屑上一级, note: 退回上级页}
   - {key: ctl.shell.logout,     label: 登出, note: 清令牌回登录页}
+  - {key: ctl.shell.tab_config, label: 底栏配置, note: 展开底栏入口选择}
   overlays:                           # 浮层：能打开就必须能关，关的控件逐条登记
   - {key: overlay:sidebar, label: 侧栏, close_ctl: ctl.shell.scrim, close_note: 点侧栏外暗区收起}
   - {key: overlay:sidebar, label: 侧栏, close_ctl: ctl.shell.rail_close, close_note: 宽屏点收起}
@@ -231,6 +240,13 @@ controls:
     states: [idle, busy]
     transitions: {idle: [busy], busy: [idle]}
     note: 宽屏折叠为图标条
+  ctl.shell.tab_config:
+    label: 底栏配置
+    kind: tab_config
+    where: [shell]
+    states: [idle]
+    transitions: {idle: []}
+    note: 只开关选择面板，不改底栏
   ctl.shell.logout:
     label: 登出
     kind: logout
@@ -252,6 +268,27 @@ controls:
     states: [idle, busy]
     transitions: {idle: [busy], busy: [idle]}
     note: 宽屏从图标条展开
+  ctl.head_act.登记节点:
+    label: 登记节点
+    kind: head_act
+    where: [nodes]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 打开弹窗 node.register，不直接写；弹窗保存走 modal_ok；disabled 是只读态，点了不响应
+  ctl.head_act.绑定项目:
+    label: 绑定项目
+    kind: head_act
+    where: [nodes]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 打开弹窗 node.bind，不直接写；弹窗保存走 modal_ok；disabled 是只读态，点了不响应
+  ctl.head_act.保存云端配置:
+    label: 保存云端配置
+    kind: head_act
+    where: [cloud]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 打开弹窗 cloud.profile，不直接写；凭证只进密封层；disabled 是只读态，点了不响应
   ctl.head_act.扫停滞:
     label: 扫停滞
     kind: head_act

@@ -146,7 +146,12 @@ function openForm(form, ctx) {
   dlg.show();
   if (typeof uiModal === "function") uiModal(true);
   const first = $("modal-form").querySelector("sl-input:not([readonly]),sl-textarea:not([readonly]),sl-select,input:not([readonly]),textarea,select");
-  if (first) first.focus();
+  // Web Components 刚插入时内部 input 还没挂上，直接 focus 会抛 null；等 updateComplete 再聚焦。
+  if (first) {
+    const focus = () => { try { first.focus?.(); } catch (_) {} };
+    if (first.updateComplete && typeof first.updateComplete.then === "function") first.updateComplete.then(focus, focus);
+    else focus();
+  }
   modalSubmit = async (fields) => {
     for (const f of form.fields || []) {
       if (f.required && !fields[f.name]) throw new Error(uiText("required_empty", f.label));

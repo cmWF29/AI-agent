@@ -87,7 +87,59 @@ def setup(ctx):
     ]
     for name, fn in routes:
         ctx.api.register(name, fn, module="nodes")
+    _register_tools(ctx)
     return True
+
+
+def _msg(ctx):
+    row = ctx.api.call("store.read", {"module": "agent/nodes", "path": "messages.yaml"}, caller=None)
+    return row.get("value") or {}
+
+
+def _register_tools(ctx):
+    """节点配置岗位的工具接线：只暴露登记、观测与租约申领，不暴露内部台账写。"""
+    tools = getattr(ctx, "tools", None)
+    if tools is None:
+        return
+    tpl = _msg(ctx)
+    specs = [
+        ("nodes_register", "nodes.register", "tool_nodes_register_desc", [
+            {"name": "id", "type": "string", "required": True, "desc": "节点标识"},
+            {"name": "endpoint", "type": "string", "required": True, "desc": "节点端点"},
+            {"name": "transport", "type": "string", "desc": "传输：unix / tcp / direct"},
+            {"name": "role", "type": "string", "desc": "entry / executor"},
+            {"name": "public_exposed", "type": "boolean", "desc": "是否公网暴露"},
+            {"name": "capacity", "type": "object", "desc": "容量：cpu / memory_mb / disk_mb"},
+            {"name": "lease_ttl", "type": "number", "desc": "租约 TTL 秒"},
+        ]),
+        ("nodes_heartbeat", "nodes.heartbeat", "tool_nodes_heartbeat_desc", [
+            {"name": "node", "type": "string", "required": True, "desc": "节点标识"},
+            {"name": "load", "type": "object", "desc": "负载：running 等"},
+        ]),
+        ("nodes_view", "nodes.nodes_view", "tool_nodes_view_desc", []),
+        ("nodes_project_node", "nodes.project_node", "tool_nodes_project_node_desc", [
+            {"name": "project", "type": "string", "required": True, "desc": "项目标识"},
+        ]),
+        ("nodes_acquire", "nodes.acquire", "tool_nodes_acquire_desc", [
+            {"name": "project", "type": "string", "required": True, "desc": "项目标识"},
+            {"name": "node", "type": "string", "required": True, "desc": "节点标识"},
+            {"name": "ttl", "type": "number", "desc": "租约秒数"},
+            {"name": "tier", "type": "string", "desc": "档位：weak / strong"},
+        ]),
+        ("nodes_backups", "nodes.backups", "tool_nodes_backups_desc", []),
+        ("nodes_migrations", "nodes.migrations", "tool_nodes_migrations_desc", []),
+    ]
+    for name, route, desc_key, params in specs:
+        if tools.has(name):
+            continue
+        tools.register(name, tpl.get(desc_key) or "", params, _tool_fn(route),
+                       module="nodes", kinds=["role", "admin"], builtin=True)
+
+
+def _tool_fn(route):
+    def fn(ctx, args, session=None):
+        return ctx.api.call(route, dict(args or {}), caller=None)
+    return fn
 
 
 # ---------------------------------------------------------------- 协调路由

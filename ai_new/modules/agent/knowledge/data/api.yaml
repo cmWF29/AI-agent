@@ -113,6 +113,9 @@ routes:
       tickets:
         type: any
         req: false
+      projects:
+        type: any
+        req: false
   knowledge.overview:
     in:
       rows:

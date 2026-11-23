@@ -177,8 +177,16 @@ def _route_profile_save(ctx, payload):
     existing = (state.get("profiles") or {}).get(profile["id"])
     # 凭证：入参明文密封落盘；未传凭证则沿用已密封的旧凭证（跨 profile 不可互换）。
     if payload.get("credentials"):
+        # 扁平表单会带空字段；空值没有语义，密封层不接受空串，先在这里剔掉。
+        creds = {k: v for k, v in payload["credentials"].items()
+                 if v is not None and str(v).strip() != ""}
+        if not creds:
+            effects = _audit(ctx, caller, "profile_save", profile["id"], "deny",
+                             "bad_credentials")
+            return {**_err("bad_credentials", 400, tpl.get("bad_credentials") or ""),
+                    "effects": effects}
         profile["credentials"] = _seal.seal_map(
-            ctx, payload["credentials"], profile["id"], profile["provider"])
+            ctx, creds, profile["id"], profile["provider"])
     elif existing:
         profile["credentials"] = existing.get("credentials") or {}
     else:
@@ -677,7 +685,10 @@ def _tool_fn(route):
 def _session_caller(session):
     s = session or {}
     ticket = s.get("ticket") or ""
-    scope = "ticket" if ticket else "project"
+    # 系统配置岗位在工单里工作，但配置动作按公共级口径执行；只认这两个内置岗位，
+    # 普通项目/工单角色即使伪造同名参数也拿不到全局权限。
+    scope = "global" if s.get("role") in ("cloud-configurer", "node-configurer") else (
+        "ticket" if ticket else "project")
     return {"scope": scope, "project": s.get("project") or "", "ticket": ticket,
             "session": s.get("id") or "", "role": s.get("role") or "",
             "kind": s.get("kind") or ""}

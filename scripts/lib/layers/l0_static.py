@@ -31,6 +31,8 @@ GATES: list[tuple[str, str, Path, bool]] = [
      SCRIPTS / "gate_screens.py", True),
     ("views", "视图层：条件表达式 / 只读覆盖 / 工具卡单一折叠出口",
      SCRIPTS / "gate_views.py", True),
+    ("card_size", "卡片尺寸：同区卡片整宽同高、无序号/内联尺寸",
+     SCRIPTS / "gate_card_size.py", True),
     ("demand_tests", "需求↔用例映射：每条需求绑到 check 且映射表不过期",
      SCRIPTS / "gate_demand_tests.py", True),
     ("deadcode", "死代码：未引用函数/import/孤儿路由与工具",

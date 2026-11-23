@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: be04418911838415d7c29c11194b4610385daab36400fef6408a9f15a034878e
+hash: e05b5ae20403fec18d0dae0abc4a137a74d59bc3e2d590d7b9851283ca504c23
 symbols:
 - foldLoad
 - foldSet
@@ -126,12 +126,12 @@ symbols:
 - g
 - rows
 - chip
+- view
 - m
 - inChips
 - outChips
 - inv
 - gateOf
-- view
 - fields
 - marks
 - badges
@@ -894,6 +894,12 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `view`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `m`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -919,12 +925,6 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `gateOf`（js-function）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `view`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

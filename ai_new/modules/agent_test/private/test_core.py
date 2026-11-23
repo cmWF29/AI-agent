@@ -582,6 +582,15 @@ class CoreTest(unittest.TestCase):
             self.assertEqual(len(node["children"]), 1)
             self.assertEqual(node["children"][0]["project"], "重构")
             self.assertTrue(node["label"].startswith("T-"))
+        # 没有文档的在建项目也要出现在树里：children 为空，渲染层给"这一层还没有文档"
+        empty = self.ctx.api.call("knowledge.index", {
+            "rows": [], "tickets": [],
+            "projects": [{"id": "p-empty", "name": "空项目"}]})
+        node = next(n for n in empty["tree"] if n["type"] == "project")
+        self.assertEqual(node["label"], "空项目")
+        self.assertEqual(node["children"], [])
+        self.assertEqual(empty["counts"]["project_groups"], 1)
+
         # 工单档案缺失项目归属时是孤儿：不挂顶层、不冒充项目层，由清理脚本从数据摘除
         orphan = self.ctx.api.call("knowledge.index", {
             "rows": [{"path": "tickets/t-orphan/note.md"}], "tickets": []})

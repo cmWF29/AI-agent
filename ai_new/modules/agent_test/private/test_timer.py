@@ -383,6 +383,19 @@ class TimerTest(unittest.TestCase):
             "id": tid, "caller": self._project_caller("p-fail")})
         self.assertTrue(history2["last_run"]["ok"])
 
+    def test_index_groups_by_project(self):
+        """定时器总览必须按项目分组，而不是只在表格里放一列项目名。"""
+        for project in ("p-grp-a", "p-grp-b"):
+            self._create({"project": project, "kind": "once",
+                          "expr": _future_iso(7200), "title": "分组提醒 " + project,
+                          "action": "notify"})
+        idx = self.ctx.api.call("timer.index", {"caller": self._global_caller()})
+        groups = {g["project"]: g for g in idx["groups"]}
+        self.assertIn("p-grp-a", groups)
+        self.assertIn("p-grp-b", groups)
+        self.assertEqual(groups["p-grp-a"]["total"], 1)
+        self.assertEqual(groups["p-grp-a"]["active"], 1)
+
     def test_history_rejects_cross_scope(self):
         """history 同样受作用域守卫：跨项目读取被拒并留 deny 审计。"""
         res = self._create({"project": "p-hist", "kind": "once",

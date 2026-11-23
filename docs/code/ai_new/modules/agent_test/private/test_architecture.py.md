@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_architecture.py
-hash: 618a1c1f976ef647ee6d98479c19de09bc57a9b00773f2ddf8b5137a887c9a05
+hash: 162fa972a01df588ce3f054922339c0ea86bc949d049eff90cdef24454dd626a
 symbols:
 - src_files
 - runtime_modules

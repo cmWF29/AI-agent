@@ -1,6 +1,6 @@
 id: view-cloud
-title: 云端配置视图：提供方、连通状态、最近同步与审计
-description: "全局设置只读视图：当前云端 profile（脱敏）、最近一次同步摘要、失败原因与配置变更审计；项目页接入状态由 cloud-project-status 提供"
+title: 云端配置视图：保存 profile、提供方、连通状态、最近同步与审计
+description: "云端配置视图：保存/切换 profile、最近同步摘要、失败原因与配置变更审计；凭证只进密封层，项目页接入状态由 cloud-project-status 提供"
 tags: [cloud, view, web, read]
 enabled: true
 callable: false
@@ -11,7 +11,51 @@ view:
   key: cloud
   crumb: [云端资料库]
   heading: 云端资料库
-  subheading: 全局同步配置与状态只读视图；配置动作仅公共级岗位/管理员可用
+  subheading: 保存云端 profile、切为生效；凭证只进密封层，视图脱敏
+  actions:
+  - {label: 保存云端配置, modal: cloud.profile, disabled_when: "route.archived == true", disabled_hint: 云端配置始终开放}
+  forms:
+  - id: cloud.profile
+    disabled_when: "route.archived == true"
+    title: 保存云端配置
+    hint: 凭证只进密封层，视图不回显；保存后自动切为当前生效 profile。
+    fields:
+    - {name: id, label: profile 标识, placeholder: 例如 s3-main, required: true}
+    - {name: company, label: 公司标识, placeholder: 例如 hive, required: true}
+    - name: provider
+      label: 提供方
+      kind: select
+      value: webdav
+      options:
+      - {value: webdav, label: webdav}
+      - {value: s3, label: s3}
+      - {value: http_dir, label: http_dir}
+      - {value: rsync, label: rsync}
+    - {name: endpoint, label: 端点, placeholder: https://example.com/dav, required: true}
+    - {name: root_dir, label: 远端根目录或桶, placeholder: hive}
+    - {name: access_key, label: 访问账号 / access_key, required: true}
+    - {name: secret_key, label: 访问密钥 / secret_key, kind: password, required: true}
+    - {name: region, label: 区域（s3 可选）, placeholder: ap-east-1}
+    - {name: bucket, label: 桶（s3 可选）, placeholder: hive-backup}
+    - name: category
+      label: 同步类别
+      kind: select
+      value: knowledge
+      options:
+      - {value: knowledge, label: 知识}
+      - {value: artifact, label: 交付件}
+      - {value: ticket, label: 工单}
+      - {value: session, label: 会话}
+      - {value: log, label: 日志}
+      - {value: trace, label: 链路}
+    submit:
+      demand: cloud-configure
+      params: {id: $id, company: $company, provider: $provider, endpoint: $endpoint, root_dir: $root_dir, access_key: $access_key, secret_key: $secret_key, region: $region, bucket: $bucket, category: $category}
+      ok: 保存并生效
+      flash: 已保存云端配置：$id
+      then:
+        view: cloud
+        reload: true
   data:
   - {as: status, demand: cloud-status}
   - {as: audit, demand: cloud-audit-list}

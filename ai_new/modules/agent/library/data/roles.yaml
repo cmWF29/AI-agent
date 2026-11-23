@@ -1166,3 +1166,122 @@ cloud-configurer:
     - todo
     next: []
     terminal: true
+node-configurer:
+  id: node-configurer
+  cn: 节点配置者
+  prompt_file: roles/node-configurer.md
+  must_dos:
+  - 用自然语言收齐节点诉求：节点标识、端点、传输方式、入口/执行角色、容量与租约；缺口一次问清
+  - 登记前先核对节点归属与暴露面：执行节点默认仅内网，公网入口必须显式确认
+  - 登记或刷新节点后核对节点表，确认健康、容量与角色已生效；不把未登记的节点说成已接入
+  - 需要项目落到节点时，按项目申领租约并记录 fencing token/epoch；冲突不覆盖已有租约
+  - 交付时说明节点状态、项目归属、备份与迁移现状，以及仍未满足的缺口
+  forbidden:
+  - 不把未验证的端点/容量说成已接入
+  - 不把执行节点直接暴露到公网；公网暴露必须由用户明确确认
+  - 不覆盖其他项目已持有的租约，不伪造 fencing token
+  - 不把节点共享密钥写进仓库、日志、视图或回复
+  tools:
+  - nodes_register
+  - nodes_heartbeat
+  - nodes_view
+  - nodes_project_node
+  - nodes_acquire
+  - nodes_backups
+  - nodes_migrations
+  builtin: true
+  system: true
+  checks:
+  - kind: note
+    min_len: 20
+  states:
+  - id: nc.intake
+    gate:
+      must:
+      - id: nc.intake.m1
+        text: 记录节点标识、端点、传输、角色、容量与租约，待澄清项一次列清
+      - id: nc.intake.m2
+        text: 核对暴露面：执行节点默认仅内网，公网入口需用户明确确认
+      forbid:
+      - 诉求未澄清就登记节点
+      - 不脑补默认值填补缺口
+    cn: 受理诉求
+    desc: 收齐节点登记诉求，记录待澄清项与暴露面
+    tools:
+    - nodes_view
+    - todo
+    next:
+    - nc.register
+    - nc.reject
+    when:
+      nc.register: 诉求澄清完整，待登记节点
+      nc.reject: 诉求不可信或暴露面不被允许
+  - id: nc.register
+    gate:
+      must:
+      - id: nc.register.m1
+        text: 登记/刷新节点并核对节点表：健康、容量、角色、暴露面与租约
+      forbid:
+      - 未核对节点表就宣称已接入
+      - 不把执行节点默认暴露到公网
+    cn: 登记节点
+    desc: 登记或刷新节点，核对节点健康与容量
+    tools:
+    - nodes_register
+    - nodes_heartbeat
+    - nodes_view
+    - todo
+    next:
+    - nc.bind
+    - nc.deliver
+    when:
+      nc.bind: 还需要把项目落到该节点
+      nc.deliver: 只需登记节点，可直接交付
+  - id: nc.bind
+    gate:
+      must:
+      - id: nc.bind.m1
+        text: 按项目申领租约，记录 fencing token/epoch；冲突保留原租约
+      forbid:
+      - 覆盖其他项目已有租约
+      - 不伪造 fencing token
+    cn: 绑定项目
+    desc: 为项目申领节点租约，记录归属与 fencing token
+    tools:
+    - nodes_acquire
+    - nodes_project_node
+    - nodes_view
+    - todo
+    next:
+    - nc.deliver
+  - id: nc.deliver
+    gate:
+      must:
+      - id: nc.deliver.m1
+        text: 交代节点状态、项目归属、备份与迁移现状及剩余缺口
+      forbid:
+      - 不把未验证的节点说成已接入
+    cn: 交付
+    desc: 交付节点配置状态、项目归属与缺口
+    tools:
+    - nodes_view
+    - nodes_project_node
+    - nodes_backups
+    - nodes_migrations
+    - todo
+    next: []
+    terminal: true
+  - id: nc.reject
+    gate:
+      must:
+      - id: nc.reject.m1
+        text: 记录拒绝原因、非法点与证据，留痕归档
+      forbid:
+      - 不隐瞒拒绝原因
+    cn: 拒绝结局
+    desc: 无权/不可信/暴露面不允许时拒绝配置，记录原因与证据
+    tools:
+    - nodes_view
+    - todo
+    next: []
+    terminal: true

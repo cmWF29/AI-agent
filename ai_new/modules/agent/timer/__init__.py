@@ -258,7 +258,9 @@ def _route_index(ctx, payload):
     records = _pure.filter_scope(_load_records(ctx, payload.get("project")), caller)
     rows = _pure.view_rows(records)
     now = ctx.api.call("clock.now", {}, caller=None).get("ts")
-    return {"total": len(rows), "rows": rows, "counts": _pure.index_stats(rows, now)}
+    return {"total": len(rows), "rows": rows,
+            "counts": _pure.index_stats(rows, now),
+            "groups": _pure.project_groups(rows, now)}
 
 
 def _authorize_load(ctx, payload, action):

@@ -1,0 +1,75 @@
+id: cloud-configure
+title: 保存云端配置：扁平表单 → 凭证对象 → profile_save / switch → 落盘
+description: "云端资料库手工配置：按管理员公共级上下文保存 profile 并切为生效；空凭证字段丢弃，明文只进密封层。"
+tags: [cloud, write]
+touch: [cloud-status]
+enabled: true
+callable: true
+'on': []
+do:
+- call: cloud.profile_save
+  with:
+    id:
+      get: input.id
+    company:
+      get: input.company
+    provider:
+      get: input.provider
+    endpoint:
+      get: input.endpoint
+    root_dir:
+      get: input.root_dir
+    credentials:
+      access_key:
+        get: input.access_key
+      secret_key:
+        get: input.secret_key
+      region:
+        get: input.region
+      bucket:
+        get: input.bucket
+      username:
+        get: input.access_key
+      password:
+        get: input.secret_key
+    categories:
+    - get: input.category
+    policy:
+      interval_s:
+        lit: 3600
+      conflict_policy:
+        lit: record
+    caller:
+      lit: {scope: global, project: "", ticket: "", session: "view", role: "admin"}
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+- call: cloud.profile_switch
+  with:
+    id:
+      get: input.id
+    caller:
+      lit: {scope: global, project: "", ticket: "", session: "view", role: "admin"}
+  as: switched
+- call: runtime.apply
+  with:
+    effect:
+      get: switched.effects
+    echo:
+      get: switched
+  as: switched_applied
+expect:
+  given:
+    input: {id: profile-form-1, company: demo, provider: webdav, endpoint: 'https://example.com/dav', root_dir: hive, access_key: u, secret_key: p, region: '', bucket: '', category: knowledge}
+  calls:
+  - cloud.profile_save
+  - runtime.apply
+  - cloud.profile_switch
+  - runtime.apply
+  payload: {}
+  promise: 保存后可被 cloud-status 读到，凭证只以密封串落盘、视图脱敏

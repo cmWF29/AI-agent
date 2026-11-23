@@ -1,6 +1,6 @@
 id: view-nodes
-title: 节点与分配视图：节点健康、项目→节点归属、备份状态
-description: "运维只读视图：节点列表与健康度、项目→节点分配表、各项目备份状态；面板只声明区块，取数归 nodes-list / nodes-backups 需求"
+title: 节点配置与分配视图：登记节点、绑定项目、健康与备份
+description: "节点配置视图：登记节点、绑定项目、查看健康与备份；面板只声明区块，取数归 nodes-list / nodes-backups 需求"
 tags: [nodes, view, web, read]
 enabled: true
 callable: false
@@ -11,7 +11,75 @@ view:
   key: nodes
   crumb: [节点]
   heading: 节点
-  subheading: 控制面只读视图：节点健康、项目归属、备份状态
+  subheading: 登记节点、把项目绑到节点；容量、健康、归属与备份都在这里核对
+  actions:
+  - {label: 登记节点, modal: node.register, disabled_when: "route.archived == true", disabled_hint: 节点登记始终开放}
+  - {label: 绑定项目, modal: node.bind, disabled_when: "route.archived == true", disabled_hint: 项目绑定始终开放}
+  forms:
+  - id: node.register
+    disabled_when: "route.archived == true"
+    title: 登记节点
+    hint: 执行节点默认仅内网；端点、容量与租约登记后可在节点表核对。
+    fields:
+    - {name: id, label: 节点标识, placeholder: 例如 node-1, required: true}
+    - {name: endpoint, label: 端点, placeholder: unix:///tmp/ai_new/node-1.sock, required: true}
+    - name: transport
+      label: 传输
+      kind: select
+      value: unix
+      options:
+      - {value: unix, label: unix}
+      - {value: tcp, label: tcp}
+      - {value: direct, label: direct}
+    - name: public_exposed
+      label: 公网暴露
+      kind: select
+      value: "false"
+      options:
+      - {value: "false", label: 否（仅内网）}
+      - {value: "true", label: 是（入口节点）}
+    - name: role
+      label: 节点类型
+      kind: select
+      value: executor
+      options:
+      - {value: executor, label: 执行节点（仅内网）}
+      - {value: entry, label: 入口节点}
+    - {name: cpu, label: CPU 核数, placeholder: 2}
+    - {name: memory_mb, label: 内存 MB, placeholder: 2048}
+    - {name: disk_mb, label: 磁盘 MB, placeholder: 10240}
+    - {name: lease_ttl, label: 租约秒, placeholder: 45}
+    submit:
+      demand: node-configure
+      params: {id: $id, endpoint: $endpoint, transport: $transport, role: $role, public_exposed: $public_exposed, cpu: $cpu, memory_mb: $memory_mb, disk_mb: $disk_mb, lease_ttl: $lease_ttl}
+      ok: 登记节点
+      flash: 已登记节点：$id
+      then:
+        view: nodes
+        reload: true
+  - id: node.bind
+    disabled_when: "route.archived == true"
+    title: 绑定项目
+    hint: 把项目落到一个节点；已有租约冲突时保留原租约，不覆盖。
+    fields:
+    - {name: project, label: 项目标识, placeholder: 例如 demo-proj, required: true}
+    - {name: node, label: 节点标识, placeholder: 例如 node-1, required: true}
+    - {name: ttl, label: 租约秒, placeholder: 30}
+    - name: tier
+      label: 档位
+      kind: select
+      value: weak
+      options:
+      - {value: weak, label: weak}
+      - {value: strong, label: strong}
+    submit:
+      demand: node-bind
+      params: {project: $project, node: $node, ttl: $ttl, tier: $tier}
+      ok: 绑定项目
+      flash: 已绑定：$project → $node
+      then:
+        view: nodes
+        reload: true
   labels:
     entry: 入口
     executor: 执行
@@ -23,7 +91,7 @@ view:
   sections:
   - kind: table
     as: nodes
-    source: data.nodes.result.nodes
+    source: data.nodes.nodes
     heading: 节点
     columns:
     - {label: 节点, value: row.id}
@@ -36,7 +104,7 @@ view:
     - {label: 持有项目, value: row.projects|count}
   - kind: table
     as: assignments
-    source: data.nodes.result.assignments
+    source: data.assignments.assignments
     heading: 项目归属
     columns:
     - {label: 项目, value: row.project}
@@ -47,7 +115,7 @@ view:
     - {label: 过期时间, value: row.expires_at|when}
   - kind: table
     as: backups
-    source: data.backups.result.backups
+    source: data.backups.backups
     heading: 备份状态
     columns:
     - {label: 项目, value: row.project}
@@ -56,7 +124,7 @@ view:
     - {label: 时间, value: row.created_at|when}
   - kind: table
     as: migrations
-    source: data.migrations.result.migrations
+    source: data.migrations.migrations
     heading: 迁移记录
     columns:
     - {label: 项目, value: row.project}

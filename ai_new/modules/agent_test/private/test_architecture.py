@@ -535,7 +535,12 @@ class TestViewPaths(unittest.TestCase):
             top = views[chain[0]][1] if chain else view
             label = (top.get("menu") or {}).get("label")
             if not label:
-                problems.append("%s 的层级终点不是导航页（%s 没 menu）" % (name, chain[0]))
+                # 产品上明确只走 URL、不进侧栏/底栏的根页面：不要求有 menu，
+                # 但仍要求它是根（无 parent 链）且只有一级面包屑，不能借豁免隐藏层级。
+                if view.get("url_only") and not chain and len(crumb) == 1:
+                    continue
+                problems.append("%s 的层级终点不是导航页（%s 没 menu）"
+                                % (name, chain[0] if chain else key))
                 continue
             if crumb[0] != str(label):
                 problems.append("%s 的第一级是 %r，不是它所在的导航页 %r"

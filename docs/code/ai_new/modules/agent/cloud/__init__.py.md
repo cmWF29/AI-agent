@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/__init__.py
-hash: 333f8ece8c64463e29e02dcf51b526f0e5526b5b210726b57d140eb77a970eee
+hash: 14ecb05333b25cfcce1335437607ad401d3b3b02240f3a74b46a075e77390a85
 symbols:
 - setup
 - _cfg

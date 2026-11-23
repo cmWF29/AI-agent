@@ -22,18 +22,30 @@ do:
     pattern:
       lit: '*/tickets/*/ticket.yaml'
   as: trows
+- call: store.walk
+  with:
+    module:
+      lit: agent/projects
+    root:
+      lit: ''
+    pattern:
+      lit: '*.yaml'
+  as: prows
 - call: knowledge.index
   with:
     rows:
       get: rows.rows
     tickets:
       get: trows.rows
+    projects:
+      get: prows.rows
   as: out
 expect:
   given:
     input: {}
   calls:
   - store.walk_text
+  - store.walk
   - store.walk
   - knowledge.index
   payload: {}

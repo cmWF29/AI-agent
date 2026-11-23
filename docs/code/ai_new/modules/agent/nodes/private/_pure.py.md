@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent/nodes/private/_pure.py
-hash: 1f1beac303ecbde8ab7ac1af55e8418e627208603d378b63ba654390b8f6d69c
+hash: 95cf70c4a6771687ac160d48ac7c09a871b3850fb72f63c5e3046277f849945c
 symbols:
+- _coerce_bool
 - _coerce_role
 - mask_endpoint
 - empty_state
@@ -47,6 +48,12 @@ updated_at: '2026-11-23T04:10:20'
 节点协调纯计算：注册、心跳、租约、fencing、项目→节点分配、备份台账。
 
 ## 符号
+
+### `_coerce_bool`（function）
+- 职责: 表单/工具都可能把布尔写成字符串；只有显式真值才算 true。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `_coerce_role`（function）
 - 职责: 归一化节点归属：未声明默认执行节点；非法值回退执行节点，不写脏数据。

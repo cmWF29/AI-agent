@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/timer/private/_pure.py
-hash: 8f395f816e2dd825ce22208576ecaaf6f4e6d2d08ad57b6f541f3e2201ce3357
+hash: d9ccbb4971e270d34836b9d698abbc099423e25823d70f23882bbb5176d416cb
 symbols:
 - normalize_caller
 - idem_signature
@@ -14,6 +14,7 @@ symbols:
 - last_run_view
 - view_row
 - view_rows
+- project_groups
 - index_stats
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:21'
@@ -98,6 +99,12 @@ updated_at: '2026-11-23T04:10:21'
 
 ### `view_rows`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `project_groups`（function）
+- 职责: 按项目分组的调度概览：项目是定时器的作用域，不是表格里一列就完事。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

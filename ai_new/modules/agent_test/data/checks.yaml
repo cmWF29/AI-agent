@@ -210,6 +210,7 @@ checks:
   - cloud-profile-switch
   - cloud-project-status
   - cloud-provider-list
+  - cloud-configure
   - cloud-status
   - cloud-sync-plan
   - cloud-sync-run
@@ -227,6 +228,8 @@ checks:
   - nodes-fence-check
   - nodes-heartbeat
   - nodes-list
+  - node-bind
+  - node-configure
   - nodes-migrations
   - nodes-project-node
   - nodes-push-register

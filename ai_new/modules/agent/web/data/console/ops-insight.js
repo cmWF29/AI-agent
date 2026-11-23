@@ -167,7 +167,12 @@
   async function load() {
     const root = ensureRoot();
     root.innerHTML =
-      '<div data-role="storage"></div><div data-role="nodes"></div>';
+      '<details class="ops-fold"><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><strong>存储归档</strong>' +
+      '<span>压缩台账、解压耗时与缓存命中；展开才占版面</span><em>展开</em></summary>' +
+      '<div class="ops-fold-body" data-role="storage"></div></details>' +
+      '<details class="ops-fold"><summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><strong>节点与归属</strong>' +
+      '<span>节点健康、租约、项目归属与备份状态；展开才占版面</span><em>展开</em></summary>' +
+      '<div class="ops-fold-body" data-role="nodes"></div></details>';
     const [mRes, nRes, bRes] = await Promise.allSettled([
       rpc("archive.metrics"),
       rpc("nodes.nodes_view"),

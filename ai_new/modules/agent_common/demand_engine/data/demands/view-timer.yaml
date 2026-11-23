@@ -27,6 +27,22 @@ view:
     - {label: 活动, value: data.index.counts.active, note: 条运行中}
     - {label: 暂停, value: data.index.counts.paused, note: 条已暂停}
     - {label: 本日触发, value: data.index.counts.today, note: 个槽位已执行}
+  - kind: stack
+    as: index
+    source: index.groups
+    heading: 按项目
+    count_note: "每个项目一组；有定时任务的项目才出现，展开看该项目的调度数字"
+    item:
+      title: row.project
+      sub: "共 {row.total} 条"
+    fields:
+    - {label: 定时器, value: row.total, suffix: 条}
+    - {label: 运行中, value: row.active, suffix: 条}
+    - {label: 已暂停, value: row.paused, suffix: 条}
+    - {label: 已完结, value: row.done, suffix: 条}
+    - {label: 异常, value: row.error, suffix: 条}
+    - {label: 本日触发, value: row.today, suffix: 次}
+    empty: {text: 还没有按项目分组的定时任务}
   - kind: table
     as: index
     source: index.rows

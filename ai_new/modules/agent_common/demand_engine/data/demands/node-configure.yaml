@@ -1,0 +1,46 @@
+id: node-configure
+title: 登记节点：扁平表单 → 容量对象 → nodes.register → 落盘
+description: "节点页手工登记：把扁平的 CPU/内存/磁盘字段装成容量对象，登记后由 runtime.apply 落盘；公网暴露必须显式勾选。"
+tags: [nodes, write]
+touch: [nodes-list]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.register
+  with:
+    id:
+      get: input.id
+    endpoint:
+      get: input.endpoint
+    transport:
+      get: input.transport
+    role:
+      get: input.role
+    public_exposed:
+      get: input.public_exposed
+    lease_ttl:
+      get: input.lease_ttl
+    capacity:
+      cpu:
+        get: input.cpu
+      memory_mb:
+        get: input.memory_mb
+      disk_mb:
+        get: input.disk_mb
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input: {id: node-form-1, endpoint: 'unix:///tmp/ai_new/node-form-1.sock', transport: unix, role: executor, public_exposed: false, cpu: 2, memory_mb: 2048, disk_mb: 10240}
+  calls:
+  - nodes.register
+  - runtime.apply
+  payload: {}
+  promise: 节点登记落盘后可被 nodes-list 读到，执行节点默认仅内网

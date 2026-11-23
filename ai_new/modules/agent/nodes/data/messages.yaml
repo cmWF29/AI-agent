@@ -1,0 +1,8 @@
+# 节点协调工具文案：只描述能力，不含业务默认值。
+tool_nodes_register_desc: 登记或刷新节点：端点、传输、容量、角色与暴露面
+tool_nodes_heartbeat_desc: 刷新节点心跳与负载
+tool_nodes_view_desc: 读取节点健康、归属与备份状态
+tool_nodes_project_node_desc: 查项目当前落在哪个节点
+tool_nodes_acquire_desc: 为项目申领节点租约并拿到 fencing token
+tool_nodes_backups_desc: 读取各项目备份状态
+tool_nodes_migrations_desc: 读取项目迁移记录

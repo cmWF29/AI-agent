@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/ops-insight.js
-hash: 6605c6f5545bffaed489d57d09689ee4732815d3aed3f61caa9ca80d00d351b5
+hash: f581f9f67352b64d99d5b1518b56f521bd3453b6b0fa9ccef60f1a2cf8d841de
 symbols:
 - token
 - rpc

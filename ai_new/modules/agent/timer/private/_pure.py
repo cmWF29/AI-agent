@@ -163,6 +163,24 @@ def view_rows(records):
     return [view_row(rec) for rec in (records or [])]
 
 
+def project_groups(rows, now):
+    """按项目分组的调度概览：项目是定时器的作用域，不是表格里一列就完事。"""
+    today = str(now or "")[:10]
+    groups = {}
+    for row in rows or []:
+        pid = str(row.get("project") or "")
+        g = groups.setdefault(pid, {"project": pid, "total": 0, "active": 0,
+                                    "paused": 0, "done": 0, "error": 0, "today": 0})
+        g["total"] += 1
+        status = row.get("status") or ""
+        if status in g:
+            g[status] += 1
+        last = row.get("last_run") or {}
+        if str(last.get("at") or "")[:10] == today and last.get("ok"):
+            g["today"] += 1
+    return sorted(groups.values(), key=lambda g: (-g["active"], -g["total"], g["project"]))
+
+
 def index_stats(rows, now):
     """聚合统计：活动/暂停/本日触发。"""
     today = str(now or "")[:10]
