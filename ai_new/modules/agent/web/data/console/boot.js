@@ -433,8 +433,46 @@ function startPerfProbe() {
 function navTarget(view) {
   return viewSpec(view).nav || view;
 }
-/* 导航完全由后端菜单渲染：手机只用抽屉里的侧栏，页面底部不再常驻底栏。
+/* 导航完全由后端菜单渲染：桌面侧栏与移动底栏都读同一份 shell.menus。
    加一个视图 = 视图规格里多一行 menu，这里零改动。 */
+/* 菜单项 -> 视图规格：按 label 与 parent 对上；侧栏与底栏共用同一份解析 */
+function viewByMenuKey(m) {
+  for (const k of Object.keys(VIEWS)) {
+    const v = VIEWS[k] || {};
+    const cfg = v.menu || {};
+    const label = cfg.label || v.heading || k;
+    if (label === m.label && (cfg.parent || "") === (m.parent || "")) return v;
+  }
+  return null;
+}
+/* 底栏图标：只取 vendored 图标子集；子集没有的用圆形首字块，不引外链/字体 */
+const TAB_ICON_BY_KEY = { projects: "folder2", knowledge: "book", user: "person-circle" };
+function tabIcon(m) {
+  const name = TAB_ICON_BY_KEY[m.key] || "";
+  if (name) return `<span class="tab-ico"><sl-icon name="${esc(name)}"></sl-icon></span>`;
+  const ch = [...String(m.label || m.key || "?")][0] || "?";
+  const ph = /[a-zA-Z]/.test(ch) ? ch.toUpperCase() : ch;
+  return `<span class="tab-ico"><span class="ico-ph">${esc(ph)}</span></span>`;
+}
+function renderTabbar(menus) {
+  const bar = $("tabbar");
+  if (!bar) return;
+  const all = arr(menus);
+  // 只进底栏的视图在规格里声明 tab.order；按序号升序，序号相同再按 key 排
+  let tabs = all.filter((m) => Number(m.tab_order) > 0)
+    .sort((a, b) => Number(a.tab_order) - Number(b.tab_order) || (a.key < b.key ? -1 : 1));
+  // 退化：后端一条 tab 序号都没声明时，取前 5 个 mobile 菜单，保证底栏不空
+  if (!tabs.length) tabs = all.filter((m) => m.mobile !== false).slice(0, 5);
+  const btn = (m) => {
+    const v = viewByMenuKey(m);
+    const navKey = (v && v.key) || m.key;
+    const label = m.label || m.key;
+    return `<sl-button class="tab" variant="text" data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(label))}" data-ctl-state="idle">${tabIcon(m)}<span class="tab-label">${esc(label)}</span></sl-button>`;
+  };
+  bar.setAttribute("aria-label", uiText("tabbar") || "");
+  bar.innerHTML = tabs.map(btn).join("");
+  if (typeof stampCtl === "function") stampCtl(bar);
+}
 function renderMenus(menus) {
   const side = $("side-nav");
   if (!side) return;
@@ -448,17 +486,8 @@ function renderMenus(menus) {
   });
   // 二级菜单：parent 指向父项 key 的挂到父项下面缩进渲染；父项自己也是可点的页。
   // data-nav 挂视图自身的 key：高亮按叶子自身点亮，父项不跟着选中。
-  const viewByMenu = (m) => {
-    for (const k of Object.keys(VIEWS)) {
-      const v = VIEWS[k] || {};
-      const cfg = v.menu || {};
-      const label = cfg.label || v.heading || k;
-      if (label === m.label && (cfg.parent || "") === (m.parent || "")) return v;
-    }
-    return null;
-  };
   const btn = (m, cls) => {
-    const v = viewByMenu(m);
+    const v = viewByMenuKey(m);
     const navKey = (v && v.key) || m.key;
     return `<sl-button variant="text"${cls ? ` class="${cls}"` : ""} data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</sl-button>`;
   };
@@ -473,6 +502,7 @@ function renderMenus(menus) {
       g.items.filter((m) => !m.parent).map((m) => btn(m) + sub(m.key)).join("")}</div>`;
   }).join("");
   if (typeof stampCtl === "function") stampCtl(side);
+  renderTabbar(menus);
 }
 function highlightNav() {
   // 只亮叶子：按当前视图自身的 key 点亮；父项只保留"有子项"的层级，不进选中态。

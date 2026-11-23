@@ -578,6 +578,51 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 #banner.info{display:block;background:var(--accent-weak);color:var(--accent)}
 #status{font-size:12px;color:var(--muted);padding:10px 16px;border-top:1px solid var(--line-2)}
 
+/* ---- IM 风外壳：分组标题 + 圆角高亮行；移动底栏固定在安全区之上 ---- */
+.nav{gap:2px}
+.nav-group{gap:2px;padding:0 4px}
+.nav-group + .nav-group{margin-top:10px;padding-top:10px}
+.nav-group-title{font-size:11px;letter-spacing:.06em;color:var(--muted);padding:2px 10px 6px}
+.nav sl-button::part(base){justify-content:flex-start;gap:9px;min-height:40px;padding:9px 12px;border-radius:12px}
+.nav sl-button::part(label){display:inline-flex;align-items:center;gap:9px;min-width:0}
+.ico-ph{width:22px;height:22px;border-radius:50%;background:var(--accent-weak);color:var(--accent);font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+
+/* 卡片版式：grid 网格 / list 列表；deck 堆叠逻辑保持现状 */
+.cards.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--pcard-gap);grid-auto-rows:1fr}
+.cards.list{display:flex;flex-direction:column;gap:0;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.pcard.grid,.pcard.list{height:auto}
+.pcard.grid .phead{padding-left:48px}
+.pcard.list{min-height:64px;border:0;border-radius:0;box-shadow:none;background:transparent}
+.pcard.list + .pcard.list{border-top:1px solid var(--line-2)}
+.pcard.list .phead{padding-left:56px}
+.pcard.list .stat,.pcard.list .meta,.pcard.list .csub{margin-left:56px}
+.pcard.list .acts{display:none}
+.pav{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--accent-weak);color:var(--accent);font-weight:600}
+.pcard.grid .pav{position:absolute;left:14px;top:14px;width:36px;height:36px;font-size:15px}
+.pcard.list .pav{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:40px;height:40px;font-size:15px}
+.csub{font-size:12.5px;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard.list .ar{top:50%;bottom:auto;transform:translateY(-50%)}
+
+/* 底栏：桌面隐藏；窄屏固定底部，高度 56px + 安全区留白 */
+.tabbar{display:none}
+@media (max-width:720px){
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;align-items:stretch;gap:2px;
+    background:var(--card);border-top:1px solid var(--line);
+    padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+  .tab{flex:1 1 0;min-width:0;height:56px}
+  .tab::part(base){flex-direction:column;justify-content:center;gap:3px;padding:4px 2px;border-radius:12px;color:var(--fg-2)}
+  .tab::part(label){display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+  .tab-ico{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center}
+  .tab-ico sl-icon{font-size:19px}
+  .tab .tab-label{font-size:10.5px;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tab:hover::part(base){background:var(--line-2)}
+  .tab.on::part(base){background:var(--accent-weak);color:var(--accent)}
+  .cards.list{display:flex}
+}
+@media (max-width:719px){
+  .cards.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+
 /* ---- 桌面：侧栏常驻且可收起（rail） ---- */
 .rail-open{display:none;position:fixed;left:14px;top:14px;z-index:45;width:38px;height:38px;background:var(--card);box-shadow:var(--shadow)}
 @media (min-width: 900px) {
@@ -600,8 +645,8 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   html,body{height:100%;overflow:hidden}
   .shell{height:100dvh;min-height:0}
   .main-col{height:100dvh;max-height:100dvh;overflow:hidden}
-  .sidebar{height:100dvh;overflow-y:auto;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
-  main{padding:8px 10px calc(14px + env(safe-area-inset-bottom));flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .sidebar{height:100dvh;overflow-y:auto;padding-bottom:calc(56px + env(safe-area-inset-bottom))}
+  main{padding:8px 10px calc(56px + env(safe-area-inset-bottom));flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
   /* 手机上一屏只有群聊：面包屑与页面大标题合并，去掉一层重复 */
   /* 面包屑保留：顶部要能看出现在在哪一级（项目 / 工单 / 会话） */
   .crumb{display:flex;font-size:12px;gap:0;padding:2px 2px 0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
@@ -924,7 +969,8 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
   </div>
 </div>
 
-<!-- 手机底栏同样由后端菜单渲染：取 mobile 标记的前四项 + 更多 -->
+<!-- 手机底栏同样由后端菜单渲染：取声明了 tab 序号的菜单，内容与顺序都来自后端 -->
+<nav id="tabbar" class="tabbar" aria-label=""></nav>
 
 <!-- 成员卡浮层 -->
 <div class="popover" id="popover" hidden></div>

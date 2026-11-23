@@ -266,6 +266,7 @@ class Engine:
                 continue
             label = str(menu.get("label") or view.get("heading") or key)
             grp = menu.get("group") if isinstance(menu.get("group"), dict) else {}
+            tab = menu.get("tab") if isinstance(menu.get("tab"), dict) else {}
             menus.append({
                 "key": key,
                 "label": label,
@@ -276,6 +277,8 @@ class Engine:
                 "short": str(menu.get("short") or label),
                 "order": float(menu.get("order") or 100),
                 "mobile": bool(menu.get("mobile", True)),
+                # 底栏序号：只参与底栏的视图声明 tab.order；0 = 不进底栏
+                "tab_order": float(tab.get("order") or 0),
                 # 二级菜单：parent 指向父级视图的 key；没有就是一级
                 "parent": str(menu.get("parent") or ""),
                 "demand": r["id"],
