@@ -1,81 +1,81 @@
 {
  "sig": {
-  "sha": "e43a610c479e05d2",
-  "files": 29
+  "sha": "0cee0df52601b293",
+  "files": 30
  },
  "stats": {
-  "instances": 1140,
+  "instances": 1210,
   "pages": 18,
   "kinds": 17
  },
  "pages": [
   {
    "view": "traces",
-   "count": 317
+   "count": 322
   },
   {
    "view": "arch",
-   "count": 305
+   "count": 311
   },
   {
    "view": "click-machine",
-   "count": 111
-  },
-  {
-   "view": "projects",
-   "count": 54
+   "count": 118
   },
   {
    "view": "tools",
-   "count": 41
+   "count": 46
   },
   {
    "view": "position",
-   "count": 39
+   "count": 44
   },
   {
    "view": "artifacts",
-   "count": 34
+   "count": 39
   },
   {
    "view": "positions",
-   "count": 34
+   "count": 39
+  },
+  {
+   "view": "projects",
+   "count": 38
   },
   {
    "view": "knowledge",
-   "count": 30
+   "count": 35
+  },
+  {
+   "view": "tickets",
+   "count": 29
   },
   {
    "view": "logs",
-   "count": 23
+   "count": 28
   },
   {
    "view": "skills",
-   "count": 22
+   "count": 27
   },
   {
    "view": "user",
-   "count": 22
+   "count": 27
   },
   {
    "view": "cloud",
-   "count": 21
+   "count": 26
   },
   {
    "view": "nodes",
-   "count": 21
-  },
-  {
-   "view": "secretary",
-   "count": 21
+   "count": 26
   },
   {
    "view": "skill-decompose",
-   "count": 21
+   "count": 26
   },
   {
    "view": "timers",
-   "count": 21
+   "count": 26
   },
   {
    "view": "ops",
@@ -125,26 +125,6 @@
   },
   {
    "view": "arch",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "arch",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -169,6 +149,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -365,10 +365,10 @@
   },
   {
    "view": "arch",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -2154,7 +2154,7 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "27视图view",
+   "label": "28视图view",
    "states": [
     "idle",
     "done"
@@ -2275,6 +2275,326 @@
    "kind": "tree_group",
    "tag": "SUMMARY",
    "label": "可调views-list视图清单：把",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "16节点nodes",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调deploy-topology部",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-acquire项目租",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-backups备份状",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-entry入口节点：",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-fence-chec",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-heartbeat节",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-list节点与分配只",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-migrations",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-project-no",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-push-regis",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-reassign项目",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-register节点",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-release主动释",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-renew租约续租：",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调nodes-role节点归属与暴",
    "states": [
     "idle",
     "done"
@@ -2615,306 +2935,6 @@
    "kind": "tree_group",
    "tag": "SUMMARY",
    "label": "可调session-wait取会话回",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "15节点nodes",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调deploy-topology部",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-acquire项目租",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-backups备份状",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-entry入口节点：",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-fence-chec",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-heartbeat节",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-list节点与分配只",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-migrations",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-project-no",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-reassign项目",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-register节点",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-release主动释",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-renew租约续租：",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调nodes-role节点归属与暴",
    "states": [
     "idle",
     "done"
@@ -5774,7 +5794,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "路由与契约（全部 · 328 条）在",
+   "label": "路由与契约（全部 · 330 条）在",
    "states": [
     "idle",
     "done"
@@ -6870,6 +6890,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "arch",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "artifacts",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -6911,26 +7031,6 @@
   },
   {
    "view": "artifacts",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "artifacts",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -6955,6 +7055,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "artifacts",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -7151,10 +7271,10 @@
   },
   {
    "view": "artifacts",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -7550,6 +7670,106 @@
    "effect": "只改本页显示"
   },
   {
+   "view": "artifacts",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "artifacts",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "artifacts",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "artifacts",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "artifacts",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "click-machine",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -7591,26 +7811,6 @@
   },
   {
    "view": "click-machine",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "click-machine",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -7635,6 +7835,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -7831,10 +8051,10 @@
   },
   {
    "view": "click-machine",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -8234,27 +8454,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "项目28",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.section_fold",
-   "kind": "section_fold",
-   "tag": "SUMMARY",
-   "label": "项目秘书21",
+   "label": "项目23",
    "states": [
     "idle",
     "done"
@@ -8295,6 +8495,26 @@
    "kind": "section_fold",
    "tag": "SUMMARY",
    "label": "技能22",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.section_fold",
+   "kind": "section_fold",
+   "tag": "SUMMARY",
+   "label": "群聊22",
    "states": [
     "idle",
     "done"
@@ -8374,7 +8594,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "用户22",
+   "label": "我的22",
    "states": [
     "idle",
     "done"
@@ -8434,7 +8654,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "traces317",
+   "label": "traces322",
    "states": [
     "idle",
     "busy",
@@ -8461,7 +8681,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch302",
+   "label": "arch311",
    "states": [
     "idle",
     "busy",
@@ -8488,7 +8708,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine111",
+   "label": "click-machine118",
    "states": [
     "idle",
     "busy",
@@ -8515,7 +8735,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "projects54",
+   "label": "tools46",
    "states": [
     "idle",
     "busy",
@@ -8542,7 +8762,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "tools41",
+   "label": "position44",
    "states": [
     "idle",
     "busy",
@@ -8569,7 +8789,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "position39",
+   "label": "artifacts39",
    "states": [
     "idle",
     "busy",
@@ -8596,7 +8816,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "artifacts34",
+   "label": "positions39",
    "states": [
     "idle",
     "busy",
@@ -8623,7 +8843,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "positions34",
+   "label": "projects38",
    "states": [
     "idle",
     "busy",
@@ -8650,7 +8870,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "knowledge30",
+   "label": "knowledge35",
    "states": [
     "idle",
     "busy",
@@ -8677,7 +8897,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "logs23",
+   "label": "tickets29",
    "states": [
     "idle",
     "busy",
@@ -8704,7 +8924,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skills22",
+   "label": "logs28",
    "states": [
     "idle",
     "busy",
@@ -8731,7 +8951,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "user22",
+   "label": "skills27",
    "states": [
     "idle",
     "busy",
@@ -8758,7 +8978,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "cloud21",
+   "label": "user27",
    "states": [
     "idle",
     "busy",
@@ -8785,7 +9005,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "nodes21",
+   "label": "cloud26",
    "states": [
     "idle",
     "busy",
@@ -8812,7 +9032,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "secretary21",
+   "label": "nodes26",
    "states": [
     "idle",
     "busy",
@@ -8839,7 +9059,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skill-decompose21",
+   "label": "skill-decompose26",
    "states": [
     "idle",
     "busy",
@@ -8866,7 +9086,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "timers21",
+   "label": "timers26",
    "states": [
     "idle",
     "busy",
@@ -9130,6 +9350,33 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "项目详情view:project＋ ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "项目详情view:project打开",
    "states": [
     "idle",
     "busy",
@@ -9588,7 +9835,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "项目秘书view:secretary",
+   "label": "群聊秘书view:secretary",
    "states": [
     "idle",
     "busy",
@@ -9804,6 +10051,33 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
+   "label": "群聊view:tickets打开卡片",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
    "label": "定时器view:timers暂停ct",
    "states": [
     "idle",
@@ -9966,7 +10240,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "用户view:user修改密码ctl",
+   "label": "我的view:user修改密码ctl",
    "states": [
     "idle",
     "busy",
@@ -10169,6 +10443,106 @@
    "effect": "只改本页显示"
   },
   {
+   "view": "click-machine",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "cloud",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -10210,26 +10584,6 @@
   },
   {
    "view": "cloud",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "cloud",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -10254,6 +10608,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "cloud",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -10450,10 +10824,10 @@
   },
   {
    "view": "cloud",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -10589,6 +10963,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "cloud",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "cloud",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "cloud",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "cloud",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "cloud",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "knowledge",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -10630,26 +11104,6 @@
   },
   {
    "view": "knowledge",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "knowledge",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -10674,6 +11128,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -10870,10 +11344,10 @@
   },
   {
    "view": "knowledge",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -11210,6 +11684,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "knowledge",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "logs",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -11251,26 +11825,6 @@
   },
   {
    "view": "logs",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "logs",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -11295,6 +11849,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -11491,10 +12065,10 @@
   },
   {
    "view": "logs",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -11670,6 +12244,106 @@
    "effect": "只改本页显示"
   },
   {
+   "view": "logs",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "logs",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "nodes",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -11711,26 +12385,6 @@
   },
   {
    "view": "nodes",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "nodes",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -11755,6 +12409,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "nodes",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -11951,10 +12625,10 @@
   },
   {
    "view": "nodes",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -12090,6 +12764,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "nodes",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "nodes",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "nodes",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "nodes",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "nodes",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "ops",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
@@ -12191,26 +12965,6 @@
   },
   {
    "view": "positions",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "positions",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -12235,6 +12989,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -12431,10 +13205,10 @@
   },
   {
    "view": "positions",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -12907,6 +13681,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "positions",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "projects",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -12948,26 +13822,6 @@
   },
   {
    "view": "projects",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "projects",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -12992,6 +13846,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "projects",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -13188,10 +14062,10 @@
   },
   {
    "view": "projects",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -13355,131 +14229,10 @@
   },
   {
    "view": "projects",
-   "ctl": "ctl.deck_toggle",
-   "kind": "deck_toggle",
-   "tag": "SL-BUTTON",
-   "label": "铺开 3 张",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.deck_swipe",
-   "kind": "deck_swipe",
-   "tag": "DIV",
-   "label": "堆叠测试庚\n        \n   ",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "projects",
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "堆叠测试庚\n        \n   ",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.改名",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "改名",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.归档",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "归档",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "堆\n      \n        堆",
    "states": [
     "idle",
     "busy",
@@ -13506,88 +14259,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "堆叠测试辛\n        \n   ",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.改名",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "改名",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.归档",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "归档",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "堆\n      \n        堆",
    "states": [
     "idle",
     "busy",
@@ -13614,182 +14286,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "群聊样式验证\n        \n  ",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.改名",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "改名",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.归档",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "归档",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.deck_toggle",
-   "kind": "deck_toggle",
-   "tag": "SL-BUTTON",
-   "label": "铺开 8 张",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.deck_swipe",
-   "kind": "deck_swipe",
-   "tag": "DIV",
-   "label": "堆叠测试乙\n        已归档\n",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_open",
-   "kind": "card_open",
-   "tag": "ARTICLE",
-   "label": "堆叠测试乙\n        已归档\n",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "群\n      \n        群",
    "states": [
     "idle",
     "busy",
@@ -13816,34 +14313,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "堆叠测试壬\n        已归档\n",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "堆\n      \n        堆",
    "states": [
     "idle",
     "busy",
@@ -13870,34 +14340,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "堆叠测试己\n        已归档\n",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "堆\n      \n        堆",
    "states": [
     "idle",
     "busy",
@@ -13924,34 +14367,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "堆叠测试戊\n        已归档\n",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "堆\n      \n        堆",
    "states": [
     "idle",
     "busy",
@@ -13978,34 +14394,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "堆叠测试甲\n        已归档\n",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "堆\n      \n        堆",
    "states": [
     "idle",
     "busy",
@@ -14032,34 +14421,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "归档验收\n        已归档\n ",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "堆\n      \n        堆",
    "states": [
     "idle",
     "busy",
@@ -14086,34 +14448,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "归档验收2\n        已归档\n",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "label": "归\n      \n        归",
    "states": [
     "idle",
     "busy",
@@ -14140,7 +14475,7 @@
    "ctl": "ctl.card_open",
    "kind": "card_open",
    "tag": "ARTICLE",
-   "label": "验收项目\n        已归档\n ",
+   "label": "归\n      \n        归",
    "states": [
     "idle",
     "busy",
@@ -14164,10 +14499,10 @@
   },
   {
    "view": "projects",
-   "ctl": "ctl.card_act.删除",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "删除",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "验\n      \n        验",
    "states": [
     "idle",
     "busy",
@@ -14190,7 +14525,7 @@
    "effect": "本页刷新"
   },
   {
-   "view": "secretary",
+   "view": "projects",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -14210,7 +14545,27 @@
    "effect": "导航（收起侧栏）"
   },
   {
-   "view": "secretary",
+   "view": "projects",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "projects",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -14230,31 +14585,11 @@
    "effect": "导航（收起侧栏）"
   },
   {
-   "view": "secretary",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
+   "view": "projects",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "文文档",
    "states": [
     "idle",
     "busy"
@@ -14270,11 +14605,11 @@
    "effect": "导航（收起侧栏）"
   },
   {
-   "view": "secretary",
-   "ctl": "ctl.nav.日志",
+   "view": "projects",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -14288,326 +14623,6 @@
     ]
    },
    "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.需求契约",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "需求契约",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.岗位",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "岗位",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.工具",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "工具",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.技能",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "技能",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.技能拆解",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "技能拆解",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.点击状态机",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "点击状态机",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.运维",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "运维",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.链路",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "链路",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.节点",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "节点",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.用户",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "用户",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.云端资料库",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "云端资料库",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.nav.定时器",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "定时器",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.shell.logout",
-   "kind": "logout",
-   "tag": "SL-BUTTON",
-   "label": "登出",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.shell.scrim",
-   "kind": "drawer_scrim",
-   "tag": "DIV",
-   "label": "",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.shell.menu",
-   "kind": "drawer_open",
-   "tag": "SL-ICON-BUTTON",
-   "label": "",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "secretary",
-   "ctl": "ctl.crumb_up",
-   "kind": "crumb_up",
-   "tag": "BUTTON",
-   "label": "项目",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "本页刷新"
   },
   {
    "view": "skill-decompose",
@@ -14651,26 +14666,6 @@
   },
   {
    "view": "skill-decompose",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "skill-decompose",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -14695,6 +14690,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -14891,10 +14906,10 @@
   },
   {
    "view": "skill-decompose",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -15030,6 +15045,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "skills",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -15071,26 +15186,6 @@
   },
   {
    "view": "skills",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "skills",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -15115,6 +15210,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skills",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -15311,10 +15426,10 @@
   },
   {
    "view": "skills",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -15477,6 +15592,707 @@
    "effect": "本页刷新"
   },
   {
+   "view": "skills",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skills",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skills",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skills",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skills",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.日志",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.需求契约",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "需求契约",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.岗位",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "岗位",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.工具",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "工具",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.技能",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.点击状态机",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "点击状态机",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.运维",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "运维",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.链路",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "链路",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.节点",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "节点",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.定时器",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "定时器",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.shell.logout",
+   "kind": "logout",
+   "tag": "SL-BUTTON",
+   "label": "登出",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.shell.scrim",
+   "kind": "drawer_scrim",
+   "tag": "DIV",
+   "label": "",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.shell.menu",
+   "kind": "drawer_open",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.crumb_up",
+   "kind": "crumb_up",
+   "tag": "BUTTON",
+   "label": "工作台",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "T\n      \n        T",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "在\n      \n        在",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "归\n      \n        归",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tickets",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "timers",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -15518,26 +16334,6 @@
   },
   {
    "view": "timers",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "timers",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -15562,6 +16358,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "timers",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -15758,10 +16574,10 @@
   },
   {
    "view": "timers",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -15897,6 +16713,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "timers",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "timers",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "timers",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "timers",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "timers",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "tools",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -15938,26 +16854,6 @@
   },
   {
    "view": "tools",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "tools",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -15982,6 +16878,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -16178,10 +17094,10 @@
   },
   {
    "view": "tools",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -16857,6 +17773,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "tools",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "traces",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -16898,26 +17914,6 @@
   },
   {
    "view": "traces",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "traces",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -16942,6 +17938,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "traces",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -17138,10 +18154,10 @@
   },
   {
    "view": "traces",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -24856,6 +25872,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "traces",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "traces",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "traces",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "traces",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "traces",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "user",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -24897,26 +26013,6 @@
   },
   {
    "view": "user",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "user",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -24941,6 +26037,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "user",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -25137,10 +26253,10 @@
   },
   {
    "view": "user",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -25303,6 +26419,106 @@
    "effect": "本页刷新"
   },
   {
+   "view": "user",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "user",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "user",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "user",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "user",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "position",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
@@ -25344,26 +26560,6 @@
   },
   {
    "view": "position",
-   "ctl": "ctl.nav.项目秘书",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目秘书",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "position",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -25388,6 +26584,26 @@
    "kind": "nav",
    "tag": "SL-BUTTON",
    "label": "日志",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群聊",
    "states": [
     "idle",
     "busy"
@@ -25584,10 +26800,10 @@
   },
   {
    "view": "position",
-   "ctl": "ctl.nav.用户",
+   "ctl": "ctl.nav.我的",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "用户",
+   "label": "我的",
    "states": [
     "idle",
     "busy"
@@ -26186,6 +27402,106 @@
     "disabled": []
    },
    "effect": "本页刷新"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.群聊",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "群群聊",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.文档",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "文文档",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.我的",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "我的",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
   }
  ]
 }

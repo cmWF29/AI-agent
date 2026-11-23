@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/app.js
-hash: 3bc5e946f0a1207afa4670257cd60737c91428abbb62a8e4778b7db5381c340a
+hash: 1034cc8e13b6785feaeaec04e125030d7f3c369c45e720015fd8a9b04a227f78
 symbols:
 - readYaml
 - yamlBody

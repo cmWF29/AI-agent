@@ -181,7 +181,13 @@
     root.hidden = false;
   }
 
+  function currentView() {
+    return new URLSearchParams(location.search).get("view") || "projects";
+  }
+
   function boot() {
+    // 只在运维页挂载：项目/群聊是 IM 主界面，存储与节点观测不属于这里
+    if (currentView() !== "ops") return;
     try {
       load().catch(function () {
         const root = document.getElementById("ops-insight");

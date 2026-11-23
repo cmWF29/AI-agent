@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-secretary.yaml
-hash: 5be9fd8adb4a6f3ea10c5aabfd4f15f157442cb1c642ffb72cd06686f0177109
+hash: d5c0bdc89b9188cd458c019ffb0f7b77508b31fc9f691c5a0eb5f0104699a664
 symbols:
 - id
 - title

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: 5e1912e2e37f414fcb412e6bcaaeafb756be75a8f32c1927be02870d3c0f776a
+hash: be04418911838415d7c29c11194b4610385daab36400fef6408a9f15a034878e
 symbols:
 - foldLoad
 - foldSet
@@ -95,6 +95,7 @@ symbols:
 - badge
 - metaVal
 - meta
+- pav
 - hit
 - startOfDay
 - fn
@@ -702,6 +703,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `meta`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `pav`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

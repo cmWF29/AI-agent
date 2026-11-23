@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/boot.js
-hash: 470823b99fe9550439c3ad7cd1ceb95b11c9269a1108b96b9bb383f83567293a
+hash: e150b82dbb95bce70c636ea4ec13a7cc7a9bb7e4cbe6425149768a3bbce641e9
 symbols:
 - setClickMachine
 - machineKind
@@ -25,6 +25,9 @@ symbols:
 - deckRelease
 - startPerfProbe
 - navTarget
+- viewByMenuKey
+- tabIcon
+- renderTabbar
 - renderMenus
 - highlightNav
 - openDrawer
@@ -39,7 +42,6 @@ symbols:
 - exit
 - p
 - tick
-- viewByMenu
 - btn
 - navKey
 - sub
@@ -198,6 +200,24 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `viewByMenuKey`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `tabIcon`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `renderTabbar`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `renderMenus`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -277,12 +297,6 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `tick`（js-function）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `viewByMenu`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

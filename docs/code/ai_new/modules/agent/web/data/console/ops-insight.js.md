@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/ops-insight.js
-hash: cd62f722fc73190c96aafef8cd667563618fbbae0d096ead79a856ec3b5c91b2
+hash: 6605c6f5545bffaed489d57d09689ee4732815d3aed3f61caa9ca80d00d351b5
 symbols:
 - token
 - rpc
@@ -14,6 +14,7 @@ symbols:
 - renderNodes
 - ensureRoot
 - load
+- currentView
 - boot
 - cacheSub
 - cls
@@ -99,6 +100,12 @@ updated_at: '2026-11-23T09:13:13'
 - 关联需求/测试: 待人工补充
 
 ### `load`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `currentView`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -630,6 +630,8 @@ async function render(opts) {
   openStream(th.id);
   schedulePoll(spec);
   if (typeof highlightNav === "function") highlightNav();
+  // 运维洞察只在运维页重建：整页重渲染会连它的挂点一起换掉，这里补挂
+  if (typeof window.opsInsightBoot === "function") window.opsInsightBoot();
   keepPage(ctx);
 }
 
