@@ -15,6 +15,7 @@ tags:
 - {id: web, name: 界面, group: 面, color: teal}
 - {id: view, name: 视图, group: 面, color: teal}
 - {id: auth, name: 认证, group: 面, color: teal}
+- {id: security, name: 安全, group: 性质, color: purple}
 - {id: read, name: 只读, group: 性质, color: gray}
 - {id: write, name: 写盘, group: 性质, color: amber}
 - {id: exec, name: 执行, group: 性质, color: amber}
