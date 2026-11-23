@@ -3,7 +3,24 @@ from __future__ import annotations
 
 import datetime
 import time
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+except ModuleNotFoundError:  # Python 3.8 及更早没有标准库 zoneinfo
+    try:
+        from backports.zoneinfo import ZoneInfo
+    except ModuleNotFoundError:
+        ZoneInfo = None
+
+# 无 zoneinfo 时按固定偏移兜底（无夏令时的常用区域）；有夏令时的区域仍要求 zoneinfo。
+_FIXED_OFFSET_HOURS = {
+    "UTC": 0, "GMT": 0, "Etc/UTC": 0,
+    "Asia/Shanghai": 8, "Asia/Chongqing": 8, "Asia/Hong_Kong": 8,
+    "Asia/Taipei": 8, "Asia/Singapore": 8, "Asia/Macau": 8,
+    "Asia/Tokyo": 9, "Asia/Seoul": 9,
+    "Asia/Kolkata": 5.5, "Asia/Dubai": 4,
+    "Europe/London": 0, "Europe/Moscow": 3,
+}
 
 
 def now():
@@ -61,14 +78,23 @@ def since(p):
 # ---------------------------------------------------------------- 定时调度推算
 
 def _load_tz(name):
-    """时区名 → ZoneInfo；解析不了返回 None。"""
+    """时区名 → tzinfo；解析不了返回 None。
+
+    优先 zoneinfo（含 backports 兜底）；解释器没有 zoneinfo 时，
+    退到 _FIXED_OFFSET_HOURS 里的固定偏移，保证老版本 Python 也能跑起服务。
+    """
     key = str(name or "").strip()
     if not key:
         return None
-    try:
-        return ZoneInfo(key)
-    except (KeyError, ValueError, TypeError):
+    if ZoneInfo is not None:
+        try:
+            return ZoneInfo(key)
+        except (KeyError, ValueError, TypeError):
+            pass
+    hours = _FIXED_OFFSET_HOURS.get(key)
+    if hours is None:
         return None
+    return datetime.timezone(datetime.timedelta(hours=hours), key)
 
 
 def _cron_field(spec, lo, hi):
