@@ -53,6 +53,8 @@ jobs:
           python-version: "3.11"
       - name: 依赖
         run: pip install pyyaml
-      - name: 隔离/节点同批用例（Windows 真机）
+      - name: Win32 路径语义 + 节点/归属用例（Windows 真机）
+        # POSIX 专属档（fcntl 锁 / unshare / chmod / uid）不在 Windows 跑：
+        # 那几档的平台边界写在 docs/isolation-status.md，标 verified=false。
         working-directory: ai_new/modules/agent_test/private
-        run: python -m unittest test_isolation test_isolation_tiers test_isolation_windows test_nodes test_node_profile -v
+        run: python -m unittest test_isolation_windows test_nodes test_node_profile -v
