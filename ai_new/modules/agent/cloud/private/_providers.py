@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from . import _pure
+from . import _pure, _guard
 
 
 class ProviderError(Exception):
@@ -34,11 +34,12 @@ class BaseProvider:
 
 
 class FakeProvider(BaseProvider):
-    """内存桩：不连外网。可注入前 ``fail_times`` 次失败，用于重试/退避测试。"""
+    """内存桩：不连外网。可注入前 ``fail_times`` 次失败，或按键注入瞬态失败。"""
 
     def __init__(self):
         self.store = {}
         self.fail_times = 0
+        self.fail_keys = {}
         self.attempts = 0
         self.calls = []
 
@@ -61,6 +62,9 @@ class FakeProvider(BaseProvider):
 
     def put(self, ctx, profile, key, data, resume_from=0, upload_id=None):
         self.calls.append(("put", key, len(data)))
+        if self.fail_keys.get(key, 0) > 0:
+            self.fail_keys[key] -= 1
+            return {"ok": False, "code": "transient", "offset": resume_from}
         if self._transient():
             return {"ok": False, "code": "transient", "offset": resume_from}
         digest = ctx.api.call("codec.digest", {"text": data, "algorithm": "sha256"},
@@ -85,6 +89,7 @@ class HttpDirProvider(BaseProvider):
 
     路径拼到 ``endpoint/root_dir/key``；读写走 net.request。Wiki 私有 API 的
     字段映射未接线（见 meta note），当前按通用对象语义落地。
+    出站前复检协议/主机；跳转目标复检私网；响应体受体积上限约束。
     """
 
     def _url(self, profile, key=""):
@@ -93,9 +98,20 @@ class HttpDirProvider(BaseProvider):
         tail = (root + "/" + key) if root else key
         return base + "/" + tail
 
+    def _max_body(self, profile):
+        return int((profile.get("policy") or {}).get("max_body_bytes") or 0)
+
+    def _guard_redirect(self, profile, row):
+        location = (row or {}).get("location") or (row or {}).get("redirected_to")
+        if location:
+            check = _guard.validate_redirect(profile.get("endpoint") or "", location)
+            if not check["ok"]:
+                raise ProviderError(check["errors"][0], "redirect blocked")
+
     def test_connection(self, ctx, profile):
         row = ctx.api.call("net.request", {
             "method": "GET", "url": self._url(profile), "timeout": 10}, caller=None)
+        self._guard_redirect(profile, row)
         ok = bool((row or {}).get("ok", True))
         return {"ok": ok, "detail": "http-probe"}
 
@@ -103,14 +119,17 @@ class HttpDirProvider(BaseProvider):
         row = ctx.api.call("net.request", {
             "method": "GET", "url": self._url(profile, "?list=json"), "timeout": 10},
             caller=None)
+        self._guard_redirect(profile, row)
         items = (row or {}).get("items") or []
         return [{"key": i.get("key"), "digest": i.get("digest"), "size": i.get("size", 0)}
                 for i in items]
 
     def put(self, ctx, profile, key, data, resume_from=0, upload_id=None):
+        _guard.check_body_size(data, self._max_body(profile))
         row = ctx.api.call("net.request", {
             "method": "PUT", "url": self._url(profile, key),
             "body": data, "timeout": 30}, caller=None)
+        self._guard_redirect(profile, row)
         if not (row or {}).get("ok", True):
             return {"ok": False, "code": "provider_error", "offset": resume_from}
         digest = ctx.api.call("codec.digest", {"text": data, "algorithm": "sha256"},
@@ -121,9 +140,11 @@ class HttpDirProvider(BaseProvider):
     def get(self, ctx, profile, key):
         row = ctx.api.call("net.request", {
             "method": "GET", "url": self._url(profile, key), "timeout": 30}, caller=None)
+        self._guard_redirect(profile, row)
         if not (row or {}).get("ok", True):
             return {"ok": False, "code": "provider_error"}
         data = (row or {}).get("body") or (row or {}).get("data") or b""
+        _guard.check_body_size(data, self._max_body(profile))
         digest = ctx.api.call("codec.digest", {"text": data, "algorithm": "sha256"},
                               caller=None)
         return {"ok": True, "data": data, "digest": digest.get("hex"),
@@ -170,6 +191,7 @@ class RsyncProvider(_PendingProvider):
 
 REGISTRY = {
     "fake": FakeProvider,
+    "stub": FakeProvider,
     "http_dir": HttpDirProvider,
     "webdav": HttpDirProvider,
     "wiki": HttpDirProvider,

@@ -1,0 +1,27 @@
+id: archive-transparent-read
+title: 读取无感：压缩后原读出口字节一致；损坏或缺索引走明确错误码
+description: "上层调用方只走原有读出口，不感知压缩；压缩流损坏、索引记录缺失、压缩流文件缺失均抛明确错误码，不静默返回空字节。"
+tags: [archive, read, ops]
+enabled: true
+callable: true
+'on': []
+do:
+- call: archive.read_text
+  as: text
+- call: archive.read_bytes
+  as: bro
+expect:
+  given:
+    input: {}
+  calls:
+  - archive.read_text
+  - archive.read_bytes
+  payload: {}
+  promise: 读出口对调用方透明；损坏与缺索引按错误码收口，不返空
+evidence:
+  test: test_archive
+  cases:
+  - test_transparent_read_callers_need_no_awareness
+  - test_missing_index_raises_explicit_code
+  - test_companion_missing_raises_explicit_code
+  - test_corrupt_stream_carries_corrupt_code

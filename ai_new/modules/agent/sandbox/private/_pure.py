@@ -9,8 +9,14 @@
   权限位；Windows 用目录 ACL + Job Object 约束进程树/资源。
 - **strong（强隔离，升级档）**：Linux unshare namespace / bwrap / 容器；
   Windows 容器 / 低权限服务账户 + 受限令牌。
+
+路径守卫分平台：Windows 语义（盘符/UNC/保留名/长路径前缀/段尾点空格/大小写
+不敏感）见 ``_winpath``；POSIX 段归一在这里完成。真实符号链接/junction 逃逸
+必须在 realpath 之后复核（store/_isolate 已做 POSIX 复核）。
 """
 from __future__ import annotations
+
+from . import _winpath
 
 WEAK = {
     "tier": "weak",
@@ -162,3 +168,122 @@ def plan(project, tier, workspace):
             "windows": ["container", "job-object", "restricted-token"],
         }
     return out
+
+
+# ---------------------------------------------------------------- 路径守卫
+
+def _posix_norm(path):
+    """POSIX 纯字符串归一：``.`` 丢弃，``..`` 弹栈；不解析真实链接。"""
+    parts = []
+    for seg in str(path or "").split("/"):
+        if seg in ("", "."):
+            continue
+        if seg == "..":
+            if parts:
+                parts.pop()
+            continue
+        parts.append(seg)
+    return "/" + "/".join(parts)
+
+
+def _posix_guard(root, target):
+    if not str(root or "").strip():
+        return {"ok": False, "code": "empty_root"}
+    if not str(target or "").strip():
+        return {"ok": False, "code": "empty_target"}
+    if not str(root).startswith("/"):
+        return {"ok": False, "code": "root_not_absolute"}
+    if not str(target).startswith("/"):
+        return {"ok": False, "code": "root_not_absolute"}
+    if ".." in str(root).split("/") or ".." in str(target).split("/"):
+        return {"ok": False, "code": "traversal"}
+    rc, tc = _posix_norm(root), _posix_norm(target)
+    within = tc == rc or tc.startswith(rc + "/")
+    if not within:
+        return {"ok": False, "code": "escape",
+                "root_canonical": rc, "target_canonical": tc}
+    return {"ok": True, "code": "ok",
+            "root_canonical": rc, "target_canonical": tc}
+
+
+def guard_path(root, target, platform="posix"):
+    """平台感知的根包含守卫（纯判定，不读 stdlib）。
+
+    ``platform``: ``"windows"/"nt"`` 走 Win32 语义（盘符/UNC/保留名/长前缀/
+    段尾点空格/大小写不敏感）；``"posix"/"linux"``（缺省）走 POSIX 段归一。
+    真实 OS 由路由层经 store/host 能力解析后显式传入，纯函数层不直接探 os。
+    返回 ``{ok, code, ...}``，错误码与 ``_winpath`` 对齐。
+
+    注意：本守卫只做字符串归一与包含判定；符号链接 / junction 逃逸必须由调用方
+    在 realpath 之后复核（POSIX 见 store/_isolate._is_within）。
+    """
+    plat = str(platform or "posix").lower()
+    if plat in ("windows", "nt"):
+        return _winpath.guard_path(root, target)
+    return _posix_guard(root, target)
+
+
+# ------------------------------------------------- 轻/强档机制差异对照矩阵
+
+# 五个隔离机制维度，逐条列 weak/strong 在 linux/windows 的落地口径；
+# 供 capability 上报与用例逐条核对，不夹带本机探测结果。
+MECHANISM_MATRIX = {
+    "directory": {
+        "weak": {
+            "linux": "项目独立目录，属主/权限位 0700",
+            "windows": "项目独立目录，目录 ACL 限项目主体",
+        },
+        "strong": {
+            "linux": "独立 uid + 只读根 + 受限能力集",
+            "windows": "低权限服务账户 + 目录 ACL 复核",
+        },
+    },
+    "path_interception": {
+        "weak": {
+            "linux": "realpath 解析后包含判定；拒绝绝对路径/穿越段注入",
+            "windows": "Win32 规范形式包含判定；拒绝盘符/UNC 逃逸、保留设备名、穿越段",
+        },
+        "strong": {
+            "linux": "mount namespace 内只见挂载视图，越界路径不可见",
+            "windows": "容器/受限令牌内文件系统视图受限，跨主体不可见",
+        },
+    },
+    "acl": {
+        "weak": {
+            "linux": "目录权限位 0700（属主独占）",
+            "windows": "目录 ACL 拒绝跨主体访问",
+        },
+        "strong": {
+            "linux": "独立属主 + 只读根 + 能力裁剪",
+            "windows": "受限令牌 + ACL 复核，主体边界收窄",
+        },
+    },
+    "cwd": {
+        "weak": {
+            "linux": "进程 cwd 约束在项目根之内",
+            "windows": "进程 cwd 约束在项目根之内",
+        },
+        "strong": {
+            "linux": "namespace 内根目录即项目根，chroot/挂载隔离",
+            "windows": "容器工作目录锁定项目根",
+        },
+    },
+    "lock": {
+        "weak": {
+            "linux": "项目级跨进程锁：POSIX fcntl.flock",
+            "windows": "项目级跨进程锁：msvcrt.locking",
+        },
+        "strong": {
+            "linux": "namespace/容器内进程互斥由隔离边界保证",
+            "windows": "容器内进程互斥由隔离边界保证",
+        },
+    },
+}
+
+
+def mechanism_diff():
+    """轻/强档五维度机制对照（只读策略数据，不含本机探测结果）。"""
+    return {
+        "mechanisms": MECHANISM_MATRIX,
+        "dimensions": sorted(MECHANISM_MATRIX.keys()),
+    }

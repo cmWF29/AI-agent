@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-forms.yaml
-hash: 1cb00e67c4e55c34815e8e034e06cb33acd99ebe3f84e9d07a2e5329fb561cb2
+hash: 257e882387e56dbf31de0564d3ce31498c8604387eba9e03653569e3b4201935
 symbols:
 - id
 - title

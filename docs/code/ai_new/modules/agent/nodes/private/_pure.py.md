@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/nodes/private/_pure.py
-hash: e56fea5d742e60feb0b45aaaaa712b64fe075cd845ceb5328b333d64237ef409
+hash: 807f2c00029f75aaad90171c445273c0dce0568972da4457f765a6ea76ccb7dd
 symbols:
 - empty_state
 - _ts
@@ -17,6 +17,7 @@ symbols:
 - project_node
 - record_backup
 - backups_view
+- status_view
 - _rel_ok
 - plan_snapshot
 - verify_manifest
@@ -129,7 +130,13 @@ updated_at: '2026-11-23T04:10:20'
 - 关联需求/测试: 待人工补充
 
 ### `backups_view`（function）
-- 职责: 备份状态视图。
+- 职责: 备份状态视图：每行归一出最近备份时间与结果。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `status_view`（function）
+- 职责: 运维页只读组合视图：节点状态 + 项目归属 + 备份状态。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

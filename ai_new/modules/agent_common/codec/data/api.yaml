@@ -12,6 +12,15 @@ routes:
     out:
       data:
         type: any
+  codec.base64_encode:
+    doc: 文本/字节 → base64
+    in:
+      text:
+        type: any
+        req: false
+    out:
+      text:
+        type: string
   codec.decode_hex:
     doc: hex → utf8 文本，非 utf8 退 base64
     in:

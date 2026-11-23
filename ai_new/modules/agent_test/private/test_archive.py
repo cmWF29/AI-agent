@@ -16,7 +16,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-from ai_new.modules.agent_common.archive.private import _backend, _cache, _engine, _policy  # noqa: E402
+from ai_new.modules.agent_common.archive.private import (  # noqa: E402
+    _backend, _cache, _engine, _index, _metrics, _policy)
 from ai_new.modules.agent_common.store.private._panel import ModuleData, module_data  # noqa: E402
 
 
@@ -252,6 +253,124 @@ class EngineRoundtripTest(unittest.TestCase):
         for t in threads:
             t.join()
         self.assertEqual(errors, [])
+
+    def test_transparent_read_callers_need_no_awareness(self):
+        """写入 → 压缩 → 读回：字节完全一致，上层只走原有读出口，不感知压缩。"""
+        original = ("透明读取 · 上层无感 " * 160).encode("utf-8")
+        self._write(original)
+        res = _engine.compress(self.ctx, {"paths": [str(self.abs)]})
+        self.assertEqual(res["summary"]["compressed"], 1)
+        self.assertFalse(self.abs.exists(), "压缩后原文应移除")
+
+        # 与未归档时同一组读出口：resolve_raw / read_text / read_bytes
+        resolved = _engine.resolve_raw(self.ctx, "agent/logs", self.rel)
+        self.assertEqual(resolved["raw"], original)
+        text = _engine.read_text(self.ctx, {"module": "agent/logs", "path": self.rel})
+        self.assertEqual(text["value"], original.decode("utf-8"))
+        bro = _engine.read_bytes(self.ctx, {"module": "agent/logs", "path": self.rel})
+        import base64
+        self.assertEqual(base64.b64decode(bro["value"]), original)
+        self.assertEqual(bro["size"], len(original))
+
+    def test_missing_index_raises_explicit_code(self):
+        """压缩流在磁盘上、索引记录缺失：抛明确错误码，不静默返空。"""
+        original = b"index-missing-body" * 100
+        self._write(original)
+        _engine.compress(self.ctx, {"paths": [str(self.abs)]})
+        self.assertTrue(Path(str(self.abs) + ".gz").is_file())
+
+        md = self.ctx.storage.own(_engine.__file__)
+        index = _index.load(md)
+        index["records"].pop(str(self.abs), None)
+        _index.save(md, index)
+
+        with self.assertRaises(_engine.ArchiveCorrupt) as cm:
+            _engine.resolve_raw(self.ctx, "agent/logs", self.rel)
+        self.assertEqual(cm.exception.code, "archive_index_missing")
+
+    def test_companion_missing_raises_explicit_code(self):
+        """索引在、压缩流文件被删：抛明确错误码，不静默当未归档。"""
+        original = b"companion-missing-body" * 100
+        self._write(original)
+        _engine.compress(self.ctx, {"paths": [str(self.abs)]})
+        comp = Path(str(self.abs) + ".gz")
+        comp.unlink()
+
+        with self.assertRaises(_engine.ArchiveCorrupt) as cm:
+            _engine.resolve_raw(self.ctx, "agent/logs", self.rel)
+        self.assertEqual(cm.exception.code, "archive_companion_missing")
+
+    def test_corrupt_stream_carries_corrupt_code(self):
+        original = b"tamper-code-body" * 100
+        self._write(original)
+        _engine.compress(self.ctx, {"paths": [str(self.abs)]})
+        comp = Path(str(self.abs) + ".gz")
+        raw = bytearray(comp.read_bytes())
+        raw[len(raw) // 2] ^= 0xFF
+        comp.write_bytes(bytes(raw))
+        with self.assertRaises(_engine.ArchiveCorrupt) as cm:
+            _engine.resolve_raw(self.ctx, "agent/logs", self.rel)
+        self.assertEqual(cm.exception.code, "archive_corrupt")
+
+    def test_metrics_reports_real_storage_and_cache_numbers(self):
+        original = ("指标台账 · 真实字节 " * 120).encode("utf-8")
+        self._write(original)
+        _engine.compress(self.ctx, {"paths": [str(self.abs)], "category": "log"})
+        # 一次未命中解压 + 一次命中，覆盖缓存计数与解压样本。
+        _engine.read_text(self.ctx, {"module": "agent/logs", "path": self.rel})
+        _engine.read_text(self.ctx, {"module": "agent/logs", "path": self.rel})
+
+        out = _engine.metrics(self.ctx, {})
+        storage = out["storage"]
+        self.assertGreaterEqual(storage["count"], 1)
+        self.assertEqual(storage["orig_bytes"], len(original))
+        self.assertGreater(storage["comp_bytes"], 0)
+        self.assertEqual(storage["saved_bytes"],
+                         storage["orig_bytes"] - storage["comp_bytes"])
+        self.assertAlmostEqual(storage["compression_ratio"],
+                               storage["comp_bytes"] / storage["orig_bytes"], places=4)
+        self.assertIn("log", storage["by_category"])
+
+        cache = out["cache"]
+        self.assertGreaterEqual(cache["hits"], 1)
+        self.assertGreaterEqual(cache["misses"], 1)
+        self.assertGreaterEqual(cache["hit_rate"], 0.0)
+        self.assertLessEqual(cache["hit_rate"], 1.0)
+        self.assertGreaterEqual(cache["entries"], 1)
+        self.assertGreaterEqual(cache["max_entries"], 1)
+
+        decompress = out["decompress"]
+        self.assertGreaterEqual(decompress["samples"], 1)
+        self.assertIn(decompress["status"], ("ok", "insufficient_samples"))
+        self.assertIn("labels", out)
+
+
+class MetricsRecorderTest(unittest.TestCase):
+    def test_insufficient_samples_when_below_threshold(self):
+        rec = _metrics.LatencyRecorder(max_samples=64)
+        rec.record(0.001)
+        snap = rec.snapshot()
+        self.assertEqual(snap["samples"], 1)
+        self.assertEqual(snap["status"], "insufficient_samples")
+        self.assertIsNone(snap["p50_ms"])
+        self.assertIsNone(snap["p95_ms"])
+
+    def test_percentiles_present_after_enough_samples(self):
+        rec = _metrics.LatencyRecorder(max_samples=64)
+        for i in range(10):
+            rec.record(0.001 * (i + 1))
+        snap = rec.snapshot(min_samples=5)
+        self.assertEqual(snap["samples"], 10)
+        self.assertEqual(snap["status"], "ok")
+        self.assertIsNotNone(snap["p50_ms"])
+        self.assertIsNotNone(snap["p95_ms"])
+        self.assertGreaterEqual(snap["p95_ms"], snap["p50_ms"])
+
+    def test_ring_drops_oldest_beyond_capacity(self):
+        rec = _metrics.LatencyRecorder(max_samples=3)
+        for i in range(5):
+            rec.record(float(i))
+        self.assertEqual(rec.snapshot(min_samples=0)["samples"], 3)
 
 
 if __name__ == "__main__":

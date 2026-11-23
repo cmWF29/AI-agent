@@ -21,6 +21,7 @@ def setup(ctx):
         ("sandbox.capability", _route_capability),
         ("sandbox.pick_tier", _route_pick_tier),
         ("sandbox.plan", _route_plan),
+        ("sandbox.guard_path", _route_guard_path),
     ]
     for name, fn in routes:
         ctx.api.register(name, fn, module="sandbox")
@@ -37,6 +38,7 @@ def _route_capability(ctx, payload):
     return {
         "ok": True,
         "tiers": _pure.describe(),
+        "mechanism_diff": _pure.mechanism_diff(),
         "binaries": binaries,
         "lock": lock,
         "path_isolation": isolate_cap,
@@ -51,3 +53,15 @@ def _route_plan(ctx, payload):
     payload = payload or {}
     return _pure.plan(payload.get("project"), payload.get("tier"),
                        payload.get("workspace") or {})
+
+
+def _route_guard_path(ctx, payload):
+    payload = payload or {}
+    platform = payload.get("platform")
+    if not platform or platform == "auto":
+        # 真实 OS 事实走 store 能力（capability.os: posix/nt），纯函数层不探 os。
+        workspace = ctx.api.call("store.workspace",
+                                 {"project": "guard-probe"}, caller=None)
+        isolate_cap = (workspace or {}).get("capability") or {}
+        platform = "windows" if isolate_cap.get("os") == "nt" else "posix"
+    return _pure.guard_path(payload.get("root"), payload.get("target"), platform)

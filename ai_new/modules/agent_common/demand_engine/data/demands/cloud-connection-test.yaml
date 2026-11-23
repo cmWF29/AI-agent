@@ -19,4 +19,4 @@ expect:
   calls:
   - cloud.connection_test
   payload: {}
-  promise: 探活结果按成功/失败留审计，项目角色调用被拒
+  promise: 探活结果按成功/失败留审计，项目岗位调用被拒

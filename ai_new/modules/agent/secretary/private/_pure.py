@@ -251,12 +251,19 @@ STATUS_TRANSITIONS = {
 
 
 def status_machine(p):
-    """队列状态机：回包状态枚举、合法迁移；带 entry 时附它当前状态与可去状态。"""
+    """队列状态机：回包状态枚举、合法迁移；带 entry 时附它当前状态与可去状态。
+
+    契约稳定带 ``ok``：消息 id 给了但队列里找不到，回 ``ok: False / not_found``，
+    不静默省略 entry 让调用方把"不存在"当成"空状态"。
+    """
     msg_id = str(p.get("msg_id") or "").strip()
     entry = None
     if msg_id:
         entry = _find((p.get("state") or {}).get("messages") or [], msg_id)
-    out = {"statuses": list(STATUSES), "transitions": STATUS_TRANSITIONS}
+    if msg_id and entry is None:
+        return {"ok": False, "code": "not_found",
+                "statuses": list(STATUSES), "transitions": STATUS_TRANSITIONS}
+    out = {"ok": True, "statuses": list(STATUSES), "transitions": STATUS_TRANSITIONS}
     if entry is not None:
         out["entry"] = {"msg_id": entry.get("msg_id"), "status": entry.get("status"),
                         "next": STATUS_TRANSITIONS.get(entry.get("status") or "", [])}

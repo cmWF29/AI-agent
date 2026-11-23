@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_panel.py
-hash: 17b3b9574d8c8018cdb66bdfaefd93a35af5c5d228c1a8b41d6b42aadef279b6
+hash: 2c3d6382a6e15da973ae24594339257c6fbfd01d3383b8094d7f5def7e9dea23
 symbols:
 - module_dir
 - modules_root
@@ -39,6 +39,7 @@ symbols:
 - now_iso
 - _dir_of
 - _p
+- _guard
 - _route_id
 - _route_next_seq
 - _route_exists
@@ -293,6 +294,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `_p`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_guard`（function）
+- 职责: 路径边界闸：越界/注入片段直接抛结构化 ApiError，不放行进文件 IO。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

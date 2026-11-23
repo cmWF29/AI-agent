@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation_tiers.py
-hash: bbc42c000c765ea263bc41edbebe8f26808dc4f7a0e278edcdf146815c2b070f
+hash: 8a3e0032717eae6f6acaa5803c13632c9a3067c2f8acc8517f45485c2365bac3
 symbols:
 - test_describe_both_tiers_with_overhead
 - test_pick_tier_explicit_wins

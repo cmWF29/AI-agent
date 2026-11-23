@@ -257,3 +257,5 @@ checks:
   enabled: true
   demands:
   - archive-gc
+  - archive-observability
+  - archive-transparent-read

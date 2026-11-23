@@ -1,6 +1,6 @@
 id: library-role-prompt
-title: 角色提示词：读角色表 → 找 prompt_file → 取数据文件
-description: 角色提示词：读角色表 → 找 prompt_file → 取数据文件。提示词是数据文件，模块只拼形状
+title: 岗位提示词：读岗位表 → 找 prompt_file → 取数据文件
+description: 岗位提示词：读岗位表 → 找 prompt_file → 取数据文件。提示词是数据文件，模块只拼形状
 tags:
 - library
 - read

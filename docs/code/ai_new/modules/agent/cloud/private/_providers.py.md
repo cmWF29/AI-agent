@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/private/_providers.py
-hash: 598f1349a260684a0bdee7022af3d65c404e4bba41575803b8f50e5e0a3d2722
+hash: ae8e8cd8f1794d3a588efc552c34099e092ecbf879165131c0dfd97f6135574b
 symbols:
 - __init__
 - test_connection
@@ -16,6 +16,8 @@ symbols:
 - get
 - delete
 - _url
+- _max_body
+- _guard_redirect
 - test_connection
 - list_keys
 - put
@@ -122,6 +124,18 @@ Provider 适配层：统一连接/上传/下载/列目录/删除/校验接口与
 - 关联需求/测试: 待人工补充
 
 ### `_url`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_max_body`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_guard_redirect`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

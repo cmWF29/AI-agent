@@ -386,6 +386,6 @@ capabilities:
 # 聚合内部调用 cloud.sync_plan / cloud.sync_run 调 index_query / read_bytes。
 capability_modules:
   stdlib_io:
-    modules: [store, net, host, http, exec, archive]
+    modules: [store, net, host, http, exec, archive, cloud]
   clock_codec:
     modules: [clock, codec, store, host, net, http, exec, boot, api, config, trace, archive]

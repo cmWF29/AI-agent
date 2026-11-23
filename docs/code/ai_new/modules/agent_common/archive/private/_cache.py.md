@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/archive/private/_cache.py
-hash: 7cb6c39a0c7b202d25bb332176c793a00974220b11dad2e33deade1a56bdd75a
+hash: a2732e5f2c1b10a72b95ec0f83d7ca51c0c06311e6f4f1dabc6484b12269e5a4
 symbols:
 - __init__
 - get
@@ -9,6 +9,7 @@ symbols:
 - _over_capacity
 - _refresh_stats
 - stats
+- capacity
 - configure
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:21'
@@ -63,6 +64,12 @@ updated_at: '2026-11-23T04:10:21'
 
 ### `stats`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `capacity`（method）
+- 职责: 容量档位上报：条目上限与字节上限，供观测面展示命中率分母。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

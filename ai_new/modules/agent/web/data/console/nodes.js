@@ -27,8 +27,9 @@ function escNode(value) {
 }
 
 function pill(state) {
-  const cls = state === "alive" || state === "held" ? state : "lost";
-  return `<span class="pill ${cls}">${escNode(state)}</span>`;
+  const variant = state === "alive" ? "success" : state === "held" ? "primary"
+    : state === "released" ? "neutral" : "danger";
+  return `<sl-badge variant="${variant}">${escNode(state)}</sl-badge>`;
 }
 
 function renderNodes(nodes) {
@@ -106,7 +107,7 @@ async function lookupProject() {
     const row = await rpc("nodes.project_node", { project });
     const assignment = row && row.assignment;
     if (!assignment) { out.textContent = "该项目无归属节点"; return; }
-    out.textContent = `归属节点：${assignment.node}（epoch ${assignment.epoch}，${assignment.state}，档位 ${assignment.tier}）`;
+    out.textContent = `归属节点：${assignment.node}（${escNode(assignment.state)} · 档位 ${assignment.tier}）`;
   } catch (e) {
     out.textContent = "查询失败：" + e.message;
   }

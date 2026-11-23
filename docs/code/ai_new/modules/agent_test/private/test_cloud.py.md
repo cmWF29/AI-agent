@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud.py
-hash: 9193785c5df7abbf6bdf51b061463f03d57d88952b894cf2859950f9cff79189
+hash: a2a909bcd98fa378ddd9d28d7279a79b237b8f68da99d92a0017b5ddd276fef4
 symbols:
 - _global_caller
 - _project_caller
 - setUpClass
 - tearDownClass
+- setUp
 - _apply
 - _save
 - _stage_local_file
@@ -30,7 +31,7 @@ updated_at: '2026-11-23T04:10:22'
 
 ## 概览
 
-云端资料库验收：适配层 mock 全链路、凭证不泄漏、增量幂等、重试退避、多 profile 隔离、越权拒绝。
+云端资料库验收：适配层 mock 全链路、凭证不泄漏、增量幂等、重试退避、多公司隔离、越权拒绝。
 
 ## 符号
 
@@ -53,6 +54,12 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `tearDownClass`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `setUp`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

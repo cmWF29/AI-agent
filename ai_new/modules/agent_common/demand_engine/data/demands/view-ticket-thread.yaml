@@ -16,7 +16,7 @@ view:
   labels:
     created: 建单
     pm_start: PM 开工
-    role_spawn: 派角色
+    role_spawn: 派岗位
     child_split: 拆子单
     repush: 回催缺口
     review_pass: 评审达标
@@ -103,7 +103,7 @@ view:
       clear: true
     busy_from: '{thread.thread.status}'
     busy_when: running
-    busy_text: PM 正在输出：现在发送会打断它当前这轮，工单内的角色不受影响
+    busy_text: PM 正在输出：现在发送会打断它当前这轮，工单内的岗位不受影响
     actions:
     - label: 追加备注
       demand: ticket-note

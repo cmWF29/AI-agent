@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/cloud-profile-switch.yaml
-hash: 66358e0e4b1b7983cc9c1844aa1f09541d5766fc67f96ec377c6ffb2bdb17f19
+hash: c8c10f36e70f4ec0d5f2a640ef02d7883cb7410528955f65762a1ccfca7e45ab
 symbols:
 - id
 - title

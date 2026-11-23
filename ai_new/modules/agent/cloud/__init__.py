@@ -1,16 +1,20 @@
 """全局云端资料库：通用存储适配层 + 增量同步 + 公共级配置岗位。
 
 职责边界：
-- 适配层：统一连接/上传/下载/列目录/删除/校验接口，多套 profile 切换；
-- 增量同步：清单 + 摘要 + 幂等；失败重试指数退避；冲突记录不覆盖；压缩件直推；
+- 适配层：统一连接/上传/下载/列目录/删除/校验接口，多公司多套 profile 切换；
+- 增量同步：清单（sha256+size+mtime）+ 摘要幂等比对；失败指数退避+抖动封顶；
+  断点续传状态原子落盘，进程重启后从待传清单继续；结果给新增/跳过/失败计数；
 - 权限：配置动作仅公共级/管理员；项目角色只看只读状态；
-- 落盘：本模块不留副作用，状态变更算成 write/append effect 交需求 runtime.apply。
+- 凭证：AES-256-GCM 信封密封，AAD 绑定 profile+provider；视图/日志/审计一律脱敏。
 
+落盘：台账变更经 effect 交需求 runtime.apply；断点续传检查点经 store 原子写持久化。
 出站只经平台能力（store/clock/codec/host/archive/net）；不 import 其他业务模块。
 """
 from __future__ import annotations
 
-from .private import _pure, _providers, _seal, _archive
+import os
+
+from .private import _pure, _providers, _seal, _archive, _guard
 
 _MODULE = "agent/cloud"
 _STATE_PATH = "state.yaml"
@@ -57,12 +61,12 @@ def _doc(name):
         "cloud.profile_save": "保存/更新云端 profile：校验端点与凭证密封",
         "cloud.profile_list": "profile 列表（凭证脱敏）",
         "cloud.profile_get": "单个 profile 详情（凭证脱敏）",
-        "cloud.profile_switch": "切换当前生效 profile",
-        "cloud.profile_delete": "删除 profile 及其清单与运行摘要",
+        "cloud.profile_switch": "切换当前生效 profile（设为默认）",
+        "cloud.profile_delete": "删除 profile 及其清单、台账与断点状态",
         "cloud.connection_test": "连通性测试：按 profile 探活",
         "cloud.probe_roundtrip": "往返验证：上传探针→下载→摘要校验→清理",
         "cloud.sync_plan": "增量计划：本地清单 × 上次推送 × 远端现状差分",
-        "cloud.sync_run": "执行增量推送：重试退避、冲突记录、清单与摘要落盘",
+        "cloud.sync_run": "执行增量推送：重试退避、断点续传、清单与摘要落盘",
         "cloud.status": "全局同步状态：当前 profile、最近运行、计数",
         "cloud.project_status": "项目只读视图：是否已纳入同步",
         "cloud.audit_list": "配置变更审计台账（只读）",
@@ -77,7 +81,7 @@ def _load_state(ctx):
     state = _pure.empty_state()
     if isinstance(value, dict):
         for key in state:
-            if isinstance(value.get(key), dict):
+            if key in value:
                 state[key] = value[key]
     return state
 
@@ -121,6 +125,31 @@ def _denied(ctx, caller, action, reason, tpl):
             "effects": effects}
 
 
+# ---------------------------------------------------------------- 断点续传检查点
+
+def _resume_path(pid):
+    return "resume/" + str(pid) + ".yaml"
+
+
+def _load_resume(ctx, pid):
+    row = ctx.api.call("store.read", {"module": _MODULE, "path": _resume_path(pid)},
+                       caller=None)
+    value = row.get("value") if isinstance(row, dict) else None
+    if isinstance(value, dict) and value.get("pending") is not None:
+        return value
+    return {"pending": [], "done": [], "entries": {}, "updated": 0}
+
+
+def _resume_write_effect(pid, resume):
+    # 检查点经 effect 交 runtime 落盘；store 层负责临时文件 + 原子改名。
+    return {"kind": "write", "module": _MODULE,
+            "path": _resume_path(pid), "value": resume}
+
+
+def _resume_remove_effect(pid):
+    return {"kind": "remove", "module": _MODULE, "path": _resume_path(pid)}
+
+
 # ---------------------------------------------------------------- 路由：提供方与 profile
 
 def _route_providers(ctx, payload):
@@ -146,9 +175,10 @@ def _route_profile_save(ctx, payload):
     state = _load_state(ctx)
     profile = validated["profile"]
     existing = (state.get("profiles") or {}).get(profile["id"])
-    # 凭证：入参明文密封落盘；未传凭证则沿用已密封的旧凭证。
+    # 凭证：入参明文密封落盘；未传凭证则沿用已密封的旧凭证（跨 profile 不可互换）。
     if payload.get("credentials"):
-        profile["credentials"] = _seal.seal_map(ctx, payload["credentials"])
+        profile["credentials"] = _seal.seal_map(
+            ctx, payload["credentials"], profile["id"], profile["provider"])
     elif existing:
         profile["credentials"] = existing.get("credentials") or {}
     else:
@@ -164,6 +194,9 @@ def _route_profile_save(ctx, payload):
         profile["created"] = now
     profile["updated"] = now
     state["profiles"][profile["id"]] = profile
+    # 首套 profile 自动成为默认生效；已有默认则不被新保存顶替。
+    if not state.get("active"):
+        state["active"] = profile["id"]
 
     effects = [_state_effect(state)]
     effects += _audit(ctx, caller, "profile_save", profile["id"], "allow", "saved")
@@ -218,9 +251,10 @@ def _route_profile_delete(ctx, payload):
     state["profiles"].pop(pid, None)
     state.get("manifests", {}).pop(pid, None)
     state.get("ledger", {}).pop(pid, None)
+    state.get("resume", {}).pop(pid, None)
     if state.get("active") == pid:
         state["active"] = ""
-    effects = [_state_effect(state)]
+    effects = [_resume_remove_effect(pid), _state_effect(state)]
     effects += _audit(ctx, caller, "profile_delete", pid, "allow", "deleted")
     return {"ok": True, "id": pid, "effects": effects}
 
@@ -234,8 +268,16 @@ def _load_profile(ctx, pid):
 
 def _provider_for(ctx, profile):
     provider = _providers.build(profile["provider"])
-    creds = _seal.open_map(ctx, profile.get("credentials") or {})
+    creds = _seal.open_map(ctx, profile.get("credentials") or {},
+                           profile["id"], profile["provider"])
     return provider, creds
+
+
+def _revalidate_endpoint(ctx, profile):
+    """运行时复检端点：保存后配置/白名单可能变化；非法交回校验错误码。"""
+    cfg = _cfg(ctx)
+    guard = _guard.validate_endpoint(profile.get("endpoint") or "", cfg)
+    return guard["errors"]
 
 
 def _route_connection_test(ctx, payload):
@@ -249,6 +291,10 @@ def _route_connection_test(ctx, payload):
     if not profile:
         return {**_err("not_found", 404, tpl.get("not_found") or ""),
                 "effects": _audit(ctx, caller, "connection_test", "", "deny", "not_found")}
+    bad = _revalidate_endpoint(ctx, profile)
+    if bad:
+        effects = _audit(ctx, caller, "connection_test", profile["id"], "deny", bad[0])
+        return {**_err(bad[0], 400, tpl.get(bad[0]) or bad[0]), "effects": effects}
     try:
         provider, creds = _provider_for(ctx, profile)
         res = provider.test_connection(ctx, {**profile, "credentials": creds})
@@ -277,11 +323,16 @@ def _route_probe_roundtrip(ctx, payload):
     if not profile:
         return {**_err("not_found", 404, tpl.get("not_found") or ""),
                 "effects": _audit(ctx, caller, "probe_roundtrip", "", "deny", "not_found")}
+    bad = _revalidate_endpoint(ctx, profile)
+    if bad:
+        effects = _audit(ctx, caller, "probe_roundtrip", profile["id"], "deny", bad[0])
+        return {**_err(bad[0], 400, tpl.get(bad[0]) or bad[0]), "effects": effects}
     nonce = ctx.api.call("codec.nonce", {"length": 16}, caller=None).get("token") or "probe"
     probe_key = "cloud-probe/" + nonce
     try:
         provider, creds = _provider_for(ctx, profile)
         body = ("probe:" + nonce).encode("utf-8")
+        _guard.check_body_size(body, (profile.get("policy") or {}).get("max_body_bytes") or 0)
         put = provider.put(ctx, {**profile, "credentials": creds}, probe_key, body)
         if not put.get("ok"):
             effects = _audit(ctx, caller, "probe_roundtrip", profile["id"], "deny",
@@ -299,12 +350,37 @@ def _route_probe_roundtrip(ctx, payload):
         return {"ok": verified, "verified": verified, "probe_key": probe_key,
                 "remote_digest": got.get("digest"), "expected_digest": expected,
                 "effects": effects}
-    except (_seal.SealError, _providers.ProviderError) as exc:
-        effects = _audit(ctx, caller, "probe_roundtrip", profile["id"], "deny", exc.code)
-        return {**_err(exc.code, 500, tpl.get(exc.code) or exc.code), "effects": effects}
+    except (_seal.SealError, _providers.ProviderError, _guard.GuardError) as exc:
+        effects = _audit(ctx, caller, "probe_roundtrip", profile["id"], "deny",
+                         getattr(exc, "code", "provider_error"))
+        return {**_err(getattr(exc, "code", "provider_error"), 500,
+                       tpl.get(getattr(exc, "code", "")) or str(exc)), "effects": effects}
 
 
 # ---------------------------------------------------------------- 路由：增量同步
+
+def _jitter_fraction(ctx):
+    """[0,1) 抖动系数：随机令牌经摘要映射；随机数能力归 codec，本层不自持 RNG。"""
+    tok = ctx.api.call("codec.nonce", {"length": 8}, caller=None).get("token") or ""
+    dig = ctx.api.call("codec.digest", {"text": "jitter:" + tok},
+                       caller=None).get("hex") or "0"
+    try:
+        return int(dig[:8], 16) / float(0xFFFFFFFF)
+    except ValueError:
+        return 0.0
+
+
+def _mtime(ctx, module, rel):
+    """best-effort 取本地文件 mtime（epoch 秒）；解析/stat 失败记 0。"""
+    try:
+        row = ctx.api.call("store.resolve_doc", {"module": module, "path": rel},
+                           caller=None)
+        if row.get("ok"):
+            return float(os.stat(row["real"]).st_mtime)
+    except (OSError, ValueError, TypeError):
+        pass
+    return 0.0
+
 
 def _read_entry_bytes(ctx, entry):
     """按清单条目回读本地字节：原始件读模块路径；压缩件走 archive 只读接缝。"""
@@ -316,7 +392,7 @@ def _read_entry_bytes(ctx, entry):
                            caller=None)
         return dec.get("data") or b""
     row = ctx.api.call("store.read_bytes",
-                       {"module": entry.get("module"), "path": entry.get("rel")},
+                       {"module": entry.get("module"), "path": entry.get("source_path")},
                        caller=None)
     dec = ctx.api.call("codec.base64_decode_bytes", {"text": row.get("value") or ""},
                        caller=None)
@@ -324,7 +400,7 @@ def _read_entry_bytes(ctx, entry):
 
 
 def _collect_entries(ctx, profile):
-    """扫描策略类别内的本地文件，合并 archive 压缩索引，形成本地清单。"""
+    """扫描策略类别内的本地文件，合并 archive 压缩索引，形成本地清单（含 mtime）。"""
     archived = _archive.list_archived(ctx)
     archived_by_path = {}
     for row in archived["rows"]:
@@ -345,17 +421,10 @@ def _collect_entries(ctx, profile):
             data = dec.get("data") or b""
             digest = ctx.api.call("codec.digest", {"text": data, "algorithm": "sha256"},
                                   caller=None).get("hex")
-            entry = {
-                "rel": cat + "/" + rel,
-                "category": cat,
-                "module": src["module"],
-                "source_path": rel,
-                "size": raw.get("size") or len(data),
-                "digest": digest,
-                "archived": False,
-                "algorithm": "",
-                "checksum": "",
-            }
+            entry = _pure.build_entry(
+                rel=cat + "/" + rel, category=cat, module=src["module"], source_path=rel,
+                size=raw.get("size") or len(data), digest=digest,
+                mtime=_mtime(ctx, src["module"], rel))
             match = None
             for path, row in archived_by_path.items():
                 if path.endswith(rel) or path.endswith(src["module"] + "/" + rel):
@@ -418,6 +487,12 @@ def _route_sync_run(ctx, payload):
     if not profile:
         return {**_err("not_found", 404, tpl.get("not_found") or ""),
                 "effects": _audit(ctx, caller, "sync_run", pid, "deny", "not_found")}
+    pid = profile["id"]
+
+    bad = _revalidate_endpoint(ctx, profile)
+    if bad:
+        effects = _audit(ctx, caller, "sync_run", pid, "deny", bad[0])
+        return {**_err(bad[0], 400, tpl.get(bad[0]) or bad[0]), "effects": effects}
 
     local, seam = _collect_entries(ctx, profile)
     pushed = ((state.get("manifests") or {}).get(pid) or {}).get("entries") or []
@@ -429,54 +504,95 @@ def _route_sync_run(ctx, payload):
     remote = _remote_entries(ctx, profile, provider, creds)
     plan = _pure.diff_plan(local, pushed, remote)
 
+    # 断点续传：恢复上次未完成的待传清单；已传条目不重传。
+    resume = _load_resume(ctx, pid)
+    prior_pending = set(resume.get("pending") or [])
+    prior_done = set(resume.get("done") or [])
+    if prior_pending:
+        snap = resume.get("entries") or {}
+        recovered = [snap[rel] for rel in resume.get("pending") or [] if rel in snap]
+        planned = {e["rel"]: e for e in plan["to_push"]}
+        for entry in recovered:
+            planned.setdefault(entry["rel"], entry)
+        plan["to_push"] = list(planned.values())
+
     policy = profile.get("policy") or {}
     max_attempts = int(policy.get("max_attempts") or 3)
     base_s = int(policy.get("backoff_base_s") or 1)
     cap_s = int(policy.get("backoff_cap_s") or 30)
+    max_body = int(policy.get("max_body_bytes") or 0)
 
     new_entries = {e["rel"]: e for e in plan["unchanged"]}
-    pushed_ok, failed = [], []
+    resume["entries"] = {e["rel"]: e for e in plan["to_push"]}
+    resume["done"] = [rel for rel in prior_done if rel not in prior_pending]
+    resume["pending"] = [e["rel"] for e in plan["to_push"]]
+    added, skipped, failed = [], list(plan["unchanged"]), []
+    effects = []
+
     for entry in plan["to_push"]:
+        rel = entry["rel"]
         data = _read_entry_bytes(ctx, entry)
         attempts, last_err = 0, ""
+        done = False
         while attempts < max_attempts:
-            res = provider.put(ctx, {**profile, "credentials": creds},
-                              entry["rel"], data)
+            try:
+                _guard.check_body_size(data, max_body)
+                res = provider.put(ctx, {**profile, "credentials": creds}, rel, data)
+            except _guard.GuardError as exc:
+                res = {"ok": False, "code": exc.code}
             if res.get("ok"):
                 entry = {**entry, "pushed_at": ctx.api.call("clock.now", {},
                          caller=None).get("ts"), "upload_id": res.get("upload_id") or ""}
-                new_entries[entry["rel"]] = entry
-                pushed_ok.append(entry)
+                new_entries[rel] = entry
+                added.append(entry)
+                resume["done"].append(rel)
+                resume["pending"].remove(rel)
+                resume["entries"][rel] = entry
+                effects.append(_resume_write_effect(pid, resume))
+                done = True
                 break
             attempts += 1
             last_err = res.get("code") or "provider_error"
             if attempts < max_attempts:
-                delay = _pure.backoff_delay(attempts, base_s, cap_s)
+                delay = _pure.backoff_jittered(
+                    attempts - 1, base_s, cap_s, ratio=0.25,
+                    fraction=_jitter_fraction(ctx))
                 if delay > 0:
                     ctx.api.call("clock.sleep", {"seconds": delay}, caller=None)
-        else:
-            failed.append({"rel": entry["rel"], "attempts": attempts, "reason": last_err})
+        if not done:
+            failed.append({"rel": rel, "attempts": attempts, "reason": last_err})
 
     now = ctx.api.call("clock.now", {}, caller=None).get("ts")
     conflicts = plan["conflicts"]
+    ok_run = not failed and not conflicts
+    if ok_run:
+        effects.append(_resume_remove_effect(pid))
+        resume_out = {"pending": [], "done": [], "entries": {}, "updated": 0}
+    else:
+        resume_out = resume
+        effects.append(_resume_write_effect(pid, resume_out))
     ledger = {
         "at": now,
-        "ok": not failed and not conflicts,
-        "pushed": len(pushed_ok),
-        "unchanged": len(plan["unchanged"]),
+        "ok": ok_run,
+        "added": len(added),
+        "skipped": len(skipped),
+        "failed": len(failed),
         "conflicts": len(conflicts),
+        # 兼容旧字段名：pushed=added，unchanged=skipped，failures=failed。
+        "pushed": len(added),
+        "unchanged": len(skipped),
         "failures": len(failed),
         "archive_seam": seam,
-        "reason": "" if not failed and not conflicts else
-                  ("conflict" if conflicts else "retry_exhausted"),
+        "reason": "" if ok_run else ("conflict" if conflicts else "retry_exhausted"),
         "failed": failed,
         "conflict_rows": conflicts,
     }
     state.setdefault("manifests", {})[pid] = {"entries": list(new_entries.values()),
                                               "updated": now}
     state.setdefault("ledger", {})[pid] = ledger
+    state["resume"][pid] = resume_out
 
-    effects = [_state_effect(state)]
+    effects.append(_state_effect(state))
     effects += _audit(ctx, caller, "sync_run", pid,
                       "allow" if ledger["ok"] else "partial", ledger["reason"] or "run")
     return {"ok": ledger["ok"], "ledger": ledger, "effects": effects}
@@ -518,6 +634,7 @@ def _register_tools(ctx):
     specs = [
         ("cloud_profile_save", "cloud.profile_save", "tool_cloud_profile_save_desc", [
             {"name": "id", "type": "string", "required": True, "desc": "profile 标识"},
+            {"name": "company", "type": "string", "required": True, "desc": "公司标识"},
             {"name": "provider", "type": "string", "required": True,
              "desc": "s3 / webdav / http_dir / wiki / rsync"},
             {"name": "endpoint", "type": "string", "required": True, "desc": "服务端点"},

@@ -1,12 +1,16 @@
 ---
 source: ai_new/modules/agent/sandbox/private/_pure.py
-hash: 8cc9e3c1f43ca3e368070d4cfdbaec9ff27ed2b51cd7b1ed82484c994a3962c6
+hash: 6c12abf72ecf564cad8ca40a645f452d6feceb9afbfe38853d07d18074fd4bd9
 symbols:
 - describe
 - _root_segments
 - validate_root
 - pick_tier
 - plan
+- _posix_norm
+- _posix_guard
+- guard_path
+- mechanism_diff
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:20'
 ---
@@ -48,6 +52,30 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `plan`（function）
 - 职责: 生成执行计划（纯计划，不起进程、不写盘）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_posix_norm`（function）
+- 职责: POSIX 纯字符串归一：``.`` 丢弃，``..`` 弹栈；不解析真实链接。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_posix_guard`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `guard_path`（function）
+- 职责: 平台感知的根包含守卫（纯判定，不读 stdlib）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `mechanism_diff`（function）
+- 职责: 轻/强档五维度机制对照（只读策略数据，不含本机探测结果）。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

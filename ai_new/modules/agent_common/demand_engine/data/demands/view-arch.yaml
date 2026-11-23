@@ -46,7 +46,7 @@ view:
     fold: {title: "需求清单（声明 vs 编译）", note: "偏差为非 0 的排前面；全量清单走 scripts/gate_demand_tests.py"}
     count_note: "共 {data.mf.items|count} 条；只列前 40 条（偏差为非 0 的排前面），全量清单走 scripts/gate_demand_tests.py"
     heading: 需求清单（声明 vs 编译）
-    note: 偏差 = 需求自己声明的预期调用与编译出来的实际调用不一致；不是 0 就是需求变形或用例过期
+    note: 声明的预期调用与实际调用不一致，偏差非 0 即需求变形或用例过期
     columns:
     - {label: 需求, value: row.id, sub: row.view}
     - {label: 标题, value: row.title}

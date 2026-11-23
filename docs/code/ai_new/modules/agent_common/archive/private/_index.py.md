@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/archive/private/_index.py
-hash: 3d6dba1be4ce97d86713ff5484a191518691fa033c3766aa2cd41993965f51d9
+hash: de2b1dc048db44f62fc8ebcf29969fe1920db60dc941bbce90f696b639a731b3
 symbols:
 - _empty
 - load
@@ -11,6 +11,8 @@ symbols:
 - remove
 - query
 - stats
+- _ratio
+- archived_summary
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:21'
 ---
@@ -76,6 +78,18 @@ updated_at: '2026-11-23T04:10:21'
 
 ### `stats`（function）
 - 职责: 聚合观测：条数、原始 / 压缩字节、节省空间、按类别拆分。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_ratio`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `archived_summary`（function）
+- 职责: 已压缩条目台账汇总：只统计 ``archived``，raw 候选不计入压缩量。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -27,7 +27,7 @@ view:
       kind: url
       placeholder: https://example.com/SKILL.md；填了就从链接拉取正文
     - name: skill_md
-      label: SKILL.md 正文
+      label: 技能正文
       kind: textarea
       drop: true
       placeholder: 粘贴含 frontmatter 的包说明全文，或把 .md/.txt 文件拖到此处

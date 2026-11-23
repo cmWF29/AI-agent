@@ -2,7 +2,7 @@
 """分层防护统一入口：python3 scripts/gates.py [--only L0,L1,L2] [--json] [--timeout N]
 
 分层口径（与 docs/testing-layers.md 一致）：
-  L0 静态/架构/文档/映射  —— 转调既有六道门禁 + 死代码扫描
+  L0 静态/架构/文档/映射  —— 转调九道门禁（含死代码/文档同步/文案/层级）
   L1 后端单元(UT)         —— 转调既有 8 个 unittest 模块
   L2 接口契约            —— 真装配 + 真 HTTP 闸，不可信输入/鉴权/越权/穿越/幂等
   L3 系统级 E2E(ST)      —— 真前端 + 桩 LLM 跑完整链路（本骨架预留接线位）
@@ -24,6 +24,9 @@ sys.path.insert(0, str(ROOT / "scripts" / "lib"))
 
 from layers import l0_static, l1_unit, l2_contract, l3_e2e, l4_resilience  # noqa: E402
 from report import LayerResult, render_text, render_json, exit_code  # noqa: E402
+
+# 门禁名单唯一定义在 l0_static.GATES（docsync/copy/levels 已写进去），这里不再二次追加，
+# 避免同名门禁跑两遍。
 
 # 层 id -> 运行函数。L3/L4 当前为接线骨架，用例待补。
 LAYERS = [

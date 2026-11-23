@@ -92,9 +92,12 @@ def _register_timer_tools(ctx):
 # ---------------------------------------------------------------- 配置与档案读取
 
 def _msg_tpl(ctx):
-    row = ctx.api.call("store.read", {
-        "module": "agent/secretary", "path": "messages.yaml"}, caller=None)
-    return row.get("value") or {}
+    try:
+        row = ctx.api.call("store.read", {
+            "module": "agent/secretary", "path": "messages.yaml"}, caller=None)
+        return row.get("value") or {}
+    except Exception:  # noqa: BLE001 — 词表读不到不阻断结构化降级，退回空文案
+        return {}
 
 
 def _cfg_secretary_paths(ctx):
@@ -281,11 +284,21 @@ def _route_flush(ctx, payload):
 
     ticket = resp.get("result") or {}
     tid = str(ticket.get("id") or ticket.get("ticket") or "")
+    if not tid:
+        # 建单回包缺工单号：按失败回滚保留队列，不把"没建上单"记成已合并。
+        _pure.mark_failed({"state": state, "batch_id": batch_id,
+                           "error": "ticket-create 未返回工单 id"})
+        ctx.api.call("store.settle", {
+            "module": "agent/secretary", "bucket": "flush", "key": key,
+            "status": "failed", "error_code": "missing_ticket_id"}, caller=None)
+        return {"ok": False, "code": "flush_failed", "error": "建单回包缺工单号",
+                "batch": batch, "effects": [_write_effect(ctx, project, state)]}
     _pure.mark_merged({"state": state, "batch_id": batch_id,
                        "ticket": tid, "merged_at": now.get("ts")})
-    batch_rec = next(b for b in state["batches"] if b.get("batch_id") == batch_id)
-    batch_rec["brief"] = brief_b
-    batch_rec["sources"] = brief["sources"]
+    batch_rec = next((b for b in state["batches"] if b.get("batch_id") == batch_id), None)
+    if batch_rec is not None:
+        batch_rec["brief"] = brief_b
+        batch_rec["sources"] = brief["sources"]
     ctx.api.call("store.settle", {
         "module": "agent/secretary", "bucket": "flush", "key": key,
         "status": "done", "result_digest": tid,
@@ -299,8 +312,15 @@ def _route_list(ctx, payload):
     project = str(payload.get("project") or "").strip()
     if not project:
         return _err("missing_project", 400, _msg_tpl(ctx).get("missing_project") or "")
-    state = _read_state(ctx, project)
-    return _pure.queue_view({"state": state})
+    try:
+        state = _read_state(ctx, project)
+        view = _pure.queue_view({"state": state})
+    except Exception as exc:  # noqa: BLE001 — 读档/成形异常不裸抛，结构化降级
+        return {"ok": False, "code": "state_unavailable",
+                "error": str(exc) or type(exc).__name__,
+                "counts": {"pending": 0, "processing": 0, "merged": 0, "discarded": 0},
+                "rows": [], "batches": []}
+    return {"ok": True, **view}
 
 
 def _route_timers(ctx, payload):
@@ -340,8 +360,13 @@ def _route_discard(ctx, payload):
 
 
 def _route_status(ctx, payload):
+    tpl = _msg_tpl(ctx)
     project = str(payload.get("project") or "").strip()
     if not project:
-        return _err("missing_project", 400, _msg_tpl(ctx).get("missing_project") or "")
-    state = _read_state(ctx, project)
-    return _pure.status_machine({"state": state, "msg_id": payload.get("msg_id")})
+        return _err("missing_project", 400, tpl.get("missing_project") or "")
+    try:
+        state = _read_state(ctx, project)
+        return _pure.status_machine({"state": state, "msg_id": payload.get("msg_id")})
+    except Exception as exc:  # noqa: BLE001 — 读档/成形异常不裸抛，结构化降级回包
+        return {"ok": False, "code": "state_unavailable",
+                "error": str(exc) or type(exc).__name__}

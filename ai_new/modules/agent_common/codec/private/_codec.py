@@ -80,6 +80,15 @@ def base64_decode_bytes(text):
         return {"ok": False, "error": str(exc), "code": "decode_failed"}
 
 
+def base64_encode(text):
+    """文本/字节 → base64 文本；与 base64_decode_bytes 成对，供契约里成对声明的调用方使用。"""
+    try:
+        raw = text if isinstance(text, (bytes, bytearray)) else str(text or "").encode("utf-8")
+        return {"ok": True, "text": base64.b64encode(bytes(raw)).decode("ascii")}
+    except (TypeError, ValueError) as exc:
+        return {"ok": False, "error": str(exc), "code": "encode_failed"}
+
+
 def digest(text, algorithm="sha256"):
     """摘要：内容指纹，不是业务语义。"""
     try:

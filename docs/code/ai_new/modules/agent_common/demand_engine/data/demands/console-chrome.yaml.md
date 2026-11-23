@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/console-chrome.yaml
-hash: 3f9c4c4418cc70c7573a626432a5ec943adbda9cf13699b406bbe3abd695e8e9
+hash: 805c94dc56db4433c24379dc0187fdca530b5f6fb0626276c1ccedd7b05b9e50
 symbols:
 - id
 - title

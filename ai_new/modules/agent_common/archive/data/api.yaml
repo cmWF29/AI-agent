@@ -105,6 +105,38 @@ routes:
         type: any
       lock:
         type: any
+  archive.metrics:
+    in: {}
+    out:
+      storage:
+        type: any
+        fields:
+          count: {type: int}
+          orig_bytes: {type: int}
+          comp_bytes: {type: int}
+          saved_bytes: {type: int}
+          compression_ratio: {type: float}
+          saved_ratio: {type: float}
+          by_category: {type: any}
+      decompress:
+        type: any
+        fields:
+          samples: {type: int}
+          p50_ms: {type: any}
+          p95_ms: {type: any}
+          status: {type: str}
+      cache:
+        type: any
+        fields:
+          hits: {type: int}
+          misses: {type: int}
+          hit_rate: {type: float}
+          entries: {type: int}
+          max_entries: {type: int}
+          bytes: {type: int}
+          max_bytes: {type: int}
+      labels:
+        type: any
   archive.index_query:
     in:
       category:

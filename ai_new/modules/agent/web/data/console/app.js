@@ -52,7 +52,9 @@ function applyShell(shell) {
   });
   document.querySelectorAll("[data-ui-aria]").forEach((el) => {
     const txt = uiText(el.dataset.uiAria);
-    if (txt) el.setAttribute("aria-label", txt);
+    if (!txt) return;
+    el.setAttribute("aria-label", txt);
+    if (el.tagName === "SL-ICON-BUTTON") el.label = txt;   // 图标按钮的可点名走内部按钮
   });
   document.querySelectorAll("[data-brand]").forEach((el) => {
     const txt = BRAND[el.dataset.brand];
@@ -413,6 +415,44 @@ async function resolvePage(view, params, wantShell, only) {
   return p.result || p;   // 兼容多套一层
 }
 
+/* 秘书队列状态机：只读调用平台 secretary.status，渲染状态枚举与合法迁移。
+   失败 / 非 ok / 无状态枚举时整块隐藏，不报错、不弹窗、不留错误横幅。 */
+async function mountSecretaryStatus(ctx) {
+  const host = $("view-body");
+  let box = document.getElementById("secretary-status");
+  if (state.view !== "secretary" || !state.project) { if (box) box.hidden = true; return; }
+  let res = null;
+  try {
+    const resp = await fetch("/api/rpc/secretary/status", {
+      method: "POST", headers: headers(),
+      body: yamlBody({ project: state.project })
+    });
+    const body = await readYaml(resp).catch(() => ({ ok: false }));
+    res = body.result || body;
+    if (!body.ok || !res || !Array.isArray(res.statuses) || !res.statuses.length) {
+      if (box) box.hidden = true;
+      return;
+    }
+  } catch (e) {
+    if (box) box.hidden = true;
+    return;
+  }
+  if (!box) {
+    box = document.createElement("aside");
+    box.id = "secretary-status";
+    box.className = "side-card";
+    host.appendChild(box);
+  }
+  const name = (st) => LABELS[st] || st;
+  const rows = res.statuses.map((st) => {
+    const nexts = (res.transitions && res.transitions[st]) || [];
+    const nextTxt = nexts.length ? nexts.map(name).join(" · ") : "—";
+    return `<div class="kv"><span>${esc(name(st))}</span><div>${esc(nextTxt)}</div></div>`;
+  }).join("");
+  box.hidden = false;
+  box.innerHTML = `<h3>${esc(uiText("secretary_status_title") || "队列状态")}</h3>${rows}`;
+}
+
 /* 局部/整页重渲染会重建滚动容器，浏览器把 scrollTop 归零——表现就是「自己跳到最上面」。
    统一记账：渲染前记住每个可滚容器滚到哪、离底多远；渲染后按同类顺序还回去。
    贴底的（离底 ≤ 48px）继续贴底；用户上滑读历史的回到原位，不被打断。 */
@@ -520,6 +560,7 @@ async function render(opts) {
   const deckStates = captureDecks($("view-body"));
   renderView(spec, ctx);
   if (typeof stampCtl === "function") stampCtl(document.querySelector("#view-body"));
+  mountSecretaryStatus(ctx);
   scrollRestore(marks);
   restoreDecks(deckStates);
   const ta = document.querySelector("#view-body .composer textarea");

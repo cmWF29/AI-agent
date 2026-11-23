@@ -1,8 +1,10 @@
 ---
 source: ai_new/modules/agent_common/store/private/_docpath.py
-hash: ff1d5fa5251037f8cd655aa744430004cf2aa1789e3b7c8075c95da68df3f20d
+hash: cf03bb3fc877cc891a508b0c546754221ea64b18ab305f71923de2732c32474b
 symbols:
+- _decode_twice
 - _segments
+- guard
 - resolve
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:22'
@@ -19,8 +21,20 @@ updated_at: '2026-11-23T04:10:22'
 
 ## 符号
 
+### `_decode_twice`（function）
+- 职责: 剥两层百分号编码：单层 ``%2e%2e`` 与双重 ``%252e%252e`` 都还原成字面片段再判。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_segments`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `guard`（function）
+- 职责: 集中越界/注入校验。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

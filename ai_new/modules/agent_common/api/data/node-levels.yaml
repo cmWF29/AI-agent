@@ -1,0 +1,599 @@
+# 层级判定声明表：每个 capability 必须在此登记 level(center|node)、why 理由与 evidence 证据路径。
+# 由 gate_levels.py 静态校验；新增能力先登记再跑门禁。
+comment: 层级判定声明表：每个 capability 必须在此登记 level(center|node)、why 理由与 evidence 证据路径。由 gate_levels.py
+  静态校验；新增能力先登记再跑门禁。
+levels:
+  api.transport_compile:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/api/__init__.py
+    - ai_new/modules/agent_common/api/data/api.yaml
+  archive.compress:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/archive/__init__.py
+    - ai_new/modules/agent_common/archive/data/api.yaml
+  archive.index_query:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/archive/__init__.py
+    - ai_new/modules/agent_common/archive/data/api.yaml
+  archive.read_bytes:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/archive/__init__.py
+    - ai_new/modules/agent_common/archive/data/api.yaml
+  archive.read_lines:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/archive/__init__.py
+    - ai_new/modules/agent_common/archive/data/api.yaml
+  archive.read_text:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/archive/__init__.py
+    - ai_new/modules/agent_common/archive/data/api.yaml
+  archive.resolve_abs:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/archive/__init__.py
+    - ai_new/modules/agent_common/archive/data/api.yaml
+  archive.scan:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/archive/__init__.py
+    - ai_new/modules/agent_common/archive/data/api.yaml
+  artifacts.save:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/artifacts/__init__.py
+    - ai_new/modules/agent/artifacts/data/api.yaml
+  asr.transcribe:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/asr/__init__.py
+    - ai_new/modules/agent/asr/data/api.yaml
+  auth.change_password:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/auth/__init__.py
+    - ai_new/modules/agent/auth/data/api.yaml
+  auth.login:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/auth/__init__.py
+    - ai_new/modules/agent/auth/data/api.yaml
+  auth.status:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/auth/__init__.py
+    - ai_new/modules/agent/auth/data/api.yaml
+  auth.verify:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/auth/__init__.py
+    - ai_new/modules/agent/auth/data/api.yaml
+  channel.post:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/channel/__init__.py
+    - ai_new/modules/agent/channel/data/api.yaml
+  channel.read_since:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/channel/__init__.py
+    - ai_new/modules/agent/channel/data/api.yaml
+  channel.read_tail:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/channel/__init__.py
+    - ai_new/modules/agent/channel/data/api.yaml
+  channel.reply:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/channel/__init__.py
+    - ai_new/modules/agent/channel/data/api.yaml
+  channel.watch:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/channel/__init__.py
+    - ai_new/modules/agent/channel/data/api.yaml
+  clock.sleep:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/clock/__init__.py
+    - ai_new/modules/agent_common/clock/data/api.yaml
+  cloud.audit_list:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.connection_test:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.probe_roundtrip:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.profile_delete:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.profile_get:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.profile_list:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.profile_save:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.profile_switch:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.project_status:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.status:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.sync_plan:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  cloud.sync_run:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/cloud/__init__.py
+    - ai_new/modules/agent/cloud/data/api.yaml
+  decompose.install:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/decompose/__init__.py
+    - ai_new/modules/agent/decompose/data/api.yaml
+  decompose.run:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/decompose/__init__.py
+    - ai_new/modules/agent/decompose/data/api.yaml
+  demand_engine.batch:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/demand_engine/__init__.py
+    - ai_new/modules/agent_common/demand_engine/data/api.yaml
+  demand_engine.click_machine:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/demand_engine/__init__.py
+    - ai_new/modules/agent_common/demand_engine/data/api.yaml
+  demand_engine.resolve:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/demand_engine/__init__.py
+    - ai_new/modules/agent_common/demand_engine/data/api.yaml
+  exec.run:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent_common/exec/__init__.py
+    - ai_new/modules/agent_common/exec/data/api.yaml
+  hooks.points:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/hooks/__init__.py
+    - ai_new/modules/agent_common/hooks/data/api.yaml
+  host.profile:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent_common/host/__init__.py
+    - ai_new/modules/agent_common/host/data/api.yaml
+  host.readiness:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent_common/host/__init__.py
+    - ai_new/modules/agent_common/host/data/api.yaml
+  knowledge.doc_meta:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/knowledge/__init__.py
+    - ai_new/modules/agent/knowledge/data/api.yaml
+  knowledge.save:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/knowledge/__init__.py
+    - ai_new/modules/agent/knowledge/data/api.yaml
+  llm.chat:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/llm/__init__.py
+    - ai_new/modules/agent_common/llm/data/api.yaml
+  llm.chat_stream:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/llm/__init__.py
+    - ai_new/modules/agent_common/llm/data/api.yaml
+  net.request_stream:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/net/__init__.py
+    - ai_new/modules/agent_common/net/data/api.yaml
+  nodes.assignments:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.backup_record:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.migrations:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.status:
+    level: center
+    why: 运维只读汇总：把各节点状态在控制面聚合展示，跨节点可见
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.nodes_view:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.overview:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.pick_node:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.snapshot_plan:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  nodes.verify_snapshot:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent/nodes/__init__.py
+    - ai_new/modules/agent/nodes/data/api.yaml
+  projects.create:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/projects/__init__.py
+    - ai_new/modules/agent/projects/data/api.yaml
+  projects.remove:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/projects/__init__.py
+    - ai_new/modules/agent/projects/data/api.yaml
+  projects.rename:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/projects/__init__.py
+    - ai_new/modules/agent/projects/data/api.yaml
+  projects.toggle:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/projects/__init__.py
+    - ai_new/modules/agent/projects/data/api.yaml
+  react.run:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/react/__init__.py
+    - ai_new/modules/agent_common/react/data/api.yaml
+  runtime.stream:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/runtime/__init__.py
+    - ai_new/modules/agent_common/runtime/data/api.yaml
+  runtime.stream_events:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/runtime/__init__.py
+    - ai_new/modules/agent_common/runtime/data/api.yaml
+  sandbox.guard_path:
+    level: node
+    why: 路径守卫是节点本地判定：按节点 OS 与目录边界裁决，不跨节点下发
+    evidence:
+    - ai_new/modules/agent/sandbox/__init__.py
+    - ai_new/modules/agent/sandbox/data/api.yaml
+  sandbox.pick_tier:
+    level: node
+    why: 节点本地原语：只在节点进程内调用，不进入中心平台对外路由
+    evidence:
+    - ai_new/modules/agent/sandbox/__init__.py
+    - ai_new/modules/agent/sandbox/data/api.yaml
+  secretary.status:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/secretary/__init__.py
+    - ai_new/modules/agent/secretary/data/api.yaml
+  sessions.by_ticket:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/sessions/__init__.py
+    - ai_new/modules/agent/sessions/data/api.yaml
+  sessions.resume:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/sessions/__init__.py
+    - ai_new/modules/agent/sessions/data/api.yaml
+  sessions.scan_stuck:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/sessions/__init__.py
+    - ai_new/modules/agent/sessions/data/api.yaml
+  sessions.spawn:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/sessions/__init__.py
+    - ai_new/modules/agent/sessions/data/api.yaml
+  store.claim:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  store.doc_lock_capability:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  store.doc_revision:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  store.renew:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  store.resolve_doc:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  store.settle:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  store.sweep:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  store.workspace:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
+  tickets.close:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/tickets/__init__.py
+    - ai_new/modules/agent/tickets/data/api.yaml
+  tickets.create:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/tickets/__init__.py
+    - ai_new/modules/agent/tickets/data/api.yaml
+  tickets.rebind:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/tickets/__init__.py
+    - ai_new/modules/agent/tickets/data/api.yaml
+  tickets.split:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/tickets/__init__.py
+    - ai_new/modules/agent/tickets/data/api.yaml
+  tickets.stall_scan:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/tickets/__init__.py
+    - ai_new/modules/agent/tickets/data/api.yaml
+  timer.history:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/timer/__init__.py
+    - ai_new/modules/agent/timer/data/api.yaml
+  timer.tick:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/timer/__init__.py
+    - ai_new/modules/agent/timer/data/api.yaml
+  timer.toggle:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/timer/__init__.py
+    - ai_new/modules/agent/timer/data/api.yaml
+  tools.deps:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/tools/__init__.py
+    - ai_new/modules/agent_common/tools/data/api.yaml
+  tools.execute:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/tools/__init__.py
+    - ai_new/modules/agent_common/tools/data/api.yaml
+  tools.external_run:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/tools/__init__.py
+    - ai_new/modules/agent_common/tools/data/api.yaml
+  tools.install_missing:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/tools/__init__.py
+    - ai_new/modules/agent_common/tools/data/api.yaml
+  tools.list:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/tools/__init__.py
+    - ai_new/modules/agent_common/tools/data/api.yaml
+  tools.pick:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/tools/__init__.py
+    - ai_new/modules/agent_common/tools/data/api.yaml
+  trace.attach:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/trace/__init__.py
+    - ai_new/modules/agent_common/trace/data/api.yaml
+  trace.close:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/trace/__init__.py
+    - ai_new/modules/agent_common/trace/data/api.yaml
+  trace.get:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/trace/__init__.py
+    - ai_new/modules/agent_common/trace/data/api.yaml
+  trace.list:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/trace/__init__.py
+    - ai_new/modules/agent_common/trace/data/api.yaml
+  trace.open:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/trace/__init__.py
+    - ai_new/modules/agent_common/trace/data/api.yaml
+  trace.slow:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent_common/trace/__init__.py
+    - ai_new/modules/agent_common/trace/data/api.yaml
+  web.gate:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/web/__init__.py
+    - ai_new/modules/agent/web/data/api.yaml
+  codec.base64_encode:
+    level: center
+    why: 编解码平台原语：与 base64_decode_bytes 成对，供平台件封包/二进制往返进程内调用；不向节点通道下沉
+    evidence:
+    - ai_new/modules/agent_common/codec/__init__.py
+    - ai_new/modules/agent_common/codec/data/api.yaml

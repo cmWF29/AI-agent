@@ -1,0 +1,8 @@
+# archive 模块面向控制台与调用方的观测、错误文案模板。纯文案数据，填参归能力层。
+storage_empty: 暂无已压缩归档
+decompress_insufficient: 解压样本不足（{samples}），P50/P95 暂不可用
+decompress_ok: 解压时延按真实样本统计
+hit_rate_none: 缓存尚无访问记录
+archive_corrupt: 压缩流损坏或校验和不匹配，已拒绝读取
+archive_companion_missing: 索引记录的压缩流缺失，已拒绝读取
+archive_index_missing: 索引缺失，压缩流仍在磁盘上，已拒绝读取

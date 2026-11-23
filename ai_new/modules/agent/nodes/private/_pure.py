@@ -233,27 +233,51 @@ def fence_check(state, project, token, epoch):
 
 
 def nodes_view(state, now, ttl=None):
-    """节点列表视图：健康度按 last_seen + ttl 推导，附带本节点持有的项目。"""
+    """节点列表视图：健康度按 last_seen + ttl 推导，附带本节点持有的项目。
+
+    每行追加数据面字段：
+    - ``health``: ``alive`` / ``lost``（假死失联）；
+    - ``lease_count``: 当前持有的项目租约数；
+    - ``lease_remaining``: 持有租约中最短的剩余秒数（now 基准），无持有为 None；
+    - ``projects``: 持有项目 id 列表。
+    """
     now = _ts(now)
     held = {}
+    lease_by_node = {}
     for project, lease in state.get("leases", {}).items():
         if lease.get("state") == LEASE_HELD:
             held.setdefault(lease["node"], []).append(project)
+            lease_by_node.setdefault(lease["node"], []).append(lease)
     out = []
     for nid, rec in state.get("nodes", {}).items():
         eff = float(ttl or rec.get("lease_ttl") or DEFAULT_TTL)
         health = "alive" if rec["last_seen"] + eff >= now else "lost"
         row = dict(rec)
         row["health"] = health
+        held_leases = lease_by_node.get(nid, [])
+        row["lease_count"] = len(held_leases)
+        remain = [float(l["expires_at"]) - now for l in held_leases]
+        row["lease_remaining"] = round(min(remain), 3) if remain else None
         row["projects"] = sorted(held.get(nid, []))
         out.append(row)
     return sorted(out, key=lambda r: r["id"])
 
 
-def assignments_view(state):
-    """项目→节点分配表视图（含已释放记录，供审计）。"""
-    leases = state.get("leases", {}).values()
-    return [dict(l) for l in sorted(leases, key=lambda x: x["project"])]
+def assignments_view(state, now=None):
+    """项目→节点分配表视图（含已释放记录，供审计）。
+
+    传入 ``now`` 时每行追加 ``remaining``（租约剩余秒数，已释放/无租约为 None）。
+    """
+    now = _ts(now) if now is not None else None
+    rows = [dict(l) for l in sorted(
+        state.get("leases", {}).values(), key=lambda x: x["project"])]
+    if now is not None:
+        for row in rows:
+            if row.get("state") == LEASE_HELD:
+                row["remaining"] = round(float(row["expires_at"]) - now, 3)
+            else:
+                row["remaining"] = None
+    return rows
 
 
 def project_node(state, project):
@@ -281,9 +305,35 @@ def record_backup(state, project, snapshot):
 
 
 def backups_view(state):
-    """备份状态视图。"""
-    return [dict(b) for b in sorted(
-        state.get("backups", {}).values(), key=lambda x: x.get("project") or "")]
+    """备份状态视图：每行归一出最近备份时间与结果。
+
+    数据面字段：
+    - ``project``: 项目 id；
+    - ``last_backup_at``: 最近备份时间戳（created_at），无记录为 None；
+    - ``backup_state``: 备份结果（state/result，如 verified/planned/failed）；
+    - ``snapshot_id`` / ``entries``: 透传快照元数据。
+    """
+    rows = []
+    for rec in state.get("backups", {}).values():
+        row = dict(rec)
+        row["last_backup_at"] = rec.get("created_at")
+        row["backup_state"] = rec.get("state") or rec.get("result")
+        rows.append(row)
+    rows.sort(key=lambda x: x.get("project") or "")
+    return rows
+
+
+def status_view(state, now, ttl=None):
+    """运维页只读组合视图：节点状态 + 项目归属 + 备份状态。
+
+    供控制面 ``nodes.status`` 路由下发；不写盘、不触发副作用。
+    """
+    now = _ts(now)
+    return {
+        "nodes": nodes_view(state, now, ttl=ttl),
+        "assignments": assignments_view(state, now=now),
+        "backups": backups_view(state),
+    }
 
 
 def _rel_ok(rel):

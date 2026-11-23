@@ -27,4 +27,4 @@ expect:
   - cloud.profile_delete
   - runtime.apply
   payload: {}
-  promise: 删除经 runtime.apply 落盘，项目角色调用被拒并留痕
+  promise: 删除经 runtime.apply 落盘，项目岗位调用被拒并留痕

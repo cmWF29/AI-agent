@@ -114,7 +114,7 @@ async def collect(pages):
             await pg.goto("%s/manage.html?view=%s" % (BASE, q), wait_until="load")
             await pg.wait_for_timeout(1200)
             items = await pg.evaluate("""() => {
-              const sel = 'button,[data-act],[data-clk],[data-cube],summary,details.tool-call';
+              const sel = 'button,sl-button,sl-icon-button,sl-tab,[data-act],[data-clk],[data-cube],summary,details.tool-call';
               return [...document.querySelectorAll(sel)].filter((e) => {
                 const r = e.getBoundingClientRect();
                 return r.width > 0 && r.height > 0 && !e.closest('[hidden]');

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/console-shell.yaml
-hash: 1823f217cc9b56a547295518f8a819137fbd8875b52b8b7ebf5e952e5930a890
+hash: 40517cda7c6e604a4a45b0ff035d6ffce6c764b74b027a6a7f3c06d088df5668
 symbols:
 - id
 - title

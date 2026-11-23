@@ -2,9 +2,44 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="data:,">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>控制台</title>
+<link rel="stylesheet" href="assets/shoelace/themes/light.css">
+<link rel="stylesheet" href="assets/shoelace/themes/dark.css">
+<script>
+/* 暗色跟随系统 prefers-color-scheme：Shoelace 主题类挂到 <html>，与现有媒体查询同步 */
+(function () {
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  function sync() { document.documentElement.classList.toggle("sl-theme-dark", mq.matches); }
+  sync();
+  if (mq.addEventListener) mq.addEventListener("change", sync);
+})();
+</script>
 <style>
+/* ---- 现有 token → Shoelace CSS 变量映射（明暗两套 token 在下方媒体查询里各自覆盖） ---- */
+:root{
+  --sl-font-family: inherit;
+  --sl-border-radius-medium: 10px;
+  --sl-border-radius-small: 8px;
+  --sl-color-primary-500: var(--accent);
+  --sl-color-primary-600: var(--accent);
+  --sl-color-primary-700: #2457e0;
+  --sl-color-primary-800: #1c48b8;
+  --sl-color-success-600: var(--ok);
+  --sl-color-warning-600: var(--warn);
+  --sl-color-danger-600: var(--danger);
+  --sl-color-neutral-0: var(--card);
+  --sl-color-neutral-50: var(--bg);
+  --sl-color-neutral-100: var(--line);
+  --sl-color-neutral-200: var(--line-2);
+  --sl-color-neutral-600: var(--fg-2);
+  --sl-color-neutral-900: var(--fg);
+  --sl-input-background-color: var(--card);
+  --sl-input-border-color: var(--line);
+  --sl-input-border-color-focus: var(--accent);
+  --sl-input-color: var(--fg);
+}
 :root{
   color-scheme:light;
   --fg:#1d2129;--fg-2:#4e5969;--muted:#86909c;
@@ -31,6 +66,14 @@
     --chat-bg:#0e1621;--out-bg:#8774e1;--out-fg:#ffffff;}
 }
 *{box-sizing:border-box}
+/* ---- Shoelace 控件外壳兼容：尺寸/边框/颜色落到自定义元素的内建按钮上 ---- */
+sl-icon-button.icon-btn{width:38px;height:38px;flex:none}
+sl-icon-button.icon-btn::part(button){width:100%;height:100%;border:1px solid var(--line);background:transparent;border-radius:10px;color:var(--fg-2);font-size:18px}
+sl-icon-button.rail-btn{width:26px;height:26px;flex:none}
+sl-icon-button.rail-btn::part(button){width:100%;height:100%;border-radius:8px}
+sl-dialog.modal-dialog::part(panel){width:min(520px,100%)}
+sl-dialog.modal-dialog .modal-err{display:none;margin:0 0 12px;padding:9px 11px;border-radius:10px;background:rgba(245,63,63,.08);color:var(--danger);font-size:12.5px}
+sl-dialog.modal-dialog .modal-err.on{display:block}
 html,body{height:100%}
 body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--fg);background:var(--bg)}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -38,8 +81,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ---- 骨架：桌面常驻侧栏，窄屏抽屉 ---- */
 .shell{display:flex;min-height:100vh}
 .topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
-.icon-btn{width:38px;height:38px;flex:none;border:1px solid var(--line);background:transparent;border-radius:10px;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--fg-2)}
-.icon-btn:hover{background:var(--line-2);color:var(--fg)}
 .brand-mini{display:flex;align-items:center;gap:10px;min-width:0}
 .brand-mini h1{font-size:15px;margin:0;line-height:1.2}
 .scrim{position:fixed;inset:0;background:rgba(15,20,30,.42);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -101,16 +142,18 @@ button,input,select,textarea{font:inherit;color:inherit}
 .kind-flow i{font-style:normal;color:var(--muted);font-size:11px}
 .kind-flow .chip{padding:1px 8px;font-size:11px;max-width:100%;overflow-wrap:anywhere}
 .kind-row p{margin:3px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45;min-width:0}
-.nav button{justify-content:flex-start;border:0;background:transparent;text-align:left;padding:9px 12px;border-radius:9px;color:var(--fg-2);font-size:13.5px}
-.nav button:hover{background:var(--line-2);color:var(--fg)}
-.nav button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+.nav sl-button{width:100%}
+.nav sl-button::part(base){justify-content:flex-start;text-align:left;padding:9px 12px;border-radius:9px;color:var(--fg-2);font-size:13.5px}
+.nav sl-button:hover::part(base){background:var(--line-2);color:var(--fg)}
+.nav sl-button.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:600}
 /* 二级菜单：缩进 + 左侧竖线，读起来是"这页属于上面那页"，不是又一列平铺 */
 .nav-sub{display:flex;flex-direction:column;gap:2px;margin:1px 0 3px 14px;padding-left:8px;border-left:1px solid var(--line)}
-.nav-child{font-size:12.5px !important;padding:7px 10px !important;color:var(--muted) !important;border-radius:8px !important}
-.nav-child:hover{color:var(--fg) !important}
-.nav-child.on{color:var(--accent) !important;background:var(--accent-weak) !important}
+.nav sl-button.nav-child::part(base){font-size:12.5px;padding:7px 10px;color:var(--muted);border-radius:8px}
+.nav sl-button.nav-child:hover::part(base){color:var(--fg)}
+.nav sl-button.nav-child.on::part(base){color:var(--accent);background:var(--accent-weak)}
 .side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line-2)}
-.side-foot button{width:100%;justify-content:flex-start}
+.side-foot sl-button{width:100%}
+.side-foot sl-button::part(base){justify-content:flex-start}
 .main-col{flex:1;min-width:0;display:flex;flex-direction:column}
 .crumb{display:flex;align-items:center;gap:0;font-size:13px;color:var(--fg-2);min-width:0}
 .crumb button{background:transparent;border:0;padding:2px 0;border-radius:8px;color:var(--fg-2)}
@@ -130,8 +173,6 @@ main .crumb{margin-bottom:14px}
 .vsec{margin-bottom:16px}
 /* 手机端的页码指示，桌面版不需要 */
 .loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:80px 20px;color:var(--muted);font-size:13px}
-.spinner{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---- 项目卡片 ---- */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--pcard-gap);grid-auto-rows:1fr}
@@ -173,9 +214,9 @@ main .crumb{margin-bottom:14px}
   font-variant-numeric:tabular-nums;pointer-events:none}
 .deck[data-open="1"] .deck-pos{display:none}
 .deck-pos{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.deck-more{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;
+sl-button.deck-more::part(base){border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;
   padding:5px 13px;font-size:12.5px;line-height:1.4}
-.deck-more:hover{background:var(--line-2)}
+sl-button.deck-more:hover::part(base){background:var(--line-2)}
 .flow-map{display:flex;align-items:flex-start;gap:6px;overflow-x:auto;padding:2px}
 .flow-col{display:flex;flex-direction:column;gap:8px;min-width:118px;flex:1}
 .flow-node{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 9px;min-width:0}
@@ -190,8 +231,8 @@ main .crumb{margin-bottom:14px}
   linear-gradient(90deg,rgba(127,127,127,.05) 1px,transparent 1px) 0 0/22px 100%;}
 .graph-canvas{position:absolute;inset:0}
 .graph-zoom{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
-.graph-zoom button{width:26px;height:24px;padding:0;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--fg-2);font-size:13px;line-height:1}
-.graph-zoom button[data-graph="fit"]{width:auto;padding:0 8px;font-size:11.5px}
+.graph-zoom sl-button::part(base){width:26px;height:24px;padding:0;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--fg-2);font-size:13px;line-height:1}
+.graph-zoom sl-button[data-graph="fit"]::part(base){width:auto;padding:0 8px;font-size:11.5px}
 .dag-legend{font-size:11px;color:var(--muted);padding:6px 2px 0;line-height:1.6}
 .gate-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .gate-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
@@ -226,9 +267,9 @@ main .crumb{margin-bottom:14px}
 .pcard .chips{flex-wrap:nowrap;overflow:hidden;max-width:100%}
 .pcard .chip{white-space:nowrap}
 .pcard .acts{display:flex;gap:4px}
-.pcard .acts button{padding:3px 7px;font-size:11.5px;line-height:1.5;border-radius:7px;background:var(--card);border:1px solid var(--line);color:var(--fg-2)}
-.pcard .acts button:hover{border-color:var(--accent);color:var(--accent)}
-.pcard .acts button.danger:hover{border-color:var(--danger);color:var(--danger)}
+.pcard .acts sl-button::part(base){padding:3px 7px;font-size:11.5px;line-height:1.5;border-radius:7px;background:var(--card);border:1px solid var(--line);color:var(--fg-2)}
+.pcard .acts sl-button:hover::part(base){border-color:var(--accent);color:var(--accent)}
+.pcard .acts sl-button.danger:hover::part(base){border-color:var(--danger);color:var(--danger)}
 .pcard .ar{position:absolute;right:14px;bottom:14px;color:var(--muted);font-size:16px}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);padding:44px 20px;text-align:center;color:var(--muted)}
 .empty strong{display:block;color:var(--fg);font-size:15px;margin-bottom:6px;font-weight:600}
@@ -278,8 +319,8 @@ tbody tr:last-child td{border-bottom:0}
 .tbl-wrap{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 .tbl-wrap .tbl-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{border:0;border-radius:0;padding:5px 12px;font-size:12.5px;background:transparent}
-.seg button.on{background:var(--accent);color:#fff}
+.seg sl-button::part(base){border:0;border-radius:0;padding:5px 12px;font-size:12.5px;background:transparent}
+.seg sl-button.on::part(base){background:var(--accent);color:#fff}
 
 /* ---- 徽章 / 标签 ---- */
 .muted{color:var(--muted);font-size:12px}
@@ -318,10 +359,10 @@ td .chip{margin:0 4px 4px 0}
 /* ---- 按钮 ---- */
 button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:8px 14px;transition:background .15s,border-color .15s,opacity .15s}
 button:hover:not(:disabled){background:var(--line-2)}
-button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-button.primary:hover:not(:disabled){background:#2457e0}
-button.danger{color:var(--danger);border-color:rgba(245,63,63,.4)}
-button.danger:hover:not(:disabled){background:rgba(245,63,63,.08)}
+sl-button.primary::part(base){background:var(--accent);border-color:var(--accent);color:#fff}
+sl-button.primary:hover:not(:disabled)::part(base){background:#2457e0}
+sl-button.danger::part(base){background:var(--card);color:var(--danger);border-color:rgba(245,63,63,.4)}
+sl-button.danger:hover:not(:disabled)::part(base){background:rgba(245,63,63,.08)}
 button.ghost{background:transparent}
 button:disabled{opacity:.4;cursor:not-allowed}
 
@@ -335,16 +376,11 @@ textarea{min-height:72px;resize:vertical}
 .field{margin-bottom:10px}
 .field[data-drop]{border:1px dashed var(--line);border-radius:10px;padding:8px 10px}
 .field[data-drop].drag{border-color:var(--accent);background:rgba(47,107,255,.06)}
-.field[data-drop] textarea{border:0;min-height:84px}
+.field[data-drop] textarea,.field[data-drop] sl-textarea{border:0;min-height:84px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.modal{position:fixed;inset:0;background:rgba(16,24,40,.42);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
-.modal[hidden]{display:none}
-.modal-card{width:min(520px,100%);background:var(--card);border-radius:16px;box-shadow:0 12px 40px rgba(16,24,40,.22);padding:20px 22px}
-.modal-card h2{font-size:16px;margin:0 0 4px}
-.modal-card .hint{color:var(--muted);font-size:12.5px;margin:0 0 16px}
-.modal-err{display:none;margin:0 0 12px;padding:9px 11px;border-radius:10px;background:rgba(245,63,63,.08);color:var(--danger);font-size:12.5px}
-.modal-err.on{display:block}
-.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+/* 弹窗主体由 sl-dialog 渲染；这里只补表单与底部按钮布局 */
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+sl-dialog .hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
 
 /* ---- 会话视图 ---- */
 .ticket-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:stretch;height:calc(100vh - 150px)}
@@ -379,12 +415,13 @@ textarea{min-height:72px;resize:vertical}
 .chat-head-meta .badge{flex:none}
 /* 成员头像行：点击弹成员卡 */
 .members{display:flex;align-items:center;margin-left:auto;flex:none;padding-left:10px}
-.av-chip{position:relative;width:32px;height:32px;padding:0;margin-left:-8px;border-radius:12px;border:2px solid var(--card);background:var(--av);color:#fff;font-weight:600;font-size:12.5px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:transform .12s,box-shadow .12s}
-.av-chip:first-child{margin-left:0}
-.av-chip:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(16,24,40,.16)}
-.av-chip .dot{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;border:2px solid var(--card);background:var(--ok)}
-.av-chip.st-busy .dot{background:var(--accent)}
-.av-chip.st-offline .dot{background:var(--muted)}
+sl-button.av-chip{position:relative;width:32px;height:32px;margin-left:-8px;color:#fff;font-weight:600;font-size:12.5px;box-shadow:var(--shadow-sm);transition:transform .12s,box-shadow .12s}
+sl-button.av-chip::part(base){width:100%;height:100%;padding:0;border:2px solid var(--card);border-radius:12px;background:var(--av);display:flex;align-items:center;justify-content:center}
+sl-button.av-chip:first-child{margin-left:0}
+sl-button.av-chip:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(16,24,40,.16)}
+sl-button.av-chip .dot{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;border:2px solid var(--card);background:var(--ok)}
+sl-button.av-chip.st-busy .dot{background:var(--accent)}
+sl-button.av-chip.st-offline .dot{background:var(--muted)}
 .popover{position:fixed;z-index:60;width:min(330px,calc(100vw - 24px));background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(16,24,40,.22);padding:14px 16px;font-size:13px}
 .popover[hidden]{display:none}
 .popover h4{margin:0 0 3px;font-size:14px;display:flex;align-items:center;gap:8px}
@@ -512,14 +549,14 @@ textarea{min-height:72px;resize:vertical}
 .composer textarea{min-height:56px;max-height:140px;flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px 14px;resize:none;line-height:1.5}
 .composer textarea:focus{outline:none;border-color:var(--accent)}
 .composer-actions{display:flex;flex-direction:column;gap:6px;justify-content:flex-end;flex:none}
-.composer button{flex:none;border-radius:999px;padding:8px 14px}
-.composer .primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
-.composer .primary:hover{filter:brightness(1.06)}
-.composer button.voice{color:var(--accent);border-color:rgba(36,87,224,.4);background:var(--accent-weak)}
-.composer button.voice.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.composer sl-button::part(base){flex:none;border-radius:999px;padding:8px 14px}
+.composer sl-button.primary::part(base){background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.composer sl-button.primary:hover::part(base){filter:brightness(1.06)}
+.composer sl-button.voice::part(base){color:var(--accent);border-color:rgba(36,87,224,.4);background:var(--accent-weak)}
+.composer sl-button.voice.on::part(base){background:var(--danger);border-color:var(--danger);color:#fff}
 .composer-wrap{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
 .composer-wrap .composer{flex:1}
-.composer.off textarea,.composer.off button{opacity:.55;cursor:not-allowed}
+.composer.off textarea,.composer.off sl-button{opacity:.55;cursor:not-allowed}
 .composer-hint{width:100%;font-size:12px;color:var(--muted)}
 .composer-hint.busy{color:#8a5a00}
 .side-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
@@ -626,7 +663,7 @@ textarea{min-height:72px;resize:vertical}
   .deck[data-open="1"] .deck-stage{display:flex;flex-direction:column;gap:10px}
   /* 手机端不要阴影：层次用边框和底色区分，卡片堆叠也一样 */
   .pcard,.card,.tbl-wrap,.tree-node,.stat-strip,.side-card,.flow-card,.wf,
-  .vsec-fold>details,.chat-card,.composer,.popover,.modal-card{box-shadow:none}
+  .vsec-fold>details,.chat-card,.composer,.popover{box-shadow:none}
   /* 堆叠卡按层位写过更具体的阴影，得按同样的选择器压掉，否则叠起来仍是浮的 */
   .deck[data-open="0"] .deck-stage>.pcard[data-front="1"],
   .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]),
@@ -661,8 +698,6 @@ textarea{min-height:72px;resize:vertical}
   .composer{flex-wrap:wrap}
   .composer textarea{flex:1 1 100%;min-width:0}
   .composer button{flex:none}
-  .modal{padding:12px}
-  .modal-card{padding:16px}
   #banner{margin:0 14px}
 }
 
@@ -670,9 +705,10 @@ textarea{min-height:72px;resize:vertical}
 .role-board{display:flex;gap:8px;overflow-x:auto;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--line);scrollbar-width:none}
 .role-board::-webkit-scrollbar{display:none}
 .role-board .board-lab{flex:none;font-size:11.5px;color:var(--muted);letter-spacing:.02em;padding-right:2px}
-.role-mini{display:inline-flex;align-items:center;gap:6px;flex:none;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;color:var(--fg-2);cursor:pointer;max-width:100%}
-.role-mini:hover{border-color:var(--accent);background:var(--accent-weak)}
-.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
+sl-button.role-mini{flex:none;max-width:100%}
+sl-button.role-mini::part(base){display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;color:var(--fg-2);max-width:100%}
+sl-button.role-mini:hover::part(base){border-color:var(--accent);background:var(--accent-weak)}
+sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
 .rm-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
 .role-mini.st-busy .rm-dot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
 .role-mini.st-err .rm-dot{background:#f53f3f}
@@ -863,25 +899,27 @@ textarea{min-height:72px;resize:vertical}
     <div class="brand">
       <span class="logo" data-brand="logo"></span>
       <div><h1 data-brand="name"></h1><div class="sub" data-brand="tagline"></div></div>
-      <button class="icon-btn rail-btn" id="side-collapse" data-clk="rail_close" data-ctl="ctl.shell.rail_close" data-ctl-state="idle" data-ui-aria="collapse" data-ui-title="collapse">‹</button>
+      <sl-icon-button class="rail-btn" id="side-collapse" name="chevron-left" data-clk="rail_close" data-ctl="ctl.shell.rail_close" data-ctl-state="idle" data-ui-aria="collapse" data-ui-title="collapse"></sl-icon-button>
     </div>
     <!-- 导航项由后端菜单渲染：视图规格里的 menu 决定顺序与名称，页面不存清单 -->
     <nav class="nav" id="side-nav"></nav>
     <div class="side-foot">
-      <button id="logout" class="ghost" data-ui="logout" data-clk="logout" data-ctl="ctl.shell.logout" data-ctl-state="idle"></button>
+      <sl-button id="logout" variant="text" data-ui="logout" data-clk="logout" data-ctl="ctl.shell.logout" data-ctl-state="idle"></sl-button>
     </div>
   </aside>
   <div class="scrim" id="scrim" data-clk="drawer_scrim" data-ctl="ctl.shell.scrim" data-ctl-state="idle"></div>
   <div class="main-col">
     <header class="topbar">
-      <button class="icon-btn" id="menu-btn" data-clk="drawer_open" data-ctl="ctl.shell.menu" data-ctl-state="idle" data-ui-aria="menu">☰</button>
+      <sl-icon-button class="icon-btn" id="menu-btn" name="menu-button" data-clk="drawer_open" data-ctl="ctl.shell.menu" data-ctl-state="idle" data-ui-aria="menu"></sl-icon-button>
       <div class="brand-mini"><span class="logo" data-brand="logo"></span><h1 data-brand="name"></h1></div>
     </header>
-    <button class="icon-btn rail-open" id="rail-open" data-clk="rail_open" data-ctl="ctl.shell.rail_open" data-ctl-state="idle" data-ui-aria="expand" data-ui-title="expand">☰</button>
+    <sl-icon-button class="icon-btn rail-open" id="rail-open" name="menu-button" data-clk="rail_open" data-ctl="ctl.shell.rail_open" data-ctl-state="idle" data-ui-aria="expand" data-ui-title="expand"></sl-icon-button>
     <div id="banner"></div>
     <main>
       <div class="crumb" id="crumb"></div>
-      <div id="view-body"><div class="loading"><span class="spinner"></span><span data-ui="loading"></span></div></div>
+      <div id="view-body"><div class="loading"><sl-spinner></sl-spinner><span data-ui="loading"></span></div></div>
+      <!-- 运维页洞察挂点：内容由 ops-insight.js 填充，本页只留钩子 -->
+      <section id="ops-insight" hidden></section>
     </main>
   </div>
 </div>
@@ -893,24 +931,25 @@ textarea{min-height:72px;resize:vertical}
 
 <!-- 通用弹窗：三个控件的状态机在 console.yaml 里有名有姓，静态就盖 data-ctl，
      不等运行时兜底——弹窗骨架不进任何 stampCtl 覆盖区，漏盖就是永远裸奔 -->
-<div class="modal" id="modal" data-clk="modal_backdrop" data-ctl="ctl.modal_backdrop" data-ctl-state="idle" hidden>
-  <div class="modal-card">
-    <h2 id="modal-title"></h2>
-    <p class="hint" id="modal-hint"></p>
-    <div class="modal-err" id="modal-err"></div>
-    <form id="modal-form"></form>
-    <div class="modal-foot">
-      <button type="button" id="modal-cancel" data-clk="modal_cancel" data-ctl="ctl.modal_cancel" data-ctl-state="idle" data-ui="cancel"></button>
-      <button type="submit" form="modal-form" class="primary" id="modal-ok" data-clk="modal_ok" data-ctl="ctl.modal_ok" data-ctl-state="idle" data-ui="ok"></button>
-    </div>
+<sl-dialog id="modal" data-clk="modal_backdrop" data-ctl="ctl.modal_backdrop" data-ctl-state="idle" class="modal-dialog">
+  <p class="hint" id="modal-hint"></p>
+  <div class="modal-err" id="modal-err"></div>
+  <form id="modal-form"></form>
+  <div slot="footer" class="modal-foot">
+    <sl-button type="button" id="modal-cancel" data-clk="modal_cancel" data-ctl="ctl.modal_cancel" data-ctl-state="idle" data-ui="cancel"></sl-button>
+    <sl-button type="submit" variant="primary" id="modal-ok" data-clk="modal_ok" data-ctl="ctl.modal_ok" data-ctl-state="idle" data-ui="ok"></sl-button>
   </div>
-</div>
+</sl-dialog>
 
+<!-- Shoelace 组件包（离线 vendored，见 assets/shoelace/SHOELACE-LICENSE.md） -->
+<script type="module" src="assets/shoelace/shoelace.js"></script>
 <!-- 六个脚本由服务端按 web.bundle 清单合成一个响应：首屏只剩一次脚本往返 -->
 <script defer src="assets/dagre.min.js"></script>
 <script defer src="assets/cytoscape.min.js"></script>
 <script defer src="assets/cytoscape-dagre.js"></script>
 <script defer src="graph.js"></script>
 <script defer src="/console.js"></script>
+<!-- 运维页洞察：内容实现由并行任务交付，这里只挂入口 -->
+<script defer src="ops-insight.js"></script>
 </body>
 </html>

@@ -27,4 +27,4 @@ expect:
   - cloud.profile_switch
   - runtime.apply
   payload: {}
-  promise: 切换经 runtime.apply 落盘，项目角色调用被拒并留痕
+  promise: 切换经 runtime.apply 落盘，项目岗位调用被拒并留痕

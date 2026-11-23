@@ -48,8 +48,6 @@ do:
   with:
     id:
       lit: projects-list
-- call: demand_engine.list
-  as: demands
 - call: ops.assemble
   with:
     config:
@@ -70,8 +68,6 @@ do:
       get: tools
     docs:
       get: docs
-    demands:
-      get: demands
   as: overview
 expect:
   given:
@@ -84,7 +80,8 @@ expect:
   - demand_engine.run
   - demand_engine.run
   - demand_engine.run
-  - demand_engine.list
+  - demand_engine.run
+  - demand_engine.run
   - ops.assemble
   payload: {}
   promise: 总览的形状属于运维，取数属于编排；面板只读一次结果

@@ -35,6 +35,12 @@ GATES: list[tuple[str, str, Path, bool]] = [
      SCRIPTS / "gate_demand_tests.py", True),
     ("deadcode", "死代码：未引用函数/import/孤儿路由与工具",
      SCRIPTS / "gate_deadcode.py", False),
+    ("docsync", "代码-文档同步：源码哈希 / 符号 / 孤儿文档",
+     SCRIPTS / "gate_docsync.py", True),
+    ("copy", "界面文案：禁用句式 / 长度上限 / 术语一致 / 字段泄漏",
+     SCRIPTS / "gate_copy.py", True),
+    ("levels", "四级层级：能力 center/node 声明、互斥与证据真实",
+     SCRIPTS / "gate_levels.py", True),
 ]
 
 

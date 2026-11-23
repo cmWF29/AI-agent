@@ -1,11 +1,13 @@
 ---
 source: ai_new/modules/agent_common/archive/private/_engine.py
-hash: 8df55fcc907ee35e081b250d2b0d47dd7477894f0169e32d6146de5c02745d0e
+hash: 04fdcc38bb82073d0f105cc85ff77a8e63ccfabd740ac2ca3a3f764392c05c06
 symbols:
 - _cache_singleton
+- _metrics_singleton
 - _config
 - _modules_root
 - _dir_of
+- __init__
 - _checksum
 - scan
 - policy_is_skipped
@@ -24,6 +26,8 @@ symbols:
 - read_bytes
 - read_lines
 - stats
+- _messages
+- metrics
 - index_query
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:21'
@@ -46,6 +50,12 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_metrics_singleton`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_config`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -60,6 +70,12 @@ updated_at: '2026-11-23T04:10:21'
 
 ### `_dir_of`（function）
 - 职责: 模块数据目录：与 store 同一套镜像规则（AI_NEW_DATA 覆盖时按组/模块平铺）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__init__`（method）
+- 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -168,6 +184,18 @@ updated_at: '2026-11-23T04:10:21'
 
 ### `stats`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_messages`（function）
+- 职责: 模块文案台账：读不到就退化成空表，不阻断观测。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `metrics`（function）
+- 职责: 观测面汇总：压缩台账 + 解压时延分位 + 缓存命中，全部由真实样本 / 台账计算。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

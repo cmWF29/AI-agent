@@ -69,12 +69,18 @@ routes:
         type: string
         req: true
     out:
+      ok:
+        type: bool
       counts:
         type: any
       rows:
         type: list
       batches:
         type: list
+      code:
+        type: string
+      error:
+        type: string
   secretary.discard:
     in:
       project:
@@ -101,6 +107,12 @@ routes:
         type: string
         req: false
     out:
+      ok:
+        type: bool
+      code:
+        type: string
+      error:
+        type: string
       statuses:
         type: list
       transitions:

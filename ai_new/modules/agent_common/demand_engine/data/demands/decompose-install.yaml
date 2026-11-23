@@ -1,6 +1,6 @@
 id: decompose-install
 title: 拆解入库：Skill.md 包 → 模型拆成岗位/流程/工具 → 成功后登记为一个 Skill 单元
-description: "拆解入库：读入 Skill.md 包，经模型拆成岗位角色、引用工具、流程规则与新工具定义；产物有效才合并四库并落盘为一个 Skill 单元，拆解失败/空输入不写正式库。拆解闭环在 decompose.run 能力内，合并与落盘 effects 成形归 decompose.install，需求只编排调用与 apply"
+description: "拆解入库：读入 Skill.md 包，经模型拆成岗位岗位、引用工具、流程规则与新工具定义；交付件有效才合并四库并落盘为一个 Skill 单元，拆解失败/空输入不写正式库。拆解闭环在 decompose.run 能力内，合并与落盘 effects 成形归 decompose.install，需求只编排调用与 apply"
 tags:
 - tool
 - llm
@@ -70,4 +70,4 @@ expect:
   - decompose.install
   - runtime.apply
   payload: {}
-  promise: 拆解产物有效才登记为 Skill 单元；无效回空 effects 不落盘；记录映射与合并归模块，apply 落盘归需求
+  promise: 拆解交付件有效才登记为 Skill 单元；无效回空 effects 不落盘；记录映射与合并归模块，apply 落盘归需求

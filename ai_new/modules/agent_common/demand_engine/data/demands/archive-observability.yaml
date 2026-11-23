@@ -1,0 +1,23 @@
+id: archive-observability
+title: 存储可观测：压缩台账、解压时延与缓存命中经 archive.metrics 对外暴露
+description: "归档存储观测面：压缩率（总体与分类型）、已压缩量、节省空间、解压 P50/P95、LRU 命中率全部由真实台账与计时样本计算；样本不足显式标注，不估算。"
+tags: [archive, ops, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: archive.metrics
+  as: metrics
+expect:
+  given:
+    input: {}
+  calls:
+  - archive.metrics
+  payload: {}
+  promise: 存储指标来自真实台账与计时样本，控制台观测面可直接读取
+evidence:
+  test: test_archive
+  cases:
+  - test_metrics_reports_real_storage_and_cache_numbers
+  - test_insufficient_samples_when_below_threshold
+  - test_percentiles_present_after_enough_samples

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_nodes.py
-hash: dd7513954784ee1799e367135b40c3f7556b2dd07ec2dd575576a5231c09d796
+hash: 10dfdc4ffaaa131e66a2897f1463b30f187b03581e52e00cd998d5d5281723ad
 symbols:
 - _seed
 - test_register_records_node_alive
@@ -25,6 +25,11 @@ symbols:
 - test_pick_node_scores_alive_nodes_with_affinity
 - test_recovered_node_does_not_reclaim_held_lease
 - test_idem_key_stable_and_scoped
+- test_nodes_view_carries_lease_count_and_remaining
+- test_assignments_view_carries_remaining
+- test_backups_view_normalizes_time_and_state
+- test_status_view_composite_shape
+- test_status_route_registered
 - test_plan_rejects_traversal_and_absolute
 - test_verify_manifest_reports_missing_and_mismatch
 - test_backup_record_and_view
@@ -176,6 +181,36 @@ nodes 协调模块靶向单测：注册/心跳/租约/fencing/分配/快照台�
 - 关联需求/测试: 待人工补充
 
 ### `test_idem_key_stable_and_scoped`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_nodes_view_carries_lease_count_and_remaining`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_assignments_view_carries_remaining`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_backups_view_normalizes_time_and_state`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_view_composite_shape`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_route_registered`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

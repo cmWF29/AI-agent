@@ -7,9 +7,11 @@ routes:
   cloud.profile_save:
     in:
       id: {type: str, req: true}
+      company: {type: str, req: true}
       provider: {type: str, req: true}
       endpoint: {type: str, req: true}
       root_dir: {type: str, req: false}
+      credential_ref: {type: str, req: false}
       credentials: {type: dict, req: false}
       categories: {type: list, req: false}
       policy: {type: dict, req: false}

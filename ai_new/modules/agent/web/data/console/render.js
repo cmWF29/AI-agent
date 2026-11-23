@@ -65,16 +65,26 @@ function buttonHtml(act, ctx, opts) {
     || (act.disabled_when != null && condOf(act.disabled_when, ctx));
   const hint = act.disabled_hint || opts.hint || "";
   const title = disabled && hint ? ` title="${esc(hint)}"` : "";
+  // 危险动作沿用旧版描边样式：default 变体 + danger 类，不走实心 danger 底
+  const variant = act.tone === "primary" ? "primary" : "default";
   const cls = act.tone === "primary" ? "primary" : (act.tone === "danger" ? "danger" : "");
   // data-ctl 是这个按钮自己的状态机名：门禁脚本按它比对规格，浏览器按它读状态
   const st = disabled ? "disabled" : "idle";
-  return `<button class="${cls}" data-clk="${esc(kind)}" data-act="${id}" data-ctl="${esc(ctl)}" data-ctl-state="${st}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</button>`;
+  return `<sl-button variant="${variant}" size="small" class="${cls}" data-clk="${esc(kind)}" data-act="${id}" data-ctl="${esc(ctl)}" data-ctl-state="${st}" ${disabled ? "disabled" : ""}${title}>${esc(fill(act.label, ctx))}</sl-button>`;
+}
+function badgeTone(tone) {
+  if (tone === "success" || tone === "ok") return "success";
+  if (tone === "primary" || tone === "busy" || tone === "open") return "primary";
+  if (tone === "danger" || tone === "offline" || tone === "closed") return "danger";
+  if (tone === "warning" || tone === "warn" || tone === "archived") return "warning";
+  return "neutral";
 }
 function badgeHtml(value, ctx) {
   const s = String(value == null ? "" : value);
   const kind = statusKind(s);
+  const variant = kind === "offline" ? "success" : (kind === "busy" ? "primary" : "neutral");
   const cls = kind === "offline" ? "closed" : (kind === "busy" ? "open" : "");
-  return `<span class="badge ${cls}">${esc(s || uiText("badge_offline"))}</span>`;
+  return `<sl-badge variant="${variant}" class="badge ${cls}">${esc(s || uiText("badge_offline"))}</sl-badge>`;
 }
 /* 状态语义在 shell.status：哪些值算忙、哪些算下线、显示什么字，后端说了算 */
 function statusKind(s) {
@@ -101,7 +111,7 @@ function cardsHtml(sec, ctx) {
     const archived = sec.archived_when != null && condOf(sec.archived_when, c);
     const acts = (sec.actions || []).map((a) => buttonHtml(a, c, { clk: "card_act" })).join("");
     const badge = (sec.badge && condOf(sec.badge.when, c))
-      ? `<span class="badge archived">${esc(fill(sec.badge.text, c))}</span>` : "";
+      ? `<sl-badge variant="warning" class="badge archived">${esc(fill(sec.badge.text, c))}</sl-badge>` : "";
     const stat = sec.stat ? `<div class="stat"><b>${esc(fill(sec.stat.count, c))}</b> ${esc(fill(sec.stat.label, c))}<span class="muted">· ${esc(fill(sec.stat.note || "", c))}</span></div>` : "";
     const metaVal = (m) => {
       const v = fmtVal(m, c);
@@ -130,7 +140,7 @@ function cardsHtml(sec, ctx) {
   return `<div class="cards deck" data-deck="1" data-open="0" data-pos="0">
     <div class="deck-bar">
       <span class="deck-pos">${esc(uiText("deck_pos", 1, rows.length))}</span>
-      <button class="deck-more" data-clk="deck_toggle" data-deck-open="1">${esc(uiText("deck_expand", rows.length))}</button>
+      <sl-button class="deck-more" variant="default" size="small" data-clk="deck_toggle" data-deck-open="1">${esc(uiText("deck_expand", rows.length))}</sl-button>
     </div>
     <div class="deck-stage" data-clk="deck_swipe">${cards}</div>
   </div>`;
@@ -167,7 +177,7 @@ function tableHtml(sec, ctx) {
     ${truncated ? `<span class="muted">… ${esc(uiText("more_rows", truncated))}</span>` : ""}
     <div class="spacer" style="margin-left:auto"></div>
     ${filters.length ? `<span class="seg" id="seg">${filters.map((f) =>
-      `<button data-clk="filter" data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</button>`).join("")}</span>` : ""}
+      `<sl-button variant="${f.key === (sec._active || filters[0].key) ? "primary" : "default"}" size="small" data-clk="filter" data-filter="${esc(f.key)}" class="${f.key === (sec._active || filters[0].key) ? "on" : ""}">${esc(f.label)}</sl-button>`).join("")}</span>` : ""}
   </div>`;
   const cols = sec.columns || [];
   const rowActs = sec.actions || [];
@@ -572,11 +582,11 @@ function roleBoardHtml(roles, label) {
     const acts = (mc.active || []).filter((id) => id !== mc.stage)
       .map((id) => (states.find((s) => s.id === id) || {}).cn || id);
     const idx = arr(roles).indexOf(r);
-    return `<button class="role-mini st-${statusKind(r.status)}" data-clk="member_chip" data-member="${idx}" title="${esc((mc.flow || {}).cn || "")}">
+    return `<sl-button class="role-mini st-${statusKind(r.status)}" variant="default" size="small" data-clk="member_chip" data-member="${idx}" title="${esc((mc.flow || {}).cn || "")}">
       <i class="rm-dot"></i><b>${esc(r.display || r.role)}</b>
       <span class="rm-stage">${esc(cur.cn || "—")}</span>
       ${acts.length ? `<span class="rm-active">${esc(acts.join("/"))}</span>` : ""}
-    </button>`;
+    </sl-button>`;
   }).join("");
   // 标题由 YAML roles_label 传入；缺词表条目时退回 roles_label 词表键，前端不写中文常量
   const title = label || uiText("roles_label");
@@ -651,8 +661,8 @@ function chatHtml(sec, ctx) {
   const meta = (badge || metaBits.length)
     ? `<div class="chat-head-meta">${badge}${metaBits.map((x, i) => `<span>${i ? "<i>·</i>" : ""}${esc(x)}</span>`).join("")}</div>` : "";
   const headMain = (title || meta) ? `<div class="chat-head-main">${title}${meta}</div>` : "";
-  const chips = arr(roles).map((r, i) => `<button class="av-chip st-${statusKind(r.status)}" data-clk="member_chip" data-member="${i}"
-      style="--av:${avatarColor(r.display || r.role)}" title="${esc(r.display || r.role)} · ${statusText(r.status)}">${initial(r.display || r.role)}<i class="dot"></i></button>`).join("");
+  const chips = arr(roles).map((r, i) => `<sl-button class="av-chip st-${statusKind(r.status)}" variant="default" size="small" data-clk="member_chip" data-member="${i}"
+      style="--av:${avatarColor(r.display || r.role)}" title="${esc(r.display || r.role)} · ${statusText(r.status)}">${initial(r.display || r.role)}<i class="dot"></i></sl-button>`).join("");
   const draft = (ctx.data && ctx.data.draft) || {};
   const draftHtml = draftBubbleHtml(draft, roles);
   const summary = (src.summary || "").trim();
@@ -737,14 +747,14 @@ function treeNodeHtml(node, sec, ctx, path) {
   if (!count) {
     // 空层不装成可折叠的样子：不给假三角不给计数，但外观与折叠条同款一张卡——
     // 同一枚徽章、同一行高、同一个壳，视觉上是同一棵树里的同级条目
-    const badge = (node.badge && node.badge !== node.label) ? `<span class="badge">${esc(node.badge)}</span>` : "";
+    const badge = (node.badge && node.badge !== node.label) ? `<sl-badge variant="neutral" class="badge">${esc(node.badge)}</sl-badge>` : "";
     return `<div class="tree-node tree-node-blank">${badge}<span class="tree-node-label">${esc(node.label || "")}</span><span class="muted tree-node-empty">${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</span></div>`;
   }
   // 折叠是用户意图：键挂内容身份，重渲染/刷新按原状恢复；没动过按声明默认展开
   const stored = FOLDS.get(here);
   const openAttr = (stored === undefined ? !sec.collapsed : !!stored) ? " open" : "";
   return `<details class="tree-node"${foldAttr(here)}${openAttr}>
-    <summary data-clk="tree_group">${node.badge && node.badge !== node.label ? `<span class="badge">${esc(node.badge)}</span>` : ""}<span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
+    <summary data-clk="tree_group">${node.badge && node.badge !== node.label ? `<sl-badge variant="neutral" class="badge">${esc(node.badge)}</sl-badge>` : ""}<span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
     <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx, here)).join("")}</div>
   </details>`;
 }
@@ -962,9 +972,9 @@ function dagCard(row, sec, index, ctx) {
   if (!spec) return "";
   const backCount = spec.edges.filter((e) => e.back).length;
   const zoom = `<div class="graph-zoom">
-      <button data-clk="dag_zoom" data-dag="out" data-graph="out" aria-label="−">−</button>
-      <button data-clk="dag_zoom" data-dag="in" data-graph="in" aria-label="＋">＋</button>
-      <button data-clk="dag_zoom" data-dag="fit" data-graph="fit">${esc(uiText("dag_fit"))}</button>
+      <sl-button size="small" data-clk="dag_zoom" data-dag="out" data-graph="out" aria-label="−">−</sl-button>
+      <sl-button size="small" data-clk="dag_zoom" data-dag="in" data-graph="in" aria-label="＋">＋</sl-button>
+      <sl-button size="small" data-clk="dag_zoom" data-dag="fit" data-graph="fit">${esc(uiText("dag_fit"))}</sl-button>
       <span class="dag-pct" data-graph-pct="${index}">100%</span>
     </div>`;
   const title = row.cn || row.id || (sec.title ? fill(sec.title, ctx || {}) : "");
@@ -1050,14 +1060,14 @@ function composerHtml(sec, ctx) {
   const busyVal = sec.busy_from ? String(fill(sec.busy_from, ctx) || "") : "";
   const busy = !disabled && busyVal && busyVal === (sec.busy_when || "running");
   const voiceBtn = voice
-    ? `<button class="voice" data-clk="composer_voice" data-act="${voiceId}" data-ctl="${esc(ctlOf(voice, "composer_voice"))}" data-ctl-state="${st}"${gate} title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</button>`
+    ? `<sl-button class="voice" variant="text" size="small" data-clk="composer_voice" data-act="${voiceId}" data-ctl="${esc(ctlOf(voice, "composer_voice"))}" data-ctl-state="${st}"${gate} title="${esc(fill(voice.hint || "", ctx))}">${esc(fill(voice.label || uiText("voice"), ctx))}</sl-button>`
     : "";
   const submitCtl = String(submit.ctl || ctlOf(submit, "composer_send"));
   return `<div class="composer-wrap">
     <div class="composer${disabled ? " off" : ""}">
       <textarea placeholder="${esc(fill(sec.placeholder || "", ctx))}"${gate}></textarea>
       <div class="composer-actions">${acts}${voiceBtn}
-        <button class="primary" data-clk="composer_send" data-act="${submitId}" data-ctl="${esc(submitCtl)}" data-ctl-state="${st}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</button>
+        <sl-button class="primary" variant="primary" size="small" data-clk="composer_send" data-act="${submitId}" data-ctl="${esc(submitCtl)}" data-ctl-state="${st}"${gate}>${esc(fill(submit.label || uiText("send"), ctx))}</sl-button>
       </div>
     </div>
     ${hint ? `<div class="composer-hint">${esc(hint)}</div>` : ""}
@@ -1082,9 +1092,9 @@ function clickMachineHtml(sec, ctx) {
   const spec = { nodes, edges, direction: "TB" };
   const backCount = edges.filter((e) => e.back).length;
   const zoom = `<div class="graph-zoom">
-      <button data-clk="dag_zoom" data-dag="out" data-graph="out" aria-label="−">−</button>
-      <button data-clk="dag_zoom" data-dag="in" data-graph="in" aria-label="＋">＋</button>
-      <button data-clk="dag_zoom" data-dag="fit" data-graph="fit">${esc(uiText("dag_fit"))}</button>
+      <sl-button size="small" data-clk="dag_zoom" data-dag="out" data-graph="out" aria-label="−">−</sl-button>
+      <sl-button size="small" data-clk="dag_zoom" data-dag="in" data-graph="in" aria-label="＋">＋</sl-button>
+      <sl-button size="small" data-clk="dag_zoom" data-dag="fit" data-graph="fit">${esc(uiText("dag_fit"))}</sl-button>
       <span class="dag-pct" data-graph-pct>100%</span>
     </div>`;
   return `<div class="machine-wrap flow-card">
@@ -1301,7 +1311,7 @@ function expandFolds() {
 function headHtml(spec, ctx) {
   // 页头徽章：已归档/只读这类"整页的态"必须写在标题旁，而不是藏在某个区块里
   const badges = (spec.badges || []).filter((b) => b && condOf(b.when, ctx))
-    .map((b) => `<span class="badge ${esc(b.tone || "archived")}">${esc(fill(b.text || "", ctx))}</span>`).join("");
+    .map((b) => `<sl-badge variant="${badgeTone(b.tone || "archived")}" class="badge ${esc(b.tone || "archived")}">${esc(fill(b.text || "", ctx))}</sl-badge>`).join("");
   return `<div class="view-head">
       <div style="min-width:0"><h2>${esc(fill(spec.heading || spec.heading_from || "", ctx))}${badges}</h2>
       <div class="desc">${esc(fill(spec.subheading || "", ctx))}</div></div>
@@ -1321,25 +1331,42 @@ function mountGraphs() {
   });
 }
 
+/* 区块分栏：只按 lane 声明分组，不丢内容。
+   没有 lane 的区块归 single，按原序整行渲染在双列网格之上（以前这里被整段覆盖丢掉）。 */
+function groupSections(sections) {
+  const g = { single: [], left: [], right: [] };
+  (sections || []).forEach((sec, i) => {
+    const item = { sec: sec, i: i };
+    if (!sec) return;
+    if (sec.lane === "left") g.left.push(item);
+    else if (sec.lane === "right") g.right.push(item);
+    else g.single.push(item);
+  });
+  return g;
+}
+
+/* 分栏拼装：single 整行在前，再放 left/right 双列；单侧有内容时该列占满整行。 */
+function composeBody(rendered) {
+  const one = rendered.single.join("");
+  if (!rendered.left.length && !rendered.right.length) return one;
+  const twoSided = rendered.left.length && rendered.right.length;
+  const grid = `<div class="ticket-grid${twoSided ? "" : " solo"}">
+      <div class="lane lane-left">${rendered.left.join("")}</div>
+      ${twoSided ? `<div class="lane lane-right">${rendered.right.join("")}</div>` : ""}
+    </div>`;
+  return one + grid;
+}
+
 function renderView(spec, ctx) {
   ACTS = new Map();   // 每页一份绑定表：旧页面的表由保活实例自己留着
   const head = headHtml(spec, ctx);
-  const left = [], right = [], single = [];
-  (spec.sections || []).forEach((sec, i) => {
-    const html = sectionHtml(sec, ctx, i);
-    if (sec.lane === "left") left.push(html);
-    else if (sec.lane === "right") right.push(html);
-    else single.push(html);
-  })
-  let body = single.join("");
-  if (left.length || right.length) {
-    // 单侧有内容就占满整行：空的那一列不占位，避免留下大片空白
-    const twoSided = left.length && right.length;
-    body = `<div class="ticket-grid${twoSided ? "" : " solo"}">
-      <div class="lane lane-left">${left.join("")}</div>
-      ${twoSided ? `<div class="lane lane-right">${right.join("")}</div>` : ""}
-    </div>`;
-  }
+  const g = groupSections(spec.sections);
+  const rendered = {
+    single: g.single.map((it) => sectionHtml(it.sec, ctx, it.i)),
+    left: g.left.map((it) => sectionHtml(it.sec, ctx, it.i)),
+    right: g.right.map((it) => sectionHtml(it.sec, ctx, it.i)),
+  };
+  let body = composeBody(rendered);
   // 内容区单独包一层：桌面纵向排布，手机变成横滑吸附的卡片轨
   $("view-body").innerHTML = head + `<div class="view-scroll">${body}</div>`;
   pruneEmptyCards();

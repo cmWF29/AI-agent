@@ -19,4 +19,4 @@ expect:
   calls:
   - cloud.probe_roundtrip
   payload: {}
-  promise: 往返摘要一致才记 verified，探针用后即删；项目角色调用被拒
+  promise: 往返摘要一致才记 verified，探针用后即删；项目岗位调用被拒

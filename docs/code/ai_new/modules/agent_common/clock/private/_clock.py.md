@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/clock/private/_clock.py
-hash: 06dc546246cbd0bd4e4dbd03ce33bb239e6830327aea9fe06fdcff846846abe6
+hash: bfbf397f1dcb96b2b9b86d28a12cc4f289f03d1fe9d1cf954de8ccf980a3f6fc
 symbols:
 - now
 - iso
@@ -75,7 +75,7 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `_load_tz`（function）
-- 职责: 时区名 → ZoneInfo；解析不了返回 None。
+- 职责: 时区名 → tzinfo；解析不了返回 None。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

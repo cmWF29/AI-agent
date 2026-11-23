@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/position-tools.yaml
-hash: 7622e95d1520cab7eae45f2382b21dac29bc10275f450bce050efb10d2f12016
+hash: 750687e2b2904e13d813717d05ee200ac121dd83c10d9d002cd91e893936f42a
 symbols:
 - id
 - title

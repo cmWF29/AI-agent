@@ -29,9 +29,22 @@ def check(name, ok, detail=""):
         FAILS.append(name + (" · " + str(detail) if detail else ""))
 
 
+async def settle_view(pg, timeout=4000):
+    """等视图内容落盘：外壳脚本异步取数后才渲染卡片/会话/表格；
+    采样太早会拿到加载态或未置灰的控件。"""
+    try:
+        await pg.wait_for_selector(
+            "#view-body .pcard, #view-body .chat, #view-body .tbl-wrap, "
+            "#view-body .side-card, #view-body .empty, #view-body .vsec",
+            timeout=timeout)
+        await pg.wait_for_timeout(300)
+    except Exception:
+        await pg.wait_for_timeout(800)
+
+
 async def open_view(pg, q):
     await pg.goto(BASE + "/manage.html?" + q, wait_until="load")
-    await pg.wait_for_timeout(1800)
+    await settle_view(pg)
 
 
 async def main():
@@ -44,9 +57,30 @@ async def main():
 
         # 1. 控件状态机
         await open_view(pg, "view=projects")
-        bad = await pg.evaluate("""() => [...document.querySelectorAll('button[data-act]')]
+        bad = await pg.evaluate("""() => [...document.querySelectorAll('[data-act]')]
           .filter((e) => !e.dataset.ctl).map((e) => e.textContent.trim())""")
         check("每个动作按钮都有 data-ctl", not bad, bad)
+
+        # 1c. render 生成的卡片/头部动作必须是 sl-button，不回退原生 button
+        renderBtns = await pg.evaluate("""() => ({
+          sl: document.querySelectorAll('.acts sl-button, .chat-head-actions sl-button, .view-head sl-button').length,
+          native: document.querySelectorAll('.acts button, .chat-head-actions button, .view-head button').length
+        })""")
+        check("render 卡片/头部动作是 sl-button", renderBtns["sl"] > 0 and renderBtns["native"] == 0, renderBtns)
+
+        # 1b. Shoelace 组件真的接入：外壳按钮/图标按钮/弹窗/加载器都在
+        sl = await pg.evaluate("""() => ({
+          buttons: document.querySelectorAll('sl-button,sl-icon-button').length,
+          dialog: !!document.querySelector('sl-dialog'),
+          spinner: !!customElements.get('sl-spinner')
+        })""")
+        check("页面接入 Shoelace 按钮/弹窗/加载组件", sl["buttons"] > 0 and sl["dialog"] and sl["spinner"], sl)
+        dlg = await pg.evaluate("""() => {
+          const d = document.querySelector('#modal');
+          return d ? {tag: d.tagName, show: typeof d.show, hide: typeof d.hide} : null;
+        }""")
+        check("通用弹窗为 sl-dialog 且带 show/hide",
+              bool(dlg) and dlg["tag"] == "SL-DIALOG" and dlg["show"] == "function" and dlg["hide"] == "function", dlg)
 
         # 2. 归档项目独立堆叠区
         sec = await pg.evaluate("""() => {
@@ -54,7 +88,7 @@ async def main():
           if(!hs.length) return null;
           const cards=[...hs[0].querySelectorAll('.pcard')];
           return {n: cards.length,
-                  acts: cards.map(c=>[...c.querySelectorAll('.acts button')].map(b=>b.textContent.trim()))};
+                  acts: cards.map(c=>[...c.querySelectorAll('.acts sl-button')].map(b=>b.textContent.trim()))};
         }""")
         if sec:
             only_del = all(a == ["删除"] for a in sec["acts"])
@@ -71,10 +105,11 @@ async def main():
               if (!card) return false; card.click(); return true; }""")
             if has_card:
                 await pg.wait_for_timeout(1800)
+                await settle_view(pg)
                 info = await pg.evaluate("""() => ({badge: /已归档·只读/.test(document.querySelector('#view-body').innerText),
-                  rename: (()=>{const b=[...document.querySelectorAll('#view-body .view-head button')].find(x=>/重命名/.test(x.textContent)); return b?b.disabled:null;})(),
-                  create: (()=>{const b=[...document.querySelectorAll('#view-body .view-head button')].find(x=>/新建工单/.test(x.textContent)); return b?b.disabled:null;})()})""")
-                check("归档项目详情带只读徽章", info["badge"])
+                  rename: (()=>{const b=[...document.querySelectorAll('#view-body .view-head sl-button')].find(x=>/重命名/.test(x.textContent)); return b?b.disabled:null;})(),
+                  create: (()=>{const b=[...document.querySelectorAll('#view-body .view-head sl-button')].find(x=>/新建工单/.test(x.textContent)); return b?b.disabled:null;})()})""")
+                check("归档项目详情带只读徽章", info["badge"], info)
                 check("归档项目：重命名 disabled", info["rename"] is True, info["rename"])
                 check("归档项目：新建工单 disabled", info["create"] is True, info["create"])
 
@@ -150,7 +185,7 @@ async def main():
         check("岗位流程渲染成 DAG", dag["n"] > 0 and dag["e"] > 0, dag)
         check("DAG 有回边（不是纯顺序）", dag["b"] > 0, dag)
         if dag["n"]:
-            await pg.click('.flow-card .graph-zoom button[data-dag="in"]')
+            await pg.click('.flow-card .graph-zoom sl-button[data-dag="in"]')
             pct = await pg.evaluate("() => document.querySelector('.dag-pct').textContent")
             check("DAG 缩放生效", pct.strip() != "100%", pct)
 

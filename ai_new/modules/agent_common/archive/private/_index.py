@@ -105,3 +105,41 @@ def stats(index):
         "compression_ratio": round(ratio, 4),
         "by_category": by_category,
     }
+
+
+def _ratio(comp: int, orig: int) -> float:
+    return round(comp / orig, 4) if orig else 0.0
+
+
+def archived_summary(index):
+    """已压缩条目台账汇总：只统计 ``archived``，raw 候选不计入压缩量。
+
+    返回总体与分类别的条数 / 字节 / 节省空间 / 压缩率（压缩后 ÷ 原始）。
+    """
+    by_category: dict = {}
+    orig_total = comp_total = 0
+    archived = [r for r in all_records(index) if r.get("status") == "archived"]
+    for rec in archived:
+        cat = rec.get("category") or "unknown"
+        orig = int(rec.get("orig_size") or 0)
+        comp = int(rec.get("comp_size") or 0)
+        bucket = by_category.setdefault(cat, {"count": 0, "orig_bytes": 0,
+                                             "comp_bytes": 0, "saved_bytes": 0,
+                                             "compression_ratio": 0.0})
+        bucket["count"] += 1
+        bucket["orig_bytes"] += orig
+        bucket["comp_bytes"] += comp
+        bucket["saved_bytes"] += orig - comp
+        bucket["compression_ratio"] = _ratio(bucket["comp_bytes"], bucket["orig_bytes"])
+        orig_total += orig
+        comp_total += comp
+    saved = orig_total - comp_total
+    return {
+        "count": len(archived),
+        "orig_bytes": orig_total,
+        "comp_bytes": comp_total,
+        "saved_bytes": saved,
+        "compression_ratio": _ratio(comp_total, orig_total),
+        "saved_ratio": _ratio(saved, orig_total),
+        "by_category": by_category,
+    }

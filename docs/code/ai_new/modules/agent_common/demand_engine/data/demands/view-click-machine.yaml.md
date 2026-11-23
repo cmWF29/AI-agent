@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-click-machine.yaml
-hash: 14ff734acd49d98ebdeae7aa647fec82b575cba0db38e3f9358b8154a7a602b3
+hash: 32d5ade5b6a8778b921bdcce6f3f374863adbdc595fe9993e6c10c700a6be033
 symbols:
 - id
 - title

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/api/data/platform-routes.yaml
-hash: 0248d7ff2d8ba0fd5554d723dd9b2a4044ca108bd31a2b24cb688446a4221859
+hash: 2af6aa792b511b2eaf06b750c9681d0db2a1165d8cf1a83781413ce44d07a48b
 symbols:
 - comment
 - routes

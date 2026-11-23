@@ -1,5 +1,5 @@
 id: view-skill-decompose
-title: 技能拆解视图：拆解任务阶段、登记产物引用、环境依赖检查与审计许可证留痕
+title: 技能拆解视图：拆解任务阶段、登记交付件引用、环境依赖检查与审计许可证留痕
 description: "技能拆解页：看每个外部 Skill 包拆出了哪些岗位 / 工具 / 流程、是否可被项目引用、环境与缺失依赖检查结果，以及来源 / 许可证 / 版本审计条目。视图只声明区块，取数走 decompose-index 需求。"
 tags:
 - view
@@ -49,8 +49,8 @@ view:
   - kind: stack
     as: index
     source: index.tasks
-    heading: 登记产物与引用
-    count_note: "拆出的岗位 / 工具 / 流程及其引用；已登记产物可被项目岗位清单引用并启停"
+    heading: 登记交付件与引用
+    count_note: "拆出的岗位 / 工具 / 流程及其引用；已登记交付件可被项目岗位清单引用并启停"
     item:
       title: row.id
       sub: "row.products.role"
@@ -59,7 +59,7 @@ view:
     - {label: 拆出岗位, value: row.products.role}
     - {label: 拆出工具, value: row.products.tools, chips: true}
     - {label: 对应流程, value: row.products.flow, fallback: "—"}
-    empty: {text: 暂无登记产物}
+    empty: {text: 暂无登记交付件}
   - kind: kv
     as: index
     source: index.summary
@@ -80,4 +80,4 @@ expect:
     input: {}
   calls: []
   payload: {}
-  promise: 拆解页只声明概览统计、任务表、产物引用、环境依赖汇总与审计树；数据源走 decompose-index
+  promise: 拆解页只声明概览统计、任务表、交付件引用、环境依赖汇总与审计树；数据源走 decompose-index

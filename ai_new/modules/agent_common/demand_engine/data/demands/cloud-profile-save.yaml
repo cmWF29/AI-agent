@@ -41,4 +41,4 @@ expect:
   - cloud.profile_save
   - runtime.apply
   payload: {}
-  promise: 配置落盘与审计均经 runtime.apply 编排，项目角色调用被拒并留痕
+  promise: 配置落盘与审计均经 runtime.apply 编排，项目岗位调用被拒并留痕

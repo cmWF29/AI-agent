@@ -1,10 +1,10 @@
 {
  "sig": {
-  "sha": "2c68e2f30d2a00c1",
+  "sha": "38dc11baac3ac991",
   "files": 29
  },
  "stats": {
-  "instances": 1135,
+  "instances": 1137,
   "pages": 18,
   "kinds": 17
  },
@@ -15,7 +15,7 @@
   },
   {
    "view": "arch",
-   "count": 300
+   "count": 302
   },
   {
    "view": "click-machine",
@@ -87,7 +87,7 @@
    "view": "arch",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -107,7 +107,7 @@
    "view": "arch",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -127,7 +127,7 @@
    "view": "arch",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -147,7 +147,7 @@
    "view": "arch",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -167,7 +167,7 @@
    "view": "arch",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -187,7 +187,7 @@
    "view": "arch",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -207,7 +207,7 @@
    "view": "arch",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -227,7 +227,7 @@
    "view": "arch",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -247,7 +247,7 @@
    "view": "arch",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -267,7 +267,7 @@
    "view": "arch",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -287,7 +287,7 @@
    "view": "arch",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -307,7 +307,7 @@
    "view": "arch",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -327,7 +327,7 @@
    "view": "arch",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -347,7 +347,7 @@
    "view": "arch",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -367,7 +367,7 @@
    "view": "arch",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -387,7 +387,7 @@
    "view": "arch",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -407,7 +407,7 @@
    "view": "arch",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -427,7 +427,7 @@
    "view": "arch",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -467,8 +467,8 @@
    "view": "arch",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -528,7 +528,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "需求清单（声明 vs 编译）偏差 =",
+   "label": "需求清单（声明 vs 编译）声明的预",
    "states": [
     "idle",
     "done"
@@ -575,7 +575,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "api-snapshot通信通道与消",
+   "label": "api-snapshot通信通道现状",
    "states": [
     "idle",
     "busy",
@@ -603,6 +603,60 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "archive-gc存储治理：扫描冷",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "archive-observabil",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "archive-transparen",
    "states": [
     "idle",
     "busy",
@@ -1548,60 +1602,6 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "decompose-register",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "demands-list需求清单：一",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "demands-manifest需求",
    "states": [
     "idle",
     "busy",
@@ -3434,7 +3434,7 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "可调ticket-roles工单角色",
+   "label": "可调ticket-roles工单岗位",
    "states": [
     "idle",
     "done"
@@ -5074,6 +5074,86 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
+   "label": "3归档存储archive",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调archive-gc存储治理：扫",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调archive-observab",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调archive-transpar",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
    "label": "3基础core",
    "states": [
     "idle",
@@ -5474,46 +5554,6 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "1归档存储archive",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调archive-gc存储治理：扫",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
    "label": "1语音识别asr",
    "states": [
     "idle",
@@ -5674,7 +5714,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "路由与契约（全部 · 323 条）在",
+   "label": "路由与契约（全部 · 327 条）在",
    "states": [
     "idle",
     "done"
@@ -5749,6 +5789,33 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "archive.index_quer",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "archive.metricsarc",
    "states": [
     "idle",
     "busy",
@@ -6743,37 +6810,10 @@
    "effect": "本页刷新"
   },
   {
-   "view": "arch",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "clock.sinceclockfa",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
    "view": "artifacts",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -6793,7 +6833,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -6813,7 +6853,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -6833,7 +6873,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -6853,7 +6893,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -6873,7 +6913,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -6893,7 +6933,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -6913,7 +6953,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -6933,7 +6973,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -6953,7 +6993,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -6973,7 +7013,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -6993,7 +7033,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -7013,7 +7053,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -7033,7 +7073,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -7053,7 +7093,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -7073,7 +7113,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -7093,7 +7133,7 @@
    "view": "artifacts",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -7113,7 +7153,7 @@
    "view": "artifacts",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -7153,8 +7193,8 @@
    "view": "artifacts",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -7453,7 +7493,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -7473,7 +7513,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -7493,7 +7533,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -7513,7 +7553,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -7533,7 +7573,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -7553,7 +7593,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -7573,7 +7613,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -7593,7 +7633,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -7613,7 +7653,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -7633,7 +7673,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -7653,7 +7693,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -7673,7 +7713,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -7693,7 +7733,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -7713,7 +7753,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -7733,7 +7773,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -7753,7 +7793,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -7773,7 +7813,7 @@
    "view": "click-machine",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -7793,7 +7833,7 @@
    "view": "click-machine",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -7833,8 +7873,8 @@
    "view": "click-machine",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -7934,7 +7974,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "需求契约24",
+   "label": "需求契约1",
    "states": [
     "idle",
     "done"
@@ -7954,7 +7994,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "文档22",
+   "label": "文档1",
    "states": [
     "idle",
     "done"
@@ -7974,7 +8014,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "点击状态机24",
+   "label": "点击状态机1",
    "states": [
     "idle",
     "done"
@@ -7994,7 +8034,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "云端资料库21",
+   "label": "云端资料库1",
    "states": [
     "idle",
     "done"
@@ -8014,7 +8054,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "知识库3",
+   "label": "知识库1",
    "states": [
     "idle",
     "done"
@@ -8034,7 +8074,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "日志22",
+   "label": "日志1",
    "states": [
     "idle",
     "done"
@@ -8054,7 +8094,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "节点21",
+   "label": "节点1",
    "states": [
     "idle",
     "done"
@@ -8074,7 +8114,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "运维3",
+   "label": "运维1",
    "states": [
     "idle",
     "done"
@@ -8094,7 +8134,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "岗位详情23",
+   "label": "岗位详情1",
    "states": [
     "idle",
     "done"
@@ -8114,7 +8154,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "岗位24",
+   "label": "岗位1",
    "states": [
     "idle",
     "done"
@@ -8134,7 +8174,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "项目3",
+   "label": "项目1",
    "states": [
     "idle",
     "done"
@@ -8154,7 +8194,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "项目秘书21",
+   "label": "项目秘书1",
    "states": [
     "idle",
     "done"
@@ -8174,7 +8214,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "技能拆解21",
+   "label": "技能拆解1",
    "states": [
     "idle",
     "done"
@@ -8194,7 +8234,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "技能22",
+   "label": "技能1",
    "states": [
     "idle",
     "done"
@@ -8214,7 +8254,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "定时器21",
+   "label": "定时器1",
    "states": [
     "idle",
     "done"
@@ -8234,7 +8274,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "工具23",
+   "label": "工具1",
    "states": [
     "idle",
     "done"
@@ -8254,7 +8294,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "链路24",
+   "label": "链路1",
    "states": [
     "idle",
     "done"
@@ -8274,7 +8314,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "用户22",
+   "label": "用户1",
    "states": [
     "idle",
     "done"
@@ -8334,7 +8374,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "traces317",
+   "label": "arch1",
    "states": [
     "idle",
     "busy",
@@ -8361,7 +8401,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch300",
+   "label": "artifacts1",
    "states": [
     "idle",
     "busy",
@@ -8388,7 +8428,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine111",
+   "label": "click-machine1",
    "states": [
     "idle",
     "busy",
@@ -8415,7 +8455,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "tools41",
+   "label": "cloud1",
    "states": [
     "idle",
     "busy",
@@ -8442,7 +8482,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "position39",
+   "label": "knowledge1",
    "states": [
     "idle",
     "busy",
@@ -8469,7 +8509,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "artifacts34",
+   "label": "logs1",
    "states": [
     "idle",
     "busy",
@@ -8496,7 +8536,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "positions34",
+   "label": "nodes1",
    "states": [
     "idle",
     "busy",
@@ -8523,7 +8563,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "logs23",
+   "label": "ops1",
    "states": [
     "idle",
     "busy",
@@ -8550,7 +8590,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skills22",
+   "label": "positions1",
    "states": [
     "idle",
     "busy",
@@ -8577,7 +8617,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "user22",
+   "label": "projects1",
    "states": [
     "idle",
     "busy",
@@ -8604,7 +8644,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "cloud21",
+   "label": "secretary1",
    "states": [
     "idle",
     "busy",
@@ -8631,7 +8671,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "nodes21",
+   "label": "skill-decompose1",
    "states": [
     "idle",
     "busy",
@@ -8658,7 +8698,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "secretary21",
+   "label": "skills1",
    "states": [
     "idle",
     "busy",
@@ -8685,7 +8725,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skill-decompose21",
+   "label": "timers1",
    "states": [
     "idle",
     "busy",
@@ -8712,7 +8752,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "timers21",
+   "label": "tools1",
    "states": [
     "idle",
     "busy",
@@ -8739,7 +8779,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "knowledge3",
+   "label": "traces1",
    "states": [
     "idle",
     "busy",
@@ -8766,7 +8806,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "ops3",
+   "label": "user1",
    "states": [
     "idle",
     "busy",
@@ -8793,7 +8833,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "projects3",
+   "label": "position1",
    "states": [
     "idle",
     "busy",
@@ -9912,7 +9952,7 @@
    "view": "click-machine",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "−",
    "states": [
     "idle",
@@ -9932,7 +9972,7 @@
    "view": "click-machine",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "＋",
    "states": [
     "idle",
@@ -9952,7 +9992,7 @@
    "view": "click-machine",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "适应",
    "states": [
     "idle",
@@ -10012,7 +10052,7 @@
    "view": "click-machine",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "−",
    "states": [
     "idle",
@@ -10032,7 +10072,7 @@
    "view": "click-machine",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "＋",
    "states": [
     "idle",
@@ -10052,7 +10092,7 @@
    "view": "click-machine",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "适应",
    "states": [
     "idle",
@@ -10072,7 +10112,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -10092,7 +10132,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -10112,7 +10152,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -10132,7 +10172,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -10152,7 +10192,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -10172,7 +10212,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -10192,7 +10232,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -10212,7 +10252,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -10232,7 +10272,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -10252,7 +10292,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -10272,7 +10312,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -10292,7 +10332,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -10312,7 +10352,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -10332,7 +10372,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -10352,7 +10392,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -10372,7 +10412,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -10392,7 +10432,7 @@
    "view": "cloud",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -10412,7 +10452,7 @@
    "view": "cloud",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -10452,8 +10492,8 @@
    "view": "cloud",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -10492,7 +10532,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -10512,7 +10552,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -10532,7 +10572,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -10552,7 +10592,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -10572,7 +10612,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -10592,7 +10632,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -10612,7 +10652,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -10632,7 +10672,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -10652,7 +10692,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -10672,7 +10712,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -10692,7 +10732,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -10712,7 +10752,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -10732,7 +10772,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -10752,7 +10792,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -10772,7 +10812,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -10792,7 +10832,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -10812,7 +10852,7 @@
    "view": "knowledge",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -10832,7 +10872,7 @@
    "view": "knowledge",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -10872,8 +10912,8 @@
    "view": "knowledge",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -11113,7 +11153,7 @@
    "view": "logs",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -11133,7 +11173,7 @@
    "view": "logs",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -11153,7 +11193,7 @@
    "view": "logs",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -11173,7 +11213,7 @@
    "view": "logs",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -11193,7 +11233,7 @@
    "view": "logs",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -11213,7 +11253,7 @@
    "view": "logs",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -11233,7 +11273,7 @@
    "view": "logs",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -11253,7 +11293,7 @@
    "view": "logs",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -11273,7 +11313,7 @@
    "view": "logs",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -11293,7 +11333,7 @@
    "view": "logs",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -11313,7 +11353,7 @@
    "view": "logs",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -11333,7 +11373,7 @@
    "view": "logs",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -11353,7 +11393,7 @@
    "view": "logs",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -11373,7 +11413,7 @@
    "view": "logs",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -11393,7 +11433,7 @@
    "view": "logs",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -11413,7 +11453,7 @@
    "view": "logs",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -11433,7 +11473,7 @@
    "view": "logs",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -11453,7 +11493,7 @@
    "view": "logs",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -11493,8 +11533,8 @@
    "view": "logs",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -11573,7 +11613,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -11593,7 +11633,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -11613,7 +11653,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -11633,7 +11673,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -11653,7 +11693,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -11673,7 +11713,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -11693,7 +11733,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -11713,7 +11753,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -11733,7 +11773,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -11753,7 +11793,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -11773,7 +11813,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -11793,7 +11833,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -11813,7 +11853,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -11833,7 +11873,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -11853,7 +11893,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -11873,7 +11913,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -11893,7 +11933,7 @@
    "view": "nodes",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -11913,7 +11953,7 @@
    "view": "nodes",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -11953,8 +11993,8 @@
    "view": "nodes",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -11993,7 +12033,7 @@
    "view": "ops",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "",
    "states": [
     "idle",
@@ -12033,8 +12073,8 @@
    "view": "ops",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -12053,7 +12093,7 @@
    "view": "positions",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -12073,7 +12113,7 @@
    "view": "positions",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -12093,7 +12133,7 @@
    "view": "positions",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -12113,7 +12153,7 @@
    "view": "positions",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -12133,7 +12173,7 @@
    "view": "positions",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -12153,7 +12193,7 @@
    "view": "positions",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -12173,7 +12213,7 @@
    "view": "positions",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -12193,7 +12233,7 @@
    "view": "positions",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -12213,7 +12253,7 @@
    "view": "positions",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -12233,7 +12273,7 @@
    "view": "positions",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -12253,7 +12293,7 @@
    "view": "positions",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -12273,7 +12313,7 @@
    "view": "positions",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -12293,7 +12333,7 @@
    "view": "positions",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -12313,7 +12353,7 @@
    "view": "positions",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -12333,7 +12373,7 @@
    "view": "positions",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -12353,7 +12393,7 @@
    "view": "positions",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -12373,7 +12413,7 @@
    "view": "positions",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -12393,7 +12433,7 @@
    "view": "positions",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -12433,8 +12473,8 @@
    "view": "positions",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -12473,7 +12513,7 @@
    "view": "positions",
    "ctl": "ctl.deck_toggle",
    "kind": "deck_toggle",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "铺开 11 张",
    "states": [
     "idle",
@@ -12810,7 +12850,7 @@
    "view": "projects",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -12830,7 +12870,7 @@
    "view": "projects",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -12850,7 +12890,7 @@
    "view": "projects",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -12870,7 +12910,7 @@
    "view": "projects",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -12890,7 +12930,7 @@
    "view": "projects",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -12910,7 +12950,7 @@
    "view": "projects",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -12930,7 +12970,7 @@
    "view": "projects",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -12950,7 +12990,7 @@
    "view": "projects",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -12970,7 +13010,7 @@
    "view": "projects",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -12990,7 +13030,7 @@
    "view": "projects",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -13010,7 +13050,7 @@
    "view": "projects",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -13030,7 +13070,7 @@
    "view": "projects",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -13050,7 +13090,7 @@
    "view": "projects",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -13070,7 +13110,7 @@
    "view": "projects",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -13090,7 +13130,7 @@
    "view": "projects",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -13110,7 +13150,7 @@
    "view": "projects",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -13130,7 +13170,7 @@
    "view": "projects",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -13150,7 +13190,7 @@
    "view": "projects",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -13190,8 +13230,8 @@
    "view": "projects",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -13230,7 +13270,7 @@
    "view": "projects",
    "ctl": "ctl.head_act.新建项目",
    "kind": "head_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "＋ 新建项目",
    "states": [
     "idle",
@@ -13257,7 +13297,7 @@
    "view": "projects",
    "ctl": "ctl.deck_toggle",
    "kind": "deck_toggle",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "铺开 3 张",
    "states": [
     "idle",
@@ -13324,7 +13364,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.改名",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "改名",
    "states": [
     "idle",
@@ -13351,7 +13391,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.归档",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "归档",
    "states": [
     "idle",
@@ -13378,7 +13418,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13432,7 +13472,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.改名",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "改名",
    "states": [
     "idle",
@@ -13459,7 +13499,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.归档",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "归档",
    "states": [
     "idle",
@@ -13486,7 +13526,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13540,7 +13580,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.改名",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "改名",
    "states": [
     "idle",
@@ -13567,7 +13607,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.归档",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "归档",
    "states": [
     "idle",
@@ -13594,7 +13634,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13621,7 +13661,7 @@
    "view": "projects",
    "ctl": "ctl.deck_toggle",
    "kind": "deck_toggle",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "铺开 8 张",
    "states": [
     "idle",
@@ -13688,7 +13728,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13742,7 +13782,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13796,7 +13836,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13850,7 +13890,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13904,7 +13944,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -13958,7 +13998,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -14012,7 +14052,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -14066,7 +14106,7 @@
    "view": "projects",
    "ctl": "ctl.card_act.删除",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "删除",
    "states": [
     "idle",
@@ -14093,7 +14133,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -14113,7 +14153,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -14133,7 +14173,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -14153,7 +14193,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -14173,7 +14213,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -14193,7 +14233,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -14213,7 +14253,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -14233,7 +14273,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -14253,7 +14293,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -14273,7 +14313,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -14293,7 +14333,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -14313,7 +14353,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -14333,7 +14373,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -14353,7 +14393,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -14373,7 +14413,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -14393,7 +14433,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -14413,7 +14453,7 @@
    "view": "secretary",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -14433,7 +14473,7 @@
    "view": "secretary",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -14473,8 +14513,8 @@
    "view": "secretary",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -14513,7 +14553,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -14533,7 +14573,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -14553,7 +14593,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -14573,7 +14613,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -14593,7 +14633,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -14613,7 +14653,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -14633,7 +14673,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -14653,7 +14693,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -14673,7 +14713,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -14693,7 +14733,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -14713,7 +14753,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -14733,7 +14773,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -14753,7 +14793,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -14773,7 +14813,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -14793,7 +14833,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -14813,7 +14853,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -14833,7 +14873,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -14853,7 +14893,7 @@
    "view": "skill-decompose",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -14893,8 +14933,8 @@
    "view": "skill-decompose",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -14933,7 +14973,7 @@
    "view": "skills",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -14953,7 +14993,7 @@
    "view": "skills",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -14973,7 +15013,7 @@
    "view": "skills",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -14993,7 +15033,7 @@
    "view": "skills",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -15013,7 +15053,7 @@
    "view": "skills",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -15033,7 +15073,7 @@
    "view": "skills",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -15053,7 +15093,7 @@
    "view": "skills",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -15073,7 +15113,7 @@
    "view": "skills",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -15093,7 +15133,7 @@
    "view": "skills",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -15113,7 +15153,7 @@
    "view": "skills",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -15133,7 +15173,7 @@
    "view": "skills",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -15153,7 +15193,7 @@
    "view": "skills",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -15173,7 +15213,7 @@
    "view": "skills",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -15193,7 +15233,7 @@
    "view": "skills",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -15213,7 +15253,7 @@
    "view": "skills",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -15233,7 +15273,7 @@
    "view": "skills",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -15253,7 +15293,7 @@
    "view": "skills",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -15273,7 +15313,7 @@
    "view": "skills",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -15313,8 +15353,8 @@
    "view": "skills",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -15353,7 +15393,7 @@
    "view": "skills",
    "ctl": "ctl.head_act.新建拆解",
    "kind": "head_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "＋ 新建拆解",
    "states": [
     "idle",
@@ -15380,7 +15420,7 @@
    "view": "timers",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -15400,7 +15440,7 @@
    "view": "timers",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -15420,7 +15460,7 @@
    "view": "timers",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -15440,7 +15480,7 @@
    "view": "timers",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -15460,7 +15500,7 @@
    "view": "timers",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -15480,7 +15520,7 @@
    "view": "timers",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -15500,7 +15540,7 @@
    "view": "timers",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -15520,7 +15560,7 @@
    "view": "timers",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -15540,7 +15580,7 @@
    "view": "timers",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -15560,7 +15600,7 @@
    "view": "timers",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -15580,7 +15620,7 @@
    "view": "timers",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -15600,7 +15640,7 @@
    "view": "timers",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -15620,7 +15660,7 @@
    "view": "timers",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -15640,7 +15680,7 @@
    "view": "timers",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -15660,7 +15700,7 @@
    "view": "timers",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -15680,7 +15720,7 @@
    "view": "timers",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -15700,7 +15740,7 @@
    "view": "timers",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -15720,7 +15760,7 @@
    "view": "timers",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -15760,8 +15800,8 @@
    "view": "timers",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -15800,7 +15840,7 @@
    "view": "tools",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -15820,7 +15860,7 @@
    "view": "tools",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -15840,7 +15880,7 @@
    "view": "tools",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -15860,7 +15900,7 @@
    "view": "tools",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -15880,7 +15920,7 @@
    "view": "tools",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -15900,7 +15940,7 @@
    "view": "tools",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -15920,7 +15960,7 @@
    "view": "tools",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -15940,7 +15980,7 @@
    "view": "tools",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -15960,7 +16000,7 @@
    "view": "tools",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -15980,7 +16020,7 @@
    "view": "tools",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -16000,7 +16040,7 @@
    "view": "tools",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -16020,7 +16060,7 @@
    "view": "tools",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -16040,7 +16080,7 @@
    "view": "tools",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -16060,7 +16100,7 @@
    "view": "tools",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -16080,7 +16120,7 @@
    "view": "tools",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -16100,7 +16140,7 @@
    "view": "tools",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -16120,7 +16160,7 @@
    "view": "tools",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -16140,7 +16180,7 @@
    "view": "tools",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -16180,8 +16220,8 @@
    "view": "tools",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -16220,7 +16260,7 @@
    "view": "tools",
    "ctl": "ctl.card_act.安装缺失依赖",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "安装缺失依赖",
    "states": [
     "idle",
@@ -16760,7 +16800,7 @@
    "view": "traces",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -16780,7 +16820,7 @@
    "view": "traces",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -16800,7 +16840,7 @@
    "view": "traces",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -16820,7 +16860,7 @@
    "view": "traces",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -16840,7 +16880,7 @@
    "view": "traces",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -16860,7 +16900,7 @@
    "view": "traces",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -16880,7 +16920,7 @@
    "view": "traces",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -16900,7 +16940,7 @@
    "view": "traces",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -16920,7 +16960,7 @@
    "view": "traces",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -16940,7 +16980,7 @@
    "view": "traces",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -16960,7 +17000,7 @@
    "view": "traces",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -16980,7 +17020,7 @@
    "view": "traces",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -17000,7 +17040,7 @@
    "view": "traces",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -17020,7 +17060,7 @@
    "view": "traces",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -17040,7 +17080,7 @@
    "view": "traces",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -17060,7 +17100,7 @@
    "view": "traces",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -17080,7 +17120,7 @@
    "view": "traces",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -17100,7 +17140,7 @@
    "view": "traces",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -17140,8 +17180,8 @@
    "view": "traces",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -24759,7 +24799,7 @@
    "view": "user",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -24779,7 +24819,7 @@
    "view": "user",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -24799,7 +24839,7 @@
    "view": "user",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -24819,7 +24859,7 @@
    "view": "user",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -24839,7 +24879,7 @@
    "view": "user",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -24859,7 +24899,7 @@
    "view": "user",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -24879,7 +24919,7 @@
    "view": "user",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -24899,7 +24939,7 @@
    "view": "user",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -24919,7 +24959,7 @@
    "view": "user",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -24939,7 +24979,7 @@
    "view": "user",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -24959,7 +24999,7 @@
    "view": "user",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -24979,7 +25019,7 @@
    "view": "user",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -24999,7 +25039,7 @@
    "view": "user",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -25019,7 +25059,7 @@
    "view": "user",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -25039,7 +25079,7 @@
    "view": "user",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -25059,7 +25099,7 @@
    "view": "user",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -25079,7 +25119,7 @@
    "view": "user",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -25099,7 +25139,7 @@
    "view": "user",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -25139,8 +25179,8 @@
    "view": "user",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -25179,7 +25219,7 @@
    "view": "user",
    "ctl": "ctl.card_act.修改密码",
    "kind": "card_act",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "修改密码",
    "states": [
     "idle",
@@ -25206,7 +25246,7 @@
    "view": "position",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目",
    "states": [
     "idle",
@@ -25226,7 +25266,7 @@
    "view": "position",
    "ctl": "ctl.nav.知识库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "知识库",
    "states": [
     "idle",
@@ -25246,7 +25286,7 @@
    "view": "position",
    "ctl": "ctl.nav.项目秘书",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "项目秘书",
    "states": [
     "idle",
@@ -25266,7 +25306,7 @@
    "view": "position",
    "ctl": "ctl.nav.文档",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "文档",
    "states": [
     "idle",
@@ -25286,7 +25326,7 @@
    "view": "position",
    "ctl": "ctl.nav.日志",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "日志",
    "states": [
     "idle",
@@ -25306,7 +25346,7 @@
    "view": "position",
    "ctl": "ctl.nav.需求契约",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "需求契约",
    "states": [
     "idle",
@@ -25326,7 +25366,7 @@
    "view": "position",
    "ctl": "ctl.nav.岗位",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "岗位",
    "states": [
     "idle",
@@ -25346,7 +25386,7 @@
    "view": "position",
    "ctl": "ctl.nav.工具",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "工具",
    "states": [
     "idle",
@@ -25366,7 +25406,7 @@
    "view": "position",
    "ctl": "ctl.nav.技能",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能",
    "states": [
     "idle",
@@ -25386,7 +25426,7 @@
    "view": "position",
    "ctl": "ctl.nav.技能拆解",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "技能拆解",
    "states": [
     "idle",
@@ -25406,7 +25446,7 @@
    "view": "position",
    "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "点击状态机",
    "states": [
     "idle",
@@ -25426,7 +25466,7 @@
    "view": "position",
    "ctl": "ctl.nav.运维",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "运维",
    "states": [
     "idle",
@@ -25446,7 +25486,7 @@
    "view": "position",
    "ctl": "ctl.nav.链路",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "链路",
    "states": [
     "idle",
@@ -25466,7 +25506,7 @@
    "view": "position",
    "ctl": "ctl.nav.节点",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "节点",
    "states": [
     "idle",
@@ -25486,7 +25526,7 @@
    "view": "position",
    "ctl": "ctl.nav.用户",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "用户",
    "states": [
     "idle",
@@ -25506,7 +25546,7 @@
    "view": "position",
    "ctl": "ctl.nav.云端资料库",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "云端资料库",
    "states": [
     "idle",
@@ -25526,7 +25566,7 @@
    "view": "position",
    "ctl": "ctl.nav.定时器",
    "kind": "nav",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "定时器",
    "states": [
     "idle",
@@ -25546,7 +25586,7 @@
    "view": "position",
    "ctl": "ctl.shell.logout",
    "kind": "logout",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "登出",
    "states": [
     "idle",
@@ -25586,8 +25626,8 @@
    "view": "position",
    "ctl": "ctl.shell.menu",
    "kind": "drawer_open",
-   "tag": "BUTTON",
-   "label": "☰",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -25626,7 +25666,7 @@
    "view": "position",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "−",
    "states": [
     "idle",
@@ -25646,7 +25686,7 @@
    "view": "position",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "＋",
    "states": [
     "idle",
@@ -25666,7 +25706,7 @@
    "view": "position",
    "ctl": "ctl.dag_zoom",
    "kind": "dag_zoom",
-   "tag": "BUTTON",
+   "tag": "SL-BUTTON",
    "label": "适应",
    "states": [
     "idle",

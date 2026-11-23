@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/actions.js
-hash: bec317d11abf45ac31c3a2500964239f8305aeecb29ef53b424e02dd86970788
+hash: 1ae8539975cd1e43735edccc9dfd70991356f4a90873de0a9337a124feea88ed
 symbols:
 - execute
 - voiceBtnLabel
@@ -8,9 +8,12 @@ symbols:
 - executeVoice
 - resolveView
 - bindDropZones
+- fieldHtml
+- readModalFields
 - openForm
 - closeModal
 - modalError
+- submitModal
 - casc
 - cnames
 - opts
@@ -65,6 +68,18 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `fieldHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `readModalFields`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `openForm`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -78,6 +93,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `modalError`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `submitModal`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

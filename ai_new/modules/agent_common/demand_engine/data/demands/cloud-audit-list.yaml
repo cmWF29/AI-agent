@@ -17,4 +17,4 @@ expect:
   calls:
   - cloud.audit_list
   payload: {}
-  promise: 审计台账只读返回，条目不带凭证字段
+  promise: 审计台账只读，条目不含凭证

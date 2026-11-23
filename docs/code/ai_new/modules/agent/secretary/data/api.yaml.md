@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/secretary/data/api.yaml
-hash: f00427e0b7760a566dd0ed9b25a212b8c93a358d8c7dd8dfa50c3702b8018ccf
+hash: fa4cf41e3e9aead1c7fa282510a76b47ee8bd08cd0dbad6345879f60e8d19100
 symbols:
 - module
 - routes

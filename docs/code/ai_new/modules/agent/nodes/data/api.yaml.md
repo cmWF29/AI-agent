@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/nodes/data/api.yaml
-hash: 5618500405cef732218682c510617aa1155a5dcab891a149a8a5f9f772cd8241
+hash: 4c23ef4b30c970770411c0eae647e71c6cfa914161a1d7f68bfe7d80e142c4f7
 symbols:
 - module
 - routes

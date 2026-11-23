@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+<link rel="icon" href="data:,">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>节点与分配</title>
+  <link rel="stylesheet" href="assets/shoelace/themes/light.css">
   <style>
     :root { color-scheme: light; }
     body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6f8; color: #1f2329; }
@@ -15,26 +17,19 @@
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0f1f3; vertical-align: top; }
     th { color: #646a73; font-weight: 600; }
-    .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; }
-    .alive { background: #e8f5e9; color: #2e7d32; }
-    .lost { background: #fdecea; color: #c62828; }
-    .held { background: #e8f0fe; color: #1a56c4; }
-    .released { background: #f2f3f5; color: #646a73; }
     .row-tools { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-    input { padding: 6px 10px; border: 1px solid #d0d3d9; border-radius: 6px; }
-    button { padding: 6px 12px; border: 0; border-radius: 6px; background: #1a56c4; color: #fff; cursor: pointer; }
     .muted { color: #8f959e; }
   </style>
 </head>
 <body>
 <main>
   <h1>节点与分配</h1>
-  <div class="sub">控制面只读视图：节点健康、项目→节点归属、备份状态、迁移记录。跨项目不可见彼此的定时器/知识/文件。</div>
+  <div class="sub">节点健康、归属、备份与迁移记录</div>
 
   <div class="card">
     <div class="row-tools">
-      <input id="project-lookup" placeholder="输入项目 id 查询归属" />
-      <button id="lookup-btn">查询</button>
+      <sl-input id="project-lookup" placeholder="查询项目归属" style="max-width:260px"></sl-input>
+      <sl-button id="lookup-btn" variant="primary">查询</sl-button>
       <span id="lookup-result" class="muted"></span>
     </div>
   </div>
@@ -77,6 +72,7 @@
     </table>
   </div>
 </main>
+<script type="module" src="assets/shoelace/shoelace.js"></script>
 <script src="nodes.js"></script>
 </body>
 </html>

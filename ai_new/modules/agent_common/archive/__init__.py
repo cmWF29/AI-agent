@@ -26,6 +26,7 @@ def setup(ctx):
         ("archive.read_bytes", _engine.read_bytes),
         ("archive.read_lines", _engine.read_lines),
         ("archive.stats", _route_stats),
+        ("archive.metrics", _route_metrics),
         ("archive.index_query", _engine.index_query),
     ]:
         ctx.api.register(name, fn, module="archive")
@@ -42,3 +43,7 @@ def _route_compress(ctx, payload):
 
 def _route_stats(ctx, payload):
     return _engine.stats(ctx, payload or {})
+
+
+def _route_metrics(ctx, payload):
+    return _engine.metrics(ctx, payload or {})

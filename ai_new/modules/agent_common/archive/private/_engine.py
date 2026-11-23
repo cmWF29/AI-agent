@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 from pathlib import Path
 
-from . import _backend, _cache, _index, _lock, _policy
+from . import _backend, _cache, _index, _lock, _metrics, _policy
 
 # 进程内单例缓存：跨路由调用复用解压结果；上限由配置给定。
 _cache_instance: "_cache.LRUCache | None" = None
+# 进程内单例时延记录器：解压耗时样本跨路由复用；容量由配置给定。
+_metrics_instance: "_metrics.LatencyRecorder | None" = None
 
 
 def _cache_singleton(cfg):
@@ -27,6 +30,15 @@ def _cache_singleton(cfg):
         max_bytes=cfg.get("cache_max_bytes"),
         max_entries=cfg.get("cache_max_entries"))
     return _cache_instance
+
+
+def _metrics_singleton(cfg):
+    global _metrics_instance
+    if _metrics_instance is None:
+        _metrics_instance = _metrics.LatencyRecorder(
+            max_samples=cfg.get("metrics_max_samples", _metrics.DEFAULT_MAX_SAMPLES))
+    _metrics_instance.configure(max_samples=cfg.get("metrics_max_samples"))
+    return _metrics_instance
 
 
 def _config(ctx):
@@ -51,7 +63,16 @@ def _dir_of(module):
 
 
 class ArchiveCorrupt(Exception):
-    """压缩流损坏或校验和不匹配：不许静默返回坏数据。"""
+    """压缩流损坏、校验和不匹配或索引缺失：不许静默返回坏数据。
+
+    ``code`` 取值：``archive_corrupt`` 流损坏 / 校验和不符；
+    ``archive_companion_missing`` 索引在而压缩流文件缺失；
+    ``archive_index_missing`` 压缩流在而索引记录缺失。
+    """
+
+    def __init__(self, message: str, code: str = "archive_corrupt"):
+        super().__init__(message)
+        self.code = code
 
 
 def _checksum(ctx, raw: bytes) -> str:
@@ -326,19 +347,36 @@ def resolve_abs(ctx, payload):
     md = ctx.storage.own(__file__)
     rec = _record_for(md, str(abs_path))
     comp_path = Path(rec["compressed"]) if rec else None
-    if rec and comp_path and comp_path.is_file():
+    if rec:
+        if not (comp_path and comp_path.is_file()):
+            # 索引在、压缩流不在：台账与磁盘脱节，按损坏类错误抛出，不静默当未归档。
+            raise ArchiveCorrupt(
+                "索引记录的压缩流缺失: %s" % str(abs_path),
+                code="archive_companion_missing")
         mtime = comp_path.stat().st_mtime
         cached = cache.get(key, mtime=mtime)
         if cached is not None:
             return {"exists": True, "raw": cached, "cached": True}
+        started = time.perf_counter()
         try:
             raw = _backend.decompress_bytes(comp_path.read_bytes(), rec["algorithm"])
         except Exception as exc:  # 流损坏 / 算法不符：包装成校验类错误，不静默返回
-            raise ArchiveCorrupt("压缩流损坏: %s" % str(exc)) from exc
+            raise ArchiveCorrupt("压缩流损坏: %s" % str(exc),
+                                 code="archive_corrupt") from exc
+        _metrics_singleton(_config(ctx)).record(time.perf_counter() - started)
         if _checksum(ctx, raw) != rec["checksum"]:
-            raise ArchiveCorrupt("校验和不匹配: %s" % str(abs_path))
+            raise ArchiveCorrupt("校验和不匹配: %s" % str(abs_path),
+                                 code="archive_corrupt")
         cache.put(key, raw, mtime=mtime, size=len(raw))
         return {"exists": True, "raw": raw, "cached": False}
+
+    # 索引无记录：若磁盘上仍挂着压缩流，说明索引缺失，按错误抛出而非静默返空。
+    for suffix in (".gz", ".zst"):
+        sibling = Path(str(abs_path) + suffix)
+        if sibling.is_file():
+            raise ArchiveCorrupt(
+                "索引缺失：压缩流仍在磁盘上: %s" % str(sibling),
+                code="archive_index_missing")
     return {"exists": False, "raw": b"", "cached": False}
 
 
@@ -392,6 +430,55 @@ def stats(ctx, payload=None):
         "cache": cache.stats(),
         "backend": _backend.backend_info(),
         "lock": _lock.lock_capability(),
+    }
+
+
+def _messages(ctx):
+    """模块文案台账：读不到就退化成空表，不阻断观测。"""
+    md = ctx.storage.own(__file__)
+    return md.yaml_read("messages.yaml", default={}) or {}
+
+
+def metrics(ctx, payload=None):
+    """观测面汇总：压缩台账 + 解压时延分位 + 缓存命中，全部由真实样本 / 台账计算。
+
+    压缩量与节省空间来自索引台账（持久化真源）；解压 P50/P95 来自进程内
+    真实计时样本；命中率来自 LRU 命中 / 未命中计数。样本不足时解压段显式
+    标 ``insufficient_samples``，分位置空。
+    """
+    md = ctx.storage.own(__file__)
+    index = _index.load(md)
+    cache = _cache_singleton(_config(ctx))
+    recorder = _metrics_singleton(_config(ctx))
+    cap = cache.capacity()
+    c = cache.stats()
+    total = int(c["hits"]) + int(c["misses"])
+    storage = _index.archived_summary(index)
+    decompress = recorder.snapshot()
+    msgs = _messages(ctx)
+    if decompress["status"] == "insufficient_samples":
+        decompress_note = (msgs.get("decompress_insufficient") or "").format(
+            samples=decompress["samples"])
+    else:
+        decompress_note = msgs.get("decompress_ok") or ""
+    labels = {
+        "storage_empty": msgs.get("storage_empty") or "",
+        "decompress_status": decompress_note,
+        "hit_rate": msgs.get("hit_rate_none") or "" if total == 0 else "",
+    }
+    return {
+        "storage": storage,
+        "decompress": decompress,
+        "cache": {
+            "hits": int(c["hits"]),
+            "misses": int(c["misses"]),
+            "hit_rate": round(int(c["hits"]) / total, 4) if total else 0.0,
+            "entries": int(c["entries"]),
+            "max_entries": int(cap["max_entries"]),
+            "bytes": int(c["bytes"]),
+            "max_bytes": int(cap["max_bytes"]),
+        },
+        "labels": labels,
     }
 
 

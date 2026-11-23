@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_secretary.py
-hash: 42a3ce1fa8acee7bebc3794e2ad5897a62efeb01d34a7860141c81331794a5f2
+hash: 125af7a7cd2324af86d4dd5c5997281f8a979a6464a8e873814dd86e460275a4
 symbols:
 - __call__
 - setUpClass
@@ -19,6 +19,13 @@ symbols:
 - test_failure_preserves_queue_and_shows_error
 - test_empty_flush_creates_no_ticket
 - test_discarded_message_excluded_from_merge
+- test_status_missing_project_returns_structured_error
+- test_status_unknown_message_degrades_not_found
+- test_status_known_message_reports_ok
+- test_status_and_list_degrade_when_state_unavailable
+- test_duplicate_message_flush_builds_single_ticket
+- test_status_ok_with_content_under_enforce
+- test_archive_resolve_abs_registered_with_matching_contract
 - test_timer_create_dedup_and_project_scoped_list
 - test_timer_forbidden_scope_is_visible
 - test_ticket_scope_isolated_within_project
@@ -139,6 +146,48 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_discarded_message_excluded_from_merge`（method）
 - 职责: 撤回的消息不参与合并：只并入未撤回的那条。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_missing_project_returns_structured_error`（method）
+- 职责: 缺项目：回包 ok:false + 明确错误码，调用方可整块降级。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_unknown_message_degrades_not_found`（method）
+- 职责: 给了 msg_id 但队列里找不到：ok:false/not_found，不静默当成空状态。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_known_message_reports_ok`（method）
+- 职责: 正常路径：ok:true 且带状态枚举与合法迁移。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_and_list_degrade_when_state_unavailable`（method）
+- 职责: 读档/成形异常不裸抛：status 与 list 都回结构化 ok:false。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_duplicate_message_flush_builds_single_ticket`（method）
+- 职责: 合并幂等：同一 msg_id 重复投递只入队一次；一批 flush 只建一张单。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_ok_with_content_under_enforce`（method）
+- 职责: enforce 跨模块闸下：status/list 正常回包，不被 store→archive 内部协作误拒。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_archive_resolve_abs_registered_with_matching_contract`（method）
+- 职责: archive.resolve_abs 确由 archive 注册，入参 abs / 出参 exists,raw 签名匹配。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

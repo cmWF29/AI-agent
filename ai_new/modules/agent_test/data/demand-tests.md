@@ -2,13 +2,15 @@
 
 # 需求 → 用例映射
 
-共 173 条需求，绑定 15 个检查项。
+共 175 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
 | api-notify | core | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | api-snapshot | core | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | archive-gc | archive | archive | test_archive.py | 存储治理：压缩/解压一致性、幂等、损坏校验、LRU 与透明兼容 |
+| archive-observability | archive | archive | test_archive.py | 存储治理：压缩/解压一致性、幂等、损坏校验、LRU 与透明兼容 |
+| archive-transparent-read | archive | archive | test_archive.py | 存储治理：压缩/解压一致性、幂等、损坏校验、LRU 与透明兼容 |
 | artifacts-index | artifact | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | artifacts-list | artifact | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | artifacts-read | artifact | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |

@@ -41,3 +41,18 @@ jobs:
           curl -sf http://127.0.0.1:8787/api/health/live
           python3 scripts/verify_ui.py
           python3 scripts/ui_inventory.py --check
+
+  isolation-windows:
+    # Windows 真机复跑同一批隔离/节点用例：纯判定层在 Linux 上先覆盖，
+    # 这里验证盘符/UNC/保留名/大小写/段尾点空格等 Win32 语义在真机成立。
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 依赖
+        run: pip install pyyaml
+      - name: 隔离/节点同批用例（Windows 真机）
+        working-directory: ai_new/modules/agent_test/private
+        run: python -m unittest test_isolation test_isolation_tiers test_isolation_windows test_nodes test_node_profile -v

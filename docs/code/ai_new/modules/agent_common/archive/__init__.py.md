@@ -1,12 +1,13 @@
 ---
 source: ai_new/modules/agent_common/archive/__init__.py
-hash: 0a2651cff8cc69cc3f10808cb0b2f25d3660cbe35b2bc876e531b3873478cebd
+hash: ed759525dcc4f50755f8989d7a92685be648d1e5822b23bc256da4626f3b75d8
 symbols:
 - _resolve_abs
 - setup
 - _route_scan
 - _route_compress
 - _route_stats
+- _route_metrics
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:21'
 ---
@@ -47,6 +48,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `_route_stats`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_metrics`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

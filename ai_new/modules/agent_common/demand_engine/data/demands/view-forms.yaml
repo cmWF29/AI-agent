@@ -93,7 +93,7 @@ view:
         reload: true
   - id: ticket.close
     title: 结单
-    hint: 对照验收标准填写结单结论；提交后会话回收，本工单不能再发消息。选「未通过关闭」只记录驳回结论并关单，不会自动重开或重新派角色。
+    hint: 对照验收标准填写结单结论；提交后会话回收，本工单不能再发消息。选「未通过关闭」只记录驳回结论并关单，不会自动重开或重新派岗位。
     fields:
     - name: summary
       label: 结单结论
@@ -125,7 +125,7 @@ view:
         reload: true
   - id: auth.change
     title: 修改密码
-    hint: 需验证当前密码；新密码需两次输入一致。本期只支持改密，不做角色与权限。
+    hint: 需验证当前密码；新密码需两次输入一致。本期只支持改密，不做岗位与权限。
     fields:
     - name: old_password
       label: 当前密码

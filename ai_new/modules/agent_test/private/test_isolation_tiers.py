@@ -5,8 +5,12 @@ Windows 分支不在本机执行，capability 里显式标 verified=false。
 """
 from __future__ import annotations
 
-import fcntl
 import os
+
+if os.name == "nt":  # pragma: nt-cover — Windows 无 fcntl，POSIX 锁用例跳过
+    fcntl = None
+else:
+    import fcntl
 import subprocess
 import sys
 import tempfile
@@ -67,6 +71,7 @@ class TierPolicyTest(unittest.TestCase):
         self.assertFalse(_pure.plan("p1", "weak", {"root": ""})["ok"])
 
 
+@unittest.skipIf(fcntl is None, "POSIX flock 跨进程锁用例仅在非 Windows 运行")
 class XlockTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="xlock-")

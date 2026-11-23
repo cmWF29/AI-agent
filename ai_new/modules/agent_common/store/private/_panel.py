@@ -500,6 +500,14 @@ def _p(module, path):
     return _dir_of(module) / str(path or "")
 
 
+def _guard(ctx, module, rel):
+    """路径边界闸：越界/注入片段直接抛结构化 ApiError，不放行进文件 IO。"""
+    g = _docpath.guard(module, rel)
+    if not g["ok"]:
+        raise ctx.ApiError(g["error"], code=g["code"], status=400)
+    return g
+
+
 def _route_id(payload):
     return {"id": _files.safe_id(str(payload.get("value") or ""))}
 
@@ -508,11 +516,13 @@ def _route_next_seq(ctx, payload):
     return {"seq": ctx.storage.next_seq(payload.get("bucket"), payload.get("baseline"))}
 
 
-def _route_exists(payload):
+def _route_exists(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("path"))
     return {"exists": _p(payload.get("module"), payload.get("path")).exists()}
 
 
 def _route_read(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
     fallback = payload.get("fallback")
     text = _archive_read.read_text_resolved(ctx, path)
@@ -525,6 +535,7 @@ def _route_read(ctx, payload):
 
 
 def _route_write(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
     out = ctx.codec.yaml_encode(payload.get("value"))
     if not out.get("ok"):
@@ -532,7 +543,8 @@ def _route_write(ctx, payload):
     _files.write_text_atomic(path, out["text"])
     return {"written": True, "path": str(path)}
 
-def _route_remove(payload):
+def _route_remove(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
     if path.is_file():
         path.unlink()
@@ -540,7 +552,8 @@ def _route_remove(payload):
     return {"removed": False}
 
 
-def _route_glob(payload):
+def _route_glob(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("root"))
     base = _p(payload.get("module"), payload.get("root"))
     if not base.is_dir():
         return {"items": []}
@@ -554,6 +567,7 @@ def _route_glob(payload):
 
 
 def _route_walk(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("root"))
     base = _p(payload.get("module"), payload.get("root"))
     if not base.is_dir():
         return {"rows": []}
@@ -566,11 +580,12 @@ def _route_walk(ctx, payload):
             rows.append(out["value"])
     return {"rows": rows}
 
-def _route_walk_text(payload):
+def _route_walk_text(ctx, payload):
     """整树取文本：返回 [{path, text}]，给知识检索/注入这类按原文匹配的场景。
 
     与 walk（把文件当 YAML 记录解析）分开：文本类知识不做 YAML 反序列化。
     """
+    _guard(ctx, payload.get("module"), payload.get("root"))
     base = _p(payload.get("module"), payload.get("root"))
     if not base.is_dir():
         return {"rows": []}
@@ -584,6 +599,7 @@ def _route_walk_text(payload):
     return {"rows": rows}
 
 def _route_read_text(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
     text = _archive_read.read_text_resolved(ctx, path)
     if text is None:
@@ -592,12 +608,14 @@ def _route_read_text(ctx, payload):
 
 
 def _route_write_text(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("path"))
     md = ModuleData(_dir_of(payload.get("module")), ctx)
     md.write_text_locked(payload.get("path"), str(payload.get("text") or ""))
     return {"written": True, "path": str(_p(payload.get("module"), payload.get("path")))}
 
 
 def _route_append_text(ctx, payload):
+    _guard(ctx, payload.get("module"), payload.get("path"))
     md = ModuleData(_dir_of(payload.get("module")), ctx)
     md.append_text_locked(payload.get("path"), str(payload.get("text") or ""))
     return {"appended": True}
@@ -605,6 +623,7 @@ def _route_append_text(ctx, payload):
 
 def _route_doc_revision(ctx, payload):
     """文档修订闭环：加锁校验令牌 → 落正文 → 记历史；冲突回 409，不覆盖。"""
+    _guard(ctx, payload.get("module"), payload.get("path"))
     md = ModuleData(_dir_of(payload.get("module")), ctx)
     now = ctx.api.call("clock.now", {}, caller=None).get("iso")
     return md.revision(
@@ -613,8 +632,9 @@ def _route_doc_revision(ctx, payload):
         payload.get("version"), now, force=bool(payload.get("force")))
 
 
-def _route_remove_dir(payload):
+def _route_remove_dir(ctx, payload):
     import shutil
+    _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
     if path.is_dir():
         shutil.rmtree(path)
@@ -624,6 +644,7 @@ def _route_remove_dir(payload):
 
 def _route_read_bytes(ctx, payload):
     import base64
+    _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
     raw = _archive_read.read_bytes_resolved(ctx, path)
     if raw is None:
@@ -632,9 +653,10 @@ def _route_read_bytes(ctx, payload):
             "size": len(raw), "exists": True}
 
 
-def _route_write_bytes(payload):
+def _route_write_bytes(ctx, payload):
     """二进制写入：给 hex 就按 hex，给 value 就按 base64。"""
     import base64
+    _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
     if payload.get("hex") is not None:
         raw = bytes.fromhex(str(payload.get("hex") or ""))
@@ -659,8 +681,9 @@ def _route_doc_lock_capability(ctx, payload):
     return _doclock.lock_capability()
 
 
-def _route_archive(payload):
+def _route_archive(ctx, payload):
     """把给定模块的数据目录打成 zip，落在该模块自己的 exports 下。"""
+    _guard(ctx, payload.get("module"), payload.get("name"))
     source = _dir_of(payload.get("module"))
     dest = _p(payload.get("module"), payload.get("name"))
     _files.pack(dest, [(source, str(payload.get("module") or ""))])

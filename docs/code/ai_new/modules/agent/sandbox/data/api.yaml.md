@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sandbox/data/api.yaml
-hash: 2267265c35a5bf866eafb4ab148d3375b80185b58495e965f03c7e549b8bcb79
+hash: 4846cc49eaa48241e4dea97d1f0d10fca1f64cdbe98aea3336c943db3b14b358
 symbols:
 - module
 - routes

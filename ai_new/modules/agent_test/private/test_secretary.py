@@ -207,6 +207,113 @@ class SecretaryTest(unittest.TestCase):
         m1 = next(r for r in queue["rows"] if r["msg_id"] == "m1")
         self.assertEqual(m1["status"], "discarded")
 
+    # ---- status 契约：错误路径结构化降级，不抛裸异常、不回 500 空体 ----
+
+    def test_status_missing_project_returns_structured_error(self):
+        """缺项目：回包 ok:false + 明确错误码，调用方可整块降级。"""
+        res = self.ctx.api.call("secretary.status", {"project": ""},
+                                caller=None, direct=True)
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "missing_project")
+        self.assertTrue(res.get("error") is not None)
+
+    def test_status_unknown_message_degrades_not_found(self):
+        """给了 msg_id 但队列里找不到：ok:false/not_found，不静默当成空状态。"""
+        project = self._project("秘书状态未知消息项目")
+        self._push(project, "m1", "需求一")
+        res = self.ctx.api.call("secretary.status",
+                                 {"project": project, "msg_id": "no-such-msg"},
+                                 caller=None, direct=True)
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "not_found")
+
+    def test_status_known_message_reports_ok(self):
+        """正常路径：ok:true 且带状态枚举与合法迁移。"""
+        project = self._project("秘书状态正常项目")
+        self._push(project, "m1", "需求一")
+        res = self.ctx.api.call("secretary.status",
+                                 {"project": project, "msg_id": "m1"},
+                                 caller=None, direct=True)
+        self.assertTrue(res["ok"])
+        self.assertIn("pending", res["statuses"])
+        self.assertIn("processing", res["transitions"]["pending"])
+
+    def test_status_and_list_degrade_when_state_unavailable(self):
+        """读档/成形异常不裸抛：status 与 list 都回结构化 ok:false。"""
+        project = self._project("秘书存储异常项目")
+        self._push(project, "m1", "需求一")
+        original = self.ctx.api._routes["store.read"]["fn"]
+
+        def boom(ctx, payload):
+            raise RuntimeError("storage down")
+
+        self.ctx.api.substitute("store.read", boom)
+        try:
+            status = self.ctx.api.call("secretary.status", {"project": project},
+                                       caller=None, direct=True)
+            self.assertFalse(status["ok"])
+            self.assertEqual(status["code"], "state_unavailable")
+            listing = self.ctx.api.call("secretary.list", {"project": project},
+                                        caller=None, direct=True)
+            self.assertFalse(listing["ok"])
+            self.assertEqual(listing["code"], "state_unavailable")
+        finally:
+            self.ctx.api._routes["store.read"]["fn"] = original
+
+    def test_duplicate_message_flush_builds_single_ticket(self):
+        """合并幂等：同一 msg_id 重复投递只入队一次；一批 flush 只建一张单。"""
+        project = self._project("秘书重复消息幂等项目")
+        self._push(project, "m1", "先写方案 A")
+        self._push(project, "m1", "改成方案 B（重复投递，应被忽略）")
+        self._push(project, "m2", "再补验收标准")
+
+        queue = self._queue(project)
+        self.assertEqual(len(queue["rows"]), 2, "重复 msg_id 不该二次入队")
+
+        first = self._flush(project)
+        self.assertTrue(first["result"]["ok"], first["result"])
+        ticket_id = first["result"]["ticket"]
+        self.assertTrue(ticket_id)
+
+        # 再 flush：队列已空，不建第二张单，工单仍是同一张。
+        second = self._flush(project)
+        self.assertTrue(second["result"]["ok"])
+        self.assertTrue(second["result"].get("empty"))
+        self.assertEqual(self._project_ticket_ids(project), [ticket_id])
+
+    def test_status_ok_with_content_under_enforce(self):
+        """enforce 跨模块闸下：status/list 正常回包，不被 store→archive 内部协作误拒。
+
+        回归：store 透明读路径回落 archive.resolve_abs 时曾继承外层业务身份，
+        秘书状态块被 403 internal_call_unregistered 整块降级。
+        """
+        self.ctx.cfg.setdefault("api", {})["internal_call_mode"] = "enforce"
+        try:
+            project = self._project("秘书 enforce 状态项目")
+            self._push(project, "m1", "做一个登录页")
+            status = self.ctx.api.call("secretary.status", {"project": project},
+                                       caller=None, direct=True)
+            self.assertTrue(status["ok"], status)
+            self.assertIn("pending", status["statuses"])
+            self.assertIn("processing", status["transitions"]["pending"])
+            listing = self.ctx.api.call("secretary.list", {"project": project},
+                                        caller=None, direct=True)
+            self.assertTrue(listing["ok"], listing)
+            self.assertEqual(len(listing["rows"]), 1)
+        finally:
+            self.ctx.cfg["api"]["internal_call_mode"] = "warn"
+
+    def test_archive_resolve_abs_registered_with_matching_contract(self):
+        """archive.resolve_abs 确由 archive 注册，入参 abs / 出参 exists,raw 签名匹配。"""
+        route = self.ctx.api.route("archive.resolve_abs")
+        self.assertIsNotNone(route, "archive.resolve_abs 未注册")
+        self.assertEqual(route["module"], "archive")
+        contract = self.ctx.api.contract("archive.resolve_abs")
+        self.assertIn("abs", (contract.get("in") or {}))
+        out = contract.get("out") or {}
+        self.assertIn("exists", out)
+        self.assertIn("raw", out)
+
     # ---- 定时器接线：直连真实 timer 路由，作用域隔离由 timer 侧裁决，秘书侧断言可见拒绝 ----
 
     def test_timer_create_dedup_and_project_scoped_list(self):

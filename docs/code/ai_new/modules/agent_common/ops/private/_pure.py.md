@@ -1,7 +1,11 @@
 ---
 source: ai_new/modules/agent_common/ops/private/_pure.py
-hash: 2187cfc390d803a94c58632b83bf57494c0e9428ea5325a7985fe0f01836013c
+hash: c8891167b2a9ffe6df67d6044b4a023a88d679d4b6a19aac3d02911e81cf9f74
 symbols:
+- _source_result
+- _brief_items
+- _project_overview
+- _config_overview
 - assemble
 - record
 - line
@@ -26,8 +30,32 @@ updated_at: '2026-11-23T04:10:22'
 
 ## 符号
 
-### `assemble`（function）
+### `_source_result`（function）
+- 职责: 需求回包信封 {ok, demand, result, calls}：概览只取 result 层。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_brief_items`（function）
+- 职责: 列表项白名单投影：只留概览需要的标量字段，原文/消息/角色细节不下发首屏。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_project_overview`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_config_overview`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `assemble`（function）
+- 职责: 首屏总览：按白名单投影各源；完整数据留在各自按需清单接口，不靠删数据瘦身。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -1,12 +1,13 @@
 ---
 source: ai_new/modules/agent/sandbox/__init__.py
-hash: cd3a1fdd49182896f4af9935f42cac3abf1300088efed605b64b50856c676db1
+hash: 0a9f264f0cd68fedb33c21d0574353e3fa9d21367b7dd682babee7b6f57898bd
 symbols:
 - _host_which
 - setup
 - _route_capability
 - _route_pick_tier
 - _route_plan
+- _route_guard_path
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:20'
 ---
@@ -47,6 +48,12 @@ updated_at: '2026-11-23T04:10:20'
 - 关联需求/测试: 待人工补充
 
 ### `_route_plan`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_guard_path`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+from . import _guard
+
 # ---------------------------------------------------------------- 类别与提供方
 
 # 同步类别 → 归属模块与扫描面。类别是同步策略单位，新增类别在此登记来源。
@@ -17,19 +19,22 @@ CATEGORY_SOURCES = {
     "trace": {"module": "agent_common/trace", "glob": "trace/**/*.jsonl"},
 }
 
-PROVIDER_KINDS = ("s3", "webdav", "http_dir", "wiki", "rsync")
+PROVIDER_KINDS = ("s3", "webdav", "http_dir", "wiki", "rsync", "fake", "stub")
 
 # 提供方落地状态：ready 表示适配层已按统一接口接通；pending 表示接缝在位、真实协议
-# 未接线（签名/通道/命令包装见报告「真实落地差异」）。
+# 未接线（签名/通道/命令包装见报告「真实落地差异」）；fake/stub 为内存测试接缝。
 PROVIDER_META = {
     "s3": {"transport": "https-rest", "status": "pending", "note": "s3_v4_signing_pending"},
     "webdav": {"transport": "http-webdav", "status": "ready", "note": ""},
     "http_dir": {"transport": "http-dir", "status": "ready", "note": ""},
     "wiki": {"transport": "http-api", "status": "pending", "note": "wiki_api_adapter_pending"},
     "rsync": {"transport": "ssh-command", "status": "pending", "note": "exec_wrapper_pending"},
+    "fake": {"transport": "in-memory", "status": "ready", "note": "test_seam"},
+    "stub": {"transport": "in-memory", "status": "ready", "note": "test_seam"},
 }
 
-SCHEME_WHITELIST = ("http", "https")
+# 默认协议白名单仅 https；http 须由配置 cloud.schemes 显式放开。
+SCHEME_WHITELIST = _guard.DEFAULT_SCHEMES
 
 REDACTED = "<redacted>"
 
@@ -46,8 +51,25 @@ READ_ACTIONS = frozenset({
 
 
 def empty_state():
-    """空台账：profiles / active / manifests（上次推送清单）/ ledger（最近一次运行摘要）。"""
-    return {"profiles": {}, "active": "", "manifests": {}, "ledger": {}}
+    """空台账：profiles / active / manifests（上次推送清单）/ ledger / resume（断点续传）。"""
+    return {"profiles": {}, "active": "", "manifests": {}, "ledger": {}, "resume": {}}
+
+
+def build_entry(rel, category, module, source_path, size, digest, mtime,
+                archived=False, algorithm="", checksum=""):
+    """清单条目成形：sha256 + size + mtime 三件套齐备，供增量比对与断点续传。"""
+    return {
+        "rel": rel,
+        "category": category,
+        "module": module,
+        "source_path": source_path,
+        "size": int(size or 0),
+        "digest": digest or "",
+        "mtime": float(mtime or 0),
+        "archived": bool(archived),
+        "algorithm": algorithm or "",
+        "checksum": checksum or "",
+    }
 
 
 # ---------------------------------------------------------------- 调用方与权限
@@ -84,22 +106,6 @@ def authorize(caller, action):
 
 # ---------------------------------------------------------------- 端点与路径校验
 
-def _host_is_blocked(host):
-    """回环 / 私网 / 链路本地地址拦截（防 SSRF 内网回连）。"""
-    h = (host or "").strip().lower()
-    if h in ("localhost", "::1", "0.0.0.0"):
-        return True
-    if h.startswith("127.") or h.startswith("10.") or h.startswith("169.254."):
-        return True
-    if h.startswith("192.168."):
-        return True
-    if h.startswith("172."):
-        tail = h.split(".")[1] if h.count(".") >= 1 else ""
-        if tail.isdigit() and 16 <= int(tail) <= 31:
-            return True
-    return False
-
-
 def validate_profile(payload, cfg):
     """校验并规范化 profile。返回 ``{"ok", "errors", "profile"}``；errors 为代码列表。"""
     errors = []
@@ -107,25 +113,17 @@ def validate_profile(payload, cfg):
     if provider not in PROVIDER_KINDS:
         errors.append("bad_provider")
 
+    company = str(payload.get("company") or "").strip()
+    if not company:
+        errors.append("bad_company")
+
     endpoint = str(payload.get("endpoint") or "")
     root_dir = str(payload.get("root_dir") or "").strip("/")
-    scheme, host = "", ""
-    if "://" in endpoint:
-        scheme, rest = endpoint.split("://", 1)
-        host = rest.split("/", 1)[0]
-    else:
-        errors.append("bad_endpoint")
-    if scheme and scheme not in SCHEME_WHITELIST:
-        errors.append("bad_scheme")
-    if host and _host_is_blocked(host):
-        errors.append("blocked_host")
-    allowed_hosts = ((cfg or {}).get("allowed_hosts") or [])
-    if allowed_hosts and host and host not in allowed_hosts:
-        errors.append("host_not_whitelisted")
+    guard = _guard.validate_endpoint(endpoint, cfg)
+    errors.extend(guard["errors"])
 
     if root_dir:
-        parts = root_dir.split("/")
-        if any(p in ("", "..") for p in parts) or root_dir.startswith("/"):
+        if sanitize_key(root_dir) is None or root_dir.startswith("/"):
             errors.append("bad_root_dir")
     else:
         root_dir = ""
@@ -149,33 +147,32 @@ def validate_profile(payload, cfg):
         "backoff_base_s": int(policy_in.get("backoff_base_s") or 1),
         "backoff_cap_s": int(policy_in.get("backoff_cap_s") or 30),
         "conflict_policy": str(policy_in.get("conflict_policy") or "record"),
+        "max_body_bytes": int(policy_in.get("max_body_bytes") or 0),
     }
     if policy["conflict_policy"] not in ("record", "skip", "overwrite"):
         errors.append("bad_conflict_policy")
 
+    profile_id = str(payload.get("id") or "")
     profile = {
-        "id": str(payload.get("id") or ""),
+        "id": profile_id,
+        "company": company,
         "provider": provider,
         "endpoint": endpoint,
         "root_dir": root_dir,
+        "credential_ref": str(payload.get("credential_ref") or ""),
         "credentials": credentials,
         "categories": categories if isinstance(categories, list) else [],
         "policy": policy,
         "exclude_projects": payload.get("exclude_projects") or [],
+        # 状态目录：按 profile 隔离清单/台账/断点续传状态，不跨公司混用。
+        "state_dir": "cloud/profiles/" + profile_id,
     }
     return {"ok": not errors, "errors": errors, "profile": profile}
 
 
 def sanitize_key(key):
-    """远端对象键校验：拒绝绝对路径、``..`` 穿越与编码穿越；返回规范化 posix 键。"""
-    rel = str(key or "").replace("\\", "/").lstrip("/")
-    lowered = rel.lower()
-    if "%2e" in lowered or "%2f" in lowered:
-        return None
-    parts = [p for p in rel.split("/") if p not in ("", ".")]
-    if any(p == ".." for p in parts):
-        return None
-    return "/".join(parts)
+    """远端对象键校验：委托给 _guard；返回规范化 posix 键或 None。"""
+    return _guard.sanitize_key(key)
 
 
 # ---------------------------------------------------------------- 清单差分
@@ -195,18 +192,23 @@ def diff_plan(local_entries, pushed_entries, remote_entries):
     to_push, unchanged, conflicts, missing_remote = [], [], [], []
     for rel, entry in local.items():
         last = pushed.get(rel)
+        rem = remote.get(rel)
         if last is None:
-            to_push.append(entry)
+            # 本地清单无记录：远端已存在相同内容则幂等跳过，不重复推送。
+            if rem and rem.get("digest") == entry["digest"]:
+                unchanged.append({**entry, "remote_identical": True})
+            else:
+                to_push.append(entry)
+            continue
+        # 远端自上次推送后被外部改动：无论本地是否变化都记冲突，不静默覆盖。
+        if rem and rem.get("digest") != last.get("digest"):
+            conflicts.append({**entry, "remote_digest": rem.get("digest"),
+                              "kind": "remote_modified"})
             continue
         if entry["digest"] == last["digest"]:
             unchanged.append(entry)
             continue
-        rem = remote.get(rel)
-        if rem and rem.get("digest") != last["digest"]:
-            conflicts.append({**entry, "remote_digest": rem.get("digest"),
-                              "kind": "remote_modified"})
-        else:
-            to_push.append(entry)
+        to_push.append(entry)
     for rel in pushed:
         if rel not in local and rel not in remote:
             missing_remote.append({"rel": rel})
@@ -219,6 +221,20 @@ def backoff_delay(attempt, base_s, cap_s):
     base = max(0, float(base_s or 0))
     cap = max(base, float(cap_s or base))
     return min(cap, base * (2 ** max(0, attempt)))
+
+
+def backoff_jittered(attempt, base_s, cap_s, ratio=0.0, fraction=0.0):
+    """指数退避 + 抖动：在指数值上叠加 ``ratio`` 比例内抖动，封顶 cap_s。
+
+    ``fraction`` ∈ [0,1] 由调用方经 codec 随机接缝取入；本层不自持随机数。
+    """
+    base = backoff_delay(attempt, base_s, cap_s)
+    cap = max(base, float(cap_s or base))
+    if base <= 0:
+        return 0.0
+    fraction = min(1.0, max(0.0, float(fraction or 0.0)))
+    delay = base + base * max(0.0, float(ratio or 0.0)) * fraction
+    return min(cap, delay)
 
 
 # ---------------------------------------------------------------- 视图成形
@@ -235,6 +251,7 @@ def status_view(state):
     active_id = state.get("active") or ""
     profile = (state.get("profiles") or {}).get(active_id)
     ledger = (state.get("ledger") or {}).get(active_id) or {}
+    resume = (state.get("resume") or {}).get(active_id) or {}
     return {
         "active": active_id,
         "configured": bool(profile),
@@ -243,6 +260,7 @@ def status_view(state):
         "counts": {
             "profiles": len(state.get("profiles") or {}),
             "entries": len((state.get("manifests") or {}).get(active_id, {}).get("entries") or {}),
+            "pending": len(resume.get("pending") or []),
         },
     }
 

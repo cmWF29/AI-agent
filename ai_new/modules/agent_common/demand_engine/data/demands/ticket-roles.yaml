@@ -1,6 +1,6 @@
 id: ticket-roles
-title: 工单角色清单：读记录后取 roles
-description: 工单角色清单：读记录后取 roles。取一个字段
+title: 工单岗位清单：读记录后取 roles
+description: 工单岗位清单：读记录后取 roles。取一个字段
 tags:
 - ticket
 - read
@@ -33,4 +33,4 @@ expect:
   - store.read
   - tickets.roles
   payload: {}
-  promise: 取一个字段
+  promise: 取一条岗位记录

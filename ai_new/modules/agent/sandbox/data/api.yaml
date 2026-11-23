@@ -6,9 +6,20 @@ routes:
     out:
       ok: {type: bool}
       tiers: {type: dict}
+      mechanism_diff: {type: dict}
       binaries: {type: dict}
       lock: {type: dict}
       path_isolation: {type: dict}
+  sandbox.guard_path:
+    in:
+      root: {type: str, req: true}
+      target: {type: str, req: true}
+      platform: {type: str, req: false}
+    out:
+      ok: {type: bool}
+      code: {type: str}
+      root_canonical: {type: str}
+      target_canonical: {type: str}
   sandbox.pick_tier:
     in:
       tier: {type: str, req: false}

@@ -78,8 +78,9 @@ def _as_list(value):
 
 # pip 包名允许字符（PEP 508 名称）：字母数字开头，后接字母数字 / . / _ / -。
 _PKG_ALLOWED = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
-# 包名/版本约束里都不该出现的注入字符：空格、管道、后台、替换、路径、括号、通配等。
-_PKG_DANGEROUS = set(" |&$`/\\(){}*?#\"'")
+# 包名/版本约束里都不该出现的注入字符：空格、管道、后台、替换、路径、括号、通配、
+# 命令分隔符与换行（; && | ` $() 换行注入一律拒，固定 argv 直传不经 shell）。
+_PKG_DANGEROUS = set(" |&$`/\\(){}*?#\"';\n\r")
 
 
 def safe_pkg(p, tpl=None):

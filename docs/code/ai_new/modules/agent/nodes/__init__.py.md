@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/nodes/__init__.py
-hash: 03b1cdd8589b1e6ff17ae9df24b9479712f01f3deffa9b29fcaf917dd15db75f
+hash: 705c3291ad3a09bbeb00d0cc77838c50673cb2055d626eb9f2f63992af13e822
 symbols:
 - _now
 - _read_state
@@ -15,6 +15,7 @@ symbols:
 - _route_nodes_view
 - _route_assignments
 - _route_overview
+- _route_status
 - _route_project_node
 - _route_backups
 - _route_backup_record
@@ -112,6 +113,12 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `_route_overview`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_status`（function）
+- 职责: 运维页只读组合视图：节点状态（在线/假死/租约剩余）+ 归属 + 备份状态。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

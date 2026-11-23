@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/__init__.py
-hash: c6a06c5dbe311f7f9859e4f4527238820fe6f89730492d14b5622e11cc6877a1
+hash: 5c4e5e42d1d8087e491e9301111fa6bfb284b0ab3d19d497bcb06b259bd7fb28
 symbols:
 - setup
 - _cfg
@@ -13,6 +13,10 @@ symbols:
 - _audit
 - _err
 - _denied
+- _resume_path
+- _load_resume
+- _resume_write_effect
+- _resume_remove_effect
 - _route_providers
 - _route_profile_save
 - _route_profile_list
@@ -21,8 +25,11 @@ symbols:
 - _route_profile_delete
 - _load_profile
 - _provider_for
+- _revalidate_endpoint
 - _route_connection_test
 - _route_probe_roundtrip
+- _jitter_fraction
+- _mtime
 - _read_entry_bytes
 - _collect_entries
 - _remote_entries
@@ -115,6 +122,30 @@ updated_at: '2026-11-23T04:10:19'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_resume_path`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_load_resume`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_resume_write_effect`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_resume_remove_effect`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_route_providers`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -163,6 +194,12 @@ updated_at: '2026-11-23T04:10:19'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_revalidate_endpoint`（function）
+- 职责: 运行时复检端点：保存后配置/白名单可能变化；非法交回校验错误码。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_route_connection_test`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -175,6 +212,18 @@ updated_at: '2026-11-23T04:10:19'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_jitter_fraction`（function）
+- 职责: [0,1) 抖动系数：随机令牌经摘要映射；随机数能力归 codec，本层不自持 RNG。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_mtime`（function）
+- 职责: best-effort 取本地文件 mtime（epoch 秒）；解析/stat 失败记 0。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_read_entry_bytes`（function）
 - 职责: 按清单条目回读本地字节：原始件读模块路径；压缩件走 archive 只读接缝。
 - 入参/出参: 待人工补充
@@ -182,7 +231,7 @@ updated_at: '2026-11-23T04:10:19'
 - 关联需求/测试: 待人工补充
 
 ### `_collect_entries`（function）
-- 职责: 扫描策略类别内的本地文件，合并 archive 压缩索引，形成本地清单。
+- 职责: 扫描策略类别内的本地文件，合并 archive 压缩索引，形成本地清单（含 mtime）。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

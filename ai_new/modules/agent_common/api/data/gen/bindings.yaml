@@ -12,5 +12,5 @@ routes: {}
 stats:
   bound: 0
   modules: 39
-  route_literals: 369
+  route_literals: 373
 

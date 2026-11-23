@@ -27,4 +27,4 @@ expect:
   - cloud.sync_run
   - runtime.apply
   payload: {}
-  promise: 增量幂等：重复推不产生新版本；冲突不静默覆盖；项目角色触发被拒
+  promise: 增量幂等：重复推不产生新版本；冲突不静默覆盖；项目岗位触发被拒

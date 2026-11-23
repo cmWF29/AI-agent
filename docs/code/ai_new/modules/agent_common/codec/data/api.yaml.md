@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/codec/data/api.yaml
-hash: 23a6f0e139a0dfeda8e021c73ab2c8ed369d6b1912565d088bf456173ce074d4
+hash: a4f0cafb1f9544bd4abbae7a145261a54fe99b8b1e0a60ad8f520af4574f1c99
 symbols:
 - module
 - routes

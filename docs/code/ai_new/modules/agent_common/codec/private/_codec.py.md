@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/codec/private/_codec.py
-hash: 268ade8066265bcc3516ed4ec799b6c8688b43cbedc57de37580406482b810e5
+hash: 7965b34229fa7c4eafd70497c85a23ee96dfb37b6a2df60657449cb20aa95f8e
 symbols:
 - json_encode
 - json_decode
@@ -9,6 +9,7 @@ symbols:
 - yaml_decode
 - sse_decode
 - base64_decode_bytes
+- base64_encode
 - digest
 - nonce
 - decode_hex
@@ -67,6 +68,12 @@ JSON / SSE 编解码实现。失败是结果：{ok: False, error}。
 
 ### `base64_decode_bytes`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `base64_encode`（function）
+- 职责: 文本/字节 → base64 文本；与 base64_decode_bytes 成对，供契约里成对声明的调用方使用。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

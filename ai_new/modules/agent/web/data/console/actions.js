@@ -87,7 +87,7 @@ function resolveView(target, c) {
 /* ---- 弹窗 ---- */
 function bindDropZones(form) {
   (form.querySelectorAll("[data-drop]") || []).forEach((box) => {
-    const ta = box.querySelector("textarea");
+    const ta = box.querySelector("textarea,sl-textarea");
     if (!ta) return;
     box.addEventListener("dragover", (e) => { e.preventDefault(); box.classList.add("drag"); });
     box.addEventListener("dragleave", () => box.classList.remove("drag"));
@@ -101,41 +101,53 @@ function bindDropZones(form) {
     });
   });
 }
+function fieldHtml(f, ctx) {
+  let val = f.value != null ? fill(f.value, ctx) : "";
+  if (Array.isArray(val)) val = val.join("\n");
+  const req = f.required ? ' data-required="1"' : "";
+  const ro = f.readonly ? " readonly" : "";
+  const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "";
+  if (f.kind === "textarea") {
+    const drop = f.drop ? ` data-drop="${esc(f.name)}"` : "";
+    return `<div class="field"${drop}><label>${esc(f.label)}</label><sl-textarea name="${esc(f.name)}"${ph}${req}${ro}>${esc(val)}</sl-textarea></div>`;
+  }
+  if (f.kind === "select") {
+    const opts = (f.options || []).map((o) =>
+      `<sl-option value="${esc(o.value)}">${esc(o.label)}</sl-option>`).join("");
+    return `<div class="field"><label>${esc(f.label)}</label><sl-select name="${esc(f.name)}" data-value="${esc(String(val))}">${opts}</sl-select></div>`;
+  }
+  const type = f.kind === "url" ? "url" : f.kind === "password" ? "password" : "text";
+  return `<div class="field"><label>${esc(f.label)}</label><sl-input name="${esc(f.name)}" type="${type}" value="${esc(val)}"${ph}${req}${ro}></sl-input></div>`;
+}
+function readModalFields(formEl) {
+  const fields = {};
+  formEl.querySelectorAll("sl-input,sl-textarea,sl-select,input,select,textarea").forEach((el) => {
+    if (!el.name) return;
+    let v = el.value;
+    if (Array.isArray(v)) v = v.join(",");
+    fields[el.name] = typeof v === "string" ? v.trim() : (v == null ? "" : v);
+  });
+  return fields;
+}
 function openForm(form, ctx) {
   if (!form) return;
   MODAL_CTX = { form, ctx };
-  $("modal-title").textContent = fill(form.title || "", ctx);
+  const dlg = $("modal");
+  dlg.label = fill(form.title || "", ctx);
   $("modal-hint").textContent = fill(form.hint || "", ctx);
   $("modal-err").className = "modal-err";
   $("modal-err").textContent = "";
-  $("modal-form").innerHTML = (form.fields || []).map((f) => {
-    let val = f.value != null ? fill(f.value, ctx) : "";
-    if (Array.isArray(val)) val = val.join("\n");
-    const req = f.required ? ' data-required="1"' : "";
-    const ro = f.readonly ? " readonly" : "";
-    const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : "";
-    if (f.kind === "textarea") {
-      const drop = f.drop ? ` data-drop="${esc(f.name)}"` : "";
-      return `<div class="field"${drop}><label>${esc(f.label)}</label><textarea name="${esc(f.name)}"${ph}${req}${ro}>${esc(val)}</textarea></div>`;
-    }
-    if (f.kind === "select") {
-      const opts = (f.options || []).map((o) =>
-        `<option value="${esc(o.value)}"${String(val) === String(o.value) ? " selected" : ""}>${esc(o.label)}</option>`).join("");
-      return `<div class="field"><label>${esc(f.label)}</label><select name="${esc(f.name)}">${opts}</select></div>`;
-    }
-    const type = f.kind === "url" ? "url" : f.kind === "password" ? "password" : "text";
-    return `<div class="field"><label>${esc(f.label)}</label><input name="${esc(f.name)}" type="${type}" value="${esc(val)}"${ph}${req}${ro}></div>`;
-  }).join("");
+  $("modal-form").innerHTML = (form.fields || []).map((f) => fieldHtml(f, ctx)).join("");
+  // sl-select 选中值：渲染后按 data-value 回填
+  $("modal-form").querySelectorAll("sl-select").forEach((el) => { el.value = el.dataset.value || ""; });
   bindDropZones($("modal-form"));
   $("modal-ok").textContent = fill((form.submit || {}).ok || uiText("ok"), ctx);
   $("modal-ok").disabled = false;
-  $("modal").hidden = false;
+  dlg.show();
   if (typeof uiModal === "function") uiModal(true);
-  const first = $("modal-form").querySelector("input:not([readonly]),textarea,select");
+  const first = $("modal-form").querySelector("sl-input:not([readonly]),sl-textarea:not([readonly]),sl-select,input:not([readonly]),textarea,select");
   if (first) first.focus();
-  modalSubmit = async (fd) => {
-    const fields = {};
-    for (const [k, v] of fd.entries()) fields[k] = typeof v === "string" ? v.trim() : v;
+  modalSubmit = async (fields) => {
     for (const f of form.fields || []) {
       if (f.required && !fields[f.name]) throw new Error(uiText("required_empty", f.label));
     }
@@ -152,38 +164,45 @@ function openForm(form, ctx) {
   };
 }
 function closeModal() {
-  $("modal").hidden = true; modalSubmit = null; MODAL_CTX = null;
+  const dlg = $("modal");
+  if (dlg && dlg.open) dlg.hide();
+  modalSubmit = null; MODAL_CTX = null; modalBusy = false;
   if (typeof uiModal === "function") uiModal(false);
 }
 function modalError(msg) {
   $("modal-err").className = "modal-err on";
   $("modal-err").textContent = msg;
 }
-$("modal-cancel").onclick = () => {
-  if (typeof uiAllowed === "function" && !uiAllowed("modal_cancel")) return;
-  closeModal();
-};
-$("modal").onclick = (e) => {
-  if (e.target !== $("modal")) return;
-  if (typeof uiAllowed === "function" && !uiAllowed("modal_backdrop")) return;
-  closeModal();
-};
-$("modal-form").onsubmit = async (e) => {
-  e.preventDefault();
-  if (!modalSubmit) return;
+let modalBusy = false;
+async function submitModal() {
+  if (!modalSubmit || modalBusy) return;
   if (typeof uiAllowed === "function" && !uiAllowed("modal_ok")) return;
+  modalBusy = true;
   if (typeof uiEnter === "function") uiEnter("modal_ok");
-  const okLabel = $("modal-ok").textContent;
-  $("modal-ok").disabled = true;
-  $("modal-ok").textContent = uiText("loading") || "加载中…";
-  try { await modalSubmit(new FormData(e.target)); }
+  const okBtn = $("modal-ok");
+  const okLabel = okBtn.textContent;
+  okBtn.disabled = true;
+  okBtn.textContent = uiText("loading") || "加载中…";
+  try { await modalSubmit(readModalFields($("modal-form"))); }
   catch (err) {
     const msg = gateMessage(err);
     modalError(msg);
     banner(msg, "err");   // 表单失败也要换掉"加载中"，否则横幅一直挂着
   }
   finally {
-    $("modal-ok").disabled = false; $("modal-ok").textContent = okLabel;
+    okBtn.disabled = false; okBtn.textContent = okLabel;
+    modalBusy = false;
     if (typeof uiExit === "function") uiExit("modal_ok");
   }
+}
+$("modal-cancel").onclick = () => {
+  if (typeof uiAllowed === "function" && !uiAllowed("modal_cancel")) return;
+  closeModal();
 };
+$("modal-ok").onclick = submitModal;
+$("modal-form").onsubmit = (e) => { e.preventDefault(); submitModal(); };
+/* 遮罩点按关闭：过弹窗门禁；拒绝时拦下 sl-dialog 的默认关闭动作 */
+$("modal").addEventListener("sl-request-close", (e) => {
+  if (e.detail && e.detail.source !== "overlay") return;
+  if (typeof uiAllowed === "function" && !uiAllowed("modal_backdrop")) { e.preventDefault(); }
+});

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/decompose-install.yaml
-hash: 7c1d0aca292dfec56759d6c9def86105f992d17d7ce81aeb9a9c118ea8342468
+hash: c4b32626086a68c73b0bdb3ca7eaeb428f9a106ffe53d73a732eb27056e6df9a
 symbols:
 - id
 - title

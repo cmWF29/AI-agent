@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_archive_read.py
-hash: 11854aaf76e5934e85c4cf3c5fdc9aacbf65db8fa950de468dff4269fe98a0dc
+hash: 55b4214331f390325d861606b7db59a467412df7cb39a4cda84b3e48fda01b0b
 symbols:
 - read_bytes_resolved
 - read_text_resolved

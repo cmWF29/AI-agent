@@ -1,15 +1,16 @@
 ---
 source: ai_new/modules/agent/cloud/private/_pure.py
-hash: 9ee5cc4e7bd0304129fa087c70c9a6b7694862d5977f84283083872028b14752
+hash: 744e0ad79a7deffd51cf46652dd2154b7d72b513b190ae2074a9561d82a7cadf
 symbols:
 - empty_state
+- build_entry
 - normalize_caller
 - authorize
-- _host_is_blocked
 - validate_profile
 - sanitize_key
 - diff_plan
 - backoff_delay
+- backoff_jittered
 - mask_profile
 - status_view
 - project_sync_view
@@ -29,7 +30,13 @@ updated_at: '2026-11-23T04:10:19'
 ## 符号
 
 ### `empty_state`（function）
-- 职责: 空台账：profiles / active / manifests（上次推送清单）/ ledger（最近一次运行摘要）。
+- 职责: 空台账：profiles / active / manifests（上次推送清单）/ ledger / resume（断点续传）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `build_entry`（function）
+- 职责: 清单条目成形：sha256 + size + mtime 三件套齐备，供增量比对与断点续传。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -46,12 +53,6 @@ updated_at: '2026-11-23T04:10:19'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `_host_is_blocked`（function）
-- 职责: 回环 / 私网 / 链路本地地址拦截（防 SSRF 内网回连）。
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
 ### `validate_profile`（function）
 - 职责: 校验并规范化 profile。返回 ``{"ok", "errors", "profile"}``；errors 为代码列表。
 - 入参/出参: 待人工补充
@@ -59,7 +60,7 @@ updated_at: '2026-11-23T04:10:19'
 - 关联需求/测试: 待人工补充
 
 ### `sanitize_key`（function）
-- 职责: 远端对象键校验：拒绝绝对路径、``..`` 穿越与编码穿越；返回规范化 posix 键。
+- 职责: 远端对象键校验：委托给 _guard；返回规范化 posix 键或 None。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -72,6 +73,12 @@ updated_at: '2026-11-23T04:10:19'
 
 ### `backoff_delay`（function）
 - 职责: 指数退避：第 attempt 次失败后的等待秒数；attempt 从 0 起。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `backoff_jittered`（function）
+- 职责: 指数退避 + 抖动：在指数值上叠加 ``ratio`` 比例内抖动，封顶 cap_s。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

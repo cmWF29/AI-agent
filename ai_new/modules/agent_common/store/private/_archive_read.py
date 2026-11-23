@@ -15,7 +15,10 @@ def read_bytes_resolved(ctx, path):
     p = Path(path)
     if p.is_file():
         return p.read_bytes()
-    res = ctx.api.call("archive.resolve_abs", {"abs": str(p)}, caller=None)
+    # store ↔ archive 是平台件内部协作：以 store 的平台身份转调解析出口，
+    # 不让嵌套读路径继承外层业务模块身份而被跨模块闸误拒。
+    res = ctx.api.call("archive.resolve_abs", {"abs": str(p)},
+                       caller="platform:store")
     if not res.get("exists"):
         return None
     return res["raw"]

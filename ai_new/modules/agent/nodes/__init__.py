@@ -51,6 +51,7 @@ def setup(ctx):
         ("nodes.nodes_view", _route_nodes_view),
         ("nodes.assignments", _route_assignments),
         ("nodes.overview", _route_overview),
+        ("nodes.status", _route_status),
         ("nodes.project_node", _route_project_node),
         ("nodes.backups", _route_backups),
         ("nodes.backup_record", _route_backup_record),
@@ -128,6 +129,14 @@ def _route_overview(ctx, payload):
     now = _now(ctx)
     return {"ok": True, "nodes": _pure.nodes_view(_MOUNT, now),
             "assignments": _pure.assignments_view(_MOUNT)}
+
+
+def _route_status(ctx, payload):
+    """运维页只读组合视图：节点状态（在线/假死/租约剩余）+ 归属 + 备份状态。"""
+    payload = payload or {}
+    now = _now(ctx)
+    return {"ok": True, **_pure.status_view(_MOUNT, now,
+                                            ttl=payload.get("ttl"))}
 
 
 def _route_project_node(ctx, payload):

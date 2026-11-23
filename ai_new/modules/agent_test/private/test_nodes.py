@@ -255,6 +255,74 @@ class ReassignMigrationTest(unittest.TestCase):
         self.assertNotEqual(k1, _pure.idem_key("p1", "T2", "create", 3))
 
 
+class StatusDataPlaneTest(unittest.TestCase):
+    def test_nodes_view_carries_lease_count_and_remaining(self):
+        state = _seed()
+        _pure.acquire(state, "p1", "n1", 101.0, ttl=30)
+        _pure.acquire(state, "p2", "n1", 101.0, ttl=30)
+        _pure.heartbeat(state, "n2", {}, 101.0)
+        view = {n["id"]: n for n in _pure.nodes_view(state, 102.0)}
+        self.assertEqual(view["n1"]["lease_count"], 2)
+        self.assertAlmostEqual(view["n1"]["lease_remaining"], 29.0, places=2)
+        self.assertEqual(view["n2"]["lease_count"], 0)
+        self.assertIsNone(view["n2"]["lease_remaining"])
+        self.assertEqual(view["n1"]["health"], "alive")
+
+    def test_assignments_view_carries_remaining(self):
+        state = _seed()
+        _pure.acquire(state, "p1", "n1", 101.0, ttl=30)
+        _pure.release(state, "p1", state["leases"]["p1"]["token"], 102.0)
+        rows = {r["project"]: r for r in _pure.assignments_view(state, now=101.0)}
+        self.assertIsNone(rows["p1"]["remaining"])
+
+    def test_backups_view_normalizes_time_and_state(self):
+        state = _pure.empty_state()
+        _pure.record_backup(state, "p1", {"snapshot_id": "s1",
+                                          "created_at": 200.0, "state": "verified"})
+        rows = _pure.backups_view(state)
+        self.assertEqual(rows[0]["last_backup_at"], 200.0)
+        self.assertEqual(rows[0]["backup_state"], "verified")
+
+    def test_status_view_composite_shape(self):
+        state = _seed()
+        _pure.acquire(state, "p1", "n1", 101.0, ttl=30)
+        _pure.record_backup(state, "p1", {"snapshot_id": "s1",
+                                          "created_at": 200.0, "state": "verified"})
+        view = _pure.status_view(state, 102.0)
+        self.assertEqual(sorted(view.keys()), ["assignments", "backups", "nodes"])
+        n1 = next(n for n in view["nodes"] if n["id"] == "n1")
+        self.assertEqual(n1["lease_count"], 1)
+        self.assertAlmostEqual(n1["lease_remaining"], 29.0, places=2)
+        a1 = next(a for a in view["assignments"] if a["project"] == "p1")
+        self.assertEqual(a1["node"], "n1")
+        self.assertAlmostEqual(a1["remaining"], 29.0, places=2)
+        b1 = next(b for b in view["backups"] if b["project"] == "p1")
+        self.assertEqual(b1["last_backup_at"], 200.0)
+        self.assertEqual(b1["backup_state"], "verified")
+
+
+class RouteRegistrationTest(unittest.TestCase):
+    def test_status_route_registered(self):
+        from ai_new.modules.agent.nodes import setup as nodes_setup
+
+        class _Api:
+            def __init__(self):
+                self.routes = {}
+
+            def register(self, name, fn, *args, **kwargs):
+                self.routes[name] = fn
+
+            def call(self, route, payload, caller=None):
+                return {"value": None}
+
+        ctx = type("Ctx", (), {"api": _Api()})()
+        nodes_setup(ctx)
+        self.assertIn("nodes.status", ctx.api.routes)
+        self.assertIn("nodes.nodes_view", ctx.api.routes)
+        self.assertIn("nodes.assignments", ctx.api.routes)
+        self.assertIn("nodes.backups", ctx.api.routes)
+
+
 class SnapshotTest(unittest.TestCase):
     def test_plan_rejects_traversal_and_absolute(self):
         plan = _pure.plan_snapshot("p1", ["tickets/a.yaml", "../escape.md",

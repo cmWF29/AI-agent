@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/auth-change-password.yaml
-hash: 6e48b58bfe509ad5329ac6ca030d7633805ad631c1295d64281198e624985b44
+hash: 042cb39ca3495ab501637484f1ef861ce47180f6c7d5cd52b14484730393fe62
 symbols:
 - id
 - title

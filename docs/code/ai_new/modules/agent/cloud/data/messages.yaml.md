@@ -1,10 +1,11 @@
 ---
 source: ai_new/modules/agent/cloud/data/messages.yaml
-hash: f6afd347a8a01f5642754cbd22629fce11d83a28f8490694fa1004a286512c91
+hash: fa65efa4cf3701cf90ecffa5c250b95df70c7ec6d61bf1433d78b601f943fb23
 symbols:
 - forbidden_scope
 - not_found
 - bad_provider
+- bad_company
 - bad_endpoint
 - bad_scheme
 - blocked_host
@@ -15,8 +16,14 @@ symbols:
 - unknown_category
 - bad_conflict_policy
 - master_key_missing
+- master_key_invalid
 - not_sealed
+- seal_invalid
 - empty_secret
+- body_too_large
+- path_escape
+- redirect_blocked_host
+- bad_redirect
 - unknown_provider
 - adapter_pending
 - s3_signing_pending
@@ -56,6 +63,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `bad_provider`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `bad_company`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -121,13 +134,49 @@ YAML 配置：按键/段登记摘要。
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `master_key_invalid`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `not_sealed`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `seal_invalid`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `empty_secret`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `body_too_large`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `path_escape`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `redirect_blocked_host`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `bad_redirect`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: d5d5f85a6a74a26ce8ea10b26263cb2922c4cf95a53b5f05861c87f2b40923fc
+hash: 2a1791c22d2856bbca2cc0f18fa74f005be567db9b7b267a16dec3a7dad7bdea
 symbols:
 - foldLoad
 - foldSet
@@ -11,6 +11,7 @@ symbols:
 - ctlOf
 - actIndex
 - buttonHtml
+- badgeTone
 - badgeHtml
 - statusKind
 - statusText
@@ -87,6 +88,8 @@ symbols:
 - expandFolds
 - headHtml
 - mountGraphs
+- groupSections
+- composeBody
 - renderView
 - acts
 - badge
@@ -195,6 +198,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `buttonHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `badgeTone`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -651,6 +660,18 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `mountGraphs`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `groupSections`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `composeBody`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

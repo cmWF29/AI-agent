@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/library-role-prompt.yaml
-hash: 8bdb7820d249388bd935449caab229d06bf96fa9872c169f95ac98fc58b9ddb2
+hash: b0b92fb67846dc49273b43167dd0400782eb7da50b82b08e06bbefb7e076c8c9
 symbols:
 - id
 - title

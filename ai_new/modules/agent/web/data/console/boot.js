@@ -261,7 +261,7 @@ document.addEventListener("keydown", (e) => {
   if (ta && ta.tagName === "TEXTAREA" && e.key === "Enter" && !e.shiftKey) {
     const box = ta.closest(".composer");
     if (box) {
-      const btn = box.querySelector("button.primary");
+      const btn = box.querySelector("sl-button.primary, [data-clk='composer_send']");
       if (btn) { e.preventDefault(); btn.click(); }
     }
   }
@@ -340,7 +340,7 @@ document.addEventListener("pointerdown", (e) => {
   const stage = e.target.closest && e.target.closest(".deck-stage");
   const d = stage && stage.closest("[data-deck]");
   if (!d || d.dataset.open === "1") return;
-  if (e.target.closest("button")) return;
+  if (e.target.closest("button, sl-button")) return;
   DECK_DRAG = { d, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, moved: false, cards: deckCards(d) };
   uiTo("press", "deck:touch");
 });
@@ -460,7 +460,7 @@ function renderMenus(menus) {
   const btn = (m, cls) => {
     const v = viewByMenu(m);
     const navKey = (v && v.key) || m.key;
-    return `<button${cls ? ` class="${cls}"` : ""} data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</button>`;
+    return `<sl-button variant="text"${cls ? ` class="${cls}"` : ""} data-clk="nav" data-nav="${esc(navKey)}" data-ctl="ctl.nav.${esc(ctlSlug(m.label || m.key))}" data-ctl-state="idle">${esc(m.label || m.key)}</sl-button>`;
   };
   side.innerHTML = groups.map((g) => {
     const kids = {};

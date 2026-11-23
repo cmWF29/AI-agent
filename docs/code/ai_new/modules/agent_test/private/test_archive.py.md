@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_archive.py
-hash: 3fad7b886c316d28c164fa06f28a74f9b6fe177b04d73b140b30d77c12c9999e
+hash: 9d1a7842085c36b348611d76c4b7215d54502b272fadbfca0e9ff26c74899e75
 symbols:
 - json_encode
 - json_decode
@@ -30,6 +30,14 @@ symbols:
 - test_large_text_roundtrip
 - test_index_query_rows_shape_and_status
 - test_concurrent_reads_do_not_corrupt
+- test_transparent_read_callers_need_no_awareness
+- test_missing_index_raises_explicit_code
+- test_companion_missing_raises_explicit_code
+- test_corrupt_stream_carries_corrupt_code
+- test_metrics_reports_real_storage_and_cache_numbers
+- test_insufficient_samples_when_below_threshold
+- test_percentiles_present_after_enough_samples
+- test_ring_drops_oldest_beyond_capacity
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:22'
 ---
@@ -208,6 +216,54 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `test_concurrent_reads_do_not_corrupt`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_transparent_read_callers_need_no_awareness`（method）
+- 职责: 写入 → 压缩 → 读回：字节完全一致，上层只走原有读出口，不感知压缩。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_missing_index_raises_explicit_code`（method）
+- 职责: 压缩流在磁盘上、索引记录缺失：抛明确错误码，不静默返空。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_companion_missing_raises_explicit_code`（method）
+- 职责: 索引在、压缩流文件被删：抛明确错误码，不静默当未归档。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_corrupt_stream_carries_corrupt_code`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_metrics_reports_real_storage_and_cache_numbers`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_insufficient_samples_when_below_threshold`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_percentiles_present_after_enough_samples`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ring_drops_oldest_beyond_capacity`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

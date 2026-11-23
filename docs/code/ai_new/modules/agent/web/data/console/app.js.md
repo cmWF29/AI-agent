@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/app.js
-hash: 75190e1f6be27e15b4c951ffd23376229f144a60f1c4e47f1dba37ef95eb6bf6
+hash: 11e75dd85b4852424f63842c29c878fc6945a2d16fc2db73f5828bde6f3d3387
 symbols:
 - readYaml
 - yamlBody
@@ -33,6 +33,7 @@ symbols:
 - applyDraft
 - openStream
 - resolvePage
+- mountSecretaryStatus
 - scrollKeyOf
 - scrollMarks
 - scrollRestore
@@ -58,6 +59,8 @@ symbols:
 - flushPara
 - inner
 - roles
+- name
+- nexts
 - find
 - apply
 - verify
@@ -269,6 +272,12 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `mountSecretaryStatus`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `scrollKeyOf`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -414,6 +423,18 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `roles`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `name`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `nexts`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -53,6 +53,7 @@ EXTRA_MODULES = [
     "test_timer",
     "test_role_gates",
     "test_skill_decompose",
+    "test_levels",
 ]
 
 MODULES = BASELINE_MODULES + EXTRA_MODULES

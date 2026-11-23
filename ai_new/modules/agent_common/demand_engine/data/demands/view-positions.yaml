@@ -11,7 +11,7 @@ view:
   key: positions
   crumb: [岗位]
   heading: 岗位
-  subheading: 岗位 = 提示词 + 流程；角色是一次实例
+  subheading: 岗位 = 提示词 + 流程；派岗后生成实例
   data:
   - {as: list, demand: position-list}
   sections:

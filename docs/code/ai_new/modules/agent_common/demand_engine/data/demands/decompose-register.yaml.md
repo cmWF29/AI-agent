@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/decompose-register.yaml
-hash: b567aa544418790538588261798f40147a8bdfd35abe334768a9334597d59627
+hash: 9e6cdd5b27505789a8ceda0c3322cd53ce5806c86148e9beb6aafb3cf1a60f99
 symbols:
 - id
 - title

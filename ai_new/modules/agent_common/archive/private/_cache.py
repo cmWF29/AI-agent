@@ -69,6 +69,11 @@ class LRUCache:
         with self._lock:
             return dict(self._stats)
 
+    def capacity(self):
+        """容量档位上报：条目上限与字节上限，供观测面展示命中率分母。"""
+        with self._lock:
+            return {"max_entries": self._max_entries, "max_bytes": self._max_bytes}
+
     def configure(self, max_bytes=None, max_entries=None):
         with self._lock:
             if max_bytes is not None:
