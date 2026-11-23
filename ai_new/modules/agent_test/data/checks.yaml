@@ -228,6 +228,7 @@ checks:
   - nodes-list
   - nodes-migrations
   - nodes-project-node
+  - nodes-push-register
   - nodes-reassign
   - nodes-register
   - nodes-release

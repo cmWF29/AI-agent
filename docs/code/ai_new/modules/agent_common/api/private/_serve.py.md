@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/api/private/_serve.py
-hash: 6b2d7ed6af222d15d76cc3b61dd04ea3e8d7bff6026265158a20c6b6ca499681
+hash: c6e1003fe5bf61fd6229ea3f5cbfdc70ef4e592dcb0ac74ca78f9fe0b57b327a
 symbols:
 - __init__
 - start

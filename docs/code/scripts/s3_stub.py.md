@@ -1,6 +1,6 @@
 ---
 source: scripts/s3_stub.py
-hash: 676b2e326e1ef574524f2587d17eeff8270d4ca4c4f8c4efc1734c502d0c7b84
+hash: 0ce30611f7967cbd0e297ad6abbf980ffc4d6f2f5631799b7f7474623329a05e
 symbols:
 - _pct_encode
 - _canonical_query

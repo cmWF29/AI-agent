@@ -4,13 +4,23 @@
 """
 from __future__ import annotations
 
+import json
 import sys
 import unittest
+import urllib.error
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 from ai_new.modules.agent.nodes.private import _pure  # noqa: E402
+
+import importlib.util as _ilu  # noqa: E402
+
+_spec = _ilu.spec_from_file_location(
+    "push_node_client",
+    Path(__file__).resolve().parents[4] / "scripts" / "push_node_client.py")
+_push = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_push)
 
 
 def _seed():
@@ -381,6 +391,175 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual(rec["project"], "p1")
         view = _pure.backups_view(state)
         self.assertEqual(view[0]["snapshot_id"], "snap-1")
+
+
+class PushRegisterIdempotencyTest(unittest.TestCase):
+    """push 注册：同 id 重复登记幂等，不产生第二条节点记录。"""
+
+    def test_repeat_register_keeps_first_seen_and_refreshes_fields(self):
+        state = _pure.empty_state()
+        first = _pure.register(state, {"id": "n1", "endpoint": "http://10.0.0.1:8791",
+                                        "capacity": {"cpu": 2}}, 100.0)
+        registered_at = first["node"]["registered_at"]
+        second = _pure.register(state, {"id": "n1", "endpoint": "http://10.0.0.1:8792",
+                                        "capacity": {"cpu": 4}}, 120.0)
+        self.assertEqual(len(state["nodes"]), 1)
+        self.assertEqual(second["node"]["registered_at"], registered_at)
+        self.assertEqual(second["node"]["endpoint"], "http://10.0.0.1:8792")
+        self.assertEqual(second["node"]["capacity"]["cpu"], 4)
+
+    def test_heartbeat_expiry_marks_lost_and_releases_lease(self):
+        state = _seed()
+        _pure.acquire(state, "p1", "n1", 101.0, ttl=30)
+        sweep = _pure.sweep_expired(state, 200.0)
+        self.assertIn("n1", sweep["expired"])
+        self.assertIn("p1", sweep["released"])
+        self.assertEqual(state["leases"]["p1"]["state"], "released")
+
+
+class _CfgApi:
+    """假装配 api：config.get 回喂配置密钥，clock.now 给可控时间戳。"""
+
+    def __init__(self, secret, now=100.0):
+        self._secret = secret
+        self._now = now
+
+    def call(self, route, payload, caller=None):
+        if route == "config.get":
+            return {"value": self._secret}
+        if route == "clock.now":
+            return {"ts": self._now}
+        return {"value": None}
+
+
+class _CfgCtx:
+    def __init__(self, secret, now=100.0):
+        self.api = _CfgApi(secret, now)
+
+
+class PushRegisterAuthTest(unittest.TestCase):
+    """push 通道鉴权：密钥来自配置；空密钥开放，配了密钥后错 token 拒认。"""
+
+    def setUp(self):
+        from ai_new.modules.agent import nodes as nodes_mod
+        self.mod = nodes_mod
+
+    def test_open_mode_when_secret_empty(self):
+        self.assertIsNone(self.mod._auth_node(_CfgCtx(""), {"node_token": "x"}))
+
+    def test_wrong_token_rejected(self):
+        res = self.mod._auth_node(_CfgCtx("secret-123"), {"node_token": "wrong"})
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "unauthorized")
+
+    def test_matching_token_allowed(self):
+        self.assertIsNone(
+            self.mod._auth_node(_CfgCtx("secret-123"), {"node_token": "secret-123"}))
+
+    def test_missing_token_rejected_when_secret_configured(self):
+        res = self.mod._auth_node(_CfgCtx("secret-123"), {})
+        self.assertEqual(res["code"], "unauthorized")
+
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._raw = json.dumps(payload).encode("utf-8")
+
+    def read(self):
+        return self._raw
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class _FakeOpener:
+    def __init__(self, payload=None, exc=None):
+        self.calls = []
+        self.payload = payload or {"ok": True, "result": {"ok": True}}
+        self.exc = exc
+
+    def open(self, req, timeout=None):
+        self.calls.append({"method": req.get_method(), "url": req.full_url,
+                           "body": req.data.decode("utf-8") if req.data else ""})
+        if self.exc:
+            raise self.exc
+        return _FakeResp(self.payload)
+
+
+class PushClientBackoffTest(unittest.TestCase):
+    """出站客户端：注册/心跳报文、幂等补注册、指数退避与失败复位。"""
+
+    def _client(self, opener, **kw):
+        return _push.PushNodeClient(
+            "http://cp:8787", "n1", "tok-1",
+            endpoint="http://10.0.0.5:8790", capacity={"cpu": 2},
+            lease_ttl=2.0, interval=0.1, opener=opener, **kw)
+
+    def test_register_posts_capability_and_token(self):
+        opener = _FakeOpener()
+        client = self._client(opener)
+        client.register()
+        self.assertEqual(len(opener.calls), 1)
+        self.assertTrue(opener.calls[0]["url"].endswith("/nodes/push_register"))
+        body = json.loads(opener.calls[0]["body"])
+        self.assertEqual(body["id"], "n1")
+        self.assertEqual(body["node_token"], "tok-1")
+        self.assertEqual(body["capacity"]["cpu"], 2)
+        self.assertEqual(body["role"], "executor")
+
+    def test_heartbeat_posts_load(self):
+        opener = _FakeOpener()
+        client = self._client(opener)
+        client.register()
+        client.heartbeat({"running": 3})
+        self.assertEqual(len(opener.calls), 2)
+        body = json.loads(opener.calls[1]["body"])
+        self.assertEqual(body["node"], "n1")
+        self.assertEqual(body["load"]["running"], 3)
+
+    def test_ensure_registered_does_not_reregister(self):
+        opener = _FakeOpener()
+        client = self._client(opener)
+        client.register()
+        client.ensure_registered()
+        self.assertEqual(len(opener.calls), 1)
+
+    def test_reconnect_reregisters_after_registry_lost(self):
+        opener = _FakeOpener()
+        client = self._client(opener)
+        client.register()
+        client.registered = False  # 控制面已按 TTL 判出表
+        client.ensure_registered()
+        self.assertEqual(len(opener.calls), 2)
+        self.assertTrue(opener.calls[1]["url"].endswith("/nodes/push_register"))
+
+    def test_backoff_grows_and_caps(self):
+        opener = _FakeOpener()
+        client = self._client(opener, backoff_base=0.2, backoff_max=1.0)
+        self.assertEqual(client.backoff_delay(), 0.0)
+        client.mark_failure()
+        self.assertAlmostEqual(client.backoff_delay(), 0.2)
+        client.mark_failure()
+        self.assertAlmostEqual(client.backoff_delay(), 0.4)
+        client.mark_failure()
+        self.assertAlmostEqual(client.backoff_delay(), 0.8)
+        client.mark_failure()
+        self.assertEqual(client.backoff_delay(), 1.0)  # 封顶
+
+    def test_network_failure_marked_then_reset_on_success(self):
+        opener = _FakeOpener(exc=urllib.error.URLError("down"))
+        client = self._client(opener)
+        with self.assertRaises(_push.PushError) as cm:
+            client.heartbeat({"running": 1})
+        self.assertEqual(cm.exception.code, "network")
+        self.assertGreater(client.backoff_delay(), 0.0)
+        # 恢复后成功心跳，失败计数复位
+        opener.exc = None
+        client.heartbeat({"running": 1})
+        self.assertEqual(client.backoff_delay(), 0.0)
 
 
 if __name__ == "__main__":

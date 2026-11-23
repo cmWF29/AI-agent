@@ -17,6 +17,8 @@
 """
 from __future__ import annotations
 
+import hmac
+
 DEFAULT_TTL = 30.0
 LEASE_HELD = "held"
 LEASE_RELEASED = "released"
@@ -66,6 +68,18 @@ def _ts(now):
         return float(now or 0.0)
     except (TypeError, ValueError):
         return 0.0
+
+
+def token_matches(provided, expected):
+    """节点令牌常量时间比对；期望密钥为空（本机开发未配共享密钥）时放行。
+
+    密钥来自配置/环境变量，不写死在代码里；配了密钥后，缺令牌或令牌不符一律拒。
+    用 ``hmac.compare_digest`` 避免计时侧信道；空期望不做比对，保持开放态。
+    """
+    expected = str(expected or "")
+    if not expected:
+        return True
+    return hmac.compare_digest(str(provided or ""), expected)
 
 
 def validate_node(node):

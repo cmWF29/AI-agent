@@ -9,8 +9,11 @@ import hashlib
 import io
 import os
 import shutil
+import ssl
+import subprocess
 import sys
 import tempfile
+import threading
 import tracemalloc
 import unittest
 from pathlib import Path
@@ -50,11 +53,15 @@ class _PatternSource:
         self._pos = 0
         self._pattern = bytes((i * 7) % 256 for i in range(chunk))
 
+    def _tile(self, want):
+        repeats = want // len(self._pattern) + 1
+        return (self._pattern * repeats)[:want]
+
     def read(self, n=-1):
         if self._pos >= self._size:
             return b""
         want = min(n if n > 0 else self._chunk, self._size - self._pos)
-        out = self._pattern[:want]
+        out = self._tile(want)
         self._pos += want
         return out
 
@@ -66,7 +73,7 @@ class _PatternSource:
         pos = 0
         while pos < self._size:
             want = min(self._chunk, self._size - pos)
-            digest.update(self._pattern[:want])
+            digest.update(self._tile(want))
             pos += want
         return digest.hexdigest()
 
@@ -86,6 +93,19 @@ class _StubClock:
 
     def sleep(self, seconds):
         return None
+
+
+def _make_self_signed_cert(tmp, name="cert"):
+    """用 openssl 生成自签证书 + 私钥（IP SAN 指向 127.0.0.1）。"""
+    cert = os.path.join(tmp, name + ".pem")
+    key = os.path.join(tmp, name + ".key.pem")
+    subprocess.run([
+        "openssl", "req", "-x509", "-newkey", "rsa:2048",
+        "-keyout", key, "-out", cert, "-days", "1", "-nodes",
+        "-subj", "/CN=127.0.0.1",
+        "-addext", "subjectAltName=IP:127.0.0.1",
+    ], check=True, capture_output=True, text=True)
+    return cert, key
 
 
 class WebDavStubTest(unittest.TestCase):
@@ -185,6 +205,18 @@ class WebDavStubTest(unittest.TestCase):
 
     # ------------------------------------------------------------ 安全负向
 
+    def test_digest_auth_int_entity_hash(self):
+        auth = {"mode": "digest", "user": "u", "password": "p",
+                "qop": "auth, auth-int"}
+        self.server.auth = auth
+        client = self._client(credentials=auth, auth="digest")
+        body = b"auth-int-entity-body-0123456789"
+        res = client.put("auth-int.bin", body)
+        self.assertTrue(res["ok"], res)
+        # HEAD 探针与 PUT 各可能触发一次 401；摘要重试均通过鉴权。
+        self.assertGreaterEqual(self.store.challenges, 1)
+        self.assertGreaterEqual(self.store.authenticated, 1)
+
     def test_xxe_payload_rejected(self):
         evil = (
             '<?xml version="1.0"?>\n'
@@ -265,9 +297,15 @@ class WebDavStubTest(unittest.TestCase):
 
         growth = sum(trace.size_diff for trace in
                      snap_after.compare_to(snap_before, "lineno"))
+        client_growth = sum(
+            trace.size_diff for trace in
+            snap_after.compare_to(snap_before, "lineno")
+            if "_webdav.py" in trace.traceback[0].filename)
         # 10MB 正文不得一次性进内存：Python 侧驻留增量控制在 3MB 以内。
         self.assertLess(growth, 3 * 1024 * 1024,
                         "streaming held %d bytes resident" % growth)
+        print("\n[mem] 10MB WebDAV 流式客户端驻留增量: %.2f MiB（进程总量 %.2f MiB）"
+              % (client_growth / 1024 / 1024, growth / 1024 / 1024))
 
     def test_range_resume_partial(self):
         client = self._client()
@@ -280,6 +318,102 @@ class WebDavStubTest(unittest.TestCase):
         self.assertTrue(got["ok"], got)
         self.assertTrue(got["partial"])
         self.assertEqual(sink.getvalue(), body)
+
+    def test_resumable_chunked_upload_skips_done_chunks(self):
+        chunk = 20 * 1024
+        size = 100 * 1024
+        client = self._client(upload_chunk_size=chunk)
+        source = _PatternSource(size)
+        expect = source.expected_hash()
+
+        orig_request = client._request
+        state = {"chunk2": True}
+        put_paths = []
+
+        def flaky_request(method, path, **kw):
+            if "/0002" in path and state["chunk2"]:
+                state["chunk2"] = False
+
+                class _Resp:
+                    status = 500
+
+                    def getheader(self, name):
+                        return None
+
+                    def read(self):
+                        return b""
+
+                return _Resp()
+            put_paths.append((method, path))
+            return orig_request(method, path, **kw)
+
+        client._request = flaky_request
+
+        failed = client.put_resumable("resume-chunk.bin", source, size)
+        self.assertFalse(failed["ok"], failed)
+        self.assertEqual(failed["stage"], "chunk-put")
+
+        # 续跑：已完成块跳过，补缺块后 MOVE 组装为完整对象。
+        resumed = client.put_resumable("resume-chunk.bin", source, size)
+        self.assertTrue(resumed["ok"], resumed)
+        sink = _HashSink()
+        got = client.get("resume-chunk.bin", sink)
+        self.assertTrue(got["ok"], got)
+        self.assertEqual(sink.size, size)
+        self.assertEqual(sink.hexdigest(), expect)
+        # 第 1 块只上传一次；5 个块全部落过一次。
+        chunk1 = [p for _m, p in put_paths if "/0001" in p]
+        self.assertEqual(len(chunk1), 1)
+        self.assertEqual(self.store.chunk_puts, 5)
+
+    def test_range_put_capability_probe(self):
+        plain = self._client()
+        self.assertFalse(plain._probe_range_put())
+        advertised, _, _ = webdav_stub.start_stub(range_put=True)
+        try:
+            client = _webdav.WebDavClient(
+                "http://127.0.0.1:%d/" % advertised.server_address[1],
+                codec=_StubCodec(), clock=_StubClock())
+            self.assertTrue(client._probe_range_put())
+        finally:
+            advertised.shutdown()
+
+    def test_custom_ca_trust_chain(self):
+        if not shutil.which("openssl"):
+            self.skipTest("openssl not available")
+        tmp = tempfile.mkdtemp(prefix="dav-ca-")
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        cert, key = _make_self_signed_cert(tmp, "trust")
+        wrong_cert, _wrong_key = _make_self_signed_cert(tmp, "wrong")
+
+        httpd = webdav_stub.ThreadingHTTPServer(
+            ("127.0.0.1", 0), webdav_stub._Handler)
+        httpd.store = webdav_stub._Store(tmp)
+        httpd.auth = None
+        tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tls.load_cert_chain(certfile=cert, keyfile=key)
+        httpd.socket = tls.wrap_socket(httpd.socket, server_side=True)
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(httpd.shutdown)
+        self.addCleanup(httpd.server_close)
+        base = "https://127.0.0.1:%d/" % httpd.server_address[1]
+
+        trusted = _webdav.WebDavClient(
+            base, ca_bundle=cert, codec=_StubCodec(), clock=_StubClock())
+        # 自定义 CA 进入信任链：自签证书主体出现在上下文 CA 集中，探活通过。
+        ca_subjects = [c["subject"][0][0][1]
+                       for c in trusted._build_ssl_context().get_ca_certs()]
+        self.assertIn("127.0.0.1", ca_subjects)
+        self.assertTrue(trusted.test_connection()["ok"])
+        put = trusted.put("ca.txt", b"ca-trust-chain")
+        self.assertTrue(put["ok"], put)
+
+        # 错误 CA：证书链不在信任集 → 握手校验失败，不降级为不校验。
+        untrusted = _webdav.WebDavClient(
+            base, ca_bundle=wrong_cert, codec=_StubCodec(), clock=_StubClock())
+        probe = untrusted.test_connection()
+        self.assertFalse(probe["ok"])
 
 
 class RsyncChannelTest(unittest.TestCase):

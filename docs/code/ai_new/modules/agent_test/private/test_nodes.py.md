@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_nodes.py
-hash: d203f296ef5fec16d459d166f12077e9c27dba243ed53aa935e261ea40f7499b
+hash: 44ffb3b0c60c948c7e8a1bcd0f571567265000c56bf92e882477670a2b7209a5
 symbols:
 - _seed
 - test_register_records_node_alive
@@ -37,6 +37,29 @@ symbols:
 - test_plan_rejects_traversal_and_absolute
 - test_verify_manifest_reports_missing_and_mismatch
 - test_backup_record_and_view
+- test_repeat_register_keeps_first_seen_and_refreshes_fields
+- test_heartbeat_expiry_marks_lost_and_releases_lease
+- __init__
+- call
+- __init__
+- setUp
+- test_open_mode_when_secret_empty
+- test_wrong_token_rejected
+- test_matching_token_allowed
+- test_missing_token_rejected_when_secret_configured
+- __init__
+- read
+- __enter__
+- __exit__
+- __init__
+- open
+- _client
+- test_register_posts_capability_and_token
+- test_heartbeat_posts_load
+- test_ensure_registered_does_not_reregister
+- test_reconnect_reregisters_after_registry_lost
+- test_backoff_grows_and_caps
+- test_network_failure_marked_then_reset_on_success
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:23'
 ---
@@ -257,6 +280,144 @@ nodes 协调模块靶向单测：注册/心跳/租约/fencing/分配/快照台�
 - 关联需求/测试: 待人工补充
 
 ### `test_backup_record_and_view`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_repeat_register_keeps_first_seen_and_refreshes_fields`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_heartbeat_expiry_marks_lost_and_releases_lease`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__init__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `call`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__init__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `setUp`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_open_mode_when_secret_empty`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_wrong_token_rejected`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_matching_token_allowed`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_missing_token_rejected_when_secret_configured`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__init__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `read`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__enter__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__exit__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__init__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `open`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_client`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_register_posts_capability_and_token`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_heartbeat_posts_load`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ensure_registered_does_not_reregister`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_reconnect_reregisters_after_registry_lost`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_backoff_grows_and_caps`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_network_failure_marked_then_reset_on_success`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

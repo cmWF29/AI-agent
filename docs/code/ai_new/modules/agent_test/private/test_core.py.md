@@ -1,12 +1,13 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 4163ebc9eb43ddd1bb1925dd8f635cba9a750fae7c7eec7f9098aa29d5d6fb64
+hash: fa2db116e40504aa036cb13d0839825a3b9cf3578736f34f8c2e965e9dfac328
 symbols:
 - __init__
 - __call__
 - _demand_bound_routes
 - setUpClass
 - tearDownClass
+- setUp
 - test_every_registered_route_declares_contract
 - test_call_identity_is_judged_by_ledger
 - test_contract_enforces_required_fields
@@ -32,6 +33,7 @@ symbols:
 - _run
 - _clean_hooks
 - _glob
+- _remove_session
 - test_knowledge_roundtrip
 - test_knowledge_index_tree_groups_tickets_under_project
 - test_channel_post_tail_roundtrip
@@ -182,6 +184,12 @@ updated_at: '2026-11-23T04:10:22'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `setUp`（method）
+- 职责: 用例隔离：先收口前序用例后台派发的会话任务，再清掉非种子会话记录，
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_every_registered_route_declares_contract`（method）
 - 职责: 消息结构是数据：注册的每条路由都要在模块 data/api.yaml 里声明收发字段。
 - 入参/出参: 待人工补充
@@ -328,6 +336,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `_glob`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_remove_session`（method）
+- 职责: 用例收尾：删掉本用例在盘上造的会话，避免残留在途记录串扰后续
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

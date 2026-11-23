@@ -20,7 +20,9 @@
 """
 from __future__ import annotations
 
+import hashlib
 import hmac
+import io
 import threading
 import xml.etree.ElementTree as ElementTree
 
@@ -30,6 +32,8 @@ _SERVICE = "s3"
 _DEFAULT_REGION = "us-east-1"
 _DEFAULT_PART_MIN = 5 * 1024 * 1024
 _DEFAULT_THRESHOLD = 5 * 1024 * 1024
+# 单分片驻留内存硬上限：任何策略下分片不得超过 8MiB，100MB 级对象不整文件进内存。
+_PART_MAX_DEFAULT = 8 * 1024 * 1024
 _LIST_PAGE = "1000"
 
 _UNRESERVED = frozenset(
@@ -290,6 +294,8 @@ class S3Client:
                                        or _DEFAULT_THRESHOLD)
         self.part_min_size = int(policy.get("multipart_min_size")
                                  or _DEFAULT_PART_MIN)
+        self.part_max_bytes = int(policy.get("part_max_bytes")
+                                  or _PART_MAX_DEFAULT)
         self._gate = _RateGate(int(policy.get("concurrency") or 4),
                                int(policy.get("rate_per_s") or 0))
 
@@ -444,26 +450,75 @@ class S3Client:
 
     # ------------------------------------------------------------ 分片上传
 
-    def _split_parts(self, data):
-        if len(data) <= self.multipart_threshold:
-            return [data]
-        part_size = max(self.part_min_size, self.multipart_threshold)
-        parts = [data[i:i + part_size] for i in range(0, len(data), part_size)]
+    def _plan_parts(self, size):
+        """按固定边界切分 ``(offset, length)`` 分片；返回分片规划，不读入正文。"""
+        if size <= self.multipart_threshold:
+            return [(0, size)]
+        part_size = min(max(self.part_min_size, self.multipart_threshold),
+                        self.part_max_bytes)
+        parts = []
+        offset = 0
+        while offset < size:
+            end = min(offset + part_size, size)
+            parts.append((offset, end - offset))
+            offset = end
         # 末片小于最小分片阈值时并入前一片（S3 除末片外分片不得小于下限）。
-        if len(parts) > 1 and len(parts[-1]) < self.part_min_size:
-            parts[-2] = parts[-2] + parts[-1]
+        if len(parts) > 1 and parts[-1][1] < self.part_min_size:
+            prev = parts[-2]
+            parts[-2] = (prev[0], prev[1] + parts[-1][1])
             parts.pop()
         return parts
 
-    def put(self, key, data, resume=None):
-        _guard.check_body_size(data, self.max_body)
-        data = bytes(data)
-        parts = self._split_parts(data)
-        if len(parts) == 1:
-            return self._put_single(key, data)
-        return self._put_multipart(key, data, parts, resume or {})
+    def _read_part(self, source, offset, length):
+        """从可回卷源流读一个分片；单分片驻留 ≤ part_max_bytes。"""
+        source.seek(offset)
+        chunks = []
+        remaining = length
+        while remaining > 0:
+            chunk = source.read(min(remaining, self.part_max_bytes))
+            if not chunk:
+                break
+            chunks.append(bytes(chunk))
+            remaining -= len(chunk)
+        return b"".join(chunks)
 
-    def _put_single(self, key, data):
+    def _stream_digest(self, source, size):
+        """整对象 sha256：分块流过本地增量哈希，不保留整对象。"""
+        source.seek(0)
+        hasher = hashlib.sha256()
+        remaining = size
+        while remaining > 0:
+            chunk = source.read(min(remaining, self.part_max_bytes))
+            if not chunk:
+                break
+            hasher.update(bytes(chunk))
+            remaining -= len(chunk)
+        return hasher.hexdigest()
+
+    def put(self, key, data, resume=None):
+        """字节对象上传；兼容既有签名。大对象请走 :meth:`put_stream`。"""
+        data = bytes(data or b"")
+        _guard.check_body_size(data, self.max_body)
+        return self.put_stream(key, io.BytesIO(data), len(data), resume=resume)
+
+    def put_stream(self, key, source, size, resume=None):
+        """流式上传：分片按固定边界切分，单分片驻留 ≤ ``part_max_bytes``（默认 8MiB）。
+
+        ``source`` 须支持 ``seek(offset)`` 与 ``read(n)``；``size`` 为对象总字节数。
+        整对象摘要在分片流过时增量计算，续跑跳过已完成分片后补一轮分块全量哈希。
+        """
+        size = int(size or 0)
+        if self.max_body > 0 and size > self.max_body:
+            raise _guard.GuardError("body_too_large",
+                                    "body exceeds %d bytes" % self.max_body)
+        parts = self._plan_parts(size)
+        if len(parts) == 1:
+            return self._put_single_stream(key, source, size)
+        return self._put_multipart(key, source, size, parts, resume or {})
+
+    def _put_single_stream(self, key, source, size):
+        source.seek(0)
+        data = source.read(size)
         digest = self._digest_of(self.ctx, data)
         checksum = self.ctx.api.call(
             "codec.base64_encode", {"text": bytes.fromhex(digest)},
@@ -489,7 +544,7 @@ class S3Client:
             return None, {"ok": False, "code": "multipart_error", "status": row.get("status")}
         return upload_id, row
 
-    def _put_multipart(self, key, data, parts, resume):
+    def _put_multipart(self, key, source, size, parts, resume):
         upload_id = str(resume.get("upload_id") or "")
         done = {str(n): etag for n, etag in (resume.get("parts") or {}).items()}
         if not upload_id:
@@ -501,29 +556,34 @@ class S3Client:
             upload_id = str(upload_id)
 
         etags = dict(done)
-        for index, part in enumerate(parts, start=1):
+        running = hashlib.sha256()
+        skipped = False
+        for index, (offset, length) in enumerate(parts, start=1):
             number = str(index)
             if number in etags:
+                # 续跑跳过已完成分片；其字节不在增量哈希内，收尾补一轮分块全量哈希。
+                skipped = True
                 continue
+            part = self._read_part(source, offset, length)
             row = self._request(
                 "PUT", key,
                 query={"partNumber": number, "uploadId": upload_id}, body=part)
             if not row.get("ok"):
-                return {"ok": False, "code": row.get("code"), "offset": sum(
-                    len(p) for p in parts[:index - 1]),
-                        "upload_id": upload_id, "parts": etags}
+                return {"ok": False, "code": row.get("code"),
+                        "offset": offset, "upload_id": upload_id, "parts": etags}
             etag = (row.get("headers") or {}).get("etag") or ("etag-%d" % index)
             etags[number] = etag
+            running.update(part)
 
         complete_body = self._complete_xml(etags)
         row = self._request("POST", key, query={"uploadId": upload_id},
                             body=complete_body.encode("utf-8"))
         if not row.get("ok"):
             return {"ok": False, "code": row.get("code") or "multipart_error",
-                    "offset": len(data), "upload_id": upload_id, "parts": etags}
+                    "offset": size, "upload_id": upload_id, "parts": etags}
 
-        digest = self._digest_of(self.ctx, data)
-        return {"ok": True, "size": len(data), "offset": len(data), "digest": digest,
+        digest = self._stream_digest(source, size) if skipped else running.hexdigest()
+        return {"ok": True, "size": size, "offset": size, "digest": digest,
                 "upload_id": upload_id, "parts": etags}
 
     @staticmethod

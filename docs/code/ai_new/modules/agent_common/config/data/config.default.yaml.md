@@ -1,8 +1,9 @@
 ---
 source: ai_new/modules/agent_common/config/data/config.default.yaml
-hash: 700325879534c398d01efc57c8e64ff8bb79fac2f2f82a79057b9047584c53ae
+hash: 8ccea382f002cbaefb921808f8da0f5e694ecb2a9967c7cfe5314557334c128c
 symbols:
 - server
+- nodes
 - api
 - llm
 - net
@@ -41,6 +42,12 @@ YAML 配置：按键/段登记摘要。
 ## 符号
 
 ### `server`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `nodes`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

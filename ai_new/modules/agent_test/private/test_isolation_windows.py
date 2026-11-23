@@ -293,7 +293,6 @@ class WindowsTcpTransportTest(unittest.TestCase):
         import socket as _socket
         from test_plat import _minimal_ctx
         from ai_new.modules.agent_common.api.private import _serve, _transport
-        from ai_new.modules.agent_common.plat.private import _net
 
         sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
         sock.bind(("127.0.0.1", 0))

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/private/_webdav.py
-hash: 3ebfdcd43289bc9b1612c96cb8584aa1ffd90fad66b8c14cfe4f8e803d6fbc32
+hash: 41248cc08d5b00babb5b8b8604933ef67b669bdc2fea8c726d5a45b538a5f200
 symbols:
 - __init__
 - sanitize_key
@@ -11,12 +11,14 @@ symbols:
 - _href_to_rel
 - _parse_multistatus
 - __init__
+- _build_ssl_context
 - _connect
 - _rewind
 - _digest_hex
 - _b64_encode
 - _sleep
 - _basic_header
+- _entity_md5
 - _digest_header
 - _send
 - _request
@@ -27,6 +29,10 @@ symbols:
 - head
 - propfind
 - put
+- _absolute_url
+- _existing_chunks
+- _probe_range_put
+- put_resumable
 - get
 - mkcol
 - delete
@@ -100,6 +106,12 @@ WebDAV 通道：客户端（PROPFIND / PUT / GET / MKCOL / DELETE / HEAD）。
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_build_ssl_context`（method）
+- 职责: 构造 TLS 上下文：自定义 CA 优先，其次 SSL_CERT_FILE，缺省系统信任链。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_connect`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -136,8 +148,14 @@ WebDAV 通道：客户端（PROPFIND / PUT / GET / MKCOL / DELETE / HEAD）。
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_entity_md5`（method）
+- 职责: 实体正文 MD5（auth-int 用）：分块流过本地增量哈希，不保留整对象。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_digest_header`（method）
-- 职责: 按 RFC 2617 计算 Digest 响应头；支持 qop=auth（缺 qop 回落 RFC 2069）。
+- 职责: 按 RFC 2617 计算 Digest 响应头。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -192,6 +210,30 @@ WebDAV 通道：客户端（PROPFIND / PUT / GET / MKCOL / DELETE / HEAD）。
 
 ### `put`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_absolute_url`（method）
+- 职责: MOVE/COPY 的 Destination 头须为绝对 URI（RFC 4918）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_existing_chunks`（method）
+- 职责: PROPFIND 临时集合，返回已落块号集合；集合缺失按空处理。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_probe_range_put`（method）
+- 职责: 探测服务端是否通告 Content-Range 直传 PUT；未通告返回 False 走方案 ①。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `put_resumable`（method）
+- 职责: 方案 ① 断点分块上传：块 PUT 临时集合 → MOVE 组装。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

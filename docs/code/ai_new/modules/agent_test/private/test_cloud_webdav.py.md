@@ -1,17 +1,19 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_webdav.py
-hash: 3f41e66b1af319ecddd2c2e432293a56f060595793d7ec65ac87050985e60210
+hash: 9ba0fc947243ff2289ddf64ca90856c6ae60226712440665fefa07c61d736459
 symbols:
 - __init__
 - write
 - hexdigest
 - __init__
+- _tile
 - read
 - seek
 - expected_hash
 - digest
 - base64_encode
 - sleep
+- _make_self_signed_cert
 - setUp
 - tearDown
 - _client
@@ -21,12 +23,16 @@ symbols:
 - test_mkcol_conflict_409
 - test_delete_not_found
 - test_digest_401_retry
+- test_digest_auth_int_entity_hash
 - test_xxe_payload_rejected
 - test_traversal_key_rejected
 - test_capability_missing_when_not_injected
 - test_key_guard_delegates
 - test_large_file_streaming_bounded_memory
 - test_range_resume_partial
+- test_resumable_chunked_upload_skips_done_chunks
+- test_range_put_capability_probe
+- test_custom_ca_trust_chain
 - test_probe_reports_availability
 - test_sync_idempotent_when_available
 generated: gen_docs.py v1
@@ -68,6 +74,12 @@ WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_tile`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `read`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -100,6 +112,12 @@ WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连
 
 ### `sleep`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_make_self_signed_cert`（function）
+- 职责: 用 openssl 生成自签证书 + 私钥（IP SAN 指向 127.0.0.1）。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -158,6 +176,12 @@ WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `test_digest_auth_int_entity_hash`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_xxe_payload_rejected`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -189,6 +213,24 @@ WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连
 - 关联需求/测试: 待人工补充
 
 ### `test_range_resume_partial`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_resumable_chunked_upload_skips_done_chunks`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_range_put_capability_probe`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_custom_ca_trust_chain`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

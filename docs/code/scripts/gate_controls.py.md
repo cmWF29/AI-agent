@@ -1,6 +1,6 @@
 ---
 source: scripts/gate_controls.py
-hash: 3a0c8ba9c695e81eb19f1f39aee5d4d921e4f66b566da930074aed457eb0d343
+hash: 9aa9f50e11a1363812c3b610b1af7ea86cb1bc186602a53792d065d72876fb25
 symbols:
 - ctl_slug
 - ctl_of

@@ -9,9 +9,26 @@
 - XML 解析前拒绝 DOCTYPE / 实体声明，外部实体不展开，XXE 载荷必须失败；
 - 上传 / 下载均按块流式，不把整对象一次性读进内存；
 - 认证：Basic 预检发送；Digest 按 401 challenge 做 RFC 2617 重试
-  （nonce / opaque / qop / nc / cnonce）；
+  （nonce / opaque / qop / nc / cnonce）；qop=auth-int 时实体摘要参与 HA2；
 - 幂等：PUT 前 HEAD 比对 ETag / 大小，相同则跳过；传输失败指数退避重试；
   GET 支持 Range 续传（服务端回 206 时续传，回 200 时整体重拉）。
+
+上传侧断点方案（选型 ①，纯 WebDAV 通用路径）：
+
+- ① 分块 PUT 临时对象 + MOVE 组装：正文按固定块（默认 1MiB）PUT 到临时集合
+  ``.upload/<key>/<块号>``；中断后续跑先 PROPFIND 临时集合，已完成块跳过，
+  补缺块后 ``MOVE`` 临时集合到最终键完成组装（Nextcloud/ownCloud 风格块上传
+  约定；服务端按块号顺序拼接）。
+- ② Content-Range 直传：标准 WebDAV 极少通告该能力；``_probe_range_put`` 经
+  OPTIONS/Allow 头探测，当前无服务器通告时回落 ①，不做无把握的断点直写。
+- 未支持块上传约定的服务端，MOVE 组装失败后由调用方走整对象重 PUT，绝不留
+  半截对象顶替完整对象。
+
+TLS / 自定义 CA：
+
+- ``ca_bundle`` 构造参数优先；其次环境变量 ``SSL_CERT_FILE``；均缺省时走系统
+  默认信任链。自定义 CA 经 ``ssl.SSLContext.load_verify_locations`` 载入，
+  证书链校验失败交回 ``connection_error``/TLS 异常，不降级到不校验。
 
 适配面签名（供 ``_providers.py`` 按名接线，本模块不反向依赖 providers）::
 
@@ -51,15 +68,20 @@
 """
 from __future__ import annotations
 
+import hashlib
 import http.client
 import io
+import os
 import re
+import ssl
 import urllib.parse
 import xml.etree.ElementTree as ElementTree
 
 from . import _guard
 
 _CHUNK_SIZE = 64 * 1024
+# 断点分块上传默认块大小：1MiB；块内驻留内存不随整对象线性增长。
+_UPLOAD_CHUNK_DEFAULT = 1024 * 1024
 _DOCTYPE_RE = re.compile(r"<!\s*(DOCTYPE|ENTITY)\b", re.IGNORECASE)
 _CHALLENGE_RE = re.compile(r'(\w+)\s*=\s*("([^"]*)"|([^,]+))')
 
@@ -187,7 +209,8 @@ class WebDavClient:
     def __init__(self, endpoint, username=None, password=None, *, ctx=None,
                  codec=None, clock=None, cfg=None, timeout=30, auth="auto",
                  chunk_size=_CHUNK_SIZE, max_attempts=3, backoff_base_s=0.2,
-                 backoff_cap_s=2.0, max_body_bytes=0):
+                 backoff_cap_s=2.0, max_body_bytes=0, ca_bundle=None,
+                 upload_chunk_size=None):
         parts = urllib.parse.urlsplit(str(endpoint or ""))
         if parts.scheme not in ("http", "https"):
             raise WebDavError("bad_scheme", "endpoint scheme must be http/https")
@@ -201,6 +224,7 @@ class WebDavClient:
         self._ctx = ctx
         self._codec = codec
         self._clock = clock
+        self._cfg = cfg or {}
         self._scheme = parts.scheme
         self._host = parts.hostname
         self._port = parts.port or (443 if parts.scheme == "https" else 80)
@@ -214,13 +238,26 @@ class WebDavClient:
         self._backoff_base = float(backoff_base_s)
         self._backoff_cap = float(backoff_cap_s)
         self._max_body = int(max_body_bytes or 0)
+        self._ca_bundle = (ca_bundle or self._cfg.get("ca_bundle")
+                           or os.environ.get("SSL_CERT_FILE") or "")
+        self._upload_chunk = int(upload_chunk_size
+                                 or self._cfg.get("upload_chunk_size")
+                                 or _UPLOAD_CHUNK_DEFAULT)
 
     # ------------------------------------------------------------ 传输接缝
+
+    def _build_ssl_context(self):
+        """构造 TLS 上下文：自定义 CA 优先，其次 SSL_CERT_FILE，缺省系统信任链。"""
+        context = ssl.create_default_context()
+        if self._ca_bundle:
+            context.load_verify_locations(cafile=self._ca_bundle)
+        return context
 
     def _connect(self):
         if self._scheme == "https":
             return http.client.HTTPSConnection(self._host, self._port,
-                                              timeout=self._timeout)
+                                              timeout=self._timeout,
+                                              context=self._build_ssl_context())
         return http.client.HTTPConnection(self._host, self._port,
                                          timeout=self._timeout)
 
@@ -271,17 +308,45 @@ class WebDavClient:
         raw = ("%s:%s" % (self._username, self._password or "")).encode("utf-8")
         return "Basic " + self._b64_encode(raw)
 
-    def _digest_header(self, challenge, method, uri):
-        """按 RFC 2617 计算 Digest 响应头；支持 qop=auth（缺 qop 回落 RFC 2069）。"""
+    def _entity_md5(self, source):
+        """实体正文 MD5（auth-int 用）：分块流过本地增量哈希，不保留整对象。
+
+        源流可回卷；读完复位到起点，供重试发送复用。
+        """
+        hasher = hashlib.md5()
+        self._rewind(source)
+        while True:
+            chunk = source.read(self._chunk_size)
+            if not chunk:
+                break
+            hasher.update(bytes(chunk))
+        self._rewind(source)
+        return hasher.hexdigest()
+
+    def _digest_header(self, challenge, method, uri, entity_md5=None):
+        """按 RFC 2617 计算 Digest 响应头。
+
+        qop 选择：``auth-int``（实体摘要参与 HA2，须有正文摘要）优先于 ``auth``；
+        challenge 不带 qop 时回落 RFC 2069 旧式摘要。
+        """
         realm = challenge.get("realm", "")
         nonce = challenge["nonce"]
         opaque = challenge.get("opaque")
-        qop_raw = challenge.get("qop") or ""
-        qop = "auth" if "auth" in qop_raw.split(",") else ""
+        qop_list = [q.strip() for q in str(challenge.get("qop") or "").split(",")
+                    if q.strip()]
+        if entity_md5 is not None and "auth-int" in qop_list:
+            qop = "auth-int"
+        elif "auth" in qop_list:
+            qop = "auth"
+        else:
+            qop = ""
         user = self._username
         password = self._password or ""
         ha1 = self._digest_hex("%s:%s:%s" % (user, realm, password), "md5")
-        ha2 = self._digest_hex("%s:%s" % (method, uri), "md5")
+        if qop == "auth-int":
+            ha2 = self._digest_hex("%s:%s:%s" % (method, uri, entity_md5), "md5")
+        else:
+            ha2 = self._digest_hex("%s:%s" % (method, uri), "md5")
         nc = 1
         cnonce = self._digest_hex(nonce + ":" + str(nc), "md5")[:8]
         if qop:
@@ -326,6 +391,11 @@ class WebDavClient:
         headers = dict(headers or {})
         if self._username and self._auth in ("basic", "auto"):
             headers["Authorization"] = self._basic_header()
+        # auth-int 实体摘要：有正文分块流过哈希；无正文按空实体 MD5 参与 HA2。
+        if body_source is not None:
+            entity_md5 = self._entity_md5(body_source)
+        else:
+            entity_md5 = self._digest_hex("", "md5")
         conn = self._connect()
         resp = self._send(conn, method, path, headers, body_source, content_length)
         if (resp.status == 401 and self._username
@@ -336,7 +406,9 @@ class WebDavClient:
                 conn.close()
                 self._rewind(body_source)
                 conn = self._connect()
-                headers["Authorization"] = self._digest_header(challenge, method, path)
+                digest_uri = path or "/"
+                headers["Authorization"] = self._digest_header(
+                    challenge, method, digest_uri, entity_md5=entity_md5)
                 resp = self._send(conn, method, path, headers, body_source,
                                   content_length)
         return resp
@@ -454,6 +526,92 @@ class WebDavClient:
             if attempt + 1 < self._max_attempts:
                 self._sleep(self._backoff_delay(attempt))
         return last
+
+    # ------------------------------------------------------------ 断点分块上传
+
+    def _absolute_url(self, safe):
+        """MOVE/COPY 的 Destination 头须为绝对 URI（RFC 4918）。"""
+        path = self._path(safe)
+        return "%s://%s:%d%s" % (self._scheme, self._host, self._port, path)
+
+    def _existing_chunks(self, temp_dir):
+        """PROPFIND 临时集合，返回已落块号集合；集合缺失按空处理。"""
+        res = self.propfind(temp_dir, depth=1)
+        done = set()
+        if not res.get("ok"):
+            return done
+        prefix = temp_dir + "/"
+        for entry in res.get("entries") or []:
+            key = entry.get("key") or ""
+            if key.startswith(prefix):
+                done.add(key[len(prefix):])
+        return done
+
+    def _probe_range_put(self):
+        """探测服务端是否通告 Content-Range 直传 PUT；未通告返回 False 走方案 ①。"""
+        try:
+            resp = self._request("OPTIONS", self._path(""))
+            allow = (resp.getheader("Allow") or "").upper()
+            custom = (resp.getheader("X-WebDAV-Range-PUT") or "").strip().lower()
+            resp.read()
+            return custom in ("1", "true", "yes") or "PUT-RANGE" in allow
+        except (OSError, http.client.HTTPException):
+            return False
+
+    def put_resumable(self, key, source, size, *, etag=None, skip_identical=True):
+        """方案 ① 断点分块上传：块 PUT 临时集合 → MOVE 组装。
+
+        - 块大小默认 1MiB，块内驻留内存；整对象不一次性读入；
+        - 中断续跑：PROPFIND 临时集合跳过已完成块，只补缺块；
+        - 组装失败返回 ``stage=assemble``，临时块保留供下次续跑，不冒充完整对象。
+        """
+        safe = self._require_key(key)
+        size = int(size or 0)
+        if self._max_body > 0 and size > self._max_body:
+            return {"ok": False, "code": "body_too_large", "offset": 0,
+                    "detail": "body exceeds %d bytes" % self._max_body}
+
+        if skip_identical:
+            probe = self.head(safe)
+            if probe.get("ok"):
+                same_size = probe.get("size") == size
+                same_etag = etag is not None and probe.get("etag") == etag
+                if same_size and (etag is None or same_etag):
+                    return {"ok": True, "size": size, "offset": size,
+                            "skipped": True, "etag": probe.get("etag")}
+
+        # 能力探测：通告 Content-Range 直传时预留方案 ②；标准 WebDAV 未通告，走方案 ①。
+        supports_range_put = self._probe_range_put()
+        temp_dir = ".upload/" + safe
+        done = self._existing_chunks(temp_dir)
+        chunk = self._upload_chunk
+        offsets = list(range(0, size, chunk))
+        for index, offset in enumerate(offsets, start=1):
+            name = "%04d" % index
+            if name in done:
+                continue
+            length = min(chunk, size - offset)
+            source.seek(offset)
+            part = source.read(length)
+            resp = self._request(
+                "PUT", self._path(temp_dir + "/" + name),
+                headers={"Content-Type": "application/octet-stream"},
+                body_source=io.BytesIO(part), content_length=length)
+            if resp.status not in (200, 201, 204):
+                return {"ok": False, "code": _map_status(resp.status),
+                        "status": resp.status, "offset": offset,
+                        "stage": "chunk-put", "chunk": name}
+
+        resp = self._request(
+            "MOVE", self._path(temp_dir),
+            headers={"Destination": self._absolute_url(safe),
+                     "Overwrite": "T"})
+        if resp.status not in (200, 201, 204):
+            return {"ok": False, "code": _map_status(resp.status),
+                    "status": resp.status, "offset": size, "stage": "assemble",
+                    "range_put": supports_range_put}
+        return {"ok": True, "size": size, "offset": size, "skipped": False,
+                "etag": resp.getheader("ETag"), "range_put": supports_range_put}
 
     def get(self, key, sink, *, offset=0, resume=False):
         safe = self._require_key(key)

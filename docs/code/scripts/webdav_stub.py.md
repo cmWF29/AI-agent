@@ -1,16 +1,22 @@
 ---
 source: scripts/webdav_stub.py
-hash: 88aec01f0f23f89eeac4451aa420af31e7e1bfede7cda4d6dd3319eeddb7f279
+hash: d919548abf44e24a6d736a49f0693d7c68867f605198ca3072de5b54bb0f1395
 symbols:
+- _md5_hex
+- _parse_digest_header
 - _xml_escape
 - __init__
 - resolve
 - _etag
 - log_message
 - _send
+- _read_body
+- _digest_valid
 - _authorized
 - do_PROPFIND
 - do_PUT
+- do_OPTIONS
+- do_MOVE
 - do_GET
 - do_HEAD
 - do_MKCOL
@@ -32,6 +38,18 @@ updated_at: '2026-11-23T13:04:32'
 本地 WebDAV stub：PROPFIND / PUT / GET / MKCOL / DELETE / HEAD，供离线测试与验收复用。
 
 ## 符号
+
+### `_md5_hex`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_parse_digest_header`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `_xml_escape`（function）
 - 职责: （无 docstring）
@@ -69,6 +87,18 @@ updated_at: '2026-11-23T13:04:32'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_read_body`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_digest_valid`（method）
+- 职责: 独立复算 RFC 2617 Digest（auth / auth-int），与客户端实现互验。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_authorized`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -82,6 +112,18 @@ updated_at: '2026-11-23T13:04:32'
 - 关联需求/测试: 待人工补充
 
 ### `do_PUT`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `do_OPTIONS`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `do_MOVE`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

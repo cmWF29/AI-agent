@@ -22,6 +22,34 @@ routes:
       ok: {type: bool}
       node: {type: dict}
       effects: {type: list}
+  nodes.push_register:
+    # 节点主动连云控面（出网）注册：先鉴权再登记；同 id 重复注册幂等刷新。
+    in:
+      id: {type: str, req: true}
+      endpoint: {type: str, req: true}
+      transport: {type: str, req: false}
+      role: {type: str, req: false}
+      public_exposed: {type: bool, req: false}
+      region: {type: str, req: false}
+      capacity: {type: dict, req: false}
+      lease_ttl: {type: int, req: false}
+      node_token: {type: str, req: false}   # 共享密钥；配了 nodes.node_token 后必校验
+    out:
+      ok: {type: bool}
+      node: {type: dict}
+      channel: {type: str}
+      effects: {type: list}
+  nodes.push_heartbeat:
+    # push 通道心跳（租约续期信号）：鉴权后刷新负载与最后见活时间。
+    in:
+      node: {type: str, req: true}
+      load: {type: dict, req: false}
+      node_token: {type: str, req: false}
+    out:
+      ok: {type: bool}
+      node: {type: dict}
+      channel: {type: str}
+      effects: {type: list}
   nodes.acquire:
     in:
       project: {type: str, req: true}

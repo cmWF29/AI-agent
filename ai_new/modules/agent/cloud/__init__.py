@@ -640,10 +640,12 @@ def _register_tools(ctx):
             {"name": "endpoint", "type": "string", "required": True, "desc": "服务端点"},
             {"name": "root_dir", "type": "string", "desc": "远端根目录/桶前缀"},
             {"name": "credentials", "type": "object",
-             "desc": "凭证键值（密封落盘）；s3：access_key/secret_key/region/bucket"},
+             "desc": "凭证键值（密封落盘）；s3：access_key/secret_key/region/bucket；"
+             "webdav：username/password/ca_bundle"},
             {"name": "categories", "type": "list", "desc": "同步类别"},
             {"name": "policy", "type": "object",
-             "desc": "重试/体积/分片策略；s3：multipart_threshold/multipart_min_size/concurrency/rate_per_s"},
+             "desc": "重试/体积/分片策略；s3：multipart_threshold/multipart_min_size/"
+             "part_max_bytes/concurrency/rate_per_s；webdav：auth/upload_chunk_size/ca_bundle"},
         ]),
         ("cloud_profile_switch", "cloud.profile_switch", "tool_cloud_profile_switch_desc", [
             {"name": "id", "type": "string", "required": True, "desc": "profile 标识"}]),

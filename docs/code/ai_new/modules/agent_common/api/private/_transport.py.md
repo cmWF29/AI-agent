@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/api/private/_transport.py
-hash: 89195bcc68d41cb14cb7d73c9d71fe938e90bb3a23ff428f235a7fd5f32cab87
+hash: 8259972994b92f9d4baf372c96799dad143ccd0192c902edbd025728591d1f79
 symbols:
 - __init__
 - bindings

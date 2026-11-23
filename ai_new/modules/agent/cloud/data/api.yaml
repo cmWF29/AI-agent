@@ -14,9 +14,12 @@ routes:
       credential_ref: {type: str, req: false}
       credentials: {type: dict, req: false}
       # s3 通道凭证键（密封落盘，视图脱敏）：access_key / secret_key / region / bucket
+      # webdav 通道凭证键：username / password / ca_bundle（自定义 CA 证书包路径）
       categories: {type: list, req: false}
       policy: {type: dict, req: false}
-      # s3 通道策略键：multipart_threshold / multipart_min_size / concurrency / rate_per_s
+      # s3 通道策略键：multipart_threshold / multipart_min_size / part_max_bytes /
+      # concurrency / rate_per_s
+      # webdav 通道策略键：auth(basic/digest/auto) / upload_chunk_size / ca_bundle
       exclude_projects: {type: list, req: false}
       caller: {type: dict, req: false}
     out:

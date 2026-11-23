@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/private/_providers.py
-hash: ee4cd0e51e8a1c5f07daad9470df986da1c3dde6654ba20f599e4cc810acd512
+hash: 83f12faa3b5d71a481f78beccbe05f4cc5914a79f4a6211345a506703ec3cfe3
 symbols:
 - __init__
 - test_connection

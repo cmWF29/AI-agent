@@ -174,7 +174,122 @@ server {
 > `$connection_upgrade` 映射在 `nginx.conf` 的 `map` 段定义：
 > `map $http_upgrade $connection_upgrade { default upgrade; '' close; }`。
 
-## 8. 与仓库契约的对应
+## 8. 隧道三选一模板（WireGuard / frp / Cloudflare Tunnel）
+
+下面三条通道按部署网络三选一；默认推荐仍是「节点主动出网注册到控制面」（§6），
+隧道只解决控制面需要回连节点、或入口需要对公网暴露的问题。**以下模板均为配置骨架，
+本轮未在真实跨网环境联调**；上线前必须按 §8 选一条做端到端注册、心跳与迁移验证。
+
+### 8.1 WireGuard 站点间组网
+
+| 口径 | 说明 |
+| --- | --- |
+| 适用场景 | 跨机房 / 跨网段，两端都能出 UDP；需要三层互通后按内网地址互访，节点端口绑定隧道网卡 |
+| 端口与前缀 | UDP `51820`（可改）；隧道网段示例 `10.20.0.0/24`：控制面 `10.20.0.1`，节点 `10.20.0.2/3`；应用前缀 `http://10.20.0.x:8787` |
+| TLS 终止点 | WireGuard 只加密隧道内层流量；业务 HTTPS/TLS 仍在入口节点或前置代理终止，WG 不替代业务证书 |
+| 鉴权位置 | 隧道握手靠预登记公钥（可选 PSK 预共享）；业务鉴权（登录会话、节点 push token）在控制面应用层完成 |
+| 会话粘滞 | 隧道内若多入口对外，仍按 §4-C 做会话粘滞；单入口不涉及 |
+
+控制面 `/etc/wireguard/wg0.conf` 骨架：
+
+```ini
+[Interface]
+Address = 10.20.0.1/24
+ListenPort = 51820
+# 私钥留在本机，不下发前端；节点公钥预登记到对端 Peer
+
+[Peer]
+# 执行节点 A
+PublicKey = <node-a-public-key>
+AllowedIPs = 10.20.0.2/32
+Endpoint = <node-a-public-host>:51820
+PersistentKeepalive = 25
+
+[Peer]
+# 执行节点 B
+PublicKey = <node-b-public-key>
+AllowedIPs = 10.20.0.3/32
+Endpoint = <node-b-public-host>:51820
+PersistentKeepalive = 25
+```
+
+节点侧 `wg0.conf` 把 `[Interface]` 地址换成 `10.20.0.2/24`，Peer 指向控制面公钥与
+`Endpoint = <cp-public-host>:51820`。节点上报给控制面的 `endpoint` 用隧道内网地址
+（`http://10.20.0.2:8790`），不要填公网地址。
+
+### 8.2 frp 节点反连
+
+| 口径 | 说明 |
+| --- | --- |
+| 适用场景 | 节点在 NAT 后、无入站路由；有一台公网 frps，节点主动连 frps，控制面经 frp 代理回连节点 |
+| 端口与前缀 | frps `bind_port = 7000`，面板 `7500`（限内网/白名单）；节点代理 `remote_port = 8791` → 本地 `127.0.0.1:8790`；前缀 `frp://node-a.example:8791` |
+| TLS 终止点 | frpc↔frps 可开 `tls_only = true` 加密隧道；业务 TLS 仍在入口终止；frps 公网只放 7000 与必要代理端口 |
+| 鉴权位置 | frps `auth.token` 预共享给各 frpc；业务节点 token 走 `nodes.node_token`；按用户/分组隔离代理 |
+| 会话粘滞 | TCP 代理按端口固定后端，天然粘滞；多入口对外仍按会话 Cookie 粘滞，不做纯轮询 |
+
+公网 frps `frps.toml` 骨架：
+
+```toml
+bindAddr = "0.0.0.0"
+bindPort = 7000
+auth.method = "token"
+auth.token = "<预共享-token-部署时填入，不写进仓库>"
+# 面板只绑内网或加白名单，不对公网开
+webServer.addr = "127.0.0.1"
+webServer.port = 7500
+```
+
+节点 frpc `frpc.toml` 骨架：
+
+```toml
+serverAddr = "frps.example.com"
+serverPort = 7000
+auth.method = "token"
+auth.token = "<与 frps 一致的预共享 token>"
+transport.tls.only = true
+
+[[proxies]]
+name = "node-a-agent"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8790
+remotePort = 8791
+```
+
+### 8.3 Cloudflare Tunnel 出网
+
+| 口径 | 说明 |
+| --- | --- |
+| 适用场景 | 入口/节点不开任何入站端口，`cloudflared` 主动连 Cloudflare 边缘；域名 CNAME 到隧道，零入站暴露 |
+| 端口与前缀 | 本地服务 `127.0.0.1:8787`；公网前缀 `https://ai.example.com`；隧道 hostname 映射到本地端口 |
+| TLS 终止点 | 客户端↔边缘由 CF 边缘终止 TLS；边缘↔cloudflared 走隧道加密；源站可配 Origin Certificate，不回源明文 |
+| 鉴权位置 | 可在 CF Access 层加邮箱/OIDC 策略，应用层再做登录会话与节点 token 校验；隧道凭证按 profile 隔离，不进前端 |
+| 会话粘滞 | CF 侧按会话 Cookie 做亲和；控制台有状态会话不要配成无粘滞轮询 |
+
+`~/.cloudflared/config.yml` 骨架：
+
+```yaml
+tunnel: "<tunnel-uuid>"
+credentials-file: "/home/node/.cloudflared/<tunnel-uuid>.json"
+ingress:
+  - hostname: ai.example.com
+    service: http://127.0.0.1:8787
+  - service: http_status:404
+```
+
+启动：`cloudflared tunnel run <tunnel-name>`；DNS 用 `cloudflared tunnel route dns
+<tunnel-name> ai.example.com` 把域名指到隧道。节点执行面一般不直接走 CF 暴露，
+保持 §2 的「仅内网」口径；CF Tunnel 主要用于入口对公网接入。
+
+### 8.4 三条通道选型对照
+
+| 通道 | 方向 | 谁主动建连 | 加密层 | 适用网络 | 未联调范围 |
+| --- | --- | --- | --- | --- | --- |
+| WireGuard | 站点 ↔ 站点 | 两侧均可起 | 隧道层 + 业务层 | 跨机房三层互通 | 跨机房握手、内网端口绑定未实测 |
+| frp | 节点 → frps → 控制面 | 节点出站 | frpc↔frps 隧道 | NAT 后节点反连 | 代理回连、token 隔离未实测 |
+| Cloudflare Tunnel | 入口 → CF 边缘 | cloudflared 出站 | 边缘 TLS + 隧道 | 零入站公网接入 | 隧道 ingress、Access 策略未实测 |
+
+## 9. 与仓库契约的对应
 
 | 拓扑口径 | 契约落点 |
 | --- | --- |
@@ -192,9 +307,10 @@ server {
   `ai_new/modules/agent_common/config/data/config.default.yaml`
 - 运维页展示：`ai_new/modules/agent/web/data/console/`（节点类型 / 脱敏地址 / 暴露面 / 云端通道只读区块）
 
-## 9. 未验证项
+## 10. 未验证项
 
-- 跨机房 WireGuard 组网与 frp / Cloudflare Tunnel 反连通道在本轮只落口径与契约，
-  未在多台真机上联调；上线前需按 §5 选一条通道做端到端注册与心跳验证。
+- §8 的 WireGuard / frp / Cloudflare Tunnel 模板均为配置骨架，本轮未在真实跨网
+  环境（跨机房、NAT 后节点、CF 边缘）端到端联调；上线前需按 §8 选一条通道做
+  注册、心跳、租约迁移全链路验证。
 - 多入口会话粘滞在开源 Nginx 上按 Cookie / ip_hash 配置；真实会话 Cookie 名以
   控制台登录下发为准，换 Cookie 名要同步更新 §7 的 `hash` 键。

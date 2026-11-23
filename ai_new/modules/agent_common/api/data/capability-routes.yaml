@@ -390,4 +390,7 @@ capability_modules:
   stdlib_io:
     modules: [store, net, host, http, exec, archive, cloud, plat]
   clock_codec:
-    modules: [clock, codec, store, host, net, http, exec, boot, api, config, trace, archive, plat]
+    # cloud：SigV4 / Digest(HA2) / 分片校验和属协议层原语，流式增量哈希无法经
+    # 一次性 codec.digest 表达（100MB 对象不整文件驻留），故本模块自持摘要实现；
+    # 时钟/随机数仍走 ctx 接缝（cloud 不在本闸豁免之外的部分不受影响）。
+    modules: [clock, codec, store, host, net, http, exec, boot, api, config, trace, archive, plat, cloud]

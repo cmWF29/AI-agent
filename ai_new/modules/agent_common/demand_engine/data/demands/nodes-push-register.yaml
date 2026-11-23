@@ -1,0 +1,39 @@
+id: nodes-push-register
+title: 节点主动连云控面：出网注册、鉴权与幂等刷新
+description: "执行节点只做出站连接：带共享密钥注册并上报归属/容量；控制面先鉴权再登记，同 id 重复注册幂等刷新，断线重连后补注册。"
+tags: [nodes, write, security]
+enabled: true
+callable: true
+'on': []
+do:
+- call: nodes.push_register
+  with:
+    id:
+      get: input.id
+    endpoint:
+      get: input.endpoint
+    role:
+      get: input.role
+    capacity:
+      get: input.capacity
+    node_token:
+      get: input.node_token
+  as: out
+- call: nodes.push_heartbeat
+  with:
+    node:
+      get: input.id
+    load:
+      get: input.load
+    node_token:
+      get: input.node_token
+  as: beat
+expect:
+  given:
+    input: {id: node-1, endpoint: 'http://10.0.0.5:8790', role: executor,
+      capacity: {cpu: 2, memory_mb: 2048}, load: {running: 0}, node_token: 'secret'}
+  calls:
+  - nodes.push_register
+  - nodes.push_heartbeat
+  payload: {}
+  promise: 密钥校验通过后节点登记入表；同 id 重复注册不产生第二条记录；密钥不符拒认；失联超 TTL 判假死并释放租约

@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import hmac
 import os
 import re
 import shutil
@@ -35,6 +36,20 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 _RANGE_RE = re.compile(r"bytes=(\d+)-(\d*)")
+_DIGEST_RE = re.compile(r'(\w+)\s*=\s*("([^"]*)"|([^,]+))')
+
+
+def _md5_hex(text):
+    if isinstance(text, str):
+        text = text.encode("utf-8")
+    return hashlib.md5(bytes(text)).hexdigest()
+
+
+def _parse_digest_header(header):
+    params = {}
+    for match in _DIGEST_RE.finditer(header.partition(" ")[2]):
+        params[match.group(1)] = match.group(3) if match.group(3) is not None else match.group(4)
+    return params
 
 
 def _xml_escape(text):
@@ -48,6 +63,8 @@ class _Store:
     def __init__(self, root):
         self.root = root
         self.puts = 0
+        self.chunk_puts = 0
+        self.moves = 0
         self.gets = 0
         self.propfinds = 0
         self.deletes = 0
@@ -97,19 +114,50 @@ class _Handler(BaseHTTPRequestHandler):
         if body:
             self.wfile.write(body)
 
+    def _read_body(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        return self.rfile.read(length) if length else b""
+
+    def _digest_valid(self, auth, params, body):
+        """独立复算 RFC 2617 Digest（auth / auth-int），与客户端实现互验。"""
+        user, password = auth["user"], auth["password"]
+        if params.get("username") != user:
+            return False
+        realm = params.get("realm") or "stub"
+        nonce = params.get("nonce") or ""
+        uri = params.get("uri") or self.path
+        qop = params.get("qop") or ""
+        nc = params.get("nc") or "00000001"
+        cnonce = params.get("cnonce") or ""
+        ha1 = _md5_hex("%s:%s:%s" % (user, realm, password))
+        if qop == "auth-int":
+            ha2 = _md5_hex("%s:%s:%s" % (self.command, uri, _md5_hex(body)))
+            expected = _md5_hex(
+                "%s:%s:%s:%s:%s:%s" % (ha1, nonce, nc, cnonce, qop, ha2))
+        elif qop == "auth":
+            ha2 = _md5_hex("%s:%s" % (self.command, uri))
+            expected = _md5_hex(
+                "%s:%s:%s:%s:%s:%s" % (ha1, nonce, nc, cnonce, qop, ha2))
+        else:
+            ha2 = _md5_hex("%s:%s" % (self.command, uri))
+            expected = _md5_hex("%s:%s:%s" % (ha1, nonce, ha2))
+        return hmac.compare_digest(expected, params.get("response") or "")
+
     def _authorized(self):
         auth = getattr(self.server, "auth", None)
+        self._pending_body = None
         if not auth:
             return True
         header = self.headers.get("Authorization")
         if not header:
             self.server.store.challenges += 1
             if auth["mode"] == "digest":
+                qop = auth.get("qop") or "auth"
                 self.send_response(401)
                 self.send_header(
                     "WWW-Authenticate",
                     'Digest realm="stub", nonce="stub-nonce-1", '
-                    'qop="auth", opaque="stub-opaque"')
+                    'qop="%s", opaque="stub-opaque"' % qop)
             else:
                 self.send_response(401)
                 self.send_header("WWW-Authenticate", 'Basic realm="stub"')
@@ -121,11 +169,28 @@ class _Handler(BaseHTTPRequestHandler):
             decoded = base64.b64decode(cred).decode("utf-8", "replace")
             user, _, password = decoded.partition(":")
             ok = user == auth["user"] and password == auth["password"]
+            body = b""
         else:
-            # digest 桩：带摘要头即放行，仅核对用户名出现在头内。
-            ok = ('username="%s"' % auth["user"]) in header
+            body = self._read_body()
+            self._pending_body = body
+            ok = self._digest_valid(auth, _parse_digest_header(header), body)
         if ok:
             self.server.store.authenticated += 1
+        else:
+            # 凭证无效：回 401 challenge，不静默断连（避免掩盖鉴权失败）。
+            self.server.store.challenges += 1
+            if auth["mode"] == "digest":
+                qop = auth.get("qop") or "auth"
+                self.send_response(401)
+                self.send_header(
+                    "WWW-Authenticate",
+                    'Digest realm="stub", nonce="stub-nonce-1", '
+                    'qop="%s", opaque="stub-opaque"' % qop)
+            else:
+                self.send_response(401)
+                self.send_header("WWW-Authenticate", 'Basic realm="stub"')
+            self.send_header("Content-Length", "0")
+            self.end_headers()
         return ok
 
     # ------------------------------------------------------------ 路由
@@ -155,25 +220,69 @@ class _Handler(BaseHTTPRequestHandler):
         if target is None:
             self._send(404, "not found")
             return
-        length = int(self.headers.get("Content-Length") or 0)
+        body = self._pending_body
+        if body is None:
+            body = self._read_body()
         parent = os.path.dirname(target)
         os.makedirs(parent, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=parent)
         try:
             with os.fdopen(fd, "wb") as fh:
-                remaining = length
-                while remaining > 0:
-                    chunk = self.rfile.read(min(65536, remaining))
-                    if not chunk:
-                        break
-                    fh.write(chunk)
-                    remaining -= len(chunk)
+                fh.write(body)
             os.replace(tmp, target)
         except OSError:
             os.unlink(tmp)
             self._send(500, "write failed")
             return
-        store.puts += 1
+        if "/.upload/" in self.path:
+            store.chunk_puts += 1
+        else:
+            store.puts += 1
+        self._send(201, "", {"ETag": _etag(target)})
+
+    def do_OPTIONS(self):
+        range_put = getattr(self.server, "range_put", False)
+        self.send_response(200)
+        self.send_header("DAV", "1,2")
+        allow = "OPTIONS, HEAD, GET, PUT, MKCOL, DELETE, PROPFIND, MOVE"
+        self.send_header("Allow", allow)
+        if range_put:
+            self.send_header("X-WebDAV-Range-PUT", "1")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def do_MOVE(self):
+        if not self._authorized():
+            return
+        store = self.server.store
+        source = store.resolve(self.path)
+        if source is None or not os.path.exists(source):
+            self._send(404, "not found")
+            return
+        dest_header = self.headers.get("Destination") or ""
+        dest_path = urllib.parse.urlsplit(dest_header).path
+        target = store.resolve(dest_path)
+        if target is None:
+            self._send(404, "bad destination")
+            return
+        parent = os.path.dirname(target)
+        os.makedirs(parent, exist_ok=True)
+        try:
+            if os.path.isdir(source) and not os.path.isdir(target):
+                # 块集合组装：按块号排序拼接为最终对象。
+                names = sorted(n for n in os.listdir(source)
+                               if os.path.isfile(os.path.join(source, n)))
+                with open(target, "wb") as out:
+                    for name in names:
+                        with open(os.path.join(source, name), "rb") as fh:
+                            shutil.copyfileobj(fh, out)
+                shutil.rmtree(source)
+            else:
+                shutil.move(source, target)
+        except OSError:
+            self._send(500, "move failed")
+            return
+        store.moves += 1
         self._send(201, "", {"ETag": _etag(target)})
 
     def do_GET(self):
@@ -289,12 +398,13 @@ class _Handler(BaseHTTPRequestHandler):
         return "".join(out).encode("utf-8")
 
 
-def start_stub(auth=None, directory=None, port=0):
+def start_stub(auth=None, directory=None, port=0, range_put=False):
     """起桩服务（守护线程），返回 ``(server, thread, base_url)``。"""
     root = directory or tempfile.mkdtemp(prefix="webdav-stub-")
     server = ThreadingHTTPServer(("127.0.0.1", port), _Handler)
     server.store = _Store(root)
     server.auth = auth
+    server.range_put = range_put
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     bound = server.server_address[1]

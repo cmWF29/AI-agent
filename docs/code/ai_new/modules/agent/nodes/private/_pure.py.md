@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent/nodes/private/_pure.py
-hash: b226266739f09d96977fcac81e032d6fa61041e83e16641f92801058f629a15d
+hash: 1f1beac303ecbde8ab7ac1af55e8418e627208603d378b63ba654390b8f6d69c
 symbols:
 - _coerce_role
 - mask_endpoint
 - empty_state
 - _ts
+- token_matches
 - validate_node
 - register
 - heartbeat
@@ -67,6 +68,12 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `_ts`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `token_matches`（function）
+- 职责: 节点令牌常量时间比对；期望密钥为空（本机开发未配共享密钥）时放行。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

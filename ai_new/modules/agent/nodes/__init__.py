@@ -37,6 +37,28 @@ def _effect(state):
             "path": _PATH, "value": state}
 
 
+def _node_secret(ctx):
+    """节点推送通道共享密钥：只从配置 ``nodes.node_token`` 读。
+
+    环境变量 ``AI_NEW_NODE_TOKEN`` 由 config 引导层载入配置，模块不自己碰环境；
+    为空即本机开放态（与 server.auth 开放口径一致），对外部署必须在配置里设强密钥，
+    代码里不写死任何默认密钥。
+    """
+    row = ctx.api.call("config.get", {"key": "nodes.node_token"}, caller=None)
+    secret = row.get("value") if isinstance(row, dict) else None
+    return str(secret or "")
+
+
+def _auth_node(ctx, payload):
+    """push 通道鉴权：通过返回 None，否则返回拒绝结果 dict（未登录/令牌不符）。"""
+    secret = _node_secret(ctx)
+    if not secret:
+        return None
+    if not _pure.token_matches((payload or {}).get("node_token"), secret):
+        return {"ok": False, "code": "unauthorized", "reason": "bad_node_token"}
+    return None
+
+
 def setup(ctx):
     """装配入口：读自持台账，注册协调路由；不产生外部效果。"""
     global _MOUNT
@@ -44,6 +66,8 @@ def setup(ctx):
     routes = [
         ("nodes.register", _route_register),
         ("nodes.heartbeat", _route_heartbeat),
+        ("nodes.push_register", _route_push_register),
+        ("nodes.push_heartbeat", _route_push_heartbeat),
         ("nodes.acquire", _route_acquire),
         ("nodes.renew", _route_renew),
         ("nodes.release", _route_release),
@@ -80,6 +104,36 @@ def _route_heartbeat(ctx, payload):
     res = _pure.heartbeat(_MOUNT, payload.get("node"), payload.get("load"), _now(ctx))
     if res.get("ok"):
         return {"ok": True, "node": res["node"], "effects": [_effect(_MOUNT)]}
+    return res
+
+
+def _route_push_register(ctx, payload):
+    """节点主动连云控面（出网）注册：先鉴权，再登记/幂等刷新。
+
+    同 id 重复注册走 ``_pure.register`` 既有幂等口径：保留首次注册时间，只刷新
+    endpoint/capacity/last_seen，不产生第二条节点记录。
+    """
+    payload = payload or {}
+    denied = _auth_node(ctx, payload)
+    if denied:
+        return denied
+    res = _pure.register(_MOUNT, payload, _now(ctx))
+    if res.get("ok"):
+        return {"ok": True, "node": res["node"], "channel": "push",
+                "effects": [_effect(_MOUNT)]}
+    return res
+
+
+def _route_push_heartbeat(ctx, payload):
+    """push 通道心跳（租约续期信号）：鉴权后刷新负载与最后见活时间。"""
+    payload = payload or {}
+    denied = _auth_node(ctx, payload)
+    if denied:
+        return denied
+    res = _pure.heartbeat(_MOUNT, payload.get("node"), payload.get("load"), _now(ctx))
+    if res.get("ok"):
+        return {"ok": True, "node": res["node"], "channel": "push",
+                "effects": [_effect(_MOUNT)]}
     return res
 
 

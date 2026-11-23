@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation_windows.py
-hash: 145bae880dd7d13f024b825e8abd8764a18b16528c3f4f3df83c16595aa14fdf
+hash: 04ca8be4b051193ecc9e47f2d4d615f7b4a53cefb6ab6139c0706f4592776b50
 symbols:
 - test_case_and_slash_mix_normalized_equal
 - test_drive_escape_rejected
@@ -33,6 +33,12 @@ symbols:
 - test_rel_multilevel_backslash_traversal_rejected
 - test_rel_mixed_separators_allowed
 - test_guard_path_route_registered_and_callable
+- setUp
+- _spawn_child
+- test_capability_reports_msvcrt
+- test_contended_lock_times_out_then_releases
+- test_tcp_roundtrip_and_sidecar_cleanup
+- test_shared_memory_block_roundtrip
 generated: gen_docs.py v1
 updated_at: '2026-11-23T09:13:18'
 ---
@@ -229,6 +235,42 @@ Windows 档路径语义靶向单测（在 Linux 上跑纯判定函数，CI windo
 - 关联需求/测试: 待人工补充
 
 ### `test_guard_path_route_registered_and_callable`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `setUp`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_spawn_child`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_capability_reports_msvcrt`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_contended_lock_times_out_then_releases`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_tcp_roundtrip_and_sidecar_cleanup`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_shared_memory_block_roundtrip`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -238,10 +238,16 @@ class _WebDavAdapter(BaseProvider):
         from . import _webdav
         creds = profile.get("credentials") or {}
         policy = profile.get("policy") or {}
+        cfg = {
+            "ca_bundle": policy.get("ca_bundle") or creds.get("ca_bundle"),
+            "upload_chunk_size": policy.get("upload_chunk_size"),
+        }
         return _webdav.WebDavClient(
             profile.get("endpoint"),
             username=creds.get("username") or creds.get("access_key"),
             password=creds.get("password") or creds.get("secret_key"),
+            cfg=cfg,
+            auth=str(policy.get("auth") or "auto"),
             max_attempts=int(policy.get("max_attempts") or 3),
             max_body_bytes=int(policy.get("max_body_bytes") or 0))
 

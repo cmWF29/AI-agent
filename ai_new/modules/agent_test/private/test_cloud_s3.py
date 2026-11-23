@@ -7,12 +7,14 @@
 AI_NEW_S3_BUCKET``（可选 ``AI_NEW_S3_REGION``）读取；未配置即 ``skipTest``，不写死密钥。
 """
 import base64
+import hashlib
 import http.client
 import os
 import shutil
 import sys
 import tempfile
 import threading
+import tracemalloc
 import unittest
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -66,6 +68,40 @@ def _loopback_transport(port):
         return {"ok": resp.status < 500, "status": resp.status,
                 "headers": hdrs, "body": data, "text": data.decode("utf-8", "replace")}
     return transport
+
+
+class _PatternSource:
+    """确定性流式源：按 64KB 模式切片产出，整对象不进内存；支持 seek 回卷。"""
+
+    def __init__(self, size, chunk=64 * 1024):
+        self._size = size
+        self._chunk = chunk
+        self._pos = 0
+        self._pattern = bytes((i * 7) % 256 for i in range(chunk))
+
+    def _tile(self, want):
+        repeats = want // len(self._pattern) + 1
+        return (self._pattern * repeats)[:want]
+
+    def read(self, n=-1):
+        if self._pos >= self._size:
+            return b""
+        want = min(n if n > 0 else self._chunk, self._size - self._pos)
+        out = self._tile(want)
+        self._pos += want
+        return out
+
+    def seek(self, offset):
+        self._pos = max(0, min(offset, self._size))
+
+    def expected_hash(self):
+        digest = hashlib.sha256()
+        pos = 0
+        while pos < self._size:
+            want = min(self._chunk, self._size - pos)
+            digest.update(self._tile(want))
+            pos += want
+        return digest.hexdigest()
 
 
 class S3ChannelTest(unittest.TestCase):
@@ -224,6 +260,151 @@ class S3ChannelTest(unittest.TestCase):
         # 第 2 片在 stub 请求里出现两次：首次失败 + 续跑补发。
         part2 = [r for r in store.requests if "partNumber=2" in r["path"]]
         self.assertEqual(len(part2), 2)
+
+    def test_multipart_5xx_retried_then_success(self):
+        policy = {"multipart_threshold": 32, "multipart_min_size": 16,
+                  "max_attempts": 3, "backoff_base_s": 0, "backoff_cap_s": 0}
+        store = self.httpd.s3_store
+        orig = self.transport
+        state = {"part2_first": True}
+
+        def flaky(ctx, method, url, headers, body, timeout):
+            if "partNumber=2" in url and state["part2_first"]:
+                state["part2_first"] = False
+                parts = urlsplit(url)
+                store.record("PUT", parts.path + "?" + parts.query, 500)
+                return {"ok": False, "status": 500, "headers": {},
+                        "body": b"", "text": "boom"}
+            return orig(ctx, method, url, headers, body, timeout)
+
+        client = _s3.S3Client(
+            self.ctx, {"endpoint": "http://127.0.0.1:%d" % self.port,
+                       "root_dir": BUCKET, "policy": policy},
+            {"access_key": DEFAULT_AK, "secret_key": DEFAULT_SK,
+             "region": "us-east-1", "bucket": BUCKET},
+            transport=flaky)
+        body = (b"retry-part-" * 8)[:100]
+        put = client.put("retry5xx/archive.bin", body)
+        self.assertTrue(put["ok"], put)
+        part2 = [r for r in store.requests if "partNumber=2" in r["path"]]
+        self.assertEqual([r["status"] for r in part2], [500, 200])
+        got = client.get("retry5xx/archive.bin")
+        self.assertTrue(got["ok"])
+        self.assertEqual(got["data"], body)
+
+    def test_abort_mid_part_resume_skips_done(self):
+        policy = {"multipart_threshold": 32, "multipart_min_size": 16,
+                  "max_attempts": 1, "backoff_base_s": 0, "backoff_cap_s": 0}
+        body = (b"abort-part-" * 8)[:100]
+        store = self.httpd.s3_store
+        orig = self.transport
+
+        def abort(ctx, method, url, headers, body, timeout):
+            if "partNumber=2" in url:
+                # 传输到一半掐断：链路不可达，无 HTTP 响应。
+                return {"ok": False, "status": 0, "code": "unreachable",
+                        "headers": {}, "body": b"", "text": "connection aborted"}
+            return orig(ctx, method, url, headers, body, timeout)
+
+        broken = _s3.S3Client(
+            self.ctx, {"endpoint": "http://127.0.0.1:%d" % self.port,
+                       "root_dir": BUCKET, "policy": policy},
+            {"access_key": DEFAULT_AK, "secret_key": DEFAULT_SK,
+             "region": "us-east-1", "bucket": BUCKET},
+            transport=abort)
+        failed = broken.put("abort/archive.bin", body)
+        self.assertFalse(failed["ok"], failed)
+        self.assertTrue(failed["upload_id"])
+        self.assertIn("1", failed["parts"])
+        self.assertNotIn("2", failed["parts"])
+
+        resume = {"upload_id": failed["upload_id"], "parts": failed["parts"]}
+        client = self._client(policy=policy)
+        resumed = client.put("abort/archive.bin", body, resume=resume)
+        self.assertTrue(resumed["ok"], resumed)
+        got = client.get("abort/archive.bin")
+        self.assertTrue(got["ok"])
+        self.assertEqual(got["data"], body)
+        # 已完成的第 1 片续跑未重传；第 2 片在续跑中补发。
+        part1 = [r for r in store.requests if "partNumber=1" in r["path"]]
+        self.assertEqual(len(part1), 1)
+
+    def test_concurrent_eight_distinct_objects(self):
+        policy = {"concurrency": 8, "max_attempts": 3,
+                  "backoff_base_s": 0, "backoff_cap_s": 0}
+        client = self._client(policy=policy)
+        size = 256 * 1024
+        results, errors = {}, []
+        barrier = threading.Barrier(8)
+
+        def worker(i):
+            try:
+                barrier.wait()
+                source = _PatternSource(size)
+                res = client.put_stream("conc/obj-%d" % i, source, size)
+                results[i] = res
+            except Exception as exc:  # 断言汇总到主线程
+                errors.append(exc)
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertFalse(errors, [str(e) for e in errors])
+        self.assertEqual(len(results), 8)
+        for res in results.values():
+            self.assertTrue(res["ok"], res)
+        self.assertEqual(len(client.list_keys("conc/")), 8)
+        for i in range(8):
+            got = client.get("conc/obj-%d" % i)
+            self.assertTrue(got["ok"], got)
+            self.assertEqual(got["digest"], results[i]["digest"])
+
+    def test_repeat_multipart_upload_single_version(self):
+        policy = {"multipart_threshold": 32, "multipart_min_size": 16,
+                  "max_attempts": 3, "backoff_base_s": 0, "backoff_cap_s": 0}
+        client = self._client(policy=policy)
+        body = (b"repeat-body-" * 8)[:100]
+        first = client.put("idem/archive.bin", body)
+        self.assertTrue(first["ok"], first)
+        second = client.put("idem/archive.bin", body)
+        self.assertTrue(second["ok"], second)
+        self.assertEqual(first["digest"], second["digest"])
+        objects = [k for k in self.httpd.s3_store.objects
+                   if k == "idem/archive.bin"]
+        self.assertEqual(len(objects), 1)
+        got = client.get("idem/archive.bin")
+        self.assertEqual(got["data"], body)
+
+    def test_100mb_streaming_bounded_memory(self):
+        policy = {"multipart_threshold": 1024 * 1024, "multipart_min_size": 1024 * 1024,
+                  "part_max_bytes": 8 * 1024 * 1024, "concurrency": 1,
+                  "max_attempts": 3, "backoff_base_s": 0, "backoff_cap_s": 0}
+        client = self._client(policy=policy)
+        size = 100 * 1024 * 1024
+        source = _PatternSource(size)
+        expect = source.expected_hash()
+
+        tracemalloc.start()
+        before = tracemalloc.take_snapshot()
+        try:
+            put = client.put_stream("big/100mb.bin", source, size)
+            self.assertTrue(put["ok"], put)
+            self.assertEqual(put["digest"], expect)
+        finally:
+            after = tracemalloc.take_snapshot()
+            tracemalloc.stop()
+
+        # 只统计客户端模块帧的驻留增量；同进程 stub 侧的整对象缓存不计入客户端。
+        growth = 0
+        for trace in after.compare_to(before, "lineno"):
+            if "_s3.py" in trace.traceback[0].filename:
+                growth += trace.size_diff
+        # 100MB 正文不得一次性进内存：客户端驻留增量控制在 16MB 以内（单分片 ≤8MB）。
+        self.assertLess(growth, 16 * 1024 * 1024,
+                        "client held %d bytes resident" % growth)
+        print("\n[mem] 100MB S3 流式客户端驻留增量: %.2f MiB" % (growth / 1024 / 1024))
 
     def test_checksum_mismatch_reports_error(self):
         client = self._client()

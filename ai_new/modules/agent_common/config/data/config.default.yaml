@@ -17,6 +17,10 @@ server:
     enabled: false
     cert: ''
     key: ''
+nodes:
+  # 节点主动连云控面（push）共享密钥：空串=本机开放态；对外部署必须设强密钥，
+  # 也可用环境变量 AI_NEW_NODE_TOKEN 覆写。节点注册/心跳随请求体 node_token 上报校验。
+  node_token: ''
 api:
   transport_timeout: 10  # 跨进程通道超时秒数（direct 不走网络，不读它）
   contract_mode: enforce  # 入参契约校验：enforce 缺必填报 bad_payload；warn 只记证据

@@ -1,13 +1,17 @@
 ---
 source: ai_new/modules/agent/nodes/__init__.py
-hash: 705c3291ad3a09bbeb00d0cc77838c50673cb2055d626eb9f2f63992af13e822
+hash: ecd0615691502ef37d47ea287f9cae28dbd737f304b318ba9e1d5e14fae0e40b
 symbols:
 - _now
 - _read_state
 - _effect
+- _node_secret
+- _auth_node
 - setup
 - _route_register
 - _route_heartbeat
+- _route_push_register
+- _route_push_heartbeat
 - _route_acquire
 - _route_renew
 - _route_release
@@ -57,6 +61,18 @@ updated_at: '2026-11-23T04:10:20'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_node_secret`（function）
+- 职责: 节点推送通道共享密钥：只从配置 ``nodes.node_token`` 读。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_auth_node`（function）
+- 职责: push 通道鉴权：通过返回 None，否则返回拒绝结果 dict（未登录/令牌不符）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `setup`（function）
 - 职责: 装配入口：读自持台账，注册协调路由；不产生外部效果。
 - 入参/出参: 待人工补充
@@ -71,6 +87,18 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `_route_heartbeat`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_push_register`（function）
+- 职责: 节点主动连云控面（出网）注册：先鉴权，再登记/幂等刷新。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_push_heartbeat`（function）
+- 职责: push 通道心跳（租约续期信号）：鉴权后刷新负载与最后见活时间。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

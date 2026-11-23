@@ -1,9 +1,14 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_s3.py
-hash: 63719d1b20476d1d37e1b2142d0320cd07c13e2ef306c58a0037a4c95c14eae1
+hash: 783b4cc42199febd0fe5c45153000ad9b6119bfd5a0d2b4929dfffdc422d3b18
 symbols:
 - _make_ctx
 - _loopback_transport
+- __init__
+- _tile
+- read
+- seek
+- expected_hash
 - setUpClass
 - tearDownClass
 - setUp
@@ -15,6 +20,11 @@ symbols:
 - test_delete_object
 - test_multipart_upload_assembles
 - test_multipart_resume_skips_done_parts
+- test_multipart_5xx_retried_then_success
+- test_abort_mid_part_resume_skips_done
+- test_concurrent_eight_distinct_objects
+- test_repeat_multipart_upload_single_version
+- test_100mb_streaming_bounded_memory
 - test_checksum_mismatch_reports_error
 - test_429_backoff_retry_then_success
 - test_signature_format_and_wrong_secret_rejected
@@ -50,6 +60,36 @@ S3 通道验收：SigV4 签名互验、对象往返、分页、删除、分片�
 
 ### `_loopback_transport`（function）
 - 职责: 测试传输：经 loopback HTTP 打 stub；签名头/体原样保留，真过一遍网络栈。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__init__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_tile`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `read`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `seek`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `expected_hash`（method）
+- 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -115,6 +155,36 @@ S3 通道验收：SigV4 签名互验、对象往返、分页、删除、分片�
 - 关联需求/测试: 待人工补充
 
 ### `test_multipart_resume_skips_done_parts`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_multipart_5xx_retried_then_success`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_abort_mid_part_resume_skips_done`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_concurrent_eight_distinct_objects`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_repeat_multipart_upload_single_version`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_100mb_streaming_bounded_memory`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

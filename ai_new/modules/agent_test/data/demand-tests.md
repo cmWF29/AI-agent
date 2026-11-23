@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 178 条需求，绑定 15 个检查项。
+共 179 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -77,6 +77,7 @@
 | nodes-list | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-migrations | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-project-node | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
+| nodes-push-register | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-reassign | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-register | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |
 | nodes-release | nodes | nodes | test_nodes.py | 节点协调：注册心跳、租约 fencing、分配回迁、快照备份与迁移台账 |

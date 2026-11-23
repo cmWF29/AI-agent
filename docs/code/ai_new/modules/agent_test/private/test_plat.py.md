@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_plat.py
-hash: 506126748289d1d4bcc3739f9c8bdfcba74bdb831cc10b0b3744ee5af33f1b76
+hash: ea828e66249845d39dcba2565e0d5fad204cdaa7b7d97f2a79af2d673501481f
 symbols:
 - test_lock_capability_shape
 - test_transport_capability_shape
@@ -17,6 +17,15 @@ symbols:
 - test_missing_addr_file_returns_none
 - test_install_stop_handler_posix
 - test_install_stop_handler_windows
+- setUp
+- _spawn_child
+- _wait_ready
+- test_contended_lock_times_out_then_releases
+- test_timeout_does_not_block_forever
+- test_listen_connect_peer_matches
+- test_unix_tcp_fallback_sidecar_cleaned_on_stop
+- test_shm_roundtrip_consistent
+- _minimal_ctx
 generated: gen_docs.py v1
 updated_at: '2026-11-23T13:04:31'
 ---
@@ -118,6 +127,60 @@ plat 平台适配层靶向单测：锁互斥/重入、传输档位与回退、�
 
 ### `test_install_stop_handler_windows`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `setUp`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_spawn_child`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_wait_ready`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_contended_lock_times_out_then_releases`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_timeout_does_not_block_forever`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_listen_connect_peer_matches`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_unix_tcp_fallback_sidecar_cleaned_on_stop`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_shm_roundtrip_consistent`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_minimal_ctx`（function）
+- 职责: 测试最小 ctx：够 _serve/_transport 转调用与编解码。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

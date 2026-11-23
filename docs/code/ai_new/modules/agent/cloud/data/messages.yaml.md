@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/data/messages.yaml
-hash: 57b7d95aca7ee86ae63c55cc93436082f27fa4cf299aa34202f7dd392a87268e
+hash: 9175b43944469185c515a69ef0cc070fd043aca96de66bf7e15ef6f2555c8d9c
 symbols:
 - forbidden_scope
 - not_found
@@ -34,6 +34,8 @@ symbols:
 - multipart_error
 - rate_limited
 - connection_error
+- tls_trust_error
+- chunk_assemble_failed
 - tool_cloud_profile_save_desc
 - tool_cloud_profile_switch_desc
 - tool_cloud_profile_delete_desc
@@ -243,6 +245,18 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `connection_error`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `tls_trust_error`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `chunk_assemble_failed`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
