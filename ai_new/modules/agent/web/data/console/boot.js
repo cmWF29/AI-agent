@@ -446,7 +446,7 @@ function viewByMenuKey(m) {
   return null;
 }
 /* 底栏图标：只取 vendored 图标子集；子集没有的用圆形首字块，不引外链/字体 */
-const TAB_ICON_BY_KEY = { projects: "folder2", knowledge: "book", user: "person-circle" };
+const TAB_ICON_BY_KEY = { projects: "folder2", tickets: "send", knowledge: "book", user: "person-circle" };
 function tabIcon(m) {
   const name = TAB_ICON_BY_KEY[m.key] || "";
   if (name) return `<span class="tab-ico"><sl-icon name="${esc(name)}"></sl-icon></span>`;

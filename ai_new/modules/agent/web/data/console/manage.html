@@ -624,8 +624,9 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .cards.list{display:flex}
 }
 @media (max-width:719px){
-  .cards.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  /* 手机上卡片只有两列，卡内三枚操作会把标题区挤爆：操作收进项目详情，卡面只留入口 */
+  /* 项目列表按 IM 会话列表排：单列通栏，标题与最近消息不再被两列窄卡挤断 */
+  .cards.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+  /* 卡内三枚操作会把标题区挤爆：操作收进项目详情，卡面只留入口 */
   .pcard.grid .acts{display:none}
   .pcard.grid .phead{padding-left:44px}
   .pcard.grid .stat{font-size:12px;gap:4px;flex-wrap:wrap;white-space:normal}

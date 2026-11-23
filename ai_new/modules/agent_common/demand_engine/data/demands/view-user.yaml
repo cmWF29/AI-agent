@@ -7,7 +7,7 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 3, label: 我的, group: {name: 系统, order: 3}, mobile: true, tab: {order: 5}}
+  menu: {order: 3, label: 我的, group: {name: 系统, order: 3}, mobile: true, tab: {order: 4}}
   key: user
   crumb: [我的]
   heading: 我的

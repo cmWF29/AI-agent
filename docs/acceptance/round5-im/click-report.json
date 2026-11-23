@@ -1,0 +1,86 @@
+{
+  "base": "http://127.0.0.1:8787/",
+  "generated_at": "2026-11-23T19:29:17+08:00",
+  "duration_s": 20.55,
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "project": "群聊样式验证",
+  "ticket": "TG 样式冒烟",
+  "steps": [
+    {
+      "shot": "desktop-01-projects.png",
+      "label": "侧栏项目列表",
+      "ok": true,
+      "at": "2026-11-23T19:29:00+08:00",
+      "url": "http://127.0.0.1:8787/"
+    },
+    {
+      "shot": "desktop-02-project-detail.png",
+      "label": "项目详情首屏",
+      "ok": true,
+      "at": "2026-11-23T19:29:02+08:00",
+      "url": "http://127.0.0.1:8787/manage.html?view=project&project=%E7%BE%A4%E8%81%8A%E6%A0%B7%E5%BC%8F%E9%AA%8C%E8%AF%81"
+    },
+    {
+      "shot": "desktop-03-secretary.png",
+      "label": "群聊秘书",
+      "ok": true,
+      "at": "2026-11-23T19:29:03+08:00",
+      "url": "http://127.0.0.1:8787/manage.html?view=secretary&project=%E7%BE%A4%E8%81%8A%E6%A0%B7%E5%BC%8F%E9%AA%8C%E8%AF%81"
+    },
+    {
+      "shot": "desktop-04-ticket.png",
+      "label": "项目工单",
+      "ok": true,
+      "at": "2026-11-23T19:29:06+08:00",
+      "url": "http://127.0.0.1:8787/manage.html?view=ticket&project=%E7%BE%A4%E8%81%8A%E6%A0%B7%E5%BC%8F%E9%AA%8C%E8%AF%81&ticket=T-20261122-0001"
+    },
+    {
+      "shot": "mobile-01-projects.png",
+      "label": "底栏项目列表",
+      "ok": true,
+      "at": "2026-11-23T19:29:09+08:00",
+      "url": "http://127.0.0.1:8787/"
+    },
+    {
+      "shot": "mobile-02-project-detail.png",
+      "label": "项目详情首屏",
+      "ok": true,
+      "at": "2026-11-23T19:29:11+08:00",
+      "url": "http://127.0.0.1:8787/manage.html?view=project&project=%E7%BE%A4%E8%81%8A%E6%A0%B7%E5%BC%8F%E9%AA%8C%E8%AF%81"
+    },
+    {
+      "shot": "mobile-03-secretary.png",
+      "label": "群聊秘书",
+      "ok": true,
+      "at": "2026-11-23T19:29:12+08:00",
+      "url": "http://127.0.0.1:8787/manage.html?view=secretary&project=%E7%BE%A4%E8%81%8A%E6%A0%B7%E5%BC%8F%E9%AA%8C%E8%AF%81"
+    },
+    {
+      "shot": "mobile-04-ticket.png",
+      "label": "项目工单",
+      "ok": true,
+      "at": "2026-11-23T19:29:15+08:00",
+      "url": "http://127.0.0.1:8787/manage.html?view=ticket&project=%E7%BE%A4%E8%81%8A%E6%A0%B7%E5%BC%8F%E9%AA%8C%E8%AF%81&ticket=T-20261122-0001"
+    },
+    {
+      "shot": "mobile-05-tickets-tab.png",
+      "label": "底栏群聊总览",
+      "ok": true,
+      "at": "2026-11-23T19:29:17+08:00",
+      "url": "http://127.0.0.1:8787/manage.html?view=tickets"
+    }
+  ],
+  "console_errors": [],
+  "ok": true
+}
