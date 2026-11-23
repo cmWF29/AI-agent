@@ -30,6 +30,7 @@ login:                                 # 登录页（未登录可读，不含导
   http_code: "（{}）"
 ui:
   crumb_root: 工作台
+  tabbar: 主导航
   need_param: 从列表里点一个进来，这一页只显示选中的那个
   perf_probe: "{} fps · 最差 {}ms · 长任务 {}"   # 手机端性能自检浮层（?perf=1 打开）
   deck_expand: "铺开 {} 张"                 # 卡片堆叠：收起状态下的展开按钮
