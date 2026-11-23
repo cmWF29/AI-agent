@@ -7,7 +7,7 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 1, label: 项目, group: {name: 工作, order: 1}, mobile: true}
+  menu: {order: 1, label: 项目, group: {name: 工作, order: 1}, mobile: true, tab: {order: 1}}
   key: projects
   default: true
   crumb: [项目]
@@ -21,7 +21,7 @@ view:
   - kind: cards
     as: tree
     source: tree.items
-    layout: deck
+    layout: grid
     heading: 进行中
     note: "共 {data.tree.items|count} 个 · 在建工单、发消息、改名、归档都在这里"
     key: row.project.id
@@ -50,7 +50,7 @@ view:
   - kind: cards
     as: tree
     source: tree.archived
-    layout: deck
+    layout: grid
     heading: 已归档
     note: "共 {data.tree.archived|count} 个 · 只读：归档要求工单全部结单，归档后不能再改名、建单、发消息"
     hide_when_empty: true

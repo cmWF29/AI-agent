@@ -102,11 +102,19 @@ function emptyHtml(block) {
 }
 
 function cardsHtml(sec, ctx) {
-  const rows = arr(ref(sec.source, ctx));
+  // items 是规格里的字面行（支持 {} 占位）；否则按 source 从取数结果取行
+  const rows = Array.isArray(sec.items) ? sec.items : arr(ref(sec.source, ctx));
   if (!rows.length) return sec.hide_when_empty ? "" : emptyHtml(sec.empty);
-  // layout: deck = 卡片堆叠：收缩时叠在一起、左右滑动换牌，点「展开」铺成列表
-  const deck = sec.layout === "deck";
-  const cards = rows.map((row, idx) => {
+  // layout: deck = 卡片堆叠：收缩时叠在一起、左右滑动换牌，点「展开」铺成列表；
+  // grid = 项目卡片网格；list = 群聊式行列表；无 layout 保持既有普通卡片清单。
+  const layout = sec.layout || "";
+  const deck = layout === "deck";
+  let sorted = rows.slice();
+  if (sec.sort) {
+    const by = sec.sort.by, dir = sec.sort.order === "asc" ? 1 : -1;
+    sorted.sort((a, b) => dir * String(dig(a, by) || "").localeCompare(String(dig(b, by) || "")));
+  }
+  const cards = sorted.map((row, idx) => {
     const c = { ...ctx, row };
     const archived = sec.archived_when != null && condOf(sec.archived_when, c);
     const acts = (sec.actions || []).map((a) => buttonHtml(a, c, { clk: "card_act" })).join("");
@@ -123,24 +131,39 @@ function cardsHtml(sec, ctx) {
     const groups = Array.isArray(sec.chips) ? sec.chips : (sec.chips ? [sec.chips] : []);
     const chips = groups.map((g) => shareChips(g, c)).join("");
     const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
-    return `<article class="pcard${archived ? " archived" : ""}" data-clk="card_open" ${click ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", fill(sec.title, c)))}">
+    // 标题/副文案：区块级模板优先，缺省回落行上的 title/sub
+    const titleText = fill(sec.title != null ? sec.title : dig(row, "title"), c);
+    const subText = fill(sec.sub != null ? sec.sub : dig(row, "sub"), c);
+    const sub = subText ? `<div class="csub">${esc(subText)}</div>` : "";
+    // 头像字：标题填充后的第一个字符，英文转大写
+    const firstChar = [...String(titleText || "")][0] || "";
+    const pavChar = /[a-zA-Z]/.test(firstChar) ? firstChar.toUpperCase() : firstChar;
+    const pav = (layout === "grid" || layout === "list") && pavChar
+      ? `<span class="pav" aria-hidden="true">${esc(pavChar)}</span>` : "";
+    const cardCls = deck ? "pcard" : (layout ? `pcard ${layout}` : "pcard");
+    return `<article class="${cardCls}${archived ? " archived" : ""}" data-clk="card_open" ${click ? `data-go="${click}"` : ""}${deck ? ` data-deck-i="${idx}"` : ""} role="button" tabindex="0" aria-label="${esc(uiText("card_open", titleText))}">
+      ${pav}
       <div class="phead">
-        <h3 class="pname">${esc(fill(sec.title, c))}</h3>
+        <h3 class="pname">${esc(titleText)}</h3>
         ${badge}
         <div class="acts">${acts}</div>
       </div>
       ${stat}
+      ${sub}
       <div class="meta">${meta}</div>
       ${chips}
       <span class="ar">›</span>
     </article>`;
   }).join("");
   // 只有一张牌时堆叠没有意义（还会多出一次"滑不动"的手势），退回普通列表
-  if (!deck || rows.length < 2) return `<div class="cards">${cards}</div>`;
+  if (!deck || sorted.length < 2) {
+    const wrapCls = deck ? "cards" : (layout ? `cards ${layout}` : "cards");
+    return `<div class="${wrapCls}">${cards}</div>`;
+  }
   return `<div class="cards deck" data-deck="1" data-open="0" data-pos="0">
     <div class="deck-bar">
-      <span class="deck-pos">${esc(uiText("deck_pos", 1, rows.length))}</span>
-      <sl-button class="deck-more" variant="default" size="small" data-clk="deck_toggle" data-deck-open="1">${esc(uiText("deck_expand", rows.length))}</sl-button>
+      <span class="deck-pos">${esc(uiText("deck_pos", 1, sorted.length))}</span>
+      <sl-button class="deck-more" variant="default" size="small" data-clk="deck_toggle" data-deck-open="1">${esc(uiText("deck_expand", sorted.length))}</sl-button>
     </div>
     <div class="deck-stage" data-clk="deck_swipe">${cards}</div>
   </div>`;

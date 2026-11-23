@@ -7,7 +7,7 @@ callable: false
 'on': []
 do: []
 view:
-  menu: {order: 2, label: 知识库, group: {name: 工作, order: 1}, mobile: true}
+  menu: {order: 2, label: 知识库, group: {name: 工作, order: 1}, mobile: true, tab: {order: 3}}
   key: knowledge
   crumb: [知识库]
   heading: 知识库

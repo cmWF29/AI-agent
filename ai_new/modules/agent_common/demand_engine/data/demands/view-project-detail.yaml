@@ -29,6 +29,7 @@ view:
   - {text: 已归档·只读, when: "{project.archived}"}
   data:
   - {as: project, demand: projects-get, params: {id: "{route.project}"}}
+  - {as: queue, demand: secretary-index, params: {project: "{route.project}"}}
   - {as: positions, demand: project-positions, params: {id: "{route.project}"}}
   - {as: skills, demand: project-skills, params: {id: "{route.project}"}}
   - {as: ptools, demand: project-tools, params: {id: "{route.project}"}}
@@ -45,17 +46,28 @@ view:
   - {label: ＋ 新建工单, tone: primary, modal: ticket.new,
      disabled_when: "{project.archived}", disabled_hint: 已归档项目不能再建工单}
   sections:
-  # 工单排第一：项目最要紧的是"现在有哪些活、干到哪了"
+  # 群聊秘书入口排第一：零散想法先发给秘书，合并成需求后统一建单
+  - kind: cards
+    as: queue
+    layout: list
+    heading: 群聊秘书
+    note: 把零散想法发给秘书，合并成需求后统一建单
+    items:
+    - title: 群聊秘书
+      sub: "把想法发给秘书；待处理 {data.queue.counts.pending} 条 · 处理中 {data.queue.counts.processing} 条"
+    on_click: {view: secretary, params: {project: "{route.project}"}}
+    empty: {text: 秘书队列读取失败，点开仍可查看}
+  # 其后是本项目工单的群聊式列表，按最近活动倒序
   - kind: cards
     as: tickets
     source: tickets.items
-    layout: deck
+    layout: list
+    sort: {by: updated, order: desc}
     heading: 工单
     note: "共 {data.tickets.items|count} 条 · 进行中 {data.tickets.items|count(status!=closed)} · 已结单 {data.tickets.items|count(status=closed)}"
     title: row.title
+    sub: "{row.id} · {row.status|label} · {row.project}"
     meta:
-    - {label: 工单号, value: row.id}
-    - {label: 状态, value: "row.status|label"}
     - {label: 更新, value: "row.updated|when"}
     - {label: PM, value: row.pm, fallback: "—"}
     on_click: {view: ticket, params: {project: "{route.project}", ticket: row.id}}
@@ -63,7 +75,8 @@ view:
   - kind: cards
     as: positions
     source: positions.items
-    heading: 项目岗位
+    heading: 岗位
+    fold: {title: 项目配置}
     layout: deck
     note: "{data.positions.items|count} 个岗位 · 左右滑动换卡；点卡进岗位详情，可在本项目单独启停"
     title: row.cn
@@ -93,7 +106,8 @@ view:
   - kind: cards
     as: skills
     source: skills.items
-    heading: 项目技能
+    heading: 技能
+    fold: {title: 项目配置}
     layout: deck
     note: "{data.skills.items|count} 个技能 · 左右滑动换卡；可在本项目单独禁用"
     title: row.cn
@@ -122,7 +136,8 @@ view:
   - kind: cards
     as: ptools
     source: ptools.items
-    heading: 项目工具
+    heading: 工具
+    fold: {title: 项目配置}
     layout: deck
     note: "{data.ptools.items|count} 个工具 · 左右滑动换卡；可在本项目单独禁用"
     title: row.name

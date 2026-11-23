@@ -562,7 +562,7 @@ class TestViewPaths(unittest.TestCase):
 class TestViewLayouts(unittest.TestCase):
     """区块排版也是契约：只允许写已知版式，且只能挂在该版式成立的区块类型上。"""
 
-    LAYOUTS = {"deck": ("cards",)}   # 卡片堆叠只对卡片清单成立
+    LAYOUTS = {"deck": ("cards",), "grid": ("cards",), "list": ("cards",)}   # 版式只对卡片清单成立
 
     def test_section_layout_is_known(self):
         demands = module_dir("agent_common", "demand_engine") / "data" / "demands"
