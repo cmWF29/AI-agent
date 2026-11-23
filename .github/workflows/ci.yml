@@ -48,6 +48,10 @@ jobs:
     # Win32 语义在真机成立，并复跑平台适配/核心靶向用例。
     # 步骤拆开 + 每步 8 分钟门禁：挂死时定位到具体步骤，不靠 continue-on-error 掩盖。
     runs-on: windows-latest
+    env:
+      # en-US Windows runner stdio 默认 cp1252，中文输出会 UnicodeEncodeError；
+      # 作业级统一 UTF-8，覆盖脚本自启 reconfigure 之外的 unittest 子进程输出。
+      PYTHONIOENCODING: utf-8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

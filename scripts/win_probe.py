@@ -14,6 +14,19 @@ import socket
 import sys
 from pathlib import Path
 
+
+def _force_utf8_stdio():
+    """Windows runner（en-US 镜像）stdio 默认 ANSI 代码页 cp1252，中文 print 会抛
+    UnicodeEncodeError；启动即把 stdio 切到 UTF-8，errors=replace 兜底不崩退出码。"""
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
+
+_force_utf8_stdio()
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
