@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/boot.js
-hash: a1a0b8a388d54ad7c7c43e4be32959f649a68637ff5b0fe4de2c7a71286a00a8
+hash: 618d115c77d0818f2fdd72772b41c4a06cf2b33cfbbeb663f33d95bb6bd9c064
 symbols:
 - setClickMachine
 - machineKind
@@ -55,7 +55,6 @@ symbols:
 - exit
 - p
 - tick
-- v
 - spec
 - btn
 - groupButton
@@ -391,12 +390,6 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `tick`（js-function）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `v`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

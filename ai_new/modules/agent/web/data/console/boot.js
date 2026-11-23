@@ -483,8 +483,8 @@ function navGroupList(menus) {
 }
 function currentViewKey() {
   const q = new URLSearchParams(location.search).get("view");
-  const v = (q && typeof VIEWS !== "undefined" && VIEWS[q]) || (typeof state !== "undefined" ? state.view : "");
-  return v || "projects";
+  const v = q || (typeof state !== "undefined" ? state.view : "");
+  return (v && typeof VIEWS !== "undefined" && VIEWS[v]) ? v : "projects";
 }
 function currentMenu(menus) {
   const cur = currentViewKey();
@@ -623,7 +623,8 @@ function highlightNav() {
     b.classList.toggle("on", b.dataset.nav === cur));
   const curMenu = currentMenu(NAV_MENUS);
   const g = curMenu && curMenu.group;
-  if (g && g !== NAV_GROUP) { NAV_GROUP = g; applyNavGroup(); }
+  // 深链直接打开资产/系统页时，一级分组和二级列表必须一起切过去，不能只换高亮。
+  if (g && g !== NAV_GROUP) { NAV_GROUP = g; renderNavPanels(); }
 }
 function openDrawer() {
   $("drawer").classList.add("open");
