@@ -76,7 +76,7 @@ view:
     as: positions
     source: positions.items
     heading: 岗位
-    fold: {title: 项目配置}
+    fold: {title: 岗位配置}
     layout: deck
     note: "{data.positions.items|count} 个岗位 · 左右滑动换卡；点卡进岗位详情，可在本项目单独启停"
     title: row.cn
@@ -107,7 +107,7 @@ view:
     as: skills
     source: skills.items
     heading: 技能
-    fold: {title: 项目配置}
+    fold: {title: 技能配置}
     layout: deck
     note: "{data.skills.items|count} 个技能 · 左右滑动换卡；可在本项目单独禁用"
     title: row.cn
@@ -137,7 +137,7 @@ view:
     as: ptools
     source: ptools.items
     heading: 工具
-    fold: {title: 项目配置}
+    fold: {title: 工具配置}
     layout: deck
     note: "{data.ptools.items|count} 个工具 · 左右滑动换卡；可在本项目单独禁用"
     title: row.name
