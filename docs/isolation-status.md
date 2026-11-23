@@ -10,11 +10,13 @@
 
 | 机制维度 | Linux | Windows |
 | --- | --- | --- |
-| weak · 独立目录 | supported=true，verified=true（路径守卫纯函数单测） | supported=true，verified=false（纯判定用例待 windows-latest CI 首绿） |
-| weak · 路径拦截（穿越/绝对/盘符/UNC/保留名） | supported=true，verified=true（POSIX 段归一 + 纯判定单测） | supported=true，verified=false（Win32 语义纯判定单测在 Linux 跑过，真机待 CI 验证） |
+| weak · 独立目录 | supported=true，verified=true（路径守卫纯函数单测） | supported=true，verified=true（纯判定用例已在 windows-latest CI 真机跑过） |
+| weak · 路径拦截（穿越/绝对/盘符/UNC/保留名） | supported=true，verified=true（POSIX 段归一 + 纯判定单测） | supported=true，verified=true（Win32 语义纯判定单测已在 windows-latest CI 真机跑过） |
 | weak · ACL / 权限位 | supported=true，verified=false（目录 0700 口径已定义；独立 uid 运行未在装配落地） | supported=false，verified=false（目录 ACL 未实现） |
 | weak · cwd 约束 | supported=true，verified=false（计划层给出 cwd；进程 cwd 约束未在执行层落地） | 同左，未实现 |
-| weak · 跨进程锁 | supported=true，verified=true（POSIX flock 跨进程互斥靶向单测） | supported=true（msvcrt.locking 分支），verified=false（未在 Windows 真机实测） |
+| weak · 跨进程锁 | supported=true，verified=true（POSIX flock 跨进程互斥靶向单测） | supported=true（msvcrt.locking 分支），verified=true（windows-latest 真机跨进程争用/超时/释放靶向用例通过） |
+| 传输 · loopback TCP 回退通道 | supported=true，verified=true（POSIX unix socket 优先，loopback 兜底单测） | supported=true，verified=true（windows-latest 真机 TCP 往返 + 侧车端口文件清理用例通过） |
+| 传输 · shm 信箱块 | supported=true，verified=true（POSIX shm 往返一致性单测） | supported=true，verified=true（windows-latest 真机 `multiprocessing.shared_memory` 块读写一致用例通过；仅验块一致性，未验信箱协议全链路） |
 | strong · namespace / 容器 / 受限令牌 | supported=入口探测（unshare/bwrap/chroot 在 PATH 探测），verified=false | supported=false，verified=false |
 | 分布式 · 假死再分配 | verified=true（单机多进程桩演练，见 §4） | 同左（演练在 Linux；跨主机未验） |
 | 分布式 · 迁移中再失败 / 不双跑 | verified=true（同上） | 同左 |
@@ -28,20 +30,21 @@ OS 由路由层经 store/host 能力解析后显式传入，纯函数层不直�
 
 | Win32 规则 | 判定要点 | 本机(Linux)单测 | Windows 真机 CI |
 | --- | --- | --- | --- |
-| 盘符 + 大小写不敏感 + 反斜杠/正斜杠混用 | `C:\proj` 与 `c:/proj` 规范形式相同 | verified=true（test_isolation_windows） | 待 CI 首绿 |
-| 段尾点号 / 空格剥离 | `notes.md. ` → `notes.md` | verified=true | 待 CI |
-| 保留设备名 | CON/PRN/AUX/NUL/COM1..9/LPT1..9，含扩展名，大小写不敏感 | verified=true | 待 CI |
-| UNC `\\server\share` | 同共享包含；跨 server / 跨共享拒 `unc_escape` | verified=true | 待 CI |
-| 长路径前缀 `\\?\` | 剥离前缀；`\\?\UNC\srv\share` 还原 UNC | verified=true | 待 CI |
-| 穿越段 `..` | 任意段出现即拒 `traversal` | verified=true | 待 CI |
-| 跨根型 / 跨盘 / 跨共享 | drive↔unc 拒 `root_kind_mismatch`；跨盘拒 `drive_escape` | verified=true | 待 CI |
-| 相对路径守卫 | 拒绝绝对路径、盘符、UNC、穿越、保留名 | verified=true | 待 CI |
+| 盘符 + 大小写不敏感 + 反斜杠/正斜杠混用 | `C:\proj` 与 `c:/proj` 规范形式相同 | verified=true（test_isolation_windows） | verified=true（windows-latest CI） |
+| 段尾点号 / 空格剥离 | `notes.md. ` → `notes.md` | verified=true | verified=true（windows-latest CI，纯判定层） |
+| 保留设备名 | CON/PRN/AUX/NUL/COM1..9/LPT1..9，含扩展名，大小写不敏感 | verified=true | verified=true（windows-latest CI，纯判定层） |
+| UNC `\\server\share` | 同共享包含；跨 server / 跨共享拒 `unc_escape` | verified=true | verified=true（windows-latest CI，纯判定层） |
+| 长路径前缀 `\\?\` | 剥离前缀；`\\?\UNC\srv\share` 还原 UNC | verified=true | verified=true（windows-latest CI，纯判定层） |
+| 穿越段 `..` | 任意段出现即拒 `traversal` | verified=true | verified=true（windows-latest CI，纯判定层） |
+| 跨根型 / 跨盘 / 跨共享 | drive↔unc 拒 `root_kind_mismatch`；跨盘拒 `drive_escape` | verified=true | verified=true（windows-latest CI，纯判定层） |
+| 相对路径守卫 | 拒绝绝对路径、盘符、UNC、穿越、保留名 | verified=true | verified=true（windows-latest CI，纯判定层） |
 | 符号链接 / junction 逃逸 | 纯判定层只做归一后包含比对；真实链接解析必须 realpath 后复核 | POSIX 复核在 `store/_isolate._is_within`，verified=true | Windows junction/符号链接真机复核未做，verified=false |
 
+> 已验什么（Windows）：上表纯判定层规则已在 windows-latest CI 同一批
+> `test_isolation_windows` 用例上跑过。
 > 未验什么（Windows）：真机 NTFS 上尾随点/空格的实际剥离行为、保留名在文件
 > 创建时的拦截、长路径前缀的真实文件系统行为、junction 指向卷外目录的逃逸
-> 拦截。怎么验：windows-latest CI 跑同一批 `test_isolation*` 用例；后续在
-> Windows 执行层补 realpath/junction 复核用例。
+> 拦截。怎么验：后续在 Windows 执行层补真实落盘 + realpath/junction 复核用例。
 
 ## 3. 轻/强档机制差异（五维度）
 
@@ -54,7 +57,7 @@ ACL、cwd、锁；每维度分 weak/strong × linux/windows 给出口径。
 | path_interception | realpath/规范形式包含判定，拒绝绝对/穿越/注入 | namespace/容器内文件系统视图受限，跨主体不可见 | weak 路径拦截 verified；strong 未落地 |
 | acl | 权限位 0700 / 目录 ACL | 独立属主 + 只读根 / 受限令牌 + ACL 复核 | 未真机验证 |
 | cwd | 进程 cwd 约束在项目根之内 | namespace/容器根目录即项目根 | 计划层 verified；执行层未落地 |
-| lock | POSIX flock / msvcrt.locking 项目级跨进程锁 | 隔离边界内进程互斥 | Linux flock verified；Windows 锁未真机验 |
+| lock | POSIX flock / msvcrt.locking 项目级跨进程锁 | 隔离边界内进程互斥 | Linux flock verified；Windows msvcrt 锁真机验（windows-latest CI 跨进程争用/超时/释放） |
 
 ## 4. 分布式故障演练（单机多进程真实子进程）
 
@@ -130,11 +133,14 @@ fencing/归属结论。
 
 ## 6. 未验证项 / 风险 / 后续怎么验
 
-1. **Windows 真机验证尚未在本轮交付内跑出绿**：CI 新增 `isolation-windows`
-   job（windows-latest），但本次交付未等到 CI 回流结果，故 Windows 各档
-   `verified=false`。未验：真机 NTFS 路径行为、ACL、Job Object、msvcrt 锁互斥、
-   junction/symlink 复核。怎么验：合并后看 `isolation-windows` job 首绿，再把
-   对应维度 `verified` 翻 true。
+1. **Windows 真机部分维度已首绿，仍有真机行为未验**：CI `isolation-windows`
+   job（windows-latest，Python 3.11）已全绿（run `45127756564`，probe /
+   test_plat / test_isolation_windows / 装配烟测 / test_core 五步 success）。
+   已真机验：Win32 路径纯判定规则、msvcrt 跨进程锁争用/超时/释放、loopback TCP
+   往返 + 侧车清理、shm 块读写一致。仍未验：真机 NTFS 落盘时尾随点/空格与保留名
+   的拦截行为、长路径前缀真实 FS 行为、目录 ACL、独立 uid、Job Object / 受限
+   令牌、junction/symlink 逃逸复核。怎么验：在 Windows 执行层补真实落盘与
+   realpath/junction 复核用例。
 2. **strong 档未落地**：namespace/bwrap/容器/受限令牌仅做二进制入口探测，
    未在执行层起隔离实例；不可信代码执行面仍按 weak 口径对待。
 3. **weak 档 ACL/独立 uid/cwd 约束未在装配落地**：当前目录隔离 + 路径拦截 +
@@ -156,7 +162,13 @@ fencing/归属结论。
 | `test_isolation` | 9 | 0 | 0.038s | OK |
 | `test_nodes` | 30 | 0 | 0.001s | OK |
 | `test_node_profile` | 12 | 0 | 0.236s | OK |
-| `test_isolation_windows` | 24 | 0 | 0.001s | OK |
+| `test_isolation_windows` | 35 | 0 | — | Linux 54 项套组内 4 项 POSIX 跳过；windows-latest CI 全绿 |
+| `test_plat` | 19 | 0 | — | Linux 2 项跳过；windows-latest CI 全绿 |
+| `test_core` | 126 | 0 | 24.449s（Linux 3.11） | OK；windows-latest CI 全绿 |
+
+CI：run `45127756564`（master `1906260`），`gates` 与 `isolation-windows`
+两 job 均 success；Windows 侧五步（probe / test_plat / test_isolation_windows /
+装配烟测 / test_core）全部 success。
 
 演练：`timeout 300 python3 scripts/node_drill.py` → 退出码 0，报告见 §4。
 代码兼容 Python 3.8.10：未使用 3.9+ 语法（无 `dict |`、`list[]` 泛型、海象
