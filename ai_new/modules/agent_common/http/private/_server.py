@@ -16,6 +16,8 @@ def setup(ctx):
     host = ctx.cfg.get("server", {}).get("host", "127.0.0.1")
     port = int(ctx.cfg.get("server", {}).get("port", 8787))
     server = ThreadingHTTPServer((host, port), _make_handler(ctx))
+    # 请求线程随连接结束即退；不让 keep-alive 连接在进程退出时拖住解释器。
+    server.daemon_threads = True
     tls = ctx.cfg.get("server", {}).get("tls") or {}
     if tls.get("enabled") and tls.get("cert") and tls.get("key"):
         cert = str(ctx.storage.path("server.tls.cert", tls["cert"]))
@@ -27,9 +29,10 @@ def setup(ctx):
 def start(ctx, server):
     """装配全部完成后由组合根调用：开始接收请求。
 
-    非 daemon：组合根返回后进程仍常驻，直到 Ctrl+C / 显式 shutdown。
+    daemon 线程：常驻模式靠 ``_await_serve`` 的主线程等待信号保活；装配即返回的
+    进程（单测/烟测/嵌入方）不应被 serve_forever 拖住解释器退出。
     """
-    threading.Thread(target=server.serve_forever, daemon=False).start()
+    threading.Thread(target=server.serve_forever, daemon=True, name="http-serve").start()
     host, port = server.server_address[:2]
     tls = (ctx.cfg.get("server", {}) or {}).get("tls") or {}
     return server
