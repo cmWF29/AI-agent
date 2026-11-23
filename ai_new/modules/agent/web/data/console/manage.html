@@ -726,7 +726,6 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .deck[data-open="0"] .deck-stage>.pcard:not([data-front="1"]),
   .deck[data-dragging="1"] .deck-stage>.pcard[data-front="1"]{box-shadow:none}
   /* 离屏区块交给浏览器跳过渲染；带卡片堆叠的区块要量高度，不能跳 */
-  .view-scroll>.vsec:not(:has([data-deck])){content-visibility:auto;contain-intrinsic-size:auto 220px}
   .view-scroll .vsec>.cards.deck{overflow:visible}
   /* 移动档沿用同一套 pcard token，只按比例略放大；不再单独把 pname 拉到 17.5px */
   :root{--pcard-name:16px;--pcard-meta:12.5px;--pcard-stat-size:12.5px;--pcard-stat-num:20px;--pcard-pad:16px 16px 14px;--pcard-h:160px}
