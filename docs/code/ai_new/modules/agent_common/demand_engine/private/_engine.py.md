@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/private/_engine.py
-hash: 2f250711fbf6918b68530931b477170d92356160c54c5f0ae5be2da19f88946e
+hash: d7d1b3b86358d4babab016f3f6d9aee8a28279391d14912d6ca41b36bd274b6e
 symbols:
 - _store_base
 - _slug
@@ -125,7 +125,7 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `view_index`（method）
-- 职责: 视图索引：只给路由要用到的骨架（key/params/default/nav/menu），不搬整页区块。
+- 职责: 视图索引：路由骨架（key/params/default/nav/menu）+ 全局表单目录。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

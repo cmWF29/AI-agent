@@ -189,20 +189,28 @@ class Engine:
         ]
 
     def view_index(self):
-        """视图索引：只给路由要用到的骨架（key/params/default/nav/menu），不搬整页区块。
+        """视图索引：路由骨架（key/params/default/nav/menu）+ 全局表单目录。
 
         `views-list` 一次下发全部视图规格，首屏要等几百份 sections 序列化；页面真正渲染
         只需要当前这一份。索引 + 当前 spec 分开，首屏从“全量视图”降成“一张目录 + 一页规格”。
+        表单不属于任何一页，必须随目录一起给；否则跨页弹窗会拿到空规格。
         """
-        out = []
+        out, forms = [], []
         for r in self._load():
             view = r.get("view") if isinstance(r.get("view"), dict) else None
-            if not view or not view.get("key"):
+            if not view:
+                continue
+            # 表单是全局 UI 能力，不隶属于某一页：只随当前页 spec 下发会让别的页面
+            # 点“新建项目”时拿不到 FORMS 里的规格，按钮看起来完全没反应。
+            forms.extend(view.get("forms") or [])
+            if not view.get("key"):
                 continue
             slim = {k: view[k] for k in ("key", "default", "params", "require", "nav",
                                          "menu", "parent", "screen_label", "heading")
                     if view.get(k) not in (None, "", [], {})}
             out.append({"view": slim})
+        if forms:
+            out.append({"view": {"forms": forms}})
         return out
 
     def view_spec(self, key):

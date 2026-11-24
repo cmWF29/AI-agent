@@ -10,7 +10,12 @@ async function execute(binding, fields) {
   if (act.modal) {
     const fc = { ...c };
     if (fc.row && fc.row.project) fc.project = fc.row.project;
-    return openForm(FORMS[act.modal], fc);
+    const form = FORMS[act.modal];
+    if (!form) {
+      banner("表单规格未加载：" + String(act.modal || ""), "err");
+      return;
+    }
+    return openForm(form, fc);
   }
   if (!act.demand) return;
   const params = fill(act.params || {}, c);

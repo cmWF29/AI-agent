@@ -144,6 +144,17 @@ class EngineTest(unittest.TestCase):
         item = _engine.Engine(ctx).items()[0]
         self.assertEqual(item["do"], ["a.b"])
 
+    def test_view_index_ships_forms_of_keyless_pages(self):
+        """表单是跨页能力：没有 key 的表单页也必须随目录下发，否则弹窗拿不到规格。"""
+        ctx = FakeCtx({
+            "projects": _demand(id="projects", view={"key": "projects", "sections": []}),
+            "forms": _demand(id="forms", view={"forms": [{"id": "project.new"}]}),
+        })
+        index = _engine.Engine(ctx).view_index()
+        form_ids = [f.get("id") for item in index
+                    for f in ((item.get("view") or {}).get("forms") or [])]
+        self.assertEqual(form_ids, ["project.new"])
+
 
 if __name__ == "__main__":
     unittest.main()

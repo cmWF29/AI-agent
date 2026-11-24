@@ -311,9 +311,11 @@ function adoptViews(items) {
   for (const it of items || []) {
     const v = it && it.view;
     if (!v) continue;
-    if (v.key) VIEWS[v.key] = v;
+    // 表单目录没有 key：先收表单，再决定要不要当视图注册。
     if (v.labels) Object.assign(LABELS, v.labels);
     for (const f of v.forms || []) FORMS[f.id] = f;
+    if (!v.key) continue;
+    VIEWS[v.key] = v;
   }
   if (!Object.keys(VIEWS).length) throw new Error(uiText("no_views") || "没有任何视图规格，页面无法启动");
 }
