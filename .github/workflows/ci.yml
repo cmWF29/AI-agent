@@ -76,9 +76,19 @@ jobs:
           export CHROME="$(python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()")"
           python3 scripts/verify_ui.py
       - name: E2E 项目闭环（新建→改名→归档→删除）
-        run: python3 scripts/verify_e2e.py --scenario project
+        run: |
+          set -o pipefail
+          python3 scripts/verify_e2e.py --scenario project 2>&1 | tee /tmp/e2e-project.log
       - name: E2E 工单闭环（建单→消息→PM 回复→结单→归档）
-        run: python3 scripts/verify_e2e.py --scenario ticket
+        run: |
+          set -o pipefail
+          python3 scripts/verify_e2e.py --scenario ticket 2>&1 | tee /tmp/e2e-ticket.log
+      - name: E2E 失败原因（注解可见）
+        if: failure()
+        run: |
+          for f in /tmp/e2e-project.log /tmp/e2e-ticket.log; do
+            [ -f "$f" ] && tail -n 4 "$f" | sed 's/%/%25/g; s/\r//g' | while IFS= read -r line; do echo "::error::$line"; done
+          done
       - name: 全页可达 + 全表单可开
         run: python3 scripts/verify_pages.py
       - name: 安全控件真实点击（逐页重载 + 状态机核对）

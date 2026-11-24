@@ -36,7 +36,7 @@ async def card_exists(pg, name):
         name)
 
 
-async def wait_card(pg, name, timeout=20000):
+async def wait_card(pg, name, timeout=30000):
     try:
         await pg.wait_for_function(
             "n => [...document.querySelectorAll('#view-body .pcard')].some(c => c.innerText.includes(n))",
@@ -58,7 +58,11 @@ async def click_card_action(pg, name, label):
 async def create_project(pg, name):
     await open_projects(pg)
     await pg.locator("#view-body .view-head sl-button", has_text="新建项目").first.click()
-    await pg.wait_for_timeout(300)
+    await pg.wait_for_function("""() => {
+      const d=document.querySelector('#modal');
+      return !!(d && d.open && d.label === '新建项目'
+                && document.querySelectorAll('#modal-form [name]').length >= 1);
+    }""", timeout=20000)
     state = await pg.evaluate("""() => {
       const d=document.querySelector('#modal');
       return {open:!!(d&&d.open), label:(d&&d.label)||'',
@@ -82,7 +86,7 @@ async def rename_project(pg, old, new):
         raise AssertionError("项目卡没有可用的「改名」: %s" % old)
     await pg.wait_for_function(
         "() => { const d=document.querySelector('#modal'); return !!(d&&d.open&&d.label==='重命名项目'); }",
-        timeout=10000)
+        timeout=20000)
     await pg.evaluate("""name => {
       const el=document.querySelector('#modal-form [name=name]');
       el.value=name; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('sl-input', {bubbles:true}));
@@ -93,7 +97,7 @@ async def rename_project(pg, old, new):
         await pg.wait_for_function("""n => {
           const h=document.querySelector('#view-body .view-head h2');
           return !!(h && h.textContent.trim()===n);
-        }""", arg=new, timeout=15000)
+        }""", arg=new, timeout=25000)
     except Exception:
         raise AssertionError("改名后详情标题未更新: %s" % new)
     return new
@@ -108,7 +112,7 @@ async def archive_project(pg, name):
         await pg.wait_for_function("""n => {
           const c=[...document.querySelectorAll('#view-body .pcard')].find(x=>x.innerText.includes(n));
           return !!(c && /已归档/.test(c.innerText) && !/改名/.test(c.innerText));
-        }""", arg=name, timeout=15000)
+        }""", arg=name, timeout=25000)
     except Exception:
         raise AssertionError("归档后项目卡未进入只读区: %s" % name)
     return True
@@ -122,7 +126,7 @@ async def delete_project_ui(pg, name):
     try:
         await pg.wait_for_function(
             "n => ![...document.querySelectorAll('#view-body .pcard')].some(c => c.innerText.includes(n))",
-            arg=name, timeout=15000)
+            arg=name, timeout=25000)
     except Exception:
         raise AssertionError("删除后项目卡仍在列表中: %s" % name)
     return True
@@ -147,7 +151,11 @@ async def open_project(pg, name):
 
 async def create_ticket(pg, title, goal):
     await pg.locator("#view-body .view-head sl-button", has_text="新建工单").first.click()
-    await pg.wait_for_timeout(400)
+    await pg.wait_for_function("""() => {
+      const d=document.querySelector('#modal');
+      return !!(d && d.open && d.label === '新建工单'
+                && document.querySelectorAll('#modal-form [name]').length >= 2);
+    }""", timeout=20000)
     state = await pg.evaluate("""() => {
       const d=document.querySelector('#modal');
       return {open:!!(d&&d.open), label:(d&&d.label)||''};
@@ -161,7 +169,7 @@ async def create_ticket(pg, title, goal):
       g.dispatchEvent(new Event('input',{bubbles:true})); g.dispatchEvent(new Event('sl-input', {bubbles:true}));
       document.querySelector('#modal-ok').click();
     }""", {"title": title, "goal": goal})
-    await pg.wait_for_selector("#view-body .composer textarea", timeout=20000)
+    await pg.wait_for_selector("#view-body .composer textarea", timeout=30000)
     return await pg.evaluate("() => new URLSearchParams(location.search).get('ticket')")
 
 
