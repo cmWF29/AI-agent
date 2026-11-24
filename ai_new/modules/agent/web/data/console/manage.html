@@ -486,12 +486,15 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 .msg.left .bubble-stack{align-items:flex-start}
 .msg.right .bubble-stack{align-items:flex-end}
 /* 报文两列：左列文字气泡，右列同一轮原始报文；窄屏降为上下两行，仍同卡同标题 */
-.wire-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;min-width:0;width:100%}
+.wire-pair{display:flex;flex-direction:column;gap:6px;min-width:0;width:100%}
 .wire-side{min-width:0;min-height:0}
-.wire-side-raw{display:flex;flex-direction:column;gap:6px}
+.wire-side-raw{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .ev-to{display:inline-flex;align-items:center;font-size:11px;color:var(--fg-2);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-right:6px}
+.ev-from{display:inline-flex;align-items:center;font-size:11px;color:var(--fg-2);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.ev-arrow{font-size:11px;color:var(--muted);margin:0 6px}
+.ev-to{margin-right:0}
 @media (max-width:719px){
-  .wire-pair{grid-template-columns:minmax(0,1fr)}
+  .wire-pair{gap:4px}
 }
 .bubble-body{padding:7px 11px;border-radius:14px;background:var(--card);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;max-width:100%;box-shadow:0 1px 1.5px rgba(16,24,40,.08)}
 .msg.left .bubble-body{border-top-left-radius:5px}
@@ -848,9 +851,9 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .composer-actions{flex-direction:row;gap:5px;width:100%;justify-content:flex-end;align-items:center}
   .composer-actions sl-button::part(base){height:32px;min-height:32px;padding:4px 10px;font-size:12px}
   .composer button{flex:none}
-  /* 原始报文贴在原消息右侧，窄屏也不折成下一行当新消息 */
-  .wire-pair{grid-template-columns:minmax(0,1fr) 88px;gap:6px}
-  .wire-side-raw .raw-box summary{font-size:10px;line-height:1.35}
+  /* 原文/报文都在消息下面，窄屏不再挤成右侧一列 */
+  .wire-pair{gap:4px}
+  .wire-side-raw .raw-box summary,.raw-open{font-size:10px;line-height:1.35}
   #banner{margin:0 14px}
 }
 
@@ -868,6 +871,14 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
 .role-mini.st-done .rm-dot{background:#00b42a}
 .rm-stage{color:var(--accent);font-weight:600}
 .rm-active{color:var(--muted);border-left:1px solid var(--line);padding-left:6px;font-size:11.5px}
+/* 消息原文入口：只占一枚小按钮；正文进可关闭窗口，不再挤占聊天宽度 */
+.raw-open{margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;cursor:pointer}
+.raw-open:hover{color:var(--fg-2);background:var(--line-2);border-color:var(--line)}
+.raw-open::before{content:"▸";font-size:10px}
+sl-dialog.raw-dialog::part(panel){width:min(920px,94vw);max-height:88vh}
+sl-dialog.raw-dialog::part(body){overflow:auto;max-height:68vh}
+sl-dialog.raw-dialog::part(header){font-weight:600}
+#raw-modal-body pre{margin:0;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:12px;line-height:1.6;color:var(--fg-2);white-space:pre-wrap;word-break:break-word}
 /* 原报文：结构化对象原样展开，谁都别猜字段 */
 .raw-box{margin-top:4px;font-size:11.5px}
 .raw-box summary{cursor:pointer;color:var(--muted);list-style:none;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:6px}
@@ -1123,6 +1134,14 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
   <div slot="footer" class="modal-foot">
     <sl-button type="button" id="modal-cancel" data-clk="modal_cancel" data-ctl="ctl.modal_cancel" data-ctl-state="idle" data-ui="cancel"></sl-button>
     <sl-button type="submit" variant="primary" id="modal-ok" data-clk="modal_ok" data-ctl="ctl.modal_ok" data-ctl-state="idle" data-ui="ok"></sl-button>
+  </div>
+</sl-dialog>
+
+<!-- 消息原文窗口：只读，点“消息原文”打开；正文从消息里的 template 克隆，不二次请求 -->
+<sl-dialog id="raw-modal" class="raw-dialog" label="">
+  <div id="raw-modal-body"></div>
+  <div slot="footer" class="modal-foot">
+    <sl-button type="button" data-clk="raw_fold" data-raw-close="1" data-ui="raw_close"></sl-button>
   </div>
 </sl-dialog>
 

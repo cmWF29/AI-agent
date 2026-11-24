@@ -198,12 +198,25 @@ def _wire_brief(w, seq):
             "seq": seq}
 
 
-def _stamp(msgs, sid, actor, base):
-    """给合并进群聊的消息打发言者与时间：缺 at 的用会话起始时刻加序位偏移兜底。"""
+def _stamp(msgs, sid, actor, base, display=None):
+    """给合并进群聊的消息打发言者与时间：缺 at 的用会话起始时刻加序位偏移兜底。
+
+    会话开局的原始需求 role 仍是 user（喂模型），但它不是 PM 说的话：
+    首个 user 且此前没有 assistant 的，补 kind=note，展示侧归“系统 → 岗位”。
+    """
     out = []
     start = float(base or 0)
+    seen_assistant = False
     for i, m in enumerate(msgs):
         mm = dict(m, session=sid, actor=actor)
+        if mm.get("role") == "user" and mm.get("kind") is None and not seen_assistant:
+            mm["kind"] = "note"
+        if mm.get("kind") == "note":
+            mm["actor"] = "system"
+            if not mm.get("to") and display:
+                mm["to"] = display
+        if mm.get("role") == "assistant":
+            seen_assistant = True
         if not mm.get("at"):
             mm["at"] = start + i * 1e-4
         brief = _wire_brief(mm.get("wire"), i)
@@ -238,7 +251,7 @@ def threadp(p):
     # 保证同一会话内单调递增，视图才能把工单历程事件按时间插进消息流而不是全堆在最前面。
     base = (thread.get("created") or thread.get("updated")
             or ticket.get("created") or ticket.get("updated"))
-    merged = _stamp(pm_messages, pm_sid, "pm", base)
+    merged = _stamp(pm_messages, pm_sid, "pm", base, "PM")
 
     reg_by_sid = {(r or {}).get("session"): r for r in ticket.get("roles") or []}
     live_by_sid = {(r or {}).get("id"): r for r in role_threads}
@@ -273,7 +286,7 @@ def threadp(p):
         msgs = (live or {}).get("messages") or (archived or {}).get("messages") or []
         merged.extend(_stamp(msgs, sid, actor,
                              (live or archived or {}).get("created")
-                             or base))
+                             or base, display))
 
     for sid, live in live_by_sid.items():
         add_role(sid, reg_by_sid.get(sid), live, archived_by_sid.get(sid))

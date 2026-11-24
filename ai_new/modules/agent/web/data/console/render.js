@@ -12,6 +12,7 @@ function foldLoad() {
 }
 let FOLDS = foldLoad();
 let LAZY_TREE = {}, LAZY_SEQ = 0;
+let RAW_SEQ = 0;   // 消息原文窗口的 DOM 模板编号：每次渲染自增，避免多气泡撞 id
 function foldSet(key, open) {
   if (!key) return;
   FOLDS.set(key, !!open);
@@ -267,6 +268,9 @@ function bubbleClass(msg) {
   // 真人从控制台发的消息（session-send 落盘时打 human 标）在右侧；
   // 会话装配注入的提示 kind=note，不受影响，仍走系统条
   if (msg.kind === "human") return "user";
+  // 会话开局的“原始需求”role 仍是 user（喂模型），但发言人是系统不是 PM：
+  // 老会话没有 kind 标记时，首条 user 也必须归系统条，不能画成 PM 自己发的。
+  if (msg.role === "user" && msg.kind == null) return "system";
   if (msg.role === "tool") return "tool";
   if (msg.role === "system") return "system";
   // 左右按发言人不按 role：PM 与各角色都是群成员（左），只有真人输入在右。
@@ -603,8 +607,15 @@ function renderBubbles(msgs, roles, wireDemand, wireChars, rawChars) {
     if (g.cls === "system") {
       return g.items.map((it) => {
         const m = it.m || {};
-        const toLabel = m.to ? uiText("ev_to", m.to) : uiText("ev_to_all");
-        const toHtml = toLabel ? `<span class="ev-to">${esc(toLabel)}</span>` : "";
+        // 系统条必须写明“发给谁”：首条原始需求由系统发给 PM，不能只剩一个没主语的灰条。
+        const actor = m.actor || "";
+        const hit = (roles || []).find((r) => r.role === actor || r.session === actor);
+        const target = m.to || (actor && actor !== "system" ? ((hit && (hit.display || hit.role)) || roleLabel(actor)) : "");
+        const toLabel = target ? uiText("ev_to", target) : uiText("ev_to_all");
+        // 首条原始需求是“系统 → PM”：必须同时标出发送方，否则灰条只剩“发给 PM”，
+        // 看上去仍像 PM 自己的消息。发送方词表走后端，不在前端写死。
+        const fromLabel = roleLabel("system");
+        const toHtml = (fromLabel ? `<span class="ev-from">${esc(fromLabel)}</span><span class="ev-arrow">→</span>` : "") + (toLabel ? `<span class="ev-to">${esc(toLabel)}</span>` : "");
         return `<div class="msg system"><div class="sys-body md">${toHtml}${renderMarkdown(m.content == null ? "" : m.content)}</div></div>`;
       }).join("");
     }
@@ -730,10 +741,10 @@ function rawHtml(objs, label, limit) {
   }
   const cap = limit || 6000;
   const cut = text.length > cap ? text.slice(0, cap) + "\n" + uiText("trunc_note", text.length) : text;
-  const first = list[0] || {};
-  const foldKey = "raw|" + String(label || "") + "|" + String(first.session || "") + "|" +
-    String(first.at || "") + "|" + list.length;
-  return `<details class="raw-box"${foldAttr(foldKey)} data-clk="raw_fold"><summary data-clk="raw_fold" title="${esc(uiText("raw_note"))}">${esc(label)}</summary><pre>${esc(cut)}</pre></details>`;
+  // 原文不再在气泡右侧常驻展开：只留一个“消息原文”按钮，点开进可关闭窗口。
+  // 正文放 <template>，既不参与布局也不随首屏滚动展开。
+  const rid = "raw-src-" + (++RAW_SEQ);
+  return `<button type="button" class="raw-open" data-clk="raw_fold" data-raw-id="${esc(rid)}" title="${esc(uiText("raw_note"))}">${esc(label)}</button><template id="${esc(rid)}"><pre>${esc(cut)}</pre></template>`;
 }
 
 function chatHtml(sec, ctx) {

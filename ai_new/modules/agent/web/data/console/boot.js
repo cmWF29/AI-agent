@@ -223,7 +223,18 @@ const CLICK_HANDLERS = {
   /* 原生 details/summary 自己会开关，这里不拦默认行为，只让状态机记账 */
   wire_fold() {},
   summary_fold() {},
-  raw_fold() {},
+  raw_fold(el) {
+    const dlg = $("raw-modal");
+    if (el && el.dataset && el.dataset.rawClose) { if (dlg) dlg.hide(); return; }
+    const id = el && el.dataset ? el.dataset.rawId : "";
+    if (!id) return;   // 工具卡/报文里的 details summary 仍走原生展开
+    const src = document.getElementById(id);
+    const body = $("raw-modal-body");
+    if (!src || !body || !dlg) return;
+    body.replaceChildren(src.content.cloneNode(true));
+    if (typeof uiText === "function") dlg.label = uiText("raw_title");
+    dlg.show();
+  },
   /* 弹窗三个入口在 actions.js 里自己过门禁并执行，这里只登记，不重复执行 */
   dag_zoom(el) {
     // 缩放只作用于图容器内部：不动整页布局，也不重取数据。

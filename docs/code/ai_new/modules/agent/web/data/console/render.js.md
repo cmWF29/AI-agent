@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: 565ce8dc2867cbedaa22eac6187b93d04fa47e045ae9604d11001a10491927c4
+hash: af3a5513ec732fc3087be4d7e838abb49a259ad3c1506cf6783563d45e7801af
 symbols:
 - foldLoad
 - foldSet
@@ -106,6 +106,7 @@ symbols:
 - startOfDay
 - fn
 - res
+- toHtml
 - lastAt
 - daySep
 - flush
@@ -778,6 +779,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `res`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `toHtml`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

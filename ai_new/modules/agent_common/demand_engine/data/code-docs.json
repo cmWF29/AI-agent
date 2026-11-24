@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-24T17:36:29",
+  "generated": "2026-11-24T18:42:05",
   "total": 510,
   "groups": [
     {
@@ -542,7 +542,7 @@
           "doc": "docs/code/ai_new/modules/agent/logs/data/hook-queue.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "78cffe5d0d6274682b22ce08c215c803ec3ec7160c9715f463484602fbf693d0",
+          "hash": "8b5d6fb301d0e4f15572d58d2eebb9cd06b648bdc2ec2d7e9c6a197825764474",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -812,7 +812,7 @@
           "doc": "docs/code/ai_new/modules/agent/sessions/private/_pure.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "e81739714a7b2f032893485e17b8cb2083b8b3badb80ef698a8b52422d6939b4",
+          "hash": "c52796b6665c9a16adb49b06264d40edc286fcee1cb27da422dfdbc76d627e2e",
           "symbols": 17,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -866,7 +866,7 @@
           "doc": "docs/code/ai_new/modules/agent/tickets/private/_pure.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "083b4ce70b57ec7e56d3597ac320b2af8b8fdbccce022a95a3f1a2d344247b33",
+          "hash": "42d7b7764c3edca686004e5f0fd9e5eaf2fe894f2a81275a194f2b6123971976",
           "symbols": 40,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -992,7 +992,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/boot.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "397aac030bbeb74b3c088bd5180bdd9dc1b526ba60621f950ae0dce996a587c6",
+          "hash": "39e53a08e0c35d10f9293bf378ac7a5c18114d29b4aa6a452f149c27b7bf4f93",
           "symbols": 62,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1037,8 +1037,8 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/render.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "565ce8dc2867cbedaa22eac6187b93d04fa47e045ae9604d11001a10491927c4",
-          "symbols": 142,
+          "hash": "af3a5513ec732fc3087be4d7e838abb49a259ad3c1506cf6783563d45e7801af",
+          "symbols": 143,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -1511,7 +1511,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/console.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "2307d48b947fa59af2257b6fa812552422bbbe65880a7940a6432419812f6d6d",
+          "hash": "17d03228131bf31f25f130dafddbffe2849a8f0f6c647d0f4aab7fecdf189683",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3815,7 +3815,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_panel.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "b9b1067a99894f07799f7145f2d71b5d1b6c22d1b3ac015c02ca0053de4b5842",
+          "hash": "18f40613cc7a5c3cbe1878d9e84442d9481a51a22259a7053e2ddc3d02cfd9b6",
           "symbols": 60,
           "updated_at": "2026-11-23T04:10:22"
         },

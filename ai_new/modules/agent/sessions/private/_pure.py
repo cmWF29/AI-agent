@@ -13,7 +13,9 @@ def _seed(system, intro, constraint=None):
                      "constraint": constraint,
                      "content": constraint.get("content") or ""})
     if intro:
-        msgs.append({"role": "user", "content": intro})
+        # role 仍是 user（模型需要把原始需求当输入），kind 只供前端：这是系统发给岗位的开局上下文，
+        # 不能画成 PM 自己说的话。
+        msgs.append({"role": "user", "kind": "note", "content": intro})
     return msgs
 
 

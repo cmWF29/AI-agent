@@ -1,10 +1,10 @@
 {
  "sig": {
-  "sha": "5d0e37114f9252cf",
+  "sha": "e72d2eddb810f581",
   "files": 37
  },
  "stats": {
-  "instances": 773,
+  "instances": 772,
   "pages": 17,
   "kinds": 20
  },
@@ -31,7 +31,7 @@
   },
   {
    "view": "cloud",
-   "count": 16
+   "count": 15
   },
   {
    "view": "architecture",
@@ -13781,27 +13781,7 @@
    "view": "cloud",
    "ctl": "ctl.raw_fold",
    "kind": "raw_fold",
-   "tag": "DETAILS",
-   "label": "系统上下文 ×2- role: sy",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "cloud",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "SUMMARY",
+   "tag": "BUTTON",
    "label": "系统上下文 ×2",
    "states": [
     "idle",
