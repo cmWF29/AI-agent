@@ -68,7 +68,7 @@ def _tracked(root: Path) -> set[str] | None:
                                       stderr=subprocess.DEVNULL)
     except (OSError, subprocess.CalledProcessError):
         return None
-    return {x for x in raw.decode("utf-8", "surrogateescape").split("\0") if x}
+    return {x.replace("\\", "/") for x in raw.decode("utf-8", "surrogateescape").split("\0") if x}
 
 
 def _collect_sources(root: Path, scope: str | None) -> list[tuple[str, str, str]]:
@@ -107,7 +107,7 @@ def _collect_sources(root: Path, scope: str | None) -> list[tuple[str, str, str]
             for fn in filenames:
                 if fn.endswith((".yaml", ".yml")):
                     p = Path(dirpath) / fn
-                    rel = str(p.relative_to(root))
+                    rel = p.relative_to(root).as_posix()
                     if not keep(rel):
                         continue
                     # 运行期数据目录会不断新增/清理记录，不能要求每次落盘都补文档
@@ -118,7 +118,7 @@ def _collect_sources(root: Path, scope: str | None) -> list[tuple[str, str, str]
     scripts = root / "scripts"
     if scripts.is_dir():
         for p in sorted(scripts.glob("*.py")):
-            rel = str(p.relative_to(root))
+            rel = p.relative_to(root).as_posix()
             if keep(rel):
                 out.append((rel, "py", p.read_text(encoding="utf-8")))
     return sorted(out)
@@ -306,7 +306,7 @@ def generate(root: Path | None = None, write: bool = True,
     if docs_root.is_dir():
         for path in docs_root.rglob("*.md"):
             if str(path) not in docs_seen:
-                orphans.append(str(path.relative_to(docs_root))[:-3])
+                orphans.append(path.relative_to(docs_root).as_posix()[:-3])
 
     index_error = _write_index(root, index_entries, write and not scope)
 

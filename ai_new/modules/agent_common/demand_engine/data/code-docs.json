@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-24T14:18:46",
+  "generated": "2026-11-24T14:25:24",
   "total": 507,
   "groups": [
     {
@@ -542,7 +542,7 @@
           "doc": "docs/code/ai_new/modules/agent/logs/data/hook-queue.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "8b5d6fb301d0e4f15572d58d2eebb9cd06b648bdc2ec2d7e9c6a197825764474",
+          "hash": "78cffe5d0d6274682b22ce08c215c803ec3ec7160c9715f463484602fbf693d0",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -551,7 +551,7 @@
           "doc": "docs/code/ai_new/modules/agent/logs/data/index.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "e50b1fc3de71ebc8319bc2c865f4a30f4febc184e32d316fd0ea9a3d74c9df1d",
+          "hash": "2758be8bbd64392818037857bb32e6ca6be5ebe3e8021b399eda43484d2b6967",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -4385,7 +4385,7 @@
           "doc": "docs/code/scripts/gen_docs.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "4bf8dd2d50ac020e9930dc7c586c93daaa1c151a0ed58a8271b855ff4bd4c08e",
+          "hash": "0eaca6ea7e40695a6bc8460b3b26a83df4be51b4ba6af4b5c970051cd3af8883",
           "symbols": 17,
           "updated_at": "2026-11-23T04:10:23"
         },
