@@ -1,33 +1,29 @@
 {
  "sig": {
-  "sha": "b3af4f1fe70df9fd",
+  "sha": "289d1fa063668e10",
   "files": 34
  },
  "stats": {
-  "instances": 817,
+  "instances": 819,
   "pages": 16,
   "kinds": 21
  },
  "pages": [
   {
    "view": "arch",
-   "count": 306
+   "count": 308
   },
   {
    "view": "click-machine",
-   "count": 212
+   "count": 213
   },
   {
    "view": "tools",
-   "count": 35
-  },
-  {
-   "view": "position",
-   "count": 33
+   "count": 37
   },
   {
    "view": "positions",
-   "count": 29
+   "count": 31
   },
   {
    "view": "artifacts",
@@ -43,31 +39,35 @@
   },
   {
    "view": "cloud",
-   "count": 21
+   "count": 23
   },
   {
-   "view": "logs",
-   "count": 18
-  },
-  {
-   "view": "nodes",
-   "count": 16
+   "view": "position",
+   "count": 20
   },
   {
    "view": "skill-decompose",
-   "count": 16
+   "count": 18
   },
   {
    "view": "skills",
-   "count": 16
+   "count": 18
+  },
+  {
+   "view": "logs",
+   "count": 17
+  },
+  {
+   "view": "nodes",
+   "count": 17
   },
   {
    "view": "timers",
-   "count": 15
+   "count": 16
   },
   {
    "view": "traces",
-   "count": 15
+   "count": 16
   },
   {
    "view": "ops",
@@ -185,10 +185,10 @@
   },
   {
    "view": "arch",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.需求契约",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "需求契约",
    "states": [
     "idle",
     "busy"
@@ -205,10 +205,10 @@
   },
   {
    "view": "arch",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.岗位",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "岗位",
    "states": [
     "idle",
     "busy"
@@ -225,10 +225,10 @@
   },
   {
    "view": "arch",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.工具",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "工具",
    "states": [
     "idle",
     "busy"
@@ -245,10 +245,50 @@
   },
   {
    "view": "arch",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.技能",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
    "states": [
     "idle",
     "busy"
@@ -7595,10 +7635,10 @@
   },
   {
    "view": "click-machine",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "点击状态机",
    "states": [
     "idle",
     "busy"
@@ -7615,10 +7655,10 @@
   },
   {
    "view": "click-machine",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.运维",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "运维",
    "states": [
     "idle",
     "busy"
@@ -7635,10 +7675,10 @@
   },
   {
    "view": "click-machine",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.链路",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "链路",
    "states": [
     "idle",
     "busy"
@@ -7655,10 +7695,30 @@
   },
   {
    "view": "click-machine",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.节点",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "节点",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.nav.定时器",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "定时器",
    "states": [
     "idle",
     "busy"
@@ -9499,7 +9559,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine216",
+   "label": "click-machine212",
    "states": [
     "idle",
     "busy",
@@ -12333,10 +12393,10 @@
   },
   {
    "view": "cloud",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.需求契约",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "需求契约",
    "states": [
     "idle",
     "busy"
@@ -12353,10 +12413,10 @@
   },
   {
    "view": "cloud",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.岗位",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "岗位",
    "states": [
     "idle",
     "busy"
@@ -12373,10 +12433,10 @@
   },
   {
    "view": "cloud",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.工具",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "工具",
    "states": [
     "idle",
     "busy"
@@ -12393,10 +12453,50 @@
   },
   {
    "view": "cloud",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.技能",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "cloud",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "cloud",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
    "states": [
     "idle",
     "busy"
@@ -13489,26 +13589,6 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "公共2",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
    "label": "项目归档验收1",
    "states": [
     "idle",
@@ -13694,10 +13774,10 @@
   },
   {
    "view": "nodes",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "点击状态机",
    "states": [
     "idle",
     "busy"
@@ -13714,10 +13794,10 @@
   },
   {
    "view": "nodes",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.运维",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "运维",
    "states": [
     "idle",
     "busy"
@@ -13734,10 +13814,10 @@
   },
   {
    "view": "nodes",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.链路",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "链路",
    "states": [
     "idle",
     "busy"
@@ -13754,10 +13834,30 @@
   },
   {
    "view": "nodes",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.节点",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "节点",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "nodes",
+   "ctl": "ctl.nav.定时器",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "定时器",
    "states": [
     "idle",
     "busy"
@@ -14157,10 +14257,10 @@
   },
   {
    "view": "positions",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.需求契约",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "需求契约",
    "states": [
     "idle",
     "busy"
@@ -14177,10 +14277,10 @@
   },
   {
    "view": "positions",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.岗位",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "岗位",
    "states": [
     "idle",
     "busy"
@@ -14197,10 +14297,10 @@
   },
   {
    "view": "positions",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.工具",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "工具",
    "states": [
     "idle",
     "busy"
@@ -14217,10 +14317,50 @@
   },
   {
    "view": "positions",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.技能",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
    "states": [
     "idle",
     "busy"
@@ -15489,10 +15629,10 @@
   },
   {
    "view": "skill-decompose",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.需求契约",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "需求契约",
    "states": [
     "idle",
     "busy"
@@ -15509,10 +15649,10 @@
   },
   {
    "view": "skill-decompose",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.岗位",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "岗位",
    "states": [
     "idle",
     "busy"
@@ -15529,10 +15669,10 @@
   },
   {
    "view": "skill-decompose",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.工具",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "工具",
    "states": [
     "idle",
     "busy"
@@ -15549,10 +15689,50 @@
   },
   {
    "view": "skill-decompose",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.技能",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skill-decompose",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
    "states": [
     "idle",
     "busy"
@@ -15838,10 +16018,10 @@
   },
   {
    "view": "skills",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.需求契约",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "需求契约",
    "states": [
     "idle",
     "busy"
@@ -15858,10 +16038,10 @@
   },
   {
    "view": "skills",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.岗位",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "岗位",
    "states": [
     "idle",
     "busy"
@@ -15878,10 +16058,10 @@
   },
   {
    "view": "skills",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.工具",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "工具",
    "states": [
     "idle",
     "busy"
@@ -15898,10 +16078,50 @@
   },
   {
    "view": "skills",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.技能",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skills",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "skills",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
    "states": [
     "idle",
     "busy"
@@ -16187,10 +16407,10 @@
   },
   {
    "view": "timers",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "点击状态机",
    "states": [
     "idle",
     "busy"
@@ -16207,10 +16427,10 @@
   },
   {
    "view": "timers",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.运维",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "运维",
    "states": [
     "idle",
     "busy"
@@ -16227,10 +16447,10 @@
   },
   {
    "view": "timers",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.链路",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "链路",
    "states": [
     "idle",
     "busy"
@@ -16247,10 +16467,30 @@
   },
   {
    "view": "timers",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.节点",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "节点",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "timers",
+   "ctl": "ctl.nav.定时器",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "定时器",
    "states": [
     "idle",
     "busy"
@@ -16509,10 +16749,10 @@
   },
   {
    "view": "tools",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.需求契约",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "需求契约",
    "states": [
     "idle",
     "busy"
@@ -16529,10 +16769,10 @@
   },
   {
    "view": "tools",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.岗位",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "岗位",
    "states": [
     "idle",
     "busy"
@@ -16549,10 +16789,10 @@
   },
   {
    "view": "tools",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.工具",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "工具",
    "states": [
     "idle",
     "busy"
@@ -16569,10 +16809,50 @@
   },
   {
    "view": "tools",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.技能",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
    "states": [
     "idle",
     "busy"
@@ -17371,10 +17651,10 @@
   },
   {
    "view": "traces",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.点击状态机",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "点击状态机",
    "states": [
     "idle",
     "busy"
@@ -17391,10 +17671,10 @@
   },
   {
    "view": "traces",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.运维",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "运维",
    "states": [
     "idle",
     "busy"
@@ -17411,10 +17691,10 @@
   },
   {
    "view": "traces",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.链路",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "链路",
    "states": [
     "idle",
     "busy"
@@ -17431,10 +17711,30 @@
   },
   {
    "view": "traces",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.节点",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "节点",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "traces",
+   "ctl": "ctl.nav.定时器",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "定时器",
    "states": [
     "idle",
     "busy"
@@ -17693,10 +17993,10 @@
   },
   {
    "view": "position",
-   "ctl": "ctl.nav.项目",
+   "ctl": "ctl.nav.需求契约",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "项目",
+   "label": "需求契约",
    "states": [
     "idle",
     "busy"
@@ -17713,10 +18013,10 @@
   },
   {
    "view": "position",
-   "ctl": "ctl.nav.知识库",
+   "ctl": "ctl.nav.岗位",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "知识库",
+   "label": "岗位",
    "states": [
     "idle",
     "busy"
@@ -17733,10 +18033,10 @@
   },
   {
    "view": "position",
-   "ctl": "ctl.nav.文档",
+   "ctl": "ctl.nav.工具",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "文档",
+   "label": "工具",
    "states": [
     "idle",
     "busy"
@@ -17753,10 +18053,50 @@
   },
   {
    "view": "position",
-   "ctl": "ctl.nav.日志",
+   "ctl": "ctl.nav.技能",
    "kind": "nav",
    "tag": "SL-BUTTON",
-   "label": "日志",
+   "label": "技能",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.技能拆解",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "技能拆解",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "position",
+   "ctl": "ctl.nav.云端资料库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "云端资料库",
    "states": [
     "idle",
     "busy"
@@ -17924,411 +18264,6 @@
     ]
    },
    "effect": "只改本页显示"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "输出结构设计文档（模块划分、接口契约",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "每条关键设计决策写明依据、备选方案与",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "不直接改业务代码实现",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "不替测试下验收结论",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "docs/**/*architect",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "docs/**/*架构*",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "globdocs/**/*archi",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "artifact_read",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "artifact_write",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "knowledge_read",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "knowledge_write",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "knowledge_search",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "ticket_read_doc",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "ticket_note",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "position",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "todo",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
   },
   {
    "view": "position",

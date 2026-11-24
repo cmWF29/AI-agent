@@ -994,7 +994,16 @@ function dagGraphSpec(row) {
                    label: isBack ? (uiText("dag_back") + "：" + when) : when });
     });
   });
-  return { nodes, edges, direction: "LR" };
+  return { nodes, edges, direction: "LR", edgeLabels: false };
+}
+function dagTransitionsHtml(spec) {
+  if (!spec.edges.length) return "";
+  const name = new Map(spec.nodes.map((n) => [n.id, n.label || n.id]));
+  const rows = spec.edges.map((e) => {
+    const flow = `${name.get(e.from) || e.from} → ${name.get(e.to) || e.to}`;
+    return `<div class="dag-tr${e.back ? " back" : ""}"><span class="flow">${esc(flow)}</span><span class="why">${esc(e.label || "无条件")}</span></div>`;
+  }).join("");
+  return `<div class="dag-transitions"><span class="dag-tr-head">迁移条件</span>${rows}</div>`;
 }
 function dagCard(row, sec, index, ctx) {
   const spec = dagGraphSpec(row);
@@ -1011,6 +1020,7 @@ function dagCard(row, sec, index, ctx) {
     <header><h4>${esc(title)}</h4>
       <span class="muted">${esc(row.id || "")} · ${esc(uiText("flow_states", spec.nodes.length))} · ${esc(uiText("dag_edges", spec.edges.length))}</span>${zoom}</header>
     <div class="graph-wrap dag-stage" data-graph="1" data-graph-nodes="${spec.nodes.length}" data-graph-edges="${spec.edges.length}" data-graph-back="${backCount}" data-spec="${esc(JSON.stringify(spec))}"><div class="graph-canvas"></div></div>
+    ${dagTransitionsHtml(spec)}
     <div class="dag-legend">${esc(uiText("dag_legend"))}</div>
   </article>`;
 }
@@ -1023,7 +1033,8 @@ function dagHtml(sec, ctx) {
     rows = [{ id: "", cn: "", states: rows }];
   }
   const body = rows.map((row, i) => dagCard(row, sec, i, ctx)).join("");
-  return head + `<div class="flow-grid">${body}</div>`;
+  // 只有一张图时占满整行：半宽卡里图会被压小，还会在右边留一大片空
+  return head + `<div class="flow-grid${rows.length === 1 ? " single" : ""}">${body}</div>`;
 }
 
 function gateHtml(sec, ctx) {
@@ -1118,7 +1129,7 @@ function clickMachineHtml(sec, ctx) {
   Object.keys(trans).forEach((from) => arr(trans[from]).forEach((to) => {
     edges.push({ from, to, label: notes[from + ">" + to] || "", back: false });
   }));
-  const spec = { nodes, edges, direction: "TB" };
+  const spec = { nodes, edges, direction: "TB", edgeLabels: false };
   const backCount = edges.filter((e) => e.back).length;
   const zoom = `<div class="graph-zoom">
       <sl-button size="small" data-clk="dag_zoom" data-dag="out" data-graph="out" aria-label="−">−</sl-button>
@@ -1129,6 +1140,7 @@ function clickMachineHtml(sec, ctx) {
   return `<div class="machine-wrap flow-card">
     <header class="machine-head">${zoom}</header>
     <div class="graph-wrap dag-stage" data-graph="1" data-graph-nodes="${nodes.length}" data-graph-edges="${edges.length}" data-graph-back="${backCount}" data-spec="${esc(JSON.stringify(spec))}"><div class="graph-canvas"></div></div>
+    ${dagTransitionsHtml({ nodes, edges: edges.filter((e) => e.label) })}
   </div>`;
 }
 

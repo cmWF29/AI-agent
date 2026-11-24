@@ -1,6 +1,6 @@
 id: view-position
-title: 岗位详情：岗位记录 + 流程规范 + 提示词正文，只读
-description: "岗位详情：岗位记录 + 流程规范 + 提示词正文，只读。岗位详情只声明区块，数据源走 position-get"
+title: 岗位详情：基本信息 + 状态机 + 每步约束 + 提示词，只读
+description: "岗位详情：基本信息 + 状态机 + 每步约束 + 提示词，只读。岗位详情只声明区块，数据源走 position-get"
 tags: [view, web, read]
 enabled: true
 callable: false
@@ -15,7 +15,7 @@ view:
   parent: {view: positions}
   crumb: [岗位, "{position.cn}"]
   heading: "{position.cn}"
-  subheading: 提示词、流程、工具同屏
+  subheading: 职责、流程与每步约束同屏
   data:
   - {as: position, demand: position-get, params: {id: "{route.position}"}}
   sections:
@@ -26,78 +26,29 @@ view:
     rows:
     - label: 标识
       value: row.id
-    - label: 提示词引用
-      value: row.prompt_file
-      fallback: —
-    - label: 流程检查
-      value: "row.flow.checks|count"
-      suffix: 项
+    - label: 可见工具
+      value: "row.tools|count"
+      suffix: 个
       muted: true
   - kind: dag
     as: position
     source: position.stages
-    heading: 流程状态机（DAG：分支与回退都在图上，虚线是回边）
-    note: 固定框自动布局，可缩放；虚线回边表示打回重做/回退
+    heading: 流程状态机
+    note: 实线前进，橙色虚线是回退；迁移条件见下方列表，节点内是必做/禁止条数
     title: "{position.cn} 流程"
     hide_when_empty: true
-    columns:
-    - {label: 状态, value: row.cn, fallback: row.id}
-    - {label: 标识, value: row.id, muted: true}
-    - {label: 做什么, value: row.desc, fallback: "—"}
-    - {label: 此状态可用工具, value: row.tools, fallback: 全量}
-    - {label: 下一状态, value: row.next, fallback: "—", muted: true}
-    - {label: 终态, value: row.terminal, fallback: "—", muted: true}
   - kind: gate
     as: position
     source: position.stages
-    heading: 每步清单（随提示词下发，收口必须逐条打勾）
-    note: 打勾项随迁移一起交给后端门禁：缺项或踩红线一律拒绝迁移，原地补做
+    heading: 每步清单
+    note: 迁移时逐条打勾；缺项或踩红线由后端拒绝，原地补做
     hide_when_empty: true
     empty: 本岗位状态未设必做/禁止清单
   - kind: doc
     as: position
     source: position.prompt
-    heading: 提示词正文
+    heading: 提示词
     hide_when_empty: true
-  - kind: table
-    as: position
-    source: position.must_dos
-    heading: 必须做到
-    hide_when_empty: true
-    columns:
-    - {label: 条目, value: "{row}"}
-  - kind: table
-    as: position
-    source: position.forbidden
-    heading: 禁止事项
-    hide_when_empty: true
-    columns:
-    - {label: 红线, value: "{row}"}
-  - kind: table
-    as: position
-    source: position.must_outputs
-    heading: 产出约束
-    hide_when_empty: true
-    columns:
-    - {label: 路径, value: "{row}"}
-  - kind: table
-    as: position
-    source: position.flow.checks
-    heading: 流程检查规则
-    hide_when_empty: true
-    columns:
-    - {label: 类型, value: row.kind}
-    - {label: 匹配路径, value: row.paths}
-    - {label: 命中规则, value: row.match, fallback: —}
-    - {label: 最小字节, value: row.min_bytes, fallback: —}
-    - {label: 说明, value: row.desc, fallback: —}
-  - kind: table
-    as: position
-    source: position.tools
-    heading: 可见工具
-    hide_when_empty: true
-    columns:
-    - {label: 工具, value: "{row}"}
 expect:
   given:
     input: {}

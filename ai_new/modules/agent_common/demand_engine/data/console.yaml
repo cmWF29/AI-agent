@@ -128,7 +128,7 @@ ui:
   dag_must: "必做 {}"
   dag_forbid: "禁 {}"
   dag_current: 当前
-  dag_legend: 实线=前进，橙色虚线=退回，边上文字=迁移条件，节点角标=该步清单条数
+  dag_legend: 实线=前进，橙色虚线=退回；迁移条件看下方列表，节点内是必做/禁止条数
   gate_must_head: 必须做到
   gate_forbid_head: 禁止
   gate_empty: 本步未设清单

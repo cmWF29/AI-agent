@@ -1312,7 +1312,8 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(sp["result"]["status"], "idle")
         # 角色人设必须进 system 消息（嵌套需求结果要解到 .result.prompt）
         sysmsg = next(m for m in sp["result"]["messages"] if m["role"] == "system")
-        self.assertIn("开发角色", sysmsg["content"])
+        # 岗位提示词已是纯 prose（不再套“你是 XX 角色”模板），按角色专属职责句断言
+        self.assertIn("按验收标准实现代码并交付", sysmsg["content"])
         # 岗位红线/必做进系统提示词；工具清单按岗位名单裁剪落会话 meta
         self.assertIn("必须做到", sysmsg["content"])
         self.assertIn("禁止事项", sysmsg["content"])

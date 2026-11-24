@@ -64,13 +64,15 @@
         id: String(e.from) + "->" + String(e.to) + (e.label ? ":" + e.label : ""),
         source: e.from,
         target: e.to,
-        label: e.label || "",
+        label: spec.edgeLabels === false ? "" : (e.label || ""),
         back: !!e.back,
       },
     }));
 
     const canvas = ensureCanvas(el);
-    const rankdir = spec.direction === "TB" ? "TB" : "LR";
+    // 窄屏竖排、宽屏横排：手机上横向画会把字号压到看不清，桌面横向更省高度。
+    const narrow = (el.clientWidth || window.innerWidth) < 620 || window.innerWidth < 720;
+    const rankDir = narrow ? "TB" : (spec.direction === "TB" ? "TB" : "LR");
     const cy = global.cytoscape({
       container: canvas,
       elements: { nodes, edges },
@@ -81,11 +83,12 @@
       autoungrabify: true,
       layout: {
         name: "dagre",
-        rankdir: rankdir,
-        nodeSep: 28,
-        edgeSep: 20,
-        rankSep: 64,
+        rankDir: rankDir,
+        nodeSep: 22,
+        edgeSep: 18,
+        rankSep: 58,
         animate: false,
+        fit: false,
         padding: 12,
       },
       style: [
@@ -93,29 +96,29 @@
           selector: "node",
           style: {
             shape: "round-rectangle",
-            width: 148,
-            height: 64,
+            width: 156,
+            height: 78,
             "background-color": "#ffffff",
             "border-width": 1.3,
             "border-color": "data(tone)",
             label: "data(label)",
             "text-wrap": "wrap",
-            "text-width-wrap": true,
-            "text-valign": "top",
+            "text-max-width": "138px",
+            "text-valign": "center",
             "text-halign": "center",
-            "font-size": 12,
+            "font-size": 11.5,
+            "line-height": 1.25,
             "color": "#1d2129",
-            "padding-top": 8,
             "text-margin-y": 0,
           },
         },
         {
           selector: "node[?terminal]",
-          style: { "border-color": "#00b42a", "background-color": "rgba(0,180,42,.06)" },
+          style: { "border-color": "#00b42a", "border-width": 1.6, "background-color": "#e8f8ee" },
         },
         {
           selector: "node[?active]",
-          style: { "border-color": "#2f6bff", "border-width": 2, "background-color": "rgba(47,107,255,.06)" },
+          style: { "border-color": "#2f6bff", "border-width": 2, "background-color": "#eef3ff" },
         },
         {
           selector: "edge",
@@ -127,13 +130,16 @@
             width: 1.4,
             lineColor: "#8a97a8",
             label: "data(label)",
-            "font-size": 11,
+            "font-size": 10.5,
+            "line-height": 1.2,
+            "text-wrap": "wrap",
+            "text-max-width": "108px",
             color: "#7c8798",
             "text-background-color": "#ffffff",
-            "text-background-opacity": 0.9,
+            "text-background-opacity": 0.94,
             "text-background-padding": 3,
             "text-rotation": "none",
-            "text-margin-y": -4,
+            "text-margin-y": -2,
           },
         },
         {
@@ -149,7 +155,9 @@
     });
 
     instances.set(el, cy);
-    cy.on("layoutstop", () => { cy.fit(undefined, 28); setPct(el); });
+    cy.on("layoutstop", () => { safeFit(el, cy, true); });
+    // dagre 在构造期同步跑完布局，事件可能已经错过；下一帧补一次 fit+居中。
+    setTimeout(() => safeFit(el, cy, true), 0);
     return cy;
   }
 
@@ -164,9 +172,27 @@
     if (pct) pct.textContent = Math.round(cy.zoom() * 100) + "%";
   }
 
+  function safeFit(el, cy, autoHeight) {
+    // 固定 320px 高的图会把 7 态流程压成 60%，手机上根本读不了；
+    // 首次挂载按内容撑高（有上限），之后用户手动缩放不再改容器。
+    if (autoHeight) {
+      const box = cy.elements().boundingBox();
+      const maxH = window.innerWidth < 720 ? 980 : 720;
+      const target = Math.min(maxH, Math.max(200, Math.round(box.h + 56)));
+      if (Math.abs((parseFloat(el.style.height) || 0) - target) > 6) {
+        el.style.height = target + "px";
+        cy.resize();
+      }
+    }
+    // 图小的时候 fit 会把它放大到糊脸：封顶 125%，只居中不继续撑。
+    cy.fit(undefined, 28);
+    if (cy.zoom() > 1.25) { cy.zoom(1.25); cy.center(); }
+    setPct(el);
+  }
+
   function fit(el) {
     const cy = lookup(el);
-    if (cy) { cy.fit(undefined, 24); setPct(el); }
+    if (cy) safeFit(el, cy, false);
   }
 
   function zoomBy(el, dir) {

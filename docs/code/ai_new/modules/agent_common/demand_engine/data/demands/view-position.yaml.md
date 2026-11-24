@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-position.yaml
-hash: 3b1984881fad40cf52338429cb66e2a79ca69f61517fd55b2f27f836e4874d4a
+hash: 72d310767154176b146e77f6fe0f90778a9d11120ffb4442457511512a761666
 symbols:
 - id
 - title

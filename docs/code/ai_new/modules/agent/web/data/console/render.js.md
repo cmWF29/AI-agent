@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: 60f76ef1741983d8ce29c0f84617823da1c566404a12de5e8d8b0a08afbd2f63
+hash: 8db0eea5f70d60aa967292c6894114bda23959aade0eab46b9540f93ce0977dd
 symbols:
 - foldLoad
 - foldSet
@@ -69,6 +69,7 @@ symbols:
 - dagEdgeTo
 - dagBackSet
 - dagGraphSpec
+- dagTransitionsHtml
 - dagCard
 - dagHtml
 - gateHtml
@@ -547,6 +548,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `dagGraphSpec`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `dagTransitionsHtml`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
