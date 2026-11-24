@@ -1,12 +1,13 @@
 ---
 source: scripts/gen_docs.py
-hash: a02c38de815c02727a78f1563345db35f260ca9e97c7c7f99ab774922dbe602f
+hash: d52494d08bc471906ad386bb5750e5f0d82251181c2201186605d50d28518222
 symbols:
 - _sha256
 - _py_symbols
 - _js_symbols
 - _yaml_keys
 - _safe_yaml
+- _tracked
 - _collect_sources
 - _summary
 - render_doc
@@ -56,6 +57,12 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `_safe_yaml`（function）
 - 职责: 解析 yaml；失败返回 ({}, 错误信息)，不让门禁崩溃在并发改动的文件上。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_tracked`（function）
+- 职责: 只把已入库文件当文档源：projects/logs/tickets 等运行期落盘 yaml 不进文档镜像。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

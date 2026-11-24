@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -58,9 +59,21 @@ def _safe_yaml(src: str) -> tuple[dict, str | None]:
         return {}, str(e)
 
 
+def _tracked(root: Path) -> set[str] | None:
+    """只把已入库文件当文档源：projects/logs/tickets 等运行期落盘 yaml 不进文档镜像。
+    非 git 环境（发布包/归档）返回 None，退化为全扫。"""
+    try:
+        raw = subprocess.check_output(["git", "-C", str(root), "ls-files", "-z"],
+                                      stderr=subprocess.DEVNULL)
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return {x for x in raw.decode("utf-8", "surrogateescape").split("\0") if x}
+
+
 def _collect_sources(root: Path, scope: str | None) -> list[tuple[str, str, str]]:
     """返回 [(rel, kind, src)]。kind: py / js / yaml。"""
     out: list[tuple[str, str, str]] = []
+    tracked = _tracked(root)
 
     def keep(rel: str) -> bool:
         return not scope or rel.startswith(scope)
@@ -94,8 +107,12 @@ def _collect_sources(root: Path, scope: str | None) -> list[tuple[str, str, str]
                 if fn.endswith((".yaml", ".yml")):
                     p = Path(dirpath) / fn
                     rel = str(p.relative_to(root))
-                    if keep(rel):
-                        out.append((rel, "yaml", p.read_text(encoding="utf-8")))
+                    if not keep(rel):
+                        continue
+                    # 运行期数据目录会不断新增/清理记录，不能要求每次落盘都补文档
+                    if tracked is not None and rel not in tracked:
+                        continue
+                    out.append((rel, "yaml", p.read_text(encoding="utf-8")))
 
     scripts = root / "scripts"
     if scripts.is_dir():
