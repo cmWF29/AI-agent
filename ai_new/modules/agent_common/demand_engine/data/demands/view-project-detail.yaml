@@ -65,7 +65,7 @@ view:
     as: queue
     layout: list
     heading: 群聊秘书
-    note: 把零散想法发给秘书，合并成需求后统一建单
+    note: "待处理 {data.queue.counts.pending} 条"
     items:
     - title: 群聊秘书
       sub: "把想法发给秘书；待处理 {data.queue.counts.pending} 条 · 处理中 {data.queue.counts.processing} 条"
@@ -92,7 +92,7 @@ view:
     heading: 岗位
     fold: {title: 岗位配置}
     layout: deck
-    note: "{data.positions.items|count} 个岗位 · 左右滑动换卡；点卡进岗位详情，可在本项目单独启停"
+    note: "{data.positions.items|count} 个岗位 · 点卡看详情"
     title: row.cn
     badge: {when: row.disabled == true, text: 本项目已禁用}
     stat: {count: "row.flow.checks|count", label: 项门禁检查, note: "流程 {row.flow.cn}"}
@@ -124,7 +124,7 @@ view:
     heading: 技能
     fold: {title: 技能配置}
     layout: deck
-    note: "{data.skills.items|count} 个技能 · 左右滑动换卡；可在本项目单独禁用"
+    note: "{data.skills.items|count} 个技能 · 点卡看详情"
     title: row.cn
     badge: {when: row.disabled_project == true, text: 本项目已禁用}
     meta:
@@ -154,7 +154,7 @@ view:
     heading: 工具
     fold: {title: 工具配置}
     layout: deck
-    note: "{data.ptools.items|count} 个工具 · 左右滑动换卡；可在本项目单独禁用"
+    note: "{data.ptools.items|count} 个工具 · 点卡看详情"
     title: row.name
     badge: {when: row.disabled_project == true, text: 本项目已禁用}
     meta:

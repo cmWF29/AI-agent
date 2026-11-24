@@ -10,6 +10,7 @@ import glob
 import hashlib
 import json
 import os
+import yaml
 import sys
 
 import yaml
@@ -137,9 +138,14 @@ def first(demand, key, field):
                                  data=json.dumps({"id": demand, "input": {}}).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
-        r = json.loads(urllib.request.urlopen(req).read().decode())
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read().decode()
+            ctype = (resp.headers.get("Content-Type") or "").lower()
+        r = json.loads(raw) if "json" in ctype else yaml.safe_load(raw)
         items = ((r.get("result") or {}).get("result") or {}).get(key) or []
-        return items[0].get(field, "") if items else ""
+        if not items:
+            return ""
+        return items[0].get(field) or items[0].get("name") or items[0].get("id") or ""
     except Exception:
         return ""
 

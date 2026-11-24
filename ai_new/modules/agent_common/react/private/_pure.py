@@ -225,9 +225,11 @@ def summarize(p):
     if not lines:
         return {"summary": base, "fallback": False}
     text = (title + "\n" if title else "") + "\n".join(lines)
-    if cap > 0 and len(text) > cap:
-        text = text[:cap] + "…"
     merged = (base + "\n\n" + text).strip() if base else text
+    # 上限是对整段滚动摘要的硬约束，不能只截本轮兜底正文：旧摘要 + 正文拼完仍超限，
+    # 下一轮上下文就会比配置的预算大。先拼再截，保留旧摘要的头部信息。
+    if cap > 0 and len(merged) > cap:
+        merged = merged[:cap] + "…"
     return {"summary": merged, "fallback": True}
 
 

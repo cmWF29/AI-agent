@@ -35,9 +35,9 @@ async def settle_view(pg, timeout=4000):
     try:
         await pg.wait_for_selector(
             "#view-body .pcard, #view-body .chat, #view-body .tbl-wrap, "
-            "#view-body .side-card, #view-body .empty, #view-body .vsec",
+            "#view-body .side-card, #view-body .vsec",
             timeout=timeout)
-        await pg.wait_for_timeout(300)
+        await pg.wait_for_timeout(700)
     except Exception:
         await pg.wait_for_timeout(800)
 

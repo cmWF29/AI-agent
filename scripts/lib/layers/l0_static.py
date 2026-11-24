@@ -41,6 +41,8 @@ GATES: list[tuple[str, str, Path, bool]] = [
      SCRIPTS / "gate_docsync.py", True),
     ("copy", "界面文案：禁用句式 / 长度上限 / 术语一致 / 字段泄漏",
      SCRIPTS / "gate_copy.py", True),
+    ("frontend", "界面信息预算：网格卡字段上限 / 说明长度 / 品牌无渐变",
+     SCRIPTS / "gate_frontend.py", True),
     ("levels", "四级层级：能力 center/node 声明、互斥与证据真实",
      SCRIPTS / "gate_levels.py", True),
     ("wiring", "接线：表单提交→需求 with→API 入参逐项贯通",

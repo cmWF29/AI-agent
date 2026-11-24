@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-24T23:32:30",
-  "total": 514,
+  "generated": "2026-11-25T01:15:10",
+  "total": 518,
   "groups": [
     {
       "label": "agent",
@@ -1124,7 +1124,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/api/data/gen/bindings.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "78d570e7c3bdbdd9aaf389605f86d4b70cbc1691ab8924d3a172404c3906035d",
+          "hash": "ba9e25054686fde223c49ff36dc8e39061f0e7355fef9ab08cd40834f93e4bd0",
           "symbols": 5,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3140,7 +3140,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-project-detail.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "3aa81a05408938ccbea4392fd567c4bef0a541eb96f9287476154d960ed6566a",
+          "hash": "a3e4b167fcb871d8f8897f6c94f313cb6b4d2ddbfee14faba6feafae7c9b0594",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3149,7 +3149,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-projects-list.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "c93e31ce18e979d5d593b2b7368ff2c98c7ca3e350af5a2b48bd398abbb59011",
+          "hash": "a5902d6910d6c0a4f0a1dcff76742155ab26cedaae14906db8ac398dbd142e39",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3707,7 +3707,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/react/private/_pure.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "cba9f011af2973e11e8b6551fdcf588fdbc592185f05e08feb1149dcfd0f56b2",
+          "hash": "053f66c2d8ee82ac4447a555b2686e4e5f73d0e66d2b868cad9b5fb53dbc431b",
           "symbols": 18,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3949,7 +3949,7 @@
     },
     {
       "label": "agent_test",
-      "count": 38,
+      "count": 39,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -3965,7 +3965,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/data/checks.yaml.md",
           "kind": "yaml",
           "group": "agent_test",
-          "hash": "ded89ea9f68b3af8c9537dce2f8ed897d58f66a23677e12d8296a8e805e2d7a4",
+          "hash": "fdac4f09c60c3fe97a1e7446838dce286d4813317edff88995ff4800ce7430f6",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4231,6 +4231,15 @@
           "updated_at": "2026-11-23T13:04:31"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_react_mechanisms.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_react_mechanisms.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "babccbef1a9e77aa26a2bb883d7b888fb43b57590ff5fb9b259b8a9dfd0aa1da",
+          "symbols": 10,
+          "updated_at": "2026-11-25T00:25:47"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_role_gates.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_role_gates.py.md",
           "kind": "py",
@@ -4297,7 +4306,7 @@
     },
     {
       "label": "scripts",
-      "count": 39,
+      "count": 42,
       "docs": [
         {
           "source": "scripts/audit_click_machine.py",
@@ -4345,6 +4354,15 @@
           "updated_at": "2026-11-23T09:13:19"
         },
         {
+          "source": "scripts/gate_coverage.py",
+          "doc": "docs/code/scripts/gate_coverage.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "ab49df2ab64697fc9bfaeda5d039383247f1bea407672206f47270c3ae2045c8",
+          "symbols": 6,
+          "updated_at": "2026-11-25T00:25:47"
+        },
+        {
           "source": "scripts/gate_deadcode.py",
           "doc": "docs/code/scripts/gate_deadcode.py.md",
           "kind": "py",
@@ -4370,6 +4388,15 @@
           "hash": "9f1f7b1c104b23d4598ad0a45b6fe7f995c235771fbb0cc36a43132395a6a7e2",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "scripts/gate_frontend.py",
+          "doc": "docs/code/scripts/gate_frontend.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "3b3a9f2abf79a08e90a4e029cfce4f35aa0d3ab2ce5df8583a40af5f324d6cbd",
+          "symbols": 4,
+          "updated_at": "2026-11-25T00:25:47"
         },
         {
           "source": "scripts/gate_inventory.py",
@@ -4592,9 +4619,18 @@
           "doc": "docs/code/scripts/ui_inventory.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "ab6ed8f797124b34f7c33bfaa1572d582a90be3652210ee14e7509d44c7d4fdd",
+          "hash": "99866beaf2102e224a5811ad31db1f11553a603c05805d780867e9a390d704a4",
           "symbols": 8,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "scripts/verify_controls.py",
+          "doc": "docs/code/scripts/verify_controls.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "b476b380b516a4b87b769d7eeb98af422087a0851328acd54fb4600909272d07",
+          "symbols": 5,
+          "updated_at": "2026-11-25T00:25:47"
         },
         {
           "source": "scripts/verify_e2e.py",
@@ -4628,7 +4664,7 @@
           "doc": "docs/code/scripts/verify_ui.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "1faa7760af5f21d3e32ac40ae792253269d602416bdeb61486e763e841a47664",
+          "hash": "6a10ec69cfb97c5a78b15f64a2165a64fe6f837abd88a7f2155c15782767543e",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:23"
         },

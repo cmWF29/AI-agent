@@ -9,10 +9,11 @@
 | 层 | 名称 | 防什么风险 | 跑什么 |
 |---|---|---|---|
 | L0 | 静态/架构/文档/映射 | 控件未登记状态机、指标取数源失真、可点实例缺去向、页面孤岛、条件表达式失效、只读裸奔、需求↔用例映射过期、表单/需求/API 参数断线、死代码 | 转调 L0 门禁 + 死代码扫描（`scripts/gate_*.py`） |
-| L1 | 后端单元（UT） | 纯函数错误、状态机非法迁移、并发竞争、幂等失效、边界条件 | 转调既有 8 个 unittest 模块（`agent_test/private/test_*.py`） |
+| L1 | 后端单元（UT） | 纯函数错误、状态机非法迁移、并发竞争、幂等失效、边界条件 | 转调 `agent_test/private/test_*.py` 下的 21 个 unittest 模块，含 React 流程/清单/逐轮压缩机制专项 |
 | L2 | 接口契约 | 不可信输入打穿、未登录放行、内部路由外泄、越权直调、路径穿越、重复投递双跑 | 真装配 + 真 HTTP 闸，对业务路由跑非法输入矩阵与鉴权/越权/穿越/幂等探针 |
 | L3 | 系统级 E2E（ST） | 前后端接线断裂：点按钮没反应、弹窗/表单没加载、提交后列表不更新 | 真浏览器（Chromium/Playwright）+ 真后端：自动发现并巡检全部视图与弹窗表单；项目跑“建→改名→归档→删除”，工单跑“建→发消息→回复→结单→归档→删除”闭环并清理 |
 | L4 | 韧性 | 进程被杀、写盘中断、租约过期、节点下线、重复投递、恢复后双跑 | 本机多进程模拟，走真实幂等台账 `store.claim/renew/settle/sweep` |
+| L5 | 覆盖率 | 用例跑绿但核心机制根本没被执行；只测表层入口 | `coverage run --branch` + `scripts/gate_coverage.py`：整体行/分支阈值 + 关键模块（react/sessions/todos/library）单独阈值 |
 
 ## 怎么单独跑
 
@@ -64,7 +65,23 @@ python3 scripts/gates.py --timeout 180
 - **L3 E2E**：`scripts/lib/layers/l3_e2e.py` 起临时服务并转调 `scripts/verify_pages.py` 与 `scripts/verify_e2e.py`；页面/表单从后端 `views-list` 动态发现，浏览器业务闭环直接写这里，不 mock 断言。
 - **L4 韧性**：`scripts/lib/layers/l4_resilience.py`，多进程模拟 + 真实幂等台账。
 
-## 与既有 8 个模块的关系
+## 覆盖率门禁
+
+```bash
+# 全量用例在 coverage 下跑，产物写到 /tmp/hive.coverage
+cd ai_new/modules/agent_test/private
+python3 -m coverage run --rcfile=../../../../scripts/coverage.ini --branch --data-file=/tmp/hive.coverage \
+  --source="$(cd ../../../.. && pwd)/ai_new/modules" -m unittest <模块列表>
+cd ../../../..
+python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
+```
+
+- 阈值在 `scripts/coverage.json`：整体行/分支、关键模块单独线；
+- 测试代码与前端静态资源不计入；
+- 没有数据文件直接红，不允许「没跑 coverage 但当作通过」；
+- 覆盖率不是目的：关键机制用例必须断言行为，不能只靠执行过一行代码。
+
+## 与既有模块的关系
 
 L1 只做转调，不复制断言：
 

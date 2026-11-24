@@ -12,7 +12,6 @@ view:
   default: true
   crumb: [项目]
   heading: 项目
-  subheading: 选一个项目看它的工单
   actions:
   - {label: ＋ 新建项目, tone: primary, modal: project.new}
   data:
@@ -23,7 +22,7 @@ view:
     source: tree.items
     layout: grid
     heading: 进行中
-    note: "共 {data.tree.items|count} 个 · 在建工单、发消息、改名、归档都在这里"
+    note: "共 {data.tree.items|count} 个"
     key: row.project.id
     title: row.project.name
     archived_when: row.project.archived
@@ -33,9 +32,7 @@ view:
       label: 工单
       note: "{row.counts.open} 进行中 · {row.counts.closed} 已结单"
     meta:
-    - {label: 建, value: "row.project.created|when"}
-    - {label: 路径, value: row.project.root, fallback: 默认目录}
-    - {label: 最近, value: "row.tickets.0.title", fallback: 这个项目还没有工单}
+    - {label: 最近, value: "row.tickets.0.title", fallback: 暂无工单}
     actions:
     - {label: 改名, modal: project.rename}
     - {label: 归档, demand: projects-archive, params: {id: row.project.id},
@@ -53,7 +50,7 @@ view:
     source: tree.archived
     layout: grid
     heading: 已归档
-    note: "共 {data.tree.archived|count} 个 · 只读：归档要求工单全部结单，归档后不能再改名、建单、发消息"
+    note: "共 {data.tree.archived|count} 个"
     hide_when_empty: true
     key: row.project.id
     title: row.project.name
@@ -64,10 +61,7 @@ view:
       label: 工单
       note: "{row.counts.closed} 已结单 · 只读"
     meta:
-    - {label: 建, value: "row.project.created|when"}
-    # 与进行中同一套 meta 口径：两摞卡片的行数一致，高度才不会被内容差拉开
-    - {label: 路径, value: row.project.root, fallback: 默认目录}
-    - {label: 最近, value: "row.tickets.0.title", fallback: 这个项目还没有工单}
+    - {label: 最近, value: "row.tickets.0.title", fallback: 暂无工单}
     actions:
     - {label: 删除, demand: projects-delete, params: {id: row.project.id, purge: true},
        confirm: "彻底删除项目「{row.project.name}」？其工单、会话与知识将一并删除。",

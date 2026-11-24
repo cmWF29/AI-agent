@@ -15,13 +15,17 @@ jobs:
         with:
           python-version: "3.11"
       - name: 依赖
-        run: pip install pyyaml cryptography
+        run: pip install pyyaml cryptography coverage
       - name: 强隔离依赖（Linux mount namespace）
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
       - name: 代码-文档同步门禁（源码哈希 / 符号清单 / 孤儿文档）
         run: python3 scripts/gate_docsync.py
       - name: 控件状态机门禁（每个按钮/事件都要有声明过的状态机）
         run: python3 scripts/gate_controls.py
+      - name: 界面文案门禁（禁用句式 / 长度上限 / 术语一致 / 字段泄漏）
+        run: python3 scripts/gate_copy.py
+      - name: 界面信息预算门禁（网格卡字段上限 / 说明长度 / 品牌无渐变）
+        run: python3 scripts/gate_frontend.py
       - name: 运维指标门禁（指标与取数源一一对应）
         run: python3 scripts/gate_ops.py
       - name: 可点实例门禁（每一条都要有控件id/状态机/去向）
@@ -36,11 +40,13 @@ jobs:
         run: python3 scripts/gate_demand_tests.py
       - name: 接线门禁（表单提交→需求 with→API 入参逐项贯通）
         run: python3 scripts/gate_wiring.py
-      - name: 需求/架构/装配/传输/幂等/桩协议全量用例
+      - name: 需求/架构/装配/传输/幂等/桩协议全量用例（coverage）
         working-directory: ai_new/modules/agent_test/private
         run: |
           set -o pipefail
-          python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_distributed test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows test_cloud test_cloud_guard test_cloud_seal test_cloud_sync test_cloud_s3 test_cloud_webdav 2>&1 | tee /tmp/full-tests.log
+          python3 -m coverage run --rcfile="$GITHUB_WORKSPACE/scripts/coverage.ini" --branch --data-file=/tmp/hive.coverage --source="$GITHUB_WORKSPACE/ai_new/modules" -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_distributed test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows test_cloud test_cloud_guard test_cloud_seal test_cloud_sync test_cloud_s3 test_cloud_webdav test_react_mechanisms 2>&1 | tee /tmp/full-tests.log
+      - name: 覆盖率门禁（行/分支/关键机制模块）
+        run: python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
       - name: 全量用例失败日志
         if: failure()
         uses: actions/upload-artifact@v4
@@ -63,6 +69,7 @@ jobs:
           python3 scripts/verify_ui.py
           python3 scripts/verify_e2e.py
           python3 scripts/verify_pages.py
+          python3 scripts/verify_controls.py
           python3 scripts/ui_inventory.py --check
 
   isolation-windows:
@@ -81,7 +88,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: 依赖
-        run: pip install pyyaml cryptography
+        run: pip install pyyaml cryptography coverage
       - name: platform probe（OS 基本面 + plat 三档能力 + loopback TCP 自检）
         timeout-minutes: 8
         run: python scripts/win_probe.py

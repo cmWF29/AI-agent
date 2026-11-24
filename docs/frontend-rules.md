@@ -74,7 +74,15 @@
 - 图容器内缩放/拖拽，不放大整页。
 - 折叠统一走既有 `foldBox` / `foldAttr` 协议，不新造折叠标记。
 
-## 4. 验收命令
+## 4. 信息预算与「去 AI 味」
+
+- 列表卡片：标题、状态、计数、最多 2 行 meta、动作。路径、创建时间、最近活动进详情；长说明进说明按钮/浮窗/抽屉。
+- 区块说明只写一行且只讲数量或当前状态，不复述标题；不写「这里是……」「您可以……」。
+- 品牌标识只用纯色，禁止渐变、发光、装饰阴影。
+- 说明入口必须可打开、可关闭、可返回，不能只在悬停时出现。
+- 这些规则由 `scripts/gate_frontend.py` 静态检查，运行在 L0；改动页面后先跑它。
+
+## 5. 验收命令
 
 在仓库根目录执行：
 
@@ -91,8 +99,8 @@ python3 scripts/ui_inventory.py http://127.0.0.1:8787
 python3 scripts/ui_inventory.py --check
 
 # 4. 全量门禁
-for g in gate_inventory gate_ops gate_screens gate_controls gate_views \
-         gate_demand_tests gate_wiring gate_deadcode gate_docsync; do
+for g in gate_inventory gate_ops gate_screens gate_controls gate_copy gate_frontend \
+         gate_views gate_demand_tests gate_wiring gate_deadcode gate_docsync; do
   python3 scripts/$g.py
 done
 ```
@@ -100,3 +108,5 @@ done
 验收断言：桌面 1440 与移动 390 覆盖所有改动页；`document.documentElement.scrollWidth`
 不大于 `clientWidth + 1`；页面正文可见元素数超过阈值；`pageerror` 与 console error 计数为 0。
 新控件必须登记到 `console.yaml` 的 `controls`，否则 `gate_controls` 不通过。
+
+真实点击巡检：`python3 scripts/verify_controls.py http://127.0.0.1:8787`，每个安全控件重新加载页面后点击，核对 `data-ctl`、点击种类与状态值，并报告误导航与页面异常。

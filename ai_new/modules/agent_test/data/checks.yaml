@@ -175,6 +175,12 @@ checks:
   - skill-uninstall
   - todo-write
   - todo-context
+- id: react-mechanisms
+  title: React 核心机制（流程状态机/清单状态机/逐轮压缩）
+  module: test_react_mechanisms
+  kind: runtime
+  enabled: true
+  demands: []
 - id: role-gates
   title: 岗位门禁清单（must/forbid 完整性、唯一性与迁移门禁）
   module: test_role_gates

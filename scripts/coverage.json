@@ -1,0 +1,13 @@
+{
+  "line": 70.0,
+  "branch": 55.0,
+  "critical": 80.0,
+  "critical_branch": 65.0,
+  "critical_modules": [
+    "ai_new/modules/agent_common/react/",
+    "ai_new/modules/agent/sessions/",
+    "ai_new/modules/agent/todos/",
+    "ai_new/modules/agent/library/"
+  ],
+  "note": "阈值是下限：低于此线阻断 CI；提高阈值前先补用例，不允许为了过线删断言或排除模块。"
+}
