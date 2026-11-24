@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 2691f765b56b92cb92863c0dda3382682e78ccb1f6f678d6754347b7ed1fbad8
+hash: b9b7855b95a3e3b883b2e24bb0575596037b0025fed967839b9578bd5e3eb073
 symbols:
 - __init__
 - __call__
@@ -138,6 +138,7 @@ symbols:
 - test_auth_login_demand_is_public
 - test_next_seq_seeds_from_disk_baseline
 - test_next_seq_is_unique_under_concurrency
+- test_view_index_exposes_every_modal_form
 - setUp
 - test_gate_blocks_until_every_must_checked
 - test_gate_checks_redline_and_stay
@@ -968,6 +969,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_next_seq_is_unique_under_concurrency`（method）
 - 职责: AtomicAdd 发号：多线程同桶取号不重复，且从基线连续递增。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_view_index_exposes_every_modal_form`（method）
+- 职责: 系统级 UT：运行时视图目录必须把页面引用的每个弹窗表单都送到前端。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

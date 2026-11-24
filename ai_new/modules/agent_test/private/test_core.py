@@ -3190,6 +3190,31 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(len(flat), n_threads * per)
         self.assertEqual(len(set(flat)), len(flat), "并发取号出现重复: %s" % flat)
         self.assertEqual(sorted(flat), list(range(1, n_threads * per + 1)))
+    def test_view_index_exposes_every_modal_form(self):
+        """系统级 UT：运行时视图目录必须把页面引用的每个弹窗表单都送到前端。
+
+        YAML 结构测试只能证明“form id 写对了”；这里直接跑真实引擎的 view_index，
+        防的是“规格没随首屏下发，按钮静默无反应”这类接线断裂。
+        """
+        index = self.ctx.demand_engine.view_index()
+        forms = {f.get("id") for item in index
+                 for f in ((item.get("view") or {}).get("forms") or [])}
+        missing = []
+
+        def walk(obj, owner):
+            if isinstance(obj, dict):
+                if obj.get("modal") and obj["modal"] not in forms:
+                    missing.append("%s -> %s" % (owner, obj["modal"]))
+                for v in obj.values():
+                    walk(v, owner)
+            elif isinstance(obj, list):
+                for v in obj:
+                    walk(v, owner)
+
+        for rec in self.ctx.demand_engine._load():
+            walk(rec.get("view") or {}, rec.get("id") or "?")
+        self.assertEqual(missing, [], "这些弹窗没有随视图目录下发: %s" % missing)
+
 
 class StageGateTest(unittest.TestCase):
     """状态机清单契约：must 打勾项随提示词下发，迁移时后端逐条校验。"""
