@@ -8,9 +8,11 @@ from __future__ import annotations
 import base64
 import multiprocessing
 import os
+import random
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -43,7 +45,9 @@ def _cas_add(root, key, count, queue):
                                caller=None)
             current = row.get("value") if isinstance(row.get("value"), dict) else {"n": 0}
             nxt = {"n": int(current.get("n") or 0) + 1}
-            for _attempt in range(20):
+            # 4 个进程高频抢同一个计数器时，固定次数会在 CI 慢机/锁调度下耗尽；
+            # 冲突后随机退避，打断同步碰撞，重试预算放大到 100。
+            for _attempt in range(100):
                 res = ctx.api.call("store.cas", {
                     "module": "agent/nodes", "path": key,
                     "expected": current, "create": True, "value": nxt}, caller=None)
@@ -53,6 +57,7 @@ def _cas_add(root, key, count, queue):
                     raise RuntimeError(res.get("code") or "cas_error")
                 current = res.get("current") or {"n": 0}
                 nxt = {"n": int(current.get("n") or 0) + 1}
+                time.sleep(random.uniform(0, 0.003))
             else:
                 raise RuntimeError("cas retry exhausted")
         queue.put("ok")
