@@ -1,0 +1,51 @@
+id: view-code-doc
+title: 源码与镜像文档正文：同屏对照
+description: "架构页点文件进来：左边源码、右边 docs/code 镜像；只读，路径来自索引"
+tags: [view, web, read, docs]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  screen_label: 源码文档
+  key: code-doc
+  nav: architecture
+  parent: {view: architecture}
+  crumb: [架构, "{route.path}"]
+  heading: "{route.path}"
+  subheading: 源码与 docs/code 镜像同屏；路径来自生成器索引，不在这里手拼
+  params: [path]
+  require: [path]
+  data:
+  - as: file
+    demand: code-docs-read
+    params:
+      path: "{route.path}"
+  sections:
+  - kind: kv
+    as: file
+    lane: right
+    source: file
+    heading: 索引信息
+    rows:
+    - {label: 源码, value: row.source, fallback: —}
+    - {label: 镜像文档, value: row.doc, fallback: 缺文档}
+    - {label: 类型, value: row.kind, fallback: —}
+    - {label: 符号数, value: row.symbols, fallback: 0}
+    - {label: 哈希, value: row.hash, fallback: —}
+  - kind: doc
+    as: file
+    lane: left
+    source: file.source_text
+    heading: 源码
+  - kind: doc
+    as: file
+    lane: right
+    source: file.doc_text
+    heading: docs/code 镜像
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 两段正文都来自索引登记路径；文档缺失时显示空，不伪造

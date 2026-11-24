@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/role-session-message.yaml
-hash: e654bad73a47a033efe6b0589b70abb182e1f29766eb3c891a526272163b9849
+hash: f525440d99c4995e1a166296e24141fb514eea63517afd3e6d671a6b89c5d3ab
 symbols:
 - id
 - title

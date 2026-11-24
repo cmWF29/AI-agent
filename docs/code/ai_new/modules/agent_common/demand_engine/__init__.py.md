@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/__init__.py
-hash: bd86f7a7c58b032689d9a0c1f3f0f8e040f45cef04e1c41cba6501dd1bbeca75
+hash: 88502f85720419f475ee7a8838dca2aa80aca4558fbbf66d8e12a5d22bcf66f3
 symbols:
 - _route_run
 - _route_batch
@@ -12,8 +12,11 @@ symbols:
 - _route_views_index
 - _route_view_spec
 - _route_resolve
-- _doc_children
+- _all_docs
+- _path_nodes
+- _find_doc
 - _route_code_docs
+- _route_code_docs_read
 - _route_click_machine
 - _noop
 - setup
@@ -93,14 +96,32 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `_doc_children`（function）
+### `_all_docs`（function）
+- 职责: 把生成器按模块分组的索引摊平成文件行；路径树自己再按目录重组。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_path_nodes`（function）
+- 职责: 按源文件真实路径切目录树：目录节点带 group=路径前缀，文件节点带源码+镜像文档。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_find_doc`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
 ### `_route_code_docs`（function）
-- 职责: 源码 ↔ docs/code 映射：首屏只给分组与计数，点开某组再取该组条目。
+- 职责: 源码 ↔ docs/code 映射：首屏给第一层目录，展开时按路径前缀取下一层。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_code_docs_read`（function）
+- 职责: 按索引里的精确路径读源码与镜像文档；只认索引登记过的路径，不接受任意文件。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

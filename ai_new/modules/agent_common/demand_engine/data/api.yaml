@@ -57,7 +57,7 @@ routes:
       missing:
         type: any
   demand_engine.code_docs:
-    doc: 源码与 docs/code 镜像文档的映射索引（按模块分组）
+    doc: 源码与 docs/code 镜像文档的映射索引（按真实路径分目录）
     in:
       group:
         type: str
@@ -67,6 +67,19 @@ routes:
         type: int
       groups:
         type: any
+  demand_engine.code_docs_read:
+    doc: 按索引路径读源码与 docs/code 镜像正文
+    in:
+      path:
+        type: str
+        req: true
+    out:
+      ok:
+        type: any
+      source_text:
+        type: str
+      doc_text:
+        type: str
   demand_engine.views_index:
     doc: 视图目录：只给 key/params/default/nav/menu，不带整页 sections
   demand_engine.view_spec:

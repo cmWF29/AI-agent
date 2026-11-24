@@ -33,7 +33,7 @@ view:
     heading: 节点配置者
     meta:
     - 全局岗位会话 · 不挂项目
-    empty: 说说要登记哪台机器、走什么传输、给哪个项目用；缺口它会问
+    empty: 说说要登记哪台机器、走什么传输
     hide_roles: [system]
     roles_source: members.items
     wire_demand: message-wire
@@ -42,7 +42,7 @@ view:
   - kind: composer
     disabled_when: data.chat.status == gone
     lane: left
-    placeholder: 说说要登记哪台机器、走什么传输、给哪个项目用；缺口它会问
+    placeholder: 说说要登记哪台机器、走什么传输
     submit:
       label: 发送
       demand: role-session-message

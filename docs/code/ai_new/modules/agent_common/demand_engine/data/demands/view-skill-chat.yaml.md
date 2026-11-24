@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-skill-chat.yaml
-hash: 69cf305f6ae92d00955e64e5218a994f36d02c7c7475a6b396685587f374981e
+hash: ba21f92f88349e32256f8853adb68c97e46e9808aa5834495d578a5888f7627a
 symbols:
 - id
 - title

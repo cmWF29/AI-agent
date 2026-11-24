@@ -136,7 +136,13 @@ async def open_project(pg, name):
     if not clicked:
         raise AssertionError("项目卡未找到: %s" % name)
     await pg.wait_for_selector("#view-body .view-head", timeout=20000)
-    await pg.wait_for_timeout(600)
+    # 点卡片只改地址，详情数据还要异步取一轮；等标题真正换成项目名，别拿列表页的头当详情。
+    await pg.wait_for_function(
+        "n => { const h=document.querySelector('#view-body .view-head h2');"
+        " return !!(h && h.textContent.trim()===n); }", arg=name, timeout=20000)
+    await pg.wait_for_function(
+        "() => [...document.querySelectorAll('#view-body .view-head sl-button')]"
+        ".some(b => /新建工单/.test(b.textContent || ''))", timeout=20000)
 
 
 async def create_ticket(pg, title, goal):

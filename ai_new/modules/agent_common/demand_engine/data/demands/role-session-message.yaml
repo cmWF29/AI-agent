@@ -23,4 +23,4 @@ expect:
   calls:
   - sessions.talk
   payload: {}
-  promise: 配置者对话与工单群聊共用会话轨，追加与派发只做一次
+  promise: 配置者对话与工单群聊走同一条会话轨，追加与派发只做一次

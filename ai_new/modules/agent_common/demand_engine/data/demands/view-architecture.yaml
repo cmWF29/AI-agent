@@ -1,6 +1,6 @@
 id: view-architecture
 title: 架构：源码与 docs/code 镜像一一对应
-description: "架构页：每个源码文件对应一份 docs/code 镜像文档；按模块展开看源文件、镜像路径、符号数与哈希，索引由 gen_docs.py 生成"
+description: "架构页：每个源码文件对应一份 docs/code 镜像文档；按真实目录路径展开，点文件看源码与镜像同屏，索引由 gen_docs.py 生成"
 tags: [view, web, read, docs]
 enabled: true
 callable: false
@@ -13,7 +13,7 @@ view:
   screen_label: 架构
   crumb: [架构]
   heading: 架构
-  subheading: 每个源码文件一份 docs/code 镜像文档；源文件、镜像路径、符号数与哈希同屏
+  subheading: 按源码真实目录展开；每行同标源码与镜像，点开看正文
   data:
   - {as: docs, demand: code-docs}
   sections:
@@ -39,11 +39,12 @@ view:
     as: docs
     source: data.docs.groups
     group_demand: code-docs-group
+    on_click: {view: code-doc, params: {path: row.doc}}
     collapsed: true
     lazy: true
     wrap: true
     hide_count: true
-    note: 点开模块看源文件；每行右侧是对应的 docs/code 镜像路径、符号数与哈希前 8 位
+    note: 点开目录看下一层；文件行同时标出源码与 docs/code 镜像，点行进入两边正文同屏
     empty: {text: 暂无源码文档索引；先跑 scripts/gen_docs.py}
 expect:
   given:

@@ -239,43 +239,93 @@ async def _route_resolve(ctx, payload):
     return out
 
 
-def _doc_children(group):
-    docs = []
-    for doc in (group.get("docs") or []):
-        if not isinstance(doc, dict):
+def _all_docs(raw):
+    """把生成器按模块分组的索引摊平成文件行；路径树自己再按目录重组。"""
+    out = []
+    for group in (raw.get("groups") or []):
+        if not isinstance(group, dict):
             continue
-        docs.append({
-            "name": str(doc.get("source") or ""),
-            "path": "%s · %s 符号%s" % (
-                doc.get("doc") or "", int(doc.get("symbols") or 0),
-                (" · " + str(doc.get("hash") or "")[:8]) if doc.get("hash") else ""),
+        for doc in (group.get("docs") or []):
+            if isinstance(doc, dict) and doc.get("source"):
+                out.append(doc)
+    return out
+
+
+def _path_nodes(raw, prefix=""):
+    """按源文件真实路径切目录树：目录节点带 group=路径前缀，文件节点带源码+镜像文档。
+
+    只发当前一层的节点；用户展开目录时再用前缀拉下一层，避免 508 份文件一次性进 DOM。
+    """
+    rows = _all_docs(raw)
+    if prefix:
+        rows = [d for d in rows if str(d.get("source") or "").startswith(prefix + "/")]
+    dirs, files = {}, []
+    for doc in rows:
+        src = str(doc.get("source") or "")
+        rest = src[len(prefix) + 1:] if prefix else src
+        if "/" in rest:
+            dirs.setdefault(rest.split("/", 1)[0], []).append(doc)
+        else:
+            files.append(doc)
+    nodes = []
+    for seg in sorted(dirs, key=lambda x: (x.lower(), x)):
+        child = (prefix + "/" + seg) if prefix else seg
+        nodes.append({"label": seg, "group": child, "badge": "%d" % len(dirs[seg]),
+                      "count": len(dirs[seg]), "children": []})
+    for doc in sorted(files, key=lambda d: str(d.get("source") or "").lower()):
+        src = str(doc.get("source") or "")
+        doc_path = str(doc.get("doc") or "")
+        nodes.append({
+            "name": src.rsplit("/", 1)[-1],
+            "source": src,
+            "doc": doc_path,
+            "kind": doc.get("kind") or "file",
+            "symbols": int(doc.get("symbols") or 0),
+            "hash": str(doc.get("hash") or ""),
+            "path": "源码 %s · 文档 %s" % (src, doc_path),
         })
-    return docs
+    return nodes
+
+
+def _find_doc(raw, path):
+    for doc in _all_docs(raw):
+        if path in (str(doc.get("source") or ""), str(doc.get("doc") or "")):
+            return doc
+    return None
 
 
 async def _route_code_docs(ctx, payload):
-    """源码 ↔ docs/code 映射：首屏只给分组与计数，点开某组再取该组条目。
+    """源码 ↔ docs/code 映射：首屏给第一层目录，展开时按路径前缀取下一层。
 
-    500 份文件的镜像路径不塞进首屏响应：架构页只需要四组计数，展开时才按组取。
+    不是按模块拍脑袋分组：目录节点来自源文件真实路径，点开哪层只取哪层。
     """
     raw = ctx.storage.own(__file__).yaml_read("code-docs.json", {}) or {}
     want = str((payload or {}).get("group") or "")
-    groups = [g for g in (raw.get("groups") or []) if isinstance(g, dict)]
     if want:
-        for group in groups:
-            label = str(group.get("label") or "")
-            if label == want:
-                docs = _doc_children(group)
-                return {"label": label, "count": len(docs), "children": docs}
-        return {"label": want, "count": 0, "children": []}
-    rows = []
-    for group in groups:
-        label = str(group.get("label") or "")
-        count = len(group.get("docs") or [])
-        rows.append({"label": label, "group": label,
-                     "badge": "%d" % count, "count": count, "children": []})
+        rows = _path_nodes(raw, want)
+        return {"label": want, "count": len(rows), "children": rows}
+    groups = _path_nodes(raw, "")
     return {"total": int(raw.get("total") or 0), "generated": raw.get("generated") or "",
-            "groups": rows}
+            "groups": groups}
+
+
+async def _route_code_docs_read(ctx, payload):
+    """按索引里的精确路径读源码与镜像文档；只认索引登记过的路径，不接受任意文件。"""
+    raw = ctx.storage.own(__file__).yaml_read("code-docs.json", {}) or {}
+    path = str((payload or {}).get("path") or "")
+    doc = _find_doc(raw, path)
+    if doc is None:
+        return {"ok": False, "path": path, "error": "路径不在源码文档索引里"}
+    src_rel, doc_rel = str(doc.get("source") or ""), str(doc.get("doc") or "")
+    return {
+        "ok": True, "path": path, "title": src_rel.rsplit("/", 1)[-1],
+        "source": src_rel, "doc": doc_rel,
+        "kind": doc.get("kind") or "file",
+        "symbols": int(doc.get("symbols") or 0),
+        "hash": str(doc.get("hash") or ""),
+        "source_text": ctx.storage.repo_text(src_rel),
+        "doc_text": ctx.storage.repo_text(doc_rel),
+    }
 
 
 async def _route_click_machine(ctx, payload):
@@ -309,6 +359,8 @@ def setup(ctx):
                      "全量需求的可视化形状（执行链 + 树节点）", module="demand_engine")
     ctx.api.register("demand_engine.console", lambda c, p: ctx.demand_engine.console(),
                      "控制台外壳（品牌、词表、配色、导航菜单）", module="demand_engine")
+    ctx.api.register("demand_engine.code_docs_read", _route_code_docs_read,
+                     "按索引路径读源码与 docs/code 镜像", module="demand_engine")
     ctx.api.register("demand_engine.code_docs", _route_code_docs,
                      "源码与 docs/code 镜像文档的映射索引（按模块分组）", module="demand_engine")
     ctx.api.register("demand_engine.click_machine", _route_click_machine,

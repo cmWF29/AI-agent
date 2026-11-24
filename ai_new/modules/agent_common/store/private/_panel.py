@@ -444,6 +444,29 @@ class Storage:
         return ModuleData(module_data(anchor), self.ctx)
 
 
+    def repo_text(self, rel):
+
+        """读仓库内只读文本：只放行源码与 docs/code 镜像，拒绝越界路径。
+
+        文件系统只归 store；其它模块不碰 pathlib，拿到的是文本或空串。
+        """
+
+        clean = str(rel or "").strip().replace("\\", "/")
+
+        if not clean.startswith(("ai_new/", "docs/")):
+            return ""
+
+        root = _files.modules_root().parent.parent
+
+        target = (root / clean).resolve()
+
+        if root.resolve() not in target.parents:
+
+            return ""
+
+        return _files.read_text(target) if target.is_file() else ""
+
+
 
     def path(self, key, default):
 

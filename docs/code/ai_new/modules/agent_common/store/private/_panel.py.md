@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_panel.py
-hash: 2c3d6382a6e15da973ae24594339257c6fbfd01d3383b8094d7f5def7e9dea23
+hash: b9b1067a99894f07799f7145f2d71b5d1b6c22d1b3ac015c02ca0053de4b5842
 symbols:
 - module_dir
 - modules_root
@@ -33,6 +33,7 @@ symbols:
 - __init__
 - next_seq
 - own
+- repo_text
 - path
 - pack
 - safe_id
@@ -258,6 +259,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `own`（method）
 - 职责: 某个模块自己的数据目录（调用方传自己的 __file__）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `repo_text`（method）
+- 职责: 读仓库内只读文本：只放行源码与 docs/code 镜像，拒绝越界路径。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

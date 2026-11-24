@@ -33,7 +33,7 @@ view:
     heading: 技能拆解者
     meta:
     - 全局岗位会话 · 不挂项目
-    empty: 把外部 Skill 包地址、版本和用途发给拆解者；它会检查结构、依赖与许可证
+    empty: 把 Skill 包地址、版本和用途发给拆解者
     hide_roles: [system]
     roles_source: members.items
     wire_demand: message-wire
@@ -42,7 +42,7 @@ view:
   - kind: composer
     disabled_when: data.chat.status == gone
     lane: left
-    placeholder: 把外部 Skill 包地址、版本和用途发给拆解者；它会检查结构、依赖与许可证
+    placeholder: 把 Skill 包地址、版本和用途发给拆解者
     submit:
       label: 发送
       demand: role-session-message

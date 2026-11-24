@@ -55,6 +55,17 @@ async def sample_params(pg, fx):
     data.update({"project": fx["project"], "ticket": fx["ticket"], "trace": ""})
     if fx.get("ticket"):
         data["ticket"] = fx["ticket"]
+    try:
+        top = await api(pg, "code-docs", {})
+        for g in (top.get("groups") or []):
+            if g.get("label") == "scripts":
+                child = await api(pg, "code-docs-group", {"group": "scripts"})
+                leaf = next((x for x in (child.get("children") or []) if x.get("doc")), None)
+                if leaf:
+                    data["path"] = leaf["doc"]
+                break
+    except Exception:
+        pass
     return data
 
 

@@ -1,0 +1,21 @@
+id: code-docs-read
+title: 源码文档正文：按索引路径读源码与 docs/code 镜像
+description: "只读取 code-docs 索引登记过的源码或镜像路径，返回两段正文；不经路径拼接打开任意文件"
+tags: [docs, code, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.code_docs_read
+  with:
+    path:
+      get: input.path
+  as: out
+expect:
+  given:
+    input:
+      path: {type: str}
+  calls:
+  - demand_engine.code_docs_read
+  payload: {}
+  promise: 索引是唯一白名单；源码与镜像同屏返回，缺文档不伪造正文

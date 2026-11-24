@@ -236,8 +236,9 @@ def threadp(p):
 
     # 消息时间轴：新消息自带 at；历史落盘没有时间戳的，用会话创建时刻 + 序位补齐，
     # 保证同一会话内单调递增，视图才能把工单历程事件按时间插进消息流而不是全堆在最前面。
-    merged = _stamp(pm_messages, pm_sid, "pm",
-                    thread.get("created") or thread.get("updated"))
+    base = (thread.get("created") or thread.get("updated")
+            or ticket.get("created") or ticket.get("updated"))
+    merged = _stamp(pm_messages, pm_sid, "pm", base)
 
     reg_by_sid = {(r or {}).get("session"): r for r in ticket.get("roles") or []}
     live_by_sid = {(r or {}).get("id"): r for r in role_threads}
@@ -271,7 +272,8 @@ def threadp(p):
                           "status": rstatus, "task": (reg or {}).get("task") or ""})
         msgs = (live or {}).get("messages") or (archived or {}).get("messages") or []
         merged.extend(_stamp(msgs, sid, actor,
-                             (live or archived or {}).get("created")))
+                             (live or archived or {}).get("created")
+                             or base))
 
     for sid, live in live_by_sid.items():
         add_role(sid, reg_by_sid.get(sid), live, archived_by_sid.get(sid))

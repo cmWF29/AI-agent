@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-24T16:00:14",
-  "total": 508,
+  "generated": "2026-11-24T17:36:29",
+  "total": 510,
   "groups": [
     {
       "label": "agent",
@@ -866,7 +866,7 @@
           "doc": "docs/code/ai_new/modules/agent/tickets/private/_pure.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "4efd85774bf7d0e1e47c95a613de4b3e58c293285575239c7484a8e65a3d593d",
+          "hash": "083b4ce70b57ec7e56d3597ac320b2af8b8fdbccce022a95a3f1a2d344247b33",
           "symbols": 40,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -1037,8 +1037,8 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/render.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "9c75961467e6c49ae378aae912a2aaa98be922f965e7d9831b48d677b91071fa",
-          "symbols": 141,
+          "hash": "565ce8dc2867cbedaa22eac6187b93d04fa47e045ae9604d11001a10491927c4",
+          "symbols": 142,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -1081,7 +1081,7 @@
     },
     {
       "label": "agent_common",
-      "count": 314,
+      "count": 316,
       "docs": [
         {
           "source": "ai_new/modules/agent_common/api/__init__.py",
@@ -1124,7 +1124,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/api/data/gen/bindings.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "9abd6abdb2ec41dde8b534843532e1ad148eaac94fce38bb716a91ea80c70763",
+          "hash": "78d570e7c3bdbdd9aaf389605f86d4b70cbc1691ab8924d3a172404c3906035d",
           "symbols": 5,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1484,8 +1484,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/__init__.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "bd86f7a7c58b032689d9a0c1f3f0f8e040f45cef04e1c41cba6501dd1bbeca75",
-          "symbols": 16,
+          "hash": "88502f85720419f475ee7a8838dca2aa80aca4558fbbf66d8e12a5d22bcf66f3",
+          "symbols": 19,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -1493,7 +1493,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/api.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "d5ac944e1c5e89e64ab2082690b8bb04160a4b521c2ac1367a2f0e576a14f653",
+          "hash": "02bddb0f43d1ce8390b810593f425c897021705b38485a3c85b6c9700c9813a4",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1829,6 +1829,15 @@
           "hash": "1cb82a87c47bfff88ac8a60ae7c285d8e231f7b4df0ec7d9785a51c20073e458",
           "symbols": 9,
           "updated_at": "2026-11-24T12:11:39"
+        },
+        {
+          "source": "ai_new/modules/agent_common/demand_engine/data/demands/code-docs-read.yaml",
+          "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/code-docs-read.yaml.md",
+          "kind": "yaml",
+          "group": "agent_common",
+          "hash": "851d5bfa6351a94f1872a8d46f007367db1048ac0fedb7d46663a5d8dfb01d61",
+          "symbols": 9,
+          "updated_at": "2026-11-24T16:34:52"
         },
         {
           "source": "ai_new/modules/agent_common/demand_engine/data/demands/code-docs.yaml",
@@ -2447,7 +2456,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/role-session-message.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "e654bad73a47a033efe6b0589b70abb182e1f29766eb3c891a526272163b9849",
+          "hash": "f525440d99c4995e1a166296e24141fb514eea63517afd3e6d671a6b89c5d3ab",
           "symbols": 9,
           "updated_at": "2026-11-24T03:13:41"
         },
@@ -2978,7 +2987,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-architecture.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "5dca06091545c3a21d20e274cb63584c6930783cca2d0ce5e880f70ad5caa5a9",
+          "hash": "00cd3752af9fe01a24b45406423574ba32fcb51eb068a53f280161381d9c630a",
           "symbols": 10,
           "updated_at": "2026-11-24T11:25:08"
         },
@@ -3014,9 +3023,18 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-cloud.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "6056730668c1691ce7e11c7e8ecc63e82ebd78bafb52f3c460d0eafcf29d4ec3",
+          "hash": "b0e705436b28dd468da2b6bdac2d7eed76badb1d1427020c14421791d29a1426",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
+        },
+        {
+          "source": "ai_new/modules/agent_common/demand_engine/data/demands/view-code-doc.yaml",
+          "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-code-doc.yaml.md",
+          "kind": "yaml",
+          "group": "agent_common",
+          "hash": "ce4ec64d6d9e9f8e614b505e92fc8ef1d95a6d9d679020e910e32e488f8614fc",
+          "symbols": 10,
+          "updated_at": "2026-11-24T16:34:54"
         },
         {
           "source": "ai_new/modules/agent_common/demand_engine/data/demands/view-forms.yaml",
@@ -3059,7 +3077,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-node-chat.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "0aa9f266d226303704bff20f167b81afee9bd85349cd2db67f6c8b93b4742843",
+          "hash": "46e4a60740d0b93b051eac2fe2b9ed037d9191811e4e6a2dd18c7741ae2de4fe",
           "symbols": 10,
           "updated_at": "2026-11-24T03:13:42"
         },
@@ -3131,7 +3149,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-secretary.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "0d8b7fa2400ae04695448e7f19474a79961a8898bd4574e3dfd25b7bf2033386",
+          "hash": "747600671efcf55dc40c3cf74818a295f807f566a309b93e00f9d2403048984b",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3140,7 +3158,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-skill-chat.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "69cf305f6ae92d00955e64e5218a994f36d02c7c7475a6b396685587f374981e",
+          "hash": "ba21f92f88349e32256f8853adb68c97e46e9808aa5834495d578a5888f7627a",
           "symbols": 10,
           "updated_at": "2026-11-24T03:13:42"
         },
@@ -3797,8 +3815,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_panel.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "2c3d6382a6e15da973ae24594339257c6fbfd01d3383b8094d7f5def7e9dea23",
-          "symbols": 59,
+          "hash": "b9b1067a99894f07799f7145f2d71b5d1b6c22d1b3ac015c02ca0053de4b5842",
+          "symbols": 60,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -3929,7 +3947,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/data/checks.yaml.md",
           "kind": "yaml",
           "group": "agent_test",
-          "hash": "5acf1f1ba92b3cb5f63d72aca4a454d33d21e3b2ddfa0e5d48688a855b2bdda4",
+          "hash": "046f29e6b32eb22d82dc346e9237cb98937a9acae3d4a914228340e0838b10f0",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4547,7 +4565,7 @@
           "doc": "docs/code/scripts/verify_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "4f366b55d2a9d5bfed812e0b9fe3effe633e7aae780f7772b47a58f779599cf4",
+          "hash": "174d9b5176b2f93232655f4d011db1533662063658ab1050b1a74c77c53f2992",
           "symbols": 17,
           "updated_at": "2026-11-24T12:48:33"
         },
@@ -4565,7 +4583,7 @@
           "doc": "docs/code/scripts/verify_pages.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "d54ec7cdc697b7e00d65e0c780218f02c61fdbcfa17305c377d126e0c9075ac2",
+          "hash": "d79d460eab63905517afbf4684ceab31726e6deeef81915dd9aa6b59b6fd0033",
           "symbols": 7,
           "updated_at": "2026-11-24T15:25:51"
         },

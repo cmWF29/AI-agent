@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 195 条需求，绑定 15 个检查项。
+共 197 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -42,6 +42,7 @@
 | cloud-sync-run | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
 | code-docs | docs | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | code-docs-group | docs | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| code-docs-read | docs | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | console-chrome | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | console-shell | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | decompose-deps | library | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
@@ -173,6 +174,7 @@
 | view-click-machine | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-cloud | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
 | view-cloud-info | cloud | cloud | test_cloud.py | 云端资料库：适配层往返、凭证脱敏、增量幂等、多 profile 隔离与越权拒绝 |
+| view-code-doc | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-forms | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-knowledge | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | view-knowledge-doc | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: 9c75961467e6c49ae378aae912a2aaa98be922f965e7d9831b48d677b91071fa
+hash: 565ce8dc2867cbedaa22eac6187b93d04fa47e045ae9604d11001a10491927c4
 symbols:
 - foldLoad
 - foldSet
@@ -118,6 +118,7 @@ symbols:
 - summary
 - push
 - seg
+- click
 - here
 - inferParent
 - parentOf
@@ -849,6 +850,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `seg`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `click`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

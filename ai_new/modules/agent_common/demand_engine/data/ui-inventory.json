@@ -1,29 +1,25 @@
 {
  "sig": {
-  "sha": "798d9c817366dc14",
-  "files": 36
+  "sha": "5d0e37114f9252cf",
+  "files": 37
  },
  "stats": {
-  "instances": 809,
+  "instances": 773,
   "pages": 17,
   "kinds": 20
  },
  "pages": [
   {
    "view": "arch",
-   "count": 306
+   "count": 307
   },
   {
    "view": "click-machine",
-   "count": 210
+   "count": 214
   },
   {
    "view": "artifacts",
    "count": 77
-  },
-  {
-   "view": "logs",
-   "count": 51
   },
   {
    "view": "tools",
@@ -39,11 +35,15 @@
   },
   {
    "view": "architecture",
-   "count": 15
+   "count": 13
   },
   {
    "view": "position",
    "count": 13
+  },
+  {
+   "view": "logs",
+   "count": 12
   },
   {
    "view": "nodes",
@@ -1271,6 +1271,33 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
+   "label": "code-docs-read源码文档",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
    "label": "console-chrome登录页外",
    "states": [
     "idle",
@@ -1326,33 +1353,6 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "decompose-deps拆解依赖",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "decompose-index拆解台",
    "states": [
     "idle",
     "busy",
@@ -1905,7 +1905,7 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "32视图view",
+   "label": "33视图view",
    "states": [
     "idle",
     "done"
@@ -5225,6 +5225,86 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
+   "label": "3文档docs",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调code-docs源码文档映射：",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调code-docs-group源",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调code-docs-read源码",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
    "label": "3岗位position",
    "states": [
     "idle",
@@ -5286,66 +5366,6 @@
    "kind": "tree_group",
    "tag": "SUMMARY",
    "label": "可调position-tools岗位",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "2文档docs",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调code-docs源码文档映射：",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "可调code-docs-group源",
    "states": [
     "idle",
     "done"
@@ -5765,7 +5785,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "路由与契约（全部 · 336 条）在",
+   "label": "路由与契约（全部 · 337 条）在",
    "states": [
     "idle",
     "done"
@@ -7100,47 +7120,7 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "119agent",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "architecture",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "314agent_common",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "architecture",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "37agent_test",
+   "label": "472ai_new",
    "states": [
     "idle",
     "done"
@@ -9310,6 +9290,26 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
+   "label": "源码文档\n        \n    ",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.stack_open",
+   "kind": "stack_open",
+   "tag": "SUMMARY",
    "label": "文档正文\n        \n    ",
    "states": [
     "idle",
@@ -9550,6 +9550,26 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
+   "label": "架构→源码文档\n        打开",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.stack_open",
+   "kind": "stack_open",
+   "tag": "SUMMARY",
    "label": "云端资料库→配置信息\n       ",
    "states": [
     "idle",
@@ -9591,6 +9611,26 @@
    "kind": "stack_open",
    "tag": "SUMMARY",
    "label": "配置信息→云端资料库\n       ",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.stack_open",
+   "kind": "stack_open",
+   "tag": "SUMMARY",
+   "label": "源码文档→架构\n        面包",
    "states": [
     "idle",
     "done"
@@ -10410,7 +10450,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "知识库12",
+   "label": "知识库4",
    "states": [
     "idle",
     "done"
@@ -10530,7 +10570,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "项目12",
+   "label": "项目4",
    "states": [
     "idle",
     "done"
@@ -10690,7 +10730,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch306",
+   "label": "arch307",
    "states": [
     "idle",
     "busy",
@@ -10717,7 +10757,34 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine210",
+   "label": "click-machine214",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "artifacts77",
    "states": [
     "idle",
     "busy",
@@ -10798,87 +10865,6 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "artifacts23",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "projects22",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "knowledge19",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
    "label": "cloud16",
    "states": [
     "idle",
@@ -10906,7 +10892,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "architecture15",
+   "label": "architecture13",
    "states": [
     "idle",
     "busy",
@@ -11146,6 +11132,60 @@
   },
   {
    "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "knowledge4",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "projects4",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
@@ -11163,6 +11203,33 @@
     ]
    },
    "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "架构view:architectur",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
   },
   {
    "view": "click-machine",
@@ -14065,786 +14132,6 @@
     ]
    },
    "effect": "本页刷新"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "公共2",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00113",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00123",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00133",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00143",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00153",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00162",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00173",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00183",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00193",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00202",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00212",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00222",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00232",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00243",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00253",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目e2e-ticket-17955",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00263",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目probe-page31",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00103",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目probe-pages1",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00081",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "项目st-pages-1795503",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "logs",
-   "ctl": "ctl.tree_group",
-   "kind": "tree_group",
-   "tag": "SUMMARY",
-   "label": "工单t-20261124-00093",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
   },
   {
    "view": "logs",

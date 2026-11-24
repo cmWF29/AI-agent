@@ -29,7 +29,7 @@ view:
     heading: 云端配置者
     meta:
     - 全局配置会话 · 不挂项目
-    empty: 说说要接哪种云端、端点和要同步什么；配置者会一次把缺口问清
+    empty: 说说要接哪种云端、端点和同步范围
     hide_roles: [system]
     roles_source: members.items
     wire_demand: message-wire
@@ -56,4 +56,4 @@ expect:
     input: {}
   calls: []
   payload: {}
-  promise: 云端配置不再让人填 10 个字段；配置岗位自带工具与红线，缺口一次问清
+  promise: 云端配置只填必要项；配置岗位自带工具与红线，缺口一次问清

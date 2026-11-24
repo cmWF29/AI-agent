@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/view-node-chat.yaml
-hash: 0aa9f266d226303704bff20f167b81afee9bd85349cd2db67f6c8b93b4742843
+hash: 46e4a60740d0b93b051eac2fe2b9ed037d9191811e4e6a2dd18c7741ae2de4fe
 symbols:
 - id
 - title
