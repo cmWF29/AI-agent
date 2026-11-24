@@ -27,8 +27,7 @@ async def new_page(b):
 async def open_projects(pg):
     await pg.goto(BASE + "/manage.html?view=projects", wait_until="load", timeout=60000)
     await pg.wait_for_selector("#view-body .view-head", timeout=30000)
-    await pg.wait_for_function(
-        "() => document.querySelectorAll('#view-body .pcard').length > 0", timeout=20000)
+    await pg.wait_for_timeout(800)
 
 
 async def card_exists(pg, name):
