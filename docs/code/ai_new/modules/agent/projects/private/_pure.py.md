@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/projects/private/_pure.py
-hash: 88d9ddd1df48b6d75a301948b3955fd3554470a752fe57ea2b635e6f2e5a4f01
+hash: 8f47d80c92252c970daa29b7079c5b91efc03cc4ef34a7f4bf3792b38a428f70
 symbols:
 - build
 - view
@@ -12,6 +12,7 @@ symbols:
 - guard_writable
 - archive
 - renamed
+- rooted
 - missing
 - conflict
 - deleted
@@ -90,6 +91,12 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `renamed`（function）
 - 职责: 改名后的档案：换 id/name，created/archived 原样保留。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `rooted`（function）
+- 职责: 写入项目根路径：只替换 root 与 updated，其余档案字段原样保留。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

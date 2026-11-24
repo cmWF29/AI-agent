@@ -1,0 +1,24 @@
+id: project-workspace
+title: 项目工作区：读项目根并解析共享层与工单隔离目录
+description: "项目工作区：读项目根并解析共享层与工单隔离目录。只读，不创建目录"
+tags:
+- project
+- read
+enabled: true
+callable: true
+'on': []
+do:
+- call: projects.workspace
+  with:
+    id:
+      get: input.project
+    ticket:
+      get: input.ticket
+  as: ws
+expect:
+  given:
+    input: {}
+  calls:
+  - projects.workspace
+  payload: {}
+  promise: 路径解析只回答“会在哪”，不替用户造目录

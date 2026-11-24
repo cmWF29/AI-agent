@@ -17,6 +17,9 @@ routes:
       name:
         type: any
         req: false
+      root:
+        type: any
+        req: false
     out: {}
   projects.deleted:
     in: {}
@@ -69,9 +72,21 @@ routes:
   projects.renamed:
     in: {}
     out: {}
+  projects.rooted:
+    in: {}
+    out: {}
   projects.screen:
     in:
       rows:
+        type: any
+        req: false
+    out: {}
+  projects.set_root:
+    in:
+      id:
+        type: any
+        req: false
+      root:
         type: any
         req: false
     out: {}
@@ -104,4 +119,13 @@ routes:
     out: {}
   projects.view:
     in: {}
+    out: {}
+  projects.workspace:
+    in:
+      id:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
     out: {}

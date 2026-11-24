@@ -13,6 +13,8 @@ do:
   with:
     name:
       get: input.name
+    root:
+      get: input.root
   as: out
 - call: runtime.apply
   with:

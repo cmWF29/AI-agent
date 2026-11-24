@@ -124,6 +124,17 @@ def renamed(payload):
     return rec
 
 
+def rooted(p):
+    """写入项目根路径：只替换 root 与 updated，其余档案字段原样保留。
+
+    绝对路径与越界校验在能力层做（它要调 store 的路径守卫），纯函数只负责成形。
+    """
+    rec = dict(p.get("rec") or {})
+    rec["root"] = p.get("root") or ""
+    rec["updated"] = p.get("now") or rec.get("updated") or ""
+    return rec
+
+
 def missing(payload):
     pid = payload.get("id") or ""
     tpl = payload.get("tpl") or ""

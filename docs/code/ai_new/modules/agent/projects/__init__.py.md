@@ -1,13 +1,16 @@
 ---
 source: ai_new/modules/agent/projects/__init__.py
-hash: 8409a95d9cfb7920b6845cd5c0f8ed0ed1cd6443402ede63919eef737725ac41
+hash: c03ae76c38b7868569a190dba3d83bd8a20ba2aaf60fe3cbcd3679554a81c634
 symbols:
 - _msg_tpl
 - _cfg_paths
 - _cfg_logs
 - _record
+- _project_root
 - setup
 - _route_create
+- _route_set_root
+- _route_workspace
 - _route_toggle
 - _purge_tickets
 - _purge_sessions
@@ -55,6 +58,12 @@ updated_at: '2026-11-23T04:10:20'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_project_root`（function）
+- 职责: 项目根路径的唯一校验入口：非空时必须经 store 的 absolute/realpath/越界守卫。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `setup`（function）
 - 职责: 装配入口：注册纯函数；组合逻辑在 demand_engine/data/demands/projects-*.json。
 - 入参/出参: 待人工补充
@@ -63,6 +72,18 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `_route_create`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_set_root`（function）
+- 职责: 设置项目路径：读档→守卫→路径校验→写档案；不迁移既有数据，只改变后续工作区解析。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_workspace`（function）
+- 职责: 项目工作区只读视图：根路径、共享层、工单隔离目录与当前隔离档位。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

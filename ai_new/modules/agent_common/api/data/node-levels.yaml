@@ -339,6 +339,18 @@ levels:
     evidence:
     - ai_new/modules/agent/projects/__init__.py
     - ai_new/modules/agent/projects/data/api.yaml
+  projects.set_root:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/projects/__init__.py
+    - ai_new/modules/agent/projects/data/api.yaml
+  projects.workspace:
+    level: center
+    why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见
+    evidence:
+    - ai_new/modules/agent/projects/__init__.py
+    - ai_new/modules/agent/projects/data/api.yaml
   projects.remove:
     level: center
     why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见

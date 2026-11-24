@@ -17,6 +17,8 @@ view:
     closed: 已结单
     gone: 已失效
     error: 异常
+    legacy: 系统默认目录
+    root: 自定义项目根
   key: project
   params: [project]
   require: [project]   # 缺这个参数就不发请求：没有对象的页面只有空壳，按到就是白等
@@ -34,7 +36,10 @@ view:
   - {as: skills, demand: project-skills, params: {id: "{route.project}"}}
   - {as: ptools, demand: project-tools, params: {id: "{route.project}"}}
   - {as: tickets, demand: ticket-list, params: {project: "{route.project}"}}
+  - {as: workspace, demand: project-workspace, params: {project: "{route.project}"}}
   actions:
+  - {label: 项目路径, modal: project.path,
+     disabled_when: "{project.archived}", disabled_hint: 已归档项目只能查看，不能再改路径}
   - {label: 重命名, modal: project.rename,
      disabled_when: "{project.archived}", disabled_hint: 已归档项目只能查看，不能再改名}
   - {label: 归档, demand: projects-archive, params: {id: "{route.project}"},
@@ -46,6 +51,15 @@ view:
   - {label: ＋ 新建工单, tone: primary, modal: ticket.new,
      disabled_when: "{project.archived}", disabled_hint: 已归档项目不能再建工单}
   sections:
+  # 路径是项目的第一现场：先看共享层和工单隔离目录，再进业务区
+  - kind: table
+    as: workspace
+    source: workspace.layers
+    heading: 项目工作区
+    count_note: "模式：{data.workspace.mode|label} · 共享层固定，工单目录独立"
+    columns:
+    - {label: 层, value: row.name, sub: row.scope}
+    - {label: 路径, value: row.path}
   # 群聊秘书入口排第一：零散想法先发给秘书，合并成需求后统一建单
   - kind: cards
     as: queue

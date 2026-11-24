@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import shutil
 import time
+from pathlib import Path
 
 
 async def _arun(ctx, payload):
@@ -24,6 +25,13 @@ async def _arun(ctx, payload):
     stream_key = payload.get("stream_key") or ""
     runtime = getattr(ctx, "runtime", None)
     stdin_text = str(payload.get("stdin") or "")
+    cwd = str(payload.get("cwd") or "")
+    if cwd and payload.get("ensure_cwd"):
+        # 只由已校验过的工作区调用方传入；进程执行层只补目录，不做路径策略。
+        try:
+            Path(cwd).mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            return {"ok": False, "code": "cwd_unavailable", "error": str(exc)}
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -31,7 +39,7 @@ async def _arun(ctx, payload):
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=(payload.get("cwd") or None),
+            cwd=(cwd or None),
         )
     except OSError as exc:
         return {"ok": False, "code": "spawn_failed", "error": str(exc)}

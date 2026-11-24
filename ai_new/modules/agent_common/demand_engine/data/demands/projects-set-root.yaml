@@ -1,0 +1,33 @@
+id: projects-set-root
+title: 设置项目路径：能力内校验绝对路径并写档案，需求只做顺序编排
+description: "设置项目路径：能力内校验绝对路径并写档案，需求只做顺序编排。空值恢复默认数据目录"
+tags:
+- project
+- write
+touch: [project-tree, projects-get, project-workspace]
+enabled: true
+callable: true
+'on': []
+do:
+- call: projects.set_root
+  with:
+    id:
+      get: input.id
+    root:
+      get: input.root
+  as: out
+- call: runtime.apply
+  with:
+    effect:
+      get: out.effects
+    echo:
+      get: out
+  as: applied
+expect:
+  given:
+    input: {}
+  calls:
+  - projects.set_root
+  - runtime.apply
+  payload: {}
+  promise: 路径校验与落盘在能力内部闭环，需求树不分岔

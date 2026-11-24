@@ -1,6 +1,9 @@
 """工具模块：注册、白名单、执行、依赖就绪探测。无业务；落盘由需求显式编排。"""
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from .private import _registry, _pure
 
 # 外部登记工具共用的占位执行需求：真实后端接入前，执行统一回占位提示（#48 搁置）。
@@ -70,15 +73,74 @@ def register(ctx, name, desc, params, fn, module=None, kinds=None, deps=None):
                               kinds=kinds, deps=deps)
 
 
+def _within(path, root):
+    """realpath 后判断包含关系；路径不存在也按字面位置判断，留给执行层报错。"""
+    try:
+        Path(path).resolve(strict=False).relative_to(
+            Path(root).resolve(strict=False))
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _shell_cwd(ctx, raw, session):
+    """把 shell 的 cwd 收进项目工作区：共享层可按绝对路径进入，工单目录只看自己的。
+
+    未配置项目根（legacy）保持原行为；配置根后，工单会话默认落在自己的 tickets/<id>，
+    显式 cwd 必须落在本项目共享层或本工单目录，越出即拒绝，不静默跑到别的工单里。
+    """
+    session = session or {}
+    project = session.get("project") or ""
+    if not project:
+        return {"ok": True, "cwd": raw or "", "ensure": False}
+    ws = ctx.api.call("projects.workspace", {
+        "id": project, "ticket": session.get("ticket") or ""}, caller=None)
+    if not ws.get("ok"):
+        tpl = _msg_tpl(ctx).get("workspace_unavailable") or ""
+        return {"ok": False, "code": ws.get("code") or "workspace_unavailable",
+                "error": tpl.format(error=ws.get("error") or "") if tpl else
+                (ws.get("error") or "")}
+    if ws.get("mode") != "root":
+        return {"ok": True, "cwd": raw or "", "ensure": False}
+    root = ws.get("root") or ""
+    dirs = ws.get("dirs") or {}
+    ticket_dir = dirs.get("tickets") or ""
+    shared = [dirs.get("documents") or "", dirs.get("logs") or "",
+              dirs.get("artifacts") or ""]
+    if not raw:
+        target = ticket_dir if session.get("ticket") else root
+        return {"ok": True, "cwd": target, "ensure": True}
+    cand = str(raw)
+    if not os.path.isabs(cand):
+        cand = str(Path(ticket_dir if session.get("ticket") else root) / cand)
+    allowed = [ticket_dir] if session.get("ticket") else [root]
+    allowed += [p for p in shared if p]
+    if not any(_within(cand, p) for p in allowed if p):
+        tpl = _msg_tpl(ctx).get("cwd_outside") or ""
+        return {"ok": False, "code": "cwd_outside",
+                "error": tpl.format(path=cand) if tpl else cand}
+    # 工单会话不能把 cwd 落到另一个工单目录：共享层之外只认自己的 tickets/<id>。
+    other = str(Path(root) / "tickets")
+    if session.get("ticket") and _within(cand, other) and not _within(cand, ticket_dir):
+        tpl = _msg_tpl(ctx).get("cwd_outside") or ""
+        return {"ok": False, "code": "cwd_outside",
+                "error": tpl.format(path=cand) if tpl else cand}
+    return {"ok": True, "cwd": cand, "ensure": True}
+
+
 async def _tool_shell(ctx, args, session=None):
     """通用命令执行：argv 数组直传 exec.run，不经 shell；超时与打断复用进程通道。"""
     argv = [str(a) for a in (args or {}).get("argv") or []]
     if not argv:
         return {"ok": False, "error": _msg_tpl(ctx).get("argv_required") or "",
                 "code": "bad_request"}
+    cwd = _shell_cwd(ctx, (args or {}).get("cwd") or "", session)
+    if cwd.get("ok") is False:
+        return cwd
     return await ctx.api.acall("exec.run", {
         "argv": argv,
-        "cwd": (args or {}).get("cwd") or "",
+        "cwd": cwd.get("cwd") or "",
+        "ensure_cwd": bool(cwd.get("ensure")),
         "timeout": (args or {}).get("timeout") or 300}, caller=None)
 
 

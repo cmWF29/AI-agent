@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 from ai_new.modules.agent_common.store.private import _isolate  # noqa: E402
 from ai_new.modules.agent.projects.private import _pure as projects_pure  # noqa: E402
+from ai_new.modules.agent_common.tools import _shell_cwd  # noqa: E402
 
 
 class WorkspaceResolveTest(unittest.TestCase):
@@ -134,3 +135,65 @@ class RouteRegistrationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class ShellWorkspaceTest(unittest.TestCase):
+    """shell 默认 cwd 与越界拒绝：共享层可进，工单目录只看自己的。"""
+
+    class _Api:
+        def __init__(self, ws):
+            self.ws = ws
+
+        def call(self, name, payload, caller=None):
+            if name == "projects.workspace":
+                return self.ws
+            if name == "store.read":
+                return {"value": {
+                    "cwd_outside": "工作目录不在本项目允许的工作区: {path}",
+                    "workspace_unavailable": "项目工作区不可用: {error}"}}
+            return {}
+
+    class _Ctx:
+        def __init__(self, ws):
+            self.api = ShellWorkspaceTest._Api(ws)
+
+    def _ws(self, root, ticket="T-1"):
+        root = Path(root).resolve()
+        return {"ok": True, "mode": "root", "root": str(root),
+                "dirs": {"documents": str(root / "documents"),
+                         "logs": str(root / "logs"),
+                         "artifacts": str(root / "artifacts"),
+                         "tickets": str(root / "tickets" / ticket) if ticket
+                         else str(root / "tickets")}}
+
+    def test_default_cwd_is_own_ticket_dir(self):
+        root = tempfile.mkdtemp(prefix="shell-ws-")
+        out = _shell_cwd(self._Ctx(self._ws(root)), "",
+                         {"project": "p1", "ticket": "T-1"})
+        self.assertTrue(out["ok"])
+        self.assertEqual(Path(out["cwd"]), Path(root).resolve() / "tickets" / "T-1")
+        self.assertTrue(out["ensure"])
+
+    def test_other_ticket_and_escape_rejected(self):
+        root = tempfile.mkdtemp(prefix="shell-ws-")
+        ctx = self._Ctx(self._ws(root))
+        other = str(Path(root).resolve() / "tickets" / "T-2")
+        out = _shell_cwd(ctx, other, {"project": "p1", "ticket": "T-1"})
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["code"], "cwd_outside")
+        out2 = _shell_cwd(ctx, str(Path(root).resolve().parent), {"project": "p1", "ticket": "T-1"})
+        self.assertFalse(out2["ok"])
+
+    def test_shared_layer_allowed(self):
+        root = tempfile.mkdtemp(prefix="shell-ws-")
+        shared = str(Path(root).resolve() / "documents")
+        out = _shell_cwd(self._Ctx(self._ws(root)), shared,
+                         {"project": "p1", "ticket": "T-1"})
+        self.assertTrue(out["ok"], out)
+
+    def test_legacy_keeps_caller_cwd(self):
+        ws = {"ok": True, "mode": "legacy", "root": None, "dirs": {}}
+        out = _shell_cwd(self._Ctx(ws), "/tmp", {"project": "p1", "ticket": "T-1"})
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["cwd"], "/tmp")
+        self.assertFalse(out["ensure"])

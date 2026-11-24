@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 197 条需求，绑定 15 个检查项。
+共 199 条需求，绑定 15 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -102,12 +102,14 @@
 | project-skills | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | project-tools | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | project-tree | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| project-workspace | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | projects-archive | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | projects-create | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | projects-delete | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | projects-get | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | projects-list | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | projects-rename | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| projects-set-root | project | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | react-run | write | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | role-session-members | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | role-session-message | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |

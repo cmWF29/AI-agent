@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/tools/data/messages.yaml
-hash: 756aa0e676656c9aea368ab94a1684b4986cd7775e2ccc830153e66ad91da469
+hash: 88d53e14c520a7c51b53263a44f6da7f4dd40920ab3f86a4be615ace9c2518f3
 symbols:
 - external_pending
 - tool_disabled
@@ -20,6 +20,8 @@ symbols:
 - label_config
 - label_resources
 - label_none
+- cwd_outside
+- workspace_unavailable
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:22'
 ---
@@ -138,6 +140,18 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `label_none`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `cwd_outside`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `workspace_unavailable`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

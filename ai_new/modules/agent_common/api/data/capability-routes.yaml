@@ -60,6 +60,7 @@ capabilities:
   projects.create:
     calls:
     - store.id
+    - store.workspace
     - clock.now
     - projects.build
     - store.exists
@@ -89,6 +90,21 @@ capabilities:
     - store.remove
     - tickets.rebind
     - projects.view
+  projects.set_root:
+    calls:
+    - store.id
+    - store.read
+    - projects.missing
+    - store.workspace
+    - clock.now
+    - projects.rooted
+    - projects.view
+  projects.workspace:
+    calls:
+    - store.id
+    - store.read
+    - projects.missing
+    - store.workspace
   projects.remove:
     calls:
     - store.id
@@ -297,6 +313,7 @@ capabilities:
     - store.read
     - library.disabled_skills
     - projects.override_parts
+    - projects.workspace
   channel.reply:
     calls:
     - channel.read_tail

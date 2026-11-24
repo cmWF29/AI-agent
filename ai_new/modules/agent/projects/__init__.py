@@ -26,6 +26,23 @@ def _record(paths, pid):
     return t.format(id=pid) if t else pid
 
 
+def _project_root(ctx, pid, root):
+    """项目根路径的唯一校验入口：非空时必须经 store 的 absolute/realpath/越界守卫。
+
+    返回规范化后的绝对路径；空串表示继续使用系统默认数据目录（legacy 模式）。
+    """
+    root = str(root or "").strip()
+    if not root:
+        return ""
+    ws = ctx.api.call("store.workspace", {
+        "project": pid, "root": root}, caller=None)
+    if not ws.get("ok"):
+        raise ctx.ApiError(ws.get("error") or "项目路径不可用",
+                           code=ws.get("code") or "bad_root",
+                           status=int(ws.get("status") or 400))
+    return ws.get("root") or ""
+
+
 def setup(ctx):
     """装配入口：注册纯函数；组合逻辑在 demand_engine/data/demands/projects-*.json。"""
     for name, fn in [
@@ -37,6 +54,7 @@ def setup(ctx):
         ("projects.archive", _pure.archive),
         ("projects.missing", _pure.missing),
         ("projects.record_path", _pure.record_path),
+        ("projects.rooted", _pure.rooted),
         ("projects.conflict", _pure.conflict),
         ("projects.deleted", _pure.deleted),
         ("projects.renamed", _pure.renamed),
@@ -45,6 +63,8 @@ def setup(ctx):
     ]:
         ctx.api.register(name, _as_handler(fn), module="projects")
     ctx.api.register("projects.create", _route_create, "新建项目：归一→造档→查重→落盘→回执", module="projects")
+    ctx.api.register("projects.set_root", _route_set_root, "设置项目路径：校验绝对路径→写档案→回执", module="projects")
+    ctx.api.register("projects.workspace", _route_workspace, "解析项目工作区：共享层与工单隔离目录", module="projects")
     ctx.api.register("projects.remove", _route_remove, "删除项目：purge 真删，否则归档", module="projects")
     ctx.api.register("projects.rename", _route_rename, "项目改名：查重→迁档→工单引用改挂", module="projects")
     ctx.api.register("projects.toggle", _route_toggle, "项目启停：翻转覆盖层禁用清单，定义正文仍指向公共库", module="projects")
@@ -54,10 +74,11 @@ def setup(ctx):
 def _route_create(ctx, payload):
     paths = _cfg_paths(ctx)
     pid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
+    root = _project_root(ctx, pid.get("id"), payload.get("root"))
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.build", {
         "id": pid.get("id"), "name": payload.get("name"),
-        "root": payload.get("root") or "",
+        "root": root,
         "created": now.get("ts")}, caller=None)
     ex = ctx.api.call("store.exists", {"module": "agent/projects",
         "path": _record(paths, pid.get("id"))}, caller=None)
@@ -68,6 +89,65 @@ def _route_create(ctx, payload):
     view["effects"] = [{"kind": "write", "module": "agent/projects",
                 "path": _record(paths, pid.get("id")), "value": rec}]
     return view
+
+
+def _route_set_root(ctx, payload):
+    """设置项目路径：读档→守卫→路径校验→写档案；不迁移既有数据，只改变后续工作区解析。"""
+    pid = ctx.api.call("store.id", {"value": payload.get("id")}, caller=None)
+    paths = _cfg_paths(ctx)
+    row = ctx.api.call("store.read", {"module": "agent/projects",
+        "path": _record(paths, pid.get("id"))}, caller=None)
+    if row.get("value") is None:
+        return ctx.api.call("projects.missing",
+            {"id": pid.get("id"), "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
+    guard = _pure.guard_writable({"rec": row.get("value"), "tpl": _msg_tpl(ctx)})
+    if guard.get("ok") is False:
+        return guard
+    root = _project_root(ctx, pid.get("id"), payload.get("root"))
+    now = ctx.api.call("clock.now", {}, caller=None)
+    rec = ctx.api.call("projects.rooted", {
+        "rec": row.get("value"), "root": root,
+        "now": now.get("ts")}, caller=None)
+    view = ctx.api.call("projects.view", {"rec": rec}, caller=None)
+    view["effects"] = [{"kind": "write", "module": "agent/projects",
+                        "path": _record(paths, pid.get("id")), "value": rec}]
+    return view
+
+
+def _route_workspace(ctx, payload):
+    """项目工作区只读视图：根路径、共享层、工单隔离目录与当前隔离档位。"""
+    pid = ctx.api.call("store.id", {"value": payload.get("id")}, caller=None)
+    paths = _cfg_paths(ctx)
+    row = ctx.api.call("store.read", {"module": "agent/projects",
+        "path": _record(paths, pid.get("id"))}, caller=None)
+    if row.get("value") is None:
+        return ctx.api.call("projects.missing",
+            {"id": pid.get("id"), "tpl": _msg_tpl(ctx).get("missing")}, caller=None)
+    rec = row.get("value") or {}
+    ws = ctx.api.call("store.workspace", {
+        "project": pid.get("id"), "ticket": payload.get("ticket") or "",
+        "root": rec.get("root") or ""}, caller=None)
+    ws = dict(ws or {})
+    ws["project"] = {"id": rec.get("id") or pid.get("id"),
+                     "name": rec.get("name") or "", "root": rec.get("root") or "",
+                     "archived": rec.get("archived") is True}
+    dirs = ws.get("dirs") or {}
+    tickets = (dirs.get("tickets") or "").rstrip("/")
+    pattern = (tickets + "/<工单ID>") if tickets else ""
+    ws["ticket_pattern"] = pattern
+    ws["layers"] = [
+        {"name": "项目根", "path": ws.get("root") or "未配置（系统默认目录）",
+         "scope": "所有工单共享"},
+        {"name": "共享文档", "path": dirs.get("documents") or "—",
+         "scope": "项目内共享"},
+        {"name": "共享日志", "path": dirs.get("logs") or "—",
+         "scope": "项目内共享"},
+        {"name": "共享交付件", "path": dirs.get("artifacts") or "—",
+         "scope": "项目内共享"},
+        {"name": "工单工作区", "path": pattern or "—",
+         "scope": "每张工单独立子目录"},
+    ]
+    return ws
 
 
 def _route_toggle(ctx, payload):

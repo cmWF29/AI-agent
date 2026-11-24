@@ -17,3 +17,6 @@ label_env: '环境变量'
 label_config: '配置项'
 label_resources: '资源文件'
 label_none: '无'
+
+cwd_outside: '工作目录不在本项目允许的工作区: {path}'
+workspace_unavailable: '项目工作区不可用，拒绝在未隔离目录执行: {error}'

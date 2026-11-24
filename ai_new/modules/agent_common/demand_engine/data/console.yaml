@@ -388,6 +388,13 @@ controls:
     states: [idle, busy, done, disabled]
     transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
     note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
+  ctl.head_act.项目路径:
+    label: 项目路径
+    kind: head_act
+    where: [project-detail]
+    states: [idle, busy, done, disabled]
+    transitions: {idle: [busy], busy: [done, idle], done: [idle], disabled: []}
+    note: 点击置 busy；成功后 done 再回 idle；失败直接回 idle；disabled 是只读态，点了不响应
   ctl.card_act.改名:
     label: 改名
     kind: cards

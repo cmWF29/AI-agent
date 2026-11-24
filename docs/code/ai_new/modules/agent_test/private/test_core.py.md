@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: b9b7855b95a3e3b883b2e24bb0575596037b0025fed967839b9578bd5e3eb073
+hash: f3599d91fd92fb6cfd8f97a82252d4dc10dbef2b1470e30108b2481121507ec5
 symbols:
 - __init__
 - __call__
@@ -55,6 +55,7 @@ symbols:
 - test_codec_decode_hex_utf8_and_binary
 - test_logs_index_tree_leaf_carries_name_and_type
 - test_ticket_artifact_project_follows_ticket
+- test_project_workspace_root_config
 - test_project_lifecycle
 - test_project_purge_cascades_children
 - test_ticket_lifecycle_and_role_tool
@@ -76,6 +77,7 @@ symbols:
 - test_external_tool_registers_and_runs_pending
 - test_project_tool_override_toggle_pick_and_execute
 - test_shell_only_on_execution_roles
+- test_exec_creates_ticket_workspace
 - test_exec_runs_real_subprocess_and_captures_output
 - test_exec_kills_on_timeout
 - test_project_skills_and_tools_list
@@ -475,6 +477,12 @@ updated_at: '2026-11-23T04:10:22'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `test_project_workspace_root_config`（method）
+- 职责: 项目路径：建项目时落到档案，工作区解析给出共享层与工单隔离目录；清空回 legacy。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_project_lifecycle`（method）
 - 职责: 项目：建 → 列表露出字段 → 归档 → 彻底删除（纯形状解包不能漏层）。
 - 入参/出参: 待人工补充
@@ -597,6 +605,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_shell_only_on_execution_roles`（method）
 - 职责: shell 按岗位名单裁剪：developer/tester 可取，只读文档岗取不到。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_exec_creates_ticket_workspace`（method）
+- 职责: 项目配了根路径：工单目录不存在时，执行层按工作区路径创建并以它为 cwd。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

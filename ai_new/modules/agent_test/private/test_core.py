@@ -1105,6 +1105,33 @@ class CoreTest(unittest.TestCase):
         self.assertFalse(any("/projects/item/" in p for p in paths),
                          "漏填 project 不得兜底到 projects/item: %s" % paths)
 
+    def test_project_workspace_root_config(self):
+        """项目路径：建项目时落到档案，工作区解析给出共享层与工单隔离目录；清空回 legacy。"""
+        root = Path(tempfile.mkdtemp(dir=self.tmp.name)) / "workspace-root"
+        created = self._run("projects-create", {
+            "name": "workspace-config", "root": str(root)})["result"]
+        self.assertEqual(Path(created["root"]), root.resolve())
+        ws = self._run("project-workspace", {"project": created["id"]})["result"]
+        self.assertTrue(ws["ok"])
+        self.assertEqual(ws["mode"], "root")
+        for layer in ("documents", "logs", "artifacts", "tickets"):
+            try:
+                Path(ws["dirs"][layer]).resolve().relative_to(root.resolve())
+            except ValueError:
+                self.fail("工作区层越出项目根: %s" % ws["dirs"][layer])
+        self.assertEqual(Path(ws["dirs"]["tickets"]).resolve(), root.resolve() / "tickets")
+        self.assertEqual(ws["ticket_pattern"], str(root.resolve() / "tickets") + "/<工单ID>")
+        self.assertEqual([x["name"] for x in ws["layers"]],
+                         ["项目根", "共享文档", "共享日志", "共享交付件", "工单工作区"])
+
+        self._run("projects-set-root", {
+            "id": created["id"], "root": ""})
+        after = self._run("projects-get", {"id": created["id"]})["result"]
+        self.assertEqual(after["root"], "")
+        ws2 = self._run("project-workspace", {"project": created["id"]})["result"]
+        self.assertEqual(ws2["mode"], "legacy")
+        self.assertIsNone(ws2["root"])
+
     def test_project_lifecycle(self):
         """项目：建 → 列表露出字段 → 归档 → 彻底删除（纯形状解包不能漏层）。"""
         created = self._run("projects-create", {"name": "proj-test"})["result"]
@@ -1689,6 +1716,20 @@ class CoreTest(unittest.TestCase):
         self.assertIn("shell", picked("tester"))
         self.assertNotIn("shell", picked("reviewer"))
         self.assertNotIn("shell", picked("researcher"))
+
+    def test_exec_creates_ticket_workspace(self):
+        """项目配了根路径：工单目录不存在时，执行层按工作区路径创建并以它为 cwd。"""
+        root = Path(tempfile.mkdtemp(dir=self.tmp.name)) / "shell-ws"
+        created = self._run("projects-create", {
+            "name": "shell-workspace", "root": str(root)})["result"]
+        ws = self._run("project-workspace", {"project": created["id"]})["result"]
+        ticket_dir = Path(ws["dirs"]["tickets"]) / "T-WS-1"
+        out = self.ctx.api.call("exec.run", {
+            "argv": [sys.executable, "-c", "import os; print(os.getcwd())"],
+            "cwd": str(ticket_dir), "ensure_cwd": True})
+        self.assertTrue(out.get("ok"), out)
+        self.assertEqual(Path(out["out"].strip()).resolve(), ticket_dir.resolve())
+        self.assertTrue(ticket_dir.is_dir())
 
     def test_exec_runs_real_subprocess_and_captures_output(self):
         """异步子进程核心：起真实解释器，收 stdout/stderr 与退出码。"""

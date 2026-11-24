@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/console.yaml
-hash: 17d03228131bf31f25f130dafddbffe2849a8f0f6c647d0f4aab7fecdf189683
+hash: dc827ded8decec18eaa2fe1440fd8e99e529192711d6e53779b9ad8ace2c5108
 symbols:
 - brand
 - login

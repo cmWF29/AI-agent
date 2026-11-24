@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation.py
-hash: 6ccc438857bf13f1aea1b8807d07653f6a6345abb4d456500720885f7af61418
+hash: 104ca39ca1f597c907cb078b4fa6433ba963512104cb28933ddbee436e1f7081
 symbols:
 - setUp
 - _dir_of
@@ -13,6 +13,11 @@ symbols:
 - test_build_and_view_carry_root
 - test_build_root_defaults_empty
 - test_workspace_route_registered_and_callable
+- _ws
+- test_default_cwd_is_own_ticket_dir
+- test_other_ticket_and_escape_rejected
+- test_shared_layer_allowed
+- test_legacy_keeps_caller_cwd
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:23'
 ---
@@ -89,6 +94,36 @@ updated_at: '2026-11-23T04:10:23'
 - 关联需求/测试: 待人工补充
 
 ### `test_workspace_route_registered_and_callable`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_ws`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_default_cwd_is_own_ticket_dir`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_other_ticket_and_escape_rejected`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_shared_layer_allowed`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_legacy_keeps_caller_cwd`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
