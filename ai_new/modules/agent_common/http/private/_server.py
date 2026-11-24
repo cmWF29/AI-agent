@@ -10,6 +10,16 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+# GET 只留给无副作用入口；其余 /api/ 一律 POST。否则带 Cookie 的浏览器链接/图片
+# 就能触发删除、归档这类写路由，形成 CSRF 之外的“GET 写”。
+_GET_API = {"/api/health", "/api/health/live", "/api/health/assemble",
+            "/api/modules", "/api/auth/status", "/api/auth/verify"}
+# 未登录可直达的唯一入口：存活探针、登录状态、登录换票/校验、控制台壳词表。
+_PUBLIC_API = {"/api/health", "/api/health/live",
+               "/api/auth/login", "/api/auth/status", "/api/auth/verify"}
+_PUBLIC_DEMANDS = {"auth-login", "console-chrome"}
+_DEFAULT_BODY_LIMIT = 8 * 1024 * 1024
+
 
 class _Server(ThreadingHTTPServer):
     """控制台一页会并发拉起几十个静态资源，默认 backlog=5 会把跨公网的突发连接丢进重试。"""
@@ -55,6 +65,13 @@ def _make_handler(ctx):
         def log_message(self, fmt, *args):  # 请求日志走自己的 log，不用 stderr 刷屏
             pass
 
+        def send_response(self, code, message=None):
+            """所有响应统一带安全头：不嗅探类型、不嵌第三方框、不把带令牌的 URL 送出去。"""
+            super().send_response(code, message)
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Referrer-Policy", "no-referrer")
+
         def do_GET(self):
             self._route("GET")
 
@@ -65,6 +82,24 @@ def _make_handler(ctx):
             parsed = urllib.parse.urlparse(self.path)
             path = parsed.path
             try:
+                if path.startswith("/api/") and method != "POST":
+                    if path.startswith("/api/sse/"):
+                        pass
+                    elif path not in _GET_API:
+                        # 405 只对“存在但只接受 POST”的路由成立；未知路径仍是 404，
+                        # 不能把拼错的 API 当成方法错误，误导调用方去换动词。
+                        name = _api_name(path)
+                        if not name:
+                            self._json_error(ctx.ApiError(
+                                "API 路径形状不合法", code="bad_path", status=404))
+                            return
+                        if ctx.api.route(name) is None:
+                            self._json_error(ctx.ApiError(
+                                "API 路由不存在", code="no_route", status=404))
+                            return
+                        self._json_error(ctx.ApiError(
+                            "写路由只接受 POST", code="method_not_allowed", status=405))
+                        return
                 if path.startswith("/api/"):
                     self._api(method, path, parsed)
                 else:
@@ -105,12 +140,15 @@ def _make_handler(ctx):
                 if isinstance(body, dict):
                     payload.update(body)
 
-            # 公开面：存活探头（只回 ok/uptime，无业务数据）、登录前置、登录换票；其余走鉴权。
-            public = path == "/api/health" or path == "/api/health/live" or path.startswith("/api/auth/") or (
+            # 公开面是显式 allowlist：新增 auth 路由不会因为前缀相同自动变成匿名入口。
+            public = path in _PUBLIC_API or (
                 path == "/api/rpc/demand_engine/run"
-                and body.get("id") in ("auth-login", "console-chrome"))
+                and isinstance(body.get("id"), str)
+                and body.get("id") in _PUBLIC_DEMANDS)
             if not public:
-                verdict = ctx.api.call("auth.verify", {"token": _extract_token(self)}, direct=True)
+                verdict = ctx.api.call("auth.verify",
+                                       {"token": _extract_token(self, allow_query=path.startswith("/api/sse/"))},
+                                       direct=True)
                 if not verdict.get("allow"):
                     self._json_error(ctx.ApiError("未登录或会话已失效",
                                                   code="unauthorized", status=401))
@@ -152,9 +190,30 @@ def _make_handler(ctx):
                 self._json_ok(result)
 
         def _read_json_body(self):
-            length = int(self.headers.get("Content-Length") or 0)
+            # 不支持 chunked：不读会留下未消费字节，被当成下一条请求解析（请求走私）。
+            if self.headers.get("Transfer-Encoding"):
+                self._json_error(ctx.ApiError("不支持分块传输", code="bad_framing", status=400))
+                self.close_connection = True
+                return None
+            raw_len = self.headers.get("Content-Length") or "0"
+            try:
+                length = int(raw_len)
+            except (TypeError, ValueError):
+                self._json_error(ctx.ApiError("Content-Length 非法", code="bad_framing", status=400))
+                self.close_connection = True
+                return None
+            if length < 0:
+                self._json_error(ctx.ApiError("Content-Length 非法", code="bad_framing", status=400))
+                self.close_connection = True
+                return None
             if length <= 0:
                 return {}
+            limit = int((ctx.cfg.get("server") or {}).get("max_body_bytes")
+                        or _DEFAULT_BODY_LIMIT)
+            if length > limit:
+                self._json_error(ctx.ApiError("请求体过大", code="payload_too_large", status=413))
+                self.close_connection = True
+                return None
             raw = self.rfile.read(length)
             out = ctx.codec.yaml_decode(raw.decode("utf-8"))
             if not out.get("ok"):
@@ -301,7 +360,17 @@ def _make_handler(ctx):
     return _Handler
 
 
-def _extract_token(handler):
+def _api_name(path):
+    """把 /api/<a>/<b>[/...] 折成路由名；形状不对返回空串。RPC 走 /api/rpc/<module>/<fn>。"""
+    parts = [p for p in path.split("/") if p]
+    if len(parts) < 3 or parts[0] != "api":
+        return ""
+    if parts[1] == "rpc":
+        return parts[2] + "." + parts[3] if len(parts) >= 4 else ""
+    return parts[1] + "." + parts[2]
+
+
+def _extract_token(handler, allow_query=False):
     got = handler.headers.get("X-Auth-Token") or ""
     if not got:
         cookie = handler.headers.get("Cookie") or ""
@@ -309,7 +378,9 @@ def _extract_token(handler):
             k, _, v = part.strip().partition("=")
             if k == "hive_token":
                 got = v
-    if not got:
+    # EventSource 不能设请求头，只有 SSE 允许把 token 放 query；普通 API 拒绝，
+    # 免得令牌落进访问日志、Referer 或浏览器历史。
+    if not got and allow_query:
         query = urllib.parse.parse_qs(urllib.parse.urlparse(handler.path).query)
         got = (query.get("token") or [""])[0]
     return got

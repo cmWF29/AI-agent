@@ -180,6 +180,33 @@ def test_session_compact_keeps_system_and_recent_tail_only():
     assert len(rec["messages"]) == 5
 
 
+def test_checklist_hard_cap_and_noop_update_do_not_emit_patch():
+    from ai_new.modules.agent.todos.private import _pure as todos
+    # limit=0 是硬上限：不能“先塞一条再判断超限”，也不能因为缺 limit 抛异常。
+    zero = todos.apply_ops({"todos": [{"id": "t1", "text": "甲"}], "limit": 0,
+                            "args": {"action": "list"}})
+    assert zero["todos"] == []
+    missing = todos.apply_ops({"todos": [{"id": "t1", "text": "甲"}],
+                               "args": {"action": "list"}})
+    assert missing["todos"] == []
+    assert todos.context({"todos": [{"id": "t1", "text": "甲"}], "limit": 0})["message"] is None
+    # limit 不是数字也不能抛异常：解析失败按 0，清单保持空。
+    bad = todos.apply_ops({"todos": [{"id": "t1", "text": "甲"}], "limit": "abc",
+                           "args": {"action": "list"}})
+    assert bad["todos"] == []
+    # 只带 id 的 update、内容相同的 replace 都不算改动，不能产生会话补丁。
+    base = [{"id": "t1", "text": "甲", "status": "pending", "note": ""}]
+    noop = todos.apply_ops({"todos": base, "limit": 40,
+                            "args": {"action": "update", "id": "t1"}})
+    assert noop["ok"] and noop["changed"] is False and noop["todos"] == base
+    same = todos.apply_ops({"todos": base, "limit": 40,
+                            "args": {"action": "replace", "items": base}})
+    assert same["ok"] and same["changed"] is False
+    changed = todos.apply_ops({"todos": base, "limit": 40,
+                               "args": {"action": "update", "id": "t1", "status": "done"}})
+    assert changed["changed"] is True and changed["counts"]["done"] == 1
+
+
 import unittest
 
 
@@ -190,6 +217,7 @@ class TestReactMechanisms(unittest.TestCase):
     test_flow_parallel_fanout_keeps_sibling_and_drops_terminal = staticmethod(test_flow_parallel_fanout_keeps_sibling_and_drops_terminal)
     test_flow_contract_survives_json_roundtrip = staticmethod(test_flow_contract_survives_json_roundtrip)
     test_checklist_crud_is_deterministic_and_bounded = staticmethod(test_checklist_crud_is_deterministic_and_bounded)
+    test_checklist_hard_cap_and_noop_update_do_not_emit_patch = staticmethod(test_checklist_hard_cap_and_noop_update_do_not_emit_patch)
     test_checklist_context_is_complete_after_compaction = staticmethod(test_checklist_context_is_complete_after_compaction)
     test_context_view_keeps_system_summary_and_last_user_only = staticmethod(test_context_view_keeps_system_summary_and_last_user_only)
     test_round_summary_prefers_model_then_bounded_fallback = staticmethod(test_round_summary_prefers_model_then_bounded_fallback)

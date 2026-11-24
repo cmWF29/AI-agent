@@ -3238,6 +3238,76 @@ class CoreTest(unittest.TestCase):
         self.assertTrue(body["ok"])
         self.assertTrue(body["legacy"])
 
+    def test_auth_login_success_issues_valid_session_with_default_ttl(self):
+        """登录真跑一遍：摘要比对通过才会发令牌，非正 ttl 回落到 86400，令牌能过闸。"""
+        import hashlib
+        server = self.ctx.cfg["server"]
+        old = dict(server.get("auth") or {})
+        server["auth"] = {"enabled": True, "username": "admin", "salt": "s",
+                          "password_hash": hashlib.sha256(b"s:123456").hexdigest(),
+                          "ttl": -1}
+        try:
+            before = self.ctx.api.call("clock.now", {})["ts"]
+            req = urllib.request.Request(
+                "http://127.0.0.1:%d/api/rpc/demand_engine/run" % self.port,
+                data=yaml.safe_dump({"id": "auth-login",
+                                     "input": {"username": "admin", "password": "123456"}},
+                                    allow_unicode=True, sort_keys=False,
+                                    default_flow_style=True).strip().encode("utf-8"),
+                method="POST", headers={"Content-Type": "application/yaml"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                body = yaml.safe_load(resp.read().decode("utf-8"))
+            inner = ((body.get("result") or {}).get("result") or {})
+            self.assertTrue(inner.get("token"), inner)
+            self.assertEqual(inner.get("username"), "admin")
+            self.assertGreater(inner.get("expires"), before + 86000)
+            self.assertLessEqual(inner.get("expires"), before + 86400 + 2)
+            status, _, _ = self._http(
+                "/api/rpc/clock/now", "POST", b"{}",
+                {"X-Auth-Token": inner["token"], "Content-Type": "application/yaml"})
+            self.assertEqual(status, 200)
+            # 令牌放 query 只允许 SSE（EventSource 不能设头）；普通 API 必须拒绝，
+            # 否则令牌会落进访问日志、Referer 和浏览器历史。
+            status, _, _ = self._http("/api/modules?token=" + inner["token"])
+            self.assertEqual(status, 401)
+
+            # ttl 非数字不能把登录打 500：解析失败按缺省 86400 发会话。
+            server["auth"]["ttl"] = "oops"
+            data = yaml.safe_dump({"id": "auth-login",
+                                   "input": {"username": "admin", "password": "123456"}},
+                                  allow_unicode=True, sort_keys=False,
+                                  default_flow_style=True).strip().encode("utf-8")
+            status, _, raw = self._http(
+                "/api/rpc/demand_engine/run", "POST", data,
+                {"Content-Type": "application/yaml"})
+            self.assertEqual(status, 200)
+            inner2 = ((yaml.safe_load(raw.decode("utf-8")).get("result") or {}).get("result") or {})
+            self.assertTrue(inner2.get("token"), inner2)
+            self.assertGreater(inner2.get("expires"), before + 86000)
+
+            # 需求 id 是不可信输入：数组/对象不能进 set 查找，也不能拿去做 demand 字典键。
+            for bad in ([], {}, 0, ""):
+                data = yaml.safe_dump({"id": bad, "input": {}}, allow_unicode=True).encode("utf-8")
+                status, _, body = self._http(
+                    "/api/rpc/demand_engine/run", "POST", data,
+                    {"X-Auth-Token": inner["token"], "Content-Type": "application/yaml"})
+                self.assertEqual(status, 400, bad)
+                self.assertIn("bad_id", body.decode("utf-8"))
+            status, _, body = self._http(
+                "/api/rpc/demand_engine/run", "POST",
+                yaml.safe_dump({"id": "auth-status", "input": []}, allow_unicode=True).encode("utf-8"),
+                {"X-Auth-Token": inner["token"], "Content-Type": "application/yaml"})
+            self.assertEqual(status, 400)
+            self.assertIn("bad_input", body.decode("utf-8"))
+            # 不传 input 是合法省略，按空对象处理，不能因为 None 掉进类型错误。
+            status, _, _ = self._http(
+                "/api/rpc/demand_engine/run", "POST",
+                yaml.safe_dump({"id": "auth-status"}, allow_unicode=True).encode("utf-8"),
+                {"X-Auth-Token": inner["token"], "Content-Type": "application/yaml"})
+            self.assertEqual(status, 200)
+        finally:
+            server["auth"] = old
+
     def test_auth_login_demand_is_public(self):
         """登录需求本身必须先可达：不带令牌也能过闸（凭据由需求内部判，失败返 401）。"""
         req = urllib.request.Request(
@@ -3248,6 +3318,97 @@ class CoreTest(unittest.TestCase):
             body = yaml.safe_load(resp.read().decode("utf-8"))
         self.assertEqual(resp.status, 200)
         self.assertTrue(body["ok"])
+
+    def _http(self, path, method="GET", body=None, headers=None):
+        import http.client
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        try:
+            conn.request(method, path, body=body, headers=headers or {})
+            resp = conn.getresponse()
+            data = resp.read()
+            return resp.status, dict(resp.getheaders()), data
+        finally:
+            conn.close()
+
+    def test_http_get_is_read_only_and_carries_security_headers(self):
+        """GET 只留给读入口；带令牌也不能用链接触发写路由。"""
+        status, headers, _ = self._http("/api/health/live")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(headers.get("X-Frame-Options"), "DENY")
+        self.assertEqual(headers.get("Referrer-Policy"), "no-referrer")
+
+        self.assertEqual(self._http("/api/auth/status")[0], 200)
+        # 未知路由是 404 no_route；形状不合法是 404 bad_path；只有“存在但只收 POST”才是 405。
+        status, _, data = self._http("/api/nope/nope")
+        self.assertEqual(status, 404)
+        self.assertIn("no_route", data.decode("utf-8"))
+        status, _, data = self._http("/api/a")
+        self.assertEqual(status, 404)
+        self.assertIn("bad_path", data.decode("utf-8"))
+        for path in ("/api/rpc/clock/now?token=t",
+                     "/api/projects/remove?id=missing&token=t"):
+            status, _, data = self._http(path)
+            self.assertEqual(status, 405, path)
+            self.assertIn("method_not_allowed", data.decode("utf-8"))
+
+        # 改密不在匿名 allowlist 里：没有会话令牌必须 401，不能靠“前缀是 auth”放行。
+        status, _, _ = self._http("/api/auth/change_password", "POST",
+                                  b"{}", {"Content-Type": "application/yaml"})
+        self.assertEqual(status, 401)
+
+    def test_http_rejects_oversize_and_chunked_bodies(self):
+        """请求体先量长度再读；chunked 不解析，避免未消费字节污染下一条请求。"""
+        server = self.ctx.cfg["server"]
+        old = server.get("max_body_bytes")
+        server["max_body_bytes"] = 1024
+        try:
+            status, _, data = self._http(
+                "/api/auth/status", "POST", b"x" * 2048,
+                {"Content-Type": "application/yaml"})
+            self.assertEqual(status, 413)
+            self.assertIn("payload_too_large", data.decode("utf-8"))
+        finally:
+            if old is None:
+                server.pop("max_body_bytes", None)
+            else:
+                server["max_body_bytes"] = old
+
+        import http.client
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        try:
+            conn.putrequest("POST", "/api/auth/status")
+            conn.putheader("Transfer-Encoding", "chunked")
+            conn.endheaders()
+            conn.send(b"0\r\n\r\n")
+            resp = conn.getresponse()
+            body = resp.read().decode("utf-8")
+        finally:
+            conn.close()
+        self.assertEqual(resp.status, 400)
+        self.assertIn("bad_framing", body)
+
+        # Content-Length 必须是非负整数：非数字/负数一律 400，不拿 int() 异常打 500。
+        for bad_len in ("abc", "-1"):
+            conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+            try:
+                conn.putrequest("POST", "/api/auth/status")
+                conn.putheader("Content-Length", bad_len)
+                conn.endheaders()
+                resp = conn.getresponse()
+                body = resp.read().decode("utf-8")
+            finally:
+                conn.close()
+            self.assertEqual(resp.status, 400, bad_len)
+            self.assertIn("bad_framing", body)
+
+    def test_static_data_files_require_login(self):
+        """api.yaml 等数据文件不能因为不是 HTML 就匿名可取；壳资源仍放行。"""
+        status, headers, _ = self._http("/api.yaml")
+        self.assertEqual(status, 302)
+        self.assertEqual(headers.get("Location"), "/login.html")
+        self.assertEqual(self._http("/login.html")[0], 200)
+        self.assertEqual(self._http("/assets/shoelace/themes/light.css")[0], 200)
 
 
     def test_next_seq_seeds_from_disk_baseline(self):

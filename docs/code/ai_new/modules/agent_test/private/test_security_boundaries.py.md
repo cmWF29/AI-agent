@@ -1,11 +1,13 @@
 ---
 source: ai_new/modules/agent_test/private/test_security_boundaries.py
-hash: 0552291ea9fe795627290d712caa7808b6e96360f85abcd3976688631f5071d9
+hash: 236d150304983d68e54a9f5a8eed2a926c01a793c47870e5a1a29e910bd93613
 symbols:
 - test_valid_token_rejects_path_fragments
 - test_credentials_fail_closed_on_empty_hash
 - test_session_without_expiry_is_invalid
 - test_build_session_without_ttl_does_not_crash
+- test_change_password_requires_existing_and_old_digest
+- test_session_path_requires_template
 - setUp
 - _sandbox
 - test_virtual_path_normalizes_and_rejects_escape
@@ -54,6 +56,18 @@ updated_at: '2026-11-25T04:59:31'
 - 关联需求/测试: 待人工补充
 
 ### `test_build_session_without_ttl_does_not_crash`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_change_password_requires_existing_and_old_digest`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_session_path_requires_template`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

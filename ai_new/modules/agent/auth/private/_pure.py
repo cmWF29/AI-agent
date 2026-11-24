@@ -58,19 +58,26 @@ def credentials_ok(p):
 
 
 def change_password(p):
-    """改密校验（纯计算）：旧摘要匹配、新密码非空、两次新密码一致。不碰盘、不发摘要。"""
+    """改密校验（纯计算）：旧摘要匹配、新密码非空、两次新密码一致。不碰盘、不发摘要。
+
+    期望摘要为空时也必须拒绝：空哈希意味着账号尚未建立可用凭据，不能把
+    “没有旧密码”当成“旧密码正确”，否则匿名请求就能设置新密码。
+    """
     old_digest = str(p.get("old_digest") or "")
     new_digest = str(p.get("new_digest") or "")
     confirm_digest = str(p.get("confirm_digest") or "")
     expect_hash = str(p.get("expect_hash") or "")
     tpl = p.get("tpl") or {}
-    if expect_hash and old_digest != expect_hash:
+    if not expect_hash or not old_digest:
+        return {"ok": False, "code": "bad_old_password", "status": 400,
+                "error": tpl.get("bad_old_password") or ""}
+    if not hmac.compare_digest(old_digest.encode("utf-8"), expect_hash.encode("utf-8")):
         return {"ok": False, "code": "bad_old_password", "status": 400,
                 "error": tpl.get("bad_old_password") or ""}
     if not new_digest:
         return {"ok": False, "code": "weak_password", "status": 400,
                 "error": tpl.get("weak_password") or ""}
-    if new_digest != confirm_digest:
+    if not hmac.compare_digest(new_digest.encode("utf-8"), confirm_digest.encode("utf-8")):
         return {"ok": False, "code": "confirm_mismatch", "status": 400,
                 "error": tpl.get("confirm_mismatch") or ""}
     return {"ok": True}
@@ -117,8 +124,12 @@ def session_view(p):
 
 
 def session_path(p):
-    """注销要删的会话记录相对路径：模板由需求层配置表给出，纯函数只填参。"""
+    """注销要删的会话记录相对路径：模板由需求层配置表给出，纯函数只填参。
+
+    模板缺失时返回空路径，由调用方按未登录/不可操作收口；不能把裸令牌
+    当成模块根下的相对路径，否则配置缺失会悄悄改写到别的位置。
+    """
     paths = p.get("paths") or {}
-    t = paths.get("session") or ""
-    tok = p.get("token") or ""
-    return {"path": t.format(token=tok) if t else tok}
+    t = str(paths.get("session") or "")
+    tok = str(p.get("token") or "")
+    return {"path": t.format(token=tok) if t else ""}

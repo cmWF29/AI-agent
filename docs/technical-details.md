@@ -36,7 +36,7 @@
 
 ### 2.3 清单条目
 
-条目形状：`id`、`text`、`status`、`note`。`status` 归一为 pending/doing/done；未知值按 pending。列表有上限，超出截断；重复 id 自动顺延；查询不产生会话补丁，只有增删改清空才产生。
+条目形状：`id`、`text`、`status`、`note`。`status` 归一为 pending/doing/done；未知值按 pending。`todos.max_items` 是硬上限，配置缺失或为 0 时清单必须为空，不能“先塞一条再判断超限”；查询、只带 id 的 update、内容相同的 replace 都不产生会话补丁，只有真实字段变化才落盘。
 
 ### 2.4 协调台账
 
@@ -84,6 +84,14 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 3. 用独立 mount namespace 启动进程：只读挂载系统目录、tmpfs 临时目录、bind 白名单、设置工作目录；
 4. 进程退出 namespace 销毁；bwrap 缺失或描述不完整时显式 sandbox_unavailable，不静默降级。
 
+### 3.5 HTTP 入口与静态资源
+
+1. 方法闸：GET 只放行 `/api/health*`、`/api/modules`、`/api/auth/status`、`/api/auth/verify` 和 `/api/sse/*`；其余 `/api/` 写路由必须 POST，GET 对已知写路由回 405 `method_not_allowed`，未知路由回 404 `no_route`，形状不对回 404 `bad_path`，避免带 Cookie 的链接/图片触发删除或归档。
+2. 匿名 allowlist：仅存活探针、登录状态、登录换票/校验，以及 `demand_engine.run` 的 `auth-login`、`console-chrome` 两个壳需求；新增 auth 前缀路由不会自动公开。
+3. 请求体：先拒绝 `Transfer-Encoding`（400 `bad_framing`，并关闭连接），再校验 `Content-Length` 为正整数且不超过 `server.max_body_bytes`（默认 8 MiB），超限 413 `payload_too_large`；不把超限正文读进内存。需求入口要求 `id` 为非空字符串、`input` 为对象，否则 400 `bad_id`/`bad_input`，不让数组/对象进入路由表查找。
+4. 静态资源：`web.gate` 只匿名放行 `login.html` 与 css/js/svg/图片/字体；json/yaml/md 等可能含配置或正文，和页面一样要求登录，未登录 302 到登录页。
+5. 所有响应统一带 `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`。
+
 ## 4. 状态迁移表
 
 ### 4.1 流程
@@ -116,7 +124,8 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 `idle → queued → running → idle`；running 超时或进程重启进入 stalled/idle，带 interrupted_on_boot 或 stuck_missing_task。归档/结单后只读，composer 与结单控件一起 disabled。
 
-会话令牌只允许 `[A-Za-z0-9_-]`（1–128 字符），令牌拼进 `sessions/{token}.yaml` 前先校验；缺少 `expires`、`expires` 非数字或已过期一律按无效处理。空用户名/空摘要/空期望哈希也按凭据失败处理，摘要比较用常量时间。
+会话令牌只允许 `[A-Za-z0-9_-]`（1–128 字符），令牌拼进 `sessions/{token}.yaml` 前先校验；缺少 `expires`、`expires` 非数字或已过期一律按无效处理。空用户名/空摘要/空期望哈希也按凭据失败处理，摘要比较用常量时间。令牌来源按入口分开：请求头、Cookie 全局可用；query 参数只给 `/api/sse/` 用——EventSource 不能设请求头，普通 API 收 query token 一律当未登录，避免令牌写进访问日志、Referer 和浏览器历史。
+
 
 ## 5. 并发与一致性
 
@@ -143,10 +152,11 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 ### 5.4 边界 fail-closed
 
-- 鉴权：非法令牌不进入路径拼接；会话过期/缺过期字段直接拒绝；摘要空值不放行；
+- 鉴权：非法令牌不进入路径拼接；会话过期/缺过期字段直接拒绝；摘要空值不放行；登录 ttl 非正回落 86400，不发“出生即过期”的会话；改密要求期望摘要与旧摘要都非空且常量时间相等。
 - 沙箱：bwrap 的 cwd 与 bind 目的地按 POSIX 归一化并拒绝 `..`，bind 源先校验在项目根内再创建目录；
 - ASR：分块采样点数必须为正整数，配置缺失/为 0 返回 `bad_chunk_config`，不允许进入不前进的循环；
-- 静态资源：只有 `login.html` 与静态壳资源公开，其他 HTML 页面必须登录。
+- 静态资源：只有 `login.html` 与无数据壳资源公开，json/yaml/md 等数据文件和其他 HTML 页面必须登录。
+- HTTP：GET 只读、匿名 allowlist、请求体上限、chunked 拒绝，细节见 3.5；GET 写路由只对“存在但只收 POST”的路由回 405，未知路由回 `no_route`、形状不对回 `bad_path`，不把拼错路径误导成换动词。
 
 ## 6. 压缩与上下文
 
@@ -177,19 +187,19 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 | 层 | 门禁/用例 | 证据 |
 | --- | --- | --- |
 | L0 静态 | controls、screens、inventory、views、card_size、copy、frontend、wiring、docsync、levels、ops、deadcode | 规格与源码双向闭合、活 DOM 清单、文案长度、信息预算、文档哈希 |
-| L1 单元 | 核心、架构、需求、装配、传输、幂等、桩、隔离、节点、分布式、归档、秘书、定时、角色门禁、技能拆解、React 机制、边界 fail-closed | 纯函数断言、状态迁移、并发、边界 |
+| L1 单元 | 核心、架构、需求、装配、传输、幂等、桩、隔离、节点、分布式、归档、秘书、定时、角色门禁、技能拆解、React 机制、边界 fail-closed、HTTP 入口 | 纯函数断言、状态迁移、并发、边界、GET/匿名/请求体/静态资源闸 |
 | L2 契约 | 非法输入、鉴权、越权、穿越、幂等 | 真装配 + 真 HTTP |
 | L3 E2E | verify_ui、verify_e2e、verify_pages、verify_controls | 真浏览器 + 真后端；业务闭环、全页可达、全表单可开、安全控件真点击 |
-| 覆盖率 | gate_coverage / gate_diff_coverage | coverage data + 行/分支/关键模块阈值；base..HEAD 新增产品代码行单独 ≥90% |
+| 覆盖率 | gate_coverage / gate_diff_coverage | coverage data + 行 ≥80.0%/分支 ≥67.0%/关键模块 80.0%·65.0%；base..HEAD 新增产品代码行单独 ≥90% |
 | L4 韧性 | 中断恢复、租约、重复投递、恢复不双跑 | 真实子进程 SIGKILL + 真实文件锁台账 |
 
 新增测试放置：纯函数/状态机进 `agent_test/private/test_*.py`；契约探针进 `scripts/lib/layers/l2_contract.py`；浏览器用例进 `scripts/verify_*.py`；静态规则进 `scripts/gate_*.py` 并登记 L0。新增测试必须登记 check 与模块，否则需求↔用例映射门禁红。
 
 ## 9. 配置与错误码
 
-关键配置：`sessions.max_steps`、`sessions.result_chars`、`sessions.summary_fallback_chars`、`sessions.summary_keep`、`sessions.context.tool_output_chars`、`sessions.react_cap`。
+关键配置：`server.max_body_bytes`、`sessions.max_steps`、`sessions.result_chars`、`sessions.summary_fallback_chars`、`sessions.summary_keep`、`sessions.context.tool_output_chars`、`sessions.react_cap`。
 
-常见错误码：`illegal_start`、`unknown_stage`、`illegal_edge`、`checklist_unmet`、`forbidden_hit`、`condition_unmet`、`conflict_exhausted`、`lease_expired`、`sandbox_unavailable`、`crypto_unavailable`、`manifest_unreachable`、`prune_required`、`write_failed`。
+常见错误码：`illegal_start`、`unknown_stage`、`illegal_edge`、`checklist_unmet`、`forbidden_hit`、`condition_unmet`、`conflict_exhausted`、`lease_expired`、`sandbox_unavailable`、`crypto_unavailable`、`manifest_unreachable`、`prune_required`、`write_failed`、`no_route`、`bad_path`、`bad_id`、`bad_input`、`method_not_allowed`、`payload_too_large`、`bad_framing`、`bad_old_password`。
 
 错误码要能被前端或调用方分支处理；不允许只给自然语言 error 而没有 code。
 
@@ -210,6 +220,8 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 - node_worker 仍是命令式桩执行体，不是实际任务工作进程；
 - bwrap 没有 seccomp/cgroup，保留共享网络，未挂 `/proc`；
 - 覆盖率已按 base..HEAD 强制改动行 ≥90%；只对产品 Python 新增行计数，测试与文案改动不虚增分母；
+- 登录失败尚无跨进程速率限制/账号锁定；在线撞库防护是下一层，当前只有令牌随机性与会话过期；
+- 客户端在响应写完前断开时，HTTP handler 仍可能把 `BrokenPipeError` 打到 stderr；连接已关闭、无数据风险，但日志噪声要在下一轮收口；
 - 前端视觉回归覆盖页面可达和关键交互，不等于像素级设计稿比对。
 
 这些限制必须在发布说明里保留，不能因为门禁绿了就当成能力已经完整。

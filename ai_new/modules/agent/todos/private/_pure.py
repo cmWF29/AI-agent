@@ -26,9 +26,19 @@ def _item(raw, seq):
 
 
 def _norm(items, limit):
-    """整表归一：逐条成形、按序位补号、去重 id、截到上限。"""
+    """整表归一：逐条成形、按序位补号、去重 id、截到上限。
+
+    limit=0 是硬上限而不是“至少一条”：配置缺失/为 0 时清单必须保持空，
+    不能先塞一条再判断超限。
+    """
     out, seen = [], set()
+    try:
+        cap = max(0, int(limit or 0))
+    except (TypeError, ValueError):
+        cap = 0
     for idx, raw in enumerate(items or [], start=1):
+        if len(out) >= cap:
+            break
         rec = _item(raw, idx)
         if not rec:
             continue
@@ -38,8 +48,6 @@ def _norm(items, limit):
                 rec["id"] = rec["id"] + "x"
         seen.add(rec["id"])
         out.append(rec)
-        if len(out) >= limit:
-            break
     return out
 
 
@@ -69,7 +77,7 @@ def apply_ops(p):
 
     纯数据变换：不动盘、不取时钟；越界或参数缺失只回错误码，不改原表。
     """
-    items = _norm(p.get("todos") or [], int(p.get("limit")))
+    items = _norm(p.get("todos") or [], p.get("limit"))
     args = p.get("args") or {}
     action = str(args.get("action") or "list").strip().lower()
     if action in ("list", "show", "read", "get"):
@@ -79,8 +87,8 @@ def apply_ops(p):
         return {"ok": True, "action": "clear", "changed": bool(items),
                 "todos": [], "counts": counts([])}
     if action in ("replace", "write", "set"):
-        new = _norm(args.get("items") or args.get("todos") or [], int(p.get("limit")))
-        return {"ok": True, "action": "replace", "changed": True,
+        new = _norm(args.get("items") or args.get("todos") or [], p.get("limit"))
+        return {"ok": True, "action": "replace", "changed": new != items,
                 "todos": new, "counts": counts(new)}
     if action in ("add", "append", "create"):
         text = str(args.get("text") or args.get("title") or "").strip()
@@ -92,7 +100,7 @@ def apply_ops(p):
                "note": str(args.get("note") or "").strip()}
         if any(x["id"] == rec["id"] for x in items):
             rec["id"] = _next_id(items)
-        new = _norm(items + [rec], int(p.get("limit")))
+        new = _norm(items + [rec], p.get("limit"))
         return {"ok": True, "action": "add", "changed": True,
                 "todos": new, "counts": counts(new)}
     if action in ("update", "edit", "set_status", "patch"):
@@ -101,6 +109,7 @@ def apply_ops(p):
         if not hit:
             return {"ok": False, "action": "update", "code": "not_found",
                     "error": p.get("tpl", {}).get("id_missing") or ""}
+        before = [(x["id"], x["text"], x["status"], x["note"]) for x in items]
         new = []
         for rec in items:
             if rec["id"] != rid:
@@ -114,7 +123,8 @@ def apply_ops(p):
             if args.get("note") is not None:
                 rec["note"] = str(args.get("note") or "").strip()
             new.append(rec)
-        return {"ok": True, "action": "update", "changed": True,
+        after = [(x["id"], x["text"], x["status"], x["note"]) for x in new]
+        return {"ok": True, "action": "update", "changed": before != after,
                 "todos": new, "counts": counts(new)}
     if action in ("remove", "delete", "drop"):
         rid = str(args.get("id") or "").strip()
@@ -142,7 +152,7 @@ def brief(p):
 
 def context(p):
     """上下文段：把当前待办拼成一条 system 消息，模型每轮看得到自己的计划。"""
-    items = _norm(p.get("todos") or [], int(p.get("limit")))
+    items = _norm(p.get("todos") or [], p.get("limit"))
     tpl = p.get("tpl") or {}
     if not items:
         return {"message": None}

@@ -310,3 +310,14 @@ checks:
   - sandbox-capability
   - console-shell
   - console-chrome
+- id: http-gate
+  title: HTTP 入口：GET 只读、未知/写路由 404/405、需求 id 类型、匿名 allowlist、请求体上限与分块拒绝、静态数据需登录
+  module: test_core
+  kind: runtime
+  enabled: true
+  demands:
+  - auth-login
+  - auth-status
+  - auth-change-password
+  - console-shell
+  - console-chrome

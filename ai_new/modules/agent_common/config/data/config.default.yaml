@@ -1,6 +1,8 @@
 server:
   host: 127.0.0.1
   port: 8787
+  # 单个 JSON/YAML 请求体上限：超限直接 413，不把整段读进内存再解析。
+  max_body_bytes: 8388608
   token: ''
   version: 0.1.0
   auth:

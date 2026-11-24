@@ -1,10 +1,11 @@
 ---
 source: ai_new/modules/agent_common/http/private/_server.py
-hash: bb26fd56af80e88df698c5f07bc7110b4b8cd9a2e5e71aee0830be478274bf41
+hash: d6c36ab56a1fad0cfa1148b8b87c9c4927d0c8e089c32c90a18c9b6514c443b8
 symbols:
 - setup
 - start
 - _make_handler
+- _api_name
 - _extract_token
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:22'
@@ -35,6 +36,12 @@ HTTP 服务实现：stdlib ThreadingHTTPServer。
 
 ### `_make_handler`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_api_name`（function）
+- 职责: 把 /api/<a>/<b>[/...] 折成路由名；形状不对返回空串。RPC 走 /api/rpc/<module>/<fn>。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

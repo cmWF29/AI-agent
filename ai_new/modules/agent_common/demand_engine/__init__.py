@@ -13,8 +13,15 @@ from .private import _engine
 
 
 async def _route_run(ctx, payload):
-    return await ctx.demand_engine.arun_callable(
-        payload.get("id"), payload.get("input") or {})
+    demand_id = payload.get("id")
+    if not isinstance(demand_id, str) or not demand_id.strip():
+        raise ctx.ApiError("id 必须是非空字符串", code="bad_id", status=400)
+    inputs = payload.get("input")
+    if inputs is None:
+        inputs = {}
+    if not isinstance(inputs, dict):
+        raise ctx.ApiError("input 必须是对象", code="bad_input", status=400)
+    return await ctx.demand_engine.arun_callable(demand_id, inputs)
 
 
 async def _route_batch(ctx, payload):

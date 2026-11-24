@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import hmac
 import sys
 
 from .private import _pure
@@ -61,8 +62,9 @@ def setup(ctx):
         # 开放态：既没开登录、也没配旧令牌（本机开发）
         if not enabled and not legacy:
             return {"allow": True, "mode": "open"}
-        # 旧令牌兼容：过渡期不断既有入口
-        if legacy and token == legacy:
+        # 旧令牌兼容：过渡期不断既有入口；比较仍走常量时间，不泄露前缀长度。
+        if legacy and hmac.compare_digest(token.encode("utf-8"),
+                                          str(legacy).encode("utf-8")):
             return {"allow": True, "mode": "legacy"}
         if not enabled:
             return {"allow": False, "mode": "legacy", "reason": "unauthorized"}
@@ -147,9 +149,15 @@ def _route_login(ctx, payload):
                 "message": _msg_tpl(ctx).get("login_failed") or ""}
     now = ctx.api.call("clock.now", {}, caller=None)
     nonce = ctx.api.call("codec.nonce", {"length": 32}, caller=None)
+    try:
+        ttl = int(cfgv.get("ttl") or 0)
+    except (TypeError, ValueError):
+        ttl = 0
+    if ttl <= 0:
+        ttl = 86400
     rec = ctx.api.call("auth.build_session", {
         "token": nonce.get("token"), "username": payload.get("username"),
-        "issued": now.get("ts"), "ttl": cfgv.get("ttl") or 86400}, caller=None)
+        "issued": now.get("ts"), "ttl": ttl}, caller=None)
     view = ctx.api.call("auth.session_view", {"record": rec}, caller=None)
     pt = _cfg_paths(ctx).get("session") or ""
     tok = rec.get("token") or ""

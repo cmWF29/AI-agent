@@ -60,8 +60,7 @@ python3 scripts/gates.py --timeout 180
   在 L0 `GATES` 登记。不另建一套扫描解析。
 - **L1 后端用例**：按模块放进 `ai_new/modules/agent_test/private/`，
   沿用 `_fixtures.py` 暂存与 `stub_llm.py` 桩；在 `data/checks.yaml` 登记 check。
-- **L1 边界用例**：`test_security_boundaries.py` 覆盖令牌字符集、空摘要、缺失过期时间、
-  bwrap 虚拟路径逃逸、ASR 非法分块、静态资源门槛；check id `boundaries`。
+- **L1 边界用例**：`test_security_boundaries.py` 覆盖令牌字符集、空摘要、缺失过期时间、改密旧摘要、bwrap 虚拟路径逃逸、ASR 非法分块、静态资源门槛；`test_core` 覆盖 GET 只读、匿名 allowlist、请求体上限、chunked 拒绝与安全响应头；check id `boundaries`、`http-gate`。
 - **L2 契约探针**：加在 `scripts/lib/layers/l2_contract.py`，按
   路由类补非法输入/鉴权/越权/穿越/幂等用例；不许只 mock 断言。
 - **L3 E2E**：`scripts/lib/layers/l3_e2e.py` 起临时服务并转调 `scripts/verify_pages.py` 与 `scripts/verify_e2e.py`；页面/表单从后端 `views-list` 动态发现，浏览器业务闭环直接写这里，不 mock 断言。
@@ -78,7 +77,7 @@ cd ../../../..
 python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
 ```
 
-- 阈值在 `scripts/coverage.json`：整体行/分支、关键模块单独线；
+- 阈值在 `scripts/coverage.json`：整体行 ≥80.0%、分支 ≥67.0%（本轮实测 80.5% / 67.4%），关键模块行 ≥80.0%、分支 ≥65.0%，改动行 ≥90.0%；
 - 测试代码与前端静态资源不计入；
 - 没有数据文件直接红，不允许「没跑 coverage 但当作通过」；
 - 覆盖率不是目的：关键机制用例必须断言行为，不能只靠执行过一行代码。

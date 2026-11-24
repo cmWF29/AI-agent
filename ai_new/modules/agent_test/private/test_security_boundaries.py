@@ -58,6 +58,37 @@ class AuthBoundaryTest(unittest.TestCase):
                                        "ttl": "not-a-number"})
         self.assertEqual(bad["ttl"], 0)
 
+    def test_change_password_requires_existing_and_old_digest(self):
+        # 空期望摘要 = 账号尚未建立凭据；不能把“没有旧密码”当“旧密码正确”。
+        empty = auth_pure.change_password({
+            "old_digest": "", "new_digest": "n", "confirm_digest": "n",
+            "expect_hash": ""})
+        self.assertFalse(empty["ok"])
+        self.assertEqual(empty["code"], "bad_old_password")
+        no_old = auth_pure.change_password({
+            "old_digest": "", "new_digest": "n", "confirm_digest": "n",
+            "expect_hash": "h"})
+        self.assertFalse(no_old["ok"])
+        wrong = auth_pure.change_password({
+            "old_digest": "x", "new_digest": "n", "confirm_digest": "n",
+            "expect_hash": "h"})
+        self.assertEqual(wrong["code"], "bad_old_password")
+        mismatch = auth_pure.change_password({
+            "old_digest": "h", "new_digest": "n", "confirm_digest": "m",
+            "expect_hash": "h"})
+        self.assertEqual(mismatch["code"], "confirm_mismatch")
+        self.assertTrue(auth_pure.change_password({
+            "old_digest": "h", "new_digest": "n", "confirm_digest": "n",
+            "expect_hash": "h"})["ok"])
+
+    def test_session_path_requires_template(self):
+        # 模板缺失不能把裸令牌当模块内相对路径，否则配置缺失会改写错位置。
+        self.assertEqual(auth_pure.session_path({
+            "paths": {}, "token": "tok"})["path"], "")
+        self.assertEqual(auth_pure.session_path({
+            "paths": {"session": "sessions/{token}.yaml"}, "token": "tok"})["path"],
+            "sessions/tok.yaml")
+
 
 class SandboxVirtualPathTest(unittest.TestCase):
     def setUp(self):
@@ -186,8 +217,12 @@ class WebBoundaryTest(unittest.TestCase):
     def test_gate_public_only_login_and_assets(self):
         self.assertTrue(web_pure.gate({"path": "login.html"})["public"])
         self.assertTrue(web_pure.gate({"path": "assets/app.css"})["public"])
+        self.assertTrue(web_pure.gate({"path": "assets/icon.svg"})["public"])
         self.assertFalse(web_pure.gate({"path": "manage.html"})["public"])
         self.assertFalse(web_pure.gate({"path": "page.HTML"})["public"])
+        # json/yaml/md 可能承载配置或正文，不能因为“不是 HTML”就匿名放行。
+        for path in ("api.yaml", "data.json", "notes.md"):
+            self.assertFalse(web_pure.gate({"path": path})["public"], path)
 
     def test_rel_mime_and_console_path(self):
         self.assertEqual(web_pure.rel({"path": "/manage.html"})["path"], "manage.html")

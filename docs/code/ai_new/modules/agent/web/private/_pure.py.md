@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/private/_pure.py
-hash: f54d0cd549144d147312a40ecbe1cd6cbeb4aac65d7ee3411edbc64eb1522f29
+hash: 086c8c133796fa096fb59b7c55f2d634a99fbf3028bc63c9acede338c1e559a9
 symbols:
 - rel
 - mime
@@ -35,7 +35,7 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `gate`（function）
-- 职责: 静态资源的登录门槛：页面要登录，登录页与壳资源放行。
+- 职责: 静态资源的登录门槛：页面与数据文件要登录，登录页和无数据的壳资源放行。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

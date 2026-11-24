@@ -219,9 +219,11 @@ modules/agent_test/data/               checks.yaml（验收清单）
 - 质量分五层：L0 静态门禁、L1 单元、L2 契约、L3 真实浏览器 E2E、L4 韧性；口径见
   [docs/testing-layers.md](docs/testing-layers.md)，前端规则见 [docs/frontend-rules.md](docs/frontend-rules.md)。
 - `scripts/gate_frontend.py` 检查界面信息预算（卡片字段上限、说明长度、品牌无渐变），
-  `scripts/gate_coverage.py` 按行/分支/关键机制模块检查覆盖率，`scripts/gate_diff_coverage.py`
+  `scripts/gate_coverage.py` 按行 ≥80.0%/分支 ≥67.0%/关键机制模块 80·65 检查覆盖率（本轮实测 80.5%/67.4%），`scripts/gate_diff_coverage.py`
   对 base..HEAD 新增产品代码行强制 ≥90%，`scripts/verify_controls.py`
   在真实浏览器逐页点击安全控件并核对状态；`scripts/resilience_drill.py` 用真实子进程
   SIGKILL 和真实文件锁台账跑 L4 韧性（kill -9、6 进程并发、租约 sweep、恢复不双跑）。
+- HTTP 入口同样有反例门禁：GET 只读、未知路由 404 `no_route`、已知写路由 405、需求 id 必须是字符串、匿名 allowlist、请求体上限、chunked 拒绝、静态数据文件需登录，
+  由 `agent_test/private/test_core.py` 的真装配服务验证；`server.max_body_bytes` 控制单请求上限。
 - 改动页面后先重扫控件清单（`scripts/ui_inventory.py <url>`），再跑 `ui_inventory.py --check`，
   否则门禁按过期签名拒绝。

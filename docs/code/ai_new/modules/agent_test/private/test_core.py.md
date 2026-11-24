@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 3c3420109a620b322ce184f515901074f2316d4df3b79bc98b9198bec596f534
+hash: 7f15aaeb6fabac407c45ab929f52af21c8410d898505778bbd7ae11c442c3371
 symbols:
 - __init__
 - __call__
@@ -138,7 +138,12 @@ symbols:
 - test_auth_verify_session_path_is_guarded_and_expiry_is_enforced
 - test_auth_verify_legacy_token
 - test_auth_status_is_public
+- test_auth_login_success_issues_valid_session_with_default_ttl
 - test_auth_login_demand_is_public
+- _http
+- test_http_get_is_read_only_and_carries_security_headers
+- test_http_rejects_oversize_and_chunked_bodies
+- test_static_data_files_require_login
 - test_next_seq_seeds_from_disk_baseline
 - test_next_seq_is_unique_under_concurrency
 - test_view_index_exposes_every_modal_form
@@ -976,8 +981,38 @@ updated_at: '2026-11-23T04:10:22'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `test_auth_login_success_issues_valid_session_with_default_ttl`（method）
+- 职责: 登录真跑一遍：摘要比对通过才会发令牌，非正 ttl 回落到 86400，令牌能过闸。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_auth_login_demand_is_public`（method）
 - 职责: 登录需求本身必须先可达：不带令牌也能过闸（凭据由需求内部判，失败返 401）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_http`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_http_get_is_read_only_and_carries_security_headers`（method）
+- 职责: GET 只留给读入口；带令牌也不能用链接触发写路由。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_http_rejects_oversize_and_chunked_bodies`（method）
+- 职责: 请求体先量长度再读；chunked 不解析，避免未消费字节污染下一条请求。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_static_data_files_require_login`（method）
+- 职责: api.yaml 等数据文件不能因为不是 HTML 就匿名可取；壳资源仍放行。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
