@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/trace/private/_trace.py
-hash: 9ce3b50212e74a90ff2f3f55350109e10025954d8a99a6a959c32976a82f6042
+hash: 8687a46cefd2c9806409154e8266466d5b051330de2469afd86399e7a07a47d3
 symbols:
 - _now
 - _new_id

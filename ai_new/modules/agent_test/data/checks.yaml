@@ -295,3 +295,18 @@ checks:
   - archive-gc
   - archive-observability
   - archive-transparent-read
+- id: boundaries
+  title: 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛
+  module: test_security_boundaries
+  kind: runtime
+  enabled: true
+  demands:
+  - auth-login
+  - auth-logout
+  - auth-status
+  - auth-change-password
+  - asr-transcribe
+  - sandbox-plan
+  - sandbox-capability
+  - console-shell
+  - console-chrome

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/auth/__init__.py
-hash: 62c94096d31278f074a2fdb995d3ca85a5e941ed9100cf724791d24c03d4e8b6
+hash: 771e5c16d4c6e878e350bb551176fae902a951a6519915c753c4ac5908f86923
 symbols:
 - _auth_cfg
 - _weak_digest

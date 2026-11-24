@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent/auth/private/_pure.py
-hash: d84e43be0e7a082d94a24dba7e73ec4c7941e6724b77688e51a056861e92bd2b
+hash: a1b333cdd39949afcc8e361602edd909378ef6d7a3ad29bcc1364c9261021cad
 symbols:
+- valid_token
 - default_password_state
 - credentials_ok
 - change_password
@@ -20,9 +21,15 @@ updated_at: '2026-11-23T04:10:19'
 
 ## 概览
 
-鉴权纯函数：凭据比对、会话成形与有效性判定。不读盘、不取时间、不碰 stdlib。
+鉴权纯函数：凭据比对、会话成形与有效性判定。只依赖标准库，不读盘、不取时间。
 
 ## 符号
+
+### `valid_token`（function）
+- 职责: 会话令牌只允许 URL 安全字符，拒绝路径片段与超长值。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `default_password_state`（function）
 - 职责: 判定是否仍是默认/空口令（纯计算，不读盘不计时钟）。
@@ -31,7 +38,7 @@ updated_at: '2026-11-23T04:10:19'
 - 关联需求/测试: 待人工补充
 
 ### `credentials_ok`（function）
-- 职责: 用户名与摘要都相等才通过；不泄露出是哪一项错。
+- 职责: 用户名与摘要都相等才通过；空摘要一律拒绝，避免摘要引擎故障时放行。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -43,13 +50,13 @@ updated_at: '2026-11-23T04:10:19'
 - 关联需求/测试: 待人工补充
 
 ### `build_session`（function）
-- 职责: 造会话记录形状：expires = issued + ttl。
+- 职责: 造会话记录形状：expires = issued + ttl；ttl 缺失/非法按 0 处理，不抛异常。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
 ### `session_valid`（function）
-- 职责: 会话是否存在、是否过期。纯判定，时间由调用方给。
+- 职责: 会话是否存在、是否过期。缺少/非法 expires 一律按无效处理（fail-closed）。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

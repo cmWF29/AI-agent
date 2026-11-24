@@ -45,6 +45,21 @@ def _decode_json(ctx, raw):
     return parsed.get("value") or {}
 
 
+def chunk_size(raw):
+    """识别器每次喂入的采样点数：必须是正整数，否则明确失败而不是死循环。
+
+    配置缺失或填 0 时，``pcm[:0]`` 永远不前进，``while pcm`` 会挂死请求线程。
+    这里把非法值收口成结构化错误，由 transcribe 直接返回 503。
+    """
+    try:
+        step = int(raw)
+    except (TypeError, ValueError):
+        step = 0
+    if step <= 0:
+        return 0, {"ok": False, "code": "bad_chunk_config", "status": 503}
+    return step, None
+
+
 def transcribe(ctx, audio):
     """WAV(PCM) 字节 → 识别文本。返回 {ok, text} 或结构化错误。"""
     model, err = _load_model(ctx)
@@ -56,14 +71,19 @@ def transcribe(ctx, audio):
                 "error": wav.get("error") or "音频解析失败"}
     pcm = wav.get("pcm")
     rate = wav.get("rate")
+    step, step_err = chunk_size(ctx.api.call("config.get", {
+        "key": "asr.chunk_shorts"}, caller=None).get("value"))
+    if step_err:
+        tpl = ctx.api.call("store.read", {
+            "module": "agent/asr", "path": "messages.yaml"}, caller=None)
+        step_err["error"] = (tpl.get("value") or {}).get("bad_chunk_config") or ""
+        return step_err
     try:
         from vosk import KaldiRecognizer
     except ImportError as exc:
         return {"ok": False, "code": "engine_unavailable", "status": 503,
                 "error": "语音识别引擎未安装：%s" % exc}
     rec = KaldiRecognizer(model, rate)
-    step = int(ctx.api.call("config.get", {"key": "asr.chunk_shorts"},
-                            caller=None).get("value") or 0)
     rec.SetWords(False)
     chunks = []
     while pcm:

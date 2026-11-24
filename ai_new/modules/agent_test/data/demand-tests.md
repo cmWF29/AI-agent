@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 199 条需求，绑定 17 个检查项。
+共 199 条需求，绑定 18 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -17,10 +17,15 @@
 | artifacts-stats | artifact | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | artifacts-write | artifact | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | asr-transcribe | asr | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| asr-transcribe | asr | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | auth-change-password | auth | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| auth-change-password | auth | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | auth-login | auth | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| auth-login | auth | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | auth-logout | auth | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| auth-logout | auth | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | auth-status | auth | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| auth-status | auth | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | channel-list | channel | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | channel-post | channel | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | channel-since | channel | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
@@ -44,7 +49,9 @@
 | code-docs-group | docs | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | code-docs-read | docs | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | console-chrome | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| console-chrome | view | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | console-shell | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| console-shell | view | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | decompose-deps | library | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
 | decompose-index | library | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
 | decompose-inspect | library | skill-decompose | test_skill_decompose.py | 技能拆解：安全读包、依赖预检阻断、登记守卫、台账只读与幂等重跑 |
@@ -116,7 +123,9 @@
 | role-session-open | session | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | runtime-params | view | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | sandbox-capability | sandbox | sandbox | test_isolation_tiers.py | 隔离执行：两档策略、执行计划、跨进程锁互斥与能力上报 |
+| sandbox-capability | sandbox | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | sandbox-plan | sandbox | sandbox | test_isolation_tiers.py | 隔离执行：两档策略、执行计划、跨进程锁互斥与能力上报 |
+| sandbox-plan | sandbox | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | secretary-discard | secretary | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |
 | secretary-flush | secretary | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |
 | secretary-index | secretary | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |

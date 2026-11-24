@@ -221,6 +221,7 @@ modules/agent_test/data/               checks.yaml（验收清单）
 - `scripts/gate_frontend.py` 检查界面信息预算（卡片字段上限、说明长度、品牌无渐变），
   `scripts/gate_coverage.py` 按行/分支/关键机制模块检查覆盖率，`scripts/gate_diff_coverage.py`
   对 base..HEAD 新增产品代码行强制 ≥90%，`scripts/verify_controls.py`
-  在真实浏览器逐页点击安全控件并核对状态。
+  在真实浏览器逐页点击安全控件并核对状态；`scripts/resilience_drill.py` 用真实子进程
+  SIGKILL 和真实文件锁台账跑 L4 韧性（kill -9、6 进程并发、租约 sweep、恢复不双跑）。
 - 改动页面后先重扫控件清单（`scripts/ui_inventory.py <url>`），再跑 `ui_inventory.py --check`，
   否则门禁按过期签名拒绝。

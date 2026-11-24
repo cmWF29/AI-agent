@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: ea4f2488b09ca784671019ea2f153ab8d70a517dfd0071a37a17166b1771624c
+hash: 3c3420109a620b322ce184f515901074f2316d4df3b79bc98b9198bec596f534
 symbols:
 - __init__
 - __call__
@@ -135,6 +135,7 @@ symbols:
 - test_bind_tools_marks_project_disabled
 - test_thread_members_carry_machine
 - test_thread_does_not_duplicate_pm_session
+- test_auth_verify_session_path_is_guarded_and_expiry_is_enforced
 - test_auth_verify_legacy_token
 - test_auth_status_is_public
 - test_auth_login_demand_is_public
@@ -953,6 +954,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_thread_does_not_duplicate_pm_session`（method）
 - 职责: by_ticket 会把 PM 主会话一并归集；线程视图不得把它当角色二次并入成员与消息流。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_auth_verify_session_path_is_guarded_and_expiry_is_enforced`（method）
+- 职责: 会话令牌只走合法字符路径；过期会话拒绝，越界令牌不读盘。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

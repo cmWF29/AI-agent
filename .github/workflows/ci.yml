@@ -46,7 +46,7 @@ jobs:
         working-directory: ai_new/modules/agent_test/private
         run: |
           set -o pipefail
-          python3 -m coverage run --rcfile="$GITHUB_WORKSPACE/scripts/coverage.ini" --branch --data-file=/tmp/hive.coverage --source="$GITHUB_WORKSPACE/ai_new/modules" -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_distributed test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows test_cloud test_cloud_guard test_cloud_seal test_cloud_sync test_cloud_s3 test_cloud_webdav test_react_mechanisms test_gate_diff_coverage 2>&1 | tee /tmp/full-tests.log
+          python3 -m coverage run --rcfile="$GITHUB_WORKSPACE/scripts/coverage.ini" --branch --data-file=/tmp/hive.coverage --source="$GITHUB_WORKSPACE/ai_new/modules" -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_distributed test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows test_cloud test_cloud_guard test_cloud_seal test_cloud_sync test_cloud_s3 test_cloud_webdav test_react_mechanisms test_gate_diff_coverage test_security_boundaries 2>&1 | tee /tmp/full-tests.log
       - name: 失败测试名（注解可见，不必登录下载日志）
         if: failure()
         run: |
@@ -70,6 +70,8 @@ jobs:
         run: |
           echo "## 全量用例失败尾部" >> "$GITHUB_STEP_SUMMARY"
           tail -n 120 /tmp/full-tests.log >> "$GITHUB_STEP_SUMMARY"
+      - name: 契约与韧性门禁（L2 接口矩阵 + L4 真实 kill -9）
+        run: python3 scripts/gates.py --only L2,L4 --timeout 180
       - name: UI 回归环境（装 Chromium + 起桩）
         run: |
           pip install playwright

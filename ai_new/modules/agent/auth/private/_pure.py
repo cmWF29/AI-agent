@@ -1,9 +1,23 @@
-"""鉴权纯函数：凭据比对、会话成形与有效性判定。不读盘、不取时间、不碰 stdlib。"""
+"""鉴权纯函数：凭据比对、会话成形与有效性判定。只依赖标准库，不读盘、不取时间。"""
 from __future__ import annotations
+
+import hmac
+import re
 
 
 DEFAULT_USERNAME = "admin"
 DEFAULT_PASSWORD = "123456"
+_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def valid_token(p):
+    """会话令牌只允许 URL 安全字符，拒绝路径片段与超长值。
+
+    令牌会拼进 ``sessions/{token}.yaml``；先在这里收口，任何路径分隔符、点段、
+    空字节都不可能进入文件路径。
+    """
+    token = str((p or {}).get("token") or "")
+    return {"ok": bool(_TOKEN_RE.fullmatch(token)), "token": token}
 
 
 def default_password_state(p):
@@ -29,12 +43,16 @@ def default_password_state(p):
 
 
 def credentials_ok(p):
-    """用户名与摘要都相等才通过；不泄露出是哪一项错。"""
+    """用户名与摘要都相等才通过；空摘要一律拒绝，避免摘要引擎故障时放行。"""
     username = str(p.get("username") or "")
     expect = str(p.get("expect_username") or "")
     digest = str(p.get("digest") or "")
     expect_hash = str(p.get("expect_hash") or "")
-    if not username or username != expect or digest != expect_hash:
+    if not username or not expect or not digest or not expect_hash:
+        return {"ok": False, "code": "bad_credentials"}
+    if not hmac.compare_digest(username.encode("utf-8"), expect.encode("utf-8")):
+        return {"ok": False, "code": "bad_credentials"}
+    if not hmac.compare_digest(digest.encode("utf-8"), expect_hash.encode("utf-8")):
         return {"ok": False, "code": "bad_credentials"}
     return {"ok": True, "username": username}
 
@@ -59,21 +77,32 @@ def change_password(p):
 
 
 def build_session(p):
-    """造会话记录形状：expires = issued + ttl。"""
+    """造会话记录形状：expires = issued + ttl；ttl 缺失/非法按 0 处理，不抛异常。"""
     issued = float(p.get("issued") or 0)
-    ttl = int(p.get("ttl"))
+    try:
+        ttl = int(p.get("ttl") or 0)
+    except (TypeError, ValueError):
+        ttl = 0
     return {"token": p.get("token") or "", "username": p.get("username") or "",
             "issued": issued, "expires": issued + ttl, "ttl": ttl}
 
 
 def session_valid(p):
-    """会话是否存在、是否过期。纯判定，时间由调用方给。"""
+    """会话是否存在、是否过期。缺少/非法 expires 一律按无效处理（fail-closed）。"""
     rec = p.get("record") or {}
     now = float(p.get("now") or 0)
     if not rec.get("token"):
         return {"valid": False, "expired": False, "reason": "no_record"}
     expires = rec.get("expires")
-    if expires is not None and now >= float(expires):
+    if expires is None or isinstance(expires, bool):
+        return {"valid": False, "expired": False, "reason": "no_expiry",
+                "username": rec.get("username")}
+    try:
+        expires_at = float(expires)
+    except (TypeError, ValueError):
+        return {"valid": False, "expired": False, "reason": "bad_expiry",
+                "username": rec.get("username")}
+    if now >= expires_at:
         return {"valid": False, "expired": True,
                 "username": rec.get("username"), "expires": expires}
     return {"valid": True, "expired": False,

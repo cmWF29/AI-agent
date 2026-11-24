@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_common/exec/private/_runner.py
-hash: 91dd8f9af9184cb1515b0c545d8cd4a7fd69ca025d148dbfdc511e4d67230c76
+hash: c7bbbaa3bfd369b9a5303d59c534ce15e53d945f87c248d2ea621e9d6db2ed35
 symbols:
+- _virtual_path
 - _bwrap_command
 - _arun
 - run
@@ -19,6 +20,12 @@ updated_at: '2026-11-23T04:10:22'
 进程执行：起进程、喂输入、收输出，超时与打断都能停。
 
 ## 符号
+
+### `_virtual_path`（function）
+- 职责: 规范 bwrap 命名空间内的虚拟路径，拒绝 ``..``/空字节/相对路径。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `_bwrap_command`（function）
 - 职责: 把一次 shell 调用包进 bwrap mount namespace；只认显式 sandbox 描述。

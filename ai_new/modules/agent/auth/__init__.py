@@ -51,8 +51,6 @@ def _as_handler(fn):
 
 
 def setup(ctx):
-    md = ctx.storage.own(__file__)
-
     def _verify(payload):
         cfg = ctx.cfg.get("server") or {}
         auth = cfg.get("auth") or {}
@@ -68,9 +66,21 @@ def setup(ctx):
             return {"allow": True, "mode": "legacy"}
         if not enabled:
             return {"allow": False, "mode": "legacy", "reason": "unauthorized"}
+        # 会话令牌先过字符集：令牌会拼进 sessions/{token}.yaml，不能把 .. 或 /
+        # 交给存储层；这里失败即拒绝，不把路径注入留到下一层兜底。
+        if not _pure.valid_token({"token": token}).get("ok"):
+            return {"allow": False, "mode": "session", "reason": "unauthorized"}
 
-        pt = _cfg_paths(ctx).get("session") or ""
-        record = md.yaml_read(pt.format(token=token) if pt else token, None)
+        sess = _pure.session_path({"paths": _cfg_paths(ctx), "token": token})
+        path = sess.get("path") or ""
+        if not path:
+            return {"allow": False, "mode": "session", "reason": "unauthorized"}
+        try:
+            row = ctx.api.call("store.read", {
+                "module": "agent/auth", "path": path}, caller=None)
+        except Exception:  # noqa: BLE001 — 越界/坏记录统一按未登录，不把异常抛到 HTTP 闸
+            return {"allow": False, "mode": "session", "reason": "unauthorized"}
+        record = row.get("value") if row.get("exists") else None
         if not record or not record.get("token"):
             return {"allow": False, "mode": "session", "reason": "unauthorized"}
         now = ctx.clock.now()["ts"]
@@ -139,7 +149,7 @@ def _route_login(ctx, payload):
     nonce = ctx.api.call("codec.nonce", {"length": 32}, caller=None)
     rec = ctx.api.call("auth.build_session", {
         "token": nonce.get("token"), "username": payload.get("username"),
-        "issued": now.get("ts"), "ttl": cfgv.get("ttl")}, caller=None)
+        "issued": now.get("ts"), "ttl": cfgv.get("ttl") or 86400}, caller=None)
     view = ctx.api.call("auth.session_view", {"record": rec}, caller=None)
     pt = _cfg_paths(ctx).get("session") or ""
     tok = rec.get("token") or ""

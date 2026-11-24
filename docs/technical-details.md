@@ -116,6 +116,8 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 `idle → queued → running → idle`；running 超时或进程重启进入 stalled/idle，带 interrupted_on_boot 或 stuck_missing_task。归档/结单后只读，composer 与结单控件一起 disabled。
 
+会话令牌只允许 `[A-Za-z0-9_-]`（1–128 字符），令牌拼进 `sessions/{token}.yaml` 前先校验；缺少 `expires`、`expires` 非数字或已过期一律按无效处理。空用户名/空摘要/空期望哈希也按凭据失败处理，摘要比较用常量时间。
+
 ## 5. 并发与一致性
 
 ### 5.1 CAS
@@ -138,6 +140,13 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 - 会话同工单同岗已有在途时复用，不新建；
 - 云端对象按摘要比对，相同内容跳过上传；
 - 工具输出落盘失败回退全文，不把假路径交给模型。
+
+### 5.4 边界 fail-closed
+
+- 鉴权：非法令牌不进入路径拼接；会话过期/缺过期字段直接拒绝；摘要空值不放行；
+- 沙箱：bwrap 的 cwd 与 bind 目的地按 POSIX 归一化并拒绝 `..`，bind 源先校验在项目根内再创建目录；
+- ASR：分块采样点数必须为正整数，配置缺失/为 0 返回 `bad_chunk_config`，不允许进入不前进的循环；
+- 静态资源：只有 `login.html` 与静态壳资源公开，其他 HTML 页面必须登录。
 
 ## 6. 压缩与上下文
 
@@ -168,11 +177,11 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 | 层 | 门禁/用例 | 证据 |
 | --- | --- | --- |
 | L0 静态 | controls、screens、inventory、views、card_size、copy、frontend、wiring、docsync、levels、ops、deadcode | 规格与源码双向闭合、活 DOM 清单、文案长度、信息预算、文档哈希 |
-| L1 单元 | 核心、架构、需求、装配、传输、幂等、桩、隔离、节点、分布式、归档、秘书、定时、角色门禁、技能拆解、React 机制 | 纯函数断言、状态迁移、并发、边界 |
+| L1 单元 | 核心、架构、需求、装配、传输、幂等、桩、隔离、节点、分布式、归档、秘书、定时、角色门禁、技能拆解、React 机制、边界 fail-closed | 纯函数断言、状态迁移、并发、边界 |
 | L2 契约 | 非法输入、鉴权、越权、穿越、幂等 | 真装配 + 真 HTTP |
 | L3 E2E | verify_ui、verify_e2e、verify_pages、verify_controls | 真浏览器 + 真后端；业务闭环、全页可达、全表单可开、安全控件真点击 |
 | 覆盖率 | gate_coverage / gate_diff_coverage | coverage data + 行/分支/关键模块阈值；base..HEAD 新增产品代码行单独 ≥90% |
-| L4 韧性 | 中断恢复、租约、重复投递、恢复不双跑 | 多进程 + 真实台账 |
+| L4 韧性 | 中断恢复、租约、重复投递、恢复不双跑 | 真实子进程 SIGKILL + 真实文件锁台账 |
 
 新增测试放置：纯函数/状态机进 `agent_test/private/test_*.py`；契约探针进 `scripts/lib/layers/l2_contract.py`；浏览器用例进 `scripts/verify_*.py`；静态规则进 `scripts/gate_*.py` 并登记 L0。新增测试必须登记 check 与模块，否则需求↔用例映射门禁红。
 
@@ -189,7 +198,7 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 - 健康检查：live/self，模块数、需求数、hook 点闭合；
 - 日志：按项目/工单分层，工具大输出落 ticket 层，事件与审计分开；
 - 指标：压缩量、解压分位、缓存命中、节点归属、租约剩余；
-- CI：静态门禁 → 全量用例（coverage）→ 覆盖率门禁 → 改动行覆盖率门禁 → 真浏览器回归；
+- CI：静态门禁 → 全量用例（coverage）→ 覆盖率门禁 → 改动行覆盖率门禁 → L2/L4 契约与韧性 → 真浏览器回归；
 - 失败日志写 job summary，保留尾部便于定位环境差异。
 
 ## 11. 已知限制

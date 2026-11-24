@@ -87,6 +87,7 @@ def _trace_ctx():
 
 def _route_attach(ctx, payload):
     """把外部带进来的 trace 身份装进当前上下文（HTTP 入口/跨通道注入用）。"""
+    payload = payload or {}
     tid = str(payload.get("trace") or "")
     if tid:
         cur = _trace_ctx()
@@ -96,6 +97,7 @@ def _route_attach(ctx, payload):
 
 
 def _route_open(ctx, payload):
+    payload = payload or {}
     if not _S["enabled"]:
         return {"trace": "", "span": "", "parent": "", "off": True}
     cur = _trace_ctx()
@@ -116,6 +118,7 @@ def _route_open(ctx, payload):
 
 
 def _route_close(ctx, payload):
+    payload = payload or {}
     if not _S["enabled"]:
         return {"written": False, "off": True}
     span = str(payload.get("span") or "")
@@ -175,6 +178,7 @@ def _read_day(date):
 
 def _route_get(ctx, payload):
     """按 trace 读回整棵树：先拿 span 清单，再由前端/调用方按 parent 组装。"""
+    payload = payload or {}
     tid = str(payload.get("trace") or "")
     date = str(payload.get("date") or _day(_now()))
     rows = [r for r in _read_day(date) if r.get("trace") == tid]
@@ -193,6 +197,7 @@ def _route_get(ctx, payload):
 
 
 def _route_list(ctx, payload):
+    payload = payload or {}
     date = str(payload.get("date") or _day(_now()))
     rows = _read_day(date)
     by = {}
@@ -211,11 +216,12 @@ def _route_list(ctx, payload):
     for it in by.values():
         it["dur_ms"] = round(max(0.0, (it.pop("end") - it["start"]) * 1000.0), 2)
     items = sorted(by.values(), key=lambda x: x["start"], reverse=True)
-    limit = int(payload.get("limit") or 50)
+    limit = max(1, min(500, int(payload.get("limit") or 50)))
     return {"date": date, "total": len(items), "items": items[:limit]}
 
 
 def _route_slow(ctx, payload):
+    payload = payload or {}
     date = str(payload.get("date") or _day(_now()))
     rows = _read_day(date)
     agg = {}
@@ -250,20 +256,21 @@ def _route_slow(ctx, payload):
                       "err": a["err"], "samples": samples})
     items.sort(key=lambda x: x["p95_ms"], reverse=True)
     # 堆叠列表不截断：默认给足 200 条，行数受源数据量约束；前端全部可展开
-    limit = int(payload.get("limit") or 200)
+    limit = max(1, min(500, int(payload.get("limit") or 200)))
     return {"date": date, "items": items[:limit], "spans": len(rows),
             "updated_at": updated_at or None}
 
 
 def _route_recent(ctx, payload):
     """最近的 span 流（按开始时间倒序）：name 前缀过滤，供运行记录这类"系统做了什么"的呈现。"""
+    payload = payload or {}
     date = str(payload.get("date") or _day(_now()))
     prefix = str(payload.get("prefix") or "")
     rows = _read_day(date)
     if prefix:
         rows = [r for r in rows if str(r.get("name") or "").startswith(prefix)]
     rows.sort(key=lambda r: float(r.get("start") or 0), reverse=True)
-    limit = int(payload.get("limit") or 50)
+    limit = max(1, min(500, int(payload.get("limit") or 50)))
     return {"date": date, "total": len(rows), "items": rows[:limit]}
 
 

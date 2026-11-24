@@ -1,10 +1,11 @@
 ---
 source: ai_new/modules/agent/asr/private/_engine.py
-hash: 7bc29e1099212fa93adbeee80f78c4b7a4f7696712a44dccce4feebaf2854405
+hash: b28feea7feb1c1f37c1bc83627c48993e5e3c1e813506e2ac615ac67818d31c5
 symbols:
 - _model_dir
 - _load_model
 - _decode_json
+- chunk_size
 - transcribe
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:19'
@@ -35,6 +36,12 @@ ASR 引擎适配：懒加载离线小模型，把 WAV(PCM) 识别成文本。
 
 ### `_decode_json`（function）
 - 职责: 识别器结果是 JSON 文本，解析归 codec。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `chunk_size`（function）
+- 职责: 识别器每次喂入的采样点数：必须是正整数，否则明确失败而不是死循环。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

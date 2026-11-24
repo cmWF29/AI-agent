@@ -3180,6 +3180,50 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(len(intros), 1)
         self.assertEqual(len(out["thread"]["messages"]), 2)
 
+    def test_auth_verify_session_path_is_guarded_and_expiry_is_enforced(self):
+        """会话令牌只走合法字符路径；过期会话拒绝，越界令牌不读盘。"""
+        server = self.ctx.cfg["server"]
+        old = dict(server.get("auth") or {})
+        auth_cfg = self.ctx.cfg.setdefault("auth", {})
+        old_paths = auth_cfg.get("paths")
+        root = Path(self.tmp.name)
+        session_dir = root / "agent/auth" / "sessions"
+        session_dir.mkdir(parents=True, exist_ok=True)
+        safe = session_dir / "safe-token.yaml"
+        safe.write_text(yaml.safe_dump({
+            "token": "safe-token", "username": "admin", "expires": 9999999999,
+            "ttl": 60}, allow_unicode=True), encoding="utf-8")
+        outside = root / "outside.yaml"
+        outside.write_text(yaml.safe_dump({
+            "token": "../../../outside", "username": "admin",
+            "expires": 9999999999}, allow_unicode=True), encoding="utf-8")
+        server["auth"] = {"enabled": True, "username": "admin",
+                          "password_hash": "h", "salt": "", "ttl": 60}
+        try:
+            self.assertTrue(self.ctx.api.call(
+                "auth.verify", {"token": "safe-token"})["allow"])
+            safe.write_text(yaml.safe_dump({
+                "token": "safe-token", "username": "admin", "expires": 1,
+                "ttl": 60}, allow_unicode=True), encoding="utf-8")
+            self.assertFalse(self.ctx.api.call(
+                "auth.verify", {"token": "safe-token"})["allow"])
+            self.assertFalse(self.ctx.api.call(
+                "auth.verify", {"token": "../../../outside"})["allow"])
+            # 配置把会话模板写成空：没有路径也要拒绝，不能拿空路径去读
+            auth_cfg["paths"] = {"session": ""}
+            self.assertFalse(self.ctx.api.call(
+                "auth.verify", {"token": "safe-token"})["allow"])
+            # 配置被写成越界模板：store.read 的路径守卫抛错，鉴权层按未登录收口
+            auth_cfg["paths"] = {"session": "../outside.yaml"}
+            self.assertFalse(self.ctx.api.call(
+                "auth.verify", {"token": "safe-token"})["allow"])
+        finally:
+            server["auth"] = old
+            if old_paths is None:
+                auth_cfg.pop("paths", None)
+            else:
+                auth_cfg["paths"] = old_paths
+
     def test_auth_verify_legacy_token(self):
         """夹具配了旧令牌 t：命中放行，空/错令牌拒绝。"""
         self.assertTrue(self.ctx.api.call("auth.verify", {"token": "t"})["allow"])

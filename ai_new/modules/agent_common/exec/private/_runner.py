@@ -8,9 +8,31 @@ from __future__ import annotations
 
 import asyncio
 import os
+import posixpath
 import shutil
 import time
 from pathlib import Path
+
+
+def _virtual_path(raw, label):
+    """规范 bwrap 命名空间内的虚拟路径，拒绝 ``..``/空字节/相对路径。
+
+    bwrap 的 ``--chdir`` 和 ``--bind`` 目的地都是命名空间内路径，不能拿真实宿主
+    路径的字符串前缀直接判断；否则 ``/workspace/../etc`` 能绕过“落在挂载点内”
+    的检查。这里先按 POSIX 段归一，再做包含判断。
+    """
+    value = str(raw or "")
+    if "\x00" in value:
+        return "", "%s 含空字节" % label
+    if not value.startswith("/"):
+        return "", "%s 必须是绝对路径" % label
+    parts = [p for p in value.split("/") if p not in ("", ".")]
+    if any(p == ".." for p in parts):
+        return "", "%s 含越界片段" % label
+    norm = posixpath.normpath(value)
+    if norm == "/" or not norm.startswith("/"):
+        return "", "%s 归一后不是有效路径" % label
+    return norm, None
 
 
 def _bwrap_command(payload, cwd):
@@ -27,12 +49,18 @@ def _bwrap_command(payload, cwd):
     if not bwrap:
         return [], "bwrap 不在 PATH，强档隔离不可用"
     root = str(sandbox.get("root") or "")
-    mount = str(sandbox.get("mount") or "")
-    inner = str(sandbox.get("cwd") or "")
-    if not root or not mount or not inner:
+    mount_raw = str(sandbox.get("mount") or "")
+    inner_raw = str(sandbox.get("cwd") or "")
+    if not root or not mount_raw or not inner_raw:
         return [], "sandbox 描述缺少 root/mount/cwd"
     if not os.path.isabs(root) or root == "/":
         return [], "sandbox root 必须是非根绝对路径"
+    mount, err = _virtual_path(mount_raw, "mount")
+    if err:
+        return [], "sandbox " + err
+    inner, err = _virtual_path(inner_raw, "cwd")
+    if err:
+        return [], "sandbox " + err
     if inner != mount and not inner.startswith(mount.rstrip("/") + "/"):
         return [], "sandbox cwd 必须落在项目根挂载点内"
     try:
@@ -44,13 +72,15 @@ def _bwrap_command(payload, cwd):
     root_real = Path(root).resolve(strict=False)
     for bind in binds:
         src = str(bind.get("src") or "")
-        dst = str(bind.get("dst") or "")
-        if not src or not dst or not os.path.isabs(src):
+        dst_raw = str(bind.get("dst") or "")
+        if not src or not dst_raw or not os.path.isabs(src):
             return [], "sandbox bind 描述不完整"
+        dst, err = _virtual_path(dst_raw, "bind 目的地")
+        if err:
+            return [], "sandbox " + err
         if dst != mount and not dst.startswith(mount.rstrip("/") + "/"):
             return [], "sandbox bind 目的地越出挂载点"
         try:
-            Path(src).mkdir(parents=True, exist_ok=True)
             src_real = Path(src).resolve(strict=False)
         except OSError as exc:
             return [], "sandbox bind 源不可用: %s" % exc
@@ -58,6 +88,10 @@ def _bwrap_command(payload, cwd):
             src_real.relative_to(root_real)
         except ValueError:
             return [], "sandbox bind 源越出项目根"
+        try:
+            Path(src).mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            return [], "sandbox bind 源不可用: %s" % exc
         prepared.append((str(src_real), dst))
     args = [bwrap, "--unshare-all", "--share-net", "--die-with-parent",
             "--new-session"]
