@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_common/exec/private/_runner.py
-hash: b635a9c899804cc4d3ec2a57cf9a3231ad47fce6c5058b69f88010d0aa3926b7
+hash: 330d6d5cb81365eebdc70983e0781e4fe55183869785f956cf0243a47f78659e
 symbols:
+- _bwrap_command
 - _arun
 - run
 generated: gen_docs.py v1
@@ -18,6 +19,12 @@ updated_at: '2026-11-23T04:10:22'
 进程执行：起进程、喂输入、收输出，超时与打断都能停。
 
 ## 符号
+
+### `_bwrap_command`（function）
+- 职责: 把一次 shell 调用包进 bwrap mount namespace；只认显式 sandbox 描述。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `_arun`（function）
 - 职责: （无 docstring）

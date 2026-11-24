@@ -1,16 +1,18 @@
 ---
 source: ai_new/modules/agent_common/store/private/_isolate.py
-hash: d42e72e53cc14ff3d74d3b86232ed359585df0a3417eca1060feb46fe6292fc8
+hash: 5509e383488bfc1be83797e17e3e73087d4ac314c357e1ff3e8dbfab042a4cb0
 symbols:
 - _real
 - _is_within
 - _seg
+- _bwrap_ready
 - _cap_posix
 - _cap_nt
 - capabilities
 - _legacy_dirs
 - _configured_dirs
 - _cwd_info
+- _sandbox_info
 - resolve_workspace
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:22'
@@ -41,6 +43,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `_seg`（function）
 - 职责: 路径段归一：拒绝 ``..`` 等越界片段；非法段返回空串。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_bwrap_ready`（function）
+- 职责: 强档是否真的能起：不只查 bwrap 在不在，还跑一次最小 namespace 探针。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -77,6 +85,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `_cwd_info`（function）
 - 职责: 解析显式 cwd 并给出边界事实；策略由调用方（tools）决定，这里只算不判。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_sandbox_info`（function）
+- 职责: 给执行层的强档挂载描述。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

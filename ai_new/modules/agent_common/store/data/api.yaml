@@ -191,6 +191,9 @@ routes:
       root:
         type: any
         req: false
+      cwd:
+        type: any
+        req: false
     out:
       ok:
         type: bool
@@ -199,6 +202,8 @@ routes:
       root:
         type: any
       dirs:
+        type: any
+      sandbox:
         type: any
       capability:
         type: any

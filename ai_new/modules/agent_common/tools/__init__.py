@@ -90,15 +90,18 @@ def _shell_cwd(ctx, raw, session):
                 "error": tpl.format(error=ws.get("error") or "") if tpl else
                 (ws.get("error") or "")}
     if ws.get("mode") != "root":
-        return {"ok": True, "cwd": raw or "", "ensure": False}
+        return {"ok": True, "cwd": raw or "", "ensure": False,
+                "sandbox": {"engine": "path"}}
     if not raw:
-        return {"ok": True, "cwd": ws.get("cwd") or "", "ensure": True}
+        return {"ok": True, "cwd": ws.get("cwd") or "", "ensure": True,
+                "sandbox": ws.get("sandbox") or {"engine": "path"}}
     if not ws.get("cwd_allowed") or ws.get("cwd_other_ticket"):
         tpl = _msg_tpl(ctx).get("cwd_outside") or ""
         return {"ok": False, "code": "cwd_outside",
                 "error": tpl.format(path=ws.get("cwd") or raw) if tpl else
                 (ws.get("cwd") or raw)}
-    return {"ok": True, "cwd": ws.get("cwd") or raw, "ensure": True}
+    return {"ok": True, "cwd": ws.get("cwd") or raw, "ensure": True,
+            "sandbox": ws.get("sandbox") or {"engine": "path"}}
 
 
 async def _tool_shell(ctx, args, session=None):
@@ -114,6 +117,7 @@ async def _tool_shell(ctx, args, session=None):
         "argv": argv,
         "cwd": cwd.get("cwd") or "",
         "ensure_cwd": bool(cwd.get("ensure")),
+        "sandbox": cwd.get("sandbox") or {"engine": "path"},
         "timeout": (args or {}).get("timeout") or 300}, caller=None)
 
 

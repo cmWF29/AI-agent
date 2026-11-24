@@ -4,4 +4,4 @@
 module: exec
 routes:
   exec.run:
-    doc: 跑外部进程：argv+stdin → 退出码+输出
+    doc: 跑外部进程：argv+stdin → 退出码+输出；显式 sandbox=bwrap 时进入 mount namespace

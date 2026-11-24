@@ -54,6 +54,7 @@ STRONG = {
         "linux": [
             "unshare user/mount/pid namespace",
             "bwrap 沙箱（二进制可用时优先）",
+            "项目根/工单层/公共层按白名单 bind 到 /workspace，宿主路径不可见",
             "chroot 或 OCI 容器运行时",
             "独立 uid + 只读根 + 受限能力集",
         ],
@@ -164,7 +165,8 @@ def plan(project, tier, workspace):
     }
     if chosen == "strong":
         out["strong_wrap"] = {
-            "linux": ["unshare", "--user", "--map-root-user", "--mount", "--pid"],
+            "linux": ["unshare", "--user", "--map-root-user", "--mount", "--pid",
+                      "bwrap", "--bind", root, "/workspace"],
             "windows": ["container", "job-object", "restricted-token"],
         }
     return out

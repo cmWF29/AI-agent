@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sandbox/private/_pure.py
-hash: 6c12abf72ecf564cad8ca40a645f452d6feceb9afbfe38853d07d18074fd4bd9
+hash: 7450e444ad30bcf6c013eea918e7462fe2d17240ad343d12f53e5072303fb7be
 symbols:
 - describe
 - _root_segments

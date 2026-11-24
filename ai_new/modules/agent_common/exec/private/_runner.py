@@ -7,9 +7,83 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import shutil
 import time
 from pathlib import Path
+
+
+def _bwrap_command(payload, cwd):
+    """把一次 shell 调用包进 bwrap mount namespace；只认显式 sandbox 描述。
+
+    - 项目根以 ``/workspace`` 为唯一可写挂载点进入新根，宿主其余路径不可见；
+    - 系统工具链只读挂载，/tmp 与 /dev 每次执行新建；
+    - 描述不完整或 bwrap 起不来时 fail-closed，不静默退回普通 cwd。
+    """
+    sandbox = payload.get("sandbox") or {}
+    if sandbox.get("engine") != "bwrap":
+        return [], None
+    bwrap = shutil.which("bwrap")
+    if not bwrap:
+        return [], "bwrap 不在 PATH，强档隔离不可用"
+    root = str(sandbox.get("root") or "")
+    mount = str(sandbox.get("mount") or "")
+    inner = str(sandbox.get("cwd") or "")
+    if not root or not mount or not inner:
+        return [], "sandbox 描述缺少 root/mount/cwd"
+    if not os.path.isabs(root) or root == "/":
+        return [], "sandbox root 必须是非根绝对路径"
+    if inner != mount and not inner.startswith(mount.rstrip("/") + "/"):
+        return [], "sandbox cwd 必须落在项目根挂载点内"
+    try:
+        Path(root).mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return [], "项目根不可创建: %s" % exc
+    binds = sandbox.get("binds") or [{"src": root, "dst": mount}]
+    prepared = []
+    root_real = Path(root).resolve(strict=False)
+    for bind in binds:
+        src = str(bind.get("src") or "")
+        dst = str(bind.get("dst") or "")
+        if not src or not dst or not os.path.isabs(src):
+            return [], "sandbox bind 描述不完整"
+        if dst != mount and not dst.startswith(mount.rstrip("/") + "/"):
+            return [], "sandbox bind 目的地越出挂载点"
+        try:
+            Path(src).mkdir(parents=True, exist_ok=True)
+            src_real = Path(src).resolve(strict=False)
+        except OSError as exc:
+            return [], "sandbox bind 源不可用: %s" % exc
+        try:
+            src_real.relative_to(root_real)
+        except ValueError:
+            return [], "sandbox bind 源越出项目根"
+        prepared.append((str(src_real), dst))
+    args = [bwrap, "--unshare-all", "--share-net", "--die-with-parent",
+            "--new-session"]
+    parents = {mount}
+    for _, dst in prepared:
+        parts = dst.strip("/").split("/")
+        for i in range(1, len(parts)):
+            parents.add("/" + "/".join(parts[:i]))
+    for parent in sorted(parents, key=len):
+        args += ["--dir", parent]
+    for src, dst in prepared:
+        args += ["--bind", src, dst]
+    args += ["--chdir", inner, "--tmpfs", "/tmp", "--dev", "/dev"]
+    for path in ("/usr", "/bin", "/sbin", "/lib", "/lib64", "/etc"):
+        if Path(path).exists():
+            args += ["--ro-bind", path, path]
+    args += ["--clearenv",
+             "--setenv", "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+             "--setenv", "HOME", mount,
+             "--setenv", "TMPDIR", "/tmp"]
+    for key in ("LANG", "LC_ALL", "TZ"):
+        value = os.environ.get(key)
+        if value:
+            args += ["--setenv", key, value]
+    args += ["--"]
+    return args, None
 
 
 async def _arun(ctx, payload):
@@ -17,7 +91,8 @@ async def _arun(ctx, payload):
     argv = [str(a) for a in (payload.get("argv") or []) if str(a) != ""]
     if not argv:
         return {"ok": False, "code": "no_argv", "error": "没有可执行的命令"}
-    if shutil.which(argv[0]) is None:
+    sandbox = payload.get("sandbox") or {}
+    if sandbox.get("engine") != "bwrap" and shutil.which(argv[0]) is None:
         return {"ok": False, "code": "command_not_found", "error": "找不到命令: %s" % argv[0]}
 
     limit = float(payload.get("timeout") or 300)
@@ -33,9 +108,14 @@ async def _arun(ctx, payload):
         except OSError as exc:
             return {"ok": False, "code": "cwd_unavailable", "error": str(exc)}
 
+    prefix, sandbox_error = _bwrap_command(payload, cwd)
+    if sandbox_error:
+        return {"ok": False, "code": "sandbox_unavailable", "error": sandbox_error}
+    command = prefix + argv
+
     try:
         proc = await asyncio.create_subprocess_exec(
-            *argv,
+            *command,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

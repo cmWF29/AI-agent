@@ -12,11 +12,13 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+import asyncio
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 from ai_new.modules.agent_common.store.private import _isolate  # noqa: E402
+from ai_new.modules.agent_common.exec.private import _runner  # noqa: E402
 from ai_new.modules.agent.projects.private import _pure as projects_pure  # noqa: E402
 from ai_new.modules.agent_common.tools import _shell_cwd  # noqa: E402
 
@@ -61,6 +63,21 @@ class WorkspaceResolveTest(unittest.TestCase):
         self.assertEqual(out["dirs"]["tickets"],
                          str(root_real / "tickets" / "T-20261123-0002"))
 
+    def test_configured_root_carries_sandbox_spec(self):
+        root = str(Path(self.tmp) / "proj-root")
+        out = _isolate.resolve_workspace(
+            {"project": "demo-proj", "ticket": "T-20261123-0003", "root": root},
+            dir_of=self._dir_of)
+        sandbox = out["sandbox"]
+        self.assertIn(sandbox["engine"], ("bwrap", "path"))
+        if sandbox["engine"] == "bwrap":
+            self.assertEqual(sandbox["mount"], "/workspace")
+            self.assertEqual(sandbox["cwd"], "/workspace/tickets/T-20261123-0003")
+            self.assertEqual(Path(sandbox["root"]), Path(out["root"]))
+            dests = [row["dst"] for row in sandbox["binds"]]
+            self.assertIn("/workspace/tickets/T-20261123-0003", dests)
+            self.assertIn("/workspace/documents", dests)
+
     def test_non_absolute_root_rejected(self):
         out = _isolate.resolve_workspace(
             {"project": "demo-proj", "root": "relative/dir"}, dir_of=self._dir_of)
@@ -90,15 +107,14 @@ class CapabilityReportTest(unittest.TestCase):
             band = cap[tier]
             self.assertIn("supported", band)
             self.assertIn("verified", band)
-            # 本机没有实测过任何强/弱档落地：verified 一律不许为 True。
-            self.assertFalse(band["verified"], tier)
         if cap["os"] == "nt":
             self.assertFalse(cap["strong"]["supported"])
             self.assertFalse(cap["weak"]["supported"])
+            self.assertFalse(cap["strong"]["verified"])
         else:
+            self.assertEqual(cap["strong"]["verified"], _isolate._bwrap_ready())
             self.assertTrue(cap["weak"]["supported"])
-            # posix 强档仅在机制入口存在时标 supported，且仍未 verified。
-            self.assertIn(cap["strong"]["supported"], (True, False))
+            self.assertFalse(cap["weak"]["verified"])
 
 
 class ProjectRecordRootTest(unittest.TestCase):
@@ -200,5 +216,38 @@ class ShellWorkspaceTest(unittest.TestCase):
         self.assertTrue(out["ok"])
         self.assertEqual(out["cwd"], "/tmp")
         self.assertFalse(out["ensure"])
+
+
+class SandboxMountTest(unittest.TestCase):
+    """强档真实起 bwrap：项目根只以 /workspace 出现，宿主路径不可见。"""
+
+    class _Ctx:
+        class _Api:
+            def call(self, name, payload, caller=None):
+                return {"value": 4000}
+
+        api = _Api()
+        runtime = None
+
+    @unittest.skipUnless(_isolate._bwrap_ready(), "本机 bwrap namespace 探针未通过")
+    def test_project_root_is_mounted_and_host_is_hidden(self):
+        root = Path(tempfile.mkdtemp(prefix="sandbox-"))
+        (root / "tickets" / "T-2").mkdir(parents=True)
+        ws = _isolate.resolve_workspace(
+            {"project": "p1", "ticket": "T-1", "root": str(root), "cwd": ""},
+            dir_of=lambda module: root / module)
+        self.assertEqual(ws["sandbox"]["engine"], "bwrap")
+        res = asyncio.run(_runner._arun(self._Ctx(), {
+            "argv": ["/bin/sh", "-c",
+                     "pwd; test ! -e /home && echo HOST_HIDDEN; "
+                     "ls /workspace/tickets; echo mounted > ticket.txt"],
+            "cwd": ws["cwd"], "ensure_cwd": True,
+            "sandbox": ws["sandbox"], "timeout": 10}))
+        self.assertTrue(res["ok"], res)
+        self.assertIn("/workspace/tickets/T-1", res["out"])
+        self.assertIn("HOST_HIDDEN", res["out"])
+        self.assertNotIn("T-2", res["out"])
+        self.assertEqual((Path(ws["cwd"]) / "ticket.txt").read_text().strip(),
+                         "mounted")
 
 

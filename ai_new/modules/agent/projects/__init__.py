@@ -138,7 +138,7 @@ def _route_workspace(ctx, payload):
     ws["ticket_pattern"] = pattern
     ws["layers"] = [
         {"name": "项目根", "path": ws.get("root") or "未配置（系统默认目录）",
-         "scope": "所有工单可访问"},
+         "scope": "外层边界；工单会话不整体挂载"},
         {"name": "公共文档", "path": dirs.get("documents") or "—",
          "scope": "项目内公共"},
         {"name": "公共日志", "path": dirs.get("logs") or "—",
@@ -146,7 +146,7 @@ def _route_workspace(ctx, payload):
         {"name": "公共交付件", "path": dirs.get("artifacts") or "—",
          "scope": "项目内公共"},
         {"name": "工单工作区", "path": pattern or "—",
-         "scope": "每张工单独立子目录"},
+         "scope": "仅本工单可见"},
     ]
     return ws
 

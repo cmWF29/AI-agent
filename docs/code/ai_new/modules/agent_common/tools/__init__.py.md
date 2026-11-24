@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/tools/__init__.py
-hash: 917ca2f6040724158b7817e48898701ff71ba094fe0011770cb32cd5930cf4ba
+hash: 03c504e2957f33d8c6a0c3220e562974abbbeffacb9e960790628045a976fef9
 symbols:
 - _msg_tpl
 - setup

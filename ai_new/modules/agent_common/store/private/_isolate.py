@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 
@@ -50,17 +51,53 @@ def _seg(value):
     return seg
 
 
+def _bwrap_ready():
+    """强档是否真的能起：不只查 bwrap 在不在，还跑一次最小 namespace 探针。
+
+    只在首次解析时探测，结果进程内缓存；探测失败一律降为路径档，不冒充支持。
+    """
+    global _BWRAP_STATE
+    if _BWRAP_STATE is not None:
+        return _BWRAP_STATE
+    _BWRAP_STATE = False
+    if os.name != "posix":
+        return False
+    bwrap = shutil.which("bwrap")
+    if not bwrap:
+        return False
+    probe = [bwrap, "--unshare-all", "--share-net", "--die-with-parent",
+             "--new-session"]
+    for path in ("/usr", "/bin", "/lib", "/lib64", "/etc"):
+        if Path(path).exists():
+            probe += ["--ro-bind", path, path]
+    probe += ["--", "/bin/sh", "-c", "exit 0"]
+    try:
+        _BWRAP_STATE = subprocess.run(
+            probe, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=5).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        _BWRAP_STATE = False
+    return _BWRAP_STATE
+
+
+_BWRAP_STATE = None
+
+
 def _cap_posix():
     bwrap = shutil.which("bwrap")
-    userns = hasattr(os, "unshare")  # Linux user namespace 入口
+    ready = _bwrap_ready()
     return {
         "os": "posix",
         "strong": {
-            "tier": "userns/bwrap-or-chroot",
-            "supported": bool(bwrap or userns),
-            "verified": False,
-            "mechanisms": ["bwrap", "unshare user namespace", "chroot"],
-            "note": "强档未在本机实测；supported 仅表示机制入口存在，不代表已验证可用。",
+            "tier": "bwrap-mount-namespace",
+            "supported": bool(bwrap),
+            "verified": bool(ready),
+            "mechanisms": ["bwrap", "user/mount/pid namespace",
+                           "project root bind-mounted at /workspace",
+                           "read-only host toolchain"],
+            "note": ("bwrap 已实测可起；项目根只以 /workspace 挂载视图出现。"
+                     if ready else
+                     "bwrap 入口存在但最小 namespace 探针未通过，实际仍走路径档。"),
         },
         "weak": {
             "tier": "independent-uid-and-directory-permissions",
@@ -152,6 +189,32 @@ def _cwd_info(raw, root_real, dirs, tid):
             "cwd_other_ticket": other}
 
 
+def _sandbox_info(root_real, dirs, tid, cwd):
+    """给执行层的强档挂载描述。
+
+    ticket 会话只挂本 ticket 目录 + 三个公共层，项目根不整体暴露；无 ticket 的
+    项目会话才把整个项目根挂到 /workspace。这样 mount namespace 内也看不到别的
+    ticket 目录，不是只靠 cwd 字符串拦。
+    """
+    if not _bwrap_ready():
+        return {"engine": "path"}
+    try:
+        rel = Path(cwd).relative_to(root_real)
+    except ValueError:
+        return {"engine": "path"}
+    rel_posix = rel.as_posix()
+    target = "/workspace" if rel_posix in ("", ".") else "/workspace/" + rel_posix
+    binds = []
+    if tid:
+        binds.append({"src": dirs["tickets"], "dst": "/workspace/tickets/%s" % tid})
+        for layer in ("documents", "logs", "artifacts"):
+            binds.append({"src": dirs[layer], "dst": "/workspace/" + layer})
+    else:
+        binds.append({"src": str(root_real), "dst": "/workspace"})
+    return {"engine": "bwrap", "root": str(root_real),
+            "mount": "/workspace", "cwd": target, "binds": binds}
+
+
 def resolve_workspace(payload, dir_of=None):
     """解析项目工作区目录（含 ticket 子目录）并做越界校验。
 
@@ -188,9 +251,10 @@ def resolve_workspace(payload, dir_of=None):
                "dirs": {k: str(v) for k, v in dirs.items()},
                "capability": cap}
         out.update(_cwd_info(payload.get("cwd"), root_real, dirs, tid))
+        out["sandbox"] = _sandbox_info(root_real, dirs, tid, out["cwd"])
         return out
 
     dirs = _legacy_dirs(dir_of, pid, tid)
     return {"ok": True, "mode": "legacy", "project": pid, "ticket": tid,
             "root": None, "dirs": {k: str(v) for k, v in dirs.items()},
-            "capability": cap}
+            "sandbox": {"engine": "path"}, "capability": cap}

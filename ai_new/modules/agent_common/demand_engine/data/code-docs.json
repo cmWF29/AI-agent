@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-24T20:36:06",
+  "generated": "2026-11-24T21:22:04",
   "total": 513,
   "groups": [
     {
@@ -632,7 +632,7 @@
           "doc": "docs/code/ai_new/modules/agent/projects/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "3315bbfd249925ec215623515b83a41c6f246064d25073483d5181bc09f4e540",
+          "hash": "82c71174a493c8229302648de611d81ca7768f4eda8078bad310d89fb8fc32c0",
           "symbols": 17,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -641,7 +641,7 @@
           "doc": "docs/code/ai_new/modules/agent/projects/data/api.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "3cefc15118ac5130cb578c2c7488dc42caa8c84e4e90eb96e7bd2d120174f090",
+          "hash": "e2edfa0f719711935726addeb907aaf904c2c2aaef70cdc3f2e47e6302da5cfb",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -704,7 +704,7 @@
           "doc": "docs/code/ai_new/modules/agent/sandbox/private/_pure.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "6c12abf72ecf564cad8ca40a645f452d6feceb9afbfe38853d07d18074fd4bd9",
+          "hash": "7450e444ad30bcf6c013eea918e7462fe2d17240ad343d12f53e5072303fb7be",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -3356,7 +3356,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/exec/data/api.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "25faf9ae7befd5eed43b76c22f1547e3b90427b13f8c29fc3a304619187eb4be",
+          "hash": "e70f41ec2dc70640dd92b5c4ed016647a2759082756d63e6c8cf4e7c5f1cd146",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3374,8 +3374,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/exec/private/_runner.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "b635a9c899804cc4d3ec2a57cf9a3231ad47fce6c5058b69f88010d0aa3926b7",
-          "symbols": 2,
+          "hash": "330d6d5cb81365eebdc70983e0781e4fe55183869785f956cf0243a47f78659e",
+          "symbols": 3,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -3761,7 +3761,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/data/api.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "d880729b473ca8718fea7c3d542b10227b0b19766bf2f769140848a769b0a13b",
+          "hash": "e82266108eb39faf70ae9cf274132070fb9a0bf7c5136b4dd707798cd5b0e8f4",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3824,8 +3824,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_isolate.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "d42e72e53cc14ff3d74d3b86232ed359585df0a3417eca1060feb46fe6292fc8",
-          "symbols": 10,
+          "hash": "5509e383488bfc1be83797e17e3e73087d4ac314c357e1ff3e8dbfab042a4cb0",
+          "symbols": 12,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -3860,7 +3860,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/tools/__init__.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "917ca2f6040724158b7817e48898701ff71ba094fe0011770cb32cd5930cf4ba",
+          "hash": "03c504e2957f33d8c6a0c3220e562974abbbeffacb9e960790628045a976fef9",
           "symbols": 16,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4154,8 +4154,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_isolation.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "15e19fcd23d44f43d0868f9a82b4dd81ff49e111f33820359c7cdf0ae4377875",
-          "symbols": 16,
+          "hash": "ed302dfdb3b5e0ae2a8a0da1e1ccaa13d99e0b5ab16cfb1980e01017577429a4",
+          "symbols": 18,
           "updated_at": "2026-11-23T04:10:23"
         },
         {

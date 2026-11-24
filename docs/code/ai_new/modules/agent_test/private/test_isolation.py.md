@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation.py
-hash: 15e19fcd23d44f43d0868f9a82b4dd81ff49e111f33820359c7cdf0ae4377875
+hash: ed302dfdb3b5e0ae2a8a0da1e1ccaa13d99e0b5ab16cfb1980e01017577429a4
 symbols:
 - setUp
 - _dir_of
 - test_legacy_dirs_under_owning_module_data
 - test_configured_root_dirs_all_under_root
+- test_configured_root_carries_sandbox_spec
 - test_non_absolute_root_rejected
 - test_traversal_segment_rejected
 - test_is_within_bounds
@@ -18,6 +19,7 @@ symbols:
 - test_other_ticket_and_escape_rejected
 - test_shared_layer_allowed
 - test_legacy_keeps_caller_cwd
+- test_project_root_is_mounted_and_host_is_hidden
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:23'
 ---
@@ -52,6 +54,12 @@ updated_at: '2026-11-23T04:10:23'
 - 关联需求/测试: 待人工补充
 
 ### `test_configured_root_dirs_all_under_root`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_configured_root_carries_sandbox_spec`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -124,6 +132,12 @@ updated_at: '2026-11-23T04:10:23'
 - 关联需求/测试: 待人工补充
 
 ### `test_legacy_keeps_caller_cwd`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_project_root_is_mounted_and_host_is_hidden`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

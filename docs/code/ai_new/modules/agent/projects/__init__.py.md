@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/projects/__init__.py
-hash: 3315bbfd249925ec215623515b83a41c6f246064d25073483d5181bc09f4e540
+hash: 82c71174a493c8229302648de611d81ca7768f4eda8078bad310d89fb8fc32c0
 symbols:
 - _msg_tpl
 - _cfg_paths

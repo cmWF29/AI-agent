@@ -16,6 +16,8 @@ jobs:
           python-version: "3.11"
       - name: 依赖
         run: pip install pyyaml
+      - name: 强隔离依赖（Linux mount namespace）
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
       - name: 代码-文档同步门禁（源码哈希 / 符号清单 / 孤儿文档）
         run: python3 scripts/gate_docsync.py
       - name: 控件状态机门禁（每个按钮/事件都要有声明过的状态机）
