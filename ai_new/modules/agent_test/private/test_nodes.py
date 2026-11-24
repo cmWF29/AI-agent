@@ -186,6 +186,33 @@ class ViewTest(unittest.TestCase):
         self.assertEqual(rows[0]["state"], "released")
 
 
+class LeaseExpirySemanticsTest(unittest.TestCase):
+    def test_expired_lease_released_even_if_node_still_alive(self):
+        state = _seed()
+        _pure.heartbeat(state, "n1", {"running": 1}, 199.0)
+        _pure.acquire(state, "p1", "n1", 201.0, ttl=5)
+        sweep = _pure.sweep_expired(state, 207.0)
+        self.assertNotIn("n1", sweep["expired"])
+        self.assertEqual(sweep["released"], ["p1"])
+        self.assertEqual(state["leases"]["p1"]["state"], "released")
+
+    def test_reacquire_after_expiry_bumps_epoch(self):
+        state = _seed()
+        first = _pure.acquire(state, "p1", "n1", 101.0, ttl=5)
+        second = _pure.acquire(state, "p1", "n1", 107.0, ttl=30)
+        self.assertTrue(second["ok"])
+        self.assertFalse(second["reused"])
+        self.assertEqual(second["lease"]["epoch"], first["lease"]["epoch"] + 1)
+
+    def test_fence_check_rejects_expired_lease_when_now_passed(self):
+        state = _seed()
+        acquired = _pure.acquire(state, "p1", "n1", 101.0, ttl=5)
+        res = _pure.fence_check(state, "p1", acquired["lease"]["token"],
+                                acquired["lease"]["epoch"], now=107.0)
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["code"], "lease_expired")
+
+
 class ReassignMigrationTest(unittest.TestCase):
     def test_reassign_after_failover_bumps_epoch_and_records_migration(self):
         state = _seed()

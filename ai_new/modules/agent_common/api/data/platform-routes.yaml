@@ -64,6 +64,9 @@ routes:
   store.sweep:
     caller: capability
     reason: 回收扫描租约过期仍未结算的记录，按标记交人工处置。
+  store.cas:
+    caller: capability
+    reason: 协调状态原子比较交换原语：跨进程锁内期望旧值匹配才落盘，供节点注册/租约台账防丢更新。
   trace.attach:
     caller: registry/http
     reason: 外部请求或跨通道报文带来的 trace 身份注入当前上下文；埋点平台原语。

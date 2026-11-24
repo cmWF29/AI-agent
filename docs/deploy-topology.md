@@ -314,3 +314,10 @@ ingress:
   注册、心跳、租约迁移全链路验证。
 - 多入口会话粘滞在开源 Nginx 上按 Cookie / ip_hash 配置；真实会话 Cookie 名以
   控制台登录下发为准，换 Cookie 名要同步更新 §7 的 `hash` 键。
+- 节点注册/租约/迁移台账的并发写已改为 `store.cas` 原子比较交换（跨进程文件锁
+  内校验期望旧值）。落盘仍是单机文件；多 VPS 要共享同一台账，必须把数据目录
+  放到共享文件系统（NFS/对象存储挂载）或换远端协调服务，不能各机各写一份。
+- 执行隔离按每次 shell 启动独立 bwrap mount namespace，ticket 只 bind 本工单目录
+  与公共层；未做 seccomp / cgroup 资源限额，网络仍 `--share-net`，Windows 仍为
+  路径档。跨主机执行体（`scripts/node_worker.py`）目前是命令式桩，不是真实任务
+  执行进程。

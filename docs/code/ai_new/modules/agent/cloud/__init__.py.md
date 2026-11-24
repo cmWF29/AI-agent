@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/__init__.py
-hash: 14ecb05333b25cfcce1335437607ad401d3b3b02240f3a74b46a075e77390a85
+hash: e7b557d07e0c0081920595d91b13b7ffe6386ed7c987b8096876df6bd0096676
 symbols:
 - setup
 - _cfg
@@ -32,6 +32,8 @@ symbols:
 - _mtime
 - _read_entry_bytes
 - _collect_entries
+- _manifest_doc
+- _remote_manifest
 - _remote_entries
 - _route_sync_plan
 - _route_sync_run
@@ -232,6 +234,18 @@ updated_at: '2026-11-23T04:10:19'
 
 ### `_collect_entries`（function）
 - 职责: 扫描策略类别内的本地文件，合并 archive 压缩索引，形成本地清单（含 mtime）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_manifest_doc`（function）
+- 职责: 远端权威清单：对象键 → 摘要/大小/类别/修改时间；只含本地受管对象。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_remote_manifest`（function）
+- 职责: 读远端权威清单；缺失/损坏/不可达都显式返回，调用方回退本地缓存并标注来源。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

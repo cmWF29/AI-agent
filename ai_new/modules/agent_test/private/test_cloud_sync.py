@@ -88,9 +88,11 @@ class SyncTest(unittest.TestCase):
         self.ctx.api.call("store.write_text",
                           {"module": "agent/knowledge", "path": rel, "text": text})
 
-    def _run(self, pid):
-        res = self.ctx.api.call("cloud.sync_run",
-                                {"id": pid, "caller": _global_caller()})
+    def _run(self, pid, prune=False):
+        payload = {"id": pid, "caller": _global_caller()}
+        if prune:
+            payload["prune"] = True
+        res = self.ctx.api.call("cloud.sync_run", payload)
         self._apply(res)
         return res
 
@@ -181,6 +183,80 @@ class SyncTest(unittest.TestCase):
             "module": "agent/cloud", "path": "resume/p-resume.yaml"})
         # 全部成功后检查点应清除（effect 已执行）。
         self.assertFalse(cleared.get("value"))
+
+    def _state(self):
+        return self.ctx.api.call("store.read", {
+            "module": "agent/cloud", "path": "state.yaml"})["value"]
+
+    def _write_state(self, state):
+        self.ctx.api.call("store.write", {
+            "module": "agent/cloud", "path": "state.yaml", "value": state})
+
+    def test_remote_manifest_is_authoritative_across_local_cache_loss(self):
+        """模拟另一台机器/本地缓存丢失：远端 manifest 仍能证明对象已同步。"""
+        self._save("p-authoritative")
+        self._stage("authoritative-probe.md", "远端清单权威")
+        first = self._run("p-authoritative")
+        self.assertTrue(first["ok"], first["ledger"])
+        state = self._state()
+        state["manifests"] = {}
+        self._write_state(state)
+        plan = self.ctx.api.call("cloud.sync_plan", {"id": "p-authoritative"})
+        self.assertEqual(plan["plan"]["manifest_source"], "remote")
+        self.assertEqual(plan["plan"]["to_push"], [])
+
+    def test_remote_manifest_detects_external_modification(self):
+        """远端对象被外部改过、manifest 还是旧摘要：计划必须报冲突，不静默覆盖。"""
+        self._save("p-external")
+        self._stage("external-probe.md", "外部修改检测")
+        first = self._run("p-external")
+        self.assertTrue(first["ok"], first["ledger"])
+        rel = next(k for k in self.fake.store if "external-probe" in k)
+        self.fake.store[rel]["data"] = b"tampered"
+        self.fake.store[rel]["digest"] = "b" * 64
+        plan = self.ctx.api.call("cloud.sync_plan", {"id": "p-external"})
+        self.assertGreaterEqual(len(plan["plan"]["conflicts"]), 1)
+        self.assertTrue(any("external-probe" in c["rel"]
+                            for c in plan["plan"]["conflicts"]))
+
+    def test_manifest_commit_failure_is_retryable_and_not_reported_success(self):
+        """对象传完但权威 manifest 写失败：本轮不得报成功，下一轮只重试 manifest。"""
+        self._save("p-manifest-fail")
+        self._stage("manifest-fail-probe.md", "清单提交失败")
+        self.fake.fail_keys["_hive/manifest.json"] = 1
+        first = self._run("p-manifest-fail")
+        self.assertFalse(first["ok"])
+        self.assertEqual(first["ledger"]["manifest_error"], "transient")
+        puts_after_first = [k for kind, k, *_ in self.fake.calls if kind == "put"]
+        second = self._run("p-manifest-fail")
+        self.assertTrue(second["ok"], second["ledger"])
+        puts_after_second = [k for kind, k, *_ in self.fake.calls if kind == "put"]
+        # 第二轮不应重传业务对象，只补传 manifest。
+        new_puts = puts_after_second[len(puts_after_first):]
+        self.assertEqual(new_puts, ["_hive/manifest.json"])
+
+    def test_local_deletion_requires_prune_and_then_removes_remote_object(self):
+        self._save("p-prune")
+        self._stage("prune-probe.md", "待删除的远端对象")
+        first = self._run("p-prune")
+        self.assertTrue(first["ok"], first["ledger"])
+        rel = next(k for k in self.fake.store if "prune-probe" in k)
+        self.ctx.api.call("store.remove", {
+            "module": "agent/knowledge", "path": "prune-probe.md"})
+        plan = self.ctx.api.call("cloud.sync_plan", {"id": "p-prune"})
+        self.assertTrue(any(d["rel"] == rel for d in plan["plan"]["to_delete"]))
+        blocked = self._run("p-prune")
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(blocked["ledger"]["reason"], "prune_required")
+        self.assertIn(rel, self.fake.store)
+        pruned = self._run("p-prune", prune=True)
+        self.assertTrue(pruned["ok"], pruned["ledger"])
+        self.assertGreaterEqual(pruned["ledger"]["deleted"], 1)
+        self.assertNotIn(rel, self.fake.store)
+        manifest = self.fake.store["_hive/manifest.json"]
+        decoded = self.ctx.api.call("codec.json_decode",
+                                   {"text": manifest["data"].decode("utf-8")})["value"]
+        self.assertNotIn(rel, decoded["entries"])
 
     def test_ledger_counts_and_legacy_aliases(self):
         self._save("p-count")

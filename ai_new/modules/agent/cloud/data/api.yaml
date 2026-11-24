@@ -85,6 +85,7 @@ routes:
     in:
       id: {type: str, req: false}
       caller: {type: dict, req: false}
+      prune: {type: bool, req: false}
     out:
       ok: {type: bool}
       ledger: {type: dict}

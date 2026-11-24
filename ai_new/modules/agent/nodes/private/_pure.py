@@ -169,7 +169,8 @@ def sweep_expired(state, now, ttl=None):
     for project, lease in state.get("leases", {}).items():
         if lease.get("state") == LEASE_HELD:
             holder = state.get("nodes", {}).get(lease["node"])
-            if holder is None or holder["status"] == "lost":
+            expired_lease = float(lease.get("expires_at") or 0) < now
+            if expired_lease or holder is None or holder["status"] == "lost":
                 lease["state"] = LEASE_RELEASED
                 lease["released_at"] = now
                 released.append(project)
@@ -201,7 +202,8 @@ def acquire(state, project, node_id, now, ttl=None, tier="weak", checkpoint=None
     lease_ttl = float(ttl or rec.get("lease_ttl") or DEFAULT_TTL)
     leases = state.setdefault("leases", {})
     prev = leases.get(project)
-    if prev and prev.get("state") == LEASE_HELD:
+    if (prev and prev.get("state") == LEASE_HELD
+            and float(prev.get("expires_at") or 0) >= now):
         if prev["node"] == node_id:
             prev["expires_at"] = now + lease_ttl
             prev["renewed_at"] = now
@@ -262,7 +264,7 @@ def release(state, project, token, now):
     return {"ok": True, "lease": lease}
 
 
-def fence_check(state, project, token, epoch):
+def fence_check(state, project, token, epoch, now=None):
     """写前 fencing 校验：token 与当前 epoch 都必须吻合，否则拒写。
 
     脑裂残余窗口内，旧节点凭旧 token 回写时，epoch 已被新租约 +1，此处拒。
@@ -283,6 +285,9 @@ def fence_check(state, project, token, epoch):
                 "current_epoch": lease["epoch"]}
     if lease["state"] != LEASE_HELD:
         return {"ok": False, "code": "not_held"}
+    if now is not None and float(now) > float(lease["expires_at"]):
+        return {"ok": False, "code": "lease_expired",
+                "current_epoch": lease["epoch"]}
     return {"ok": True, "epoch": lease["epoch"]}
 
 
@@ -326,8 +331,14 @@ def assignments_view(state, now=None):
     传入 ``now`` 时每行追加 ``remaining``（租约剩余秒数，已释放/无租约为 None）。
     """
     now = _ts(now) if now is not None else None
-    rows = [dict(l) for l in sorted(
-        state.get("leases", {}).values(), key=lambda x: x["project"])]
+    rows = []
+    for lease in sorted(state.get("leases", {}).values(),
+                        key=lambda x: x["project"]):
+        row = dict(lease)
+        # 读视图不下发 fencing token：token 只给当前持有者用于 renew/release/fence，
+        # 运维页和项目只读视图拿到它等于把写权限扩散出去。
+        row.pop("token", None)
+        rows.append(row)
     if now is not None:
         for row in rows:
             if row.get("state") == LEASE_HELD:

@@ -8,10 +8,12 @@
 """
 from __future__ import annotations
 
+from copy import deepcopy
+
 from .private import _pure
 
 _PATH = "registry.json"
-_MOUNT = _pure.empty_state()
+_CAS_RETRIES = 8
 
 
 def _now(ctx):
@@ -20,21 +22,52 @@ def _now(ctx):
 
 
 def _read_state(ctx):
+    """读协调台账；每次路由都从 store 读，不持进程内全局副本。
+
+    全局副本会在多进程/多请求之间丢更新；协调状态的唯一真相是持久化记录。
+    """
     row = ctx.api.call("store.read", {"module": "agent/nodes", "path": _PATH},
                        caller=None)
     rec = row.get("value")
+    state = _pure.empty_state()
     if isinstance(rec, dict):
-        state = _pure.empty_state()
-        for key in ("nodes", "leases", "backups"):
-            if isinstance(rec.get(key), dict):
+        for key in state:
+            if key in rec:
                 state[key] = rec[key]
-        return state
-    return _pure.empty_state()
+    return state
 
 
-def _effect(state):
-    return {"kind": "write", "module": "agent/nodes",
-            "path": _PATH, "value": state}
+def _view_state(ctx):
+    """只读视图也要按当前时间推一遍失联回收，展示口径与写入口径一致。"""
+    state = _read_state(ctx)
+    _pure.sweep_expired(state, _now(ctx))
+    return state
+
+
+def _mutate(ctx, apply):
+    """在 CAS 循环里执行纯变更：读 → 失联回收 → 纯函数改 → 期望旧值提交。
+
+    并发方只可能有一个把旧值换成新值；冲突方重读重算。超过重试上限显式报
+    ``conflict_exhausted``，不把最后一次覆盖当成成功。每次变更前先回收过期
+    租约，避免租约过期后仍被旧节点续用。
+    """
+    for _attempt in range(_CAS_RETRIES):
+        before = _read_state(ctx)
+        working = deepcopy(before)
+        _pure.sweep_expired(working, _now(ctx))
+        result = apply(working)
+        if working == before:
+            return result
+        cas = ctx.api.call("store.cas", {
+            "module": "agent/nodes", "path": _PATH,
+            "expected": before, "create": True, "value": working}, caller=None)
+        if cas.get("ok"):
+            result = dict(result)
+            result["effects"] = []
+            return result
+        if not cas.get("conflict"):
+            return {"ok": False, "code": cas.get("code") or "cas_error"}
+    return {"ok": False, "code": "conflict_exhausted"}
 
 
 def _node_secret(ctx):
@@ -60,9 +93,7 @@ def _auth_node(ctx, payload):
 
 
 def setup(ctx):
-    """装配入口：读自持台账，注册协调路由；不产生外部效果。"""
-    global _MOUNT
-    _MOUNT = _read_state(ctx)
+    """装配入口：注册协调路由；不读全局副本，不产生外部效果。"""
     routes = [
         ("nodes.register", _route_register),
         ("nodes.heartbeat", _route_heartbeat),
@@ -145,18 +176,13 @@ def _tool_fn(route):
 # ---------------------------------------------------------------- 协调路由
 
 def _route_register(ctx, payload):
-    res = _pure.register(_MOUNT, payload or {}, _now(ctx))
-    if res.get("ok"):
-        return {"ok": True, "node": res["node"], "effects": [_effect(_MOUNT)]}
-    return res
+    return _mutate(ctx, lambda state: _pure.register(state, payload or {}, _now(ctx)))
 
 
 def _route_heartbeat(ctx, payload):
     payload = payload or {}
-    res = _pure.heartbeat(_MOUNT, payload.get("node"), payload.get("load"), _now(ctx))
-    if res.get("ok"):
-        return {"ok": True, "node": res["node"], "effects": [_effect(_MOUNT)]}
-    return res
+    return _mutate(ctx, lambda state: _pure.heartbeat(
+        state, payload.get("node"), payload.get("load"), _now(ctx)))
 
 
 def _route_push_register(ctx, payload):
@@ -169,11 +195,10 @@ def _route_push_register(ctx, payload):
     denied = _auth_node(ctx, payload)
     if denied:
         return denied
-    res = _pure.register(_MOUNT, payload, _now(ctx))
-    if res.get("ok"):
-        return {"ok": True, "node": res["node"], "channel": "push",
-                "effects": [_effect(_MOUNT)]}
-    return res
+    return _mutate(ctx, lambda state: {
+        **_pure.register(state, payload, _now(ctx)),
+        "channel": "push",
+    })
 
 
 def _route_push_heartbeat(ctx, payload):
@@ -182,81 +207,78 @@ def _route_push_heartbeat(ctx, payload):
     denied = _auth_node(ctx, payload)
     if denied:
         return denied
-    res = _pure.heartbeat(_MOUNT, payload.get("node"), payload.get("load"), _now(ctx))
-    if res.get("ok"):
-        return {"ok": True, "node": res["node"], "channel": "push",
-                "effects": [_effect(_MOUNT)]}
-    return res
+    return _mutate(ctx, lambda state: {
+        **_pure.heartbeat(state, payload.get("node"), payload.get("load"), _now(ctx)),
+        "channel": "push",
+    })
 
 
 def _route_acquire(ctx, payload):
     payload = payload or {}
-    res = _pure.acquire(
-        _MOUNT, payload.get("project"), payload.get("node"), _now(ctx),
-        ttl=payload.get("ttl"), tier=payload.get("tier"))
-    if res.get("ok"):
-        return {"ok": True, "lease": res["lease"], "reused": res["reused"],
-                "effects": [_effect(_MOUNT)]}
-    return res
+    return _mutate(ctx, lambda state: _pure.acquire(
+        state, payload.get("project"), payload.get("node"), _now(ctx),
+        ttl=payload.get("ttl"), tier=payload.get("tier")))
 
 
 def _route_renew(ctx, payload):
     payload = payload or {}
-    res = _pure.renew(_MOUNT, payload.get("project"), payload.get("token"), _now(ctx))
-    if res.get("ok"):
-        return {"ok": True, "lease": res["lease"], "effects": [_effect(_MOUNT)]}
-    return res
+    return _mutate(ctx, lambda state: _pure.renew(
+        state, payload.get("project"), payload.get("token"), _now(ctx)))
 
 
 def _route_release(ctx, payload):
     payload = payload or {}
-    res = _pure.release(_MOUNT, payload.get("project"), payload.get("token"), _now(ctx))
-    if res.get("ok"):
-        return {"ok": True, "lease": res["lease"], "effects": [_effect(_MOUNT)]}
-    return res
+    return _mutate(ctx, lambda state: _pure.release(
+        state, payload.get("project"), payload.get("token"), _now(ctx)))
 
 
 def _route_fence_check(ctx, payload):
     payload = payload or {}
     return _pure.fence_check(
-        _MOUNT, payload.get("project"), payload.get("token"), payload.get("epoch"))
+        _view_state(ctx), payload.get("project"), payload.get("token"),
+        payload.get("epoch"), now=_now(ctx))
 
 
 def _route_nodes_view(ctx, payload):
     ttl = (payload or {}).get("ttl")
-    return {"ok": True, "nodes": _pure.nodes_view(_MOUNT, _now(ctx), ttl=ttl)}
+    return {"ok": True, "nodes": _pure.nodes_view(_view_state(ctx), _now(ctx), ttl=ttl)}
 
 
 def _route_assignments(ctx, payload):
-    return {"ok": True, "assignments": _pure.assignments_view(_MOUNT)}
+    return {"ok": True, "assignments": _pure.assignments_view(_view_state(ctx))}
 
 
 def _route_overview(ctx, payload):
+    state = _view_state(ctx)
     now = _now(ctx)
-    return {"ok": True, "nodes": _pure.nodes_view(_MOUNT, now),
-            "assignments": _pure.assignments_view(_MOUNT)}
+    return {"ok": True, "nodes": _pure.nodes_view(state, now),
+            "assignments": _pure.assignments_view(state)}
 
 
 def _route_status(ctx, payload):
     """运维页只读组合视图：节点状态（在线/假死/租约剩余）+ 归属 + 备份状态。"""
     payload = payload or {}
+    state = _view_state(ctx)
     now = _now(ctx)
-    return {"ok": True, **_pure.status_view(_MOUNT, now,
-                                            ttl=payload.get("ttl"))}
+    return {"ok": True, **_pure.status_view(state, now, ttl=payload.get("ttl"))}
 
 
 def _route_project_node(ctx, payload):
-    return {"ok": True, "assignment": _pure.project_node(_MOUNT, (payload or {}).get("project"))}
+    return {"ok": True, "assignment": _pure.project_node(
+        _view_state(ctx), (payload or {}).get("project"))}
 
 
 def _route_backups(ctx, payload):
-    return {"ok": True, "backups": _pure.backups_view(_MOUNT)}
+    return {"ok": True, "backups": _pure.backups_view(_view_state(ctx))}
 
 
 def _route_backup_record(ctx, payload):
     payload = payload or {}
-    record = _pure.record_backup(_MOUNT, payload.get("project"), payload.get("snapshot") or {})
-    return {"ok": True, "backup": record, "effects": [_effect(_MOUNT)]}
+    return _mutate(ctx, lambda state: {
+        "ok": True,
+        "backup": _pure.record_backup(state, payload.get("project"),
+                                      payload.get("snapshot") or {}),
+    })
 
 
 def _route_snapshot_plan(ctx, payload):
@@ -272,19 +294,16 @@ def _route_verify_snapshot(ctx, payload):
 def _route_pick_node(ctx, payload):
     payload = payload or {}
     return {"ok": True, **_pure.pick_node(
-        _MOUNT, payload.get("project"), _now(ctx), payload.get("policy"))}
+        _view_state(ctx), payload.get("project"), _now(ctx), payload.get("policy"))}
 
 
 def _route_reassign(ctx, payload):
     payload = payload or {}
-    res = _pure.reassign(
-        _MOUNT, payload.get("project"), _now(ctx),
+    return _mutate(ctx, lambda state: _pure.reassign(
+        state, payload.get("project"), _now(ctx),
         policy=payload.get("policy"), candidate=payload.get("candidate"),
-        reason=payload.get("reason"), checkpoint=payload.get("checkpoint"))
-    if res.get("migration") is not None:
-        return {**res, "effects": [_effect(_MOUNT)]}
-    return res
+        reason=payload.get("reason"), checkpoint=payload.get("checkpoint")))
 
 
 def _route_migrations(ctx, payload):
-    return {"ok": True, "migrations": _pure.migrations_view(_MOUNT)}
+    return {"ok": True, "migrations": _pure.migrations_view(_view_state(ctx))}

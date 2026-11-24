@@ -441,6 +441,12 @@ levels:
     evidence:
     - ai_new/modules/agent_common/store/__init__.py
     - ai_new/modules/agent_common/store/data/api.yaml
+  store.cas:
+    level: center
+    why: 控制面业务能力：协调台账原子比较交换，由节点模块在控制面进程内调用，跨节点不可见
+    evidence:
+    - ai_new/modules/agent_common/store/__init__.py
+    - ai_new/modules/agent_common/store/data/api.yaml
   store.doc_lock_capability:
     level: center
     why: 控制面业务能力：由需求 do 树编排或控制台视图下发，跨节点可见

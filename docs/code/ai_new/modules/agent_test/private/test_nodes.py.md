@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_nodes.py
-hash: 44ffb3b0c60c948c7e8a1bcd0f571567265000c56bf92e882477670a2b7209a5
+hash: fd3c85a81de4b9cf423a515e2218f99cf629930b0b86e3d79cd580a5b0e9a3bc
 symbols:
 - _seed
 - test_register_records_node_alive
@@ -19,6 +19,9 @@ symbols:
 - test_nodes_view_carries_health_and_projects
 - test_project_node_lookup
 - test_assignments_include_released_for_audit
+- test_expired_lease_released_even_if_node_still_alive
+- test_reacquire_after_expiry_bumps_epoch
+- test_fence_check_rejects_expired_lease_when_now_passed
 - test_reassign_after_failover_bumps_epoch_and_records_migration
 - test_reassign_refuses_live_lease_without_preempt
 - test_reassign_no_candidate_records_failed
@@ -172,6 +175,24 @@ nodes 协调模块靶向单测：注册/心跳/租约/fencing/分配/快照台�
 - 关联需求/测试: 待人工补充
 
 ### `test_assignments_include_released_for_audit`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_expired_lease_released_even_if_node_still_alive`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_reacquire_after_expiry_bumps_epoch`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_fence_check_rejects_expired_lease_when_now_passed`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

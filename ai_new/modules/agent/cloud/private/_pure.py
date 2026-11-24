@@ -24,8 +24,10 @@ PROVIDER_KINDS = ("s3", "webdav", "http_dir", "wiki", "rsync", "fake", "stub")
 # 提供方落地状态：ready 表示适配层已按统一接口接通；pending 表示接缝在位、真实协议
 # 未接线（签名/通道/命令包装见报告「真实落地差异」）；fake/stub 为内存测试接缝。
 PROVIDER_META = {
-    "s3": {"transport": "https-rest", "status": "pending", "note": "s3_v4_signing_pending"},
-    "webdav": {"transport": "http-webdav", "status": "ready", "note": ""},
+    "s3": {"transport": "https-rest-s3v4", "status": "ready",
+           "note": "sigv4_multipart_resume"},
+    "webdav": {"transport": "http-webdav", "status": "ready",
+               "note": "basic_digest_chunked"},
     "http_dir": {"transport": "http-dir", "status": "ready", "note": ""},
     "wiki": {"transport": "http-api", "status": "pending", "note": "wiki_api_adapter_pending"},
     "rsync": {"transport": "ssh-command", "status": "pending", "note": "exec_wrapper_pending"},
@@ -189,7 +191,7 @@ def diff_plan(local_entries, pushed_entries, remote_entries):
     pushed = {e["rel"]: e for e in pushed_entries}
     remote = {k: v for k, v in (remote_entries or {}).items()}
 
-    to_push, unchanged, conflicts, missing_remote = [], [], [], []
+    to_push, unchanged, conflicts, missing_remote, to_delete = [], [], [], [], []
     for rel, entry in local.items():
         last = pushed.get(rel)
         rem = remote.get(rel)
@@ -210,10 +212,16 @@ def diff_plan(local_entries, pushed_entries, remote_entries):
             continue
         to_push.append(entry)
     for rel in pushed:
-        if rel not in local and rel not in remote:
-            missing_remote.append({"rel": rel})
+        if rel not in local:
+            if rel in remote:
+                # 本地已删除、远端仍存在：删除传播到远端（需显式 prune 开关执行）。
+                to_delete.append({"rel": rel,
+                                  "remote_digest": remote[rel].get("digest")})
+            else:
+                missing_remote.append({"rel": rel})
     return {"to_push": to_push, "unchanged": unchanged,
-            "conflicts": conflicts, "missing_remote": missing_remote}
+            "conflicts": conflicts, "missing_remote": missing_remote,
+            "to_delete": to_delete}
 
 
 def backoff_delay(attempt, base_s, cap_s):

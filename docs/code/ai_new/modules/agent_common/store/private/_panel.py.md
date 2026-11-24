@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_panel.py
-hash: 18f40613cc7a5c3cbe1878d9e84442d9481a51a22259a7053e2ddc3d02cfd9b6
+hash: 01e07b87d2d370222f0572e859623e6b76aa33e6d853522a5460bef87eb4e8bb
 symbols:
 - module_dir
 - modules_root
@@ -45,6 +45,7 @@ symbols:
 - _route_next_seq
 - _route_exists
 - _route_read
+- _route_cas
 - _route_write
 - _route_remove
 - _route_glob
@@ -331,6 +332,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `_route_read`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_cas`（function）
+- 职责: 比较并交换 JSON/YAML 记录：跨进程锁内比对当前值，只有仍等于 expected 才落盘。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -451,11 +451,61 @@ def _collect_entries(ctx, profile):
     return entries, archived["seam"]
 
 
+_MANIFEST_KEY = "_hive/manifest.json"
+_MANIFEST_VERSION = 1
+
+
+def _manifest_doc(profile, local_entries, now):
+    """远端权威清单：对象键 → 摘要/大小/类别/修改时间；只含本地受管对象。"""
+    entries = {}
+    for e in local_entries:
+        entries[e["rel"]] = {
+            "digest": e.get("digest") or "",
+            "size": int(e.get("size") or 0),
+            "category": e.get("category") or "",
+            "mtime": float(e.get("mtime") or 0),
+        }
+    return {"version": _MANIFEST_VERSION, "profile": profile.get("id") or "",
+            "updated": now, "entries": entries}
+
+
+def _remote_manifest(ctx, profile, provider, creds):
+    """读远端权威清单；缺失/损坏/不可达都显式返回，调用方回退本地缓存并标注来源。"""
+    try:
+        got = provider.get(ctx, {**profile, "credentials": creds}, _MANIFEST_KEY)
+    except _providers.ProviderError as exc:
+        return {"ok": False, "code": exc.code, "entries": {}}
+    if not got.get("ok"):
+        return {"ok": False, "code": got.get("code") or "not_found", "entries": {}}
+    data = got.get("data") or b""
+    dec = ctx.api.call("codec.json_decode", {"text": data.decode("utf-8", "replace")},
+                       caller=None)
+    if not dec.get("ok") or not isinstance(dec.get("value"), dict):
+        return {"ok": False, "code": "manifest_corrupt", "entries": {}}
+    doc = dec["value"]
+    if int(doc.get("version") or 0) != _MANIFEST_VERSION:
+        return {"ok": False, "code": "manifest_version", "entries": {}}
+    raw = doc.get("entries") or {}
+    if not isinstance(raw, dict):
+        return {"ok": False, "code": "manifest_corrupt", "entries": {}}
+    entries = {}
+    for rel, row in raw.items():
+        if not isinstance(row, dict) or not _pure.sanitize_key(rel):
+            continue
+        entries[rel] = {"digest": row.get("digest") or "",
+                        "size": int(row.get("size") or 0)}
+    return {"ok": True, "entries": entries, "digest": got.get("digest") or "",
+            "doc": doc}
+
+
 def _remote_entries(ctx, profile, provider, creds):
     rows = provider.list_keys(ctx, {**profile, "credentials": creds}, "")
     out = {}
     for row in rows or []:
-        out[row.get("key")] = {"digest": row.get("digest"), "size": row.get("size")}
+        key = row.get("key")
+        if key == _MANIFEST_KEY or str(key or "").startswith("_hive/"):
+            continue
+        out[key] = {"digest": row.get("digest"), "size": row.get("size")}
     return out
 
 
@@ -472,8 +522,27 @@ def _route_sync_plan(ctx, payload):
     local, seam = _collect_entries(ctx, profile)
     state = _load_state(ctx)
     pushed = ((state.get("manifests") or {}).get(profile["id"]) or {}).get("entries") or []
-    plan = _pure.diff_plan(local, pushed, {})
+    # 只读计划也要先看远端权威清单：否则第二台机器/第二次进程看到的仍是本机缓存，
+    # 远端被别人改过也发现不了，和业界对象存储的远端 manifest 口径不一致。
+    manifest_source, remote_error, baseline = "local", "", pushed
+    try:
+        provider, creds = _provider_for(ctx, profile)
+        remote = _remote_entries(ctx, profile, provider, creds)
+        mf = _remote_manifest(ctx, profile, provider, creds)
+        if mf.get("ok"):
+            baseline = [{"rel": k, **v} for k, v in mf["entries"].items()]
+            manifest_source = "remote"
+        elif mf.get("code") not in ("not_found", None):
+            remote_error = mf.get("code") or "manifest_error"
+    except (_seal.SealError, _providers.ProviderError) as exc:
+        remote = {}
+        remote_error = getattr(exc, "code", "provider_error")
+    plan = _pure.diff_plan(local, baseline, remote)
     plan["archive_seam"] = seam
+    plan["manifest_source"] = manifest_source
+    plan["prune_required"] = bool(plan["to_delete"])
+    if remote_error:
+        plan["remote_error"] = remote_error
     return {"profile": profile["id"], "plan": plan, "local_count": len(local)}
 
 
@@ -510,7 +579,11 @@ def _route_sync_run(ctx, payload):
         effects = _audit(ctx, caller, "sync_run", pid, "deny", exc.code)
         return {**_err(exc.code, 500, tpl.get(exc.code) or exc.code), "effects": effects}
     remote = _remote_entries(ctx, profile, provider, creds)
-    plan = _pure.diff_plan(local, pushed, remote)
+    manifest_meta = _remote_manifest(ctx, profile, provider, creds)
+    manifest_source = "remote" if manifest_meta.get("ok") else "local"
+    baseline = ([{"rel": k, **v} for k, v in manifest_meta["entries"].items()]
+                if manifest_meta.get("ok") else pushed)
+    plan = _pure.diff_plan(local, baseline, remote)
 
     # 断点续传：恢复上次未完成的待传清单；已传条目不重传。
     resume = _load_resume(ctx, pid)
@@ -570,9 +643,60 @@ def _route_sync_run(ctx, payload):
         if not done:
             failed.append({"rel": rel, "attempts": attempts, "reason": last_err})
 
+    # 删除传播：本地删掉、远端仍存在的对象，只在本轮显式开启 prune 时删除；
+    # 默认不删远端共享对象，计划里先暴露 to_delete，避免误删别处数据。
+    prune = bool(payload.get("prune") or (policy or {}).get("prune"))
+    deleted, delete_failed, deletions = [], [], []
+    if prune:
+        for entry in plan.get("to_delete") or []:
+            rel = entry["rel"]
+            attempts, last_err = 0, ""
+            ok_delete = False
+            while attempts < max_attempts:
+                try:
+                    res = provider.delete(ctx, {**profile, "credentials": creds}, rel)
+                except _providers.ProviderError as exc:
+                    res = {"ok": False, "code": exc.code}
+                if res.get("ok"):
+                    deleted.append({"rel": rel})
+                    deletions.append({"rel": rel, "remote_digest": entry.get("remote_digest")})
+                    ok_delete = True
+                    break
+                attempts += 1
+                last_err = res.get("code") or "delete_failed"
+                if attempts < max_attempts:
+                    delay = _pure.backoff_jittered(
+                        attempts - 1, base_s, cap_s, ratio=0.25,
+                        fraction=_jitter_fraction(ctx))
+                    if delay > 0:
+                        ctx.api.call("clock.sleep", {"seconds": delay}, caller=None)
+            if not ok_delete:
+                delete_failed.append({"rel": rel, "attempts": attempts,
+                                      "reason": last_err})
+                failed.append({"rel": rel, "attempts": attempts,
+                               "reason": "delete:" + last_err})
+
     now = ctx.api.call("clock.now", {}, caller=None).get("ts")
     conflicts = plan["conflicts"]
-    ok_run = not failed and not conflicts
+    prune_blocked = bool(plan.get("to_delete")) and not prune
+    manifest_updated, manifest_error = False, ""
+    if not failed and not conflicts and not prune_blocked:
+        # 远端权威清单是同步提交点：对象都成功后再写 manifest；写失败不更新本机缓存，
+        # 下一轮会重试 manifest，而不会把未提交的清单当成已同步。
+        doc = _manifest_doc(profile, list(new_entries.values()), now)
+        enc = ctx.api.call("codec.json_encode", {"value": doc}, caller=None)
+        body = (enc.get("text") or "").encode("utf-8")
+        try:
+            mf_put = provider.put(ctx, {**profile, "credentials": creds}, _MANIFEST_KEY, body)
+        except _guard.GuardError as exc:
+            mf_put = {"ok": False, "code": exc.code}
+        except _providers.ProviderError as exc:
+            mf_put = {"ok": False, "code": exc.code}
+        manifest_updated = bool(mf_put.get("ok"))
+        if not manifest_updated:
+            manifest_error = mf_put.get("code") or "manifest_put_failed"
+    ok_run = (not failed and not conflicts and not prune_blocked
+              and not manifest_error)
     if ok_run:
         effects.append(_resume_remove_effect(pid))
         resume_out = {"pending": [], "done": [], "entries": {}, "updated": 0}
@@ -591,12 +715,28 @@ def _route_sync_run(ctx, payload):
         "unchanged": len(skipped),
         "failures": len(failed),
         "archive_seam": seam,
-        "reason": "" if ok_run else ("conflict" if conflicts else "retry_exhausted"),
-        "failed": failed,
+        "manifest_source": manifest_source,
+        "manifest_updated": manifest_updated,
+        "manifest_error": manifest_error,
+        "reason": ("" if ok_run else
+                   ("manifest_failed" if manifest_error else
+                    ("prune_required" if prune_blocked else
+                     ("conflict" if conflicts else "retry_exhausted")))),        "failed": failed,
         "conflict_rows": conflicts,
+        "deleted": len(deleted),
+        "deleted_rows": deletions,
+        "delete_failed": delete_failed,
+        "prune": prune,
+        "prune_required": bool(plan.get("to_delete")),
+        "prune_blocked": prune_blocked,
     }
-    state.setdefault("manifests", {})[pid] = {"entries": list(new_entries.values()),
-                                              "updated": now}
+    if manifest_updated:
+        state.setdefault("manifests", {})[pid] = {
+            "entries": list(new_entries.values()), "updated": now}
+    else:
+        state.setdefault("manifests", {})[pid] = {
+            "entries": list(new_entries.values()), "updated": now,
+            "pending_manifest": True}
     state.setdefault("ledger", {})[pid] = ledger
     state["resume"][pid] = resume_out
 

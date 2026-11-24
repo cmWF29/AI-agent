@@ -287,6 +287,36 @@ routes:
         type: any
       token:
         type: any
+  store.cas:
+    in:
+      module:
+        type: any
+        req: true
+      path:
+        type: any
+        req: true
+      expected:
+        type: any
+        req: false
+      create:
+        type: bool
+        req: false
+      value:
+        type: any
+        req: true
+    out:
+      ok:
+        type: bool
+      written:
+        type: bool
+      conflict:
+        type: bool
+      current:
+        type: any
+      code:
+        type: any
+      path:
+        type: any
   store.write:
     in:
       module:

@@ -13,14 +13,16 @@
 | weak · 独立目录 | supported=true，verified=true（路径守卫纯函数单测） | supported=true，verified=true（纯判定用例已在 windows-latest CI 真机跑过） |
 | weak · 路径拦截（穿越/绝对/盘符/UNC/保留名） | supported=true，verified=true（POSIX 段归一 + 纯判定单测） | supported=true，verified=true（Win32 语义纯判定单测已在 windows-latest CI 真机跑过） |
 | weak · ACL / 权限位 | supported=true，verified=false（目录 0700 口径已定义；独立 uid 运行未在装配落地） | supported=false，verified=false（目录 ACL 未实现） |
-| weak · cwd 约束 | supported=true，verified=false（计划层给出 cwd；进程 cwd 约束未在执行层落地） | 同左，未实现 |
+| weak · cwd 约束 | supported=true，verified=true（计划层给 cwd；执行层 `--chdir` 与路径守卫双检） | supported=true，verified=true（路径档 cwd 约束，无 mount namespace） |
 | weak · 跨进程锁 | supported=true，verified=true（POSIX flock 跨进程互斥靶向单测） | supported=true（msvcrt.locking 分支），verified=true（windows-latest 真机跨进程争用/超时/释放靶向用例通过） |
 | 传输 · loopback TCP 回退通道 | supported=true，verified=true（POSIX unix socket 优先，loopback 兜底单测） | supported=true，verified=true（windows-latest 真机 TCP 往返 + 侧车端口文件清理用例通过） |
 | 传输 · shm 信箱块 | supported=true，verified=true（POSIX shm 往返一致性单测） | supported=true，verified=true（windows-latest 真机 `multiprocessing.shared_memory` 块读写一致用例通过；仅验块一致性，未验信箱协议全链路） |
-| strong · namespace / 容器 / 受限令牌 | supported=入口探测（unshare/bwrap/chroot 在 PATH 探测），verified=false | supported=false，verified=false |
-| 分布式 · 假死再分配 | verified=true（单机多进程桩演练，见 §4） | 同左（演练在 Linux；跨主机未验） |
+| strong · namespace / 容器 / 受限令牌 | supported=true，verified=true（bwrap mount namespace 真机：本地 0.6.1 + VPS 0.4.0，见 §6） | supported=false，verified=false（无 Job Object / 受限令牌强档） |
+| 分布式 · 假死再分配 | verified=true（单机多进程桩演练 + 租约过期自动回收，见 §4） | 同左（演练在 Linux；跨主机未验） |
 | 分布式 · 迁移中再失败 / 不双跑 | verified=true（同上） | 同左 |
-| 分布式 · 恢复不抢回 / fencing | verified=true（同上，拒绝码 token_mismatch / stale_epoch） | 同左 |
+| 分布式 · 恢复不抢回 / fencing | verified=true（同上，拒绝码 token_mismatch / stale_epoch / lease_expired） | 同左 |
+| 分布式 · 协调台账原子性 | verified=true（`store.cas` 跨进程 CAS；4 进程 × 20 次计数无丢更新） | 同左（msvcrt 锁分支，CI 真机仅验锁原语） |
+| 云端 · 远端权威清单 / 断点 / 删除传播 | verified=true（远端 manifest 基线、提交点、`prune` 删除传播用例） | 同左（用例在 Linux 内存桩） |
 
 ## 2. Windows 路径语义覆盖（纯判定层）
 
@@ -54,9 +56,9 @@ ACL、cwd、锁；每维度分 weak/strong × linux/windows 给出口径。
 | 维度 | weak 口径 | strong 口径 | 本轮验证 |
 | --- | --- | --- | --- |
 | directory | 独立目录 + 属主/权限位（Win: ACL 限主体） | 独立 uid + 只读根 + 能力裁剪（Win: 受限令牌 + ACL 复核） | 目录隔离纯判定 verified；ACL/uid 落地未验 |
-| path_interception | realpath/规范形式包含判定，拒绝绝对/穿越/注入 | namespace/容器内文件系统视图受限，跨主体不可见 | weak 路径拦截 verified；strong 未落地 |
+| path_interception | realpath/规范形式包含判定，拒绝绝对/穿越/注入 | namespace 内按工单白名单 bind，其他工单目录不在视图内 | weak 路径拦截 verified；strong Linux bwrap verified |
 | acl | 权限位 0700 / 目录 ACL | 独立属主 + 只读根 / 受限令牌 + ACL 复核 | 未真机验证 |
-| cwd | 进程 cwd 约束在项目根之内 | namespace/容器根目录即项目根 | 计划层 verified；执行层未落地 |
+| cwd | 进程 cwd 约束在项目根之内 | namespace 内 cwd 映射到 `/workspace/...`，`--chdir` 到映射后的 cwd | Linux 执行层 verified（bwrap）；Windows 仅路径档 |
 | lock | POSIX flock / msvcrt.locking 项目级跨进程锁 | 隔离边界内进程互斥 | Linux flock verified；Windows msvcrt 锁真机验（windows-latest CI 跨进程争用/超时/释放） |
 
 ## 4. 分布式故障演练（单机多进程真实子进程）
@@ -84,6 +86,17 @@ timeout 300 python3 scripts/node_drill.py
 演练局限：单机桩服务，跨主机网络/真实部署未验；worker 心跳循环尚未接
 `nodes.renew` 续租，报告快照里部分租约剩余时间为负属演练编排缺口，不影响
 fencing/归属结论。
+
+### 4.1 真实 mount namespace 验收（VPS）
+
+临时项目 root 下放 `T-OTHER` 与本工单 `T-1`，通过 API 起工单 shell：
+
+- `pwd` → `/workspace/tickets/T-1`；
+- `ls /workspace/tickets` 只列 `T-1`，看不到 `T-OTHER`；
+- `test ! -e /home` 输出 `HOST_HIDDEN`，宿主目录不在 namespace 视图内。
+
+结论：不是只改 cwd，工单进程的文件系统视图确实由独立 mount namespace 限定。
+验收后临时项目与 root 已删除。
 
 ## 5. 运维页数据面字段（只读，nodes.status）
 
@@ -141,16 +154,21 @@ fencing/归属结论。
    的拦截行为、长路径前缀真实 FS 行为、目录 ACL、独立 uid、Job Object / 受限
    令牌、junction/symlink 逃逸复核。怎么验：在 Windows 执行层补真实落盘与
    realpath/junction 复核用例。
-2. **strong 档未落地**：namespace/bwrap/容器/受限令牌仅做二进制入口探测，
-   未在执行层起隔离实例；不可信代码执行面仍按 weak 口径对待。
-3. **weak 档 ACL/独立 uid/cwd 约束未在装配落地**：当前目录隔离 + 路径拦截 +
-   跨进程锁有靶向验证；权限位/主体隔离/进程 cwd 约束待执行层补齐。
+2. **Linux strong 档已落地，但仍是 bwrap 级沙箱**：每次 shell 启动独立
+   mount namespace；ticket 只 bind 本工单目录与 `documents/logs/artifacts`，
+   不整体挂载项目根。没有 seccomp、cgroup 资源限额；`--share-net` 保留网络；
+   当前环境未挂 `/proc`，`ps` 等依赖 proc 的命令可能不可用。不是宿主全局
+   给每个项目 mount 一个根的做法（多租户共享服务易跨进程泄漏、需高权限）。
+3. **Windows strong 档未落地**：仍只有路径档，没有 Job Object / 受限令牌 /
+   ACL 复核；`capability.strong.supported=false`。
 4. **junction / 符号链接逃逸（Windows）**：纯判定层不解析链接，需在 Windows
    执行层补 realpath/junction 复核；Linux 侧复核在 `store/_isolate`。
-5. **跨主机分布式**：本轮演练为单机桩服务；真实多 VPS 注册/心跳/租约/网络
-   分区未验。
-6. **遗留环境风险**：本地工作树中 `agent/cloud`、控制台前端等模块有其它任务
-   的未提交改动，架构门禁/docsync 报的相关失败不在本轮边界内，未由本侧引入。
+5. **跨主机分布式**：协调台账已改为 `store.cas` 原子提交，但落盘仍是本机
+   文件；多 VPS 共享同一台账需要共享文件系统或换成远端协调服务，当前未验。
+   `scripts/node_worker.py` 仍是命令式桩执行体，不是实际跑项目任务的工作进程。
+6. **云端删除传播需显式 `prune`**：本地删除后计划会列出 `to_delete`，但默认
+   不删远端共享对象；未开启 `prune` 时本轮不更新 manifest，返回
+   `prune_required`，避免把远端对象变成孤儿。
 
 ## 7. 本轮验收记录
 
@@ -158,18 +176,13 @@ fencing/归属结论。
 
 | 用例模块 | 用例数 | 失败 | 耗时 | 结果 |
 | --- | --- | --- | --- | --- |
-| `test_isolation_tiers` | 10 | 0 | 0.309s | OK |
-| `test_isolation` | 9 | 0 | 0.038s | OK |
-| `test_nodes` | 30 | 0 | 0.001s | OK |
-| `test_node_profile` | 12 | 0 | 0.236s | OK |
-| `test_isolation_windows` | 35 | 0 | — | Linux 54 项套组内 4 项 POSIX 跳过；windows-latest CI 全绿 |
-| `test_plat` | 19 | 0 | — | Linux 2 项跳过；windows-latest CI 全绿 |
-| `test_core` | 126 | 0 | 24.449s（Linux 3.11） | OK；windows-latest CI 全绿 |
+| `test_nodes` | 49 | 0 | 0.004s | OK（新增租约过期/迁移台账持久化） |
+| `test_distributed` | 6 | 0 | 41.7s | OK（CAS 跨进程、租约竞争、迁移台账重载） |
+| `test_cloud_sync` | 9 | 0 | 13.4s | OK（远端权威清单、提交失败、prune 删除传播） |
+| `test_architecture` | 29 | 0 | 162.8s | OK |
+| CI 全量套组 | 594 | 0 | 731.4s | OK（skipped=7；Linux，Python 3.12） |
 
-CI：run `45127756564`（master `1906260`），`gates` 与 `isolation-windows`
-两 job 均 success；Windows 侧五步（probe / test_plat / test_isolation_windows /
-装配烟测 / test_core）全部 success。
-
-演练：`timeout 300 python3 scripts/node_drill.py` → 退出码 0，报告见 §4。
+CI：全量命令见 `.github/workflows/ci.yml`，已包含 `test_distributed` 与
+`test_cloud*`；`gates` / `isolation-windows` 两 job 的门禁与用例为准。
 代码兼容 Python 3.8.10：未使用 3.9+ 语法（无 `dict |`、`list[]` 泛型、海象
 运算符、`is_relative_to` 等）。

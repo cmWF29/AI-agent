@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_sync.py
-hash: e957f016d5d946d4cb2fc4314ce864210c12cf4a345aa23016ce9625357d391a
+hash: 5718fcc64bc69436813de90d1414133bda4c1a354f4963efa509ed4b6a84f546
 symbols:
 - _global_caller
 - setUpClass
@@ -14,6 +14,12 @@ symbols:
 - test_remote_identical_skipped_without_repush
 - test_backoff_delays_capped_at_base
 - test_failed_entry_resumes_only_pending
+- _state
+- _write_state
+- test_remote_manifest_is_authoritative_across_local_cache_loss
+- test_remote_manifest_detects_external_modification
+- test_manifest_commit_failure_is_retryable_and_not_reported_success
+- test_local_deletion_requires_prune_and_then_removes_remote_object
 - test_ledger_counts_and_legacy_aliases
 generated: gen_docs.py v1
 updated_at: '2026-11-23T10:46:46'
@@ -97,6 +103,42 @@ updated_at: '2026-11-23T10:46:46'
 - 关联需求/测试: 待人工补充
 
 ### `test_failed_entry_resumes_only_pending`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_state`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_write_state`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_remote_manifest_is_authoritative_across_local_cache_loss`（method）
+- 职责: 模拟另一台机器/本地缓存丢失：远端 manifest 仍能证明对象已同步。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_remote_manifest_detects_external_modification`（method）
+- 职责: 远端对象被外部改过、manifest 还是旧摘要：计划必须报冲突，不静默覆盖。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_manifest_commit_failure_is_retryable_and_not_reported_success`（method）
+- 职责: 对象传完但权威 manifest 写失败：本轮不得报成功，下一轮只重试 manifest。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_local_deletion_requires_prune_and_then_removes_remote_object`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

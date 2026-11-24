@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/nodes/private/_pure.py
-hash: 95cf70c4a6771687ac160d48ac7c09a871b3850fb72f63c5e3046277f849945c
+hash: 9fd39642d9f1db5ec61fe9a997f0f97e1d19487b79d5339fb8500b03b9148706
 symbols:
 - _coerce_bool
 - _coerce_role

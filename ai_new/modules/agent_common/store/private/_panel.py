@@ -557,6 +557,40 @@ def _route_read(ctx, payload):
     return {"value": out["value"], "exists": True}
 
 
+def _route_cas(ctx, payload):
+    """比较并交换 JSON/YAML 记录：跨进程锁内比对当前值，只有仍等于 expected 才落盘。
+
+    ``expected`` 缺省表示无条件写；传 ``None`` 表示"期望文件不存在"。冲突返回
+    ``conflict=True`` 与当前值，调用方重读后重算，不静默覆盖。这是协调状态
+    （节点注册表/租约）的原子提交原语，不承载业务字段。
+    """
+    _guard(ctx, payload.get("module"), payload.get("path"))
+    path = _p(payload.get("module"), payload.get("path"))
+    _files.ensure_dir(path.parent)
+    expected_provided = "expected" in payload
+    expected = payload.get("expected")
+    with _xlock.lock_file(str(path) + ".cas.lock"):
+        old_text = _files.read_text(path) if path.exists() else None
+        if old_text is None:
+            old = None
+        else:
+            dec = ctx.codec.yaml_decode(old_text)
+            if not dec.get("ok"):
+                return {"ok": False, "code": "decode_error",
+                        "conflict": False, "current": None}
+            old = dec.get("value")
+        if (expected_provided and old != expected
+                and not (old is None and payload.get("create"))):
+            return {"ok": False, "code": "conflict", "conflict": True,
+                    "current": old}
+        enc = ctx.codec.yaml_encode(payload.get("value"))
+        if not enc.get("ok"):
+            raise ValueError("YAML 编码失败: %s" % enc.get("error"))
+        _files.write_text_atomic(path, enc["text"])
+    return {"ok": True, "written": True, "conflict": False,
+            "path": str(path), "current": payload.get("value")}
+
+
 def _route_write(ctx, payload):
     _guard(ctx, payload.get("module"), payload.get("path"))
     path = _p(payload.get("module"), payload.get("path"))
@@ -721,6 +755,7 @@ def setup(ctx):
         ("store.exists", _route_exists),
         ("store.read", _route_read),
         ("store.write", _route_write),
+        ("store.cas", _route_cas),
         ("store.remove", _route_remove),
         ("store.glob", _route_glob),
         ("store.walk", _route_walk),
