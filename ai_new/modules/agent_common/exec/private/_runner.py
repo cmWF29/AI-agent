@@ -74,15 +74,13 @@ def _bwrap_command(payload, cwd):
     for path in ("/usr", "/bin", "/sbin", "/lib", "/lib64", "/etc"):
         if Path(path).exists():
             args += ["--ro-bind", path, path]
-    args += ["--clearenv",
-             "--setenv", "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-             "--setenv", "HOME", mount,
-             "--setenv", "TMPDIR", "/tmp"]
+    args += ["--", "/usr/bin/env", "-i",
+             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+             "HOME=" + mount, "TMPDIR=/tmp"]
     for key in ("LANG", "LC_ALL", "TZ"):
         value = os.environ.get(key)
         if value:
-            args += ["--setenv", key, value]
-    args += ["--"]
+            args += ["%s=%s" % (key, value)]
     return args, None
 
 
