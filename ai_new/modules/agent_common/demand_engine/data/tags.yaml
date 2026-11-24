@@ -27,6 +27,8 @@ tags:
 - {id: nodes, name: 节点, group: 业务域, color: indigo}
 - {id: sandbox, name: 隔离, group: 性质, color: gray}
 - {id: archive, name: 归档存储, group: 业务域, color: indigo}
+- {id: docs, name: 文档, group: 业务域, color: indigo}
+- {id: code, name: 源码, group: 性质, color: gray}
 - {id: cloud, name: 云端资料库, group: 业务域, color: indigo}
 - {id: secretary, name: 项目秘书, group: 业务域, color: indigo}
 - {id: timer, name: 定时器, group: 业务域, color: indigo}

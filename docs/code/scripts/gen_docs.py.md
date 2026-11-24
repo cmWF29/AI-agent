@@ -1,6 +1,6 @@
 ---
 source: scripts/gen_docs.py
-hash: d52494d08bc471906ad386bb5750e5f0d82251181c2201186605d50d28518222
+hash: 4bf8dd2d50ac020e9930dc7c586c93daaa1c151a0ed58a8271b855ff4bd4c08e
 symbols:
 - _sha256
 - _py_symbols
@@ -14,6 +14,9 @@ symbols:
 - _now_iso
 - _doc_path
 - parse_doc
+- _index_group
+- _index_entry
+- _write_index
 - generate
 - main
 generated: gen_docs.py v1
@@ -99,6 +102,24 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `parse_doc`（function）
 - 职责: 解析文档机读头；无头或坏头返回 None。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_index_group`（function）
+- 职责: 源码按模块归组：首屏架构页先看模块，再展开到文件。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_index_entry`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_write_index`（function）
+- 职责: 写机读索引；架构页只读它，不在请求时扫 500 份文档。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

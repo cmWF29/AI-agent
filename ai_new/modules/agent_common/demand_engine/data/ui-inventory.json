@@ -1,21 +1,21 @@
 {
  "sig": {
-  "sha": "0f84bbbe8699eb2a",
-  "files": 34
+  "sha": "6b2ff37856b22aff",
+  "files": 36
  },
  "stats": {
-  "instances": 726,
-  "pages": 16,
+  "instances": 748,
+  "pages": 17,
   "kinds": 21
  },
  "pages": [
   {
    "view": "arch",
-   "count": 301
+   "count": 305
   },
   {
    "view": "click-machine",
-   "count": 207
+   "count": 210
   },
   {
    "view": "tools",
@@ -40,6 +40,10 @@
   {
    "view": "cloud",
    "count": 16
+  },
+  {
+   "view": "architecture",
+   "count": 15
   },
   {
    "view": "position",
@@ -134,7 +138,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -1213,6 +1217,33 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
+   "label": "code-docs源码文档映射：每个",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
    "label": "console-chrome登录页外",
    "states": [
     "idle",
@@ -1322,33 +1353,6 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "decompose-inspect拆",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "arch",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "decompose-install拆",
    "states": [
     "idle",
     "busy",
@@ -1901,7 +1905,7 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "29视图view",
+   "label": "32视图view",
    "states": [
     "idle",
     "done"
@@ -2002,6 +2006,46 @@
    "kind": "tree_group",
    "tag": "SUMMARY",
    "label": "可调runtime-params运行",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调view-spec当前视图规格：",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调views-index视图目录：",
    "states": [
     "idle",
     "done"
@@ -5581,6 +5625,46 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
+   "label": "1文档docs",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "可调code-docs源码文档映射：",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "arch",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
    "label": "1日志log",
    "states": [
     "idle",
@@ -5661,7 +5745,7 @@
    "ctl": "ctl.section_fold",
    "kind": "section_fold",
    "tag": "SUMMARY",
-   "label": "路由与契约（全部 · 333 条）在",
+   "label": "路由与契约（全部 · 336 条）在",
    "states": [
     "idle",
     "done"
@@ -6797,6 +6881,321 @@
    "effect": "导航（收起侧栏）"
   },
   {
+   "view": "architecture",
+   "ctl": "ctl.nav_group.工作",
+   "kind": "nav_group",
+   "tag": "SL-BUTTON",
+   "label": "工作4›",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.nav_group.资产",
+   "kind": "nav_group",
+   "tag": "SL-BUTTON",
+   "label": "资产6›",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.nav_group.系统",
+   "kind": "nav_group",
+   "tag": "SL-BUTTON",
+   "label": "系统6›",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.shell.tab_config",
+   "kind": "tab_config",
+   "tag": "SL-BUTTON",
+   "label": "底栏配置",
+   "states": [
+    "idle"
+   ],
+   "transitions": {
+    "idle": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.shell.logout",
+   "kind": "logout",
+   "tag": "SL-BUTTON",
+   "label": "登出",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.shell.scrim",
+   "kind": "drawer_scrim",
+   "tag": "DIV",
+   "label": "",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.shell.menu",
+   "kind": "drawer_open",
+   "tag": "SL-ICON-BUTTON",
+   "label": "",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.crumb_up",
+   "kind": "crumb_up",
+   "tag": "BUTTON",
+   "label": "工作台",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.section_fold",
+   "kind": "section_fold",
+   "tag": "SUMMARY",
+   "label": "源码 → 文档 的生成口径不是手写索",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "119agent",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "313agent_common",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "37agent_test",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.tree_group",
+   "kind": "tree_group",
+   "tag": "SUMMARY",
+   "label": "36scripts",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.nav.项目",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "项目",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
+   "view": "architecture",
+   "ctl": "ctl.nav.知识库",
+   "kind": "nav",
+   "tag": "SL-BUTTON",
+   "label": "知识库",
+   "states": [
+    "idle",
+    "busy"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "idle"
+    ]
+   },
+   "effect": "导航（收起侧栏）"
+  },
+  {
    "view": "artifacts",
    "ctl": "ctl.nav_group.工作",
    "kind": "nav_group",
@@ -6855,7 +7254,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -7330,7 +7729,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -7752,6 +8151,26 @@
    "kind": "stack_open",
    "tag": "SUMMARY",
    "label": "定时器\n        \n     ",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.stack_open",
+   "kind": "stack_open",
+   "tag": "SUMMARY",
+   "label": "架构\n        \n      ",
    "states": [
     "idle",
     "done"
@@ -8791,7 +9210,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "需求契约20",
+   "label": "需求契约13",
    "states": [
     "idle",
     "done"
@@ -8811,7 +9230,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "文档14",
+   "label": "架构12",
    "states": [
     "idle",
     "done"
@@ -8831,7 +9250,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "点击状态机20",
+   "label": "文档11",
    "states": [
     "idle",
     "done"
@@ -8851,7 +9270,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "云端资料库21",
+   "label": "点击状态机14",
    "states": [
     "idle",
     "done"
@@ -8871,7 +9290,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "知识库15",
+   "label": "云端资料库14",
    "states": [
     "idle",
     "done"
@@ -8891,7 +9310,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "日志14",
+   "label": "知识库12",
    "states": [
     "idle",
     "done"
@@ -8911,7 +9330,27 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "节点17",
+   "label": "日志11",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.stack_open",
+   "kind": "stack_open",
+   "tag": "SUMMARY",
+   "label": "节点11",
    "states": [
     "idle",
     "done"
@@ -8951,7 +9390,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "岗位详情18",
+   "label": "岗位详情11",
    "states": [
     "idle",
     "done"
@@ -8971,7 +9410,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "岗位20",
+   "label": "岗位13",
    "states": [
     "idle",
     "done"
@@ -8991,7 +9430,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "项目15",
+   "label": "项目12",
    "states": [
     "idle",
     "done"
@@ -9011,7 +9450,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "技能拆解18",
+   "label": "技能拆解11",
    "states": [
     "idle",
     "done"
@@ -9031,7 +9470,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "技能18",
+   "label": "技能11",
    "states": [
     "idle",
     "done"
@@ -9051,7 +9490,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "定时器16",
+   "label": "定时器10",
    "states": [
     "idle",
     "done"
@@ -9071,7 +9510,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "工具19",
+   "label": "工具12",
    "states": [
     "idle",
     "done"
@@ -9091,7 +9530,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "链路16",
+   "label": "链路10",
    "states": [
     "idle",
     "done"
@@ -9151,7 +9590,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch308",
+   "label": "arch305",
    "states": [
     "idle",
     "busy",
@@ -9178,7 +9617,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine213",
+   "label": "click-machine210",
    "states": [
     "idle",
     "busy",
@@ -9205,7 +9644,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "tools37",
+   "label": "tools30",
    "states": [
     "idle",
     "busy",
@@ -9232,7 +9671,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "positions31",
+   "label": "positions24",
    "states": [
     "idle",
     "busy",
@@ -9259,7 +9698,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "artifacts28",
+   "label": "artifacts23",
    "states": [
     "idle",
     "busy",
@@ -9286,7 +9725,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "projects27",
+   "label": "projects22",
    "states": [
     "idle",
     "busy",
@@ -9313,7 +9752,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "knowledge24",
+   "label": "knowledge19",
    "states": [
     "idle",
     "busy",
@@ -9340,7 +9779,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "cloud23",
+   "label": "cloud16",
    "states": [
     "idle",
     "busy",
@@ -9367,7 +9806,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "position20",
+   "label": "architecture15",
    "states": [
     "idle",
     "busy",
@@ -9394,7 +9833,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skill-decompose18",
+   "label": "position13",
    "states": [
     "idle",
     "busy",
@@ -9421,7 +9860,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skills18",
+   "label": "logs12",
    "states": [
     "idle",
     "busy",
@@ -9448,7 +9887,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "logs17",
+   "label": "nodes11",
    "states": [
     "idle",
     "busy",
@@ -9475,7 +9914,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "nodes17",
+   "label": "skill-decompose11",
    "states": [
     "idle",
     "busy",
@@ -9502,7 +9941,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "timers16",
+   "label": "skills11",
    "states": [
     "idle",
     "busy",
@@ -9529,7 +9968,34 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "traces16",
+   "label": "timers10",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "traces10",
    "states": [
     "idle",
     "busy",
@@ -11961,7 +12427,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -12310,7 +12776,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -12726,7 +13192,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -12981,7 +13447,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -13337,7 +13803,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -13916,7 +14382,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -14455,7 +14921,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -14697,7 +15163,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -14939,7 +15405,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -15154,7 +15620,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -15909,7 +16375,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",
@@ -16124,7 +16590,7 @@
    "ctl": "ctl.nav_group.系统",
    "kind": "nav_group",
    "tag": "SL-BUTTON",
-   "label": "系统5›",
+   "label": "系统6›",
    "states": [
     "idle",
     "busy",

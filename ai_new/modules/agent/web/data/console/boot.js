@@ -143,10 +143,34 @@ function runGo(el, kind) {
   return uiRun(() => execute(binding, {}), kind, el);
 }
 
+/* 图库按需加载：普通页面不为状态机图付首屏成本；有 .graph-wrap 时才串行拉依赖。 */
+let GRAPH_LOADING = null, GRAPH_FAILED = false;
+function ensureGraph() {
+  if (GRAPH_FAILED) return Promise.resolve();
+  if (window.HiveGraph && window.cytoscape && window.cytoscapeDagre) return Promise.resolve();
+  if (GRAPH_LOADING) return GRAPH_LOADING;
+  const urls = ["assets/dagre.min.js", "assets/cytoscape.min.js",
+                "assets/cytoscape-dagre.js", "graph.js"];
+  GRAPH_LOADING = new Promise((resolve, reject) => {
+    let i = 0;
+    const next = () => {
+      if (i >= urls.length) { resolve(); return; }
+      const s = document.createElement("script");
+      s.src = urls[i++]; s.defer = true;
+      s.onload = next;
+      s.onerror = () => reject(new Error("graph asset failed: " + s.src));
+      document.head.appendChild(s);
+    };
+    next();
+  }).catch(() => { GRAPH_FAILED = true; return null; });
+  return GRAPH_LOADING;
+}
+
 /* 折叠是用户的意图：展开/收起写进 sessionStorage，重渲染与整页刷新都按原状恢复 */
 document.addEventListener("toggle", (e) => {
   const d = e.target;
   if (d && d.dataset && d.dataset.fold && typeof foldSet === "function") foldSet(d.dataset.fold, d.open);
+  if (d && d.dataset && d.dataset.lazyKey && d.open && typeof fillLazyTree === "function") fillLazyTree(d);
 }, true);
 
 const CLICK_HANDLERS = {

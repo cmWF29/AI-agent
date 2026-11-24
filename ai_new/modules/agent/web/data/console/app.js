@@ -290,6 +290,7 @@ async function boot() {
     shell = shellRes.ok ? shellRes.data : {};
     adoptViews(viewsRes.data);
   }
+  if (page.spec && page.spec.key) adoptViews([{ view: page.spec }]);
   applyShell(shell);
   renderMenus((shell && shell.menus && shell.menus.length) ? shell.menus : menusFromViews());
   state = parseURL();
@@ -585,7 +586,7 @@ function scrollRestore(marks) {
 }
 
 async function render(opts) {
-  const spec = VIEWS[state.view] || VIEWS[defaultView()];
+  let spec = VIEWS[state.view] || VIEWS[defaultView()];
   const ctx = { route: state, data: {}, cache: {}, fields: {}, row: null };
   // 缺必填参数的页面（比如直接开 /?view=knowledge-doc）不发请求：
   // 请求必然失败、页面只剩空壳，看起来就是"卡住不动"
@@ -602,6 +603,11 @@ async function render(opts) {
     ctx.cache = pre.cache || {};
   } else {
     const page = await resolvePage(state.view, state, false);
+    // 首屏只带视图目录；当前页完整规格随这一页数据一起回，到这里才并入 VIEWS。
+    if (page.spec && page.spec.key) {
+      adoptViews([{ view: page.spec }]);
+      spec = VIEWS[state.view] || spec;
+    }
     ctx.data = page.data || {};
     ctx.cache = page.cache || {};
     if ((page.missing || []).length) {

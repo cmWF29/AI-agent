@@ -1,0 +1,21 @@
+id: view-spec
+title: 当前视图规格：按 key 只回一页
+description: "当前视图规格：按 key 只回一页的完整 sections，避免首屏把全部页面的区块一起搬走"
+tags: [view, web, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.view_spec
+  with:
+    key:
+      get: input.key
+  as: out
+expect:
+  given:
+    input:
+      key: projects
+  calls:
+  - demand_engine.view_spec
+  payload: {}
+  promise: 按 key 只回一页；视图不存在由后端指名报错

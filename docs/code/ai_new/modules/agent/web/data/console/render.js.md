@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: cce043bb003a3521dfd86b3446b8c438902f99bfa3ed1ceb1b731cc4deb1f3e9
+hash: a02db0f3fe3abe9e4808a362c5e8f1ca1e0ceb4464d9710808ab55a2a8556263
 symbols:
 - foldLoad
 - foldSet
@@ -61,6 +61,7 @@ symbols:
 - toolTraceHtml
 - treeDocHtml
 - treeNodeHtml
+- fillLazyTree
 - secHead
 - statsHtml
 - wfMs
@@ -506,6 +507,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `treeNodeHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `fillLazyTree`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

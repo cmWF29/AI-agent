@@ -1,0 +1,52 @@
+id: view-architecture
+title: 架构：源码与 docs/code 镜像一一对应
+description: "架构页：每个源码文件对应一份 docs/code 镜像文档；按模块展开看源文件、镜像路径、符号数与哈希，索引由 gen_docs.py 生成"
+tags: [view, web, read, docs]
+enabled: true
+callable: false
+'on': []
+do: []
+view:
+  menu: {order: 10, label: 架构, short: 架构, group: {name: 系统, order: 3}, mobile: true}
+  key: architecture
+  nav: architecture
+  screen_label: 架构
+  crumb: [架构]
+  heading: 架构
+  subheading: 每个源码文件一份 docs/code 镜像文档；源文件、镜像路径、符号数与哈希同屏
+  data:
+  - {as: docs, demand: code-docs}
+  sections:
+  - kind: map
+    fold: {title: "源码 → 文档 的生成口径", note: "gen_docs.py 全仓扫描；gate_docsync.py 校验哈希与符号"}
+    heading: 源码 → 文档 的生成口径
+    note: 不是手写索引：生成器全仓扫描源码，按镜像路径落 docs/code；门禁双向校验哈希与符号
+    cols:
+    - title: 源码
+      nodes:
+      - {label: 已纳入文件, value: "data.docs.total", note: 个}
+    - title: 文档
+      nodes:
+      - {label: 镜像文档, value: "data.docs.total", note: 份}
+      - {label: 模块分组, value: "data.docs.groups|count", note: 组}
+    - title: 校验
+      nodes:
+      - {label: 哈希, value: 源文件字节 sha256, note: 同源头字段}
+      - {label: 符号, value: 函数/类/YAML 键, note: 新增改名即红}
+    foot: {label: 索引生成时间, from: data.docs.generated}
+
+  - kind: tree
+    as: docs
+    source: data.docs.groups
+    collapsed: true
+    lazy: true
+    wrap: true
+    hide_count: true
+    note: 点开模块看源文件；每行右侧是对应的 docs/code 镜像路径、符号数与哈希前 8 位
+    empty: {text: 暂无源码文档索引；先跑 scripts/gen_docs.py}
+expect:
+  given:
+    input: {}
+  calls: []
+  payload: {}
+  promise: 页面只声明区块；映射由生成器索引与需求提供，不在前端手写文件表

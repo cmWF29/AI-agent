@@ -1,0 +1,17 @@
+id: code-docs
+title: 源码文档映射：每个源码文件对应一份 docs/code 镜像
+description: "源码文档映射：读生成器落下的机读索引，按模块分组公示 源文件 → docs/code 路径、符号数与哈希；请求时不扫文档"
+tags: [docs, code, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.code_docs
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.code_docs
+  payload: {}
+  promise: 每个源码文件一份镜像文档；索引由 gen_docs.py 生成、门禁校验

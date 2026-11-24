@@ -320,6 +320,9 @@ sl-button.deck-more:hover::part(base){background:var(--line-2)}
 .tree-doc:hover{background:var(--line-2)}
 .tree-doc-name{font-size:13.5px;flex:none}
 .tree-doc-path{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-doc.wrap{display:block;line-height:1.55}
+.tree-doc.wrap .tree-doc-name,.tree-doc.wrap .tree-doc-path{display:block;white-space:normal;word-break:break-all}
+.tree-doc.wrap .tree-doc-path{margin-top:2px}
 
 /* ---- 表格 ---- */
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -1124,10 +1127,6 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
 <!-- Shoelace 组件包（离线 vendored，见 assets/shoelace/SHOELACE-LICENSE.md） -->
 <script type="module" src="assets/shoelace/shoelace.js"></script>
 <!-- 六个脚本由服务端按 web.bundle 清单合成一个响应：首屏只剩一次脚本往返 -->
-<script defer src="assets/dagre.min.js"></script>
-<script defer src="assets/cytoscape.min.js"></script>
-<script defer src="assets/cytoscape-dagre.js"></script>
-<script defer src="graph.js"></script>
 <script defer src="/console.js"></script>
 <!-- 运维页洞察：内容实现由并行任务交付，这里只挂入口 -->
 <script defer src="ops-insight.js"></script>

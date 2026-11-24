@@ -1,6 +1,6 @@
 ---
 source: scripts/gate_docsync.py
-hash: d6c7794a59e1898fa85f02dc50eb531ee797f1395d96cc2e17280ad08477f08b
+hash: 9f1f7b1c104b23d4598ad0a45b6fe7f995c235771fbb0cc36a43132395a6a7e2
 symbols:
 - scan
 - problems

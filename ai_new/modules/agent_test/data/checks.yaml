@@ -80,6 +80,10 @@ checks:
   - view-tickets
   - view-ticket-thread
   - views-list
+  - views-index
+  - view-spec
+  - view-architecture
+  - code-docs
   - knowledge-compose
   - knowledge-index
   - knowledge-list

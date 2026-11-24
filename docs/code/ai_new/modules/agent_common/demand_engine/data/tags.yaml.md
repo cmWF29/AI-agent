@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/tags.yaml
-hash: 6538da6b55731d51f177aeb1a8a02954611e07023a620a37c7b7229d0400a4ae
+hash: f4abb1f2d26c45e6f0b1b749a68006ec3a1a7b6ff42ea9e7e7794c4ad63f0be9
 symbols:
 - comment
 - tags

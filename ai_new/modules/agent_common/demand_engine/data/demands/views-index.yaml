@@ -1,0 +1,17 @@
+id: views-index
+title: 视图目录：只给路由骨架，不搬整页区块
+description: "视图目录：key、参数、默认页、导航与菜单一次给全，sections 留在当前页规格里按需取。首屏不再序列化全部视图"
+tags: [view, web, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.views_index
+  as: out
+expect:
+  given:
+    input: {}
+  calls:
+  - demand_engine.views_index
+  payload: {}
+  promise: 目录只给路由骨架，当前页规格单独取；首屏不再搬全部 sections

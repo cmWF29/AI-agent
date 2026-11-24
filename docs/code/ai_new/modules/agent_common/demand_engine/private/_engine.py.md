@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/private/_engine.py
-hash: d668dd71b6c3e176f09ce73bf4dc913562f2daa417fd6659a8c87ada8ae7d869
+hash: 2f250711fbf6918b68530931b477170d92356160c54c5f0ae5be2da19f88946e
 symbols:
 - _store_base
 - _slug
@@ -14,6 +14,8 @@ symbols:
 - notify_write
 - _publish_badges
 - items
+- view_index
+- view_spec
 - manifest
 - console
 - screens
@@ -118,6 +120,18 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `items`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `view_index`（method）
+- 职责: 视图索引：只给路由要用到的骨架（key/params/default/nav/menu），不搬整页区块。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `view_spec`（method）
+- 职责: 当前视图的完整规格：只回这一页，不再把全部页面随首屏一起搬。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

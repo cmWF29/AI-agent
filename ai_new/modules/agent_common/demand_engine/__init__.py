@@ -137,6 +137,14 @@ def _unwrap(val):
     return val
 
 
+async def _route_views_index(ctx, payload):
+    return ctx.demand_engine.view_index()
+
+
+async def _route_view_spec(ctx, payload):
+    return ctx.demand_engine.view_spec(payload.get("key"))
+
+
 async def _route_resolve(ctx, payload):
     """整页取数：前端只报"看哪一页、什么参数"，依赖与并发都由视图规格自己决定。
 
@@ -152,8 +160,9 @@ async def _route_resolve(ctx, payload):
     if not isinstance(params, dict):
         raise ctx.ApiError("params 必须是对象", code="bad_params", status=400)
 
+    # 首屏只取“视图目录 + 当前页规格”，不再把全部页面的 sections 一次搬过来。
     views, shell = await asyncio.gather(
-        ctx.demand_engine.arun_callable("views-list", {}),
+        ctx.demand_engine.arun_callable("views-index", {}),
         ctx.demand_engine.arun_callable("console-shell", {}) if want_shell else _noop())
     views, shell = _unwrap(views), _unwrap(shell)
     views = views if isinstance(views, list) else (views.get("items") if isinstance(views, dict) else []) or []
@@ -167,19 +176,22 @@ async def _route_resolve(ctx, payload):
             order.append(k)
     if not view_key:
         view_key = next((k for k in order if specs[k].get("default")), order[0] if order else "")
-    spec = specs.get(view_key)
+    spec = None
     requested, fell_back = view_key, False
-    if spec is None:
+    if view_key not in specs:
         # 链接里带了不认识的视图（旧书签、写错的参数）：退回默认页，并在同一次往返里
-        # 把清单与外壳一起给前端，不留"报错 → 再补两次请求"的路径。
+        # 把目录与外壳一起给前端，不留"报错 → 再补两次请求"的路径。
         view_key = next((k for k in order if specs[k].get("default")), order[0] if order else "")
-        spec = specs.get(view_key)
-        if spec is None:
+        requested, fell_back = requested, True
+        if view_key not in specs:
             raise ctx.ApiError("视图不存在：" + (requested or "（空）"), code="no_view", status=404)
-        fell_back = True
+
+    # 当前页完整规格单独取：首屏渲染要它，索引只负责解析 URL 与菜单。
+    full = _unwrap(await ctx.demand_engine.arun_callable("view-spec", {"key": view_key}))
+    spec = full if isinstance(full, dict) else {}
 
     route = dict(params)
-    out = {"view": view_key, "data": {}, "cache": {},
+    out = {"view": view_key, "spec": spec, "data": {}, "cache": {},
            "missing": [k for k in (spec.get("require") or []) if not route.get(k)]}
     if fell_back:
         out["fallback_from"] = requested
@@ -227,6 +239,30 @@ async def _route_resolve(ctx, payload):
     return out
 
 
+async def _route_code_docs(ctx, payload):
+    """源码 ↔ docs/code 映射：读生成器落下的索引，请求时不扫 500 份文档。"""
+    raw = ctx.storage.own(__file__).yaml_read("code-docs.json", {}) or {}
+    rows = []
+    for group in (raw.get("groups") or []):
+        if not isinstance(group, dict):
+            continue
+        docs = []
+        for doc in (group.get("docs") or []):
+            if not isinstance(doc, dict):
+                continue
+            docs.append({
+                "name": str(doc.get("source") or ""),
+                "path": "%s · %s 符号%s" % (
+                    doc.get("doc") or "", int(doc.get("symbols") or 0),
+                    (" · " + str(doc.get("hash") or "")[:8]) if doc.get("hash") else ""),
+            })
+        rows.append({"label": str(group.get("label") or ""),
+                     "badge": "%d" % len(docs), "count": len(docs),
+                     "children": docs})
+    return {"total": int(raw.get("total") or 0), "generated": raw.get("generated") or "",
+            "groups": rows}
+
+
 async def _route_click_machine(ctx, payload):
     """点击状态机规格：前端按它做门禁，架构页按它显示，测试按它做全覆盖。"""
     shell = ctx.demand_engine.console() or {}
@@ -248,12 +284,18 @@ def setup(ctx):
     ctx.api.register("demand_engine.batch", _route_batch, "同层多条需求一次往返", module="demand_engine")
     ctx.api.register("demand_engine.resolve", _route_resolve,
                      "整页取数：按视图规格的依赖分层并发跑完，一次往返回整页", module="demand_engine")
+    ctx.api.register("demand_engine.views_index", _route_views_index,
+                     "视图目录：只给 key/params/default/nav/menu，不带整页 sections", module="demand_engine")
+    ctx.api.register("demand_engine.view_spec", _route_view_spec,
+                     "当前视图完整规格：按 key 只回一页", module="demand_engine")
     ctx.api.register("demand_engine.list", lambda c, p: ctx.demand_engine.items(),
                      "当前需求（on/do/enabled）", module="demand_engine")
     ctx.api.register("demand_engine.manifest", lambda c, p: ctx.demand_engine.manifest(),
                      "全量需求的可视化形状（执行链 + 树节点）", module="demand_engine")
     ctx.api.register("demand_engine.console", lambda c, p: ctx.demand_engine.console(),
                      "控制台外壳（品牌、词表、配色、导航菜单）", module="demand_engine")
+    ctx.api.register("demand_engine.code_docs", _route_code_docs,
+                     "源码与 docs/code 镜像文档的映射索引（按模块分组）", module="demand_engine")
     ctx.api.register("demand_engine.click_machine", _route_click_machine,
                      "点击状态机规格（状态/迁移/每种可点控件的门禁）", module="demand_engine")
     ctx.api.register("demand_engine.chrome", lambda c, p: ctx.demand_engine.chrome(),

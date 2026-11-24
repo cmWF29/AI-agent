@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/boot.js
-hash: 1731867b8656890c74a2f1cae5b38864910ef71b8b547039174e3fb81f9f267d
+hash: 397aac030bbeb74b3c088bd5180bdd9dc1b526ba60621f950ae0dce996a587c6
 symbols:
 - setClickMachine
 - machineKind
@@ -16,6 +16,7 @@ symbols:
 - resolveKind
 - runAct
 - runGo
+- ensureGraph
 - handleClick
 - deckCards
 - deckMetrics
@@ -52,6 +53,7 @@ symbols:
 - table
 - done
 - text
+- next
 - exit
 - p
 - tick
@@ -156,6 +158,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `runGo`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `ensureGraph`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -372,6 +380,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `text`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `next`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

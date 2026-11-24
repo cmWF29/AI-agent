@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 import sys
 import time
@@ -205,6 +206,60 @@ def parse_doc(text: str) -> dict | None:
         return None
 
 
+DOC_INDEX_REL = "ai_new/modules/agent_common/demand_engine/data/code-docs.json"
+
+
+def _index_group(rel: str) -> str:
+    """源码按模块归组：首屏架构页先看模块，再展开到文件。"""
+    parts = rel.replace("\\", "/").split("/")
+    if len(parts) >= 3 and parts[0] == "ai_new" and parts[1] == "modules":
+        return parts[2]
+    if parts[0] == "scripts":
+        return "scripts"
+    return "根目录"
+
+
+def _index_entry(rel: str, kind: str, doc_rel: str, header: dict) -> dict:
+    symbols = []
+    for x in (header.get("symbols") or []):
+        if isinstance(x, dict):
+            symbols.append(str(x.get("name") or ""))
+        elif x is not None:
+            symbols.append(str(x))
+    return {"source": rel.replace("\\", "/"), "doc": doc_rel.replace("\\", "/"),
+            "kind": kind, "group": _index_group(rel), "hash": str(header.get("hash") or ""),
+            "symbols": len([x for x in symbols if x]), "updated_at": str(header.get("updated_at") or "")}
+
+
+def _write_index(root: Path, entries: list[dict], write: bool) -> str:
+    """写机读索引；架构页只读它，不在请求时扫 500 份文档。"""
+    path = root / DOC_INDEX_REL
+    groups = []
+    for name in sorted({e["group"] for e in entries}):
+        rows = sorted([e for e in entries if e["group"] == name], key=lambda e: e["source"])
+        groups.append({"label": name, "count": len(rows), "docs": rows})
+    payload = {"generated": _now_iso(), "total": len(entries), "groups": groups}
+    if write:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return ""
+    if not path.is_file():
+        return "索引缺失"
+    try:
+        old = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "索引不可读"
+    if int(old.get("total") or 0) != len(entries):
+        return "索引条数不一致：%s != %s" % (old.get("total"), len(entries))
+    old_rows = {(g.get("label"), d.get("source")): d for g in (old.get("groups") or [])
+                for d in (g.get("docs") or [])}
+    for e in entries:
+        row = old_rows.get((e["group"], e["source"]))
+        if not row or row.get("doc") != e["doc"] or row.get("hash") != e["hash"]                 or int(row.get("symbols") or 0) != e["symbols"]:
+            return "索引过期：%s" % e["source"]
+    return ""
+
+
 def generate(root: Path | None = None, write: bool = True,
              scope: str | None = None) -> dict:
     """全量生成/比对。返回 {drift, missing, stale_hash, stale_symbols, orphans, stats}。"""
@@ -214,6 +269,7 @@ def generate(root: Path | None = None, write: bool = True,
     missing, stale_hash, stale_symbols, orphans = [], [], [], []
     parse_errors: list[tuple[str, str]] = []
     docs_seen: set[str] = set()
+    index_entries: list[dict] = []
 
     for rel, kind, src in sources:
         path = _doc_path(root, rel)
@@ -237,9 +293,13 @@ def generate(root: Path | None = None, write: bool = True,
             if set(s["name"] for s in cur_syms) != set(prev_syms):
                 stale_symbols.append(rel)
 
+        rendered = render_doc(rel, kind, src, prev)
+        header = parse_doc(rendered) or {}
+        index_entries.append(_index_entry(
+            rel, kind, str(path.relative_to(root)) if path.is_relative_to(root) else str(path), header))
         if write:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(render_doc(rel, kind, src, prev), encoding="utf-8")
+            path.write_text(rendered, encoding="utf-8")
 
     # 孤儿文档：源码已删/改名，文档残留
     docs_root = root / "docs" / "code"
@@ -248,11 +308,14 @@ def generate(root: Path | None = None, write: bool = True,
             if str(path) not in docs_seen:
                 orphans.append(str(path.relative_to(docs_root))[:-3])
 
+    index_error = _write_index(root, index_entries, write and not scope)
+
     stats = {"sources": len(sources), "missing": len(missing),
              "stale_hash": len(stale_hash), "stale_symbols": len(stale_symbols),
              "orphans": len(orphans), "parse_errors": len(parse_errors)}
     return {"missing": missing, "stale_hash": stale_hash, "stale_symbols": stale_symbols,
-            "orphans": orphans, "parse_errors": parse_errors, "stats": stats}
+            "orphans": orphans, "parse_errors": parse_errors, "index_error": index_error,
+            "stats": stats}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -266,6 +329,9 @@ def main(argv: list[str] | None = None) -> int:
           % (s["sources"], s["missing"], s["stale_hash"], s["stale_symbols"], s["orphans"]))
 
     bad = result["missing"] + result["stale_hash"] + result["stale_symbols"] + result["orphans"]
+    if result.get("index_error"):
+        bad.append("code-docs.json")
+        print("  - 机读索引: %s" % result["index_error"])
     if bad:
         print("\n代码-文档同步未通过：")
         for rel in result["missing"]:

@@ -56,6 +56,13 @@ def scan(root: Path | None = None) -> dict:
             "reason": "孤儿文档：源码已删除或改名，旧文档残留",
             "evidence": ["docs/code 文档", "当前源码清单"],
         })
+    if result.get("index_error"):
+        problems.append({
+            "kind": "stale-index", "file": "ai_new/modules/agent_common/demand_engine/data/code-docs.json",
+            "line": 0, "symbol": "",
+            "reason": "源码-文档机读索引与 docs/code 不一致: %s" % result["index_error"],
+            "evidence": ["code-docs.json", "docs/code 文档头"],
+        })
     for rel, err in result["parse_errors"]:
         problems.append({
             "kind": "parse-error", "file": rel, "line": 0, "symbol": "",

@@ -11,6 +11,7 @@ function foldLoad() {
   catch (e) { return new Map(); }
 }
 let FOLDS = foldLoad();
+let LAZY_TREE = {}, LAZY_SEQ = 0;
 function foldSet(key, open) {
   if (!key) return;
   FOLDS.set(key, !!open);
@@ -819,8 +820,8 @@ function treeDocHtml(doc, sec, ctx) {
   const c = { ...ctx, row: doc };
   const click = sec.on_click ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
   // 没有跳转目标的叶子就是纯展示行：不注册点击种类，点了也不算违规
-  if (!click) return `<div class="tree-doc"><span class="tree-doc-name">${esc(fill("row.name", c))}</span><span class="muted tree-doc-path">${esc(fill("row.path", c))}</span></div>`;
-  return `<div class="tree-doc" data-clk="tree_doc" data-go="${click}" role="button" tabindex="0">
+  if (!click) return `<div class="tree-doc${sec.wrap ? " wrap" : ""}"><span class="tree-doc-name">${esc(fill("row.name", c))}</span><span class="muted tree-doc-path">${esc(fill("row.path", c))}</span></div>`;
+  return `<div class="tree-doc${sec.wrap ? " wrap" : ""}" data-clk="tree_doc" data-go="${click}" role="button" tabindex="0">
     <span class="tree-doc-name">${esc(fill("row.name", c))}</span>
     <span class="muted tree-doc-path">${esc(fill("row.path", c))}</span>
   </div>`;
@@ -848,11 +849,26 @@ function treeNodeHtml(node, sec, ctx, path) {
   const badge = (node.badge && node.badge !== node.label)
     ? `<sl-badge variant="neutral" class="badge">${esc(node.badge)}</sl-badge>`
     : `<span class="tree-badge-slot"></span>`;
-  return `<details class="tree-node"${foldAttr(here)}${openAttr}>
+  // 大清单（例如 500 份源码文档）不把子节点一次性塞进 DOM：用户点开哪个模块才建哪个子树。
+  const lazy = !!sec.lazy && count > 0;
+  const lazyKey = lazy ? ("lt" + (++LAZY_SEQ)) : "";
+  if (lazy) LAZY_TREE[lazyKey] = { node, sec, ctx, path: here };
+  return `<details class="tree-node"${foldAttr(here)}${openAttr}${lazy ? ` data-lazy-key="${lazyKey}"` : ""}>
     <summary data-clk="tree_group">${badge}<span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
-    <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx, here)).join("")}</div>
+    <div class="tree-children"${lazy ? ` data-lazy-slot="${lazyKey}"` : ""}>${lazy ? "" : kids.map((k) => treeNodeHtml(k, sec, ctx, here)).join("")}</div>
   </details>`;
 }
+function fillLazyTree(details) {
+  const key = details && details.dataset && details.dataset.lazyKey;
+  const slot = details && details.querySelector("[data-lazy-slot]");
+  if (!key || !slot || slot.getAttribute("data-loaded")) return;
+  const it = LAZY_TREE[key];
+  if (!it) return;
+  slot.innerHTML = (it.node.children || []).map((k) => treeNodeHtml(k, it.sec, it.ctx, it.path)).join("");
+  slot.setAttribute("data-loaded", "1");
+  delete LAZY_TREE[key];
+}
+
 function secHead(sec, ctx) {
   if (sec.fold || (!sec.heading && !sec.note)) return "";
   return `<div class="sec-head">${sec.heading ? `<strong>${esc(fill(sec.heading, ctx))}</strong>` : ""}${
@@ -1438,7 +1454,12 @@ function headHtml(spec, ctx) {
 /* 图容器挂载：每个 .graph-wrap 按自己 data-spec 里的规格挂一张 HiveGraph。
    保活恢复 / 局部刷新重渲染后都要重挂，旧实例由 HiveGraph.mount 销毁重建。 */
 function mountGraphs() {
-  if (!window.HiveGraph) return;
+  if (typeof GRAPH_FAILED !== "undefined" && GRAPH_FAILED) return;
+  if (!window.HiveGraph) {
+    // 只有真的出现图容器才去拉 cytoscape/dagre 这 200 KB；普通页不再为首屏背图库。
+    if (typeof ensureGraph === "function") ensureGraph().then(() => mountGraphs());
+    return;
+  }
   document.querySelectorAll("#view-body .graph-wrap").forEach((el) => {
     let spec = null;
     try { spec = JSON.parse(el.dataset.spec || "null"); } catch (e) { spec = null; }
