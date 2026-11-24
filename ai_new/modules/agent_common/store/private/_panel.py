@@ -453,7 +453,7 @@ class Storage:
 
         clean = str(rel or "").strip().replace("\\", "/")
 
-        if not clean.startswith(("ai_new/", "docs/")):
+        if not clean or clean.startswith("/") or ".." in clean.split("/"):
             return ""
 
         root = _files.modules_root().parent.parent
