@@ -68,13 +68,13 @@ jobs:
         run: |
           pip install playwright
           python3 -m playwright install --with-deps chromium
+          CHROME="$(python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()")"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
           AI_NEW_STUB=1 nohup python3 agent_start.py > /tmp/stub.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8787/api/health/live >/dev/null && break; sleep 2; done
           curl -sf http://127.0.0.1:8787/api/health/live
       - name: UI 回归（控件状态机实拉）
-        run: |
-          export CHROME="$(python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()")"
-          python3 scripts/verify_ui.py
+        run: python3 scripts/verify_ui.py
       - name: E2E 项目闭环（新建→改名→归档→删除）
         run: |
           set -o pipefail
