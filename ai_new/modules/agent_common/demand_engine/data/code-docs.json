@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-24T20:09:49",
+  "generated": "2026-11-24T20:36:06",
   "total": 513,
   "groups": [
     {
@@ -632,7 +632,7 @@
           "doc": "docs/code/ai_new/modules/agent/projects/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "98694bd8d70384117f6bb6aeef5bbd4d967ff5aeef9641aef67bbb55f578a0bf",
+          "hash": "3315bbfd249925ec215623515b83a41c6f246064d25073483d5181bc09f4e540",
           "symbols": 17,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -3824,8 +3824,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_isolate.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "34241fadb2094e2b9d108ca1de94475d532cb3ae8ccda70de3f9841684bae676",
-          "symbols": 9,
+          "hash": "d42e72e53cc14ff3d74d3b86232ed359585df0a3417eca1060feb46fe6292fc8",
+          "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -3860,8 +3860,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/tools/__init__.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "519cd21f7570f5c522769e15ee3bfca991c06fe42c75725776ee2206aa75305c",
-          "symbols": 17,
+          "hash": "917ca2f6040724158b7817e48898701ff71ba094fe0011770cb32cd5930cf4ba",
+          "symbols": 16,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -4154,7 +4154,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_isolation.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "104ca39ca1f597c907cb078b4fa6433ba963512104cb28933ddbee436e1f7081",
+          "hash": "15e19fcd23d44f43d0868f9a82b4dd81ff49e111f33820359c7cdf0ae4377875",
           "symbols": 16,
           "updated_at": "2026-11-23T04:10:23"
         },

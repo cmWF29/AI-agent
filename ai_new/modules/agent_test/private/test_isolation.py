@@ -138,15 +138,21 @@ if __name__ == "__main__":
 
 
 class ShellWorkspaceTest(unittest.TestCase):
-    """shell 默认 cwd 与越界拒绝：共享层可进，工单目录只看自己的。"""
+    """shell 默认 cwd 与越界拒绝：走真实 store 工作区解析，公共层可进，目录只看自己的。"""
 
     class _Api:
-        def __init__(self, ws):
-            self.ws = ws
+        def __init__(self, root):
+            self.root = root
 
         def call(self, name, payload, caller=None):
             if name == "projects.workspace":
-                return self.ws
+                return _isolate.resolve_workspace({
+                    "project": payload.get("id") or "p1",
+                    "ticket": payload.get("ticket") or "",
+                    "cwd": payload.get("cwd") or "",
+                    "root": str(self.root) if self.root else ""},
+                    dir_of=lambda module: Path(tempfile.mkdtemp(prefix="legacy-"))
+                    if not self.root else Path(self.root) / module)
             if name == "store.read":
                 return {"value": {
                     "cwd_outside": "工作目录不在本项目允许的工作区: {path}",
@@ -154,46 +160,45 @@ class ShellWorkspaceTest(unittest.TestCase):
             return {}
 
     class _Ctx:
-        def __init__(self, ws):
-            self.api = ShellWorkspaceTest._Api(ws)
+        def __init__(self, root):
+            self.api = ShellWorkspaceTest._Api(root)
 
-    def _ws(self, root, ticket="T-1"):
-        root = Path(root).resolve()
-        return {"ok": True, "mode": "root", "root": str(root),
-                "dirs": {"documents": str(root / "documents"),
-                         "logs": str(root / "logs"),
-                         "artifacts": str(root / "artifacts"),
-                         "tickets": str(root / "tickets" / ticket) if ticket
-                         else str(root / "tickets")}}
+    def _root(self):
+        return Path(tempfile.mkdtemp(prefix="shell-ws-"))
 
     def test_default_cwd_is_own_ticket_dir(self):
-        root = tempfile.mkdtemp(prefix="shell-ws-")
-        out = _shell_cwd(self._Ctx(self._ws(root)), "",
+        root = self._root()
+        out = _shell_cwd(self._Ctx(root), "",
                          {"project": "p1", "ticket": "T-1"})
-        self.assertTrue(out["ok"])
-        self.assertEqual(Path(out["cwd"]), Path(root).resolve() / "tickets" / "T-1")
+        self.assertTrue(out["ok"], out)
+        self.assertEqual(Path(out["cwd"]), root.resolve() / "tickets" / "T-1")
         self.assertTrue(out["ensure"])
 
     def test_other_ticket_and_escape_rejected(self):
-        root = tempfile.mkdtemp(prefix="shell-ws-")
-        ctx = self._Ctx(self._ws(root))
-        other = str(Path(root).resolve() / "tickets" / "T-2")
+        root = self._root()
+        ctx = self._Ctx(root)
+        other = str(root.resolve() / "tickets" / "T-2")
         out = _shell_cwd(ctx, other, {"project": "p1", "ticket": "T-1"})
         self.assertFalse(out["ok"])
         self.assertEqual(out["code"], "cwd_outside")
-        out2 = _shell_cwd(ctx, str(Path(root).resolve().parent), {"project": "p1", "ticket": "T-1"})
+        out2 = _shell_cwd(ctx, str(root.resolve().parent), {"project": "p1", "ticket": "T-1"})
         self.assertFalse(out2["ok"])
 
     def test_shared_layer_allowed(self):
-        root = tempfile.mkdtemp(prefix="shell-ws-")
-        shared = str(Path(root).resolve() / "documents")
-        out = _shell_cwd(self._Ctx(self._ws(root)), shared,
+        root = self._root()
+        shared = str(root.resolve() / "documents")
+        out = _shell_cwd(self._Ctx(root), shared,
                          {"project": "p1", "ticket": "T-1"})
         self.assertTrue(out["ok"], out)
+        self.assertEqual(Path(out["cwd"]), root.resolve() / "documents")
 
     def test_legacy_keeps_caller_cwd(self):
-        ws = {"ok": True, "mode": "legacy", "root": None, "dirs": {}}
-        out = _shell_cwd(self._Ctx(ws), "/tmp", {"project": "p1", "ticket": "T-1"})
+        root = self._root()
+        # 没配项目根：store 走 legacy，不接管 cwd。
+        out = _shell_cwd(self._Ctx(None), "/tmp",
+                         {"project": "p1", "ticket": "T-1"})
         self.assertTrue(out["ok"])
         self.assertEqual(out["cwd"], "/tmp")
         self.assertFalse(out["ensure"])
+
+

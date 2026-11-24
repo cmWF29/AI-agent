@@ -1,12 +1,11 @@
 ---
 source: ai_new/modules/agent_common/tools/__init__.py
-hash: 519cd21f7570f5c522769e15ee3bfca991c06fe42c75725776ee2206aa75305c
+hash: 917ca2f6040724158b7817e48898701ff71ba094fe0011770cb32cd5930cf4ba
 symbols:
 - _msg_tpl
 - setup
 - start
 - register
-- _within
 - _shell_cwd
 - _tool_shell
 - execute
@@ -58,14 +57,8 @@ updated_at: '2026-11-23T04:10:22'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `_within`（function）
-- 职责: realpath 后判断包含关系；路径不存在也按字面位置判断，留给执行层报错。
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
 ### `_shell_cwd`（function）
-- 职责: 把 shell 的 cwd 收进项目工作区：共享层可按绝对路径进入，工单目录只看自己的。
+- 职责: 把 shell 的 cwd 收进项目工作区：公共层可进，当前 ticket 目录只看自己的。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

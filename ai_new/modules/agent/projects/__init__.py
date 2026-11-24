@@ -126,6 +126,7 @@ def _route_workspace(ctx, payload):
     rec = row.get("value") or {}
     ws = ctx.api.call("store.workspace", {
         "project": pid.get("id"), "ticket": payload.get("ticket") or "",
+        "cwd": payload.get("cwd") or "",
         "root": rec.get("root") or ""}, caller=None)
     ws = dict(ws or {})
     ws["project"] = {"id": rec.get("id") or pid.get("id"),

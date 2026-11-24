@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation.py
-hash: 104ca39ca1f597c907cb078b4fa6433ba963512104cb28933ddbee436e1f7081
+hash: 15e19fcd23d44f43d0868f9a82b4dd81ff49e111f33820359c7cdf0ae4377875
 symbols:
 - setUp
 - _dir_of
@@ -13,7 +13,7 @@ symbols:
 - test_build_and_view_carry_root
 - test_build_root_defaults_empty
 - test_workspace_route_registered_and_callable
-- _ws
+- _root
 - test_default_cwd_is_own_ticket_dir
 - test_other_ticket_and_escape_rejected
 - test_shared_layer_allowed
@@ -99,7 +99,7 @@ updated_at: '2026-11-23T04:10:23'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `_ws`（method）
+### `_root`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

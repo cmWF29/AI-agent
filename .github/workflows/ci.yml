@@ -32,6 +32,8 @@ jobs:
         run: python3 scripts/gate_card_size.py
       - name: 需求↔用例映射门禁（每条需求绑到 check，check 有 test 模块，映射表不许过期）
         run: python3 scripts/gate_demand_tests.py
+      - name: 接线门禁（表单提交→需求 with→API 入参逐项贯通）
+        run: python3 scripts/gate_wiring.py
       - name: 需求/架构/装配/传输/幂等/桩协议全量用例
         working-directory: ai_new/modules/agent_test/private
         run: python3 -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows

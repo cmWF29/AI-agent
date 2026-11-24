@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_isolate.py
-hash: 34241fadb2094e2b9d108ca1de94475d532cb3ae8ccda70de3f9841684bae676
+hash: d42e72e53cc14ff3d74d3b86232ed359585df0a3417eca1060feb46fe6292fc8
 symbols:
 - _real
 - _is_within
@@ -10,6 +10,7 @@ symbols:
 - capabilities
 - _legacy_dirs
 - _configured_dirs
+- _cwd_info
 - resolve_workspace
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:22'
@@ -70,6 +71,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `_configured_dirs`（function）
 - 职责: 配置了自定义根：项目工作区整体收在根之下，固定分层子目录。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_cwd_info`（function）
+- 职责: 解析显式 cwd 并给出边界事实；策略由调用方（tools）决定，这里只算不判。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

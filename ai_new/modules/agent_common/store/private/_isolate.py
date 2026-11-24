@@ -121,6 +121,37 @@ def _configured_dirs(root_real, pid, tid):
     return dirs
 
 
+def _cwd_info(raw, root_real, dirs, tid):
+    """解析显式 cwd 并给出边界事实；策略由调用方（tools）决定，这里只算不判。
+
+    返回 cwd 的 realpath、是否默认、是否在允许层、是否落在别的 ticket 目录。
+    对 ``tid`` 会话，允许范围是本 ticket 目录 + 项目公共层；无 ticket 时允许项目根内。
+    """
+    raw = str(raw or "")
+    base = dirs["tickets"] if tid else root_real
+    if not raw:
+        return {"cwd": str(base), "cwd_default": True, "cwd_allowed": True,
+                "cwd_ticket": bool(tid), "cwd_shared": False,
+                "cwd_other_ticket": False}
+    p = Path(raw)
+    if not p.is_absolute():
+        p = base / p
+    cand = _real(p)
+    shared = [_real(dirs[k]) for k in ("documents", "logs", "artifacts")]
+    ticket_dir = _real(dirs["tickets"]) if tid else None
+    if tid:
+        allowed = _is_within(ticket_dir, cand) or any(_is_within(s, cand) for s in shared)
+    else:
+        allowed = _is_within(root_real, cand)
+    tickets_base = root_real / "tickets"
+    other = bool(tid and ticket_dir and _is_within(tickets_base, cand)
+                 and not _is_within(ticket_dir, cand))
+    return {"cwd": str(cand), "cwd_default": False, "cwd_allowed": allowed,
+            "cwd_ticket": bool(ticket_dir and _is_within(ticket_dir, cand)),
+            "cwd_shared": any(_is_within(s, cand) for s in shared),
+            "cwd_other_ticket": other}
+
+
 def resolve_workspace(payload, dir_of=None):
     """解析项目工作区目录（含 ticket 子目录）并做越界校验。
 
@@ -152,10 +183,12 @@ def resolve_workspace(payload, dir_of=None):
             if not _is_within(root_real, _real(candidate)):
                 return {"ok": False, "code": "escape", "status": 400,
                         "error": "目录解析越出项目根: %s" % name, "capability": cap}
-        return {"ok": True, "mode": "root", "project": pid, "ticket": tid,
-                "root": str(root_real),
-                "dirs": {k: str(v) for k, v in dirs.items()},
-                "capability": cap}
+        out = {"ok": True, "mode": "root", "project": pid, "ticket": tid,
+               "root": str(root_real),
+               "dirs": {k: str(v) for k, v in dirs.items()},
+               "capability": cap}
+        out.update(_cwd_info(payload.get("cwd"), root_real, dirs, tid))
+        return out
 
     dirs = _legacy_dirs(dir_of, pid, tid)
     return {"ok": True, "mode": "legacy", "project": pid, "ticket": tid,

@@ -1,9 +1,6 @@
 """工具模块：注册、白名单、执行、依赖就绪探测。无业务；落盘由需求显式编排。"""
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
 from .private import _registry, _pure
 
 # 外部登记工具共用的占位执行需求：真实后端接入前，执行统一回占位提示（#48 搁置）。
@@ -73,28 +70,20 @@ def register(ctx, name, desc, params, fn, module=None, kinds=None, deps=None):
                               kinds=kinds, deps=deps)
 
 
-def _within(path, root):
-    """realpath 后判断包含关系；路径不存在也按字面位置判断，留给执行层报错。"""
-    try:
-        Path(path).resolve(strict=False).relative_to(
-            Path(root).resolve(strict=False))
-        return True
-    except (OSError, ValueError):
-        return False
-
-
 def _shell_cwd(ctx, raw, session):
-    """把 shell 的 cwd 收进项目工作区：共享层可按绝对路径进入，工单目录只看自己的。
+    """把 shell 的 cwd 收进项目工作区：公共层可进，当前 ticket 目录只看自己的。
 
-    未配置项目根（legacy）保持原行为；配置根后，工单会话默认落在自己的 tickets/<id>，
-    显式 cwd 必须落在本项目共享层或本工单目录，越出即拒绝，不静默跑到别的工单里。
+    未配置项目根（legacy）保持原行为；配置根后，ticket 会话默认落在自己的 tickets/<id>，
+    显式 cwd 必须落在本项目公共层或当前 ticket 目录，越出即拒绝，不静默跑到别的 ticket 里。
+    路径解析与 realpath 边界判定全部在 store 能力内完成，tools 不碰文件系统。
     """
     session = session or {}
     project = session.get("project") or ""
     if not project:
         return {"ok": True, "cwd": raw or "", "ensure": False}
     ws = ctx.api.call("projects.workspace", {
-        "id": project, "ticket": session.get("ticket") or ""}, caller=None)
+        "id": project, "ticket": session.get("ticket") or "",
+        "cwd": raw or ""}, caller=None)
     if not ws.get("ok"):
         tpl = _msg_tpl(ctx).get("workspace_unavailable") or ""
         return {"ok": False, "code": ws.get("code") or "workspace_unavailable",
@@ -102,30 +91,14 @@ def _shell_cwd(ctx, raw, session):
                 (ws.get("error") or "")}
     if ws.get("mode") != "root":
         return {"ok": True, "cwd": raw or "", "ensure": False}
-    root = ws.get("root") or ""
-    dirs = ws.get("dirs") or {}
-    ticket_dir = dirs.get("tickets") or ""
-    shared = [dirs.get("documents") or "", dirs.get("logs") or "",
-              dirs.get("artifacts") or ""]
     if not raw:
-        target = ticket_dir if session.get("ticket") else root
-        return {"ok": True, "cwd": target, "ensure": True}
-    cand = str(raw)
-    if not os.path.isabs(cand):
-        cand = str(Path(ticket_dir if session.get("ticket") else root) / cand)
-    allowed = [ticket_dir] if session.get("ticket") else [root]
-    allowed += [p for p in shared if p]
-    if not any(_within(cand, p) for p in allowed if p):
+        return {"ok": True, "cwd": ws.get("cwd") or "", "ensure": True}
+    if not ws.get("cwd_allowed") or ws.get("cwd_other_ticket"):
         tpl = _msg_tpl(ctx).get("cwd_outside") or ""
         return {"ok": False, "code": "cwd_outside",
-                "error": tpl.format(path=cand) if tpl else cand}
-    # 工单会话不能把 cwd 落到另一个工单目录：共享层之外只认自己的 tickets/<id>。
-    other = str(Path(root) / "tickets")
-    if session.get("ticket") and _within(cand, other) and not _within(cand, ticket_dir):
-        tpl = _msg_tpl(ctx).get("cwd_outside") or ""
-        return {"ok": False, "code": "cwd_outside",
-                "error": tpl.format(path=cand) if tpl else cand}
-    return {"ok": True, "cwd": cand, "ensure": True}
+                "error": tpl.format(path=ws.get("cwd") or raw) if tpl else
+                (ws.get("cwd") or raw)}
+    return {"ok": True, "cwd": ws.get("cwd") or raw, "ensure": True}
 
 
 async def _tool_shell(ctx, args, session=None):
