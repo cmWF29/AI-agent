@@ -239,26 +239,41 @@ async def _route_resolve(ctx, payload):
     return out
 
 
-async def _route_code_docs(ctx, payload):
-    """源码 ↔ docs/code 映射：读生成器落下的索引，请求时不扫 500 份文档。"""
-    raw = ctx.storage.own(__file__).yaml_read("code-docs.json", {}) or {}
-    rows = []
-    for group in (raw.get("groups") or []):
-        if not isinstance(group, dict):
+def _doc_children(group):
+    docs = []
+    for doc in (group.get("docs") or []):
+        if not isinstance(doc, dict):
             continue
-        docs = []
-        for doc in (group.get("docs") or []):
-            if not isinstance(doc, dict):
-                continue
-            docs.append({
-                "name": str(doc.get("source") or ""),
-                "path": "%s · %s 符号%s" % (
-                    doc.get("doc") or "", int(doc.get("symbols") or 0),
-                    (" · " + str(doc.get("hash") or "")[:8]) if doc.get("hash") else ""),
-            })
-        rows.append({"label": str(group.get("label") or ""),
-                     "badge": "%d" % len(docs), "count": len(docs),
-                     "children": docs})
+        docs.append({
+            "name": str(doc.get("source") or ""),
+            "path": "%s · %s 符号%s" % (
+                doc.get("doc") or "", int(doc.get("symbols") or 0),
+                (" · " + str(doc.get("hash") or "")[:8]) if doc.get("hash") else ""),
+        })
+    return docs
+
+
+async def _route_code_docs(ctx, payload):
+    """源码 ↔ docs/code 映射：首屏只给分组与计数，点开某组再取该组条目。
+
+    500 份文件的镜像路径不塞进首屏响应：架构页只需要四组计数，展开时才按组取。
+    """
+    raw = ctx.storage.own(__file__).yaml_read("code-docs.json", {}) or {}
+    want = str((payload or {}).get("group") or "")
+    groups = [g for g in (raw.get("groups") or []) if isinstance(g, dict)]
+    if want:
+        for group in groups:
+            label = str(group.get("label") or "")
+            if label == want:
+                docs = _doc_children(group)
+                return {"label": label, "count": len(docs), "children": docs}
+        return {"label": want, "count": 0, "children": []}
+    rows = []
+    for group in groups:
+        label = str(group.get("label") or "")
+        count = len(group.get("docs") or [])
+        rows.append({"label": label, "group": label,
+                     "badge": "%d" % count, "count": count, "children": []})
     return {"total": int(raw.get("total") or 0), "generated": raw.get("generated") or "",
             "groups": rows}
 

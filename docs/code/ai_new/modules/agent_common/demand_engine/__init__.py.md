@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/__init__.py
-hash: e0b0d1187cb26a56256b84b33e257fe8236906000f5e06372e23fb338204ddf8
+hash: bd86f7a7c58b032689d9a0c1f3f0f8e040f45cef04e1c41cba6501dd1bbeca75
 symbols:
 - _route_run
 - _route_batch
@@ -12,6 +12,7 @@ symbols:
 - _route_views_index
 - _route_view_spec
 - _route_resolve
+- _doc_children
 - _route_code_docs
 - _route_click_machine
 - _noop
@@ -92,8 +93,14 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_doc_children`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `_route_code_docs`（function）
-- 职责: 源码 ↔ docs/code 映射：读生成器落下的索引，请求时不扫 500 份文档。
+- 职责: 源码 ↔ docs/code 映射：首屏只给分组与计数，点开某组再取该组条目。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

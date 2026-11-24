@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/app.js
-hash: 740f196cdab23a2f89f25b75fef53c81c6db1ab45b71b4f056676b73b3f1d4f0
+hash: f4a383168782bde9726818ed79dfd6c0c63b5fb47b59af55d69de857ad104ce9
 symbols:
 - readYaml
 - yamlBody
@@ -33,6 +33,7 @@ symbols:
 - applyDraft
 - openStream
 - resolvePage
+- runDemandId
 - mountSecretaryStatus
 - rpcDirect
 - mountCloudChannel
@@ -274,6 +275,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `resolvePage`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `runDemandId`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

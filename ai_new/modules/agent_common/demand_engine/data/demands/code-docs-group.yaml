@@ -1,0 +1,21 @@
+id: code-docs-group
+title: 源码文档映射的单个模块分组
+description: "按模块读取该组的源文件 → docs/code 镜像路径、符号数与哈希；供架构树展开时按需取数"
+tags: [docs, code, read]
+enabled: true
+callable: true
+'on': []
+do:
+- call: demand_engine.code_docs
+  as: out
+  with:
+    group:
+      get: input.group
+expect:
+  given:
+    input:
+      group: {type: str}
+  calls:
+  - demand_engine.code_docs
+  payload: {}
+  promise: 只取指定模块组，避免首屏下发全部 505 条映射

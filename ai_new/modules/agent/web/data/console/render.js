@@ -831,7 +831,7 @@ function treeNodeHtml(node, sec, ctx, path) {
   // 分组（公共/项目/工单）恒有 children：没有条目也要露出这一级，否则层级就断了
   if (!("children" in node)) return treeDocHtml(node, sec, ctx);
   const kids = node.children || [];
-  const count = kids.length;
+  const count = Number.isFinite(node.count) ? node.count : kids.length;
   const sub = node.sub ? `<span class="muted tree-node-sub">${esc(node.sub)}</span>` : "";
   const here = ((ctx.route || {}).view || "") + ":" + (path || "tree") + "/" + (node.type || "g") + ":" + (node.label || "");
   if (!count) {
@@ -858,13 +858,30 @@ function treeNodeHtml(node, sec, ctx, path) {
     <div class="tree-children"${lazy ? ` data-lazy-slot="${lazyKey}"` : ""}>${lazy ? "" : kids.map((k) => treeNodeHtml(k, sec, ctx, here)).join("")}</div>
   </details>`;
 }
-function fillLazyTree(details) {
+async function fillLazyTree(details) {
   const key = details && details.dataset && details.dataset.lazyKey;
   const slot = details && details.querySelector("[data-lazy-slot]");
-  if (!key || !slot || slot.getAttribute("data-loaded")) return;
+  if (!key || !slot || slot.getAttribute("data-loaded") || slot.getAttribute("data-loading")) return;
   const it = LAZY_TREE[key];
   if (!it) return;
-  slot.innerHTML = (it.node.children || []).map((k) => treeNodeHtml(k, it.sec, it.ctx, it.path)).join("");
+  const node = it.node || {};
+  // 分组条目在首屏只有计数；点开时再按组取 119 条，避免整页 505 条一起下发/建 DOM。
+  if (node.group && it.sec.group_demand) {
+    slot.setAttribute("data-loading", "1");
+    slot.innerHTML = `<div class="tree-node tree-node-blank"><span class="tree-caret-slot"></span><span class="tree-node-label">${esc(uiText("loading") || "载入中…")}</span></div>`;
+    try {
+      const out = await runDemandId(it.sec.group_demand, { group: node.group });
+      slot.innerHTML = (out.children || []).map((k) => treeNodeHtml(k, it.sec, it.ctx, it.path)).join("");
+      slot.setAttribute("data-loaded", "1");
+      delete LAZY_TREE[key];
+    } catch (e) {
+      slot.innerHTML = `<div class="tree-node tree-node-blank"><span class="tree-caret-slot"></span><span class="tree-node-label">${esc(uiText("load_failed") || "载入失败")}</span></div>`;
+    } finally {
+      slot.removeAttribute("data-loading");
+    }
+    return;
+  }
+  slot.innerHTML = (node.children || []).map((k) => treeNodeHtml(k, it.sec, it.ctx, it.path)).join("");
   slot.setAttribute("data-loaded", "1");
   delete LAZY_TREE[key];
 }

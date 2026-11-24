@@ -84,6 +84,7 @@ checks:
   - view-spec
   - view-architecture
   - code-docs
+  - code-docs-group
   - knowledge-compose
   - knowledge-index
   - knowledge-list

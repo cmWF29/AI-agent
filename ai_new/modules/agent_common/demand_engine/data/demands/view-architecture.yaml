@@ -38,6 +38,7 @@ view:
   - kind: tree
     as: docs
     source: data.docs.groups
+    group_demand: code-docs-group
     collapsed: true
     lazy: true
     wrap: true

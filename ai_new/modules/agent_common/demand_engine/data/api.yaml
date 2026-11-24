@@ -58,6 +58,10 @@ routes:
         type: any
   demand_engine.code_docs:
     doc: 源码与 docs/code 镜像文档的映射索引（按模块分组）
+    in:
+      group:
+        type: str
+        req: false
     out:
       total:
         type: int

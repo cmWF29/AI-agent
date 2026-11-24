@@ -417,6 +417,17 @@ async function resolvePage(view, params, wantShell, only) {
   return p.result || p;   // 兼容多套一层
 }
 
+/* 按需求 id 取一小段数据：树分组展开时才拉这一组的 119 条，不把 505 条塞进首屏。 */
+async function runDemandId(id, input) {
+  const resp = await fetch("/api/rpc/demand_engine/run", {
+    method: "POST", headers: headers(),
+    body: yamlBody({ id: id, input: input || {} })
+  });
+  const body = await readYaml(resp).catch(() => ({ ok: false }));
+  const p = body.result || {};
+  return p.result || p;
+}
+
 /* 秘书队列状态机：只读调用平台 secretary.status，渲染状态枚举与合法迁移。
    失败 / 非 ok / 无状态枚举时整块隐藏，不报错、不弹窗、不留错误横幅。 */
 async function mountSecretaryStatus(ctx) {
