@@ -11,13 +11,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 
+class _Server(ThreadingHTTPServer):
+    """控制台一页会并发拉起几十个静态资源，默认 backlog=5 会把跨公网的突发连接丢进重试。"""
+    daemon_threads = True
+    request_queue_size = 128
+
+
 def setup(ctx):
     """只建服务、绑端口，不接请求（接请求发生在 start 阶段）。"""
     host = ctx.cfg.get("server", {}).get("host", "127.0.0.1")
     port = int(ctx.cfg.get("server", {}).get("port", 8787))
-    server = ThreadingHTTPServer((host, port), _make_handler(ctx))
-    # 请求线程随连接结束即退；不让 keep-alive 连接在进程退出时拖住解释器。
-    server.daemon_threads = True
+    server = _Server((host, port), _make_handler(ctx))
     tls = ctx.cfg.get("server", {}).get("tls") or {}
     if tls.get("enabled") and tls.get("cert") and tls.get("key"):
         cert = str(ctx.storage.path("server.tls.cert", tls["cert"]))

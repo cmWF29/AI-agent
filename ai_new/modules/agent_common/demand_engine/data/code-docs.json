@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-24T11:56:35",
-  "total": 505,
+  "generated": "2026-11-24T12:11:48",
+  "total": 506,
   "groups": [
     {
       "label": "agent",
@@ -1081,7 +1081,7 @@
     },
     {
       "label": "agent_common",
-      "count": 313,
+      "count": 314,
       "docs": [
         {
           "source": "ai_new/modules/agent_common/api/__init__.py",
@@ -1820,6 +1820,15 @@
           "hash": "a2b9fd83346f4c4bb0fded338e0cc5e1d962481a6da77879f24b6e6f312e69df",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:21"
+        },
+        {
+          "source": "ai_new/modules/agent_common/demand_engine/data/demands/code-docs-group.yaml",
+          "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/code-docs-group.yaml.md",
+          "kind": "yaml",
+          "group": "agent_common",
+          "hash": "1cb82a87c47bfff88ac8a60ae7c285d8e231f7b4df0ec7d9785a51c20073e458",
+          "symbols": 9,
+          "updated_at": "2026-11-24T12:11:39"
         },
         {
           "source": "ai_new/modules/agent_common/demand_engine/data/demands/code-docs.yaml",
@@ -3464,7 +3473,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/http/private/_server.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "163a9b9b79bec5f7274cd2cf3c49402ae06bc15b8997c45ac931aa96229d562e",
+          "hash": "bb26fd56af80e88df698c5f07bc7110b4b8cd9a2e5e71aee0830be478274bf41",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:22"
         },
