@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: 8db0eea5f70d60aa967292c6894114bda23959aade0eab46b9540f93ce0977dd
+hash: cce043bb003a3521dfd86b3446b8c438902f99bfa3ed1ceb1b731cc4deb1f3e9
 symbols:
 - foldLoad
 - foldSet
@@ -24,6 +24,8 @@ symbols:
 - bubbleClass
 - avatarColor
 - initial
+- memberIndexOf
+- msgAvatarHtml
 - draftBubbleHtml
 - roleOf
 - taskOf
@@ -35,6 +37,8 @@ symbols:
 - dayLabelOf
 - groupEvents
 - eventGroupHtml
+- toolCallPayload
+- callKey
 - pairItems
 - toolBrief
 - toolResultBody
@@ -114,7 +118,6 @@ symbols:
 - push
 - seg
 - here
-- openAttr
 - inferParent
 - parentOf
 - depthOf
@@ -135,6 +138,9 @@ symbols:
 - gateOf
 - fields
 - marks
+- deckRows
+- deckId
+- deckAside
 - badges
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:21'
@@ -283,6 +289,18 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `memberIndexOf`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `msgAvatarHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `draftBubbleHtml`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -344,6 +362,18 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `eventGroupHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `toolCallPayload`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `callKey`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -823,12 +853,6 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `openAttr`（js-function）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
 ### `inferParent`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -944,6 +968,24 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `marks`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `deckRows`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `deckId`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `deckAside`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

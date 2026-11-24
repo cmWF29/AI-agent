@@ -52,7 +52,7 @@
   --radius:12px;
   /* 卡片尺寸与字号阶梯：进行中 / 已归档 / 详情页工单卡三处同一套 token */
   --pcard-name:15px; --pcard-meta:12.5px; --pcard-stat-size:12.5px; --pcard-stat-num:18px;
-  --pcard-pad:14px 14px 12px; --pcard-gap:14px; --pcard-h:152px;
+  --pcard-pad:14px 14px 12px; --pcard-gap:14px; --pcard-h:184px;
   /* 群聊 TG 手感：聊天底色与自己的气泡色（自己= TG 绿，成员=白卡） */
   --chat-bg:#e6ebf1;--out-bg:#effdde;--out-fg:#0f0f0f;
   /* 角色固定配色：PM 蓝 / developer 紫 / tester 青 / reviewer 橙 / user 绿 */
@@ -275,7 +275,8 @@ sl-button.deck-more:hover::part(base){background:var(--line-2)}
 .pcard .stat{font-size:var(--pcard-stat-size);color:var(--fg-2);margin-top:10px;display:flex;gap:8px;align-items:center;white-space:nowrap}
 .pcard .stat b{font-size:var(--pcard-stat-num);color:var(--fg);font-weight:600}
 .pcard .chips-row{flex-wrap:nowrap;overflow:hidden}
-.pcard .chips{flex-wrap:nowrap;overflow:hidden;max-width:100%}
+.pcard .chips{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-width:100%;scrollbar-width:none}
+.pcard .chips::-webkit-scrollbar{display:none}
 .pcard .chip{white-space:nowrap}
 .pcard .acts{display:flex;gap:4px}
 .pcard .acts sl-button::part(base){padding:3px 7px;font-size:11.5px;line-height:1.5;border-radius:7px;background:var(--card);border:1px solid var(--line);color:var(--fg-2)}
@@ -297,18 +298,20 @@ sl-button.deck-more:hover::part(base){background:var(--line-2)}
 /* ---- 知识归属树 ---- */
 .tree{display:flex;flex-direction:column;gap:10px}
 .tree-node{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow);overflow:hidden}
-.tree-node>summary{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;list-style:none}
+/* 三角 / 徽章 / 名称 / 说明 / 计数五列固定：空层与有子层用同一套列宽，文字才会左对齐。 */
+.tree-node>summary{display:grid;grid-template-columns:14px 46px 86px minmax(0,1fr) auto;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;list-style:none}
 .tree-node>summary::-webkit-details-marker{display:none}
-.tree-node>summary::before{content:"▾ ";color:var(--muted)}
-.tree-node:not([open])>summary::before{content:"▸ "}
-.tree-node .badge{flex:none}
-.tree-node-label{font-weight:600;font-size:13.5px;flex:none}
-/* 空层行：与折叠条同款一张卡（同一套壳、同一内边距、同一 gap），
-   只是不可折叠：没有三角、没有计数，说明文字退居 muted */
-.tree-node-blank{display:flex;align-items:center;gap:8px;padding:11px 26px 11px 34px}
-.tree-node-blank .tree-node-empty{margin-left:2px}
-.tree-node-sub{font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tree-node-count{margin-left:auto;font-size:12px;flex:none}
+.tree-node>summary::before{content:"▾";color:var(--muted);width:14px;text-align:left}
+.tree-node:not([open])>summary::before{content:"▸"}
+.tree-node .badge{flex:none;width:46px;min-width:46px;justify-content:center}
+.tree-badge-slot{display:block;width:46px;flex:none}
+.tree-caret-slot{display:block;width:14px;flex:none}
+.tree-node-label{font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 空层行：与折叠条同款一张卡，三角与徽章留同样的槽位。 */
+.tree-node-blank{display:grid;grid-template-columns:14px 46px 86px minmax(0,1fr);align-items:center;gap:8px;padding:11px 14px}
+.tree-node-blank .tree-node-empty{grid-column:4/-1;margin:0;min-width:0}
+.tree-node-sub{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-node-count{justify-self:end;font-size:12px;flex:none}
 .tree-children{display:flex;flex-direction:column;gap:6px;padding:10px 10px 10px 24px;border-top:1px solid var(--line-2)}
 .tree-children .tree-node{box-shadow:none;background:transparent;border-color:var(--line-2)}
 .tree-children .tree-node>summary{padding:9px 10px}
@@ -466,6 +469,9 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 .msg.system{align-self:center;max-width:76%}
 .avatar{width:34px;height:34px;border-radius:50%;flex:none;background:var(--av);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .avatar-ph{visibility:hidden}
+.avatar-click{border:0;padding:0;cursor:pointer;font-family:inherit;transition:transform .12s,box-shadow .12s}
+.avatar-click:hover{transform:translateY(-1px);box-shadow:0 3px 9px rgba(16,24,40,.18)}
+.avatar-click:focus-visible{outline:3px solid var(--accent-weak);outline-offset:2px}
 .msg-main{min-width:0}
 .msg.right .msg-main{text-align:left}
 .msg.right .msg-name{text-align:right}
@@ -595,27 +601,32 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 
 /* ---- 两级侧栏：一级分组、二级页面；移动底栏固定在安全区之上 ---- */
 .nav{display:flex;flex-direction:column;gap:6px;min-height:0;flex:1 1 auto;overflow:hidden}
-/* 一级分组做成顶栏页签，二级列表独占整宽：两列并排会让“资产”组按钮和“工作”的叶子错行，看着像串组 */
-.nav-primary{display:flex;flex-direction:row;gap:2px;min-width:0;flex:none;padding-bottom:6px;border-bottom:1px solid var(--line-2)}
-.nav-primary>sl-button{flex:1 1 0;min-width:0}
-.nav-group-btn::part(base){width:100%;min-width:0;justify-content:center;gap:4px;min-height:36px;padding:5px 4px;border-radius:9px;color:var(--fg-2);font-size:12px}
-.nav-group-btn.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:600}
-.nav-group-label{white-space:nowrap}
-.nav-group-ico{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:none;font-size:15px}
-.nav-secondary{display:flex;flex-direction:column;gap:3px;min-height:0;overflow-y:auto;padding-top:2px}
-.nav-back::part(base){justify-content:flex-start;padding:7px 10px;color:var(--muted);font-size:12px}
-.nav-sec-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 2px}
-.nav-sec-head span{font-size:12px;font-weight:600;color:var(--fg-2);letter-spacing:.04em}
-.nav-sec-head em{font-style:normal;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.nav-items{display:flex;flex-direction:column;gap:2px}
-.nav-leaf::part(base){justify-content:flex-start;padding:7px 10px;border-radius:9px;color:var(--fg-2);font-size:12.5px}
+/* 一级目录做成整行菜单，二级目录在它下面缩进；层级靠位置和底色区分，不靠居中猜。 */
+.nav-primary{display:flex;flex-direction:column;gap:2px;min-width:0;flex:none;padding-bottom:8px;border-bottom:1px solid var(--line-2)}
+.nav-primary>sl-button{flex:0 0 auto;width:100%}
+.nav-group-btn::part(base){width:100%;min-width:0;justify-content:flex-start;gap:8px;min-height:44px;padding:8px 10px;border-radius:10px;color:var(--fg);font-size:13px}
+.nav-group-btn.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:650;box-shadow:inset 3px 0 0 var(--accent)}
+.nav-group-main{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
+.nav-group-label{white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.nav-group-count{margin-left:auto;font-style:normal;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nav-group-arrow{font-size:15px;line-height:1;color:var(--muted);flex:none}
+.nav-group-btn.on .nav-group-arrow{color:var(--accent)}
+.nav-group-ico{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex:none;font-size:16px}
+.nav-secondary{display:flex;flex-direction:column;gap:3px;min-height:0;overflow-y:auto;padding-top:4px}
+.nav .nav-back{width:26px;flex:none}
+.nav .nav-back::part(base){width:26px;min-width:26px;height:26px;min-height:26px;padding:0;justify-content:center;border-radius:8px;color:var(--muted);font-size:13px;background:var(--bg)}
+.nav-sec-head{display:flex;align-items:center;gap:8px;padding:8px 6px 4px;min-width:0}
+.nav-sec-head span{font-size:13px;font-weight:650;color:var(--fg);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-sec-head em{margin-left:auto;font-style:normal;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nav-items{display:flex;flex-direction:column;gap:2px;padding-left:6px}
+.nav-leaf::part(base){justify-content:flex-start;padding:8px 10px;border-radius:9px;color:var(--fg-2);font-size:12.5px}
 .nav-leaf.on::part(base){background:var(--accent-weak);color:var(--accent);font-weight:600}
 .nav-empty{font-size:11.5px;color:var(--muted);line-height:1.6;padding:8px 12px;border:1px dashed var(--line);border-radius:10px}
-/* 覆盖通用 .nav sl-button 的宽松内边距：一级页签 36、二级叶子 34，紧凑但不挤 */
-.nav .nav-group-btn{height:36px}
-.nav .nav-group-btn::part(base){height:36px;min-height:36px;justify-content:center;padding:5px 4px;font-size:12px;border-radius:9px}
-.nav .nav-leaf{height:34px}
-.nav .nav-leaf::part(base){height:34px;min-height:34px;padding:7px 10px;font-size:12.5px;border-radius:9px}
+/* 一级 44、二级叶子 36；左侧对齐，不再把一级目录拉成居中页签。 */
+.nav .nav-group-btn{height:44px}
+.nav .nav-group-btn::part(base){height:44px;min-height:44px;justify-content:flex-start;padding:8px 10px;font-size:13px;border-radius:10px}
+.nav .nav-leaf{height:36px}
+.nav .nav-leaf::part(base){height:36px;min-height:36px;padding:8px 10px;font-size:12.5px;border-radius:9px}
 /* 底栏配置：入口在侧栏底部，勾选即存本地，不复制一份菜单数据 */
 .tab-config{flex:none;padding:10px 4px 2px;border-top:1px solid var(--line-2);margin-top:8px;background:var(--card)}
 .tcfg-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 6px 8px}
@@ -703,10 +714,13 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 }
 @media (max-width: 899px) {
   .rail-btn{display:none}
-  .nav-primary{flex-direction:column;gap:4px;padding-bottom:0;border-bottom:0}
+  .nav-primary{flex-direction:column;gap:2px;padding-bottom:0;border-bottom:0}
   .nav-primary>sl-button{flex:0 0 auto}
+  /* 抽屉默认只显示一级目录；点进某一组后才换成该组的二级目录，返回按钮回到一级。 */
+  .nav-secondary{display:none}
   .sidebar.group-open .nav-primary{display:none}
   .sidebar.group-open .nav-secondary{display:flex}
+  .nav-back{display:inline-flex}
 }
 
 /* ---- 窄屏响应式（手机 / 窄窗） ---- */
@@ -799,8 +813,8 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   /* 离屏区块交给浏览器跳过渲染；带卡片堆叠的区块要量高度，不能跳 */
   .view-scroll .vsec>.cards.deck{overflow:visible}
   /* 移动档沿用同一套 pcard token，只按比例略放大；不再单独把 pname 拉到 17.5px */
-  :root{--pcard-name:16px;--pcard-meta:12.5px;--pcard-stat-size:12.5px;--pcard-stat-num:20px;--pcard-pad:16px 16px 14px;--pcard-h:160px}
-  .cards>.pcard .chips{flex-wrap:nowrap;overflow:hidden}
+  :root{--pcard-name:16px;--pcard-meta:12.5px;--pcard-stat-size:12.5px;--pcard-stat-num:20px;--pcard-pad:16px 16px 14px;--pcard-h:190px}
+  .cards>.pcard .chips{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden}
   /* 表格折成「字段名 + 值」的行式卡片：不用横向拖表，列不会被裁掉 */
   .tbl-wrap{overflow-x:visible}
   .tbl-wrap table{min-width:0;width:100%}
@@ -912,9 +926,10 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
 .flow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:14px}
 .flow-grid.single{grid-template-columns:1fr}
 .flow-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px}
-.flow-card header{display:flex;align-items:baseline;gap:8px;margin-bottom:11px;min-width:0}
+.flow-card header{display:flex;align-items:center;gap:8px;margin-bottom:11px;min-width:0}
 .flow-card h4{margin:0;font-size:14px;font-weight:650}
-.flow-card header .muted{margin-left:auto;flex:none;font-size:11.5px}
+.flow-card header .muted{margin-left:0;flex:1;min-width:0;font-size:11.5px}
+.flow-card header .graph-zoom{margin-left:0}
 .flow-chain{list-style:none;margin:0;padding:0}
 .flow-state{display:flex;gap:10px;padding:0 0 14px;position:relative}
 .flow-state:last-child{padding-bottom:0}
@@ -940,7 +955,10 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
 .vsec-list .tree-children .tree-node>summary{padding:8px 10px}
 
 .vsec-fold>details{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.vsec-fold>details>summary{display:flex;align-items:baseline;gap:10px;padding:13px 16px;cursor:pointer;list-style:none}
+.vsec-fold>details>summary{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;list-style:none}
+.fold-aside{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none;min-width:0}
+.vsec-fold>details>summary .fold-aside .deck-pos{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.vsec-fold>details>summary .fold-aside sl-button{flex:none}
 .vsec-fold>details>summary::-webkit-details-marker{display:none}
 .vsec-fold>details>summary::before{content:"▸";color:var(--muted);font-size:11px}
 .vsec-fold>details[open]>summary::before{content:"▾"}
@@ -1017,6 +1035,10 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
   /* 露出的角要能读出这是哪一页：▸ 与标题同行，note 放不下才折行 */
   .vsec-fold>details>summary{flex-wrap:wrap;align-items:baseline;gap:4px 8px}
   .vsec-fold>details>summary .muted{flex:1 1 100%}
+  /* 带堆叠开关的折叠头在手机上不换行：标题在左、计数与“铺开”在右；说明让位 */
+  .vsec-fold>details>summary.has-aside{flex-wrap:nowrap;align-items:center}
+  .vsec-fold>details>summary.has-aside .muted{display:none}
+  .vsec-fold>details>summary.has-aside strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .wf-row{grid-template-columns:minmax(140px,50%) 1fr;gap:8px}
   .wf-caller{display:none}
   .wf-label{font-size:12px}
@@ -1037,6 +1059,15 @@ sl-button.role-mini b{font-size:12.5px;color:var(--fg);font-weight:600}
 #ops-insight .ops-fold>summary em{font-style:normal;color:var(--primary);font-size:12px}
 #ops-insight .ops-fold[open]>summary em{display:none}
 #ops-insight .ops-fold-body{padding:0 14px 14px;border-top:1px solid var(--line)}
+/* 窄屏知识树：列宽整体收紧，但三角/徽章/名称三列仍固定，空层与有子层对齐。 */
+@media (max-width:720px){
+  .tree-node>summary{grid-template-columns:12px 40px 72px minmax(0,1fr) auto;gap:6px;padding:8px 10px}
+  .tree-node-blank{grid-template-columns:12px 40px 72px minmax(0,1fr);gap:6px;padding:8px 10px}
+  .tree-node .badge{width:40px;min-width:40px;font-size:10.5px;padding-left:2px;padding-right:2px}
+  .tree-badge-slot{width:40px}
+  .tree-node-label{font-size:12.5px}
+  .tree-node-blank .tree-node-empty{font-size:11.5px}
+}
 </style>
 </head>
 <body>

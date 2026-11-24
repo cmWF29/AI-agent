@@ -59,16 +59,21 @@ def main(argv: list[str] | None = None) -> int:
     only = _parse_only(args.only)
     results: list[LayerResult] = []
     for lid, title, runner in LAYERS:
+        # 名单式选择：可以给层 ID（L0/L1/...），也可以给层内门禁名/模块名。
+        # 未命中本层的名单要整层跳过，不能把“只跑 L0”变成“五层全跑”。
+        sel = None
         if only and lid not in only:
-            # 名单式选择：L0 门禁名 / L1 模块名在各自层内再筛
-            pass
+            if lid == "L0":
+                sel = [g[0] for g in l0_static.GATES if g[0] in only]
+            elif lid == "L1":
+                sel = [m for m in l1_unit.MODULES if m in only]
+            if not sel:
+                continue
         started = time.monotonic()
         try:
             if lid == "L0":
-                sel = None if not only else [g[0] for g in l0_static.GATES if g[0] in only]
                 res = runner(selected=sel, timeout=args.timeout)
             elif lid == "L1":
-                sel = None if not only else [m for m in l1_unit.MODULES if m in only]
                 res = runner(selected=sel, timeout=args.timeout)
             else:
                 res = runner(timeout=args.timeout)

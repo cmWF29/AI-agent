@@ -437,6 +437,12 @@ routes:
       repush_text:
         type: any
         req: false
+      to:
+        type: any
+        req: false
+      to_kind:
+        type: any
+        req: false
       verdict:
         type: any
         req: false

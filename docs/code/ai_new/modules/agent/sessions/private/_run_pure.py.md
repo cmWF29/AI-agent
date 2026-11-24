@@ -1,10 +1,11 @@
 ---
 source: ai_new/modules/agent/sessions/private/_run_pure.py
-hash: 8be77b58649884d0fa9d25feba3fbbead96e4d8045875c06e928ff243e4428ea
+hash: 0fa2ce5822a70d21230d9fa7e60510f033a6565996457f5119be3adf4fe31e3a
 symbols:
 - appendmsg
 - _retrospect_enabled
 - mark
+- _msg_sig
 - finish
 - resume_plan
 - stuck_plan
@@ -42,6 +43,12 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `mark`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_msg_sig`（function）
+- 职责: 消息身份：检查点会在运行中把本轮消息写回 latest，收尾时不能把同一批再拼一遍。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

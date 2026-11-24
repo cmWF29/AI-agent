@@ -225,8 +225,10 @@ const CLICK_HANDLERS = {
   modal_backdrop() {},
   /* 堆叠滑动由 pointer 事件驱动；这里登记是为了让规格与页面双向闭合 */
   deck_swipe() {},
-  deck_toggle(el) {
-    const d = el.closest("[data-deck]");
+  deck_toggle(el, e) {
+    if (e && e.cancelable) e.preventDefault();   // 按钮在折叠 summary 里，别顺带把折叠开合一次
+    const d = el.closest("[data-deck]")
+      || (el.dataset.deckFor ? document.getElementById(el.dataset.deckFor) : null);
     if (!d) return;
     d.dataset.open = d.dataset.open === "1" ? "0" : "1";
     deckLayout(d);
@@ -302,8 +304,10 @@ function deckMetrics(d) {
 function deckLayout(d) {
   const cards = deckCards(d), n = cards.length;
   const stage = d.querySelector(".deck-stage");
-  const btn = d.querySelector("[data-deck-open]");
-  const posEl = d.querySelector(".deck-pos");
+  const ext = d.id ? d.parentElement.querySelector(`[data-deck-for="${d.id}"]`) : null;
+  const btn = d.querySelector("[data-deck-open]") || ext;
+  const posEl = d.querySelector(".deck-pos")
+    || (ext ? ext.parentElement.querySelector(".deck-pos") : null);
   const open = d.dataset.open === "1";
   if (btn) btn.textContent = open ? uiText("deck_collapse") : uiText("deck_expand", n);
   if (posEl) {
@@ -590,7 +594,7 @@ function renderNavPanels() {
     const icon = ({ "工作": "folder2", "资产": "book", "系统": "check-lg" })[g.name] || "";
     const ch = [...String(g.name || "?")][0] || "?";
     const ico = icon ? `<sl-icon name="${esc(icon)}"></sl-icon>` : `<span class="ico-ph">${esc(ch)}</span>`;
-    return `<sl-button variant="text" class="nav-group-btn${g.name === NAV_GROUP ? " on" : ""}" data-clk="nav_group" data-group="${esc(g.name)}" data-ctl="ctl.nav_group.${esc(ctlSlug(g.name))}" data-ctl-state="idle"><span class="nav-group-ico">${ico}</span><span class="nav-group-label">${esc(g.name)}</span></sl-button>`;
+    return `<sl-button variant="text" class="nav-group-btn${g.name === NAV_GROUP ? " on" : ""}" data-clk="nav_group" data-group="${esc(g.name)}" data-ctl="ctl.nav_group.${esc(ctlSlug(g.name))}" data-ctl-state="idle"><span class="nav-group-main"><span class="nav-group-ico">${ico}</span><span class="nav-group-label">${esc(g.name)}</span><em class="nav-group-count">${g.items.length}</em><span class="nav-group-arrow" aria-hidden="true">›</span></span></sl-button>`;
   };
   const navButton = (m) => {
     const navKey = menuNavKey(m);
@@ -601,8 +605,10 @@ function renderNavPanels() {
   const leaves = group.items;
   side.innerHTML = `<div class="nav-primary">${groups.map(groupButton).join("")}</div>
     <div class="nav-secondary">
-      <sl-button variant="text" class="nav-back" data-clk="nav_group" data-nav-back="1" data-ctl="ctl.nav_group.返回" data-ctl-state="idle">← ${esc(uiText("nav_all") || "全部分组")}</sl-button>
-      <div class="nav-sec-head"><span>${esc(group.name)}</span><em>${leaves.length}</em></div>
+      <div class="nav-sec-head">
+        <sl-button variant="text" class="nav-back" data-clk="nav_group" data-nav-back="1" data-ctl="ctl.nav_group.返回" data-ctl-state="idle" title="${esc(uiText("nav_all") || "全部分组")}">←</sl-button>
+        <span>${esc(group.name)}</span><em>${leaves.length}</em>
+      </div>
       <div class="nav-items">${leaves.length ? leaves.map(navButton).join("") : `<div class="nav-empty">${esc(uiText("nav_all_pinned") || "这一组都已收进底栏，可在「底栏配置」里调整")}</div>`}</div>
     </div>`;
   if (typeof stampCtl === "function") stampCtl(side);
@@ -627,6 +633,8 @@ function highlightNav() {
   if (g && g !== NAV_GROUP) { NAV_GROUP = g; renderNavPanels(); }
 }
 function openDrawer() {
+  // 每次打开抽屉都回到一级目录；二级目录只在用户主动点进去后出现。
+  $("drawer").classList.remove("group-open");
   $("drawer").classList.add("open");
   $("scrim").classList.add("open");
 }

@@ -6,7 +6,8 @@
 /* 折叠态：键 = 内容身份（会话/序位/工具/标签），存在 sessionStorage，
    任何一次重渲染或整页刷新都按原状恢复；展开是用户的意图，不能被渲染抹掉。 */
 function foldLoad() {
-  try { return new Map(Object.entries(JSON.parse(sessionStorage.getItem("hive.folds") || "{}"))); }
+  // 折叠默认收起；用新键名丢弃旧版本默认摊开的偏好，避免升级后仍满屏展开。
+  try { return new Map(Object.entries(JSON.parse(sessionStorage.getItem("hive.folds.v2") || "{}"))); }
   catch (e) { return new Map(); }
 }
 let FOLDS = foldLoad();
@@ -16,7 +17,7 @@ function foldSet(key, open) {
   try {
     const obj = {};
     for (const [k, v] of FOLDS) if (v) obj[k] = true;   // 只存展开的，数量有界
-    sessionStorage.setItem("hive.folds", JSON.stringify(obj));
+    sessionStorage.setItem("hive.folds.v2", JSON.stringify(obj));
   } catch (e) {}
 }
 function foldAttr(key) {
@@ -24,12 +25,14 @@ function foldAttr(key) {
   return ` data-fold="${esc(key)}"${FOLDS.get(key) ? " open" : ""}`;
 }
 /* 折叠唯一出口：section / 元素页 / 树分组 / 工具卡全部走这里一套 summary 视觉与持久化。
-   key 用 foldAttr 生成；未记录过状态的键由 expandFolds 在移动端默认摊开，已记录的不覆盖。 */
-function foldBox(key, title, note, body, cls) {
+   key 用 foldAttr 生成；默认收起，只有用户手动展开才在本次会话内恢复。 */
+function foldBox(key, title, note, body, cls, aside) {
   const clsAttr = cls ? ` ${cls}` : "";
   const noteHtml = note ? `<span class="muted">${esc(note)}</span>` : "";
+  const asideHtml = aside ? `<span class="fold-aside">${aside}</span>` : "";
+  const sumCls = aside ? "fold-sum has-aside" : "fold-sum";
   return `<details class="fold-box${clsAttr}"${foldAttr(key)}>
-    <summary data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><strong>${esc(title)}</strong>${noteHtml}</summary>
+    <summary class="${sumCls}" data-clk="section_fold" data-ctl="ctl.section_fold" data-ctl-state="idle"><strong>${esc(title)}</strong>${noteHtml}${asideHtml}</summary>
     ${body}
   </details>`;
 }
@@ -101,7 +104,8 @@ function emptyHtml(block) {
   return `<div class="empty">${block.title ? `<strong>${esc(fill(block.title, {}))}</strong>` : ""}${esc(fill(block.text || "", {}))}</div>`;
 }
 
-function cardsHtml(sec, ctx) {
+function cardsHtml(sec, ctx, opts) {
+  opts = opts || {};
   // items 是规格里的字面行（支持 {} 占位）；否则按 source 从取数结果取行
   const rows = Array.isArray(sec.items) ? sec.items : arr(ref(sec.source, ctx));
   if (!rows.length) return sec.hide_when_empty ? "" : emptyHtml(sec.empty);
@@ -160,11 +164,13 @@ function cardsHtml(sec, ctx) {
     const wrapCls = deck ? "cards" : (layout ? `cards ${layout}` : "cards");
     return `<div class="${wrapCls}">${cards}</div>`;
   }
-  return `<div class="cards deck" data-deck="1" data-open="0" data-pos="0">
-    <div class="deck-bar">
+  const deckId = opts.deckId ? ` id="${esc(opts.deckId)}"` : "";
+  const bar = opts.bar === false ? "" : `<div class="deck-bar">
       <span class="deck-pos">${esc(uiText("deck_pos", 1, sorted.length))}</span>
-      <sl-button class="deck-more" variant="default" size="small" data-clk="deck_toggle" data-deck-open="1">${esc(uiText("deck_expand", sorted.length))}</sl-button>
-    </div>
+      <sl-button class="deck-more" variant="default" size="small" data-clk="deck_toggle" data-deck-open="1"${opts.deckId ? ` data-deck-for="${esc(opts.deckId)}"` : ""}>${esc(uiText("deck_expand", sorted.length))}</sl-button>
+    </div>`;
+  return `<div class="cards deck"${deckId} data-deck="1" data-open="0" data-pos="0">
+    ${bar}
     <div class="deck-stage" data-clk="deck_swipe">${cards}</div>
   </div>`;
 }
@@ -281,11 +287,23 @@ function initial(name) {
   const s = String(name || "?").trim();
   return s ? esc(s[0]) : "?";
 }
+function memberIndexOf(who, roles) {
+  const name = String(who || "").trim();
+  if (!name) return -1;
+  return (roles || []).findIndex((r) => String((r && (r.display || r.role)) || "").trim() === name);
+}
+/* 消息头像与群聊标题头像共用同一入口：点开就是该成员的岗位卡。 */
+function msgAvatarHtml(who, roles) {
+  const idx = memberIndexOf(who, roles);
+  const av = `style="--av:${avatarColor(who)}"`;
+  if (idx < 0) return `<div class="avatar" ${av}>${initial(who)}</div>`;
+  return `<button type="button" class="avatar avatar-click" data-clk="member_chip" data-member="${idx}" ${av} title="查看 ${esc(who)} 的岗位">${initial(who)}</button>`;
+}
 function draftBubbleHtml(draft, roles) {
   const draftTxt = String((draft && draft.text) || "");
   if (!(draft && draft.running && draftTxt.trim())) return "";
   const who = speakerOf({ role: "assistant" }, roles);
-  return `<div class="msg left draft-bubble"><div class="avatar" style="--av:${avatarColor(who)}">${initial(who)}</div>
+  return `<div class="msg left draft-bubble">${msgAvatarHtml(who, roles)}
         <div class="msg-main"><div class="msg-name">${esc(who)}</div>
         <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`;
 }
@@ -377,10 +395,10 @@ function eventGroupHtml(g) {
   const label = eventLabel(g.event);
   const cnt = n > 1 ? ` ×${n}` : "";
   const first = g.items[0] || {};
-  // 接收人：事件带 to 就标「发给 <to>」；旧数据没有 to 才退回全员口径。文案读词表，不写中文常量。
-  const toLabel = first.to
-    ? uiText("ev_to", first.to)
-    : uiText("ev_to_all");
+  // 接收人：事件带 to 就按组内实际 target 逐个列出；旧数据没有 to 才退回「系统事件」，
+  // 不再把“缺少投递目标”误读成“发给全体”。
+  const tos = [...new Set(g.items.map((x) => String((x || {}).to || "").trim()).filter(Boolean))];
+  const toLabel = tos.length ? uiText("ev_to", tos.join("、")) : uiText("ev_to_all");
   const toHtml = toLabel ? `<span class="ev-to">${esc(toLabel)}</span>` : "";
   const text = eventText(g);
   const long = text.length > 60;
@@ -389,13 +407,29 @@ function eventGroupHtml(g) {
   return `<div class="msg event"><div class="sys-body${long ? " clamp" : ""}"${fold}><span class="ev-line"><span class="ev-label">${esc(label + cnt)}</span>${toHtml}${shown ? `<span class="ev-text">${esc(shown)}</span>` : ""}</span><span class="ev-ts">${esc(when(first.at))}</span></div></div>`;
 }
 
-/* 工具调用与它自己的结果合并成一张卡：assistant.tool_calls + 对应 tool_call_id 的回填 */
+/* 工具调用与它自己的结果合并成一张卡：assistant.tool_calls + 对应 tool_call_id 的回填。
+   流式落盘偶尔会先存一条“调用中”的 assistant 消息，再把同一次调用完整存一遍；
+   这里在配对后消掉“同参数 pending + 后续 result”的重复卡，避免一次调用出现两张。 */
+function toolCallPayload(m) {
+  const raw = String((m && m.content) == null ? "" : m.content);
+  let o = null;
+  try { o = JSON.parse(raw); } catch (e) {}
+  if (!o || typeof o !== "object") return { name: "", args: "" };
+  const args = o.args == null ? "" : (typeof o.args === "string" ? o.args : JSON.stringify(o.args));
+  return { name: String(o.tool || o.name || ""), args };
+}
+function callKey(name, args) { return String(name || "") + "\n" + String(args || ""); }
 function pairItems(msgs) {
   const pending = {};
+  const pendingByCall = {};
   const items = [];
   for (const m of msgs) {
     if (m.role === "tool") {
-      const call = m.tool_call_id ? pending[m.tool_call_id] : null;
+      let call = m.tool_call_id ? pending[m.tool_call_id] : null;
+      if (!call) {
+        const p = toolCallPayload(m);
+        call = pendingByCall[callKey(p.name, p.args)] || null;
+      }
       if (call && !call.result) { call.result = m; continue; }
       items.push({ kind: "tool", m, at: atSeconds(m.at) });
       continue;
@@ -403,13 +437,39 @@ function pairItems(msgs) {
     items.push({ kind: "msg", m, at: atSeconds(m.at) });
     for (const tc of m.tool_calls || []) {
       const fn = (tc && tc.function) || {};
-      const call = { kind: "call", name: fn.name || "", args: fn.arguments || "", result: null,
-                     at: atSeconds(m.at), owner: m };
+      const call = { kind: "call", id: (tc && tc.id) || "", name: fn.name || "",
+                     args: fn.arguments || "", result: null, at: atSeconds(m.at), owner: m };
       items.push(call);
       if (tc && tc.id) pending[tc.id] = call;
+      const key = callKey(call.name, call.args);
+      if (!pendingByCall[key]) pendingByCall[key] = call;
     }
   }
-  return items;
+  // 同一次调用被检查点重复落盘：call id + 参数 + 时间完全一致，只留一张；
+  // 如果先到的是“执行中”、后到的是结果，用带结果的那张替换，避免留一张永远 pending 的卡。
+  const keep = [];
+  const byId = new Map();
+  for (const it of items) {
+    if (it.kind !== "call" || !it.id) { keep.push(it); continue; }
+    const key = [it.id, it.name, it.args, it.at].join("\n");
+    const prev = byId.get(key);
+    if (!prev) { byId.set(key, it); keep.push(it); continue; }
+    if (!prev.result && it.result) {
+      const at = keep.indexOf(prev);
+      if (at >= 0) keep[at] = it;
+      byId.set(key, it);
+    }
+  }
+  // 没有 call id 的旧数据：只消“前面挂起、后面同参数已有结果”的那一张。
+  const finished = new Map();
+  keep.forEach((it) => {
+    if (it.kind === "call" && it.result) finished.set(callKey(it.name, it.args), it);
+  });
+  return keep.filter((it) => {
+    if (it.kind !== "call" || it.result || it.id) return true;
+    const done = finished.get(callKey(it.name, it.args));
+    return !(done && done.at >= it.at);
+  });
 }
 function toolBrief(m) {
   const raw = String((m && m.content) == null ? "" : m.content);
@@ -550,7 +610,7 @@ function renderBubbles(msgs, roles, wireDemand, wireChars, rawChars) {
     const side = g.cls === "user" ? "right" : "left";
     const bodies = groupBody(g);
     if (!bodies) return "";
-    const av = `<div class="avatar" style="--av:${avatarColor(g.who)}">${initial(g.who)}</div>`;
+    const av = msgAvatarHtml(g.who, roles);
     // 时间在消息之上：先看清"谁、什么时候发的"，再读内容；悬停给完整年月日
     const lastAt = (g.items[g.items.length - 1] || {}).at;
     const tm = timeText(lastAt);
@@ -775,15 +835,21 @@ function treeNodeHtml(node, sec, ctx, path) {
   const here = ((ctx.route || {}).view || "") + ":" + (path || "tree") + "/" + (node.type || "g") + ":" + (node.label || "");
   if (!count) {
     // 空层不装成可折叠的样子：不给假三角不给计数，但外观与折叠条同款一张卡——
-    // 同一枚徽章、同一行高、同一个壳，视觉上是同一棵树里的同级条目
-    const badge = (node.badge && node.badge !== node.label) ? `<sl-badge variant="neutral" class="badge">${esc(node.badge)}</sl-badge>` : "";
-    return `<div class="tree-node tree-node-blank">${badge}<span class="tree-node-label">${esc(node.label || "")}</span><span class="muted tree-node-empty">${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</span></div>`;
+    // 同一枚徽章、同一行高、同一个壳，视觉上是同一棵树里的同级条目。
+    // 三角和徽章都留固定槽位，避免“公共 / 项目 111 / 项目 A”三行文字左右错位。
+    const badge = (node.badge && node.badge !== node.label)
+      ? `<sl-badge variant="neutral" class="badge">${esc(node.badge)}</sl-badge>`
+      : `<span class="tree-badge-slot"></span>`;
+    return `<div class="tree-node tree-node-blank"><span class="tree-caret-slot"></span>${badge}<span class="tree-node-label">${esc(node.label || "")}</span><span class="muted tree-node-empty">${esc(uiText("tree_empty_layer") || uiText("empty_tree"))}</span></div>`;
   }
-  // 折叠是用户意图：键挂内容身份，重渲染/刷新按原状恢复；没动过按声明默认展开
+  // 折叠默认收起，只有用户在本会话手动展开过才恢复展开。
   const stored = FOLDS.get(here);
-  const openAttr = (stored === undefined ? !sec.collapsed : !!stored) ? " open" : "";
+  const openAttr = stored ? " open" : "";
+  const badge = (node.badge && node.badge !== node.label)
+    ? `<sl-badge variant="neutral" class="badge">${esc(node.badge)}</sl-badge>`
+    : `<span class="tree-badge-slot"></span>`;
   return `<details class="tree-node"${foldAttr(here)}${openAttr}>
-    <summary data-clk="tree_group">${node.badge && node.badge !== node.label ? `<sl-badge variant="neutral" class="badge">${esc(node.badge)}</sl-badge>` : ""}<span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
+    <summary data-clk="tree_group">${badge}<span class="tree-node-label">${esc(node.label || "")}</span>${sub}${sec.hide_count ? "" : `<span class="muted tree-node-count">${count}</span>`}</summary>
     <div class="tree-children">${kids.map((k) => treeNodeHtml(k, sec, ctx, here)).join("")}</div>
   </details>`;
 }
@@ -1303,8 +1369,23 @@ function sectionHtml(sec, ctx, idx) {
   const kind = sec.kind;
   // data-as：这一块吃哪份数据（规格里声明的）；失效来了只换它吃的那几块
   const marks = (idx == null ? "" : ` data-sec="${idx}"`) + (sec.as ? ` data-as="${esc(sec.as)}"` : "");
+  // 折叠声明先算出来：堆叠卡的“铺开”按钮要放进折叠标题行右侧，而不是卡片下面单起一行。
+  const viewKey = "view:" + (((ctx || {}).route || {}).view || "") + ":sec:" + idx;
+  let fold = null;
+  if (sec.fold) {
+    fold = { title: fill((sec.fold || {}).title || sec.heading || "", ctx),
+             note: sec.note ? fill(sec.note, ctx) : "" };
+  } else if (kind === "pages" || kind === "routes" || kind === "elems") {
+    fold = { title: fill(sec.heading || "", ctx), note: sec.note ? fill(sec.note, ctx) : "" };
+  }
+  const deckRows = (kind === "cards" && sec.layout === "deck")
+    ? (Array.isArray(sec.items) ? sec.items : arr(ref(sec.source, ctx))) : [];
+  const deckId = (kind === "cards" && sec.layout === "deck") ? "deck-" + ctlSlug(viewKey) : "";
+  const deckAside = (fold && deckRows.length > 1)
+    ? `<span class="deck-pos">${esc(uiText("deck_pos", 1, deckRows.length))}</span><sl-button class="deck-more" variant="default" size="small" data-clk="deck_toggle" data-deck-open="1" data-deck-for="${esc(deckId)}">${esc(uiText("deck_expand", deckRows.length))}</sl-button>`
+    : "";
   let html = "";
-  if (kind === "cards") html = secHead(sec, ctx) + cardsHtml(sec, ctx);
+  if (kind === "cards") html = secHead(sec, ctx) + cardsHtml(sec, ctx, { deckId, bar: !deckAside });
   else if (kind === "stats") html = statsHtml(sec, ctx);
   else if (kind === "flow") html = flowHtml(sec, ctx);
   else if (kind === "dag") html = dagHtml(sec, ctx);
@@ -1325,16 +1406,8 @@ function sectionHtml(sec, ctx, idx) {
   else if (kind === "composer") html = composerHtml(sec, ctx);
   else html = emptyHtml({ text: uiText("unknown_kind", kind) });
   // sec.fold 是规格声明的折叠；pages/routes/elems 三个主区块内容过多，默认同样收起。
-  const viewKey = "view:" + (((ctx || {}).route || {}).view || "") + ":sec:" + idx;
-  let fold = null;
-  if (sec.fold) {
-    fold = { title: fill((sec.fold || {}).title || sec.heading || "", ctx),
-             note: sec.note ? fill(sec.note, ctx) : "" };
-  } else if (kind === "pages" || kind === "routes" || kind === "elems") {
-    fold = { title: fill(sec.heading || "", ctx), note: sec.note ? fill(sec.note, ctx) : "" };
-  }
   if (fold) {
-    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"${marks}>${foldBox(viewKey, fold.title, fold.note, html)}</div>`;
+    return `<div class="vsec${sec.list ? " vsec-list" : ""} vsec-fold" data-kind="${esc(kind)}"${marks}>${foldBox(viewKey, fold.title, fold.note, html, "", deckAside)}</div>`;
   }
   return `<div class="vsec${sec.list ? " vsec-list" : ""}" data-kind="${esc(kind)}"${marks}>${html}</div>`;
 }
@@ -1347,27 +1420,9 @@ function pruneEmptyCards() {
 }
 
 function expandFolds() {
-  // 手机上一页到底：折叠块直接摊开，标题与说明都看得见
-  const rail = document.querySelector("#view-body .view-scroll");
-  if (!rail) return;
-  // 群聊页把双栏合成一张卡，里面的 chat/composer 不是独立页，不参与翻页计数
-  const cards = [...rail.querySelectorAll(".vsec")].filter((s) => {
-    const grid = s.closest(".ticket-grid");
-    return !grid || getComputedStyle(grid).display === "contents";
-  });
-  if (!cards.length) return;
-  // 手机上是纵向卡片堆叠：折叠块默认摊开，免得只看到一行标题不知道这页是什么。
-  // 只摊开"本次渲染未记录过状态"的键；用户手动收起/展开过的，按 foldAttr 持久化态恢复，不覆盖。
-  if (getComputedStyle(rail).flexDirection === "column") {
-    cards.forEach((c) => c.querySelectorAll(":scope > details, :scope > .orphans > details")
-      .forEach((d) => {
-        const key = d.dataset.fold;
-        if (!key) return;
-        if (!FOLDS.has(key)) d.open = true;
-      }));
-  }
+  // 折叠默认收起：不再按屏幕宽度自动摊开，也不覆盖用户手动状态。
+  // 用户要的是“先看到结构，想看再点”，所有抽屉/折叠/收缩都遵守这条。
 }
-
 function headHtml(spec, ctx) {
   // 页头徽章：已归档/只读这类"整页的态"必须写在标题旁，而不是藏在某个区块里
   const badges = (spec.badges || []).filter((b) => b && condOf(b.when, ctx))

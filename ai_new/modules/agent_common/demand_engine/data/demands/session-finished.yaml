@@ -164,6 +164,9 @@ do:
       get: rev.verdict
     repush_text:
       get: repush.text
+    to:
+      get: event.data.role
+    to_kind: role
     exhausted_text:
       get: exh.text
     pass_text:

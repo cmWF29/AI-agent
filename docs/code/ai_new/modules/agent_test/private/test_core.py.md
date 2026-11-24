@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 8e11f55d4d901e098639288e21d736b64fbfb38e39a1cc54954ab7fd4907d39e
+hash: 2691f765b56b92cb92863c0dda3382682e78ccb1f6f678d6754347b7ed1fbad8
 symbols:
 - __init__
 - __call__
@@ -116,6 +116,8 @@ symbols:
 - test_react_schema_normalizes_list_to_array
 - test_react_result_carries_failure
 - test_finish_records_and_clears_last_error
+- test_finish_does_not_duplicate_checkpointed_run_messages
+- test_finish_keeps_messages_arrived_during_run
 - test_finish_records_stage_and_alert
 - test_thread_exposes_session_meta
 - test_thread_messages_carry_at
@@ -834,6 +836,18 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_finish_records_and_clears_last_error`（method）
 - 职责: 失败原因落进会话 meta；下一轮成功后清除上一次的错误痕迹。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_finish_does_not_duplicate_checkpointed_run_messages`（method）
+- 职责: 轮内检查点已把本轮消息写进 latest，收尾不能把同一批消息再拼一遍。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_finish_keeps_messages_arrived_during_run`（method）
+- 职责: 运行期间真正新插入的用户消息仍要接在尾部，不能被检查点去重误删。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

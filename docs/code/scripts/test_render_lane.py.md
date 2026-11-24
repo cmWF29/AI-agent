@@ -1,6 +1,6 @@
 ---
 source: scripts/test_render_lane.py
-hash: 798795e3157198a41321a79f3452f780f1c93bc49935162b0094cece80121f94
+hash: 115111a4ebfa9451f01056642247b12b5d5f9c58dddddae27736d09b4d937cc7
 symbols:
 - check
 - src

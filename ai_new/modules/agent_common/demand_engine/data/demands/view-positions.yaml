@@ -22,7 +22,6 @@ view:
     title: row.cn
     meta:
     - {label: 提示词, value: row.prompt_file}
-    - {label: 工具, value: "row.tools|count", suffix: 个}
     - {label: 流程检查, value: "row.flow.checks|count", suffix: 项}
     chips:
     - {label: 状态机, from: row.stages, text: cn}

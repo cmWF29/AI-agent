@@ -82,10 +82,11 @@ view:
     title: row.cn
     badge: {when: row.disabled == true, text: 本项目已禁用}
     stat: {count: "row.flow.checks|count", label: 项门禁检查, note: "流程 {row.flow.cn}"}
-    chips: {label: 状态机, from: row.stages, text: cn}
+    chips:
+    - {label: 状态机, from: row.stages, text: cn}
+    - {label: 工具, from: row.tools_enabled}
     meta:
     - {label: 提示词, value: row.prompt_file}
-    - {label: 可用工具, value: row.tools_sum}
     on_click: {view: position, params: {position: row.id}}
     actions:
     - label: 禁用

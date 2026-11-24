@@ -1996,6 +1996,12 @@ class CoreTest(unittest.TestCase):
             self.assertEqual(ev["event"], event)
             self.assertEqual((ev["to"], ev["to_kind"]), ("T-1", "ticket"))
 
+        role_push = ticket_pure.review_mark({"rec": rec, "verdict": "repush", "now": 6,
+                                            "repush_text": "补缺口", "to": "tester",
+                                            "to_kind": "role"})
+        ev = role_push["history"][-1]
+        self.assertEqual((ev["to"], ev["to_kind"]), ("tester", "role"))
+
     def test_purge_orphan_tickets_script(self):
         """孤儿工单清理脚本：盘点→备份→删除→清清单，幂等；在册工单条目保留。"""
         import importlib.util
@@ -2844,6 +2850,38 @@ class CoreTest(unittest.TestCase):
         cleared = sess_run.finish({"rec": done, "out": ok_out, "latest": {}, "now": 2,
                                    "result_chars": 500})
         self.assertNotIn("last_error", cleared["meta"])
+
+    def test_finish_does_not_duplicate_checkpointed_run_messages(self):
+        """轮内检查点已把本轮消息写进 latest，收尾不能把同一批消息再拼一遍。
+
+        这是线上一次工具调用出现两张卡（“执行中” + “结果”）的根因：同一轮 assistant/tool
+        往返在会话里存了两份，前端按 tool_call_id 配对时第一份永远等不到结果。
+        """
+        base = [{"role": "user", "content": "开始"}]
+        run = [{"role": "assistant", "content": "", "at": 10,
+                "tool_calls": [{"id": "call_1", "function": {"name": "artifact_write"}}]},
+               {"role": "tool", "content": "已落盘", "at": 11, "tool_call_id": "call_1"}]
+        rec = {"id": "role-1", "messages": base}
+        out = {"messages": base + run, "steps": 2, "last": {"content": ""},
+               "cancelled": False, "failed": None}
+        latest = {"messages": base + run}
+        done = sess_run.finish({"rec": rec, "out": out, "latest": latest, "now": 12,
+                                "result_chars": 500})
+        self.assertEqual(len(done["messages"]), 3)
+        self.assertEqual([m["role"] for m in done["messages"]], ["user", "assistant", "tool"])
+
+    def test_finish_keeps_messages_arrived_during_run(self):
+        """运行期间真正新插入的用户消息仍要接在尾部，不能被检查点去重误删。"""
+        base = [{"role": "user", "content": "开始"}]
+        run = [{"role": "assistant", "content": "处理中", "at": 10}]
+        rec = {"id": "role-1", "messages": base}
+        out = {"messages": base + run, "steps": 1, "last": {"content": "处理中"},
+               "cancelled": False, "failed": None}
+        latest = {"messages": base + run + [{"role": "user", "content": "补充一句"}]}
+        done = sess_run.finish({"rec": rec, "out": out, "latest": latest, "now": 12,
+                                "result_chars": 500})
+        self.assertEqual([m.get("content") for m in done["messages"]],
+                         ["开始", "处理中", "补充一句"])
 
     def test_finish_records_stage_and_alert(self):
         """合法跳转落新阶段；非法跳转保留旧阶段并留告警；无校验时按 out.stage 落库。"""

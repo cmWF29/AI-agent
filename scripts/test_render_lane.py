@@ -62,7 +62,28 @@ async def main():
         body3 = await pg.evaluate("""() => composeBody({single:[], left:['<p>L</p>'], right:[]})""")
         check("单侧有内容走 solo", "solo" in body3 and "lane-right" not in body3, body3[:160])
 
-        # 4) 真实页面不报错（秘书页/项目详情用到了 lane）
+        # 4) 工具往返去重：检查点把同一轮消息重复落库时，只保留带结果的那一张卡。
+        dup = await pg.evaluate("""() => {
+            const base = [{role:'user', content:'开始'}];
+            const run = [
+              {role:'assistant', content:'', at:10, tool_calls:[
+                {id:'call_1', function:{name:'artifact_write', arguments:'{"path":"docs/feature.md"}'}}]},
+              {role:'tool', content:'{"ok":true,"result":{"text":"已落盘"}}', at:11, tool_call_id:'call_1'}
+            ];
+            return pairItems(base.concat(run, run)).filter((x) => x.kind === 'call').length;
+        }""")
+        check("重复工具往返只留一张卡", dup == 1, dup)
+
+        # 5) 消息头像与群聊标题头像共用 member_chip 入口。
+        av = await pg.evaluate("""() => {
+            window.ROLE_COLORS = {};
+            window.paletteOf = () => ['#123456'];
+            window.esc = (x) => String(x == null ? '' : x);
+            return msgAvatarHtml('tester', [{display:'tester', role:'tester'}]);
+        }""")
+        check("消息头像可点开成员卡", 'data-clk="member_chip"' in av and 'data-member="0"' in av, av)
+
+        # 6) 真实页面不报错（秘书页/项目详情用到了 lane）
         check("注入 render.js 无 JS 异常", not errors, errors[:3])
         await b.close()
     if FAILS:

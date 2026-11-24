@@ -459,8 +459,13 @@ def review_mark(p):
     if not hit:
         return rec
     event, text = hit
+    # 回催是发给具体岗位会话的，不是发给工单、更不是广播给全体；
+    # 只有调用方显式带了接收岗位才改，旧调用/旧数据仍按工单归属，避免影响历史语义。
+    to, to_kind = rec.get("id") or "", "ticket"
+    if verdict == "repush" and p.get("to"):
+        to, to_kind = str(p.get("to") or ""), str(p.get("to_kind") or "role")
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": event, "text": text,
-                                          "to": rec.get("id") or "", "to_kind": "ticket"})
+                                          "to": to, "to_kind": to_kind})
     rec["updated"] = p.get("now") or ""
     return rec
 

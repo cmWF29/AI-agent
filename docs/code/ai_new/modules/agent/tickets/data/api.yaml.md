@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/tickets/data/api.yaml
-hash: c7113e8237bdcb0ca09ad768af78af05f3deab0d4cfbe44c1b12435b31e7ed24
+hash: b606c2521a9760df3c016e533c37011a28724500f8ca01e1ab81419fa129c2a2
 symbols:
 - module
 - routes

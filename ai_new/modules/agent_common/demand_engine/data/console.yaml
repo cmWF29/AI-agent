@@ -139,7 +139,7 @@ ui:
   wire_req_body: 请求体
   wire_resp_body: 响应原文
   ev_to: "发给 {}"
-  ev_to_all: "发给 全体"
+  ev_to_all: "系统事件"
   role_board: 岗位状态
   wire_left: 消息
   wire_right: 原始报文

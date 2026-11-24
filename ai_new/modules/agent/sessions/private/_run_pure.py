@@ -44,16 +44,33 @@ def mark(p):
     return rec
 
 
+def _msg_sig(m):
+    """消息身份：检查点会在运行中把本轮消息写回 latest，收尾时不能把同一批再拼一遍。"""
+    calls = tuple(str((c or {}).get("id") or "") for c in ((m or {}).get("tool_calls") or []))
+    return (str((m or {}).get("role") or ""), str((m or {}).get("content") or ""),
+            str((m or {}).get("tool_call_id") or ""), calls, str((m or {}).get("at") or ""),
+            str((m or {}).get("kind") or ""))
+
+
 def finish(p):
     rec = dict(p.get("rec") or {})
     limit = int(p.get("result_chars"))
     out = p.get("out") or {}
     base = list(rec.get("messages") or [])
     msgs = list(out.get("messages") or base)
-    # 运行期间用户又发了消息：它们在 latest 里，不在本轮快照里，必须接在后面，否则被覆盖丢失
+    # 运行期间用户又发了消息：它们在 latest 里，不在本轮快照里，必须接在后面，否则被覆盖丢失。
+    # 但轮内检查点也会把本轮 assistant/tool 消息写进 latest；先把 out 已包含的本轮消息
+    # 从 latest 尾部一一抵扣，只留下真正新插进来的消息，避免每轮整段消息重复落库。
     fresh = list((p.get("latest") or {}).get("messages") or [])
-    if len(fresh) > len(base):
-        msgs = msgs + fresh[len(base):]
+    extra = fresh[len(base):] if len(fresh) > len(base) else []
+    for run_msg in msgs[len(base):]:
+        sig = _msg_sig(run_msg)
+        for i, extra_msg in enumerate(extra):
+            if _msg_sig(extra_msg) == sig:
+                del extra[i]
+                break
+    if extra:
+        msgs = msgs + extra
     rec["messages"] = msgs
     rec["status"] = "idle"
     rec["steps"] = out.get("steps") or 0

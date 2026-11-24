@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/tickets/private/_pure.py
-hash: 36f155fab4170bd55dad29bb9e06155344d624c5396e062106c77f8c2a3410df
+hash: 4efd85774bf7d0e1e47c95a613de4b3e58c293285575239c7484a8e65a3d593d
 symbols:
 - _glob_one
 - _glob
