@@ -13,7 +13,7 @@
 | L2 | 接口契约 | 不可信输入打穿、未登录放行、内部路由外泄、越权直调、路径穿越、重复投递双跑 | 真装配 + 真 HTTP 闸，对业务路由跑非法输入矩阵与鉴权/越权/穿越/幂等探针 |
 | L3 | 系统级 E2E（ST） | 前后端接线断裂：点按钮没反应、弹窗/表单没加载、提交后列表不更新 | 真浏览器（Chromium/Playwright）+ 真后端：自动发现并巡检全部视图与弹窗表单；项目跑“建→改名→归档→删除”，工单跑“建→发消息→回复→结单→归档→删除”闭环并清理 |
 | L4 | 韧性 | 进程被杀、写盘中断、租约过期、节点下线、重复投递、恢复后双跑 | 本机多进程模拟，走真实幂等台账 `store.claim/renew/settle/sweep` |
-| L5 | 覆盖率 | 用例跑绿但核心机制根本没被执行；只测表层入口 | `coverage run --branch` + `scripts/gate_coverage.py`：整体行/分支阈值 + 关键模块（react/sessions/todos/library）单独阈值 |
+| L5 | 覆盖率 | 用例跑绿但核心机制根本没被执行；只测表层入口 | `coverage run --branch` + `scripts/gate_coverage.py`：整体行/分支阈值 + 关键模块（react/sessions/todos/library）单独阈值；另由 `gate_diff_coverage.py` 强制 base..HEAD 改动行 ≥90% |
 
 ## 怎么单独跑
 
@@ -80,6 +80,17 @@ python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
 - 测试代码与前端静态资源不计入；
 - 没有数据文件直接红，不允许「没跑 coverage 但当作通过」；
 - 覆盖率不是目的：关键机制用例必须断言行为，不能只靠执行过一行代码。
+
+改动行门禁：
+
+```bash
+python3 scripts/gate_diff_coverage.py --data-file /tmp/hive.coverage
+```
+
+- base 取 CI 的 `GITHUB_BASE_SHA`，本地回退 `HEAD^`；找不到 base 直接红；
+- 只统 `ai_new/modules` 下产品 Python 新增行，测试与前端资源不计；
+- 可执行性由 coverage 的 executed/missing 判定，阈值读 `coverage.json` 的 `changed_line`（90%）；
+- 文件在报告里但新增行都不可执行时按通过；新增文件完全未进 coverage 报告直接红。
 
 ## 与既有模块的关系
 

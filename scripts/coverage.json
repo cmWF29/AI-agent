@@ -9,5 +9,6 @@
     "ai_new/modules/agent/todos/",
     "ai_new/modules/agent/library/"
   ],
-  "note": "阈值是下限：低于此线阻断 CI；提高阈值前先补用例，不允许为了过线删断言或排除模块。"
+  "note": "阈值是下限：低于此线阻断 CI；提高阈值前先补用例，不允许为了过线删断言或排除模块。",
+  "changed_line": 90.0
 }

@@ -171,7 +171,7 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 | L1 单元 | 核心、架构、需求、装配、传输、幂等、桩、隔离、节点、分布式、归档、秘书、定时、角色门禁、技能拆解、React 机制 | 纯函数断言、状态迁移、并发、边界 |
 | L2 契约 | 非法输入、鉴权、越权、穿越、幂等 | 真装配 + 真 HTTP |
 | L3 E2E | verify_ui、verify_e2e、verify_pages、verify_controls | 真浏览器 + 真后端；业务闭环、全页可达、全表单可开、安全控件真点击 |
-| 覆盖率 | gate_coverage | coverage data + 行/分支/关键模块阈值 |
+| 覆盖率 | gate_coverage / gate_diff_coverage | coverage data + 行/分支/关键模块阈值；base..HEAD 新增产品代码行单独 ≥90% |
 | L4 韧性 | 中断恢复、租约、重复投递、恢复不双跑 | 多进程 + 真实台账 |
 
 新增测试放置：纯函数/状态机进 `agent_test/private/test_*.py`；契约探针进 `scripts/lib/layers/l2_contract.py`；浏览器用例进 `scripts/verify_*.py`；静态规则进 `scripts/gate_*.py` 并登记 L0。新增测试必须登记 check 与模块，否则需求↔用例映射门禁红。
@@ -189,7 +189,7 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 - 健康检查：live/self，模块数、需求数、hook 点闭合；
 - 日志：按项目/工单分层，工具大输出落 ticket 层，事件与审计分开；
 - 指标：压缩量、解压分位、缓存命中、节点归属、租约剩余；
-- CI：静态门禁 → 全量用例（coverage）→ 覆盖率门禁 → 真浏览器回归；
+- CI：静态门禁 → 全量用例（coverage）→ 覆盖率门禁 → 改动行覆盖率门禁 → 真浏览器回归；
 - 失败日志写 job summary，保留尾部便于定位环境差异。
 
 ## 11. 已知限制
@@ -200,7 +200,7 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 - 云端删除要显式 prune，默认不删共享远端对象；
 - node_worker 仍是命令式桩执行体，不是实际任务工作进程；
 - bwrap 没有 seccomp/cgroup，保留共享网络，未挂 `/proc`；
-- 覆盖率为整体与关键模块阈值，未做逐行 changed-line 强制；
+- 覆盖率已按 base..HEAD 强制改动行 ≥90%；只对产品 Python 新增行计数，测试与文案改动不虚增分母；
 - 前端视觉回归覆盖页面可达和关键交互，不等于像素级设计稿比对。
 
 这些限制必须在发布说明里保留，不能因为门禁绿了就当成能力已经完整。

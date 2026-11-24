@@ -175,6 +175,12 @@ checks:
   - skill-uninstall
   - todo-write
   - todo-context
+- id: diff-coverage
+  title: 改动行覆盖率门禁解析（只算产品代码新增行，可执行性由 coverage 判定）
+  module: test_gate_diff_coverage
+  kind: runtime
+  enabled: true
+  demands: []
 - id: react-mechanisms
   title: React 核心机制（流程状态机/清单状态机/逐轮压缩）
   module: test_react_mechanisms

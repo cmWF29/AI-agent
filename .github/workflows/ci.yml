@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -44,7 +46,7 @@ jobs:
         working-directory: ai_new/modules/agent_test/private
         run: |
           set -o pipefail
-          python3 -m coverage run --rcfile="$GITHUB_WORKSPACE/scripts/coverage.ini" --branch --data-file=/tmp/hive.coverage --source="$GITHUB_WORKSPACE/ai_new/modules" -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_distributed test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows test_cloud test_cloud_guard test_cloud_seal test_cloud_sync test_cloud_s3 test_cloud_webdav test_react_mechanisms 2>&1 | tee /tmp/full-tests.log
+          python3 -m coverage run --rcfile="$GITHUB_WORKSPACE/scripts/coverage.ini" --branch --data-file=/tmp/hive.coverage --source="$GITHUB_WORKSPACE/ai_new/modules" -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_distributed test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows test_cloud test_cloud_guard test_cloud_seal test_cloud_sync test_cloud_s3 test_cloud_webdav test_react_mechanisms test_gate_diff_coverage 2>&1 | tee /tmp/full-tests.log
       - name: 失败测试名（注解可见，不必登录下载日志）
         if: failure()
         run: |
@@ -53,6 +55,10 @@ jobs:
           fi
       - name: 覆盖率门禁（行/分支/关键机制模块）
         run: python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
+      - name: 改动行覆盖率门禁（新增/修改产品代码 ≥90%）
+        env:
+          GITHUB_BASE_SHA: ${{ github.event.before }}
+        run: python3 scripts/gate_diff_coverage.py --data-file /tmp/hive.coverage
       - name: 全量用例失败日志
         if: failure()
         uses: actions/upload-artifact@v4
