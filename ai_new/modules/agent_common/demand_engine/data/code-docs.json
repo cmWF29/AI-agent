@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T01:15:10",
+  "generated": "2026-11-25T02:14:54",
   "total": 518,
   "groups": [
     {
@@ -4619,7 +4619,7 @@
           "doc": "docs/code/scripts/ui_inventory.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "99866beaf2102e224a5811ad31db1f11553a603c05805d780867e9a390d704a4",
+          "hash": "8c6420a945dc6d08ea32b62f1817015e0094ea7dff1915b1923b68b875bf3ceb",
           "symbols": 8,
           "updated_at": "2026-11-23T04:10:23"
         },
@@ -4637,7 +4637,7 @@
           "doc": "docs/code/scripts/verify_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "174d9b5176b2f93232655f4d011db1533662063658ab1050b1a74c77c53f2992",
+          "hash": "12bc710943f4b8a0624c163db81d08f25a2f5a50f24cca92bbf4b1908e01972f",
           "symbols": 17,
           "updated_at": "2026-11-24T12:48:33"
         },

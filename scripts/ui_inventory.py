@@ -117,6 +117,9 @@ async def collect(pages):
             items = await pg.evaluate("""() => {
               const sel = 'button,sl-button,sl-icon-button,sl-tab,[data-act],[data-clk],[data-cube],summary,details.tool-call';
               return [...document.querySelectorAll(sel)].filter((e) => {
+                // 原生 details/summary 是浏览器自带的展开收起，不是需要状态机的动作控件；
+                // 工具卡里的按钮仍会被单独枚举。
+                if (e.tagName === 'SUMMARY' || e.tagName === 'DETAILS') return false;
                 const r = e.getBoundingClientRect();
                 return r.width > 0 && r.height > 0 && !e.closest('[hidden]');
               }).map((e) => ({ctl: e.dataset.ctl || '', clk: e.dataset.clk || '',

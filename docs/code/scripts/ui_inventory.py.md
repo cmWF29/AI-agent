@@ -1,6 +1,6 @@
 ---
 source: scripts/ui_inventory.py
-hash: 99866beaf2102e224a5811ad31db1f11553a603c05805d780867e9a390d704a4
+hash: 8c6420a945dc6d08ea32b62f1817015e0094ea7dff1915b1923b68b875bf3ceb
 symbols:
 - source_sig
 - slug

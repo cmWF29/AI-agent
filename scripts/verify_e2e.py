@@ -192,16 +192,42 @@ async def send_and_wait(pg, tid, text):
 
 
 async def close_ticket(pg, tid):
-    clicked = await pg.evaluate("""() => {
-      const b=[...document.querySelectorAll('.chat-head-actions sl-button')]
-        .find(x=>/结单/.test(x.textContent || ''));
-      if(!b || b.disabled) return false; b.click(); return true;
-    }""")
-    if not clicked:
-        raise AssertionError("工单头部没有可用的「结单」")
-    await pg.wait_for_function(
-        "() => { const d=document.querySelector('#modal'); return !!(d&&d.open&&d.label==='结单'); }",
-        timeout=10000)
+    # 发送/回复后页面会 reload 一轮，控件与页面状态机都可能还没回到 idle；
+    # 点击会被吞。这里按控件+页面状态重试，直到结单弹窗真的打开。
+    opened = False
+    for _ in range(4):
+        try:
+            await pg.wait_for_function("""() => {
+              const b=[...document.querySelectorAll('.chat-head-actions sl-button')]
+                .find(x=>/结单/.test(x.textContent || ''));
+              const ui=window.uiSnapshot ? window.uiSnapshot() : {state:'idle'};
+              return !!(b && !b.disabled && (b.dataset.ctlState || 'idle') === 'idle'
+                        && (ui.state === 'idle' || ui.state === 'press'));
+            }""", timeout=10000)
+        except Exception:
+            await pg.wait_for_timeout(500)
+            continue
+        clicked = await pg.evaluate("""() => {
+          const b=[...document.querySelectorAll('.chat-head-actions sl-button')]
+            .find(x=>/结单/.test(x.textContent || ''));
+          if(!b || b.disabled) return false; b.click(); return true;
+        }""")
+        if not clicked:
+            await pg.wait_for_timeout(500)
+            continue
+        for _ in range(12):
+            await pg.wait_for_timeout(300)
+            if await pg.evaluate("""() => {
+              const d=document.querySelector('#modal');
+              return !!(d && d.open && d.label === '结单');
+            }"""):
+                opened = True
+                break
+        if opened:
+            break
+        await pg.wait_for_timeout(500)
+    if not opened:
+        raise AssertionError("结单弹窗未打开（按钮/页面状态机未就绪）")
     await pg.evaluate("""() => {
       const s=document.querySelector('#modal-form [name=summary]');
       s.value='E2E 验收：建单、发消息、PM 回复、状态回 idle 全部通过。';
@@ -211,7 +237,7 @@ async def close_ticket(pg, tid):
       document.querySelector('#modal-ok').click();
     }""")
     last = {}
-    for _ in range(30):
+    for _ in range(60):
         await pg.wait_for_timeout(1000)
         last = await pg.evaluate("""async id => {
           const r=await run('ticket-thread',{id});

@@ -58,19 +58,27 @@ jobs:
         run: |
           echo "## 全量用例失败尾部" >> "$GITHUB_STEP_SUMMARY"
           tail -n 120 /tmp/full-tests.log >> "$GITHUB_STEP_SUMMARY"
-      - name: UI 回归（真实浏览器起桩遍历：控件状态机实拉 + 可点实例数核对）
+      - name: UI 回归环境（装 Chromium + 起桩）
         run: |
           pip install playwright
           python3 -m playwright install --with-deps chromium
-          export CHROME="$(python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()")"
           AI_NEW_STUB=1 nohup python3 agent_start.py > /tmp/stub.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8787/api/health/live >/dev/null && break; sleep 2; done
           curl -sf http://127.0.0.1:8787/api/health/live
+      - name: UI 回归（控件状态机实拉）
+        run: |
+          export CHROME="$(python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()")"
           python3 scripts/verify_ui.py
-          python3 scripts/verify_e2e.py
-          python3 scripts/verify_pages.py
-          python3 scripts/verify_controls.py
-          python3 scripts/ui_inventory.py --check
+      - name: E2E 项目闭环（新建→改名→归档→删除）
+        run: python3 scripts/verify_e2e.py --scenario project
+      - name: E2E 工单闭环（建单→消息→PM 回复→结单→归档）
+        run: python3 scripts/verify_e2e.py --scenario ticket
+      - name: 全页可达 + 全表单可开
+        run: python3 scripts/verify_pages.py
+      - name: 安全控件真实点击（逐页重载 + 状态机核对）
+        run: python3 scripts/verify_controls.py
+      - name: 可点实例清单签名核对
+        run: python3 scripts/ui_inventory.py --check
 
   isolation-windows:
     # Windows 真机装配 + 路径语义 + 核心用例：纯判定层在 Linux 上先覆盖，
