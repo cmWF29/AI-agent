@@ -43,6 +43,8 @@ GATES: list[tuple[str, str, Path, bool]] = [
      SCRIPTS / "gate_copy.py", True),
     ("levels", "四级层级：能力 center/node 声明、互斥与证据真实",
      SCRIPTS / "gate_levels.py", True),
+    ("wiring", "接线：表单提交→需求 with→API 入参逐项贯通",
+     SCRIPTS / "gate_wiring.py", True),
 ]
 
 

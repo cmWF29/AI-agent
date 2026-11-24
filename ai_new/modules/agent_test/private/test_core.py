@@ -1122,7 +1122,7 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(Path(ws["dirs"]["tickets"]).resolve(), root.resolve() / "tickets")
         self.assertEqual(ws["ticket_pattern"], str(root.resolve() / "tickets") + "/<工单ID>")
         self.assertEqual([x["name"] for x in ws["layers"]],
-                         ["项目根", "共享文档", "共享日志", "共享交付件", "工单工作区"])
+                         ["项目根", "公共文档", "公共日志", "公共交付件", "工单工作区"])
 
         self._run("projects-set-root", {
             "id": created["id"], "root": ""})

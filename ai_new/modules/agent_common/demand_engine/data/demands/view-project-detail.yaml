@@ -51,12 +51,12 @@ view:
   - {label: ＋ 新建工单, tone: primary, modal: ticket.new,
      disabled_when: "{project.archived}", disabled_hint: 已归档项目不能再建工单}
   sections:
-  # 路径是项目的第一现场：先看共享层和工单隔离目录，再进业务区
+  # 路径是项目的第一现场：先看公共层和工单隔离目录，再进业务区
   - kind: table
     as: workspace
     source: workspace.layers
     heading: 项目工作区
-    count_note: "模式：{data.workspace.mode|label} · 共享层固定，工单目录独立"
+    count_note: "模式：{data.workspace.mode|label} · 公共层固定，工单目录独立"
     columns:
     - {label: 层, value: row.name, sub: row.scope}
     - {label: 路径, value: row.path}

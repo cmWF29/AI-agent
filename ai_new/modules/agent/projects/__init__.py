@@ -64,7 +64,7 @@ def setup(ctx):
         ctx.api.register(name, _as_handler(fn), module="projects")
     ctx.api.register("projects.create", _route_create, "新建项目：归一→造档→查重→落盘→回执", module="projects")
     ctx.api.register("projects.set_root", _route_set_root, "设置项目路径：校验绝对路径→写档案→回执", module="projects")
-    ctx.api.register("projects.workspace", _route_workspace, "解析项目工作区：共享层与工单隔离目录", module="projects")
+    ctx.api.register("projects.workspace", _route_workspace, "解析项目工作区：公共层与工单隔离目录", module="projects")
     ctx.api.register("projects.remove", _route_remove, "删除项目：purge 真删，否则归档", module="projects")
     ctx.api.register("projects.rename", _route_rename, "项目改名：查重→迁档→工单引用改挂", module="projects")
     ctx.api.register("projects.toggle", _route_toggle, "项目启停：翻转覆盖层禁用清单，定义正文仍指向公共库", module="projects")
@@ -115,7 +115,7 @@ def _route_set_root(ctx, payload):
 
 
 def _route_workspace(ctx, payload):
-    """项目工作区只读视图：根路径、共享层、工单隔离目录与当前隔离档位。"""
+    """项目工作区只读视图：根路径、公共层、工单隔离目录与当前隔离档位。"""
     pid = ctx.api.call("store.id", {"value": payload.get("id")}, caller=None)
     paths = _cfg_paths(ctx)
     row = ctx.api.call("store.read", {"module": "agent/projects",
@@ -137,13 +137,13 @@ def _route_workspace(ctx, payload):
     ws["ticket_pattern"] = pattern
     ws["layers"] = [
         {"name": "项目根", "path": ws.get("root") or "未配置（系统默认目录）",
-         "scope": "所有工单共享"},
-        {"name": "共享文档", "path": dirs.get("documents") or "—",
-         "scope": "项目内共享"},
-        {"name": "共享日志", "path": dirs.get("logs") or "—",
-         "scope": "项目内共享"},
-        {"name": "共享交付件", "path": dirs.get("artifacts") or "—",
-         "scope": "项目内共享"},
+         "scope": "所有工单可访问"},
+        {"name": "公共文档", "path": dirs.get("documents") or "—",
+         "scope": "项目内公共"},
+        {"name": "公共日志", "path": dirs.get("logs") or "—",
+         "scope": "项目内公共"},
+        {"name": "公共交付件", "path": dirs.get("artifacts") or "—",
+         "scope": "项目内公共"},
         {"name": "工单工作区", "path": pattern or "—",
          "scope": "每张工单独立子目录"},
     ]

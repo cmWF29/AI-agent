@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/projects/__init__.py
-hash: c03ae76c38b7868569a190dba3d83bd8a20ba2aaf60fe3cbcd3679554a81c634
+hash: 98694bd8d70384117f6bb6aeef5bbd4d967ff5aeef9641aef67bbb55f578a0bf
 symbols:
 - _msg_tpl
 - _cfg_paths
@@ -83,7 +83,7 @@ updated_at: '2026-11-23T04:10:20'
 - 关联需求/测试: 待人工补充
 
 ### `_route_workspace`（function）
-- 职责: 项目工作区只读视图：根路径、共享层、工单隔离目录与当前隔离档位。
+- 职责: 项目工作区只读视图：根路径、公共层、工单隔离目录与当前隔离档位。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

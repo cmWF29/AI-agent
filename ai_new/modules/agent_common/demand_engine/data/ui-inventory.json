@@ -1,10 +1,10 @@
 {
  "sig": {
-  "sha": "60585cfaa06bf8c2",
+  "sha": "516bc0840df59f6e",
   "files": 37
  },
  "stats": {
-  "instances": 887,
+  "instances": 891,
   "pages": 19,
   "kinds": 21
  },
@@ -15,7 +15,7 @@
   },
   {
    "view": "click-machine",
-   "count": 216
+   "count": 220
   },
   {
    "view": "project",
@@ -7168,7 +7168,7 @@
    "ctl": "ctl.tree_group",
    "kind": "tree_group",
    "tag": "SUMMARY",
-   "label": "472ai_new",
+   "label": "474ai_new",
    "states": [
     "idle",
     "done"
@@ -9358,7 +9358,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "知识库4",
+   "label": "知识库10",
    "states": [
     "idle",
     "done"
@@ -9418,7 +9418,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "运维5",
+   "label": "运维13",
    "states": [
     "idle",
     "done"
@@ -9478,7 +9478,47 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "项目4",
+   "label": "项目详情22",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.stack_open",
+   "kind": "stack_open",
+   "tag": "SUMMARY",
+   "label": "项目12",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.stack_open",
+   "kind": "stack_open",
+   "tag": "SUMMARY",
+   "label": "工单群聊16",
    "states": [
     "idle",
     "done"
@@ -9638,7 +9678,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch307",
+   "label": "arch309",
    "states": [
     "idle",
     "busy",
@@ -9665,7 +9705,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine214",
+   "label": "click-machine216",
    "states": [
     "idle",
     "busy",
@@ -9692,7 +9732,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "artifacts77",
+   "label": "project125",
    "states": [
     "idle",
     "busy",
@@ -9773,7 +9813,88 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "cloud16",
+   "label": "artifacts19",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "ticket19",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "ops16",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "cloud15",
    "states": [
     "idle",
     "busy",
@@ -9827,6 +9948,33 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
+   "label": "logs13",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
    "label": "position13",
    "states": [
     "idle",
@@ -9854,7 +10002,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "logs12",
+   "label": "projects12",
    "states": [
     "idle",
     "busy",
@@ -9962,6 +10110,33 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
+   "label": "knowledge10",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
    "label": "timers10",
    "states": [
     "idle",
@@ -9990,87 +10165,6 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "traces10",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "ops6",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "knowledge4",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "projects4",
    "states": [
     "idle",
     "busy",

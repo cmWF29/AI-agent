@@ -92,7 +92,7 @@ python3 scripts/ui_inventory.py --check
 
 # 4. 全量门禁
 for g in gate_inventory gate_ops gate_screens gate_controls gate_views \
-         gate_demand_tests gate_deadcode gate_docsync; do
+         gate_demand_tests gate_wiring gate_deadcode gate_docsync; do
   python3 scripts/$g.py
 done
 ```

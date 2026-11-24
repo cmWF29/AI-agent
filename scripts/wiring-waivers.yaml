@@ -1,0 +1,27 @@
+# 接线门禁豁免：只登记“内部默认参数、本来就不该由用户表单提供”的项。
+# 新增豁免必须写理由；表单路径不再触达时门禁会报“豁免已失效”。
+waivers:
+- route: tickets.create
+  param: n
+  reason: 并发序号由服务端生成，工单表单只给标题/目标/项目/类型
+- route: decompose.install
+  param: draft
+  reason: 技能草稿由安装器内部生成，表单只提供来源/地址/skill_md
+- route: decompose.install
+  param: meta
+  reason: 技能元信息由安装器内部归集，表单不直接编辑
+- route: decompose.run
+  param: max_steps
+  reason: 拆解步数由运行时策略控制，不在新建技能表单暴露
+- route: decompose.run
+  param: requirements
+  reason: 需求正文由技能拆解流程内部组装
+- route: decompose.run
+  param: scripts
+  reason: 脚本清单由安装器解析生成
+- route: decompose.run
+  param: session
+  reason: 会话标识由运行时分配
+- route: store.read_text
+  param: fallback
+  reason: 读取兜底文本属于存储层默认值，表单不填写

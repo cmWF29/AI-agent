@@ -1,6 +1,6 @@
 id: project-workspace
-title: 项目工作区：读项目根并解析共享层与工单隔离目录
-description: "项目工作区：读项目根并解析共享层与工单隔离目录。只读，不创建目录"
+title: 项目工作区：读项目根并解析公共层与工单隔离目录
+description: "项目工作区：读项目根并解析公共层与工单隔离目录。只读，不创建目录"
 tags:
 - project
 - read

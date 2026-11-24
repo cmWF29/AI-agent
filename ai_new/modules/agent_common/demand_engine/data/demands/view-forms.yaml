@@ -13,7 +13,7 @@ view:
   forms:
   - id: project.new
     title: 新建项目
-    hint: 项目是工单的容器；项目路径决定共享工作区与工单隔离目录，留空则用系统默认数据目录。
+    hint: 项目是工单的容器；项目路径决定公共工作区与工单隔离目录，留空则用系统默认数据目录。
     fields:
     - name: name
       label: 项目名称
@@ -54,7 +54,7 @@ view:
         reload: true
   - id: project.path
     title: 配置项目路径
-    hint: 必须是服务器上的绝对路径。配置后文档/日志/交付件在项目根下共享，每张工单落在 tickets/<工单ID> 下独立工作；留空恢复系统默认数据目录。
+    hint: 必须是服务器上的绝对路径。配置后文档/日志/交付件放在项目根下，由项目内所有工单访问，每张工单落在 tickets/<工单ID> 下独立工作；留空恢复系统默认数据目录。
     fields:
     - name: root
       label: 项目绝对路径
