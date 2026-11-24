@@ -16,6 +16,8 @@ jobs:
           python-version: "3.11"
       - name: 依赖
         run: pip install pyyaml
+      - name: 代码-文档同步门禁（源码哈希 / 符号清单 / 孤儿文档）
+        run: python3 scripts/gate_docsync.py
       - name: 控件状态机门禁（每个按钮/事件都要有声明过的状态机）
         run: python3 scripts/gate_controls.py
       - name: 运维指标门禁（指标与取数源一一对应）

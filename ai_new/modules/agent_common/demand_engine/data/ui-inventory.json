@@ -1,6 +1,6 @@
 {
  "sig": {
-  "sha": "289d1fa063668e10",
+  "sha": "8848894f66611266",
   "files": 34
  },
  "stats": {
@@ -9172,7 +9172,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "需求契约16",
+   "label": "需求契约20",
    "states": [
     "idle",
     "done"
@@ -9212,7 +9212,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "点击状态机17",
+   "label": "点击状态机20",
    "states": [
     "idle",
     "done"
@@ -9232,7 +9232,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "云端资料库17",
+   "label": "云端资料库21",
    "states": [
     "idle",
     "done"
@@ -9292,7 +9292,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "节点14",
+   "label": "节点17",
    "states": [
     "idle",
     "done"
@@ -9332,7 +9332,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "岗位详情15",
+   "label": "岗位详情18",
    "states": [
     "idle",
     "done"
@@ -9352,7 +9352,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "岗位16",
+   "label": "岗位20",
    "states": [
     "idle",
     "done"
@@ -9392,7 +9392,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "技能拆解14",
+   "label": "技能拆解18",
    "states": [
     "idle",
     "done"
@@ -9412,7 +9412,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "技能14",
+   "label": "技能18",
    "states": [
     "idle",
     "done"
@@ -9432,7 +9432,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "定时器13",
+   "label": "定时器16",
    "states": [
     "idle",
     "done"
@@ -9452,7 +9452,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "工具15",
+   "label": "工具19",
    "states": [
     "idle",
     "done"
@@ -9472,7 +9472,7 @@
    "ctl": "ctl.stack_open",
    "kind": "stack_open",
    "tag": "SUMMARY",
-   "label": "链路13",
+   "label": "链路16",
    "states": [
     "idle",
     "done"
@@ -9532,7 +9532,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "arch306",
+   "label": "arch308",
    "states": [
     "idle",
     "busy",
@@ -9559,7 +9559,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "click-machine212",
+   "label": "click-machine213",
    "states": [
     "idle",
     "busy",
@@ -9586,7 +9586,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "tools35",
+   "label": "tools37",
    "states": [
     "idle",
     "busy",
@@ -9613,34 +9613,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "position33",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "positions29",
+   "label": "positions31",
    "states": [
     "idle",
     "busy",
@@ -9748,7 +9721,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "cloud21",
+   "label": "cloud23",
    "states": [
     "idle",
     "busy",
@@ -9775,7 +9748,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "logs18",
+   "label": "position20",
    "states": [
     "idle",
     "busy",
@@ -9802,7 +9775,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "nodes16",
+   "label": "skill-decompose18",
    "states": [
     "idle",
     "busy",
@@ -9829,7 +9802,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skill-decompose16",
+   "label": "skills18",
    "states": [
     "idle",
     "busy",
@@ -9856,7 +9829,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "skills16",
+   "label": "logs17",
    "states": [
     "idle",
     "busy",
@@ -9883,7 +9856,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "timers15",
+   "label": "nodes17",
    "states": [
     "idle",
     "busy",
@@ -9910,7 +9883,34 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "traces15",
+   "label": "timers16",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "traces16",
    "states": [
     "idle",
     "busy",
