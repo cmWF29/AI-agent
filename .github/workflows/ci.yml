@@ -47,6 +47,11 @@ jobs:
         with:
           name: full-tests-log
           path: /tmp/full-tests.log
+      - name: 全量用例失败摘要
+        if: failure()
+        run: |
+          echo "## 全量用例失败尾部" >> "$GITHUB_STEP_SUMMARY"
+          tail -n 120 /tmp/full-tests.log >> "$GITHUB_STEP_SUMMARY"
       - name: UI 回归（真实浏览器起桩遍历：控件状态机实拉 + 可点实例数核对）
         run: |
           pip install playwright
