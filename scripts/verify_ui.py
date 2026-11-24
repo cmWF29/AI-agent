@@ -82,6 +82,27 @@ async def main():
         check("通用弹窗为 sl-dialog 且带 show/hide",
               bool(dlg) and dlg["tag"] == "SL-DIALOG" and dlg["show"] == "function" and dlg["hide"] == "function", dlg)
 
+        # 1d. 弹窗入口必须真的能打开表单（只检查 <sl-dialog> 存在挡不住 FORMS 为空）
+        opened = await pg.evaluate("""() => {
+          const b=[...document.querySelectorAll('#view-body .view-head sl-button')]
+            .find(x=>/新建项目/.test(x.textContent));
+          if(!b) return {clicked:false};
+          b.click(); return {clicked:true};
+        }""")
+        await pg.wait_for_timeout(500)
+        modal = await pg.evaluate("""() => {
+          const d=document.querySelector('#modal');
+          return {open:!!(d&&d.open), label:(d&&d.label)||'',
+                  fields:document.querySelectorAll('#modal-form sl-input,#modal-form sl-textarea').length,
+                  err:(document.querySelector('#modal-err')||{}).textContent||''};
+        }""")
+        check("「新建项目」能打开表单",
+              opened["clicked"] and modal["open"] and modal["label"] == "新建项目"
+              and modal["fields"] >= 1, {"clicked": opened, "modal": modal})
+        if modal["open"]:
+            await pg.evaluate("() => document.querySelector('#modal-cancel').click()")
+            await pg.wait_for_timeout(150)
+
         # 2. 归档项目独立堆叠区
         sec = await pg.evaluate("""() => {
           const hs=[...document.querySelectorAll('.vsec')].filter(s=>/已归档/.test(s.innerText));

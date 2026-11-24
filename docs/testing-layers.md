@@ -11,7 +11,7 @@
 | L0 | 静态/架构/文档/映射 | 控件未登记状态机、指标取数源失真、可点实例缺去向、页面孤岛、条件表达式失效、只读裸奔、需求↔用例映射过期、死代码 | 转调既有六道门禁 + 死代码扫描（`scripts/gate_*.py`） |
 | L1 | 后端单元（UT） | 纯函数错误、状态机非法迁移、并发竞争、幂等失效、边界条件 | 转调既有 8 个 unittest 模块（`agent_test/private/test_*.py`） |
 | L2 | 接口契约 | 不可信输入打穿、未登录放行、内部路由外泄、越权直调、路径穿越、重复投递双跑 | 真装配 + 真 HTTP 闸，对业务路由跑非法输入矩阵与鉴权/越权/穿越/幂等探针 |
-| L3 | 系统级 E2E（ST） | 端到端链路断裂：秘书建单→岗位分派→状态机迁移→交付件产出 | 桩 LLM + 真前端（Chromium/Playwright），遍历真实 DOM 控件走合法/非法迁移 |
+| L3 | 系统级 E2E（ST） | 前后端接线断裂：点按钮没反应、弹窗/表单没加载、提交后列表不更新 | 真浏览器（Chromium/Playwright）+ 真后端，跑“打开项目→新建项目→提交→列表出现→清理” |
 | L4 | 韧性 | 进程被杀、写盘中断、租约过期、节点下线、重复投递、恢复后双跑 | 本机多进程模拟，走真实幂等台账 `store.claim/renew/settle/sweep` |
 
 ## 怎么单独跑
@@ -61,14 +61,14 @@ python3 scripts/gates.py --timeout 180
   沿用 `_fixtures.py` 暂存与 `stub_llm.py` 桩；在 `data/checks.yaml` 登记 check。
 - **L2 契约探针**：加在 `scripts/lib/layers/l2_contract.py`，按
   路由类补非法输入/鉴权/越权/穿越/幂等用例；不许只 mock 断言。
-- **L3 E2E**：`scripts/lib/layers/l3_e2e.py`，桩启动 + 真前端链路 + DOM 动态检查。
+- **L3 E2E**：`scripts/lib/layers/l3_e2e.py` 起临时服务并转调 `scripts/verify_e2e.py`；浏览器业务闭环直接写这里，不 mock 断言。
 - **L4 韧性**：`scripts/lib/layers/l4_resilience.py`，多进程模拟 + 真实幂等台账。
 
 ## 与既有 8 个模块的关系
 
 L1 只做转调，不复制断言：
 
-`test_core(124) · test_architecture(29) · test_demands(13) · test_demand_engine(10) ·
+`test_core(124) · test_architecture(29) · test_demands(13) · test_demand_engine(11) ·
 test_boot_graph(10) · test_transport(18) · test_idem(11) · test_stub_proto(5)`
 
 既有分组（structure/assembly/language/transport/behaviour/demands）口径不变；

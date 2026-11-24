@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-24T12:33:22",
-  "total": 506,
+  "generated": "2026-11-24T12:50:21",
+  "total": 507,
   "groups": [
     {
       "label": "agent",
@@ -4252,7 +4252,7 @@
     },
     {
       "label": "scripts",
-      "count": 36,
+      "count": 37,
       "docs": [
         {
           "source": "scripts/audit_click_machine.py",
@@ -4376,7 +4376,7 @@
           "doc": "docs/code/scripts/gates.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "be0f5fec1f06d01832a571c89c17fdc06e30f8f3c29c3b151162683db7ba8857",
+          "hash": "c9409e9ba8ffd6f89622445df80adfcce8d9364456c99b23d332df2d41e86494",
           "symbols": 2,
           "updated_at": "2026-11-23T04:19:50"
         },
@@ -4543,6 +4543,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "scripts/verify_e2e.py",
+          "doc": "docs/code/scripts/verify_e2e.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "fcbfdb3dcd0723b0229c38cd51e451ace01c31c050b02fe9c72d66ee1efa613b",
+          "symbols": 1,
+          "updated_at": "2026-11-24T12:48:33"
+        },
+        {
           "source": "scripts/verify_ops_page.py",
           "doc": "docs/code/scripts/verify_ops_page.py.md",
           "kind": "py",
@@ -4556,7 +4565,7 @@
           "doc": "docs/code/scripts/verify_ui.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "c8230ed640a90e2e2b4c260a0369023c4dc15d19ad4bc5a3f2c2e80f1d348b5f",
+          "hash": "b20033f9f614664b296a9c2e30128e9fb0362023eee791491524df42cce1c87d",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:23"
         },

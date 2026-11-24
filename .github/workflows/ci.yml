@@ -44,6 +44,7 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8787/api/health/live >/dev/null && break; sleep 2; done
           curl -sf http://127.0.0.1:8787/api/health/live
           python3 scripts/verify_ui.py
+          python3 scripts/verify_e2e.py
           python3 scripts/ui_inventory.py --check
 
   isolation-windows:
