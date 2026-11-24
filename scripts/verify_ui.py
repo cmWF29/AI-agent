@@ -105,7 +105,10 @@ async def main():
 
         # 2. 归档项目独立堆叠区
         sec = await pg.evaluate("""() => {
-          const hs=[...document.querySelectorAll('.vsec')].filter(s=>/已归档/.test(s.innerText));
+          const hs=[...document.querySelectorAll('.vsec')].filter(s=>{
+            const cards=[...s.querySelectorAll('.pcard')];
+            return cards.length && cards.every(c=>[...c.querySelectorAll('.acts sl-button')].every(b=>b.textContent.trim()==='删除'));
+          });
           if(!hs.length) return null;
           const cards=[...hs[0].querySelectorAll('.pcard')];
           return {n: cards.length,
@@ -120,14 +123,22 @@ async def main():
         # 3. 已归档项目详情只读
         if sec:
             # data-go 存的是本页动作索引（ACTS 键），不是项目 id；直接点卡片最贴近真实操作
-            has_card = await pg.evaluate("""() => {
-              const hs=[...document.querySelectorAll('.vsec')].filter(s=>/已归档/.test(s.innerText));
+            picked = await pg.evaluate("""() => {
+              const hs=[...document.querySelectorAll('.vsec')].filter(s=>{
+                const cards=[...s.querySelectorAll('.pcard')];
+                return cards.length && cards.every(c=>[...c.querySelectorAll('.acts sl-button')].every(b=>b.textContent.trim()==='删除'));
+              });
               const card=hs[0] && hs[0].querySelector('.pcard');
               if (!card) return false; card.click(); return true; }""")
-            if has_card:
-                await pg.wait_for_timeout(1800)
+            if picked:
+                await pg.wait_for_timeout(1200)
                 await settle_view(pg)
-                info = await pg.evaluate("""() => ({badge: /已归档·只读/.test(document.querySelector('#view-body').innerText),
+                for _ in range(12):
+                    loaded = await pg.evaluate("() => !document.querySelector('#view-body .vsec') && (document.querySelector('#view-body .view-head')||{}).innerText.trim().length > 0")
+                    if loaded:
+                        break
+                    await pg.wait_for_timeout(800)
+                info = await pg.evaluate("""() => ({url: location.search, body: document.querySelector('#view-body').innerText.slice(0,80), badge: /已归档·只读/.test(document.querySelector('#view-body').innerText),
                   rename: (()=>{const b=[...document.querySelectorAll('#view-body .view-head sl-button')].find(x=>/重命名/.test(x.textContent)); return b?b.disabled:null;})(),
                   create: (()=>{const b=[...document.querySelectorAll('#view-body .view-head sl-button')].find(x=>/新建工单/.test(x.textContent)); return b?b.disabled:null;})()})""")
                 check("归档项目详情带只读徽章", info["badge"], info)

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/actions.js
-hash: 70767f9eff8e4af37b3de9f892b333f87d8d92646091172e98d11814f748ed5a
+hash: 379dffdeb8f67c1e3967bbe9edf8bd8f9ac7289e68cfff62ba9b4b477295dec3
 symbols:
 - execute
 - voiceBtnLabel

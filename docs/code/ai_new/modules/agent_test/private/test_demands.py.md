@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_demands.py
-hash: 56f1f2d1c56c04c7c145cfe753d1f2bcd0bf48bc05db45d6f3648945ddad6450
+hash: 1f4474b09d4b8a8aea92957071583125c957a8c7b1e35c564b860ef87dfc583c
 symbols:
 - demand_files
 - load_all
@@ -39,6 +39,9 @@ symbols:
 - test_view_specs_are_bound
 - _view_keys
 - _check_action
+- test_view_require_params_are_declared
+- test_every_form_is_reachable_from_a_view_action
+- test_form_submit_targets_existing_views
 - test_checks_claim_only_existing_demands
 - test_expectation_holds
 - test_no_route_fires_without_an_expectation
@@ -276,6 +279,24 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `_check_action`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_view_require_params_are_declared`（method）
+- 职责: 页面声明要参数，就必须在 params 里列出来；否则前端拿不到值，页面永远空壳。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_every_form_is_reachable_from_a_view_action`（method）
+- 职责: 表单规格不能只躺在目录里：必须至少被一条视图动作引用，否则用户点不到。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_form_submit_targets_existing_views`（method）
+- 职责: 表单提交后的去向必须落地，不能指向空气。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

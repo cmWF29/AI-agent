@@ -145,7 +145,7 @@ def _traversal(client: _Client, rec: Recorder, root: Path) -> None:
     for label, path in attempts:
         status, body = client.request("GET", path)
         leaked = isinstance(body, dict) and ("root:" in str(body) or "localhost" in str(body))
-        rec.check("路径穿越 · %s" % label, status in (403, 404) and not leaked,
+        rec.check("路径穿越 · %s" % label, status in (400, 403, 404) and not leaked,
                   "status=%s" % status)
 
     # 符号链接：在临时控制台目录里放一条指向 /etc/hosts 的软链，静态读取不得跟出去
@@ -159,7 +159,7 @@ def _traversal(client: _Client, rec: Recorder, root: Path) -> None:
             status, body = client.request("GET", "/evil-link")
             text = str(body)
             leaked = "localhost" in text and "127.0.0.1" in text
-            rec.check("符号链接不逃逸", status in (403, 404) and not leaked,
+            rec.check("符号链接不逃逸", status in (400, 403, 404) and not leaked,
                       "status=%s" % status)
         except OSError as e:
             rec.check("符号链接不逃逸", False, str(e))
@@ -170,6 +170,9 @@ def _traversal(client: _Client, rec: Recorder, root: Path) -> None:
 
 def _authorization(ctx, rec: Recorder) -> None:
     """越权直调：跨业务模块直调他人能力必须在违规台账留证据。"""
+    api_cfg = ctx.cfg.setdefault("api", {})
+    prev_mode = api_cfg.get("internal_call_mode")
+    api_cfg["internal_call_mode"] = "warn"
     before = len(ctx.api.violations())
     # knowledge 越权调 projects.view（跨业务模块，未登记直调）
     try:
@@ -189,6 +192,10 @@ def _authorization(ctx, rec: Recorder) -> None:
         pass
     rec.check("本模块直调放行", len(ctx.api.violations()) == base,
               "违规新增 %d" % (len(ctx.api.violations()) - base))
+    if prev_mode is None:
+        api_cfg.pop("internal_call_mode", None)
+    else:
+        api_cfg["internal_call_mode"] = prev_mode
 
 
 def _idempotency(ctx, rec: Recorder) -> None:

@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_ui.py
-hash: b20033f9f614664b296a9c2e30128e9fb0362023eee791491524df42cce1c87d
+hash: 1faa7760af5f21d3e32ac40ae792253269d602416bdeb61486e763e841a47664
 symbols:
 - check
 - settle_view

@@ -380,6 +380,53 @@ class DemandContractTest(unittest.TestCase):
         if after.get("view") and after["view"] not in keyed:
             problems.append("视图 %s 的动作去向指向不存在的视图: %s" % (key, after["view"]))
 
+    def test_view_require_params_are_declared(self):
+        """页面声明要参数，就必须在 params 里列出来；否则前端拿不到值，页面永远空壳。"""
+        problems = []
+        for rec in load_all():
+            spec = rec.get("view") or {}
+            if not spec.get("key"):
+                continue
+            params = set(spec.get("params") or [])
+            for need in spec.get("require") or []:
+                if need not in params:
+                    problems.append("%s require %s 但 params 没有" % (spec["key"], need))
+        self.assertEqual(problems, [], "视图参数声明越界: %s" % problems)
+
+    def test_every_form_is_reachable_from_a_view_action(self):
+        """表单规格不能只躺在目录里：必须至少被一条视图动作引用，否则用户点不到。"""
+        forms, refs = set(), set()
+        for rec in load_all():
+            spec = rec.get("view") or {}
+            for f in spec.get("forms") or []:
+                if f.get("id"):
+                    forms.add(f["id"])
+
+        def walk(o):
+            if isinstance(o, dict):
+                if o.get("modal"):
+                    refs.add(o["modal"])
+                for v in o.values():
+                    walk(v)
+            elif isinstance(o, list):
+                for v in o:
+                    walk(v)
+        for rec in load_all():
+            walk(rec.get("view") or {})
+        missing = sorted(forms - refs)
+        self.assertEqual(missing, [], "这些表单没有任何入口动作: %s" % missing)
+
+    def test_form_submit_targets_existing_views(self):
+        """表单提交后的去向必须落地，不能指向空气。"""
+        views = self._view_keys(load_all())
+        problems = []
+        for rec in load_all():
+            for f in (rec.get("view") or {}).get("forms") or []:
+                then = ((f.get("submit") or {}).get("then") or {})
+                if then.get("view") and then["view"] not in views:
+                    problems.append("%s 提交后指向不存在的视图: %s" % (f.get("id"), then["view"]))
+        self.assertEqual(problems, [], "表单提交去向越界: %s" % problems)
+
     def test_checks_claim_only_existing_demands(self):
         """反过来：清单不许点名不存在的需求（需求下线后清单必须跟着改）。"""
         ids = {rec.get("id") for rec in load_all()}

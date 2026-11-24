@@ -85,6 +85,8 @@ function resolveView(target, c) {
   const params = fill(target.params || {}, c);
   const next = { view: target.view };
   for (const p of viewParams(target.view)) next[p] = params[p] || "";
+  // 写后必看新结果：规格里的 reload 不能被解析掉，否则会命中旧页缓存
+  if (target.reload) next.reload = true;
   return next;
 }
 
@@ -209,6 +211,9 @@ async function submitModal() {
     okBtn.disabled = false; okBtn.textContent = okLabel;
     modalBusy = false;
     if (typeof uiExit === "function") uiExit("modal_ok");
+    // 表单成功提交会先 closeModal；此时页面状态机可能停在 modal，
+    // 后续卡片/头部动作会被门禁拒绝。弹窗已关就回到 idle；校验失败弹窗仍开着则保持 modal。
+    if (typeof uiModal === "function" && !($("modal").open)) uiModal(false);
   }
 }
 $("modal-cancel").onclick = () => {

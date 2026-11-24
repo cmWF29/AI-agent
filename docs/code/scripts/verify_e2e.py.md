@@ -1,13 +1,20 @@
 ---
 source: scripts/verify_e2e.py
-hash: cb1d69b56813040f1f8b4bfbd8e9e86885f63ee977e92e16b43dd422f5a8813e
+hash: 92524f37f1bb0e191e291df1ed36b36268b842698f3e036efb73b9d3279633db
 symbols:
 - new_page
 - open_projects
+- card_exists
+- wait_card
+- click_card_action
 - create_project
+- rename_project
+- archive_project
+- delete_project_ui
 - open_project
 - create_ticket
 - send_and_wait
+- close_ticket
 - cleanup
 - scenario_project
 - scenario_ticket
@@ -39,7 +46,43 @@ updated_at: '2026-11-24T12:48:33'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `card_exists`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `wait_card`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `click_card_action`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `create_project`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `rename_project`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `archive_project`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `delete_project_ui`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -58,6 +101,12 @@ updated_at: '2026-11-24T12:48:33'
 - 关联需求/测试: 待人工补充
 
 ### `send_and_wait`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `close_ticket`（function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

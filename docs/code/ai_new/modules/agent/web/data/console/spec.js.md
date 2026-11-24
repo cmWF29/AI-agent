@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/spec.js
-hash: 9ff23c28aa27e0fe693909a21468e5386de99959b048300188139357f11f69ad
+hash: c18e9fe3d4b96852646914b41c9d9cfcf14fee41a41d2e0c821cbe2f0e1737ec
 symbols:
 - eventLabel
 - dig

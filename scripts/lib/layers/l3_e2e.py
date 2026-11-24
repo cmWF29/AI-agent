@@ -35,6 +35,17 @@ def _run_scenario(boot, scenario: str, timeout: float) -> tuple[bool, str]:
     return proc.returncode == 0, (proc.stdout or "") + (proc.stderr or "")
 
 
+def _run_pages(boot, timeout: float) -> tuple[bool, str]:
+    env = os.environ.copy()
+    env["HIVE_TOKEN"] = "t"
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "verify_pages.py"),
+         "http://127.0.0.1:%d" % boot.port],
+        cwd=str(ROOT), env=env, capture_output=True, text=True,
+        timeout=max(30.0, timeout - 10.0))
+    return proc.returncode == 0, (proc.stdout or "") + (proc.stderr or "")
+
+
 def run(timeout: float = 300.0) -> LayerResult:
     rec = Recorder()
     output = []
@@ -47,6 +58,9 @@ def run(timeout: float = 300.0) -> LayerResult:
                 ok, text = _run_scenario(boot, scenario, timeout / 2)
                 output.append(text)
                 rec.check(label, ok, text[-800:])
+            ok, text = _run_pages(boot, timeout / 3)
+            output.append(text)
+            rec.check("全量页面/表单巡检", ok, text[-800:])
         except Exception as exc:  # noqa: BLE001 — 层失败要留原因，不吞异常
             rec.check("浏览器业务 E2E", False, repr(exc))
         finally:
@@ -55,5 +69,5 @@ def run(timeout: float = 300.0) -> LayerResult:
     return LayerResult(
         layer="L3", title="系统级 E2E（真前端 + 真后端）",
         ok=rec.ok, duration=t.elapsed, checks=rec.checks, output="\n".join(output),
-        note="项目：建项目→列表→清理；工单：建单→发消息→PM 回复→回 idle→清理。",
+        note="项目：建→改名→归档→删除；工单：建→发消息→回复→结单→归档→删除；另巡全部视图与弹窗表单。",
     )

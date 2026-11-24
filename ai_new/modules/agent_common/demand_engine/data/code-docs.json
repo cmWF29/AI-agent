@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-24T14:25:24",
-  "total": 507,
+  "generated": "2026-11-24T15:38:17",
+  "total": 508,
   "groups": [
     {
       "label": "agent",
@@ -974,7 +974,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/actions.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "70767f9eff8e4af37b3de9f892b333f87d8d92646091172e98d11814f748ed5a",
+          "hash": "379dffdeb8f67c1e3967bbe9edf8bd8f9ac7289e68cfff62ba9b4b477295dec3",
           "symbols": 16,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1046,7 +1046,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/spec.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "9ff23c28aa27e0fe693909a21468e5386de99959b048300188139357f11f69ad",
+          "hash": "c18e9fe3d4b96852646914b41c9d9cfcf14fee41a41d2e0c821cbe2f0e1737ec",
           "symbols": 14,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -4082,8 +4082,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_demands.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "56f1f2d1c56c04c7c145cfe753d1f2bcd0bf48bc05db45d6f3648945ddad6450",
-          "symbols": 41,
+          "hash": "1f4474b09d4b8a8aea92957071583125c957a8c7b1e35c564b860ef87dfc583c",
+          "symbols": 44,
           "updated_at": "2026-11-23T04:10:23"
         },
         {
@@ -4252,7 +4252,7 @@
     },
     {
       "label": "scripts",
-      "count": 37,
+      "count": 38,
       "docs": [
         {
           "source": "scripts/audit_click_machine.py",
@@ -4547,8 +4547,8 @@
           "doc": "docs/code/scripts/verify_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "cb1d69b56813040f1f8b4bfbd8e9e86885f63ee977e92e16b43dd422f5a8813e",
-          "symbols": 10,
+          "hash": "92524f37f1bb0e191e291df1ed36b36268b842698f3e036efb73b9d3279633db",
+          "symbols": 17,
           "updated_at": "2026-11-24T12:48:33"
         },
         {
@@ -4561,11 +4561,20 @@
           "updated_at": "2026-11-23T14:25:27"
         },
         {
+          "source": "scripts/verify_pages.py",
+          "doc": "docs/code/scripts/verify_pages.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "d54ec7cdc697b7e00d65e0c780218f02c61fdbcfa17305c377d126e0c9075ac2",
+          "symbols": 7,
+          "updated_at": "2026-11-24T15:25:51"
+        },
+        {
           "source": "scripts/verify_ui.py",
           "doc": "docs/code/scripts/verify_ui.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "b20033f9f614664b296a9c2e30128e9fb0362023eee791491524df42cce1c87d",
+          "hash": "1faa7760af5f21d3e32ac40ae792253269d602416bdeb61486e763e841a47664",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:23"
         },

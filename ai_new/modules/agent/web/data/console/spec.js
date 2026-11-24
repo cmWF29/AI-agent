@@ -40,6 +40,9 @@ function ref(path, ctx) {
     return dig((ctx.cache || {})[head], rest.slice(head.length + 1));
   }
   const head = path.split(".")[0];
+  // 动作上下文可能把行对象摊平（row.project 已映射为 project），先认直接键；
+  // 只认 data/cache 会让卡片上的 {project.id} 静默变空，提交才报“项目不存在”。
+  if (head in ctx) return dig(ctx[head], path.slice(head.length + 1));
   if (ctx.data && head in ctx.data) return dig(ctx.data[head], path.slice(head.length + 1));
   if (ctx.cache && head in ctx.cache) return dig(ctx.cache[head], path.slice(head.length + 1));
   return undefined;
