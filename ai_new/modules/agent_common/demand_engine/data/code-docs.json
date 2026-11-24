@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-24T22:29:30",
+  "generated": "2026-11-24T22:48:26",
   "total": 514,
   "groups": [
     {
@@ -542,7 +542,7 @@
           "doc": "docs/code/ai_new/modules/agent/logs/data/hook-queue.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "78cffe5d0d6274682b22ce08c215c803ec3ec7160c9715f463484602fbf693d0",
+          "hash": "4f498604f9dd57b4665b62593672e5db4db37e92c60d7a5509a5d13f7bdebb01",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:20"
         },
