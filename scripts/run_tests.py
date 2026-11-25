@@ -48,7 +48,7 @@ DEFAULT_MODULES = [
     "test_transport_edges", "test_lock_edges", "test_hooks_edges", "test_net_client",
     "test_serve_edges", "test_runtime_core", "test_exec_runner",
     "test_store_isolate", "test_cloud_provider_adapters", "test_boot_edges",
-    "test_demand_engine_edges", "test_boot_graph_edges",
+    "test_demand_engine_edges", "test_boot_graph_edges", "test_tools_routes",
 ]
 
 # 会占用固定端口 / 拉起 sidecar 的模块：并行必抢 8790/9000，单独串行跑。
