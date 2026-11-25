@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/plat/private/_winjob.py
-hash: f9044757daee0b043b98fe60c4ffa008baf05af49d1b193c353081e657d6e098
+hash: 7b43c6350799d76063c12b917e462eb859b3fc65a6662151ae1419f107c48bd5
 symbols:
 - __init__
 - _kernel32

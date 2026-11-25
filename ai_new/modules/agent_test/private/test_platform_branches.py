@@ -151,6 +151,10 @@ class JobObjectBranchesTest(unittest.TestCase):
 
     def test_posix_job_is_noop(self):
         with mock.patch.object(_winjob, "PLATFORM", "posix"):
+            self.assertEqual(_winjob.probe()["code"], "unsupported_platform")
+            self.assertEqual(_winjob.probe()["code"], "unsupported_platform")
+            with self.assertRaises(_winjob.JobError):
+                _winjob._kernel32()
             job = _winjob.Job()
             self.assertFalse(job.supported)
             self.assertFalse(job.assign(1))
@@ -164,6 +168,9 @@ class JobObjectBranchesTest(unittest.TestCase):
             self.assertTrue(job.assign(123))
             job.close()
             self.assertFalse(job.supported)
+            with _winjob.Job() as ctx_job:
+                self.assertIs(ctx_job.__enter__(), ctx_job)
+                self.assertFalse(ctx_job.__exit__(None, None, None))
         with mock.patch.object(_winjob, "PLATFORM", "nt"), \
                 mock.patch.object(ctypes, "WinDLL", create=True, return_value=self._fake_k32(create=0)):
             with self.assertRaises(_winjob.JobError) as caught:

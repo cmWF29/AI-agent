@@ -10,8 +10,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT))
 
-from ai_new.modules.agent.asr import _route_transcribe  # noqa: E402
-from ai_new.modules.agent.asr.private import _engine  # noqa: E402
+from ai_new.modules.agent.asr import _route_transcribe, setup  # noqa: E402
+from ai_new.modules.agent.asr.private import _engine, _pure  # noqa: E402
 
 
 class _Own:
@@ -172,6 +172,31 @@ class AsrEngineTest(unittest.TestCase):
         with patch.object(_engine, "transcribe", return_value={"ok": True, "text": " 你好 "}):
             out = _route_transcribe(ctx, {"audio": b"wav"})
         self.assertEqual(out["text"], "你好")
+
+    def test_setup_and_route_failure_and_pure_empty(self):
+        """装配登记、识别失败透出、空音频/空文本校验。"""
+        class Api:
+            def __init__(self):
+                self.rows = []
+
+            def register(self, name, fn, *a, **k):
+                self.rows.append((name, fn))
+
+        api = Api()
+        self.assertTrue(setup(types.SimpleNamespace(api=api)))
+        self.assertEqual([r[0] for r in api.rows],
+                         ["asr.validate", "asr.present", "asr.transcribe"])
+        ctx = _Ctx(routes={"asr.validate": {"ok": True},
+                           "store.read": {"value": {}}})
+        with patch.object(_engine, "transcribe",
+                          return_value={"ok": False, "code": "asr_failed"}):
+            self.assertEqual(_route_transcribe(ctx, {"audio": b"wav"})["code"], "asr_failed")
+        self.assertEqual(_pure.validate({"audio": b"", "tpl": {"empty_audio": "空"}})["code"],
+                         "empty_audio")
+        self.assertEqual(_pure.present({"text": "  ", "tpl": {"empty_transcript": "空"}})["code"],
+                         "empty_transcript")
+        self.assertTrue(_pure.validate({"audio": b"x"})["ok"])
+        self.assertTrue(_pure.present({"text": " a "})["text"], "a")
 
     def test_decode_json_bad_json(self):
         ctx = _Ctx(routes={"codec.json_decode": {"ok": False}})

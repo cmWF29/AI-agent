@@ -1,6 +1,6 @@
 ---
 source: scripts/gate_coverage.py
-hash: ab49df2ab64697fc9bfaeda5d039383247f1bea407672206f47270c3ae2045c8
+hash: 6247607d8b5d20f410112fc547114973ceee68609bb83dde22b9cfd59047ebcc
 symbols:
 - _load_config
 - _report

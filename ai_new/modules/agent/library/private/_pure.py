@@ -51,8 +51,6 @@ def _records(p):
         rid = rec.get("id")
         if not rid:
             continue
-        if rid in out and rid not in protected:
-            continue  # 非种子自建条目允许用户库覆盖；种子条目恒定以种子为准
         out[rid] = dict(rec, builtin=True)
     return out
 

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_asr.py
-hash: 88f2d1e5872fa999ce6ebbbc198f7115d119776e5e35309bd9d172bd8d3b9856
+hash: 40f0e95ef71256927c937e0fc40f63454babcb1db188a93e1f2e1b17e19dccb8
 symbols:
 - __init__
 - is_dir
@@ -23,6 +23,7 @@ symbols:
 - test_transcribe_recognizer_import_error
 - test_transcribe_chunks_tail_and_decode_failure
 - test_route_transcribe_invalid_then_present
+- test_setup_and_route_failure_and_pure_empty
 - test_decode_json_bad_json
 generated: gen_docs.py v1
 updated_at: '2026-11-25T17:05:17'
@@ -161,6 +162,12 @@ ASR 适配层：无模型/无引擎/坏配置/损坏音频/分块识别全部走
 
 ### `test_route_transcribe_invalid_then_present`（method）
 - 职责: 路由：坏音频直接回校验错误；好音频走识别并把文本交给 present。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_setup_and_route_failure_and_pure_empty`（method）
+- 职责: 装配登记、识别失败透出、空音频/空文本校验。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -162,6 +162,20 @@ def main(argv: list[str] | None = None) -> int:
         print("覆盖率最低模块：" + "；".join(
             "%s %.1f%%" % (k.split("modules/")[-1], _pct(v["covered"], v["lines"]))
             for k, v in worst))
+    if min_line >= 100 or min_branch >= 100:
+        # 100% 口径下聚合值会掩盖具体文件：把仍有缺口的文件逐条列出，便于一次改完。
+        gaps = []
+        for path, rec in (report.get("files") or {}).items():
+            rel = path.replace(str(ROOT) + os.sep, "").replace(os.sep, "/")
+            if "agent_test/" in rel or "/assets/" in rel:
+                continue
+            s = rec.get("summary") or {}
+            miss_l = int(s.get("missing_lines") or 0)
+            miss_b = int(s.get("missing_branches") or 0)
+            if miss_l or miss_b:
+                gaps.append((miss_l + miss_b, rel, miss_l, miss_b))
+        for total, rel, miss_l, miss_b in sorted(gaps, reverse=True)[:40]:
+            bad.append("%s 仍缺 %d 行 / %d 分支" % (rel, miss_l, miss_b))
     if bad:
         print("覆盖率门禁未通过：")
         for x in bad:

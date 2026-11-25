@@ -18,6 +18,7 @@ import argparse
 import concurrent.futures
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -38,6 +39,7 @@ DEFAULT_MODULES = [
     "test_cloud_sync", "test_cloud_s3", "test_cloud_webdav", "test_react_mechanisms",
     "test_gate_diff_coverage", "test_security_boundaries", "test_api",
     "test_deadcode", "test_docsync", "test_levels",
+    "test_asr", "test_platform_branches", "test_pure_edges",
 ]
 
 # 会占用固定端口 / 拉起 sidecar 的模块：并行必抢 8790/9000，单独串行跑。
@@ -76,12 +78,17 @@ def run_one(mod: str, timeout: int, base_port: int, cov_dir: str = "") -> dict:
                 "seconds": round(time.perf_counter() - started, 2),
                 "tail": "\n".join(out.strip().splitlines()[-20:])}
     except subprocess.TimeoutExpired as exc:
-        out = (exc.stdout or "") + (exc.stderr or "")
-        if isinstance(out, bytes):
-            out = out.decode("utf-8", "replace")
+        def _txt(v):
+            if isinstance(v, bytes):
+                return v.decode("utf-8", "replace")
+            return v or ""
+        out = _txt(exc.stdout) + _txt(exc.stderr)
         return {"module": mod, "ok": False, "code": "timeout",
                 "seconds": round(time.perf_counter() - started, 2),
                 "tail": "\n".join(str(out).strip().splitlines()[-20:])}
+    finally:
+        # 每个分片的暂存目录必须回收，否则全量跑会把 /tmp inode 打满。
+        shutil.rmtree(workdir, ignore_errors=True)
 
 
 def main(argv=None):

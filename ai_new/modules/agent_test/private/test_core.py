@@ -3738,5 +3738,133 @@ class StageGateTest(unittest.TestCase):
         self.assertTrue(stay["ok"])
 
 
+class TicketPureEdgeTest(unittest.TestCase):
+    """工单纯函数边界：通配、缺档、筛单、备注、评审事件、清单基准与留档裁剪。"""
+
+    def test_glob_variants(self):
+        self.assertTrue(ticket_pure._glob("a/b.md", "a/*.md"))
+        self.assertTrue(ticket_pure._glob("a/b/c.md", "a/**/*.md"))
+        self.assertTrue(ticket_pure._glob("a/b.md", "a/?.md"))
+        self.assertFalse(ticket_pure._glob("a/b.md", "a/*.txt"))
+        self.assertFalse(ticket_pure._glob("a/b.md", ""))
+        self.assertTrue(ticket_pure._glob("./a/./b.md", "a/b.md"))
+        self.assertTrue(ticket_pure._glob("a/b.md", "**"))
+        self.assertFalse(ticket_pure._glob("a/b.md", "**/x"))
+        self.assertFalse(ticket_pure._glob("a", "a?"))
+        self.assertTrue(ticket_pure._glob("", ""))
+
+    def test_next_n_ignores_bad_ids(self):
+        out = ticket_pure.next_n({"day": "20260101", "ids": [
+            "bad", "T-20260101-x", "T-20260102-99", "T-20260101-3"]})
+        self.assertEqual(out["n"], 4)
+        self.assertEqual(ticket_pure.next_n({"day": "20260101", "ids": None})["n"], 1)
+
+    def test_missing_record_and_view_edges(self):
+        self.assertEqual(ticket_pure.thread({"ticket": None})["code"], "not_found")
+        self.assertEqual(ticket_pure.thread({"ticket": None, "tpl": "缺 {id}", "id": "T1"})["error"],
+                         "缺 T1")
+        self.assertEqual(ticket_pure.present({"rec": None})["code"], "not_found")
+        self.assertEqual(ticket_pure.present({"rec": None, "tpl": "缺 {id}", "id": "T2"})["error"],
+                         "缺 T2")
+        view = ticket_pure.view({"rec": {}})
+        self.assertEqual(view["children"], [])
+        self.assertEqual(view["roles"], [])
+        self.assertEqual(view["history"], [])
+
+    def test_screen_filters_and_note_branch(self):
+        rows = [None, {"id": "a", "status": "queued", "project": "p1"},
+                {"id": "b", "status": "closed", "project": "p1"},
+                {"id": "c", "status": "queued", "project": "p2"}]
+        self.assertEqual([x["id"] for x in ticket_pure.screen({"rows": rows})["items"]],
+                         ["a", "b", "c"])
+        self.assertEqual([x["id"] for x in ticket_pure.screen(
+            {"rows": rows, "status": "queued", "project": "p1"})["items"]], ["a"])
+        rec = ticket_pure.note({"rec": {"history": []}, "text": "   ", "now": 1})
+        self.assertEqual(rec["history"], [])
+        rec = ticket_pure.note({"rec": {}, "text": "备注", "now": 2})
+        self.assertEqual(rec["history"][-1]["event"], "note")
+        self.assertEqual(rec["updated"], 2)
+
+    def test_review_and_pick_and_branch(self):
+        self.assertEqual(ticket_pure.review_mark({"rec": {"id": "T"}, "verdict": "waiting"})["id"],
+                         "T")
+        repush = ticket_pure.review_mark({"rec": {"id": "T"}, "verdict": "repush",
+                                           "repush_text": "补", "now": 3})
+        self.assertEqual(repush["history"][-1]["to"], "T")
+        self.assertEqual(repush["history"][-1]["to_kind"], "ticket")
+        role = ticket_pure.review_mark({"rec": {"id": "T"}, "verdict": "repush",
+                                         "repush_text": "补", "to": "s1", "now": 4})
+        self.assertEqual(role["history"][-1]["to_kind"], "role")
+        self.assertEqual(ticket_pure.branch({"children": [
+            {"status": "closed"}, {"status": "queued"}]})["all_closed"], False)
+        self.assertTrue(ticket_pure.branch({"children": []})["all_closed"])
+        rec = {"roles": [{"role": "dev", "display": "开发", "session": "s1"}]}
+        self.assertEqual(ticket_pure.pick({"rec": rec, "target": "开发"})["session"], "s1")
+        self.assertEqual(ticket_pure.pick({"rec": rec, "target": "none"})["session"], "")
+        self.assertEqual(ticket_pure.resolve_target({"rec": {"pm": "spm"}, "target": "pm"})["session"],
+                         "spm")
+
+    def test_ticket_files_and_paths(self):
+        out = ticket_pure.files_filter({"ticket": "", "items": [{"path": "a"}]})
+        self.assertEqual(out["items"], [])
+        items = [{"path": "projects/p/tickets/T1/docs/pm/plan.md"},
+                 {"path": "projects/p/tickets/T1/docs/dev/code.py"},
+                 {"path": "other/x.md"}]
+        out = ticket_pure.files_filter({"ticket": "T1", "items": items, "pattern": "docs/pm/*"})
+        self.assertEqual([i["path"] for i in out["items"]], ["docs/pm/plan.md"])
+        out = ticket_pure.files_filter({"ticket": "T1", "items": items})
+        self.assertEqual(len(out["items"]), 3)
+        self.assertEqual(ticket_pure.paths({"items": [{"path": "a"}, {}, {"path": ""}]}),
+                         {"paths": ["a"]})
+
+    def test_template_stale_and_record_path(self):
+        self.assertEqual(ticket_pure.msg({"tpl": "hi {name}", "vars": {"name": "x"}})["text"],
+                         "hi x")
+        self.assertEqual(ticket_pure.msg({"tpl": "hi {missing}"})["text"], "hi {missing}")
+        self.assertEqual(ticket_pure.stale({"rec": {"status": "closed"},
+                                             "idle_seconds": 999, "limit_seconds": 1})["stale"],
+                         False)
+        self.assertTrue(ticket_pure.stale({"rec": {}, "idle_seconds": 10,
+                                           "limit_seconds": 10})["stale"])
+        self.assertEqual(ticket_pure.record_path({"id": "T1"})["path"], "T1")
+        self.assertEqual(ticket_pure.record_path({
+            "id": "T1", "paths": {"record": "projects/{project}/tickets/{id}.yaml"}})["path"],
+            "tickets/T1.yaml")
+        self.assertEqual(ticket_pure.record_path({
+            "id": "T1", "project": "p1",
+            "paths": {"record": "projects/{project}/tickets/{id}.yaml"}})["path"],
+            "projects/p1/tickets/T1.yaml")
+
+    def test_archive_and_brief_helpers(self):
+        rec = ticket_pure.archive_transcript({"rec": {"id": "T"},
+                                              "pm": {"messages": [
+                                                  {"role": "system", "content": "人设"},
+                                                  {"role": "assistant", "content": "hi",
+                                                   "ts": 1, "tool_calls": [{"a": 1}]},
+                                                  "raw"]},
+                                              "roles": [{"role": "dev", "messages": [
+                                                  {"role": "system", "content": "x"}]}]})
+        self.assertEqual(len(rec["transcript"]["pm"]["messages"]), 2)
+        self.assertEqual(rec["transcript"]["roles"][0]["display"], "dev")
+        brief = ticket_pure._state_brief({"machine": {"states": [{"id": "a"}],
+                                                       "flow": {"id": "f"}}})
+        self.assertEqual(brief["states"][0]["id"], "a")
+        brief = ticket_pure._state_brief({"stages": [{"id": "b", "terminal": 1}, "x"]})
+        self.assertEqual(brief["states"][0]["id"], "b")
+        self.assertTrue(brief["states"][0]["terminal"])
+        self.assertEqual(ticket_pure._todo_brief({"todos": [
+            {"status": "done"}, {"status": "doing", "text": "做"}]})["current"], "做")
+        self.assertEqual(ticket_pure._todo_brief({})["total"], 0)
+        self.assertIsNone(ticket_pure._wire_brief(None, 1))
+        self.assertIsNone(ticket_pure._wire_brief({"method": "GET"}, 1))
+        wire = ticket_pure._wire_brief({"url": "u", "request": {"a": 1},
+                                        "response": None, "stream": 1}, 7)
+        self.assertEqual(wire["req_len"], len(str({"a": 1})))
+        self.assertEqual(wire["res_len"], 0)
+        self.assertEqual(wire["seq"], 7)
+        self.assertEqual(ticket_pure._tpl_text({"tpl": "x"}, "k"), "")
+        self.assertEqual(ticket_pure._tpl_text({"tpl": {"k": "v {id}"}}, "k", id="T"), "v T")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

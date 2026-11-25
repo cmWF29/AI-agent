@@ -9,11 +9,11 @@
 | 层 | 名称 | 防什么风险 | 跑什么 |
 |---|---|---|---|
 | L0 | 静态/架构/文档/映射 | 控件未登记状态机、指标取数源失真、可点实例缺去向、页面孤岛、条件表达式失效、只读裸奔、需求↔用例映射过期、表单/需求/API 参数断线、死代码 | 转调 L0 门禁 + 死代码扫描（`scripts/gate_*.py`） |
-| L1 | 后端单元（UT） | 纯函数错误、状态机非法迁移、并发竞争、幂等失效、边界条件 | 转调 `agent_test/private/test_*.py` 下的 21 个 unittest 模块，含 React 流程/清单/逐轮压缩机制专项 |
+| L1 | 后端单元（UT） | 纯函数错误、状态机非法迁移、并发竞争、幂等失效、边界条件 | 转调 `agent_test/private/test_*.py` 下的 39 个 unittest 模块，含 React 流程/清单/逐轮压缩机制专项 |
 | L2 | 接口契约 | 不可信输入打穿、未登录放行、内部路由外泄、越权直调、路径穿越、重复投递双跑 | 真装配 + 真 HTTP 闸，对业务路由跑非法输入矩阵与鉴权/越权/穿越/幂等探针 |
 | L3 | 系统级 E2E（ST） | 前后端接线断裂：点按钮没反应、弹窗/表单没加载、提交后列表不更新 | 真浏览器（Chromium/Playwright）+ 真后端：自动发现并巡检全部视图与弹窗表单；项目跑“建→改名→归档→删除”，工单跑“建→发消息→回复→结单→归档→删除”闭环并清理 |
 | L4 | 韧性 | 进程被杀、写盘中断、租约过期、节点下线、重复投递、恢复后双跑 | `scripts/resilience_drill.py`：真实 SIGKILL + 6 进程并发 + 真实幂等台账 `store.claim/renew/settle/sweep` |
-| L5 | 覆盖率 | 用例跑绿但核心机制根本没被执行；只测表层入口 | `coverage run --branch` + `scripts/gate_coverage.py`：整体行/分支阈值 + 关键模块（react/sessions/todos/library）单独阈值；另由 `gate_diff_coverage.py` 强制 base..HEAD 改动行 ≥90% |
+| L5 | 覆盖率 | 用例跑绿但核心机制根本没被执行；只测表层入口 | `coverage run --branch` + `scripts/gate_coverage.py`：整体行/分支 100% + 关键模块（react/sessions/todos/library）单独 100%；另由 `gate_diff_coverage.py` 强制 base..HEAD 改动行 100% |
 
 ## 怎么单独跑
 
@@ -77,10 +77,11 @@ cd ../../../..
 python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
 ```
 
-- 阈值在 `scripts/coverage.json`：整体行 ≥80.0%、分支 ≥67.0%（本轮实测 81.0% / 68.6%，全量 655 tests / 8 skipped），关键模块行 ≥80.0%、分支 ≥65.0%，改动行 ≥90.0%；
+- 阈值在 `scripts/coverage.json`：整体行 100%、分支 100%，关键模块行 100%、分支 100%，改动行 100%；
+- 平台互斥分支按 Linux + Windows 两端 coverage 合并计覆盖，不能用单端 `pragma` 或排除模块凑数；
 - 测试代码与前端静态资源不计入；
 - 没有数据文件直接红，不允许「没跑 coverage 但当作通过」；
-- 覆盖率不是目的：关键机制用例必须断言行为，不能只靠执行过一行代码。
+- 100% 不等于允许执行过一行就完：关键机制用例必须断言行为，线覆盖与分支覆盖都要有真实输入驱动。
 
 改动行门禁：
 

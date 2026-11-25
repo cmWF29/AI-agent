@@ -165,16 +165,16 @@ def _route_profile_save(ctx, payload):
         return _denied(ctx, caller, "profile_save", verdict["reason"], tpl)
 
     cfg = _cfg(ctx)
-    validated = _pure.validate_profile(payload, cfg)
+    state = _load_state(ctx)
+    existing = (state.get("profiles") or {}).get(str(payload.get("id") or ""))
+    validated = _pure.validate_profile(payload, cfg, require_credentials=not existing)
     if validated["ok"] is False:
         effects = _audit(ctx, caller, "profile_save", payload.get("id"), "deny",
                          ",".join(validated["errors"]))
         first = validated["errors"][0]
         return {**_err(first, 400, tpl.get(first) or first), "effects": effects}
 
-    state = _load_state(ctx)
     profile = validated["profile"]
-    existing = (state.get("profiles") or {}).get(profile["id"])
     # 凭证：入参明文密封落盘；未传凭证则沿用已密封的旧凭证（跨 profile 不可互换）。
     if payload.get("credentials"):
         # 扁平表单会带空字段；空值没有语义，密封层不接受空串，先在这里剔掉。
@@ -485,7 +485,7 @@ def _remote_manifest(ctx, profile, provider, creds):
     doc = dec["value"]
     if int(doc.get("version") or 0) != _MANIFEST_VERSION:
         return {"ok": False, "code": "manifest_version", "entries": {}}
-    raw = doc.get("entries") or {}
+    raw = doc.get("entries")
     if not isinstance(raw, dict):
         return {"ok": False, "code": "manifest_corrupt", "entries": {}}
     entries = {}
@@ -708,7 +708,7 @@ def _route_sync_run(ctx, payload):
         "ok": ok_run,
         "added": len(added),
         "skipped": len(skipped),
-        "failed": len(failed),
+        "failed_count": len(failed),
         "conflicts": len(conflicts),
         # 兼容旧字段名：pushed=added，unchanged=skipped，failures=failed。
         "pushed": len(added),

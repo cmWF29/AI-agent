@@ -154,8 +154,6 @@ def probe():
         _STATE = {"supported": False, "verified": False,
                   "code": "unsupported_platform", "engine": "job-object"}
         return dict(_STATE)
-        return {"supported": False, "verified": False,
-                "code": "unsupported_platform", "engine": "job-object"}
     try:
         with Job(active_processes=4) as job:
             proc = subprocess.Popen([sys.executable, "-c", "pass"],

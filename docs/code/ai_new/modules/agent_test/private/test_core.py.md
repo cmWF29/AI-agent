@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 8f29196f09db1d24f1271508d1cb9b6f17e244425eada3732cf1a8fcd9fd59c8
+hash: 9861e91e0ed61278f88a70a4561a7d07813a46f55898804a23022c6c3286d6be
 symbols:
 - __init__
 - __call__
@@ -159,6 +159,14 @@ symbols:
 - setUp
 - test_gate_blocks_until_every_must_checked
 - test_gate_checks_redline_and_stay
+- test_glob_variants
+- test_next_n_ignores_bad_ids
+- test_missing_record_and_view_edges
+- test_screen_filters_and_note_branch
+- test_review_and_pick_and_branch
+- test_ticket_files_and_paths
+- test_template_stale_and_record_path
+- test_archive_and_brief_helpers
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:22'
 ---
@@ -1111,6 +1119,54 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `test_gate_checks_redline_and_stay`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_glob_variants`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_next_n_ignores_bad_ids`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_missing_record_and_view_edges`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_screen_filters_and_note_branch`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_review_and_pick_and_branch`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ticket_files_and_paths`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_template_stale_and_record_path`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_archive_and_brief_helpers`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

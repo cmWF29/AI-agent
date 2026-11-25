@@ -108,8 +108,12 @@ def authorize(caller, action):
 
 # ---------------------------------------------------------------- 端点与路径校验
 
-def validate_profile(payload, cfg):
-    """校验并规范化 profile。返回 ``{"ok", "errors", "profile"}``；errors 为代码列表。"""
+def validate_profile(payload, cfg, require_credentials=True):
+    """校验并规范化 profile。返回 ``{"ok", "errors", "profile"}``；errors 为代码列表。
+
+    更新已存在 profile 时允许不带凭证：``require_credentials=False`` 跳过此项，
+    由路由沿用旧密封凭证，避免“改端点必须重填密钥”。
+    """
     errors = []
     provider = str(payload.get("provider") or "")
     if provider not in PROVIDER_KINDS:
@@ -131,7 +135,7 @@ def validate_profile(payload, cfg):
         root_dir = ""
 
     credentials = payload.get("credentials") or {}
-    if not isinstance(credentials, dict) or not credentials:
+    if require_credentials and (not isinstance(credentials, dict) or not credentials):
         errors.append("bad_credentials")
 
     categories = payload.get("categories") or []
