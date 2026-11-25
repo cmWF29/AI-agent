@@ -8,9 +8,9 @@ import time
 from pathlib import Path
 
 
-def replace_file(src, dst, attempts=8):
+def replace_file(src, dst, attempts=50):
     """原子改名；Windows 上杀软/读句柄短暂占用目标时退避重试，不把并发放大成写失败。"""
-    delay = 0.005
+    delay = 0.002
     for i in range(attempts):
         try:
             os.replace(src, dst)
@@ -19,7 +19,7 @@ def replace_file(src, dst, attempts=8):
             if os.name != "nt" or i + 1 >= attempts:
                 raise
             time.sleep(delay)
-            delay = min(delay * 2, 0.2)
+            delay = min(delay * 2, 0.05)
 
 
 def ensure_dir(path):

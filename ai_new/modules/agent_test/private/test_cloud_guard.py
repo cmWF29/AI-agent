@@ -161,7 +161,10 @@ class SymlinkEscapeTest(unittest.TestCase):
 
     def test_inside_path_allowed(self):
         resolved = _guard.resolve_within(self.root, "real/note.md")
-        self.assertTrue(resolved.startswith(str(self.root)))
+        # CI 的临时目录可能带 8.3 短名（RUNNER~1），两边都 realpath+normcase 再比。
+        root = os.path.normcase(os.path.realpath(str(self.root)))
+        got = os.path.normcase(os.path.realpath(str(resolved)))
+        self.assertEqual(os.path.commonpath([root, got]), root)
 
 
 class BodySizeTest(unittest.TestCase):

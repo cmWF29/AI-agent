@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T15:02:48",
+  "generated": "2026-11-25T15:14:16",
   "total": 527,
   "groups": [
     {
@@ -3806,7 +3806,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_files.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "1929c58aa790c404982a9a2311aae6ff2fff2642d9e40d60da2dbe8a89fd51fa",
+          "hash": "ddf5f081d2ef67cbde1cafb6bafe1ea2d7904cb195aa29dc7f7045a511bdd9fc",
           "symbols": 12,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4046,7 +4046,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_cloud_guard.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "cba6e81be1bd67356556f415d036e337287ba0517a9fb548b0b0b9d5fa929bb5",
+          "hash": "9c84ad6a1ba9384b222a2c8e8c7d73a53db05cd1ee912fb15721a972c4ecb058",
           "symbols": 38,
           "updated_at": "2026-11-23T09:50:02"
         },

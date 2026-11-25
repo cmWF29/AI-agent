@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_files.py
-hash: 1929c58aa790c404982a9a2311aae6ff2fff2642d9e40d60da2dbe8a89fd51fa
+hash: ddf5f081d2ef67cbde1cafb6bafe1ea2d7904cb195aa29dc7f7045a511bdd9fc
 symbols:
 - replace_file
 - ensure_dir
