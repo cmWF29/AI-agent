@@ -462,7 +462,7 @@ class StructureTest(unittest.TestCase):
                    "AUDIT-2026-11-21.md", "IDEMPOTENCY.md", "ROADMAP.md",
                    "agent_start.out.log", "agent_start.err.log",
                    # VCS 元数据；部署副本运行期产物（TLS 材料目录、运行日志）
-                   ".git", ".gitignore", "certs", "run.log",
+                   ".git", ".gitignore", ".gitattributes", "certs", "run.log",
                    # CI 工作流定义目录（门禁本身也是契约的一部分）
                    ".github",
                    # 代码-文档同步产物：docs 是源码的契约镜像，由 gate_docsync 生成并对账，

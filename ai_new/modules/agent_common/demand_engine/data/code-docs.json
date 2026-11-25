@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T17:39:23",
+  "generated": "2026-11-25T17:45:25",
   "total": 531,
   "groups": [
     {
@@ -4019,7 +4019,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_architecture.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "162fa972a01df588ce3f054922339c0ea86bc949d049eff90cdef24454dd626a",
+          "hash": "169fec012be81e2dd9c97ddcb6233b4f10591d42cc0e46cb19434128a9617d3a",
           "symbols": 40,
           "updated_at": "2026-11-23T04:10:22"
         },
