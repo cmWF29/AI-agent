@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_api.py
-hash: edc73c6cce6c33cee0f7ac9bb7ec4781b8d2d180a5f4d55ae40f45d7fcf88575
+hash: 9946df6917aebd8a0d2c9ed35aaac29c699af58af89abccfd08e220b1077a3c6
 symbols:
 - __call__
 - setUpClass
@@ -11,6 +11,7 @@ symbols:
 - test_ticket_send_guards
 - test_ticket_note_guards
 - test_ticket_split_guards
+- test_ticket_split_reads_global_limit_when_omitted
 - test_ticket_rebind_guards
 - test_project_create_empty_name_guard
 - test_ticket_create_and_close_guards
@@ -105,6 +106,12 @@ API 边界负向用例 + ops-overview 首屏瘦身回归。
 
 ### `test_ticket_split_guards`（method）
 - 职责: children 非列表/元素非对象/上限非整数/force 非布尔都必须 400。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ticket_split_reads_global_limit_when_omitted`（method）
+- 职责: 直调能力不传 max_children 时也要回读 config，不能绕过全局上限。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -107,6 +107,20 @@ class ApiBoundaryTest(unittest.TestCase):
         self.assertEqual(self._ticket("tickets.split", {"id": "T-none", "children": [],
                                                          "force": "yes"}).get("code"), "bad_input")
 
+    def test_ticket_split_reads_global_limit_when_omitted(self):
+        """直调能力不传 max_children 时也要回读 config，不能绕过全局上限。"""
+        pid, tid = "dbg-1795512827", "T-guard-split"
+        now = self._ticket("clock.now", {}).get("ts")
+        rec = self._ticket("tickets.build", {"id": tid, "title": "split", "project": pid,
+                                             "kind": "parent", "now": now})
+        for i in range(8):
+            rec = self._ticket("tickets.bindchild", {
+                "rec": rec, "child": "T-child-%d" % i, "tpl": "", "now": now})
+        path = self._ticket("tickets.record_path", {"id": tid, "project": pid}).get("path")
+        self._ticket("store.write", {"module": "agent/tickets", "path": path, "value": rec})
+        out = self._ticket("tickets.split", {"id": tid, "children": [{"title": "x"}]})
+        self.assertEqual(out.get("code"), "too_many_children", out)
+
     def test_ticket_rebind_guards(self):
         """from/to 必须非空字符串且不相同，避免把 project 写成对象或原地打转。"""
         for payload in ({"from": "", "to": "p2"}, {"from": "p1", "to": []},
