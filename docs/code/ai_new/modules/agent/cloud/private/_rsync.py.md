@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/cloud/private/_rsync.py
-hash: 400cbafdcb00ce5620e5711a9910aa25725e3939bda417018af1451029bcaa15
+hash: 3da4fe6fd2e9d73825499b24d36d8234f1d18e161a840e0f7707c91237b28f3b
 symbols:
 - detect
 - probe

@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 
@@ -129,6 +130,9 @@ def sync(source, target, *, delete=False, checksum=True, partial_dir=None,
 
 def _is_remote(value):
     text = str(value)
+    # Windows 盘符 C:\path / C:/path 是本地路径，不是 rsync 的 host:path。
+    if re.match(r"^[A-Za-z]:[\\/]", text):
+        return False
     return "://" not in text and not text.startswith(("/", "\\")) and ":" in text
 
 

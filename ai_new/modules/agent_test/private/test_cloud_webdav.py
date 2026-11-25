@@ -424,7 +424,10 @@ class RsyncChannelTest(unittest.TestCase):
         self.assertEqual(probe["ok"], available)
         if available:
             self.assertEqual(probe["code"], "available")
-            self.assertTrue(probe["path"])
+            if probe.get("mechanism") == "python-shutil":
+                self.assertIsNone(probe["path"], "shutil 兜底没有 rsync 二进制")
+            else:
+                self.assertTrue(probe["path"])
         else:
             self.assertEqual(probe["code"], "unsupported_platform")
             self.assertEqual(probe["detail"], "rsync not installed")
@@ -486,6 +489,7 @@ class RsyncChannelTest(unittest.TestCase):
             self.assertEqual(probe["mechanism"], "python-shutil")
             first = _rsync.sync(src + "/", dst + "/")
             self.assertTrue(first["ok"], first)
+            self.assertFalse(_rsync._is_remote(src), "Windows 盘符路径不能被当作远端")
             self.assertTrue(os.path.exists(os.path.join(dst, "nested", "b.bin")))
             # --delete 删除目标多出的条目，源有的一律保留。
             with open(os.path.join(dst, "stale.txt"), "w") as fh:
