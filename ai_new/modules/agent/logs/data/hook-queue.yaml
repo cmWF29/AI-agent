@@ -2,42 +2,14 @@ items:
 - hook: sessions.finished
   level: info
   data:
-    id: pm-42
+    id: pm-65
     kind: pm
     role: pm
-    ticket: T-20261124-0011
+    ticket: T-20261125-0006
 - hook: sessions.finished
   level: info
   data:
-    id: pm-43
+    id: pm-71
     kind: pm
     role: pm
-    ticket: T-20261124-0012
-- hook: sessions.finished
-  level: info
-  data:
-    id: pm-44
-    kind: pm
-    role: pm
-    ticket: T-20261124-0013
-- hook: sessions.finished
-  level: info
-  data:
-    id: pm-45
-    kind: pm
-    role: pm
-    ticket: T-20261124-0014
-- hook: sessions.finished
-  level: info
-  data:
-    id: pm-46
-    kind: pm
-    role: pm
-    ticket: T-20261124-0015
-- hook: sessions.finished
-  level: info
-  data:
-    id: pm-47
-    kind: pm
-    role: pm
-    ticket: T-20261124-0016
+    ticket: T-20261125-0006

@@ -129,12 +129,12 @@ DEMANDS = {
 
 class PlanErrorTest(unittest.TestCase):
     def test_missing_base_directory(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             with self.assertRaises(RuntimeError):
                 g.plan(Path(tmp) / "nope")
 
     def test_empty_directory(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             base = Path(tmp) / "agent_common"
             base.mkdir()
             (base / "junk").mkdir()
@@ -142,13 +142,13 @@ class PlanErrorTest(unittest.TestCase):
                 g.plan(base)
 
     def test_two_roots(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             base, _ = build(tmp, {"a": "", "b": ""})
             with self.assertRaises(RuntimeError):
                 g.plan(base)
 
     def test_duplicate_provider(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             base, _ = build(tmp, {
                 "r": "",
                 "a": "def setup(ctx):\n    ctx.same = 1\n",
@@ -160,7 +160,7 @@ class PlanErrorTest(unittest.TestCase):
 
 class WiringTest(unittest.TestCase):
     def test_plan_collects_warnings_and_surfaces(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             base, data_dir = build(tmp, {"root": ROOT_SOURCE, "p": P_SOURCE, "q": Q_SOURCE},
                                    DEMANDS)
             plan = g.plan(base, data_dir)
@@ -186,14 +186,14 @@ class WiringTest(unittest.TestCase):
             self.assertEqual(detail["demands"][2]["on"], [])
 
     def test_plan_multi_group_and_string_base(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             base, _ = build(tmp, {"root": ROOT_SOURCE, "p": P_SOURCE})
             plan = g.plan(str(base))
             self.assertEqual(plan["packages"]["p"], "ai_new.modules.agent_common.p")
 
     def test_data_dir_missing_and_absent(self):
         self.assertEqual(g._read_demands(None), [])
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             self.assertEqual(g._read_demands(Path(tmp)), [])
 
     def test_demand_helpers(self):
