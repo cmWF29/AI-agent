@@ -1482,12 +1482,16 @@ class CoreTest(unittest.TestCase):
 
     def test_react_tool_calls_run_concurrently(self):
         """同一轮多个 tool_call 并发提交工具池：总耗时≈max(单工具) 而非 sum；回填按原序。"""
+        import threading as _threading
         import time as _time
         starts = []
+        barrier = _threading.Barrier(2)
 
         def slow_tool(ctx, payload):
             starts.append(_time.perf_counter())
-            _time.sleep(0.15)
+            # 真正的并发证明：两条工具必须同时进入，串行会让第一条 BrokenBarrier。
+            barrier.wait(timeout=1.0)
+            _time.sleep(0.05)
             return {"ok": True, "content": "done:" + str(payload.get("name"))}
 
         self.ctx.api.substitute("tools.execute", slow_tool)
@@ -1518,11 +1522,9 @@ class CoreTest(unittest.TestCase):
             tool_msgs = [m for m in msgs if m.get("role") == "tool"]
             self.assertEqual([m.get("tool_call_id") for m in tool_msgs],
                              ["c1", "c2"], "工具回填应保持模型给出的原顺序")
-            # 墙钟总耗时含首轮回包/收口固定开销，在慢速 Windows CI 上会漂；
-            # 用两次工具进入的间隔判定重叠：串行第二条要等第一条 sleep 0.15 才进入。
-            self.assertLess(starts[1] - starts[0], 0.10,
-                            "两条工具应重叠执行，而不是串行等待")
-            self.assertLess(elapsed, 0.90, "总耗时不应退化成串行两倍以上")
+            # barrier 已证明两条工具同时进入；墙钟只做退化上限，不卡慢机。
+            self.assertLess(starts[1] - starts[0], 1.0)
+            self.assertLess(elapsed, 1.5, "总耗时不应退化成串行两倍以上")
         finally:
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 

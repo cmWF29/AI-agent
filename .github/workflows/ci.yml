@@ -169,7 +169,14 @@ jobs:
       - name: test_core（核心回归：装配/路由/契约/桩协议）
         timeout-minutes: 8
         working-directory: ai_new/modules/agent_test/private
-        run: python -m unittest test_core -v
+        run: |
+          python -m unittest test_core -v *> test-core.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Get-Content test-core.log -Tail 120
+            Get-Content test-core.log -Tail 120 >> $env:GITHUB_STEP_SUMMARY
+          }
+          exit $code
       - name: 全量用例（Windows 真机 36 模块，并行分片）
         timeout-minutes: 25
         run: python scripts/run_tests.py --jobs 2 --json-out windows-run.json
