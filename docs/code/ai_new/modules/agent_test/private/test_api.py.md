@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_api.py
-hash: 2c6d4ffd7dc73ae8f772bd25350dd41a573c333af89419802a719462ea8797bd
+hash: edc73c6cce6c33cee0f7ac9bb7ec4781b8d2d180a5f4d55ae40f45d7fcf88575
 symbols:
 - __call__
 - setUpClass
@@ -12,6 +12,7 @@ symbols:
 - test_ticket_note_guards
 - test_ticket_split_guards
 - test_ticket_rebind_guards
+- test_project_create_empty_name_guard
 - test_ticket_create_and_close_guards
 - test_dotdot_traversal_rejected
 - test_url_encoded_traversal_rejected
@@ -110,6 +111,12 @@ API 边界负向用例 + ops-overview 首屏瘦身回归。
 
 ### `test_ticket_rebind_guards`（method）
 - 职责: from/to 必须非空字符串且不相同，避免把 project 写成对象或原地打转。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_project_create_empty_name_guard`（method）
+- 职责: 空项目名必须在 store.id 之前拒绝，不能生成 item 这种假项目。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

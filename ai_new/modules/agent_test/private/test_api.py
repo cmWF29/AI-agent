@@ -113,6 +113,11 @@ class ApiBoundaryTest(unittest.TestCase):
                         {"from": "p1", "to": "p1"}):
             self.assertEqual(self._ticket("tickets.rebind", payload).get("code"), "bad_input")
 
+    def test_project_create_empty_name_guard(self):
+        """空项目名必须在 store.id 之前拒绝，不能生成 item 这种假项目。"""
+        out = self.ctx.api.call("projects.create", {"name": "   "}, caller=None, direct=True)
+        self.assertEqual(out.get("code"), "missing_name")
+
     def test_ticket_create_and_close_guards(self):
         """建单缺项目/结单缺单都必须结构化拒绝。"""
         out = self._ticket("tickets.create", {"title": "x"})

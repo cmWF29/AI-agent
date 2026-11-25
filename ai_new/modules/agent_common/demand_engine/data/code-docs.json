@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-25T17:24:11",
-  "total": 530,
+  "generated": "2026-11-25T17:28:08",
+  "total": 531,
   "groups": [
     {
       "label": "agent",
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 43,
+      "count": 44,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4010,8 +4010,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_api.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "2c6d4ffd7dc73ae8f772bd25350dd41a573c333af89419802a719462ea8797bd",
-          "symbols": 37,
+          "hash": "edc73c6cce6c33cee0f7ac9bb7ec4781b8d2d180a5f4d55ae40f45d7fcf88575",
+          "symbols": 38,
           "updated_at": "2026-11-23T09:45:09"
         },
         {
@@ -4265,6 +4265,15 @@
           "hash": "d564efc3ea34397d29ede06b337185d756be4cab0778dc60f56ec1291e4c7a74",
           "symbols": 25,
           "updated_at": "2026-11-23T13:04:31"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_platform_branches.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_platform_branches.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "8cdb4ccace71653fc9b6a5cf2da35657ddb90838d32933804ccae180e084445b",
+          "symbols": 24,
+          "updated_at": "2026-11-25T17:28:05"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_react_mechanisms.py",
