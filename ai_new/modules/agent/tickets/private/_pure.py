@@ -103,9 +103,117 @@ def guard_create(p):
     return {"ok": True}
 
 
+def _bad(code, status, message=""):
+    return {"ok": False, "code": code, "status": status, "error": message}
+
+
+def _tpl_text(p, key, **fmt):
+    """错误文案从 messages.yaml 取；纯层不内置中文，避免业务文案漏进私有层。"""
+    tpl = p.get("tpl")
+    text = tpl.get(key) if isinstance(tpl, dict) else ""
+    if not isinstance(text, str) or not text:
+        return ""
+    try:
+        return text.format(**fmt)
+    except (KeyError, IndexError, ValueError):
+        return text
+
+
+def _opt_text(p, key, max_len, tpl=None):
+    """可选文本字段：缺省/None 合法；存在就必须是字符串且不超长。"""
+    src = p if tpl is None else {"tpl": tpl}
+    value = p.get(key)
+    if value is None:
+        return "", None
+    if not isinstance(value, str):
+        return None, _bad("bad_input", 400, _tpl_text(src, "bad_type", field=key))
+    if len(value) > max_len:
+        return None, _bad("bad_input", 400,
+                          _tpl_text(src, "bad_too_long", field=key, max=max_len))
+    return value, None
+
+
+def validate_create(p):
+    """建单入参类型/长度守卫：HTTP/YAML 里列表、对象、超长正文不能进工单档案。
+
+    必填项目由 ``validate_project`` 判；这里只把可选字段的坏形状提前收口，
+    不让它们落到 ``build`` 里变成列表/字典，最后把页面渲染打崩。
+    """
+    check = {"ok": True}
+    project = p.get("project")
+    if project is not None and not isinstance(project, str):
+        return _bad("bad_project", 400, _tpl_text(p, "bad_project_type"))
+    for key, cap in (("title", 200), ("goal", 4000), ("kind", 32),
+                     ("parent", 64), ("task", 8000), ("default_title", 200)):
+        _, err = _opt_text(p, key, cap)
+        if err:
+            return err
+    # 空 kind 是表单的合法缺省（由 build 回落默认类型），这里只拦非字符串。
+    meta = p.get("meta")
+    if meta is not None and not isinstance(meta, dict):
+        return _bad("bad_input", 400, _tpl_text(p, "bad_meta"))
+    steps = p.get("pm_max_steps")
+    if steps is not None and (isinstance(steps, bool) or not isinstance(steps, int)):
+        return _bad("bad_input", 400, _tpl_text(p, "bad_steps"))
+    retro = p.get("auto_retrospective")
+    if retro is not None and not isinstance(retro, bool):
+        return _bad("bad_input", 400, _tpl_text(p, "bad_bool", field="auto_retrospective"))
+    return check
+
+
+def validate_split(p):
+    """拆单入参：children 必须是对象列表；上限必须是整数，字符串比较会 TypeError。"""
+    children = p.get("children")
+    if not isinstance(children, list):
+        return _bad("bad_input", 400, _tpl_text(p, "bad_children_list"))
+    for i, child in enumerate(children):
+        if not isinstance(child, dict):
+            return _bad("bad_input", 400, _tpl_text(p, "bad_child", index=i))
+        for key, cap in (("title", 200), ("goal", 4000)):
+            _, err = _opt_text(child, key, cap, tpl=p.get("tpl"))
+            if err:
+                return err
+    limit = p.get("max_children")
+    if limit is not None:
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+            return _bad("bad_input", 400, _tpl_text(p, "bad_max_children"))
+    force = p.get("force")
+    if force is not None and not isinstance(force, bool):
+        return _bad("bad_input", 400, _tpl_text(p, "bad_bool", field="force"))
+    return {"ok": True}
+
+
+def validate_text(p):
+    """消息/备注正文：必须是字符串；空串由调用方按业务语义拒绝。"""
+    text = p.get("text")
+    if not isinstance(text, str):
+        return _bad("bad_input", 400, _tpl_text(p, "bad_text_type"))
+    if len(text) > 20000:
+        return _bad("bad_input", 400, _tpl_text(p, "bad_text_long"))
+    return {"ok": True, "text": text}
+
+
+def validate_rebind(p):
+    """项目改名改挂：from/to 都必须是字符串，否则会把工单 project 写成列表/对象。"""
+    for key in ("from", "to"):
+        value = p.get(key)
+        if not isinstance(value, str) or not value.strip():
+            return _bad("bad_input", 400, _tpl_text(p, "bad_nonempty", field=key))
+    if p.get("from") == p.get("to"):
+        return _bad("bad_input", 400, _tpl_text(p, "bad_from_to_same"))
+    return {"ok": True}
+
+
 def validate_project(p):
-    """工单必须绑定项目：纯空值守卫，项目是否存在由需求层读盘判断。"""
-    project = (p.get("project") or "").strip()
+    """工单必须绑定项目：纯空值守卫，项目是否存在由需求层读盘判断。
+
+    项目 id 来自 HTTP/YAML，非字符串不能 ``strip()`` 打 500；类型错按 bad_project 拒绝。
+    """
+    project = p.get("project")
+    if not isinstance(project, str):
+        return {"ok": False, "code": "bad_project", "status": 400,
+                "error": p.get("tpl") or ""}
+    project = project.strip()
     if not project:
         return {"ok": False, "code": "missing_project", "status": 400,
                 "error": p.get("tpl") or ""}
@@ -125,7 +233,12 @@ def _slim_msg(m):
 
 
 def _slim_thread(messages):
-    return [_slim_msg(m) for m in (messages or []) if (m or {}).get("role") != "system"]
+    out = []
+    for m in messages or []:
+        if isinstance(m, dict) and m.get("role") == "system":
+            continue
+        out.append(_slim_msg(m))
+    return out
 
 
 def archive_transcript(p):

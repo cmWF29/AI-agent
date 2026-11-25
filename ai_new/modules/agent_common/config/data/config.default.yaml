@@ -15,6 +15,14 @@ server:
     password_hash: ''
     salt: ''
     ttl: 86400
+    # 登录节流：按对端 IP 与 IP+账号计数；锁定期内连正确口令也拒绝。
+    # 不按账号单独锁，避免攻击者用任意用户名把 admin 锁死形成定向 DoS。
+    login_guard:
+      enabled: true
+      max_failures: 5
+      window_seconds: 600
+      lock_seconds: 900
+      max_entries: 2000
   tls:
     enabled: false
     cert: ''

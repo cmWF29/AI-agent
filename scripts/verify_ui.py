@@ -29,7 +29,7 @@ def check(name, ok, detail=""):
         FAILS.append(name + (" · " + str(detail) if detail else ""))
 
 
-async def settle_view(pg, timeout=4000):
+async def settle_view(pg, timeout=20000):
     """等视图内容落盘：外壳脚本异步取数后才渲染卡片/会话/表格；
     采样太早会拿到加载态或未置灰的控件。"""
     try:

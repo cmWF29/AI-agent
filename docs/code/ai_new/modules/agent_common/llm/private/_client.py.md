@@ -1,9 +1,10 @@
 ---
 source: ai_new/modules/agent_common/llm/private/_client.py
-hash: 884b62f97030ea1a133ef96712c3e3491cc348f2b918d59919c0e2ae2ec0f12a
+hash: abcfbb46676309936c23ba91b28578e47fc7ea51dfb1fed397f453612b25b92b
 symbols:
 - _sanitize
 - encode
+- _choice
 - decode
 - decode_sse
 - wire
@@ -30,6 +31,12 @@ LLM 语义实现（纯计算）：标准输入 → 载荷，响应对象 → 对
 
 ### `encode`（function）
 - 职责: 标准输入 → {url, headers, payload}。payload 是对象，序列化交给 codec。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_choice`（function）
+- 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

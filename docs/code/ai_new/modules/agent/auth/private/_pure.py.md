@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/auth/private/_pure.py
-hash: 0b4a03415243f3cd28a5d83d84b54d065f7d74d45998bd083390e1242cb18c9c
+hash: 8c247a073868c07af4cb833eed33a7b74cb269f0ff7fb285bdc4cc5b7ceadb18
 symbols:
 - valid_token
 - default_password_state
@@ -10,6 +10,9 @@ symbols:
 - session_valid
 - session_view
 - session_path
+- throttle_keys
+- throttle_check
+- throttle_update
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:19'
 ---
@@ -69,6 +72,24 @@ updated_at: '2026-11-23T04:10:19'
 
 ### `session_path`（function）
 - 职责: 注销要删的会话记录相对路径：模板由需求层配置表给出，纯函数只填参。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `throttle_keys`（function）
+- 职责: 登录节流键：IP 与“IP+账号”。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `throttle_check`（function）
+- 职责: 只读判定：当前键是否在锁定期；返回剩余秒数用于 Retry-After 文案。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `throttle_update`（function）
+- 职责: 记录一次登录结果，返回新台账与是否已进入锁定期。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

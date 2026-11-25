@@ -15,8 +15,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 from ai_new.modules.agent.asr.private import _engine as asr_engine
 from ai_new.modules.agent.asr.private import _pure as asr_pure
+from ai_new.modules.agent import auth as auth_mod
 from ai_new.modules.agent.auth.private import _pure as auth_pure
+from ai_new.modules.agent.tickets.private import _pure as ticket_pure
 from ai_new.modules.agent.web.private import _pure as web_pure
+from ai_new.modules.agent_common.codec.private import _codec
+from ai_new.modules.agent_common.llm.private import _client as llm_client
 from ai_new.modules.agent_common.exec.private import _runner
 from ai_new.modules.agent_common.trace.private import _trace
 
@@ -237,3 +241,260 @@ class WebBoundaryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class CodecBoundaryTest(unittest.TestCase):
+    def test_json_and_sse_reject_wrong_shapes_without_crashing(self):
+        self.assertEqual(_codec.json_decode({"not": "text"})["code"], "decode_failed")
+        self.assertEqual(_codec.json_decode("[1,2]")["value"], [1, 2])
+        self.assertEqual(_codec.sse_decode(b'data: {"a": 1}\n\ndata: [DONE]\n'),
+                         {"ok": True, "items": [{"a": 1}]})
+        self.assertEqual(_codec.sse_decode({"bad": "shape"})["code"], "decode_failed")
+
+    def test_digest_only_allows_known_hash_family(self):
+        good = _codec.digest("abc", "sha256")
+        self.assertTrue(good["ok"])
+        self.assertEqual(good["hex"], "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+        self.assertTrue(_codec.digest("abc", "MD5")["ok"])
+        for algo in ("pbkdf2_hmac", "scrypt", "new", "__class__", ""):
+            if algo == "":
+                continue
+            self.assertFalse(_codec.digest("abc", algo)["ok"], algo)
+            self.assertEqual(_codec.digest("abc", algo)["code"], "bad_algorithm")
+
+    def test_nonce_length_is_bounded(self):
+        token = _codec.nonce(10 ** 9)["token"]
+        self.assertGreaterEqual(len(token), 8)
+        self.assertLessEqual(len(token), 5500)
+        self.assertFalse(_codec.nonce("bad")["ok"])
+
+    def test_decode_hex_clamps_negative_limit_and_marks_binary(self):
+        out = _codec.decode_hex("00ff", max_bytes=-1)
+        self.assertEqual(out["text"], "")
+        self.assertFalse(out["truncated"])
+        binout = _codec.decode_hex("00ff10", max_bytes=2, size=3)
+        self.assertEqual(binout["encoding"], "binary")
+        self.assertTrue(binout["truncated"])
+
+    def test_wave_decode_rejects_non_bytes_and_bad_wav(self):
+        self.assertEqual(_codec.wave_decode("not-bytes")["code"], "bad_audio")
+        self.assertEqual(_codec.wave_decode(b"not-wav")["code"], "bad_audio")
+
+    def test_wave_decode_accepts_pcm_wav(self):
+        import io
+        import wave
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(8000)
+            wav.writeframes(b"\x00\x00" * 16)
+        out = _codec.wave_decode(buf.getvalue())
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["rate"], 8000)
+        self.assertEqual(out["channels"], 1)
+        self.assertEqual(len(out["pcm"]), 32)
+
+
+class LlmBoundaryTest(unittest.TestCase):
+    def test_encode_rejects_bad_messages_tools_and_temperature(self):
+        self.assertEqual(llm_client.encode()["code"], "llm_not_configured")
+        self.assertEqual(llm_client.encode("http://x", messages={"role": "user"})["code"],
+                         "bad_messages")
+        self.assertEqual(llm_client.encode("http://x", messages=[{"role": "user"},
+                                                                 "bad"])["code"],
+                         "bad_messages")
+        self.assertEqual(llm_client.encode("http://x", tools={"x": 1})["code"], "bad_tools")
+        self.assertEqual(llm_client.encode("http://x", temperature="hot")["code"],
+                         "bad_temperature")
+        self.assertEqual(llm_client.encode("http://x", temperature=float("nan"))["code"],
+                         "bad_temperature")
+        good = llm_client.encode("http://x", messages=[{"role": "user", "content": "hi"}],
+                                  temperature=0.2)
+        self.assertTrue(good["ok"])
+        self.assertEqual(good["payload"]["messages"][0]["content"], "hi")
+        self.assertEqual(good["payload"]["temperature"], 0.2)
+
+    def test_decode_rejects_non_standard_response_shapes(self):
+        for payload in ({"choices": {"0": {}}}, {"choices": [1]},
+                        {"choices": [{"message": []}]},
+                        {"choices": [{"message": {"content": [1]}}]},
+                        {"choices": [{"message": {"tool_calls": {"x": 1}}}]}):
+            out = llm_client.decode(payload)
+            self.assertFalse(out["ok"], payload)
+            self.assertEqual(out["code"], "llm_bad_payload")
+        self.assertEqual(llm_client.decode([1])["code"], "llm_bad_payload")
+        self.assertEqual(llm_client.decode({"error": {"code": "x"}})["code"], "llm_error")
+        ok = llm_client.decode({"choices": [{"message": {"content": "你好"},
+                                             "finish_reason": "stop"}], "usage": {"t": 1}})
+        self.assertTrue(ok["ok"])
+        self.assertEqual(ok["content"], "你好")
+        self.assertEqual(ok["finish"], "stop")
+
+    def test_decode_sse_merges_fragments_and_rejects_bad_events(self):
+        out = llm_client.decode_sse([
+            {"choices": [{"delta": {"content": "你"}}]},
+            {"choices": [{"delta": {"content": "好"},
+                          "finish_reason": "stop"}]},
+            {"choices": [{"delta": {"tool_calls": [
+                {"index": 0, "id": "c1", "function": {"name": "read", "arguments": '{"a"'}}]}}]},
+            {"choices": [{"delta": {"tool_calls": [
+                {"index": 0, "function": {"arguments": ":1}"}}]}}]},
+        ])
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["content"], "你好")
+        self.assertEqual(out["tool_calls"][0]["function"]["arguments"], '{"a":1}')
+        for items in ([1], [{"choices": {"0": {}}}], [{"choices": [{"delta": []}]}]):
+            self.assertEqual(llm_client.decode_sse(items)["code"], "llm_bad_payload")
+
+    def test_wire_masks_secret_headers(self):
+        wire = llm_client.wire({"url": "http://x", "headers": {
+            "Authorization": "Bearer secret", "X-Api-Key": "k", "Accept": "json"},
+            "model": "m", "status": 200})
+        self.assertEqual(wire["headers"]["Authorization"], "***")
+        self.assertEqual(wire["headers"]["X-Api-Key"], "***")
+        self.assertEqual(wire["headers"]["Accept"], "json")
+        self.assertEqual(wire["model"], "m")
+
+
+class LoginThrottleBoundaryTest(unittest.TestCase):
+    def test_keys_do_not_lock_account_globally(self):
+        self.assertEqual(auth_pure.throttle_keys({"peer": "1.2.3.4", "username": "admin"})["keys"],
+                         ["ip:1.2.3.4", "pair:1.2.3.4|admin"])
+        self.assertEqual(auth_pure.throttle_keys({"username": "admin"})["keys"],
+                         ["user:admin"])
+        self.assertEqual(auth_pure.throttle_keys({})["keys"], [])
+
+    def test_guard_cfg_clamps_bad_values_and_mutate_fails_closed(self):
+        class FakeApi:
+            def __init__(self, cas):
+                self.cas_result = cas
+
+            def call(self, name, payload=None, caller=None, direct=False):
+                if name == "store.read":
+                    return {"value": []}
+                if name == "clock.now":
+                    return {"ts": 1000.0}
+                if name == "store.cas":
+                    return self.cas_result
+                return {}
+
+        class FakeCtx:
+            cfg = {"server": {"auth": {"login_guard": {
+                "max_failures": "bad", "window_seconds": 0,
+                "lock_seconds": 10 ** 9, "max_entries": -1}}}}
+            api = FakeApi({"ok": False, "conflict": True})
+
+        cfg = auth_mod._guard_cfg(FakeCtx())
+        self.assertEqual(cfg["max_failures"], 5)
+        self.assertEqual(cfg["window_seconds"], 1)
+        self.assertEqual(cfg["lock_seconds"], 86400)
+        self.assertEqual(cfg["max_entries"], 1)
+        self.assertEqual(auth_mod._throttle_read(FakeCtx()), {})
+        self.assertEqual(auth_mod._throttle_mutate(FakeCtx(), ["ip:a"], False),
+                         {"error": "guard_conflict_exhausted"})
+        FakeCtx.api = FakeApi({"ok": False, "code": "write_failed"})
+        self.assertEqual(auth_mod._throttle_mutate(FakeCtx(), ["ip:a"], False),
+                         {"error": "write_failed"})
+
+    def test_check_and_update_lock_then_success_clears(self):
+        now = 1000.0
+        cfg = {"max_failures": 2, "window_seconds": 60, "lock_seconds": 120,
+               "max_entries": 10}
+        out = auth_pure.throttle_update({"entries": {}, "keys": ["ip:a"], "now": now,
+                                         "cfg": cfg, "success": False})
+        self.assertFalse(out["blocked"])
+        out = auth_pure.throttle_update({"entries": out["entries"], "keys": ["ip:a"],
+                                         "now": now + 1, "cfg": cfg, "success": False})
+        self.assertTrue(out["blocked"])
+        self.assertEqual(out["retry_after"], 121)
+        out = auth_pure.throttle_update({"entries": out["entries"], "keys": ["ip:a"],
+                                         "now": now + 2, "cfg": cfg, "success": True})
+        self.assertFalse(out["blocked"])
+        self.assertEqual(out["entries"], {})
+
+    def test_window_resets_and_malformed_entries_are_dropped(self):
+        now = 1000.0
+        cfg = {"max_failures": 3, "window_seconds": 10, "lock_seconds": 0,
+               "max_entries": 10}
+        entries = {"ip:a": {"failures": 2, "first": 900.0, "last": 900.0,
+                            "lock_until": 0},
+                   "bad": "not-a-dict",
+                   "worse": {"failures": 1, "first": 0, "last": "bad",
+                             "lock_until": 0}}
+        out = auth_pure.throttle_update({"entries": entries, "keys": ["ip:a"],
+                                         "now": now, "cfg": cfg, "success": False})
+        self.assertEqual(out["entries"]["ip:a"]["failures"], 1)
+        self.assertNotIn("bad", out["entries"])
+        self.assertNotIn("worse", out["entries"])
+
+    def test_check_ignores_bad_lock_values(self):
+        entries = {"ip:a": {"lock_until": "bad"}, "ip:b": {"lock_until": "2000"}}
+        out = auth_pure.throttle_check({"entries": entries,
+                                        "keys": ["ip:a", "ip:b"], "now": 1000.0})
+        self.assertTrue(out["blocked"])
+        self.assertEqual(out["retry_after"], 1001)
+
+    def test_entries_are_pruned_and_capped(self):
+        now = 1000.0
+        cfg = {"max_failures": 5, "window_seconds": 10, "lock_seconds": 0,
+               "max_entries": 2}
+        entries = {"old": {"failures": 1, "first": 0, "last": 0, "lock_until": 0},
+                   "keep1": {"failures": 1, "first": now, "last": now, "lock_until": 0},
+                   "keep2": {"failures": 1, "first": now - 1, "last": now - 1, "lock_until": 0}}
+        out = auth_pure.throttle_update({"entries": entries, "keys": ["keep1"],
+                                         "now": now, "cfg": cfg, "success": False})
+        self.assertNotIn("old", out["entries"])
+        self.assertEqual(len(out["entries"]), 2)
+
+
+class TicketInputBoundaryTest(unittest.TestCase):
+    def test_validate_project_and_create_reject_wrong_types(self):
+        self.assertEqual(ticket_pure.validate_project({"project": ["p"]})["code"],
+                         "bad_project")
+        self.assertEqual(ticket_pure.validate_create({"project": {}})["code"], "bad_project")
+        self.assertEqual(ticket_pure.validate_create({"project": "p", "title": ["x"]})["code"],
+                         "bad_input")
+        self.assertEqual(ticket_pure.validate_create({"project": "p", "goal": "x" * 4001})["code"],
+                         "bad_input")
+        self.assertEqual(ticket_pure.validate_create({"project": "p", "meta": []})["code"],
+                         "bad_input")
+        self.assertEqual(ticket_pure.validate_create({"project": "p", "pm_max_steps": True})["code"],
+                         "bad_input")
+        self.assertTrue(ticket_pure.validate_create({"project": "p", "kind": ""})["ok"])
+        self.assertEqual(ticket_pure.validate_create({"project": "p", "auto_retrospective": "x"})["code"],
+                         "bad_input")
+        self.assertTrue(ticket_pure.validate_create({"project": "p", "title": "t"})["ok"])
+
+    def test_validate_split_rejects_non_list_and_bad_limit(self):
+        self.assertEqual(ticket_pure.validate_split({"children": "x"})["code"], "bad_input")
+        self.assertEqual(ticket_pure.validate_split({"children": ["x"]})["code"], "bad_input")
+        self.assertEqual(ticket_pure.validate_split({"children": [{"title": ["x"]}]})["code"],
+                         "bad_input")
+        self.assertEqual(ticket_pure.validate_split({"children": [], "max_children": "1"})["code"],
+                         "bad_input")
+        self.assertEqual(ticket_pure.validate_split({"children": [], "force": "true"})["code"],
+                         "bad_input")
+        self.assertTrue(ticket_pure.validate_split({"children": [{"title": "a", "goal": "b"}],
+                                                     "max_children": 1, "force": False})["ok"])
+
+    def test_validate_text_and_rebind_reject_wrong_types(self):
+        self.assertEqual(ticket_pure.validate_text({"text": ["x"]})["code"], "bad_input")
+        self.assertEqual(ticket_pure.validate_text({"text": "x" * 20001})["code"], "bad_input")
+        self.assertEqual(ticket_pure.validate_rebind({"from": [], "to": "b"})["code"],
+                         "bad_input")
+        self.assertEqual(ticket_pure.validate_rebind({"from": "a", "to": "a"})["code"],
+                         "bad_input")
+        self.assertEqual(ticket_pure.validate_rebind({"from": "a", "to": ""})["code"],
+                         "bad_input")
+
+    def test_slim_thread_survives_non_dict_messages(self):
+        out = ticket_pure._slim_thread(["raw", {"role": "system", "content": "drop"},
+                                        {"role": "user", "content": "hi"}])
+        self.assertEqual(len(out), 2)
+        self.assertEqual(out[1]["content"], "hi")
+
+    def test_validate_audio_requires_bytes(self):
+        for audio in ("str", {}, [], 0):
+            self.assertFalse(asr_pure.validate({"audio": audio})["ok"], audio)
+        self.assertTrue(asr_pure.validate({"audio": b"\x00"})["ok"])

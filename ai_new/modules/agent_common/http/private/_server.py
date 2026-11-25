@@ -72,6 +72,20 @@ def _make_handler(ctx):
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
 
+        def _write(self, data):
+            """写响应体：客户端提前断开不是服务错误，不再向上抛成 500 或打堆栈。
+
+            浏览器切页、SSE 被掐断、移动端弱网都会让 ``write`` 抛 BrokenPipe/
+            ConnectionReset；连接已不可用，只能关掉，不能把异常再交给 ``_json_error``
+            二次写响应（那会变成同一请求的第二次异常与 stderr 噪声）。
+            """
+            try:
+                self.wfile.write(data)
+                return True
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                self.close_connection = True
+                return False
+
         def do_GET(self):
             self._route("GET")
 
@@ -104,8 +118,14 @@ def _make_handler(ctx):
                     self._api(method, path, parsed)
                 else:
                     self._static(path)
+            except (BrokenPipeError, ConnectionResetError):
+                # 客户端在响应写完前断开：连接已经不可用，不把它当服务端异常。
+                self.close_connection = True
             except Exception as e:  # noqa: BLE001
-                self._json_error(e)
+                try:
+                    self._json_error(e)
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    self.close_connection = True
             finally:
                 self._drain_hooks()
 
@@ -139,6 +159,19 @@ def _make_handler(ctx):
                     return
                 if isinstance(body, dict):
                     payload.update(body)
+
+            # 登录节流需要真实对端地址：由传输层注入，调用方 body/query 里的 peer
+            # 不可信，必须在合并后用连接地址覆盖。登录需求把 peer 透传给 auth.login。
+            peer = str(self.client_address[0] or "")
+            if isinstance(body, dict):
+                inp = body.get("input")
+                if path == "/api/rpc/demand_engine/run" and body.get("id") == "auth-login" \
+                        and isinstance(inp, dict):
+                    inp["peer"] = peer
+                elif path in ("/api/auth/login", "/api/rpc/auth/login"):
+                    body["peer"] = peer
+            if path in ("/api/auth/login", "/api/rpc/auth/login"):
+                payload["peer"] = peer
 
             # 公开面是显式 allowlist：新增 auth 路由不会因为前缀相同自动变成匿名入口。
             public = path in _PUBLIC_API or (
@@ -253,10 +286,12 @@ def _make_handler(ctx):
                     result = ctx.api.call(name, payload, direct=True)
                     for item in (result.get("items") or []):
                         chunk = ctx.codec.yaml_encode_flow(item)
-                        self.wfile.write(("data: " + chunk["text"] + "\n\n").encode("utf-8"))
+                        if not self._write(("data: " + chunk["text"] + "\n\n").encode("utf-8")):
+                            return
                     if result.get("cursor") is not None:
                         payload["cursor"] = result["cursor"]
-                    self.wfile.write(b": keep-alive\n\n")
+                    if not self._write(b": keep-alive\n\n"):
+                        return
                     self.wfile.flush()
                     # 事件驱动路由内部已阻塞等待；只有游标门面才需要固定节流。
                     if not result.get("blocked"):
@@ -311,7 +346,7 @@ def _make_handler(ctx):
                 self.send_header("Vary", "Accept-Encoding")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
-            self.wfile.write(data)
+            self._write(data)
 
         def _zip(self, data):
             """传输编码不是业务：客户端说能收 gzip 就把大响应压了再发，页面首屏才跟得上。
@@ -337,7 +372,7 @@ def _make_handler(ctx):
                 self.send_header("Vary", "Accept-Encoding")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
-            self.wfile.write(data)
+            self._write(data)
 
         def _json_error(self, e):
             if isinstance(e, ctx.ApiError):
@@ -355,7 +390,7 @@ def _make_handler(ctx):
             self.send_header("Content-Type", "application/yaml; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
-            self.wfile.write(data)
+            self._write(data)
 
     return _Handler
 

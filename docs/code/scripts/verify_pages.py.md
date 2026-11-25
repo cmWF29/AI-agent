@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_pages.py
-hash: d79d460eab63905517afbf4684ceab31726e6deeef81915dd9aa6b59b6fd0033
+hash: 732d6c2f9e45646dad90761b33d6323e29b433edd6ff4c44dac7509317e3da74
 symbols:
 - new_page
 - api

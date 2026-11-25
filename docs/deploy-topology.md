@@ -300,6 +300,7 @@ ingress:
 | 默认口令拦截 | `server.auth.enabled` 开启后若仍是默认账号/口令或摘要为空，启动打显著告警，控制台顶部横幅提示改密；生产必须改默认口令 |
 | 改密边界 | 改密路由不再匿名可达；必须已有有效会话，且旧摘要非空并与配置摘要一致，空摘要账号不提供匿名初始化口子 |
 | HTTP 入口 | GET 只用于读入口，写路由必须 POST；匿名面固定 allowlist；请求体超过 `server.max_body_bytes` 返回 413，chunked 直接拒绝 |
+| 登录失败防护 | `server.auth.login_guard` 开启后按 `ip:<peer>` 与 `pair:<peer>|<user>` 计数；`max_failures` 达到后锁 `lock_seconds`，锁定期内正确口令也拒绝；台账 `agent/auth/login-throttle.json` 走 CAS，写失败返回 503 不放行 |
 
 相关代码与契约：
 
@@ -319,6 +320,9 @@ ingress:
 - 节点注册/租约/迁移台账的并发写已改为 `store.cas` 原子比较交换（跨进程文件锁
   内校验期望旧值）。落盘仍是单机文件；多 VPS 要共享同一台账，必须把数据目录
   放到共享文件系统（NFS/对象存储挂载）或换远端协调服务，不能各机各写一份。
+- 登录节流台账同样按单机文件设计。多入口部署时每个入口只能看到自己的失败计数；
+  要形成全局防护，必须让 `agent/auth/login-throttle.json` 落在共享存储或用远端
+  协调服务，否则不能把单机节流当作跨 VPS 的撞库防线。
 - 执行隔离按每次 shell 启动独立 bwrap mount namespace，ticket 只 bind 本工单目录
   与公共层；未做 seccomp / cgroup 资源限额，网络仍 `--share-net`，Windows 仍为
   路径档。跨主机执行体（`scripts/node_worker.py`）目前是命令式桩，不是真实任务

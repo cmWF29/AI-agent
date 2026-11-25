@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/asr/private/_pure.py
-hash: fbfd5b25d79ac86547c62366220f3b68c948c84f877bae642f0a020426e8a38a
+hash: d00ef617439db9a0d96468743b180833dd3b405eb4379280104c77df4200d8ef
 symbols:
 - validate
 - present
@@ -20,7 +20,7 @@ ASR 纯函数：入参校验与结果成形。不碰盘、不取时钟、不加�
 ## 符号
 
 ### `validate`（function）
-- 职责: 校验音频字节非空。音频解码与识别在引擎层，这里只守住空输入。
+- 职责: 校验音频字节非空。音频解码与识别在引擎层，这里只守住类型与空输入。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

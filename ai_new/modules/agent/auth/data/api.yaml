@@ -27,9 +27,12 @@ routes:
       username:
         type: any
   auth.login:
-    doc: 登录闭环：配置→摘要比对→发会话→落盘→会话视图
+    doc: 登录闭环：节流→配置→摘要比对→发会话→落盘→会话视图
     in:
       password:
+        type: any
+        req: false
+      peer:
         type: any
         req: false
       username:

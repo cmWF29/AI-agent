@@ -42,7 +42,20 @@
 
 节点台账包含节点注册、角色/项目归属、租约、迁移记录。租约字段至少包含 holder、epoch、expires_at；节点心跳只续租，不直接改归属。所有变更走 CAS，读到旧版本后重算再提交。
 
-### 2.5 云端 manifest
+### 2.5 登录节流台账
+
+`agent/auth/login-throttle.json` 是登录失败的防护状态，不是业务数据：
+
+| 字段 | 含义 |
+| --- | --- |
+| 键 `ip:<peer>` | 单个来源地址的失败计数 |
+| 键 `pair:<peer>|<user>` | 同一来源对同一用户名的失败计数 |
+| `failures` / `first` / `last` | 窗口内失败次数、首次与最近失败时间 |
+| `lock_until` | 达到阈值后的解锁时间；未锁定为 0 |
+
+键在纯函数 `agent/auth/private/_pure.py::throttle_keys` 生成；无传输层 peer 的内部调用才退到 `user:<user>`。台账通过 `store.cas` 原子更新，冲突重读重算最多 8 次；写失败返回 `login_guard_unavailable`，不降级为放行。`success=true` 只删除本次涉及的键，不整表清空。
+
+### 2.6 云端 manifest
 
 manifest 是远端权威清单，形状为版本、profile、更新时间、entries。每个 entry 至少包含摘要、大小、类别、修改时间。manifest 不含自身前缀对象，避免自我引用。上传对象键由 profile 与相对路径决定。
 
@@ -91,6 +104,8 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 3. 请求体：先拒绝 `Transfer-Encoding`（400 `bad_framing`，并关闭连接），再校验 `Content-Length` 为正整数且不超过 `server.max_body_bytes`（默认 8 MiB），超限 413 `payload_too_large`；不把超限正文读进内存。需求入口要求 `id` 为非空字符串、`input` 为对象，否则 400 `bad_id`/`bad_input`，不让数组/对象进入路由表查找。
 4. 静态资源：`web.gate` 只匿名放行 `login.html` 与 css/js/svg/图片/字体；json/yaml/md 等可能含配置或正文，和页面一样要求登录，未登录 302 到登录页。
 5. 所有响应统一带 `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`。
+6. 登录节流的 peer 由传输层注入：`/api/rpc/demand_engine/run` 且 `id=auth-login` 时写入 `input.peer`；`/api/auth/login`、`/api/rpc/auth/login` 写入合并后的 `peer`。body/query 自带的 `peer` 不可信，会被连接地址覆盖，调用方不能伪造 IP 转嫁锁定或借用已锁定 IP 绕过本机计数。
+7. 响应体统一由 `_write` 安全写出：客户端提前断开只关闭连接并返回写失败，不再把 `BrokenPipeError`/`ConnectionResetError` 交给通用异常分支二次写响应；SSE 循环在写失败时立即退出。业务错误仍以 `ok:false + code + status` 放在 200 响应体里，由前端按 `code` 分支，而不是依赖 HTTP 状态码。
 
 ## 4. 状态迁移表
 
@@ -126,6 +141,18 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 会话令牌只允许 `[A-Za-z0-9_-]`（1–128 字符），令牌拼进 `sessions/{token}.yaml` 前先校验；缺少 `expires`、`expires` 非数字或已过期一律按无效处理。空用户名/空摘要/空期望哈希也按凭据失败处理，摘要比较用常量时间。令牌来源按入口分开：请求头、Cookie 全局可用；query 参数只给 `/api/sse/` 用——EventSource 不能设请求头，普通 API 收 query token 一律当未登录，避免令牌写进访问日志、Referer 和浏览器历史。
 
+登录守卫状态：
+
+| 当前 | 事件 | 条件 | 结果 |
+| --- | --- | --- | --- |
+| 未计数 | 登录失败 | 无锁 | failures+1，返回 `bad_credentials` |
+| 计数中 | 登录失败 | 窗口未过期且未达阈值 | failures+1，返回 `bad_credentials` |
+| 计数中 | 登录失败 | 达到 `max_failures` | 写 `lock_until`，本次仍返回 `bad_credentials` 并带 `retry_after` |
+| 已锁定 | 任意登录 | `lock_until > now` | 不比对口令，返回 `too_many_attempts` / 429 |
+| 已锁定 | 登录成功 | 锁已过期 | 清本次键，发会话 |
+| 计数中 | 登录成功 | 任意 | 清本次键，发会话 |
+| 任意 | 台账 CAS 失败 | 重试耗尽/写失败 | `login_guard_unavailable` / 503，不放行 |
+
 
 ## 5. 并发与一致性
 
@@ -152,7 +179,10 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 ### 5.4 边界 fail-closed
 
-- 鉴权：非法令牌不进入路径拼接；会话过期/缺过期字段直接拒绝；摘要空值不放行；登录 ttl 非正回落 86400，不发“出生即过期”的会话；改密要求期望摘要与旧摘要都非空且常量时间相等。
+- 鉴权：非法令牌不进入路径拼接；会话过期/缺过期字段直接拒绝；摘要空值不放行；登录 ttl 非正回落 86400，不发“出生即过期”的会话；改密要求期望摘要与旧摘要都非空且常量时间相等；登录失败按 peer/组合键节流，锁定期内不比对口令，台账不可写按 503 拒绝。
+- 编解码：摘要算法走固定 allowlist（`md5/sha1/sha224/sha256/sha384/sha512/blake2b/blake2s`），未知算法返回 `bad_algorithm`，不把 `pbkdf2_hmac`/`scrypt` 等高开销函数当摘要调用；随机串长度硬边界 8..4096；`decode_hex` 的负上限被夹到 0；WAV 非 bytes/截断、JSON/SSE 错形、十六进制坏输入都返回结构化错误，不抛 `TypeError`/`EOFError`。
+- LLM：`encode` 拒绝非对象消息、非列表 tools、非数值或 NaN/Infinity temperature；`decode` 与 `decode_sse` 逐层校验 `choices`/`message`/`delta`/`tool_calls`/`function.arguments`/`index` 形状，坏报文返回 `llm_bad_payload`，合法分片仍合并。
+- 工单：`project/title/goal/kind/parent/task/meta/pm_max_steps/auto_retrospective`、拆单 `children/max_children/force`、消息 `text`、改挂 `from/to` 在进入档案前校验类型与长度；拆单上限只在显式 `force=true` 时绕过，缺省不再等于强制。
 - 沙箱：bwrap 的 cwd 与 bind 目的地按 POSIX 归一化并拒绝 `..`，bind 源先校验在项目根内再创建目录；
 - ASR：分块采样点数必须为正整数，配置缺失/为 0 返回 `bad_chunk_config`，不允许进入不前进的循环；
 - 静态资源：只有 `login.html` 与无数据壳资源公开，json/yaml/md 等数据文件和其他 HTML 页面必须登录。
@@ -197,9 +227,9 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 ## 9. 配置与错误码
 
-关键配置：`server.max_body_bytes`、`sessions.max_steps`、`sessions.result_chars`、`sessions.summary_fallback_chars`、`sessions.summary_keep`、`sessions.context.tool_output_chars`、`sessions.react_cap`。
+关键配置：`server.max_body_bytes`、`sessions.max_steps`、`sessions.result_chars`、`sessions.summary_fallback_chars`、`sessions.summary_keep`、`sessions.context.tool_output_chars`、`sessions.react_cap`，以及登录守卫 `server.auth.login_guard`（`enabled`、`max_failures`、`window_seconds`、`lock_seconds`、`max_entries`）。
 
-常见错误码：`illegal_start`、`unknown_stage`、`illegal_edge`、`checklist_unmet`、`forbidden_hit`、`condition_unmet`、`conflict_exhausted`、`lease_expired`、`sandbox_unavailable`、`crypto_unavailable`、`manifest_unreachable`、`prune_required`、`write_failed`、`no_route`、`bad_path`、`bad_id`、`bad_input`、`method_not_allowed`、`payload_too_large`、`bad_framing`、`bad_old_password`。
+常见错误码：`illegal_start`、`unknown_stage`、`illegal_edge`、`checklist_unmet`、`forbidden_hit`、`condition_unmet`、`conflict_exhausted`、`lease_expired`、`sandbox_unavailable`、`crypto_unavailable`、`manifest_unreachable`、`prune_required`、`write_failed`、`no_route`、`bad_path`、`bad_id`、`bad_input`、`bad_project`、`method_not_allowed`、`payload_too_large`、`bad_framing`、`bad_old_password`、`bad_algorithm`、`bad_audio`、`llm_bad_payload`、`too_many_attempts`、`login_guard_unavailable`。
 
 错误码要能被前端或调用方分支处理；不允许只给自然语言 error 而没有 code。
 
@@ -220,8 +250,8 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 - node_worker 仍是命令式桩执行体，不是实际任务工作进程；
 - bwrap 没有 seccomp/cgroup，保留共享网络，未挂 `/proc`；
 - 覆盖率已按 base..HEAD 强制改动行 ≥90%；只对产品 Python 新增行计数，测试与文案改动不虚增分母；
-- 登录失败尚无跨进程速率限制/账号锁定；在线撞库防护是下一层，当前只有令牌随机性与会话过期；
-- 客户端在响应写完前断开时，HTTP handler 仍可能把 `BrokenPipeError` 打到 stderr；连接已关闭、无数据风险，但日志噪声要在下一轮收口；
+- 登录失败节流是单机文件台账；跨 VPS 共享防护状态需要共享文件系统或远端协调服务，未做验证码、设备指纹与长期审计归档；
+- 客户端提前断开的写失败已经收口为关闭连接，不再二次写响应；但 SSE 长连接断开的客户端重连退避仍由浏览器/调用方决定；
 - 前端视觉回归覆盖页面可达和关键交互，不等于像素级设计稿比对。
 
 这些限制必须在发布说明里保留，不能因为门禁绿了就当成能力已经完整。

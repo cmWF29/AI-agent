@@ -183,6 +183,12 @@ def _route_send(ctx, payload):
 
     守卫必须放在写之前：前端把按钮灰掉是提示，这里才是真正拦得住的地方。
     """
+    shape = _pure.validate_text(dict(payload, tpl=_msg_tpl(ctx)))
+    if shape.get("ok") is False:
+        return _err(ctx, shape.get("code"), shape.get("status"), shape.get("error"))
+    text = shape.get("text") or ""
+    if not text.strip():
+        return _err(ctx, "empty_text", 400, "")
     tid = payload.get("id") or ""
     tpl = _msg_tpl(ctx)
     row = ctx.api.call("store.read", {"module": "agent/tickets",
@@ -201,7 +207,7 @@ def _route_send(ctx, payload):
     if not sid:
         return _err(ctx, "no_session", 409, tpl.get("pm_started") or "")
     ctx.demand_engine.run_callable("session-send", {
-        "id": sid, "text": payload.get("text") or ""})
+        "id": sid, "text": text})
     ctx.runtime.dispatch({"demand": "session-run", "key": sid, "input": {"id": sid}})
     return ctx.api.call("tickets.view", {"rec": rec}, caller=None)
 
@@ -220,7 +226,10 @@ def _route_note_write(ctx, payload):
         return _err(ctx, guard.get("code"), guard.get("status"), guard.get("error"))
     if _project_state(ctx, rec.get("project")).get("archived"):
         return _err(ctx, "project_archived", 409, tpl.get("project_archived") or "")
-    text = str(payload.get("text") or "").strip()
+    shape = _pure.validate_text(dict(payload, tpl=_msg_tpl(ctx)))
+    if shape.get("ok") is False:
+        return _err(ctx, shape.get("code"), shape.get("status"), shape.get("error"))
+    text = (shape.get("text") or "").strip()
     if not text:
         return _err(ctx, "empty_text", 400, "")
     now = ctx.api.call("clock.now", {}, caller=None)
@@ -239,6 +248,9 @@ def _route_create(ctx, payload):
     键里没有时间戳，也没有随机数，所以"同一件事重投/崩溃重放"算出来的键必然相同；
     想真的再建一张，改标题或目标即可（那本来就是另一件事）。
     """
+    shape = _pure.validate_create(dict(payload, tpl=_msg_tpl(ctx)))
+    if shape.get("ok") is False:
+        return _err(ctx, shape.get("code"), shape.get("status"), shape.get("error"))
     sig = "\n".join([str(payload.get("project") or ""), str(payload.get("title") or ""),
                       str(payload.get("goal") or "")])
     key = str(ctx.api.call("codec.digest", {"text": sig}, caller=None).get("hex") or "")[:40]
@@ -481,12 +493,15 @@ def _route_close(ctx, payload):
 
 def _route_split(ctx, payload):
     """拆单闭环：上限守卫 + 逐个建子单（每次建单都是一条独立编排）。"""
+    shape = _pure.validate_split(dict(payload, tpl=_msg_tpl(ctx)))
+    if shape.get("ok") is False:
+        return _err(ctx, shape.get("code"), shape.get("status"), shape.get("error"))
     row = ctx.api.call("store.read", {"module": "agent/tickets",
                                       "path": _ticket_path(ctx, payload.get("id"))}, caller=None)
     cur = row.get("value") or {}
     max_children = payload.get("max_children")
     if max_children is not None and len(cur.get("children") or []) >= max_children \
-            and payload.get("force") is False:
+            and payload.get("force") is not True:
         tpl_max = _msg_tpl(ctx).get("too_many_children") or ""
         return {"ok": False, "code": "too_many_children", "status": 409,
                 "error": tpl_max.format(max=max_children) if tpl_max else ""}
@@ -511,6 +526,9 @@ def _route_split(ctx, payload):
 
 def _route_rebind(ctx, payload):
     """引用改挂：遍历工单，把指向旧项目 id 的记录改写为新 id。"""
+    shape = _pure.validate_rebind(dict(payload, tpl=_msg_tpl(ctx)))
+    if shape.get("ok") is False:
+        return _err(ctx, shape.get("code"), shape.get("status"), shape.get("error"))
     paths = _cfg_paths(ctx)
     rows = ctx.api.call("store.walk", {"module": "agent/tickets", "root": paths.get("root") or "",
                                        "pattern": paths.get("walk_glob") or ""}, caller=None)

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/tickets/private/_pure.py
-hash: 42d7b7764c3edca686004e5f0fd9e5eaf2fe894f2a81275a194f2b6123971976
+hash: adf4090846e7891a7993b532806218be18162f169ebbde4a23d092f02bfcd2f6
 symbols:
 - _glob_one
 - _glob
@@ -10,6 +10,13 @@ symbols:
 - build
 - guard_open
 - guard_create
+- _bad
+- _tpl_text
+- _opt_text
+- validate_create
+- validate_split
+- validate_text
+- validate_rebind
 - validate_project
 - _slim_msg
 - _slim_thread
@@ -101,6 +108,48 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `guard_create`（function）
 - 职责: 建单前置：归档项目不收新单；PM 被禁用就不能建单（工单默认要拉起 PM）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_bad`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_tpl_text`（function）
+- 职责: 错误文案从 messages.yaml 取；纯层不内置中文，避免业务文案漏进私有层。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_opt_text`（function）
+- 职责: 可选文本字段：缺省/None 合法；存在就必须是字符串且不超长。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `validate_create`（function）
+- 职责: 建单入参类型/长度守卫：HTTP/YAML 里列表、对象、超长正文不能进工单档案。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `validate_split`（function）
+- 职责: 拆单入参：children 必须是对象列表；上限必须是整数，字符串比较会 TypeError。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `validate_text`（function）
+- 职责: 消息/备注正文：必须是字符串；空串由调用方按业务语义拒绝。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `validate_rebind`（function）
+- 职责: 项目改名改挂：from/to 都必须是字符串，否则会把工单 project 写成列表/对象。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

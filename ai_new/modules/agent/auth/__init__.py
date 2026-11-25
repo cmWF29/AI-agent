@@ -42,6 +42,69 @@ def _cfg_paths(ctx):
     return row.get("value") or {}
 
 
+_THROTTLE_PATH = "login-throttle.json"
+_GUARD_DEFAULT = {"enabled": True, "max_failures": 5, "window_seconds": 600,
+                  "lock_seconds": 900, "max_entries": 2000}
+
+
+def _guard_cfg(ctx):
+    """登录节流配置：缺失走安全默认；非法数字回默认，不让坏配置把登录打 500。"""
+    raw = (ctx.cfg.get("server") or {}).get("auth") or {}
+    guard = raw.get("login_guard") if isinstance(raw, dict) else None
+    guard = guard if isinstance(guard, dict) else {}
+    out = dict(_GUARD_DEFAULT)
+    out["enabled"] = guard.get("enabled") is not False
+    for key in ("max_failures", "window_seconds", "lock_seconds", "max_entries"):
+        try:
+            value = int(guard.get(key, out[key]))
+        except (TypeError, ValueError):
+            value = out[key]
+        out[key] = max(1, min(value, 86400 if key != "max_entries" else 10000))
+    return out
+
+
+def _throttle_read(ctx):
+    row = ctx.api.call("store.read", {
+        "module": "agent/auth", "path": _THROTTLE_PATH}, caller=None)
+    rec = row.get("value")
+    return rec if isinstance(rec, dict) else {}
+
+
+def _throttle_mutate(ctx, keys, success):
+    """CAS 更新节流台账：并发失败重读重算；台账写不进去按 fail-closed 返回错误。"""
+    cfg = _guard_cfg(ctx)
+    now = float(ctx.api.call("clock.now", {}, caller=None).get("ts") or 0)
+    for _attempt in range(8):
+        before = _throttle_read(ctx)
+        out = _pure.throttle_update({
+            "entries": before, "keys": keys, "now": now, "cfg": cfg,
+            "success": bool(success)})
+        after = out.get("entries") or {}
+        if after == before:
+            return out
+        cas = ctx.api.call("store.cas", {
+            "module": "agent/auth", "path": _THROTTLE_PATH,
+            "expected": before, "create": True, "value": after}, caller=None)
+        if cas.get("ok"):
+            return out
+        if not cas.get("conflict"):
+            return {"error": cas.get("code") or "guard_store_error"}
+    return {"error": "guard_conflict_exhausted"}
+
+
+def _guard_check(ctx, payload):
+    """登录前只读检查；配置关闭时直接放行，连台账都不读。"""
+    cfg = _guard_cfg(ctx)
+    keys = _pure.throttle_keys(payload).get("keys") or []
+    if not cfg.get("enabled"):
+        return {"blocked": False, "retry_after": 0, "cfg": cfg, "keys": keys}
+    now = float(ctx.api.call("clock.now", {}, caller=None).get("ts") or 0)
+    out = _pure.throttle_check({"entries": _throttle_read(ctx), "keys": keys, "now": now})
+    out["cfg"] = cfg
+    out["keys"] = keys
+    return out
+
+
 def _as_handler(fn):
     def handler(ctx, payload):
         payload = dict(payload or {})
@@ -133,7 +196,20 @@ def setup(ctx):
     return True
 
 
+def _too_many(retry_after):
+    minutes = max(1, int((retry_after + 59) // 60))
+    return {"ok": False, "code": "too_many_attempts", "status": 429,
+            "retry_after": retry_after,
+            "message": "登录失败次数过多，请 %d 分钟后再试" % minutes}
+
+
 def _route_login(ctx, payload):
+    # 先看节流台账：锁定期内连正确口令也不再做摘要比对，避免把 CPU 和
+    # 账号信息当侧信道反复探测。台账写失败按 fail-closed 处理，不静默放行。
+    guard = _guard_check(ctx, payload)
+    if guard.get("blocked"):
+        return _too_many(guard.get("retry_after") or 1)
+    guard_on = bool((guard.get("cfg") or {}).get("enabled"))
     cfg = ctx.api.call("config.get", {"key": "server.auth"}, caller=None) or {}
     cfgv = cfg.get("value") or {}
     dg = ctx.api.call("codec.digest", {
@@ -145,8 +221,19 @@ def _route_login(ctx, payload):
         "digest": dg.get("hex"),
         "expect_hash": cfgv.get("password_hash")}, caller=None)
     if not ok.get("ok"):
-        return {"ok": False, "code": "bad_credentials", "status": 401,
+        rec = _throttle_mutate(ctx, guard.get("keys") or [], success=False) if guard_on else {}
+        if rec.get("error"):
+            return {"ok": False, "code": "login_guard_unavailable", "status": 503,
+                    "message": "登录保护暂不可用，请稍后再试"}
+        body = {"ok": False, "code": "bad_credentials", "status": 401,
                 "message": _msg_tpl(ctx).get("login_failed") or ""}
+        if rec.get("blocked"):
+            body["retry_after"] = rec.get("retry_after")
+        return body
+    rec = _throttle_mutate(ctx, guard.get("keys") or [], success=True) if guard_on else {}
+    if rec.get("error"):
+        return {"ok": False, "code": "login_guard_unavailable", "status": 503,
+                "message": "登录保护暂不可用，请稍后再试"}
     now = ctx.api.call("clock.now", {}, caller=None)
     nonce = ctx.api.call("codec.nonce", {"length": 32}, caller=None)
     try:

@@ -26,7 +26,7 @@ def json_encode(value):
 def json_decode(text):
     try:
         return {"ok": True, "value": json.loads(text or "null")}
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return {"ok": False, "error": str(exc), "code": "decode_failed"}
 
 def yaml_encode(value):
@@ -58,8 +58,12 @@ def yaml_decode(text):
 
 def sse_decode(text):
     """把 `data: {...}` 行解析成对象列表；非 data 行（注释/空行）忽略。"""
+    if not isinstance(text, (str, bytes, bytearray)):
+        return {"ok": False, "error": "SSE 文本必须是字符串", "code": "decode_failed"}
+    if isinstance(text, (bytes, bytearray)):
+        text = bytes(text).decode("utf-8", "replace")
     items = []
-    for line in (text or "").splitlines():
+    for line in text.splitlines():
         line = line.strip()
         if not line.startswith("data:"):
             continue
@@ -89,10 +93,24 @@ def base64_encode(text):
         return {"ok": False, "error": str(exc), "code": "encode_failed"}
 
 
+_DIGEST_ALGOS = {"md5", "sha1", "sha224", "sha256", "sha384", "sha512", "blake2b", "blake2s"}
+_NONCE_MIN = 8
+_NONCE_MAX = 4096
+
+
 def digest(text, algorithm="sha256"):
-    """摘要：内容指纹，不是业务语义。"""
+    """摘要：内容指纹，不是业务语义。
+
+    算法名来自不可信输入，不能直接 ``getattr(hashlib, name)``：那会把
+    ``pbkdf2_hmac``/``scrypt`` 这类高开销函数当成摘要调用，形成 CPU/内存放大。
+    只放行固定摘要族，未知算法返回结构化错误。
+    """
+    algo_name = str(algorithm or "sha256").strip().lower()
+    if algo_name not in _DIGEST_ALGOS:
+        return {"ok": False, "error": "不支持的摘要算法: %s" % algo_name,
+                "code": "bad_algorithm"}
     try:
-        algo = getattr(hashlib, str(algorithm or "sha256"))
+        algo = getattr(hashlib, algo_name)
         raw = text if isinstance(text, (bytes, bytearray)) else str(text or "").encode("utf-8")
         return {"ok": True, "hex": algo(bytes(raw)).hexdigest()}
     except (AttributeError, TypeError, ValueError) as exc:
@@ -100,9 +118,13 @@ def digest(text, algorithm="sha256"):
 
 
 def nonce(length=32):
-    """安全随机令牌：URL 安全，给会话/一次性凭证用。随机数是能力，业务模块不自带。"""
+    """安全随机令牌：URL 安全，给会话/一次性凭证用。
+
+    长度是调用方可控值，必须有硬上限；否则一个请求就能让 ``token_urlsafe``
+    分配超大字符串，拖垮进程。低于 8 仍按 8，高于 4096 按 4096。
+    """
     try:
-        size = max(8, int(length or 32))
+        size = max(_NONCE_MIN, min(_NONCE_MAX, int(length or 32)))
         return {"ok": True, "token": secrets.token_urlsafe(size)}
     except (TypeError, ValueError) as exc:
         return {"ok": False, "error": str(exc), "code": "nonce_failed"}
@@ -112,7 +134,10 @@ def decode_hex(hex_text, max_bytes=None, size=None):
     """hex 字节 → utf8 文本；非 utf8 退 base64 承载。截断阈值与截断标记在此成形。"""
     try:
         raw_all = bytes.fromhex(str(hex_text or ""))
-        limit = int(max_bytes) if max_bytes is not None else len(raw_all)
+        if max_bytes is None:
+            limit = len(raw_all)
+        else:
+            limit = max(0, min(len(raw_all), int(max_bytes)))
         raw = raw_all[:limit]
         truncated = int(size or 0) > limit
     except (TypeError, ValueError) as exc:
@@ -134,9 +159,11 @@ def hex_from_base64(text):
 
 def wave_decode(raw):
     """WAV(PCM) 字节 → {pcm 字节, rate, channels}；压缩/解析失败结构化报错。"""
+    if not isinstance(raw, (bytes, bytearray)):
+        return {"ok": False, "code": "bad_audio", "error": "音频必须是字节"}
     try:
-        wav = wave.Wave_read(io.BytesIO(bytes(raw or b"")))
-    except wave.Error as exc:
+        wav = wave.Wave_read(io.BytesIO(bytes(raw)))
+    except (wave.Error, EOFError, OSError, ValueError) as exc:
         return {"ok": False, "code": "bad_audio", "error": str(exc)}
     with wav:
         if wav.getcomptype() != "NONE":

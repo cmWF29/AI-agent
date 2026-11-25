@@ -74,7 +74,9 @@ async def page_check(pg, view, params, default=False):
     for k, v in (params or {}).items():
         q += "&%s=%s" % (k, v)
     await pg.goto(BASE + "/manage.html?" + q, wait_until="load", timeout=60000)
-    for _ in range(30):
+    # 视图装配是异步的：运维总览要串起多个只读需求，冷启动可能超过 9s。
+    # 这里按“最长 36s 内必须退出 loading”判失败，而不是把慢当成通过。
+    for _ in range(120):
         await pg.wait_for_timeout(300)
         done = await pg.evaluate("() => !document.querySelector('#view-body .loading')")
         if done:

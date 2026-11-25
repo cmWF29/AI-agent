@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/codec/private/_codec.py
-hash: 7965b34229fa7c4eafd70497c85a23ee96dfb37b6a2df60657449cb20aa95f8e
+hash: 23396dd89194f136328df588c251396cf3280f9fa635ca918f45aec415df38d7
 symbols:
 - json_encode
 - json_decode
@@ -85,7 +85,7 @@ JSON / SSE 编解码实现。失败是结果：{ok: False, error}。
 - 关联需求/测试: 待人工补充
 
 ### `nonce`（function）
-- 职责: 安全随机令牌：URL 安全，给会话/一次性凭证用。随机数是能力，业务模块不自带。
+- 职责: 安全随机令牌：URL 安全，给会话/一次性凭证用。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

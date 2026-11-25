@@ -13,6 +13,8 @@ do:
       get: input.username
     password:
       get: input.password
+    peer:
+      get: input.peer
   as: out
 - call: runtime.apply
   with:

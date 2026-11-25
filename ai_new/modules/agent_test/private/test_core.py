@@ -3308,6 +3308,98 @@ class CoreTest(unittest.TestCase):
         finally:
             server["auth"] = old
 
+    def test_auth_login_throttles_repeated_failures_by_peer(self):
+        """连续失败先计数再锁定：锁定期内正确口令也拒绝；换个 IP 不被牵连。"""
+        import hashlib
+        server = self.ctx.cfg["server"]
+        old = dict(server.get("auth") or {})
+        server["auth"] = {"enabled": True, "username": "admin", "salt": "s",
+                          "password_hash": hashlib.sha256(b"s:123456").hexdigest(),
+                          "ttl": 60,
+                          "login_guard": {"enabled": True, "max_failures": 3,
+                                          "window_seconds": 60, "lock_seconds": 120}}
+        self.ctx.api.call("store.remove", {"module": "agent/auth",
+                                           "path": "login-throttle.json"}, caller=None)
+        try:
+            for i in range(3):
+                out = self.ctx.api.call("auth.login", {
+                    "username": "admin", "password": "wrong", "peer": "203.0.113.9"},
+                    caller=None)
+                self.assertEqual(out["code"], "bad_credentials", i)
+                self.assertFalse(out["ok"])
+            blocked = self.ctx.api.call("auth.login", {
+                "username": "admin", "password": "wrong", "peer": "203.0.113.9"},
+                caller=None)
+            self.assertEqual(blocked["code"], "too_many_attempts")
+            self.assertEqual(blocked["status"], 429)
+            self.assertGreaterEqual(blocked["retry_after"], 1)
+            # 锁定期内即使口令正确也不再做凭据比对，避免被当成账号探测侧信道。
+            still = self.ctx.api.call("auth.login", {
+                "username": "admin", "password": "123456", "peer": "203.0.113.9"},
+                caller=None)
+            self.assertEqual(still["code"], "too_many_attempts")
+            # 换 IP 不受另一出口的锁定影响；成功登录会清掉自己的键。
+            other = self.ctx.api.call("auth.login", {
+                "username": "admin", "password": "123456", "peer": "203.0.113.10"},
+                caller=None)
+            self.assertTrue(other.get("token"), other)
+            # HTTP 层注入的连接地址覆盖 body 里的 peer：攻击者不能伪造别的 IP
+            # 把锁定转嫁给他人，也不能借已锁定 IP 绕过本机计数。
+            sent = yaml.safe_dump({"id": "auth-login",
+                                   "input": {"username": "admin", "password": "wrong",
+                                             "peer": "203.0.113.9"}},
+                                  allow_unicode=True, default_flow_style=True).strip()
+            status, _, raw = self._http(
+                "/api/rpc/demand_engine/run", "POST", sent.encode("utf-8"),
+                {"Content-Type": "application/yaml"})
+            self.assertEqual(status, 200)
+            spoof = ((yaml.safe_load(raw.decode("utf-8")).get("result") or {}).get("result") or {})
+            self.assertEqual(spoof.get("code"), "bad_credentials", spoof)
+            sent = yaml.safe_dump({"username": "admin", "password": "wrong",
+                                   "peer": "203.0.113.9"},
+                                  allow_unicode=True, default_flow_style=True).strip()
+            status, _, raw = self._http(
+                "/api/auth/login", "POST", sent.encode("utf-8"),
+                {"Content-Type": "application/yaml"})
+            self.assertEqual(status, 200)
+            direct = yaml.safe_load(raw.decode("utf-8"))
+            self.assertEqual(direct.get("code"), "bad_credentials", direct)
+            ledger = self.ctx.api.call("store.read", {
+                "module": "agent/auth", "path": "login-throttle.json"}, caller=None)
+            self.assertNotIn("ip:203.0.113.10", ledger.get("value") or {})
+            self.assertIn("ip:203.0.113.9", ledger.get("value") or {})
+        finally:
+            server["auth"] = old
+            self.ctx.api.call("store.remove", {"module": "agent/auth",
+                                               "path": "login-throttle.json"}, caller=None)
+
+    def test_auth_login_guard_disabled_skips_ledger(self):
+        """显式关掉登录守卫时不能因为台账不可写把登录打成 503。"""
+        import hashlib
+        server = self.ctx.cfg["server"]
+        old = dict(server.get("auth") or {})
+        server["auth"] = {"enabled": True, "username": "admin", "salt": "s",
+                          "password_hash": hashlib.sha256(b"s:123456").hexdigest(),
+                          "ttl": 60, "login_guard": {"enabled": False}}
+        self.ctx.api.call("store.remove", {"module": "agent/auth",
+                                           "path": "login-throttle.json"}, caller=None)
+        try:
+            bad = self.ctx.api.call("auth.login", {
+                "username": "admin", "password": "wrong", "peer": "198.51.100.7"},
+                caller=None)
+            self.assertEqual(bad["code"], "bad_credentials")
+            exists = self.ctx.api.call("store.exists", {
+                "module": "agent/auth", "path": "login-throttle.json"}, caller=None)
+            self.assertFalse(exists.get("exists"))
+            good = self.ctx.api.call("auth.login", {
+                "username": "admin", "password": "123456", "peer": "198.51.100.7"},
+                caller=None)
+            self.assertTrue(good.get("token"), good)
+        finally:
+            server["auth"] = old
+            self.ctx.api.call("store.remove", {"module": "agent/auth",
+                                               "path": "login-throttle.json"}, caller=None)
+
     def test_auth_login_demand_is_public(self):
         """登录需求本身必须先可达：不带令牌也能过闸（凭据由需求内部判，失败返 401）。"""
         req = urllib.request.Request(

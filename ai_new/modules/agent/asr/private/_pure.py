@@ -3,9 +3,13 @@ from __future__ import annotations
 
 
 def validate(p):
-    """校验音频字节非空。音频解码与识别在引擎层，这里只守住空输入。"""
+    """校验音频字节非空。音频解码与识别在引擎层，这里只守住类型与空输入。
+
+    入参可能来自 HTTP/YAML，字符串、数组、对象都不是音频；不能让它们落到
+    ``bytes(raw)`` 才抛 TypeError，否则坏输入会变成 500。
+    """
     audio = p.get("audio")
-    if not audio:
+    if not isinstance(audio, (bytes, bytearray)) or not audio:
         tpl = p.get("tpl") or {}
         return {"ok": False, "code": "empty_audio", "status": 400,
                 "error": tpl.get("empty_audio") or ""}

@@ -133,3 +133,94 @@ def session_path(p):
     t = str(paths.get("session") or "")
     tok = str(p.get("token") or "")
     return {"path": t.format(token=tok) if t else ""}
+
+
+def throttle_keys(p):
+    """登录节流键：IP 与“IP+账号”。
+
+    不按“账号”单独锁：远端攻击者可以用任意用户名把 admin 锁死，形成定向 DoS。
+    IP 键挡住单点爆破；IP+账号键挡住同一出口内换账号；没有 peer 的内部直调
+    才退到账号键，且只在进程内/受信调用链出现。
+    """
+    peer = str(p.get("peer") or "").strip()[:64]
+    user = str(p.get("username") or "").strip()[:64]
+    keys = []
+    if peer:
+        keys.append("ip:" + peer)
+        if user:
+            keys.append("pair:" + peer + "|" + user)
+    elif user:
+        keys.append("user:" + user)
+    return {"keys": keys}
+
+
+def throttle_check(p):
+    """只读判定：当前键是否在锁定期；返回剩余秒数用于 Retry-After 文案。"""
+    entries = p.get("entries") if isinstance(p.get("entries"), dict) else {}
+    now = float(p.get("now") or 0)
+    for key in p.get("keys") or []:
+        entry = entries.get(key)
+        if not isinstance(entry, dict):
+            continue
+        try:
+            until = float(entry.get("lock_until") or 0)
+        except (TypeError, ValueError):
+            continue
+        if until > now:
+            return {"blocked": True, "retry_after": int(until - now) + 1, "key": key}
+    return {"blocked": False, "retry_after": 0, "key": ""}
+
+
+def throttle_update(p):
+    """记录一次登录结果，返回新台账与是否已进入锁定期。
+
+    - 成功：删除本次涉及的键，不让历史失败拖住正常用户；
+    - 失败：每个键累加，达到阈值后写入 ``lock_until``；
+    - 过期记录按窗口清理，最多保留 ``max_entries`` 条，避免台账无界增长。
+    """
+    entries = dict(p.get("entries") or {}) if isinstance(p.get("entries"), dict) else {}
+    keys = [str(k) for k in (p.get("keys") or [])]
+    now = float(p.get("now") or 0)
+    cfg = p.get("cfg") or {}
+    max_failures = int(cfg.get("max_failures") or 5)
+    window = int(cfg.get("window_seconds") or 600)
+    lock = int(cfg.get("lock_seconds") or 900)
+    max_entries = int(cfg.get("max_entries") or 2000)
+    if p.get("success"):
+        for key in keys:
+            entries.pop(key, None)
+        return {"entries": entries, "blocked": False, "retry_after": 0}
+    for key in keys:
+        entry = entries.get(key) if isinstance(entries.get(key), dict) else {}
+        try:
+            failures = int(entry.get("failures") or 0) + 1
+        except (TypeError, ValueError):
+            failures = 1
+        try:
+            first = float(entry.get("first") or now)
+        except (TypeError, ValueError):
+            first = now
+        if now - first > window:
+            failures, first = 1, now
+        entries[key] = {"failures": failures, "first": first, "last": now,
+                        "lock_until": now + lock if failures >= max_failures else 0}
+    # 清理：锁已过期且最后失败早于窗口的记录不再有用。
+    for key in list(entries):
+        entry = entries.get(key)
+        if not isinstance(entry, dict):
+            entries.pop(key, None)
+            continue
+        try:
+            last = float(entry.get("last") or 0)
+            until = float(entry.get("lock_until") or 0)
+        except (TypeError, ValueError):
+            entries.pop(key, None)
+            continue
+        if until <= now and last < now - window:
+            entries.pop(key, None)
+    if len(entries) > max_entries:
+        ranked = sorted(((str(k), e) for k, e in entries.items()
+                         if isinstance(e, dict)),
+                        key=lambda kv: float(kv[1].get("last") or 0), reverse=True)
+        entries = dict(ranked[:max_entries])
+    return throttle_check({"entries": entries, "keys": keys, "now": now}) | {"entries": entries}

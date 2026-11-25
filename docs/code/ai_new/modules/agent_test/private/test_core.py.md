@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 7f15aaeb6fabac407c45ab929f52af21c8410d898505778bbd7ae11c442c3371
+hash: f95084d5e070428473f9d7f4c0f08884ee2642360dbb964abc8f7f030eab7b2a
 symbols:
 - __init__
 - __call__
@@ -139,6 +139,8 @@ symbols:
 - test_auth_verify_legacy_token
 - test_auth_status_is_public
 - test_auth_login_success_issues_valid_session_with_default_ttl
+- test_auth_login_throttles_repeated_failures_by_peer
+- test_auth_login_guard_disabled_skips_ledger
 - test_auth_login_demand_is_public
 - _http
 - test_http_get_is_read_only_and_carries_security_headers
@@ -983,6 +985,18 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_auth_login_success_issues_valid_session_with_default_ttl`（method）
 - 职责: 登录真跑一遍：摘要比对通过才会发令牌，非正 ttl 回落到 86400，令牌能过闸。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_auth_login_throttles_repeated_failures_by_peer`（method）
+- 职责: 连续失败先计数再锁定：锁定期内正确口令也拒绝；换个 IP 不被牵连。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_auth_login_guard_disabled_skips_ledger`（method）
+- 职责: 显式关掉登录守卫时不能因为台账不可写把登录打成 503。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
