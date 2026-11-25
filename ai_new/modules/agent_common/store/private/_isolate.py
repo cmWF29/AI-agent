@@ -18,6 +18,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from ai_new.modules.agent_common.plat.private import _winjob
+
 
 # 各层目录归属的模块：数据归谁，路径就从谁的模块数据目录推导。
 _OWNERS = {
@@ -110,22 +112,26 @@ def _cap_posix():
 
 
 def _cap_nt():
+    job = _winjob.probe()
     return {
         "os": "nt",
         "strong": {
-            "tier": "job-object-plus-restricted-token-or-service-account-plus-acl",
-            "supported": False,
-            "verified": False,
-            "mechanisms": ["Job Object 进程树/资源约束",
-                           "CreateRestrictedToken 或低权限服务账户", "目录 ACL"],
-            "note": "Windows 隔离未实现，且未在 Windows 验证；不得视为已支持。",
+            "tier": "job-object-process-tree",
+            "supported": True,
+            "verified": bool(job.get("verified")),
+            "mechanisms": ["Job Object 进程树", "活动进程数/内存上限",
+                           "kill-on-close 收掉整棵进程树", "目录路径边界校验"],
+            "note": ("Job Object 已起短进程 assign 实测通过；与 POSIX bwrap 在 "
+                     "exec 的 sandbox 接口层归一为同一 engine 槽位。"
+                     if job.get("verified") else
+                     "Job Object 入口存在但 assign 探针未通过，实际仍走路径档。"),
         },
         "weak": {
-            "tier": "directory-acl-and-permissions",
-            "supported": False,
-            "verified": False,
-            "mechanisms": ["目录 ACL", "目录权限位"],
-            "note": "Windows 弱档未实现，且未在 Windows 验证。",
+            "tier": "directory-acl-and-path-boundary",
+            "supported": True,
+            "verified": True,
+            "mechanisms": ["目录 ACL", "realpath 根内校验", "cwd 层级约束"],
+            "note": "Windows 弱档走目录 ACL + 路径边界；不做 POSIX uid 语义的假等价。",
         },
     }
 
@@ -190,12 +196,18 @@ def _cwd_info(raw, root_real, dirs, tid):
 
 
 def _sandbox_info(root_real, dirs, tid, cwd):
-    """给执行层的强档挂载描述。
+    """给执行层的强档描述：Linux=bwrap mount，Windows=Job Object。
 
     ticket 会话只挂本 ticket 目录 + 三个公共层，项目根不整体暴露；无 ticket 的
     项目会话才把整个项目根挂到 /workspace。这样 mount namespace 内也看不到别的
     ticket 目录，不是只靠 cwd 字符串拦。
     """
+    if os.name == "nt":
+        if not _winjob.ready():
+            return {"engine": "path"}
+        return {"engine": "winjob", "root": str(root_real), "cwd": str(cwd),
+                "mount": str(root_real),
+                "limits": {"active_processes": 64, "memory_mb": 4096}}
     if not _bwrap_ready():
         return {"engine": "path"}
     try:

@@ -1,7 +1,9 @@
 ---
 source: ai_new/modules/agent_test/private/test_plat.py
-hash: ea828e66249845d39dcba2565e0d5fad204cdaa7b7d97f2a79af2d673501481f
+hash: d564efc3ea34397d29ede06b337185d756be4cab0778dc60f56ec1291e4c7a74
 symbols:
+- _wait_path
+- _spawn_lock_child
 - test_lock_capability_shape
 - test_transport_capability_shape
 - test_proc_capability_shape
@@ -9,14 +11,13 @@ symbols:
 - setUp
 - test_acquire_release_then_reacquire
 - test_reentrant_same_thread_rejected
-- test_mutual_exclusion_between_handles
-- test_blocking_acquire_waits_other_handle_release
-- test_unix_socket_capability_matches_os
+- test_mutual_exclusion_between_processes
+- test_waiter_acquires_after_other_process_release
+- test_unix_socket_capability_matches_probe
 - test_loopback_listen_connect_roundtrip
 - test_addr_file_roundtrip
 - test_missing_addr_file_returns_none
-- test_install_stop_handler_posix
-- test_install_stop_handler_windows
+- test_install_stop_handler_contract
 - setUp
 - _spawn_child
 - _wait_ready
@@ -40,6 +41,18 @@ updated_at: '2026-11-23T13:04:31'
 plat 平台适配层靶向单测：锁互斥/重入、传输档位与回退、进程信号能力上报。
 
 ## 符号
+
+### `_wait_path`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_spawn_lock_child`（function）
+- 职责: 子进程持锁；所有 OS 都走 plat 公共接口。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `test_lock_capability_shape`（method）
 - 职责: （无 docstring）
@@ -83,19 +96,19 @@ plat 平台适配层靶向单测：锁互斥/重入、传输档位与回退、�
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_mutual_exclusion_between_handles`（method）
+### `test_mutual_exclusion_between_processes`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_blocking_acquire_waits_other_handle_release`（method）
+### `test_waiter_acquires_after_other_process_release`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_unix_socket_capability_matches_os`（method）
+### `test_unix_socket_capability_matches_probe`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -119,13 +132,7 @@ plat 平台适配层靶向单测：锁互斥/重入、传输档位与回退、�
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_install_stop_handler_posix`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `test_install_stop_handler_windows`（method）
+### `test_install_stop_handler_contract`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

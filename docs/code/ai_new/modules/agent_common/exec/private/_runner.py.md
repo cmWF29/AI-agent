@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/exec/private/_runner.py
-hash: c7bbbaa3bfd369b9a5303d59c534ce15e53d945f87c248d2ea621e9d6db2ed35
+hash: 8a9981cbe1d926368b63264066f6559dd01443fcaefc0437364449a426306169
 symbols:
 - _virtual_path
 - _bwrap_command

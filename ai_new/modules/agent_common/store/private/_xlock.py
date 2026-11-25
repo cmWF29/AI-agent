@@ -10,12 +10,12 @@ from __future__ import annotations
 from ai_new.modules.agent_common.plat.private import _lock as plat_lock
 
 
-def lock_file(path):
+def lock_file(path, timeout=None):
     """按路径打开锁文件并返回跨进程锁上下文管理器。
 
     父目录须已由 store 能力准备好；本函数不创建目录、不写业务数据。
     """
-    return plat_lock.lock_file(path)
+    return plat_lock.lock_file(path, timeout=timeout)
 
 
 def capability():

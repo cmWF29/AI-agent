@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: f95084d5e070428473f9d7f4c0f08884ee2642360dbb964abc8f7f030eab7b2a
+hash: 095a37e87553319b6237b670c0d76cbd881f4316ca82cbb53b36dced785e48e2
 symbols:
 - __init__
 - __call__
@@ -92,6 +92,11 @@ symbols:
 - test_sse_gate_rejects_non_stream_and_unknown
 - test_health_and_http
 - test_health_live_public_and_assemble_gated
+- _raw_http
+- test_http_method_and_path_edges
+- test_http_body_framing_edges
+- test_http_static_etag_gzip
+- test_sse_stream_and_client_disconnect
 - test_rpc_endpoint_returns_raw_result
 - test_auth_pure_functions
 - test_position_pure_functions
@@ -703,6 +708,36 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_health_live_public_and_assemble_gated`（method）
 - 职责: 存活探头免鉴权且 uptime 非负；业务概览自检无令牌必须 401。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_raw_http`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_http_method_and_path_edges`（method）
+- 职责: GET 写路由 405；拼错的 API 404；RPC 少一段 400；模块清单可读。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_http_body_framing_edges`（method）
+- 职责: chunked / 非法长度 / 超限 / 非 YAML 都必须结构化拒绝，不读脏字节。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_http_static_etag_gzip`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_sse_stream_and_client_disconnect`（method）
+- 职责: SSE 真开流；客户端读一帧后断开，服务端只关连接不抛 500。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

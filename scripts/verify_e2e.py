@@ -345,11 +345,43 @@ async def scenario_ticket_multi(pg):
         await cleanup(pg, name)
 
 
+async def scenario_archive_guard(pg):
+    """归档后的项目：新建工单入口必须不可用，不能靠前端灰按钮后仍能点开弹窗。"""
+    name = "e2e-arch-%d" % int(time.time())
+    try:
+        await create_project(pg, name)
+        await archive_project(pg, name)
+        clicked = await pg.evaluate("""name => {
+          const c=[...document.querySelectorAll('#view-body .pcard')].find(x=>x.innerText.includes(name));
+          if(!c) return false; c.click(); return true;
+        }""", name)
+        if not clicked:
+            raise AssertionError("归档项目卡未找到: %s" % name)
+        await pg.wait_for_timeout(3000)
+        state = await pg.evaluate("""() => {
+          const b=[...document.querySelectorAll('#view-body .view-head sl-button')]
+            .find(x=>/新建工单/.test(x.textContent || ''));
+          if(!b) return {exists:false, disabled:true};
+          b.click();
+          const d=document.querySelector('#modal');
+          return {exists:true, disabled:!!b.disabled, opened:!!(d&&d.open)};
+        }""" )
+        if state.get("opened"):
+            raise AssertionError("归档项目仍能打开新建工单弹窗: %s" % state)
+        if state.get("exists") and not state.get("disabled"):
+            raise AssertionError("归档项目的新建工单按钮未禁用: %s" % state)
+        await delete_project_ui(pg, name)
+        return {"name": name, "guard": True, "button": state}
+    finally:
+        await cleanup(pg, name)
+
+
 async def main() -> int:
     global BASE
     ap = argparse.ArgumentParser()
     ap.add_argument("base", nargs="?", default=BASE)
-    ap.add_argument("--scenario", choices=("project", "ticket", "ticket-multi", "all"), default="all")
+    ap.add_argument("--scenario", choices=("project", "ticket", "ticket-multi",
+                                           "archive-guard", "all"), default="all")
     args = ap.parse_args()
     BASE = args.base.rstrip("/")
     async with async_playwright() as p:
@@ -368,6 +400,10 @@ async def main() -> int:
                       "（消息 %s→%s，会话成员 %s）"
                       % (out["name"], out["ticket"], out["before"], out["after"]["n"],
                          out["after"]["roles"]))
+            if args.scenario in ("archive-guard", "all"):
+                out = await scenario_archive_guard(pg)
+                print("  OK  归档只读 E2E：归档后新建工单入口不可用 %s %s"
+                      % (out["name"], out["button"]))
             if args.scenario in ("ticket-multi", "all"):
                 out = await scenario_ticket_multi(pg)
                 print("  OK  多轮工单 E2E：两轮追问→逐轮收口→结单→归档→删除 %s %s（消息 %s）"

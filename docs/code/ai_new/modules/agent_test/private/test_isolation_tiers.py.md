@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation_tiers.py
-hash: 8a3e0032717eae6f6acaa5803c13632c9a3067c2f8acc8517f45485c2365bac3
+hash: 7d157909406f5d553dce8137b8d30ff6bce1a9ecd411525ff9c4e95430b50a39
 symbols:
 - test_describe_both_tiers_with_overhead
 - test_pick_tier_explicit_wins
@@ -10,8 +10,7 @@ symbols:
 - test_plan_strong_carries_wrap_descriptor
 - test_plan_rejects_relative_and_traversal_root
 - setUp
-- test_capability_reports_posix_flock
-- test_mutual_exclusion_between_handles
+- test_capability_reports_cross_process_lock
 - test_cross_process_exclusion
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:23'
@@ -76,13 +75,7 @@ updated_at: '2026-11-23T04:10:23'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_capability_reports_posix_flock`（method）
-- 职责: （无 docstring）
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `test_mutual_exclusion_between_handles`（method）
+### `test_capability_reports_cross_process_lock`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

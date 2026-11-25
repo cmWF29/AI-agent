@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_common/plat/private/_net.py
-hash: 85acd7d6c72618c60271fc2179b33ef268a7f3e12541c0fbbfead411278b5834
+hash: 5f757e547c39e856bce4becf381077a50afc8e1b2979da40128f406b43710b14
 symbols:
+- _probe_unix_socket
 - supports_unix_socket
 - default_transport
 - transport_capability
@@ -21,12 +22,18 @@ updated_at: '2026-11-23T13:04:29'
 
 ## 概览
 
-本机传输的平台适配：Unix domain socket 在 Windows 不可用，退 loopback TCP。
+本机传输的平台适配：Unix domain socket / loopback TCP 收口到同一 API。
 
 ## 符号
 
+### `_probe_unix_socket`（function）
+- 职责: 实际建监听并回连一次；不靠 ``os.name`` 猜能力。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `supports_unix_socket`（function）
-- 职责: 本机是否可用 AF_UNIX：Windows 没有该地址族。
+- 职责: 本机 AF_UNIX 是否真的可用；首次探测后进程内缓存。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -1,16 +1,11 @@
 """隔离两档靶向单测：档位策略、切换条件、执行计划、跨进程锁互斥。
 
-策略纯函数直接打；跨进程锁打 store 能力层 _xlock（POSIX flock 分支）。
-Windows 分支不在本机执行，capability 里显式标 verified=false。
+策略纯函数直接打；跨进程锁只打 store 能力层 _xlock 的公共接口，底层 flock /
+msvcrt 由平台层选择，用例不做 OS 分支、不 skip。
 """
 from __future__ import annotations
 
 import os
-
-if os.name == "nt":  # pragma: nt-cover — Windows 无 fcntl，POSIX 锁用例跳过
-    fcntl = None
-else:
-    import fcntl
 import subprocess
 import sys
 import tempfile
@@ -71,34 +66,22 @@ class TierPolicyTest(unittest.TestCase):
         self.assertFalse(_pure.plan("p1", "weak", {"root": ""})["ok"])
 
 
-@unittest.skipIf(fcntl is None, "POSIX flock 跨进程锁用例仅在非 Windows 运行")
 class XlockTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="xlock-")
         self.path = str(Path(self.tmp) / "project.lock")
 
-    def test_capability_reports_posix_flock(self):
+    def test_capability_reports_cross_process_lock(self):
         cap = _xlock.capability()
-        self.assertEqual(cap["platform"], "posix")
         self.assertTrue(cap["cross_process"]["supported"])
-        self.assertEqual(cap["cross_process"]["mechanism"], "fcntl.flock")
-
-    def test_mutual_exclusion_between_handles(self):
-        first = _xlock.lock_file(self.path)
-        first.acquire()
-        fh2 = open(self.path, "a+b")  # noqa: SIM115
-        try:
-            with self.assertRaises(BlockingIOError):
-                fcntl.flock(fh2.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        finally:
-            first.release()
-        # 释放后第二把锁可拿到
-        fcntl.flock(fh2.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fcntl.flock(fh2.fileno(), fcntl.LOCK_UN)
-        fh2.close()
+        self.assertTrue(cap["cross_process"]["verified"])
+        if os.name == "nt":
+            self.assertEqual(cap["cross_process"]["mechanism"], "msvcrt.locking")
+        else:
+            self.assertEqual(cap["cross_process"]["mechanism"], "fcntl.flock")
 
     def test_cross_process_exclusion(self):
-        # 子进程持锁不放；父进程非阻塞抢锁必须失败；子进程退出后父进程可拿到。
+        # 子进程持锁不放；父进程限时抢锁必须 timeout；子进程退出后父进程可拿到。
         child_code = (
             "import sys,time;"
             "from ai_new.modules.agent_common.store.private import _xlock;"
@@ -108,29 +91,25 @@ class XlockTest(unittest.TestCase):
         ready = str(Path(self.tmp) / "ready")
         repo_root = str(Path(__file__).resolve().parents[4])
         env = os.environ.copy()
-        # 子进程不继承父进程 sys.path；显式把仓库根放进 PYTHONPATH 并锁定 cwd，
-        # 否则子进程 `import ai_new` 直接 ModuleNotFoundError，跨进程互斥无从验证。
         env["PYTHONPATH"] = repo_root + os.pathsep + env.get("PYTHONPATH", "")
         proc = subprocess.Popen(
             [sys.executable, "-c", child_code, self.path, ready],
             cwd=repo_root, env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
-            for _ in range(50):
+            for _ in range(100):
                 if os.path.exists(ready):
                     break
-                time.sleep(0.1)
+                time.sleep(0.05)
             self.assertTrue(os.path.exists(ready), "子进程未拿到锁")
-            fh = open(self.path, "a+b")  # noqa: SIM115
-            try:
-                with self.assertRaises(BlockingIOError):
-                    fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            finally:
-                fh.close()
+            waiter = _xlock.lock_file(self.path, timeout=0.8)
+            with self.assertRaises(Exception) as caught:
+                waiter.acquire()
+            self.assertEqual(getattr(caught.exception, "code", ""), "lock_timeout")
+            waiter.release()
         finally:
             proc.terminate()
             proc.wait(timeout=5)
-        # 子进程退出、锁释放后，父进程可正常拿锁
         lock = _xlock.lock_file(self.path)
         lock.acquire()
         lock.release()

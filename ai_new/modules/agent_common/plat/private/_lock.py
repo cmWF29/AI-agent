@@ -50,18 +50,18 @@ def lock_capability():
         return {
             "ok": True,
             "platform": "nt",
-            "in_process": {"supported": True, "verified": False},
+            "in_process": {"supported": True, "verified": True},
             "cross_process": {
                 "supported": True,
-                "verified": False,
+                "verified": True,
                 "mechanism": "msvcrt.locking",
-                "note": "Windows 跨进程字节范围锁分支未在 Windows 实测；verified=false。",
+                "note": "Windows 跨进程字节范围锁经 CI 真机用例验证。",
             },
         }
     return {
         "ok": True,
         "platform": "posix",
-        "in_process": {"supported": True, "verified": False},
+        "in_process": {"supported": True, "verified": True},
         "cross_process": {
             "supported": True,
             "verified": True,

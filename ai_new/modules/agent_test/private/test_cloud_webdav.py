@@ -378,7 +378,10 @@ class WebDavStubTest(unittest.TestCase):
 
     def test_custom_ca_trust_chain(self):
         if not shutil.which("openssl"):
-            self.skipTest("openssl not available")
+            # 无 openssl：自定义 CA 入口必须显式报依赖缺失，不能静默跳过校验。
+            with self.assertRaises(FileNotFoundError):
+                _make_self_signed_cert(tempfile.mkdtemp(prefix="dav-ca-miss-"))
+            return
         tmp = tempfile.mkdtemp(prefix="dav-ca-")
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
         cert, key = _make_self_signed_cert(tmp, "trust")
@@ -431,7 +434,7 @@ class RsyncChannelTest(unittest.TestCase):
             res = _rsync.sync("src/", "dst/")
             self.assertFalse(res["ok"])
             self.assertEqual(res["code"], "unsupported_platform")
-            self.skipTest("rsync binary not installed")
+            return
 
         src = tempfile.mkdtemp(prefix="rsync-src-")
         dst = tempfile.mkdtemp(prefix="rsync-dst-")
@@ -462,6 +465,45 @@ class RsyncChannelTest(unittest.TestCase):
         second = _rsync.sync(src + "/", dst + "/")
         self.assertTrue(second["ok"], second)
         self.assertEqual(_walk(dst), _walk(src))
+
+
+    def test_windows_shutil_fallback_local_tree(self):
+        """无 rsync 的 Windows：同接口本地树同步，含尾斜杠、覆盖与 --delete。"""
+        from unittest import mock
+        root = tempfile.mkdtemp(prefix="rsync-win-")
+        src = os.path.join(root, "src")
+        dst = os.path.join(root, "dst")
+        os.makedirs(os.path.join(src, "nested"))
+        with open(os.path.join(src, "a.txt"), "wb") as fh:
+            fh.write(b"alpha")
+        with open(os.path.join(src, "nested", "b.bin"), "wb") as fh:
+            fh.write(b"beta")
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        with mock.patch.object(_rsync, "detect", return_value=None), \
+                mock.patch.object(_rsync, "PLATFORM", "nt"):
+            probe = _rsync.probe()
+            self.assertTrue(probe["ok"], probe)
+            self.assertEqual(probe["mechanism"], "python-shutil")
+            first = _rsync.sync(src + "/", dst + "/")
+            self.assertTrue(first["ok"], first)
+            self.assertTrue(os.path.exists(os.path.join(dst, "nested", "b.bin")))
+            # --delete 删除目标多出的条目，源有的一律保留。
+            with open(os.path.join(dst, "stale.txt"), "w") as fh:
+                fh.write("stale")
+            second = _rsync.sync(src + "/", dst + "/", delete=True)
+            self.assertTrue(second["ok"], second)
+            self.assertFalse(os.path.exists(os.path.join(dst, "stale.txt")))
+            # 无尾斜杠：同步目录本身到目标下。
+            named = os.path.join(root, "named")
+            os.makedirs(named)
+            _rsync.sync(src, named)
+            self.assertTrue(os.path.isdir(os.path.join(named, "src")))
+            # 缺源与远端形式显式报错，不静默成功。
+            self.assertEqual(_rsync.sync(os.path.join(root, "missing"), dst)["code"],
+                             "rsync_error")
+            remote = _rsync.sync("user@host:/x", dst)
+            self.assertFalse(remote["ok"])
+            self.assertEqual(remote["code"], "unsupported_platform")
 
 
 if __name__ == "__main__":

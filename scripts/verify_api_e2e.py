@@ -7,6 +7,12 @@
   timer        ：建→列→暂停→恢复→改→删
   nodes        ：登记→申领→冲突申领被拒→错 token 释放被拒→正确释放→epoch 递增
   parallel     ：12 路并发建项目→列表可见→并发删除→列表归零
+  project-create / ticket-split / ticket-close / knowledge-version / auth：
+                 建项目空名守卫、拆单上限与父单守卫、结单级联只读、知识版本冲突、鉴权关闭/拒绝
+  knowledge-append：append 保留旧正文，public/project 同名互不串档
+  project-conflict：同名建项目、改名撞名都必须拒绝
+  timer-guards / session-guards / ticket-send-guards：坏 cron、未知定时器、空正文、缺单等拒绝
+  http-boundary    ：GET 写路由 405、未知路径 404、坏 YAML 400、静态 ETag 304
 
 用法：
   AI_NEW_STUB=1 python agent_start.py &
@@ -67,9 +73,9 @@ def error_code(node):
     return error_code(node.get("result"))
 
 
-def workspace(demand_id, payload=None):
+def workspace(demand_id, payload=None, token=None):
     """返回 (result, code)：预期失败也拿得到 code，供负向断言。"""
-    c = Client(BASE, TOKEN)
+    c = Client(BASE, TOKEN if token is None else token)
     try:
         sample, data = c.rpc(demand_id, payload or {})
         outer = data.get("result") if isinstance(data, dict) else {}
@@ -500,6 +506,268 @@ def scenario_boundary():
         c.close()
 
 
+def scenario_project_create_list():
+    name = "e2e-create-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        listed = req("projects-list", {})
+        items = listed.get("items") or []
+        must(any(x.get("id") == pid for x in items), "新建项目不在列表: %s" % items)
+        got = req("projects-get", {"id": pid})
+        must(got.get("name") == name, "项目详情名字不符: %s" % got)
+        _, code = workspace("projects-create", {"name": ""})
+        must(code in ("missing_name", "invalid_name", "400"),
+             "空项目名未被拒: code=%r" % code)
+        return {"project": pid, "listed": True, "empty_name_guard": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_ticket_split_guard():
+    name = "e2e-split-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        parent = create_ticket(pid, "拆单父单")
+        budget = 8  # config.default tickets.max_children
+        child = req("ticket-split", {
+            "id": parent["id"],
+            "children": [{"title": "子单-%d" % i, "goal": "拆分验收"} for i in range(budget)]})
+        kids = child.get("children") or []
+        must(len(kids) >= budget, "拆单未产生 %d 个子单: %s" % (budget, child))
+        # 未结子单时父单结单必须被拒。
+        _, code = workspace("ticket-close", {
+            "id": parent["id"], "verdict": "accepted", "summary": "子单未结"})
+        must(code in ("children_open", "409"), "子单未结时父单结单未被拒: code=%r" % code)
+        # 上限守卫：已有子单达到 max_children 后继续拆必须被拒。
+        _, code = workspace("ticket-split", {
+            "id": parent["id"],
+            "children": [{"title": "超限子单", "goal": "应被拒"}]})
+        must(code in ("too_many_children", "409"),
+             "超过 max_children 未被拒: code=%r" % code)
+        return {"project": pid, "parent": parent["id"], "children": len(kids),
+                "close_guard": True, "max_guard": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_ticket_close_cascade():
+    name = "e2e-close-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        parent = create_ticket(pid, "级联结单父单")
+        one = req("ticket-split", {
+            "id": parent["id"], "children": [{"title": "级联子单", "goal": "先结子单"}]})
+        cid = str((one.get("children") or [""])[0])
+        must(cid, "拆单未回子单 id: %s" % one)
+        close_ticket(cid)
+        closed = close_ticket(parent["id"])
+        must(closed.get("status") in ("closed", "done", "accepted"),
+             "子单结完后父单未结: %s" % closed)
+        _, code = workspace("ticket-message", {"id": parent["id"], "text": "结单后写"})
+        must(code in ("ticket_closed", "closed", "read_only", "project_archived"),
+             "结单后仍可写: code=%r" % code)
+        return {"project": pid, "parent": parent["id"], "child": cid,
+                "cascade": True, "readonly": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_knowledge_version_guard():
+    name = "e2e-kv-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        first = req("knowledge-write", {"layer": "project", "project": pid,
+                                         "name": "versioned", "content": "v1",
+                                         "mode": "overwrite", "author": "e2e"})
+        revision = first.get("revision") or {}
+        version = revision.get("version")
+        must(version is not None, "知识写入未回版本: %s" % first)
+        _, code = workspace("knowledge-write", {
+            "layer": "project", "project": pid, "name": "versioned",
+            "content": "stale", "mode": "create", "author": "e2e",
+            "base_version": int(version) - 1})
+        must(code in ("version_conflict", "conflict", "token_required", "409"),
+             "旧版本覆盖未被拒: code=%r" % code)
+        updated = req("knowledge-write", {
+            "layer": "project", "project": pid, "name": "versioned",
+            "content": "v2", "mode": "overwrite", "author": "e2e",
+            "base_version": version})
+        read = req("knowledge-read", {"layer": "project", "project": pid,
+                                      "name": "versioned"})
+        must("v2" in (read.get("content") or ""), "覆盖后读不到 v2: %s" % read)
+        return {"project": pid, "first_version": version,
+                "updated": (updated.get("revision") or {}).get("version"), "conflict_guard": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_auth_reject():
+    status = req("auth-status", {})
+    if not status.get("enabled"):
+        return {"auth": "disabled", "wrong_token": False}
+    _, code = workspace("projects-list", {}, token="wrong-token")
+    must(code in ("401", "unauthorized", "invalid_token"),
+         "错误 token 未被拒: code=%r" % code)
+    _, code = workspace("projects-list", {}, token="")
+    must(code in ("401", "unauthorized", "invalid_token"),
+         "空 token 未被拒: code=%r" % code)
+    return {"wrong_token": True, "empty_token": True}
+
+
+def scenario_knowledge_append_scope():
+    """append 模式保留旧正文；public 与 project 层同名字互不串档。"""
+    name = "e2e-append-%d" % time.time_ns()
+    pub_name = "scope-public-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        first = req("knowledge-write", {"layer": "project", "project": pid, "name": "scope-doc",
+                                         "content": "first", "mode": "overwrite", "author": "e2e"})
+        base = str((first.get("revision") or {}).get("version") or "")
+        req("knowledge-write", {"layer": "project", "project": pid, "name": "scope-doc",
+                                "content": "second", "mode": "append", "author": "e2e",
+                                "base_version": base})
+        body = req("knowledge-read", {"layer": "project", "project": pid, "name": "scope-doc"})
+        text = body.get("text") or body.get("content") or ""
+        must("first" in text and "second" in text, "append 未保留两段正文: %r" % text)
+        req("knowledge-write", {"layer": "public", "name": pub_name,
+                                "content": "public-only", "mode": "overwrite", "author": "e2e"})
+        pub = req("knowledge-read", {"layer": "public", "name": pub_name})
+        pub_text = pub.get("text") or pub.get("content") or ""
+        must("public-only" in pub_text and "second" not in pub_text,
+             "public 层读到了 project 正文: %r" % pub_text)
+        proj2 = req("knowledge-read", {"layer": "project", "project": pid, "name": "scope-doc"})
+        p_text = proj2.get("text") or proj2.get("content") or ""
+        must("second" in p_text and "public-only" not in p_text,
+             "project 层被 public 覆盖: %r" % p_text)
+        return {"project": pid, "append": True, "scope_isolated": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_project_conflict():
+    """同名建项目/改名撞名都必须拒绝；换新名后成功。"""
+    stamp = time.time_ns()
+    a = project("e2e-dup-%s-a" % stamp)["id"]
+    b = ""
+    try:
+        _, code = workspace("projects-create", {"name": "e2e-dup-%s-a" % stamp})
+        must(bool(code), "同名建项目未被拒: code=%r" % code)
+        b = project("e2e-dup-%s-b" % stamp)["id"]
+        _, code = workspace("projects-rename", {"id": b, "name": "e2e-dup-%s-a" % stamp})
+        must(bool(code), "改名撞已有项目未被拒: code=%r" % code)
+        req("projects-rename", {"id": b, "name": "e2e-dup-%s-c" % stamp})
+        got = req("projects-get", {"id": "e2e-dup-%s-c" % stamp})
+        must(got.get("name") == "e2e-dup-%s-c" % stamp, "改名后详情不对: %s" % got)
+        return {"duplicate_create": True, "duplicate_rename": True, "renamed": True}
+    finally:
+        delete_project("e2e-dup-%s-a" % stamp)
+        if b:
+            delete_project(b)
+        delete_project("e2e-dup-%s-c" % stamp)
+
+
+def scenario_timer_guards():
+    """坏 cron / 未知定时器都必须结构化拒绝，不落脏记录。"""
+    stamp = time.time_ns()
+    _, code = workspace("timer-create", {"kind": "cron", "expr": "not-a-cron",
+                                        "tz": "Asia/Shanghai", "title": "bad",
+                                        "action": "notify"})
+    must(bool(code), "坏 cron 未被拒")
+    _, code = workspace("timer-toggle", {"id": "no-such-%s" % stamp, "action": "pause"})
+    must(bool(code), "未知定时器暂停未被拒")
+    _, code = workspace("timer-delete", {"id": "no-such-%s" % stamp})
+    must(bool(code), "未知定时器删除未被拒")
+    return {"bad_cron": True, "unknown_toggle": True, "unknown_delete": True}
+
+
+def scenario_session_guards():
+    """未知角色/空正文/未知会话都必须拒绝；销毁后再次销毁是幂等终态。"""
+    _, code = workspace("role-session-open", {"role": "", "purpose": "e2e-x"})
+    must(bool(code), "未知角色开会话未被拒: code=%r" % code)
+    sid = req("role-session-open", {"role": "cloud-configurer",
+                                   "purpose": "e2e-guard-%d" % time.time_ns()}).get("id") or ""
+    must(sid, "岗位会话未回 id")
+    try:
+        _, code = workspace("role-session-message", {"id": sid, "text": "   "})
+        must(bool(code), "空正文消息未被拒: code=%r" % code)
+        _, code = workspace("session-get", {"id": "no-such-%d" % time.time_ns()})
+        must(bool(code), "未知会话读取未被拒: code=%r" % code)
+        first = req("session-destroy", {"id": sid})
+        again = req("session-destroy", {"id": sid})
+        must((first.get("status") or "") in ("gone", "destroyed"), "首次销毁状态不对: %s" % first)
+        must((again.get("status") or "") in ("gone", "destroyed"), "重复销毁状态不对: %s" % again)
+        sid = ""
+        return {"unknown_role": True, "empty_text": True, "destroy_idempotent": True}
+    finally:
+        if sid:
+            try:
+                req("session-destroy", {"id": sid})
+            except E2E:
+                pass
+
+
+def scenario_ticket_send_guards():
+    """缺单/空正文先被守卫拦住；真实单据空正文 400，结单后只读。"""
+    name = "e2e-send-%d" % time.time_ns()
+    pid = ""
+    tid = ""
+    try:
+        pid = project(name)["id"]
+        tid = create_ticket(pid, "消息守卫")["id"]
+        _, code = workspace("ticket-message", {"id": "T-no-such", "text": "x"})
+        must(bool(code), "缺单发消息未被拒: code=%r" % code)
+        _, code = workspace("ticket-message", {"id": tid, "text": "   "})
+        must(bool(code), "空正文未被拒: code=%r" % code)
+        close_ticket(tid)
+        _, code = workspace("ticket-message", {"id": tid, "text": "结单后再发"})
+        must(bool(code), "结单后发消息未被拒: code=%r" % code)
+        return {"project": pid, "ticket": tid, "missing": True, "empty": True, "closed": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_http_boundary():
+    """HTTP 壳层：方法/路径/坏正文/静态 304 都必须按协议回，不落 500。"""
+    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    conn.request("GET", "/api/rpc/clock/now", headers={"X-Auth-Token": TOKEN})
+    resp = conn.getresponse(); body = resp.read()
+    must(resp.status == 405, "GET 写路由不是 405: %s" % resp.status)
+    conn.close()
+    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    conn.request("GET", "/api/no-such-route", headers={"X-Auth-Token": TOKEN})
+    resp = conn.getresponse(); body = resp.read()
+    must(resp.status == 404, "未知 API 路径不是 404: %s" % resp.status)
+    conn.close()
+    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    conn.request("POST", "/api/rpc/clock/now", body=b"{{{not-yaml",
+                 headers={"X-Auth-Token": TOKEN, "Content-Type": "application/yaml"})
+    resp = conn.getresponse(); body = resp.read()
+    must(resp.status == 400 and b"bad_json" in body, "坏正文未结构化拒绝: %s %r" % (resp.status, body[:80]))
+    conn.close()
+    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    conn.request("GET", "/manage.html")
+    resp = conn.getresponse(); etag = resp.getheader("ETag"); resp.read()
+    must(resp.status == 200 and etag, "静态页缺 ETag: %s %r" % (resp.status, etag))
+    conn.close()
+    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    conn.request("GET", "/manage.html", headers={"If-None-Match": etag})
+    resp = conn.getresponse(); resp.read()
+    must(resp.status == 304, "条件请求不是 304: %s" % resp.status)
+    conn.close()
+    return {"method_405": True, "missing_404": True, "bad_json": True, "etag_304": True}
+
+
 SCENARIOS = {
     "project-rename": scenario_project_rename,
     "knowledge": scenario_knowledge,
@@ -511,6 +779,17 @@ SCENARIOS = {
     "cloud-profile": scenario_cloud_profile,
     "boundary": scenario_boundary,
     "parallel": scenario_parallel,
+    "project-create": scenario_project_create_list,
+    "ticket-split": scenario_ticket_split_guard,
+    "ticket-close": scenario_ticket_close_cascade,
+    "knowledge-version": scenario_knowledge_version_guard,
+    "auth": scenario_auth_reject,
+    "knowledge-append": scenario_knowledge_append_scope,
+    "project-conflict": scenario_project_conflict,
+    "timer-guards": scenario_timer_guards,
+    "session-guards": scenario_session_guards,
+    "ticket-send-guards": scenario_ticket_send_guards,
+    "http-boundary": scenario_http_boundary,
 }
 
 

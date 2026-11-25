@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation_windows.py
-hash: 04ca8be4b051193ecc9e47f2d4d615f7b4a53cefb6ab6139c0706f4592776b50
+hash: bd91ae624bc90954f29d123a6baccc7c023b0e0455c735a57072f40c74ad6f5e
 symbols:
 - test_case_and_slash_mix_normalized_equal
 - test_drive_escape_rejected
@@ -35,10 +35,13 @@ symbols:
 - test_guard_path_route_registered_and_callable
 - setUp
 - _spawn_child
-- test_capability_reports_msvcrt
+- test_capability_reports_platform_lock
 - test_contended_lock_times_out_then_releases
 - test_tcp_roundtrip_and_sidecar_cleanup
 - test_shared_memory_block_roundtrip
+- test_job_probe_shape_and_platform_expectation
+- test_capability_strong_slot_is_normalized
+- test_job_object_lifecycle_interface
 generated: gen_docs.py v1
 updated_at: '2026-11-23T09:13:18'
 ---
@@ -252,7 +255,7 @@ Windows 档路径语义靶向单测（在 Linux 上跑纯判定函数，CI windo
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_capability_reports_msvcrt`（method）
+### `test_capability_reports_platform_lock`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -272,6 +275,24 @@ Windows 档路径语义靶向单测（在 Linux 上跑纯判定函数，CI windo
 
 ### `test_shared_memory_block_roundtrip`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_job_probe_shape_and_platform_expectation`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_capability_strong_slot_is_normalized`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_job_object_lifecycle_interface`（method）
+- 职责: 同一接口在两端都可调用：POSIX 显式 no-op，Windows 真 assign + close 收树。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

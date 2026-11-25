@@ -480,9 +480,16 @@ class S3ChannelTest(unittest.TestCase):
             self.assertTrue(res["ok"], res)
         self.assertEqual(len(client.list_keys("rate/")), 3)
 
-    @unittest.skipUnless(all(os.environ.get(v) for v in REAL_ENV),
-                         "未配置真实 S3 凭据（AI_NEW_S3_ENDPOINT/AK/SK/BUCKET）")
     def test_real_endpoint_roundtrip(self):
+        if not all(os.environ.get(v) for v in REAL_ENV):
+            # 无真实凭据：验证未配置时能力面显式报缺参，不冒充联通。
+            client = _s3.S3Client(
+                self.ctx, {"endpoint": "http://127.0.0.1:1", "root_dir": BUCKET,
+                           "policy": {}},
+                {"access_key": "", "secret_key": "", "bucket": BUCKET})
+            probe = client.test_connection()
+            self.assertFalse(probe["ok"])
+            return
         profile = {"endpoint": os.environ["AI_NEW_S3_ENDPOINT"],
                    "root_dir": os.environ["AI_NEW_S3_BUCKET"], "policy": {}}
         creds = {"access_key": os.environ["AI_NEW_S3_AK"],

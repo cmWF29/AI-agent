@@ -1,11 +1,14 @@
 ---
 source: ai_new/modules/agent/cloud/private/_rsync.py
-hash: f948c83f8a6a2e91bd299a65418a46b7d4bc00b41a81b50fac207953eb0232a8
+hash: 400cbafdcb00ce5620e5711a9910aa25725e3939bda417018af1451029bcaa15
 symbols:
 - detect
 - probe
 - is_available
 - sync
+- _is_remote
+- _sync_tree
+- _delete_extras
 generated: gen_docs.py v1
 updated_at: '2026-11-23T13:04:23'
 ---
@@ -17,7 +20,7 @@ updated_at: '2026-11-23T13:04:23'
 
 ## 概览
 
-rsync 通道：二进制探测 + 命令封装；未安装时显式降级，不假装支持。
+rsync 通道：二进制探测 + 命令封装；Windows 无 rsync 时走同接口的本地树同步。
 
 ## 符号
 
@@ -34,13 +37,31 @@ rsync 通道：二进制探测 + 命令封装；未安装时显式降级，不�
 - 关联需求/测试: 待人工补充
 
 ### `is_available`（function）
-- 职责: rsync 二进制是否在 PATH 上。
+- 职责: 同步接口是否可用：POSIX 看 rsync；Windows 有本地 shutil 兜底。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
 ### `sync`（function）
 - 职责: 执行一次 rsync 同步；未安装直接返回 unsupported_platform。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_is_remote`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_sync_tree`（function）
+- 职责: Windows 本地目录同步：等价 ``rsync -a --checksum`` 的本地子集。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_delete_extras`（function）
+- 职责: ``--delete`` 的本地语义：目标多出的文件/目录删掉，源有的一律保留。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

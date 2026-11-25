@@ -13,6 +13,8 @@ import shutil
 import time
 from pathlib import Path
 
+from ai_new.modules.agent_common.plat.private import _winjob
+
 
 def _virtual_path(raw, label):
     """规范 bwrap 命名空间内的虚拟路径，拒绝 ``..``/空字节/相对路径。
@@ -145,6 +147,19 @@ async def _arun(ctx, payload):
         return {"ok": False, "code": "sandbox_unavailable", "error": sandbox_error}
     command = prefix + argv
 
+    job = None
+    if sandbox.get("engine") == "winjob":
+        if not _winjob.ready():
+            return {"ok": False, "code": "sandbox_unavailable",
+                    "error": "Windows Job Object 探针未通过"}
+        limits = sandbox.get("limits") or {}
+        try:
+            job = _winjob.Job(
+                memory_mb=limits.get("memory_mb"),
+                active_processes=limits.get("active_processes"))
+        except _winjob.JobError as exc:
+            return {"ok": False, "code": "sandbox_unavailable", "error": str(exc)}
+
     try:
         proc = await asyncio.create_subprocess_exec(
             *command,
@@ -154,7 +169,16 @@ async def _arun(ctx, payload):
             cwd=(cwd or None),
         )
     except OSError as exc:
+        if job is not None:
+            job.close()
         return {"ok": False, "code": "spawn_failed", "error": str(exc)}
+
+    if job is not None and not job.assign(proc.pid):
+        proc.kill()
+        await proc.wait()
+        job.close()
+        return {"ok": False, "code": "sandbox_assign_failed",
+                "error": "进程未能加入 Job Object"}
 
     try:
         if stdin_text:
@@ -216,6 +240,8 @@ async def _arun(ctx, payload):
         cap = int(ctx.api.call("config.get", {"key": "exec.error_chars"},
                                caller=None).get("value") or 0)
         result["error"] = (err or out or "进程退出码 %s" % code).strip()[:cap]
+    if job is not None:
+        job.close()
     return result
 
 

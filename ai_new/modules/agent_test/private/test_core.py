@@ -4,6 +4,8 @@
 """
 import yaml
 import os
+import http.client
+import socket
 import sys
 import tempfile
 import unittest
@@ -1902,6 +1904,83 @@ class CoreTest(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as cm:
             urllib.request.urlopen(assemble, timeout=5)
         self.assertEqual(cm.exception.code, 401)
+
+    def _raw_http(self, method, path, body=None, headers=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        hdr = {"X-Auth-Token": "t"}
+        hdr.update(headers or {})
+        conn.request(method, path, body=body, headers=hdr)
+        resp = conn.getresponse()
+        data = resp.read()
+        conn.close()
+        return resp.status, dict(resp.getheaders()), data
+
+    def test_http_method_and_path_edges(self):
+        """GET 写路由 405；拼错的 API 404；RPC 少一段 400；模块清单可读。"""
+        status, _h, _b = self._raw_http("GET", "/api/rpc/clock/now")
+        self.assertEqual(status, 405, _b[:200])
+        status, _h, _b = self._raw_http("GET", "/api/no_such_route")
+        self.assertEqual(status, 404)
+        status, _h, body = self._raw_http("POST", "/api/rpc/clock",
+                                      b"{}", {"Content-Type": "application/yaml"})
+        self.assertIn(status, (400, 404))
+        self.assertIn(b"bad_path", body)
+        status, _h, body = self._raw_http("GET", "/api/modules")
+        self.assertEqual(status, 200)
+        self.assertIn(b"modules", body)
+
+    def test_http_body_framing_edges(self):
+        """chunked / 非法长度 / 超限 / 非 YAML 都必须结构化拒绝，不读脏字节。"""
+        # chunked：直接走 socket，http.client 不接受手工 Transfer-Encoding。
+        raw = (b"POST /api/rpc/clock/now HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+               b"X-Auth-Token: t\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n")
+        sock = socket.create_connection(("127.0.0.1", self.port), timeout=5)
+        sock.sendall(raw)
+        reply = sock.recv(4096)
+        sock.close()
+        self.assertIn(b"400", reply.split(b"\r\n", 1)[0])
+        self.assertIn(b"bad_framing", reply)
+
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.putrequest("POST", "/api/rpc/clock/now")
+        conn.putheader("X-Auth-Token", "t")
+        conn.putheader("Content-Length", "99999999")
+        conn.endheaders()
+        resp = conn.getresponse()
+        self.assertEqual(resp.status, 413)
+        resp.read()
+        conn.close()
+
+        status, _h, body = self._raw_http("POST", "/api/rpc/clock/now",
+                                      b"{{{not-yaml",
+                                      {"Content-Type": "application/yaml"})
+        self.assertEqual(status, 400)
+        self.assertIn(b"bad_json", body)
+
+    def test_http_static_etag_gzip(self):
+        status, headers, _body = self._raw_http("GET", "/manage.html")
+        self.assertEqual(status, 200)
+        self.assertTrue(headers.get("ETag"))
+        status, _h, body = self._raw_http("GET", "/manage.html",
+                                      headers={"If-None-Match": headers["ETag"]})
+        self.assertEqual(status, 304)
+        status, headers, body = self._raw_http("GET", "/manage.html",
+                                           headers={"Accept-Encoding": "gzip"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers.get("Content-Encoding"), "gzip")
+        self.assertGreater(len(body), 0)
+
+    def test_sse_stream_and_client_disconnect(self):
+        """SSE 真开流；客户端读一帧后断开，服务端只关连接不抛 500。"""
+        sock = socket.create_connection(("127.0.0.1", self.port), timeout=5)
+        sock.sendall(b"GET /api/sse/channel/watch?token=t HTTP/1.1\r\n"
+                     b"Host: 127.0.0.1\r\nAccept: text/event-stream\r\n\r\n")
+        first = sock.recv(4096)
+        self.assertIn(b"200", first.split(b"\r\n", 1)[0])
+        sock.close()
+        # 再开一条短连接，验证服务仍能正常响应，没有被断连打崩。
+        status, _h, _b = self._raw_http("GET", "/api/health/live")
+        self.assertEqual(status, 200)
 
     def test_rpc_endpoint_returns_raw_result(self):
         """网络通道的服务端：/api/rpc/ 返回未包装的原始结果，供另一个进程直接消费。"""

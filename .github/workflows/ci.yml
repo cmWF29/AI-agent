@@ -97,6 +97,15 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/verify_e2e.py --scenario ticket-multi 2>&1 | tee /tmp/e2e-multi.log
+      - name: E2E 归档只读（归档后新建工单入口禁用）
+        run: |
+          set -o pipefail
+          python3 scripts/verify_e2e.py --scenario archive-guard 2>&1 | tee /tmp/e2e-archive.log
+      - name: 像素级视觉回归（三视图基线）
+        run: |
+          set -o pipefail
+          pip install pillow
+          python3 scripts/verify_visual.py 2>&1 | tee /tmp/visual.log
       - name: HTTP 黑盒业务 E2E（改名/知识版本/检索/备注/定时器/租约/岗位会话/云端/边界/并发）
         run: |
           set -o pipefail
@@ -111,7 +120,7 @@ jobs:
       - name: E2E 失败原因（注解可见）
         if: failure()
         run: |
-          for f in /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-api.log /tmp/perf-http.log; do
+          for f in /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-archive.log /tmp/visual.log /tmp/e2e-api.log /tmp/perf-http.log; do
             if [ -f "$f" ]; then
               tail -n 4 "$f" | sed 's/%/%25/g; s/\r//g' | while IFS= read -r line; do echo "::error::$line"; done
             fi

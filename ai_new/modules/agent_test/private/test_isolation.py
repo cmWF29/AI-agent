@@ -70,7 +70,7 @@ class WorkspaceResolveTest(unittest.TestCase):
             {"project": "demo-proj", "ticket": "T-20261123-0003", "root": root},
             dir_of=self._dir_of)
         sandbox = out["sandbox"]
-        self.assertIn(sandbox["engine"], ("bwrap", "path"))
+        self.assertIn(sandbox["engine"], ("bwrap", "winjob", "path"))
         if sandbox["engine"] == "bwrap":
             self.assertEqual(sandbox["mount"], "/workspace")
             self.assertEqual(sandbox["cwd"], "/workspace/tickets/T-20261123-0003")
@@ -78,6 +78,11 @@ class WorkspaceResolveTest(unittest.TestCase):
             dests = [row["dst"] for row in sandbox["binds"]]
             self.assertIn("/workspace/tickets/T-20261123-0003", dests)
             self.assertIn("/workspace/documents", dests)
+        elif sandbox["engine"] == "winjob":
+            self.assertTrue(_isolate._winjob.ready())
+            self.assertEqual(Path(sandbox["root"]), Path(out["root"]))
+            self.assertEqual(Path(sandbox["cwd"]), Path(out["cwd"]))
+            self.assertEqual(sandbox["limits"]["active_processes"], 64)
 
     def test_non_absolute_root_rejected(self):
         out = _isolate.resolve_workspace(
@@ -109,9 +114,12 @@ class CapabilityReportTest(unittest.TestCase):
             self.assertIn("supported", band)
             self.assertIn("verified", band)
         if cap["os"] == "nt":
-            self.assertFalse(cap["strong"]["supported"])
-            self.assertFalse(cap["weak"]["supported"])
-            self.assertFalse(cap["strong"]["verified"])
+            self.assertTrue(cap["strong"]["supported"])
+            self.assertEqual(cap["strong"]["tier"], "job-object-process-tree")
+            self.assertEqual(cap["strong"]["verified"],
+                             _isolate._winjob.ready())
+            self.assertTrue(cap["weak"]["supported"])
+            self.assertTrue(cap["weak"]["verified"])
         else:
             self.assertEqual(cap["strong"]["verified"], _isolate._bwrap_ready())
             self.assertTrue(cap["weak"]["supported"])
@@ -230,14 +238,28 @@ class SandboxMountTest(unittest.TestCase):
         api = _Api()
         runtime = None
 
-    @unittest.skipUnless(_isolate._bwrap_ready(), "本机 bwrap namespace 探针未通过")
     def test_project_root_is_mounted_and_host_is_hidden(self):
         root = Path(tempfile.mkdtemp(prefix="sandbox-"))
         (root / "tickets" / "T-2").mkdir(parents=True)
         ws = _isolate.resolve_workspace(
             {"project": "p1", "ticket": "T-1", "root": str(root), "cwd": ""},
             dir_of=lambda module: root / module)
-        self.assertEqual(ws["sandbox"]["engine"], "bwrap")
+        engine = ws["sandbox"]["engine"]
+        if engine == "winjob":
+            self.assertFalse(_isolate._winjob is None)
+            res = asyncio.run(_runner._arun(self._Ctx(), {
+                "argv": [sys.executable, "-c",
+                         "import os; open('job.txt','w').write(os.getcwd())"],
+                "cwd": ws["cwd"], "ensure_cwd": True,
+                "sandbox": ws["sandbox"], "timeout": 10}))
+            self.assertTrue(res["ok"], res)
+            self.assertTrue((Path(ws["cwd"]) / "job.txt").exists())
+            return
+        if engine != "bwrap":
+            # 本机强档不可用：接口必须显式降级到 path，不能冒充 bwrap。
+            self.assertEqual(engine, "path")
+            self.assertFalse(_isolate._bwrap_ready())
+            return
         res = asyncio.run(_runner._arun(self._Ctx(), {
             "argv": ["/bin/sh", "-c",
                      "pwd; test ! -e /home && echo HOST_HIDDEN; "

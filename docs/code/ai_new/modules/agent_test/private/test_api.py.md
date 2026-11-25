@@ -1,12 +1,18 @@
 ---
 source: ai_new/modules/agent_test/private/test_api.py
-hash: b534406f9f055697829002ce90cb622606d207d125d9ab5e95cd619569314b1e
+hash: 2c6d4ffd7dc73ae8f772bd25350dd41a573c333af89419802a719462ea8797bd
 symbols:
 - __call__
 - setUpClass
 - tearDownClass
 - _read_denied
 - _exec_denied
+- _ticket
+- test_ticket_send_guards
+- test_ticket_note_guards
+- test_ticket_split_guards
+- test_ticket_rebind_guards
+- test_ticket_create_and_close_guards
 - test_dotdot_traversal_rejected
 - test_url_encoded_traversal_rejected
 - test_double_encoded_traversal_rejected
@@ -74,6 +80,42 @@ API 边界负向用例 + ops-overview 首屏瘦身回归。
 
 ### `_exec_denied`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_ticket`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ticket_send_guards`（method）
+- 职责: 缺单/空正文/非文本正文/未知目标都必须给出明确错误码。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ticket_note_guards`（method）
+- 职责: 备注走同一套守卫：缺单先 404；真实单据上空正文/非文本再 400。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ticket_split_guards`（method）
+- 职责: children 非列表/元素非对象/上限非整数/force 非布尔都必须 400。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ticket_rebind_guards`（method）
+- 职责: from/to 必须非空字符串且不相同，避免把 project 写成对象或原地打转。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_ticket_create_and_close_guards`（method）
+- 职责: 建单缺项目/结单缺单都必须结构化拒绝。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

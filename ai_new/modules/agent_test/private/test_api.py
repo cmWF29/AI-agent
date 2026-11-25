@@ -73,6 +73,53 @@ class ApiBoundaryTest(unittest.TestCase):
             self.ctx.api.call(route, payload, caller=None, direct=True)
         return caught.exception
 
+    # ---- 工单路由校验分支：坏形状必须在写之前结构化拒绝 ----
+
+    def _ticket(self, route, payload):
+        out = self.ctx.api.call(route, payload, caller=None, direct=True)
+        return out
+
+    def test_ticket_send_guards(self):
+        """缺单/空正文/非文本正文/未知目标都必须给出明确错误码。"""
+        self.assertEqual(self._ticket("tickets.send", {"id": "T-none", "text": "x"}).get("code"), "not_found")
+        self.assertEqual(self._ticket("tickets.send", {"id": "T-none", "text": "  "}).get("code"), "empty_text")
+        self.assertEqual(self._ticket("tickets.send", {"id": "T-none", "text": 1}).get("code"), "bad_input")
+
+    def test_ticket_note_guards(self):
+        """备注走同一套守卫：缺单先 404；真实单据上空正文/非文本再 400。"""
+        self.assertEqual(self._ticket("tickets.note_write", {"id": "T-none", "text": "x"}).get("code"), "not_found")
+        pid = "dbg-1795512827"
+        tid = "T-guard-note"
+        rec = self._ticket("tickets.build", {"id": tid, "title": "guard", "project": pid,
+                                             "kind": "sub",
+                                             "now": self._ticket("clock.now", {}).get("ts")})
+        path = self._ticket("tickets.record_path", {"id": tid, "project": pid}).get("path")
+        self._ticket("store.write", {"module": "agent/tickets", "path": path, "value": rec})
+        self.assertEqual(self._ticket("tickets.note_write", {"id": tid, "text": ""}).get("code"), "empty_text")
+        self.assertEqual(self._ticket("tickets.note_write", {"id": tid, "text": {}}).get("code"), "bad_input")
+
+    def test_ticket_split_guards(self):
+        """children 非列表/元素非对象/上限非整数/force 非布尔都必须 400。"""
+        self.assertEqual(self._ticket("tickets.split", {"id": "T-none", "children": "x"}).get("code"), "bad_input")
+        self.assertEqual(self._ticket("tickets.split", {"id": "T-none", "children": ["x"]}).get("code"), "bad_input")
+        self.assertEqual(self._ticket("tickets.split", {"id": "T-none", "children": [],
+                                                         "max_children": "8"}).get("code"), "bad_input")
+        self.assertEqual(self._ticket("tickets.split", {"id": "T-none", "children": [],
+                                                         "force": "yes"}).get("code"), "bad_input")
+
+    def test_ticket_rebind_guards(self):
+        """from/to 必须非空字符串且不相同，避免把 project 写成对象或原地打转。"""
+        for payload in ({"from": "", "to": "p2"}, {"from": "p1", "to": []},
+                        {"from": "p1", "to": "p1"}):
+            self.assertEqual(self._ticket("tickets.rebind", payload).get("code"), "bad_input")
+
+    def test_ticket_create_and_close_guards(self):
+        """建单缺项目/结单缺单都必须结构化拒绝。"""
+        out = self._ticket("tickets.create", {"title": "x"})
+        self.assertEqual(out.get("code"), "missing_project")
+        out = self._ticket("tickets.close", {"id": "T-none"})
+        self.assertEqual(out.get("code"), "not_found")
+
     # ---- 路径穿越：每条一个断言 + 明确错误码 ----
 
     def test_dotdot_traversal_rejected(self):

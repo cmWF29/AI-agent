@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_api_e2e.py
-hash: b643fbdc5f6151e0ff2b35b5e033434443894b8c41b4143eca29aac480181afe
+hash: 217f9ea83a0c58ca94195f6e6313d5645ba785c1fa18275477419a5b76345986
 symbols:
 - req
 - must
@@ -24,6 +24,17 @@ symbols:
 - scenario_role_session
 - scenario_cloud_profile
 - scenario_boundary
+- scenario_project_create_list
+- scenario_ticket_split_guard
+- scenario_ticket_close_cascade
+- scenario_knowledge_version_guard
+- scenario_auth_reject
+- scenario_knowledge_append_scope
+- scenario_project_conflict
+- scenario_timer_guards
+- scenario_session_guards
+- scenario_ticket_send_guards
+- scenario_http_boundary
 - main
 generated: gen_docs.py v1
 updated_at: '2026-11-25T12:16:01'
@@ -168,6 +179,72 @@ HTTP 黑盒业务 E2E：真服务、真 RPC、真并发，不走进程内装配�
 
 ### `scenario_boundary`（function）
 - 职责: 真实 HTTP 边界：未知需求、超长 id、坏 payload 不得 500。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_project_create_list`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_ticket_split_guard`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_ticket_close_cascade`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_knowledge_version_guard`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_auth_reject`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_knowledge_append_scope`（function）
+- 职责: append 模式保留旧正文；public 与 project 层同名字互不串档。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_project_conflict`（function）
+- 职责: 同名建项目/改名撞名都必须拒绝；换新名后成功。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_timer_guards`（function）
+- 职责: 坏 cron / 未知定时器都必须结构化拒绝，不落脏记录。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_session_guards`（function）
+- 职责: 未知角色/空正文/未知会话都必须拒绝；销毁后再次销毁是幂等终态。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_ticket_send_guards`（function）
+- 职责: 缺单/空正文先被守卫拦住；真实单据空正文 400，结单后只读。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_http_boundary`（function）
+- 职责: HTTP 壳层：方法/路径/坏正文/静态 304 都必须按协议回，不落 500。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

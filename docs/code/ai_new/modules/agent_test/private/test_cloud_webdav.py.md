@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_webdav.py
-hash: 4d108e904c95257d33fe75f53af6c5952c8dfd2124b92f0c8796eee9ca532763
+hash: 1c7899b4fe465fd42563390d190dad04c56f8910685752582579ae7674002db0
 symbols:
 - __init__
 - write
@@ -35,6 +35,7 @@ symbols:
 - test_custom_ca_trust_chain
 - test_probe_reports_availability
 - test_sync_idempotent_when_available
+- test_windows_shutil_fallback_local_tree
 generated: gen_docs.py v1
 updated_at: '2026-11-23T13:04:30'
 ---
@@ -244,6 +245,12 @@ WebDAV / rsync 通道验收：本地 HTTP stub 真按协议语义响应，不连
 
 ### `test_sync_idempotent_when_available`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_windows_shutil_fallback_local_tree`（method）
+- 职责: 无 rsync 的 Windows：同接口本地树同步，含尾斜杠、覆盖与 --delete。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

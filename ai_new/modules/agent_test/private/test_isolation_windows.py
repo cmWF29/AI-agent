@@ -224,7 +224,6 @@ class RouteRegistrationTest(unittest.TestCase):
         self.assertTrue(out["ok"])
 
 
-@unittest.skipUnless(not POSIX, "msvcrt 跨进程锁档仅 Windows 真机验证")
 class WindowsPlatLockTest(unittest.TestCase):
     """Windows msvcrt.locking 跨进程争用：后到者限时等待/超时释放，异常路径不留句柄。"""
 
@@ -248,10 +247,12 @@ class WindowsPlatLockTest(unittest.TestCase):
             cwd=str(REPO_ROOT), env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    def test_capability_reports_msvcrt(self):
+    def test_capability_reports_platform_lock(self):
         from ai_new.modules.agent_common.plat.private import _lock
         cap = _lock.lock_capability()
-        self.assertEqual(cap["cross_process"]["mechanism"], "msvcrt.locking")
+        expected = "msvcrt.locking" if not POSIX else "fcntl.flock"
+        self.assertEqual(cap["cross_process"]["mechanism"], expected)
+        self.assertTrue(cap["cross_process"]["verified"])
 
     def test_contended_lock_times_out_then_releases(self):
         from ai_new.modules.agent_common.plat.private import _lock
@@ -285,7 +286,6 @@ class WindowsPlatLockTest(unittest.TestCase):
         lock.release()
 
 
-@unittest.skipUnless(not POSIX, "loopback TCP 回退通道仅 Windows 真机验证")
 class WindowsTcpTransportTest(unittest.TestCase):
     """loopback TCP 传输往返：小服务 + 一条请求 + 关闭，侧车端口文件清理。"""
 
@@ -315,15 +315,16 @@ class WindowsTcpTransportTest(unittest.TestCase):
             server.stop()
 
 
-@unittest.skipUnless(not POSIX, "multiprocessing.shared_memory 档仅 Windows 真机验证")
 class WindowsShmSharedMemoryTest(unittest.TestCase):
     """shm 信箱 Windows 替代：shared_memory 块读写一致。"""
 
     def test_shared_memory_block_roundtrip(self):
         from multiprocessing import shared_memory
         payload = b"ai_new-shm-consistency-0123456789"
-        shm = shared_memory.SharedMemory(create=True, size=len(payload),
-                                         name="ai_new_probe")
+        import uuid
+        shm = shared_memory.SharedMemory(
+            create=True, size=len(payload),
+            name="ai_new_probe_" + uuid.uuid4().hex[:10])
         try:
             shm.buf[:len(payload)] = payload
             self.assertEqual(bytes(shm.buf[:len(payload)]), payload)
@@ -332,5 +333,58 @@ class WindowsShmSharedMemoryTest(unittest.TestCase):
             shm.unlink()
 
 
+
+class WinJobParityTest(unittest.TestCase):
+    """强隔离在接口层归一：Linux=bwrap，Windows=Job Object，槽位与判定形状一致。
+
+    Linux 上断言显式降级码；Windows 真机断言短进程 assign/kill-on-close 真跑通。
+    """
+
+    def test_job_probe_shape_and_platform_expectation(self):
+        from ai_new.modules.agent_common.plat.private import _winjob
+        probe = _winjob.probe()
+        self.assertEqual(probe["engine"], "job-object")
+        self.assertEqual(probe["supported"], not POSIX)
+        if POSIX:
+            self.assertEqual(probe["code"], "unsupported_platform")
+            self.assertFalse(probe["verified"])
+        else:
+            self.assertTrue(probe["verified"], probe)
+            self.assertEqual(probe["code"], "")
+
+    def test_capability_strong_slot_is_normalized(self):
+        from ai_new.modules.agent_common.store.private import _isolate
+        cap = _isolate.capabilities()
+        self.assertIn(cap["os"], ("posix", "nt"))
+        strong = cap["strong"]
+        self.assertIn("supported", strong)
+        self.assertIn("verified", strong)
+        if POSIX:
+            from ai_new.modules.agent_common.store.private import _isolate
+            self.assertEqual(strong["tier"], "bwrap-mount-namespace")
+            self.assertEqual(strong["supported"], bool(__import__("shutil").which("bwrap")))
+            self.assertEqual(strong["verified"], _isolate._bwrap_ready())
+        else:
+            self.assertEqual(strong["tier"], "job-object-process-tree")
+            self.assertTrue(strong["verified"], strong)
+
+    def test_job_object_lifecycle_interface(self):
+        """同一接口在两端都可调用：POSIX 显式 no-op，Windows 真 assign + close 收树。"""
+        import subprocess
+        from ai_new.modules.agent_common.plat.private import _winjob
+        with _winjob.Job(active_processes=8) as job:
+            self.assertEqual(job.supported, not POSIX)
+            if POSIX:
+                self.assertFalse(job.assign(0))
+                return
+            proc = subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(30)"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                self.assertTrue(job.assign(proc.pid))
+            finally:
+                job.close()
+                proc.wait(timeout=10)
+            self.assertIsNotNone(proc.returncode)
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_e2e.py
-hash: 84a1a0e5059df5b0a3935e1ae78e84b88ca19d3c027d81c80bad0fec8b04d2fc
+hash: 706a8d7cdc012f3b8399f54f0aca373eac7d8c2b14c910e671c555f14af13c65
 symbols:
 - new_page
 - open_projects
@@ -19,6 +19,7 @@ symbols:
 - scenario_project
 - scenario_ticket
 - scenario_ticket_multi
+- scenario_archive_guard
 - main
 generated: gen_docs.py v1
 updated_at: '2026-11-24T12:48:33'
@@ -133,6 +134,12 @@ updated_at: '2026-11-24T12:48:33'
 
 ### `scenario_ticket_multi`（function）
 - 职责: 同一工单连续两轮追问：每轮都要重新回到 idle 并产生新回复。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_archive_guard`（function）
+- 职责: 归档后的项目：新建工单入口必须不可用，不能靠前端灰按钮后仍能点开弹窗。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

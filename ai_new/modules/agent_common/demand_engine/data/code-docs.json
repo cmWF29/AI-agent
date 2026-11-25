@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-25T15:14:16",
-  "total": 527,
+  "generated": "2026-11-25T17:13:48",
+  "total": 530,
   "groups": [
     {
       "label": "agent",
@@ -272,8 +272,8 @@
           "doc": "docs/code/ai_new/modules/agent/cloud/private/_rsync.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "f948c83f8a6a2e91bd299a65418a46b7d4bc00b41a81b50fac207953eb0232a8",
-          "symbols": 4,
+          "hash": "400cbafdcb00ce5620e5711a9910aa25725e3939bda417018af1451029bcaa15",
+          "symbols": 7,
           "updated_at": "2026-11-23T13:04:23"
         },
         {
@@ -632,7 +632,7 @@
           "doc": "docs/code/ai_new/modules/agent/projects/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "82c71174a493c8229302648de611d81ca7768f4eda8078bad310d89fb8fc32c0",
+          "hash": "b97d7190fe1de2489f767e2e61f2efac97ccbd0f1a3979e77a7a868550ae198d",
           "symbols": 17,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -1081,7 +1081,7 @@
     },
     {
       "label": "agent_common",
-      "count": 318,
+      "count": 319,
       "docs": [
         {
           "source": "ai_new/modules/agent_common/api/__init__.py",
@@ -3374,7 +3374,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/exec/private/_runner.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "c7bbbaa3bfd369b9a5303d59c534ce15e53d945f87c248d2ea621e9d6db2ed35",
+          "hash": "8a9981cbe1d926368b63264066f6559dd01443fcaefc0437364449a426306169",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3644,7 +3644,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/plat/private/_lock.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "bc5bcb1567f393ef7c23278cb46dc268e3b2fb238017becdf5c1620f5ecab416",
+          "hash": "92fd8c2957b968d8ff08b33b3c67533707ec68d3e3d16995e67abce88e2ea208",
           "symbols": 13,
           "updated_at": "2026-11-23T13:04:29"
         },
@@ -3653,8 +3653,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/plat/private/_net.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "85acd7d6c72618c60271fc2179b33ef268a7f3e12541c0fbbfead411278b5834",
-          "symbols": 8,
+          "hash": "5f757e547c39e856bce4becf381077a50afc8e1b2979da40128f406b43710b14",
+          "symbols": 9,
           "updated_at": "2026-11-23T13:04:29"
         },
         {
@@ -3665,6 +3665,15 @@
           "hash": "5ec4ca8e5fe83bfaa3c07fd4d92541a6326d62191eea6b9ef745fa23ee2b04a6",
           "symbols": 3,
           "updated_at": "2026-11-23T13:04:29"
+        },
+        {
+          "source": "ai_new/modules/agent_common/plat/private/_winjob.py",
+          "doc": "docs/code/ai_new/modules/agent_common/plat/private/_winjob.py.md",
+          "kind": "py",
+          "group": "agent_common",
+          "hash": "f9044757daee0b043b98fe60c4ffa008baf05af49d1b193c353081e657d6e098",
+          "symbols": 10,
+          "updated_at": "2026-11-25T16:32:50"
         },
         {
           "source": "ai_new/modules/agent_common/react/__init__.py",
@@ -3824,7 +3833,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_isolate.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "5509e383488bfc1be83797e17e3e73087d4ac314c357e1ff3e8dbfab042a4cb0",
+          "hash": "ace68fc94b5d97bb14a033f002f674c9f375053cbe5e4670d982ab4a69861ac7",
           "symbols": 12,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3851,7 +3860,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_xlock.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "5d2786b4e02ac8225661de30170cf60c8cfc411f80b46834887b7007cfa301b0",
+          "hash": "0d0d3767b0db346ee27e9b11d0bab3e98bd5da76c54b570c94db0488bd3d63d6",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3949,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 42,
+      "count": 43,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4001,8 +4010,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_api.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "b534406f9f055697829002ce90cb622606d207d125d9ab5e95cd619569314b1e",
-          "symbols": 31,
+          "hash": "2c6d4ffd7dc73ae8f772bd25350dd41a573c333af89419802a719462ea8797bd",
+          "symbols": 37,
           "updated_at": "2026-11-23T09:45:09"
         },
         {
@@ -4022,6 +4031,15 @@
           "hash": "9d1a7842085c36b348611d76c4b7215d54502b272fadbfca0e9ff26c74899e75",
           "symbols": 36,
           "updated_at": "2026-11-23T04:10:22"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_asr.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_asr.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "88f2d1e5872fa999ce6ebbbc198f7115d119776e5e35309bd9d172bd8d3b9856",
+          "symbols": 22,
+          "updated_at": "2026-11-25T17:05:17"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_boot_graph.py",
@@ -4055,7 +4073,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_cloud_s3.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "783b4cc42199febd0fe5c45153000ad9b6119bfd5a0d2b4929dfffdc422d3b18",
+          "hash": "1454991f92b922da8686e379463fa64723a119d5a650aa7e25606a9e2c4786a6",
           "symbols": 35,
           "updated_at": "2026-11-23T13:04:30"
         },
@@ -4082,8 +4100,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_cloud_webdav.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "4d108e904c95257d33fe75f53af6c5952c8dfd2124b92f0c8796eee9ca532763",
-          "symbols": 33,
+          "hash": "1c7899b4fe465fd42563390d190dad04c56f8910685752582579ae7674002db0",
+          "symbols": 34,
           "updated_at": "2026-11-23T13:04:30"
         },
         {
@@ -4091,8 +4109,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_core.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "f95084d5e070428473f9d7f4c0f08884ee2642360dbb964abc8f7f030eab7b2a",
-          "symbols": 150,
+          "hash": "095a37e87553319b6237b670c0d76cbd881f4316ca82cbb53b36dced785e48e2",
+          "symbols": 155,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -4181,7 +4199,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_isolation.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "dee8b701b1d7db9bd8427cb85007bc3636036a2d241fcc2b340c61905ec023ee",
+          "hash": "5ce449aa1f8fcee1be8d8f38a3a31b86149998a9f5a21438e1f4468b08995f37",
           "symbols": 18,
           "updated_at": "2026-11-23T04:10:23"
         },
@@ -4190,8 +4208,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_isolation_tiers.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "8a3e0032717eae6f6acaa5803c13632c9a3067c2f8acc8517f45485c2365bac3",
-          "symbols": 11,
+          "hash": "7d157909406f5d553dce8137b8d30ff6bce1a9ecd411525ff9c4e95430b50a39",
+          "symbols": 10,
           "updated_at": "2026-11-23T04:10:23"
         },
         {
@@ -4199,8 +4217,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_isolation_windows.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "04ca8be4b051193ecc9e47f2d4d615f7b4a53cefb6ab6139c0706f4592776b50",
-          "symbols": 37,
+          "hash": "bd91ae624bc90954f29d123a6baccc7c023b0e0455c735a57072f40c74ad6f5e",
+          "symbols": 40,
           "updated_at": "2026-11-23T09:13:18"
         },
         {
@@ -4244,8 +4262,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_plat.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "ea828e66249845d39dcba2565e0d5fad204cdaa7b7d97f2a79af2d673501481f",
-          "symbols": 24,
+          "hash": "d564efc3ea34397d29ede06b337185d756be4cab0778dc60f56ec1291e4c7a74",
+          "symbols": 25,
           "updated_at": "2026-11-23T13:04:31"
         },
         {
@@ -4333,7 +4351,7 @@
     },
     {
       "label": "scripts",
-      "count": 48,
+      "count": 49,
       "docs": [
         {
           "source": "scripts/audit_click_machine.py",
@@ -4700,8 +4718,8 @@
           "doc": "docs/code/scripts/verify_api_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "b643fbdc5f6151e0ff2b35b5e033434443894b8c41b4143eca29aac480181afe",
-          "symbols": 23,
+          "hash": "217f9ea83a0c58ca94195f6e6313d5645ba785c1fa18275477419a5b76345986",
+          "symbols": 34,
           "updated_at": "2026-11-25T12:16:01"
         },
         {
@@ -4718,8 +4736,8 @@
           "doc": "docs/code/scripts/verify_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "84a1a0e5059df5b0a3935e1ae78e84b88ca19d3c027d81c80bad0fec8b04d2fc",
-          "symbols": 18,
+          "hash": "706a8d7cdc012f3b8399f54f0aca373eac7d8c2b14c910e671c555f14af13c65",
+          "symbols": 19,
           "updated_at": "2026-11-24T12:48:33"
         },
         {
@@ -4748,6 +4766,15 @@
           "hash": "bf3b2ff5ce6b898d7fe04f1f7a8884c0774675956e41564f551c946284602286",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "scripts/verify_visual.py",
+          "doc": "docs/code/scripts/verify_visual.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "9323ee65a4e8c2b1295709c482e774cbbb9ec49d2713c8c11e2354f2289cfdd0",
+          "symbols": 4,
+          "updated_at": "2026-11-25T17:05:19"
         },
         {
           "source": "scripts/webdav_stub.py",

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_s3.py
-hash: 783b4cc42199febd0fe5c45153000ad9b6119bfd5a0d2b4929dfffdc422d3b18
+hash: 1454991f92b922da8686e379463fa64723a119d5a650aa7e25606a9e2c4786a6
 symbols:
 - _make_ctx
 - _loopback_transport

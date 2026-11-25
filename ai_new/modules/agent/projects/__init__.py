@@ -72,12 +72,16 @@ def setup(ctx):
 
 
 def _route_create(ctx, payload):
+    name = str(payload.get("name") or "").strip()
+    if not name:
+        return {"ok": False, "code": "missing_name", "status": 400,
+                "error": "项目名不能为空"}
     paths = _cfg_paths(ctx)
-    pid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
+    pid = ctx.api.call("store.id", {"value": name}, caller=None)
     root = _project_root(ctx, pid.get("id"), payload.get("root"))
     now = ctx.api.call("clock.now", {}, caller=None)
     rec = ctx.api.call("projects.build", {
-        "id": pid.get("id"), "name": payload.get("name"),
+        "id": pid.get("id"), "name": name,
         "root": root,
         "created": now.get("ts")}, caller=None)
     ex = ctx.api.call("store.exists", {"module": "agent/projects",

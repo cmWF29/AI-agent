@@ -1,7 +1,7 @@
 """plat 平台适配层靶向单测：锁互斥/重入、传输档位与回退、进程信号能力上报。
 
-POSIX 专属行为（flock 跨句柄互斥、fork 能力、SIGTERM 处理器）用 skipUnless /
-skipTest 标注；结构形状与降级断言在 POSIX 主机与 Windows 真机上跑同一批。
+平台差异只在能力判定内部消化；用例一律打 ``plat`` 公共接口，同一批断言在
+Linux 与 Windows 真机都跑，不因 OS 名 skip。
 """
 from __future__ import annotations
 
@@ -21,6 +21,34 @@ POSIX = os.name != "nt"
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
+def _wait_path(path, timeout=10.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if os.path.exists(path):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def _spawn_lock_child(path, ready, hold=30.0, done=""):
+    """子进程持锁；所有 OS 都走 plat 公共接口。"""
+    child_code = (
+        "import sys,time;"
+        "from ai_new.modules.agent_common.plat.private import _lock;"
+        "l=_lock.lock_file(sys.argv[1]);l.acquire();"
+        "open(sys.argv[2],'w').write('ready');"
+        "time.sleep(float(sys.argv[3]));"
+        "open(sys.argv[4],'w').write('done') if len(sys.argv)>4 and sys.argv[4] else None;"
+        "l.release()"
+    )
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(REPO_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
+    return subprocess.Popen(
+        [sys.executable, "-c", child_code, path, ready, str(hold), done],
+        cwd=str(REPO_ROOT), env=env,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 class CapabilityTest(unittest.TestCase):
     def test_lock_capability_shape(self):
         cap = _lock.lock_capability()
@@ -38,15 +66,14 @@ class CapabilityTest(unittest.TestCase):
         self.assertTrue(tr["ok"])
         self.assertTrue(tr["tcp_loopback"])
         self.assertIn(tr["transport"], ("unix_socket", "tcp_loopback"))
-        self.assertIs(tr["unix_socket"], POSIX)
+        self.assertEqual(tr["unix_socket"], _net.supports_unix_socket())
 
     def test_proc_capability_shape(self):
         pr = _proc.proc_capability()
         self.assertTrue(pr["ok"])
         self.assertIn("fork", pr)
         self.assertIn("stop_signals", pr)
-        self.assertEqual(_proc.supports_fork(), POSIX)
-        self.assertEqual(pr["fork"]["supported"], POSIX)
+        self.assertEqual(pr["fork"]["supported"], _proc.supports_fork())
         if not POSIX:
             self.assertEqual(pr["fork"]["code"], "unsupported_platform")
 
@@ -86,50 +113,40 @@ class LockFileTest(unittest.TestCase):
             except OSError:
                 pass
 
-    @unittest.skipUnless(POSIX, "flock 跨句柄互斥仅 POSIX 验证")
-    def test_mutual_exclusion_between_handles(self):
-        import fcntl
-        first = _lock.lock_file(self.path)
-        first.acquire()
-        fh2 = open(self.path, "a+b")  # noqa: SIM115
+    def test_mutual_exclusion_between_processes(self):
+        # 第二把锁在子进程里抢；同一进程会先命中重入守卫，跨进程才验证 OS 原语。
+        ready = str(Path(self.tmp) / "child-ready")
+        child = _spawn_lock_child(self.path, ready)
         try:
-            with self.assertRaises(BlockingIOError):
-                fcntl.flock(fh2.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.assertTrue(_wait_path(ready), "子进程未拿到锁")
+            waiter = _lock.lock_file(self.path, timeout=0.8)
+            with self.assertRaises(_lock.LockError) as caught:
+                waiter.acquire()
+            self.assertEqual(caught.exception.code, "lock_timeout")
+            waiter.release()
         finally:
-            first.release()
-        fcntl.flock(fh2.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fcntl.flock(fh2.fileno(), fcntl.LOCK_UN)
-        fh2.close()
+            child.terminate()
+            child.wait(timeout=5)
 
-    @unittest.skipUnless(POSIX, "POSIX 阻塞语义仅本机验证")
-    def test_blocking_acquire_waits_other_handle_release(self):
-        import fcntl
-        import threading
-        first = _lock.lock_file(self.path)
-        first.acquire()
-        acquired = []
-
-        def waiter():
-            lock = _lock.lock_file(self.path)
-            lock.acquire()
-            acquired.append(True)
-            lock.release()
-
-        t = threading.Thread(target=waiter)
-        t.start()
-        self.assertFalse(acquired, "持锁期间等待线程不该拿到锁")
-        first.release()
-        t.join(timeout=5)
-        self.assertTrue(acquired, "释放后等待线程应拿到锁")
+    def test_waiter_acquires_after_other_process_release(self):
+        ready = str(Path(self.tmp) / "child-ready-2")
+        done = str(Path(self.tmp) / "child-done")
+        child = _spawn_lock_child(self.path, ready, hold=1.0, done=done)
+        try:
+            self.assertTrue(_wait_path(ready))
+            waiter = _lock.lock_file(self.path, timeout=5.0)
+            waiter.acquire()
+            waiter.release()
+            self.assertTrue(_wait_path(done))
+        finally:
+            child.wait(timeout=10)
 
 
 class NetTransportTest(unittest.TestCase):
-    def test_unix_socket_capability_matches_os(self):
-        self.assertEqual(_net.supports_unix_socket(), POSIX)
-        if POSIX:
-            self.assertEqual(_net.default_transport(), "unix_socket")
-        else:
-            self.assertEqual(_net.default_transport(), "tcp_loopback")
+    def test_unix_socket_capability_matches_probe(self):
+        supported = _net.supports_unix_socket()
+        self.assertEqual(_net.default_transport(),
+                         "unix_socket" if supported else "tcp_loopback")
 
     def test_loopback_listen_connect_roundtrip(self):
         srv, host, port = _net.loopback_listen()
@@ -156,21 +173,17 @@ class NetTransportTest(unittest.TestCase):
 
 
 class ProcSignalTest(unittest.TestCase):
-    @unittest.skipUnless(POSIX, "POSIX 注册 SIGINT/SIGTERM")
-    def test_install_stop_handler_posix(self):
-        def handler(signum, frame):
-            pass
-
-        out = _proc.install_stop_handler(handler)
-        self.assertTrue(out["ok"])
-        self.assertEqual(set(out["installed"]), {"SIGINT", "SIGTERM"})
-        self.assertEqual(out["unsupported"], [])
-
-    @unittest.skipUnless(not POSIX, "Windows 只注册 SIGINT")
-    def test_install_stop_handler_windows(self):
+    def test_install_stop_handler_contract(self):
         out = _proc.install_stop_handler(lambda *a: None)
+        self.assertTrue(out["ok"])
         self.assertIn("SIGINT", out["installed"])
-        self.assertIn("SIGTERM", out["unsupported"])
+        # POSIX 两路信号都可注册；Windows 的 SIGTERM 由 TerminateProcess 直达，
+        # 接口层显式归到 unsupported，调用方不再按 OS 名分支。
+        if POSIX:
+            self.assertEqual(set(out["installed"]), {"SIGINT", "SIGTERM"})
+            self.assertEqual(out["unsupported"], [])
+        else:
+            self.assertIn("SIGTERM", out["unsupported"])
 
 
 class CrossProcessLockTest(unittest.TestCase):
@@ -253,15 +266,17 @@ class SidecarTcpTest(unittest.TestCase):
         finally:
             srv.close()
 
-    @unittest.skipUnless(not POSIX, "unix→loopback TCP 侧车回退仅 Windows 真机验证")
     def test_unix_tcp_fallback_sidecar_cleaned_on_stop(self):
+        # 通过能力注入强制走回退分支：任何 OS 都能验证同一接口的 sidecar 生命周期。
         from ai_new.modules.agent_common.api.private import _serve
+        from unittest import mock
 
         with tempfile.TemporaryDirectory() as tmp:
             sock_path = str(Path(tmp) / "api.sock")
             sidecar = _net.addr_file_for(sock_path)
             server = _serve.Server(_minimal_ctx())
-            server.start({"unix": {"path": sock_path}}, {"unix"})
+            with mock.patch.object(_net, "supports_unix_socket", return_value=False):
+                server.start({"unix": {"path": sock_path}}, {"unix"})
             try:
                 self.assertTrue(Path(sidecar).is_file(), "侧车端口文件未写出")
                 host, port = _net.read_addr_file(sidecar)

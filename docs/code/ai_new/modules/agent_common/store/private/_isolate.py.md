@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_isolate.py
-hash: 5509e383488bfc1be83797e17e3e73087d4ac314c357e1ff3e8dbfab042a4cb0
+hash: ace68fc94b5d97bb14a033f002f674c9f375053cbe5e4670d982ab4a69861ac7
 symbols:
 - _real
 - _is_within
@@ -90,7 +90,7 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `_sandbox_info`（function）
-- 职责: 给执行层的强档挂载描述。
+- 职责: 给执行层的强档描述：Linux=bwrap mount，Windows=Job Object。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
