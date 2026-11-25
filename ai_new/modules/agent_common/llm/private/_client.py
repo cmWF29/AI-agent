@@ -120,7 +120,9 @@ def decode_sse(items):
             if not isinstance(delta["content"], str):
                 return {"ok": False, "error": "content 不是字符串", "code": "llm_bad_payload"}
             content.append(delta["content"])
-        calls = delta.get("tool_calls") or []
+        calls = delta.get("tool_calls")
+        if calls is None:
+            calls = []
         if not isinstance(calls, (list, tuple)):
             return {"ok": False, "error": "tool_calls 不是列表", "code": "llm_bad_payload"}
         for tc in calls:
@@ -133,18 +135,21 @@ def decode_sse(items):
                 return {"ok": False, "error": "tool_call index 不合法",
                         "code": "llm_bad_payload"}
             part = tool_parts.setdefault(idx, {"id": tc.get("id") or "", "name": "", "args": ""})
-            fn = tc.get("function") or {}
+            fn = tc.get("function")
+            if fn is None:
+                fn = {}
             if not isinstance(fn, dict):
                 return {"ok": False, "error": "function 不是对象", "code": "llm_bad_payload"}
             if tc.get("id"):
                 part["id"] = tc["id"]
             if fn.get("name"):
                 part["name"] = fn["name"]
-            if fn.get("arguments"):
-                if not isinstance(fn["arguments"], str):
+            args = fn.get("arguments")
+            if args is not None:
+                if not isinstance(args, str):
                     return {"ok": False, "error": "tool arguments 不是字符串",
                             "code": "llm_bad_payload"}
-                part["args"] += fn["arguments"]
+                part["args"] += args
     tool_calls = []
     for part in tool_parts.values():
         if part["name"]:

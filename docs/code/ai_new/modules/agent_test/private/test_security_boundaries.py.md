@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_security_boundaries.py
-hash: 33a4c80fa36f52277e62b738d48c38d437942a67ce60ce893168f91f8e87ac89
+hash: d0940650be834816ac57afc8943f3cdb620efcb050fe657685e3fc9d38ed90a6
 symbols:
 - test_valid_token_rejects_path_fragments
 - test_credentials_fail_closed_on_empty_hash

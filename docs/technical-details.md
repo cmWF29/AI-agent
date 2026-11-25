@@ -181,7 +181,7 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 - 鉴权：非法令牌不进入路径拼接；会话过期/缺过期字段直接拒绝；摘要空值不放行；登录 ttl 非正回落 86400，不发“出生即过期”的会话；改密要求期望摘要与旧摘要都非空且常量时间相等；登录失败按 peer/组合键节流，锁定期内不比对口令，台账不可写按 503 拒绝。
 - 编解码：摘要算法走固定 allowlist（`md5/sha1/sha224/sha256/sha384/sha512/blake2b/blake2s`），未知算法返回 `bad_algorithm`，不把 `pbkdf2_hmac`/`scrypt` 等高开销函数当摘要调用；随机串长度硬边界 8..4096；`decode_hex` 的负上限被夹到 0；WAV 非 bytes/截断、JSON/SSE 错形、十六进制坏输入都返回结构化错误，不抛 `TypeError`/`EOFError`。
-- LLM：`encode` 拒绝非对象消息、非列表 tools、非数值或 NaN/Infinity temperature；`decode` 与 `decode_sse` 逐层校验 `choices`/`message`/`delta`/`tool_calls`/`function.arguments`/`index` 形状，坏报文返回 `llm_bad_payload`，合法分片仍合并。
+- LLM：`encode` 拒绝非对象消息、非列表 tools、非数值或 NaN/Infinity temperature；`decode` 与 `decode_sse` 逐层校验 `choices`/`message`/`delta`/`tool_calls`/`function`/`arguments`/`index` 形状，显式空对象、非列表、非字符串一律返回 `llm_bad_payload`，不用 `or {}` 把坏形状吞成缺省，合法分片仍合并。
 - 工单：`project/title/goal/kind/parent/task/meta/pm_max_steps/auto_retrospective`、拆单 `children/max_children/force`、消息 `text`、改挂 `from/to` 在进入档案前校验类型与长度；拆单上限只在显式 `force=true` 时绕过，缺省不再等于强制。
 - 沙箱：bwrap 的 cwd 与 bind 目的地按 POSIX 归一化并拒绝 `..`，bind 源先校验在项目根内再创建目录；
 - ASR：分块采样点数必须为正整数，配置缺失/为 0 返回 `bad_chunk_config`，不允许进入不前进的循环；

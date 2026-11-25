@@ -219,7 +219,7 @@ modules/agent_test/data/               checks.yaml（验收清单）
 - 质量分五层：L0 静态门禁、L1 单元、L2 契约、L3 真实浏览器 E2E、L4 韧性；口径见
   [docs/testing-layers.md](docs/testing-layers.md)，前端规则见 [docs/frontend-rules.md](docs/frontend-rules.md)。
 - `scripts/gate_frontend.py` 检查界面信息预算（卡片字段上限、说明长度、品牌无渐变），
-  `scripts/gate_coverage.py` 按行 ≥80.0%/分支 ≥67.0%/关键机制模块 80·65 检查覆盖率（本轮实测 80.8%/68.2%），`scripts/gate_diff_coverage.py`
+  `scripts/gate_coverage.py` 按行 ≥80.0%/分支 ≥67.0%/关键机制模块 80·65 检查覆盖率（本轮实测 81.0%/68.6%），`scripts/gate_diff_coverage.py`
   对 base..HEAD 新增产品代码行强制 ≥90%，`scripts/verify_controls.py`
   在真实浏览器逐页点击安全控件并核对状态；`scripts/resilience_drill.py` 用真实子进程
   SIGKILL 和真实文件锁台账跑 L4 韧性（kill -9、6 进程并发、租约 sweep、恢复不双跑）。

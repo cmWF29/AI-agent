@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T10:14:28",
+  "generated": "2026-11-25T11:12:04",
   "total": 522,
   "groups": [
     {
@@ -3545,7 +3545,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/llm/private/_client.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "abcfbb46676309936c23ba91b28578e47fc7ea51dfb1fed397f453612b25b92b",
+          "hash": "91dfe95c0c1e1c71eea1e59308045ed4a086e1f2f66438d544906ebeeb283be8",
           "symbols": 6,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4271,7 +4271,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_security_boundaries.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "33a4c80fa36f52277e62b738d48c38d437942a67ce60ce893168f91f8e87ac89",
+          "hash": "d0940650be834816ac57afc8943f3cdb620efcb050fe657685e3fc9d38ed90a6",
           "symbols": 41,
           "updated_at": "2026-11-25T04:59:31"
         },

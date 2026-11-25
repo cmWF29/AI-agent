@@ -269,6 +269,9 @@ class CodecBoundaryTest(unittest.TestCase):
         self.assertFalse(_codec.nonce("bad")["ok"])
 
     def test_decode_hex_clamps_negative_limit_and_marks_binary(self):
+        full = _codec.decode_hex("6869")
+        self.assertEqual(full["text"], "hi")
+        self.assertFalse(full["truncated"])
         out = _codec.decode_hex("00ff", max_bytes=-1)
         self.assertEqual(out["text"], "")
         self.assertFalse(out["truncated"])
@@ -324,6 +327,7 @@ class LlmBoundaryTest(unittest.TestCase):
             self.assertFalse(out["ok"], payload)
             self.assertEqual(out["code"], "llm_bad_payload")
         self.assertEqual(llm_client.decode([1])["code"], "llm_bad_payload")
+        self.assertEqual(llm_client.decode({"choices": [{"message": None}]})["content"], "")
         self.assertEqual(llm_client.decode({"error": {"code": "x"}})["code"], "llm_error")
         ok = llm_client.decode({"choices": [{"message": {"content": "你好"},
                                              "finish_reason": "stop"}], "usage": {"t": 1}})
@@ -344,7 +348,17 @@ class LlmBoundaryTest(unittest.TestCase):
         self.assertTrue(out["ok"])
         self.assertEqual(out["content"], "你好")
         self.assertEqual(out["tool_calls"][0]["function"]["arguments"], '{"a":1}')
-        for items in ([1], [{"choices": {"0": {}}}], [{"choices": [{"delta": []}]}]):
+        self.assertEqual(llm_client.decode_sse({"x": 1})["code"], "llm_bad_payload")
+        self.assertEqual(llm_client.decode_sse([{"x": 1}])["ok"], True)
+        self.assertEqual(llm_client.decode_sse([{"choices": [{"delta": None}]}])["ok"], True)
+        for items in ([1], [{"choices": {"0": {}}}], [{"choices": [{"delta": []}]}],
+                      [{"choices": [{"delta": {"content": 5}}]}],
+                      [{"choices": [{"delta": {"tool_calls": {}}}]}],
+                      [{"choices": [{"delta": {"tool_calls": [1]}}]}],
+                      [{"choices": [{"delta": {"tool_calls": [{"index": []}]}}]}],
+                      [{"choices": [{"delta": {"tool_calls": [{"index": 0, "function": []}]}}]}],
+                      [{"choices": [{"delta": {"tool_calls": [
+                          {"index": 0, "function": {"name": "x", "arguments": {}}}]}}]}]):
             self.assertEqual(llm_client.decode_sse(items)["code"], "llm_bad_payload")
 
     def test_wire_masks_secret_headers(self):
@@ -412,6 +426,11 @@ class LoginThrottleBoundaryTest(unittest.TestCase):
                                          "now": now + 2, "cfg": cfg, "success": True})
         self.assertFalse(out["blocked"])
         self.assertEqual(out["entries"], {})
+        bad = auth_pure.throttle_update({"entries": {"ip:b": {"failures": "x", "first": "y"}},
+                                         "keys": ["ip:b"], "now": now, "cfg": cfg,
+                                         "success": False})
+        self.assertEqual(bad["entries"]["ip:b"]["failures"], 1)
+        self.assertEqual(bad["entries"]["ip:b"]["first"], now)
 
     def test_window_resets_and_malformed_entries_are_dropped(self):
         now = 1000.0
@@ -446,6 +465,13 @@ class LoginThrottleBoundaryTest(unittest.TestCase):
                                          "now": now, "cfg": cfg, "success": False})
         self.assertNotIn("old", out["entries"])
         self.assertEqual(len(out["entries"]), 2)
+        capped = auth_pure.throttle_update({"entries": {
+            "a": {"failures": 1, "first": now, "last": now, "lock_until": 0},
+            "b": {"failures": 1, "first": now, "last": now, "lock_until": 0},
+            "c": {"failures": 1, "first": now, "last": now, "lock_until": 0}},
+            "keys": ["a"], "now": now,
+            "cfg": dict(cfg, max_entries=1), "success": False})
+        self.assertEqual(len(capped["entries"]), 1)
 
 
 class TicketInputBoundaryTest(unittest.TestCase):
@@ -479,7 +505,11 @@ class TicketInputBoundaryTest(unittest.TestCase):
                                                      "max_children": 1, "force": False})["ok"])
 
     def test_validate_text_and_rebind_reject_wrong_types(self):
+        self.assertEqual(ticket_pure.validate_create({
+            "project": [], "tpl": {"bad_project_type": "{missing}"}})["error"],
+            "{missing}")
         self.assertEqual(ticket_pure.validate_text({"text": ["x"]})["code"], "bad_input")
+        self.assertEqual(ticket_pure.validate_text({"text": "ok"})["text"], "ok")
         self.assertEqual(ticket_pure.validate_text({"text": "x" * 20001})["code"], "bad_input")
         self.assertEqual(ticket_pure.validate_rebind({"from": [], "to": "b"})["code"],
                          "bad_input")
@@ -487,6 +517,7 @@ class TicketInputBoundaryTest(unittest.TestCase):
                          "bad_input")
         self.assertEqual(ticket_pure.validate_rebind({"from": "a", "to": ""})["code"],
                          "bad_input")
+        self.assertTrue(ticket_pure.validate_rebind({"from": "a", "to": "b"})["ok"])
 
     def test_slim_thread_survives_non_dict_messages(self):
         out = ticket_pure._slim_thread(["raw", {"role": "system", "content": "drop"},

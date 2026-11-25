@@ -77,7 +77,7 @@ cd ../../../..
 python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
 ```
 
-- 阈值在 `scripts/coverage.json`：整体行 ≥80.0%、分支 ≥67.0%（本轮实测 80.8% / 68.2%，全量 655 tests / 8 skipped），关键模块行 ≥80.0%、分支 ≥65.0%，改动行 ≥90.0%；
+- 阈值在 `scripts/coverage.json`：整体行 ≥80.0%、分支 ≥67.0%（本轮实测 81.0% / 68.6%，全量 655 tests / 8 skipped），关键模块行 ≥80.0%、分支 ≥65.0%，改动行 ≥90.0%；
 - 测试代码与前端静态资源不计入；
 - 没有数据文件直接红，不允许「没跑 coverage 但当作通过」；
 - 覆盖率不是目的：关键机制用例必须断言行为，不能只靠执行过一行代码。
