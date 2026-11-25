@@ -500,6 +500,10 @@ def _route_split(ctx, payload):
                                       "path": _ticket_path(ctx, payload.get("id"))}, caller=None)
     cur = row.get("value") or {}
     max_children = payload.get("max_children")
+    if max_children is None:
+        # 需求层会注入配置值；直接调用能力时也必须守住全局上限，不能绕开。
+        cfg = ctx.api.call("config.get", {"key": "tickets.max_children"}, caller=None)
+        max_children = cfg.get("value") if isinstance(cfg, dict) else None
     if max_children is not None and len(cur.get("children") or []) >= max_children \
             and payload.get("force") is not True:
         tpl_max = _msg_tpl(ctx).get("too_many_children") or ""
