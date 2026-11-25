@@ -35,12 +35,22 @@ PORT = 8793
 
 
 def _seed_data(root):
-    """把各模块 data/ 平铺成 AI_NEW_DATA 外部根，得到无业务残留的固定首屏。"""
-    for data in MODULES.glob("*/*/data"):
-        if not data.is_dir():
+    """按 git 已跟踪文件平铺各模块 data/，排除本地压测残留，固定首屏。"""
+    out = subprocess.check_output(
+        ["git", "-C", str(ROOT), "-c", "core.quotepath=false", "ls-files", "--", str(MODULES.relative_to(ROOT))],
+        text=True)
+    for line in out.splitlines():
+        src = ROOT / line
+        parts = src.relative_to(MODULES).parts
+        if "data" not in parts:
             continue
-        module = data.parent.relative_to(MODULES)
-        shutil.copytree(data, root / module, dirs_exist_ok=True)
+        i = parts.index("data")
+        module, tail = parts[:i], parts[i + 1:]
+        if not tail:
+            continue
+        dst = root.joinpath(*module, *tail)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
     return root
 
 

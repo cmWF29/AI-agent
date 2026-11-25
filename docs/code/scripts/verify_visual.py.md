@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_visual.py
-hash: c95f67ae70987cbe2c6a979a89287542985371fd9ef5a3f3fc53ad28451c35d2
+hash: 41dd5382378e81e409c58d2b1e7e9f0a6b4fddea0c12e4b951825cfa85a8c096
 symbols:
 - _seed_data
 - start_server
@@ -25,7 +25,7 @@ updated_at: '2026-11-25T17:05:19'
 ## 符号
 
 ### `_seed_data`（function）
-- 职责: 把各模块 data/ 平铺成 AI_NEW_DATA 外部根，得到无业务残留的固定首屏。
+- 职责: 按 git 已跟踪文件平铺各模块 data/，排除本地压测残留，固定首屏。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
