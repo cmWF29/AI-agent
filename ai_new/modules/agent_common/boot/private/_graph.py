@@ -103,12 +103,11 @@ def plan(module_dirs, data_dir=None):
                 continue
             owner = providers.get(attr)
             if owner is None:
-                if not attr.startswith("_"):
-                    warnings.append("%s 在 setup 里读了 ctx.%s，但没有模块装填它" % (name, attr))
+                warnings.append("%s 在 setup 里读了 ctx.%s，但没有模块装填它" % (name, attr))
                 continue
-            if owner != name:
-                edges[name].add(owner)
-                reasons["%s -> %s" % (name, owner)].append("ctx." + attr)
+            # 读集合已减去本模块写集合，owner == name 不会出现
+            edges[name].add(owner)
+            reasons["%s -> %s" % (name, owner)].append("ctx." + attr)
 
         for route in sorted(item["routes"]):
             owner = route.split(".")[0]
