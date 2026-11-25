@@ -74,14 +74,14 @@ def run_one(mod: str, timeout: int, base_port: int, cov_dir: str = "") -> dict:
         out = (proc.stdout or "") + (proc.stderr or "")
         return {"module": mod, "ok": proc.returncode == 0, "code": proc.returncode,
                 "seconds": round(time.perf_counter() - started, 2),
-                "tail": "\n".join(out.strip().splitlines()[-6:])}
+                "tail": "\n".join(out.strip().splitlines()[-20:])}
     except subprocess.TimeoutExpired as exc:
         out = (exc.stdout or "") + (exc.stderr or "")
         if isinstance(out, bytes):
             out = out.decode("utf-8", "replace")
         return {"module": mod, "ok": False, "code": "timeout",
                 "seconds": round(time.perf_counter() - started, 2),
-                "tail": "\n".join(str(out).strip().splitlines()[-6:])}
+                "tail": "\n".join(str(out).strip().splitlines()[-20:])}
 
 
 def main(argv=None):
