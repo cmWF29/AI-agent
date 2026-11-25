@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_api_e2e.py
-hash: 294a5bfa435f4fff1b44fbb7d1be7948daa455953d6479d72885574c932c4d0b
+hash: 53dba7c5023f571c093e0c44b98971cfc854c69d77982f6c3a967c3ae1b447e4
 symbols:
 - req
 - must
@@ -37,6 +37,7 @@ symbols:
 - scenario_ticket_send_guards
 - scenario_http_boundary
 - scenario_artifact_flow
+- scenario_project_permissions
 - scenario_library_read
 - main
 generated: gen_docs.py v1
@@ -260,6 +261,12 @@ HTTP 黑盒业务 E2E：真服务、真 RPC、真并发，不走进程内装配�
 
 ### `scenario_artifact_flow`（function）
 - 职责: 交付件真实写读：工单层文本写入→读回→覆盖→列表→统计→越界拒绝。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_project_permissions`（function）
+- 职责: 项目级岗位禁用覆盖：禁用后列表仍展示但打标，重新启用即移出覆盖层。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

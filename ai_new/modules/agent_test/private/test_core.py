@@ -1729,6 +1729,19 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(out.get("code"), "external_pending")
         self.assertEqual(out.get("tool"), "ext_demo_tool")
 
+    def test_project_role_override_rejects_unknown_role(self):
+        """未知岗位 id 不得写进项目覆盖层：入口层校验公共库 + 用户层岗位集合，显式 404。"""
+        created = self._run("projects-create", {"name": "未知岗位项目"})["result"]
+        pid = created["id"]
+        out = self._run("project-override-toggle", {"project": pid, "kind": "roles",
+                                                    "id": "no-such-role", "enabled": False})
+        self.assertFalse(out.get("ok"))
+        self.assertEqual(out.get("result", {}).get("code"), "role_not_found")
+        self.assertEqual(out.get("result", {}).get("status"), 404)
+        row = self.ctx.api.call("store.read", {"module": "agent/projects",
+                                               "path": "%s.yaml" % pid})
+        self.assertEqual((row.get("value") or {}).get("overrides", {}).get("roles"), [])
+
     def test_shell_only_on_execution_roles(self):
         """shell 按岗位名单裁剪：developer/tester 可取，只读文档岗取不到。"""
         row = self.ctx.api.call("store.read", {"module": "agent/library",

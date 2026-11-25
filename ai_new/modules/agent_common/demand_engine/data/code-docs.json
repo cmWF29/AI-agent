@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T20:19:28",
+  "generated": "2026-11-25T20:25:28",
   "total": 531,
   "groups": [
     {
@@ -632,7 +632,7 @@
           "doc": "docs/code/ai_new/modules/agent/projects/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "b97d7190fe1de2489f767e2e61f2efac97ccbd0f1a3979e77a7a868550ae198d",
+          "hash": "f50648485272f44c7b4741eb135dfaaee9647e8fa01ef786cc4cbaf625b81698",
           "symbols": 17,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -4109,8 +4109,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_core.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "16e75f4051917f0ca37ca00fa54d122aaa4fd14e5dd043fc7269ad2f93225b94",
-          "symbols": 156,
+          "hash": "8f29196f09db1d24f1271508d1cb9b6f17e244425eada3732cf1a8fcd9fd59c8",
+          "symbols": 157,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -4727,8 +4727,8 @@
           "doc": "docs/code/scripts/verify_api_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "294a5bfa435f4fff1b44fbb7d1be7948daa455953d6479d72885574c932c4d0b",
-          "symbols": 37,
+          "hash": "53dba7c5023f571c093e0c44b98971cfc854c69d77982f6c3a967c3ae1b447e4",
+          "symbols": 38,
           "updated_at": "2026-11-25T12:16:01"
         },
         {

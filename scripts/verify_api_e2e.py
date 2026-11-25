@@ -822,6 +822,36 @@ def scenario_artifact_flow():
             delete_project(pid)
 
 
+def scenario_project_permissions():
+    """项目级岗位禁用覆盖：禁用后列表仍展示但打标，重新启用即移出覆盖层。"""
+    name = "e2e-perm-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        before = req("project-positions", {"id": pid}).get("items") or []
+        dev = next((x for x in before if x.get("id") == "developer"), None)
+        must(dev is not None, "项目岗位列表缺少 developer: %s" % [x.get("id") for x in before][:8])
+        must(not dev.get("disabled"), "初始状态 developer 不应被禁用: %s" % dev)
+        req("project-override-toggle", {"project": pid, "kind": "roles",
+                                        "id": "developer", "enabled": False})
+        off = req("project-positions", {"id": pid}).get("items") or []
+        dev = next((x for x in off if x.get("id") == "developer"), {})
+        must(dev.get("disabled") is True, "禁用后 developer 未打 disabled: %s" % dev)
+        req("project-override-toggle", {"project": pid, "kind": "roles",
+                                        "id": "developer", "enabled": True})
+        on = req("project-positions", {"id": pid}).get("items") or []
+        dev = next((x for x in on if x.get("id") == "developer"), {})
+        must(not dev.get("disabled"), "重新启用后 developer 仍在禁用层: %s" % dev)
+        _, err = outcome("project-override-toggle", {
+            "project": pid, "kind": "roles", "id": "no-such-role-%d" % time.time_ns(),
+            "enabled": False})
+        must(bool(str(err)), "未知岗位禁用未报错")
+        return {"project": pid, "disabled": True, "re_enabled": True, "unknown_guard": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
 def scenario_library_read():
     """岗位库只读面：列表/详情/摘要一致，内置岗位提示词不可改。"""
     roles = req("library-list", {"kind": "roles"})
@@ -865,6 +895,7 @@ SCENARIOS = {
     "ticket-send-guards": scenario_ticket_send_guards,
     "artifact": scenario_artifact_flow,
     "library": scenario_library_read,
+    "project-permissions": scenario_project_permissions,
     "http-boundary": scenario_http_boundary,
 }
 

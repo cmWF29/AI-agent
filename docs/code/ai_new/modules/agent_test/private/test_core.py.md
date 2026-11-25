@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 16e75f4051917f0ca37ca00fa54d122aaa4fd14e5dd043fc7269ad2f93225b94
+hash: 8f29196f09db1d24f1271508d1cb9b6f17e244425eada3732cf1a8fcd9fd59c8
 symbols:
 - __init__
 - __call__
@@ -77,6 +77,7 @@ symbols:
 - test_tool_library_splits_builtin_and_external
 - test_external_tool_registers_and_runs_pending
 - test_project_tool_override_toggle_pick_and_execute
+- test_project_role_override_rejects_unknown_role
 - test_shell_only_on_execution_roles
 - test_exec_creates_ticket_workspace
 - test_exec_runs_real_subprocess_and_captures_output
@@ -619,6 +620,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_project_tool_override_toggle_pick_and_execute`（method）
 - 职责: 项目覆盖层禁用工具：pick 名单剔除、execute 拦截；启用后恢复占位执行。公共库定义不被改写。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_project_role_override_rejects_unknown_role`（method）
+- 职责: 未知岗位 id 不得写进项目覆盖层：入口层校验公共库 + 用户层岗位集合，显式 404。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

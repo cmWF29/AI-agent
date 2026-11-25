@@ -170,6 +170,18 @@ def _route_toggle(ctx, payload):
     guard = _pure.guard_writable({"rec": row.get("value"), "tpl": _msg_tpl(ctx)})
     if guard.get("ok") is False:
         return guard
+    kind = str(payload.get("kind") or "")
+    target = str(payload.get("id") or "")
+    if kind == "roles":
+        seed = ctx.api.call("store.read", {"module": "agent/library",
+                                           "path": "seed.yaml"}, caller=None).get("value") or {}
+        user = ctx.api.call("store.read", {"module": "agent/library",
+                                           "path": "roles.yaml"}, caller=None).get("value") or {}
+        known = {str(r.get("id") or "") for r in (seed.get("roles") or []) if isinstance(r, dict)}
+        known |= {str(k) for k in (user or {}) if k}
+        if target not in known:
+            return {"ok": False, "code": "role_not_found", "status": 404,
+                    "error": "岗位不存在: %s" % target}
     now = ctx.api.call("clock.now", {}, caller=None)
     cascaded = []
     cascaded_names = []
