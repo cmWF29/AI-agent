@@ -295,10 +295,10 @@ def _route_flush(ctx, payload):
                 "batch": batch, "effects": [_write_effect(ctx, project, state)]}
     _pure.mark_merged({"state": state, "batch_id": batch_id,
                        "ticket": tid, "merged_at": now.get("ts")})
-    batch_rec = next((b for b in state["batches"] if b.get("batch_id") == batch_id), None)
-    if batch_rec is not None:
-        batch_rec["brief"] = brief_b
-        batch_rec["sources"] = brief["sources"]
+    # claim_batch 必落批次记录，这里直接挂结构化 brief
+    batch_rec = next(b for b in state["batches"] if b.get("batch_id") == batch_id)
+    batch_rec["brief"] = brief_b
+    batch_rec["sources"] = brief["sources"]
     ctx.api.call("store.settle", {
         "module": "agent/secretary", "bucket": "flush", "key": key,
         "status": "done", "result_digest": tid,

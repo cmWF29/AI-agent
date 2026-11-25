@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T01:27:40",
-  "total": 564,
+  "generated": "2026-11-26T01:31:22",
+  "total": 565,
   "groups": [
     {
       "label": "agent",
@@ -722,7 +722,7 @@
           "doc": "docs/code/ai_new/modules/agent/secretary/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "9a88cec4f58c35a254acc8ccf1690fcf956f8ee4120f215c751c3ab2e1f0ddec",
+          "hash": "eac764817f7403d46ed0ae23c62b8d5bf26854652fca038fdd54fd5dba63f11b",
           "symbols": 20,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 76,
+      "count": 77,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4483,6 +4483,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_secretary_routes.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_secretary_routes.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "a8901f213f1043768ea234ecae3422fd8f7728fdf1f107cb1c3dbe95d9b17071",
+          "symbols": 25,
+          "updated_at": "2026-11-26T01:31:07"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_security_boundaries.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_security_boundaries.py.md",
           "kind": "py",
@@ -4961,7 +4970,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "586a470bf122b418c8440beac0962ff46eb6b9ddba60292a22082d9c0c45c360",
+          "hash": "e4febf6ba20e44521a0b7659d166bcfe576b28fa2e162f1875c0dcb208532957",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },

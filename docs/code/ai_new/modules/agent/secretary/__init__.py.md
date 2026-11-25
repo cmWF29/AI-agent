@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/secretary/__init__.py
-hash: 9a88cec4f58c35a254acc8ccf1690fcf956f8ee4120f215c751c3ab2e1f0ddec
+hash: eac764817f7403d46ed0ae23c62b8d5bf26854652fca038fdd54fd5dba63f11b
 symbols:
 - setup
 - _session_caller
