@@ -161,7 +161,11 @@ jobs:
         run: python -m unittest test_core -v
       - name: 全量用例（Windows 真机 36 模块，并行分片）
         timeout-minutes: 25
-        run: python scripts/run_tests.py --jobs 2
+        run: python scripts/run_tests.py --jobs 2 --json-out windows-run.json
+      - name: 失败模块（注解可见）
+        if: failure()
+        run: |
+          python -c "import json,pathlib; p=pathlib.Path('windows-run.json'); rows=json.loads(p.read_text(encoding='utf-8')).get('runs',[]) if p.exists() else []; [print('::error::%s %s' % (r['module'], (r.get('tail') or '').splitlines()[-1:] or '')) for r in rows if not r.get('ok')]"
       - name: Skip 门禁（Windows 平台允许集）
         timeout-minutes: 8
         run: python scripts/gate_skips.py
