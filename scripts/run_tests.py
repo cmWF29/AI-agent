@@ -50,7 +50,7 @@ DEFAULT_MODULES = [
     "test_store_isolate", "test_cloud_provider_adapters", "test_boot_edges",
     "test_demand_engine_edges", "test_boot_graph_edges", "test_tools_routes",
     "test_secretary_routes", "test_pure_batch", "test_sess_proj_routes",
-    "test_run_pure", "test_llm_auth",
+    "test_run_pure", "test_llm_auth", "test_idem_edges",
 ]
 
 # 会占用固定端口 / 拉起 sidecar 的模块：并行必抢 8790/9000，单独串行跑。
