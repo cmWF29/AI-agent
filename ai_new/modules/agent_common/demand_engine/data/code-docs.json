@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T17:21:13",
+  "generated": "2026-11-25T17:24:11",
   "total": 530,
   "groups": [
     {
@@ -4127,8 +4127,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_demand_engine.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "884158fc1ccb15b93d9647a4382623336e0f38d278cc3cc38d189c664d08e5e4",
-          "symbols": 24,
+          "hash": "1f33f9f14854164423c3a3b9eb1fa18a6f29358722fe2c0554599ab0ab60d783",
+          "symbols": 29,
           "updated_at": "2026-11-23T04:10:23"
         },
         {

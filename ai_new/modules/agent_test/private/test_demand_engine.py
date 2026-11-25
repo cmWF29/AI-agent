@@ -156,5 +156,104 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(form_ids, ["project.new"])
 
 
+    def test_manifest_counts_steps_views_callable_and_drift(self):
+        """清单要把视图/可调/步骤数、非结构语句与 expect 漂移都摊平。"""
+        ctx = FakeCtx({
+            "v": _demand(id="v", title="视图", tags=["view"], view={"key": "v1"},
+                         do=[{"call": "a.b", "as": "x", "with": {"k": 1}}, "raw-step"],
+                         expect={"calls": ["a.b", "a.c"], "promise": "做一件事"}),
+            "c": _demand(id="c", title="可调", tags=["write"], callable=True,
+                         do=[{"call": "a.b"}]),
+        })
+        out = _engine.Engine(ctx).manifest()
+        self.assertEqual(out["count"], 2)
+        self.assertEqual(out["views"], 1)
+        self.assertEqual(out["callable"], 1)
+        self.assertGreaterEqual(out["steps"], 3)
+        item = next(x for x in out["items"] if x["id"] == "v")
+        self.assertEqual(item["view"], "v1")
+        self.assertEqual(item["routes"], ["a.b"])
+        self.assertEqual(item["drift"], ["a.c"])
+        self.assertEqual(item["promise"], "做一件事")
+        node_v = next(n for n in out["nodes"] if n["label"] == "v")
+        leaf = next(x for x in node_v["children"] if x["path"] == "非结构语句")
+        self.assertIn("raw-step", leaf["name"])
+        self.assertTrue(out["groups"])
+
+    def test_view_spec_and_missing_view(self):
+        ctx = FakeCtx({"v": _demand(id="v", view={"key": "v1", "heading": "页"})})
+        spec = _engine.Engine(ctx).view_spec("v1")
+        self.assertEqual(spec["heading"], "页")
+        with self.assertRaises(ctx.ApiError) as caught:
+            _engine.Engine(ctx).view_spec("nope")
+        self.assertEqual(caught.exception.code, "no_view")
+
+    def test_console_menus_group_order_and_short_name(self):
+        """菜单从视图声明汇总，不另存一份；组序/短名/底栏序都必须保留。"""
+        ctx = FakeCtx({
+            "v1": _demand(id="v1", view={"key": "v1", "nav": "v1",
+                                         "menu": {"key": "m1", "label": "一",
+                                                  "short": "1", "order": 2,
+                                                  "group": {"name": "G", "order": 1},
+                                                  "tab": {"order": 3}} }),
+            "v2": _demand(id="v2", view={"key": "v2", "nav": "v2",
+                                         "menu": {"label": "二", "order": 1}}),
+            "console": {"brand": {"name": "Hive"}, "login": {"title": "登录"}},
+        })
+        shell = _engine.Engine(ctx).console()
+        menus = shell["menus"]
+        self.assertEqual([m["key"] for m in menus], ["m1", "v2"])
+        self.assertEqual(menus[0]["short"], "1")
+        self.assertEqual(menus[0]["group"], "G")
+        self.assertEqual(menus[0]["tab_order"], 3)
+        self.assertEqual(_engine.Engine(ctx).chrome()["brand"]["name"], "Hive")
+
+    def test_screens_builds_pages_routes_controls_and_overlays(self):
+        """页面地图/控件清单从视图自动推导：跳页、弹窗、父级返回都要有边。"""
+        ctx = FakeCtx({
+            "root": _demand(id="root", view={
+                "key": "root", "screen_label": "首页", "menu": {"label": "首页", "order": 1},
+                "actions": [{"label": "去详情", "view": "detail"},
+                            {"label": "打开表单", "modal": "project.new"},
+                            {"label": "刷新", "demand": "projects-list"}]}),
+            "detail": _demand(id="detail", view={
+                "key": "detail", "screen_label": "详情", "parent": {"view": "root"},
+                "actions": [{"label": "返回", "view": "root"}]}),
+            "console": {"screen_machine": {"entry": "view:root",
+                                           "overlays": [{"key": "sidebar", "label": "侧栏"}]}},
+        })
+        out = _engine.Engine(ctx).screens()
+        self.assertGreaterEqual(out["stats"]["pages"], 2)
+        self.assertGreaterEqual(out["stats"]["edges"], 4)
+        self.assertGreaterEqual(out["stats"]["controls"], 4)
+        keys = {s["id"] for s in out["states"]}
+        self.assertIn("overlay:form:project.new", keys)
+        self.assertIn("overlay:sidebar", keys)
+        page = next(p for p in out["pages"] if p["key"] == "view:root")
+        self.assertTrue(page["entry"])
+        self.assertIn("详情", [x["label"] for x in page["to"]])
+
+    def test_callable_run_error_paths(self):
+        """按名调用：不存在/未可调/已下线/无调用都要明确 code，不吞成 None。"""
+        ctx = FakeCtx({
+            "ok": _demand(id="ok", callable=True, do=[{"call": "a.b"}]),
+            "view": _demand(id="view", callable=False, do=[{"call": "a.b"}]),
+            "off": _demand(id="off", enabled=False, callable=True, do=[{"call": "a.b"}]),
+            "empty": _demand(id="empty", callable=True, do=[]),
+        })
+        engine = _engine.Engine(ctx)
+        out = engine.run_callable("ok")
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["calls"], ["a.b"])
+        self.assertEqual(engine.run_callable("off")["code"], "disabled")
+        with self.assertRaises(ctx.ApiError) as caught:
+            engine.run_callable("view")
+        self.assertEqual(caught.exception.code, "not_callable")
+        self.assertEqual(engine.run_callable("empty")["code"], "empty")
+        with self.assertRaises(ctx.ApiError) as caught:
+            engine.run_callable("nope")
+        self.assertEqual(caught.exception.code, "no_demand")
+
+
 if __name__ == "__main__":
     unittest.main()

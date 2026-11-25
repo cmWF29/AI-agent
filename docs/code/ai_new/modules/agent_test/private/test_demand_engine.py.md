@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_demand_engine.py
-hash: 884158fc1ccb15b93d9647a4382623336e0f38d278cc3cc38d189c664d08e5e4
+hash: 1f33f9f14854164423c3a3b9eb1fa18a6f29358722fe2c0554599ab0ab60d783
 symbols:
 - __init__
 - call
@@ -26,6 +26,11 @@ symbols:
 - test_disable_takes_effect_immediately
 - test_items_expose_routes_for_static_reading
 - test_view_index_ships_forms_of_keyless_pages
+- test_manifest_counts_steps_views_callable_and_drift
+- test_view_spec_and_missing_view
+- test_console_menus_group_order_and_short_name
+- test_screens_builds_pages_routes_controls_and_overlays
+- test_callable_run_error_paths
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:23'
 ---
@@ -181,6 +186,36 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_view_index_ships_forms_of_keyless_pages`（method）
 - 职责: 表单是跨页能力：没有 key 的表单页也必须随目录下发，否则弹窗拿不到规格。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_manifest_counts_steps_views_callable_and_drift`（method）
+- 职责: 清单要把视图/可调/步骤数、非结构语句与 expect 漂移都摊平。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_view_spec_and_missing_view`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_console_menus_group_order_and_short_name`（method）
+- 职责: 菜单从视图声明汇总，不另存一份；组序/短名/底栏序都必须保留。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_screens_builds_pages_routes_controls_and_overlays`（method）
+- 职责: 页面地图/控件清单从视图自动推导：跳页、弹窗、父级返回都要有边。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_callable_run_error_paths`（method）
+- 职责: 按名调用：不存在/未可调/已下线/无调用都要明确 code，不吞成 None。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
