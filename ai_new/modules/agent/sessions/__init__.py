@@ -94,8 +94,8 @@ def _route_resume(ctx, payload):
             effects.append({"kind": "dispatch", "id": "session-run",
                             "key": sid, "input": {"id": sid}})
     return {"effects": effects,
-            "resumed": [i["id"] for i in plan.get("resume") or []],
-            "stale": [i["id"] for i in plan.get("stale") or []]}
+            "resumed": [i.get("id") for i in plan.get("resume") or []],
+            "stale": [i.get("id") for i in plan.get("stale") or []]}
 
 
 def _route_scan_stuck(ctx, payload):
@@ -126,7 +126,7 @@ def _route_scan_stuck(ctx, payload):
     effects = [{"kind": "write", "module": "agent/logs",
                 "path": i["path"], "value": i["rec"]} for i in plan.get("stuck") or []]
     return {"effects": effects,
-            "stuck": [i["id"] for i in plan.get("stuck") or []],
+            "stuck": [i.get("id") for i in plan.get("stuck") or []],
             "keep": plan.get("keep") or []}
 
 

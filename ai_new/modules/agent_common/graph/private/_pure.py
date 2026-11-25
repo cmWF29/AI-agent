@@ -96,7 +96,8 @@ def merge_branch_updates(p):
                 merged[key] = _dedupe(_as_list(left) + _as_list(right))
             elif policy == UNION:
                 merged[key] = _dedupe(_as_list(left) + _as_list(right))
-            elif policy == CONFLICT:
+            else:  # 已校验策略集合只剩 conflict
+                policy = CONFLICT
                 if key in merged and left != right:
                     conflicts.append({"key": key, "left": left, "right": right})
                 else:

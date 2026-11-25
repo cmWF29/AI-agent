@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/logs/data/hook-queue.yaml
-hash: 4f498604f9dd57b4665b62593672e5db4db37e92c60d7a5509a5d13f7bdebb01
+hash: 23ac9121cc30ef871d387f3ed51814493d6fa3c539028098af5ea85b4e354cac
 symbols:
 - items
 generated: gen_docs.py v1

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sandbox/private/_winpath.py
-hash: 8cd4598e1cfc61bdb044a2b3c2950c83e8c439fb42b1a6c242de6151bb957d96
+hash: 4c53e8a4e14d9034964a07ccb0e52b6ee0c465a3633d893973700867474539c2
 symbols:
 - strip_long_prefix
 - is_reserved_name

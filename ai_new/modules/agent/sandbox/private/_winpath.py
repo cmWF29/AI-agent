@@ -85,14 +85,10 @@ def split_root(path):
         return {"kind": "unc", "drive": None, "server": None, "share": None,
                 "segments": parts[2:], "canonical_root": "//"}
     drive = None
+    # 长前缀剥离后盘符仍是 "C:"，与无前缀同一判定；不存在第二种写法
     if flat and flat[1:2] == ":":
         drive = flat[:2].lower()
         flat = flat[2:]
-    elif kind == "drive":
-        m = _DRIVE_RE.match(flat[:2])
-        if m:
-            drive = m.group(1).lower() + ":"
-            flat = flat[2:]
     parts = [p for p in flat.split("/") if p not in ("", ".")]
     if drive is not None:
         return {"kind": "drive", "drive": drive, "server": None, "share": None,
