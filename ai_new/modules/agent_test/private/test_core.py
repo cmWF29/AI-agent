@@ -1936,7 +1936,23 @@ class CoreTest(unittest.TestCase):
                b"X-Auth-Token: t\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n")
         sock = socket.create_connection(("127.0.0.1", self.port), timeout=5)
         sock.sendall(raw)
-        reply = sock.recv(4096)
+        reply = b""
+        while b"\r\n\r\n" not in reply:
+            chunk = sock.recv(4096)
+            if not chunk:
+                break
+            reply += chunk
+        head, _, body = reply.partition(b"\r\n\r\n")
+        length = 0
+        for line in head.split(b"\r\n"):
+            if line.lower().startswith(b"content-length:"):
+                length = int(line.split(b":", 1)[1].strip())
+        while len(body) < length:
+            chunk = sock.recv(4096)
+            if not chunk:
+                break
+            body += chunk
+        reply = head + b"\r\n\r\n" + body
         sock.close()
         self.assertIn(b"400", reply.split(b"\r\n", 1)[0])
         self.assertIn(b"bad_framing", reply)
