@@ -40,6 +40,10 @@ DEFAULT_MODULES = [
     "test_deadcode", "test_docsync", "test_levels",
 ]
 
+# 会占用固定端口 / 拉起 sidecar 的模块：并行必抢 8790/9000，单独串行跑。
+SERIAL_MODULES = {"test_transport", "test_distributed",
+                  "test_cloud_s3", "test_cloud_webdav"}
+
 
 def run_one(mod: str, timeout: int, base_port: int, cov_dir: str = "") -> dict:
     workdir = Path(tempfile.mkdtemp(prefix="hive-test-%s-" % mod))
@@ -52,7 +56,6 @@ def run_one(mod: str, timeout: int, base_port: int, cov_dir: str = "") -> dict:
     env.update({
         "AI_NEW_STUB": "1",
         "AI_NEW_DATA": str(workdir),
-        "AI_NEW_PORT": str(base_port),
         "PYTHONUNBUFFERED": "1",
     })
     if cov_dir:
@@ -97,6 +100,8 @@ def main(argv=None):
     mods = ([x.strip() for x in args.modules.split(",") if x.strip()]
             if args.modules else DEFAULT_MODULES)
     jobs = max(1, min(args.jobs, len(mods)))
+    serial = [m for m in mods if m in SERIAL_MODULES]
+    parallel = [m for m in mods if m not in SERIAL_MODULES]
     cov_dir = ""
     if args.coverage:
         cov_dir = Path(args.coverage_dir or tempfile.mkdtemp(prefix="hive-cov-"))
@@ -105,16 +110,22 @@ def main(argv=None):
             old.unlink()
     started = time.perf_counter()
     rows = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+
+    def emit(row):
+        rows.append(row)
+        print("%s %-30s %6.2fs  %s" % ("OK  " if row["ok"] else "FAIL",
+                                      row["module"], row["seconds"], row["code"]))
+        if not row["ok"]:
+            print(row["tail"])
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(jobs, max(1, len(parallel)))) as pool:
         futs = {pool.submit(run_one, mod, args.timeout, args.base_port + i * 10, cov_dir): mod
-                for i, mod in enumerate(mods)}
+                for i, mod in enumerate(parallel)}
         for fut in concurrent.futures.as_completed(futs):
-            row = fut.result()
-            rows.append(row)
-            print("%s %-30s %6.2fs  %s" % ("OK  " if row["ok"] else "FAIL",
-                                          row["module"], row["seconds"], row["code"]))
-            if not row["ok"]:
-                print(row["tail"])
+            emit(fut.result())
+    for i, mod in enumerate(serial):
+        emit(run_one(mod, args.timeout,
+                     args.base_port + (len(parallel) + i) * 10, cov_dir))
 
     rows.sort(key=lambda r: r["seconds"], reverse=True)
     total = round(time.perf_counter() - started, 2)
