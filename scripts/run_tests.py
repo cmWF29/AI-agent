@@ -39,7 +39,13 @@ DEFAULT_MODULES = [
     "test_cloud_sync", "test_cloud_s3", "test_cloud_webdav", "test_react_mechanisms",
     "test_gate_diff_coverage", "test_security_boundaries", "test_api",
     "test_deadcode", "test_docsync", "test_levels",
-    "test_asr", "test_platform_branches", "test_pure_edges", "test_tickets_routes", "test_decompose_pure", "test_archive_engine", "test_store_panel", "test_trace", "test_knowledge_pure", "test_decompose_routes",
+    "test_asr", "test_platform_branches", "test_pure_edges", "test_tickets_routes",
+    "test_decompose_pure", "test_archive_engine", "test_store_panel", "test_trace",
+    "test_knowledge_pure", "test_decompose_routes", "test_webdav_client", "test_clock",
+    "test_nodes_edges", "test_nodes_routes", "test_timer_edges",
+    "test_timer_routes_edges", "test_cloud_edges2", "test_artifacts_pure_edges",
+    "test_tools_pure_edges", "test_sessions_pure_edges", "test_registry_edges",
+    "test_transport_edges", "test_lock_edges", "test_hooks_edges", "test_net_client",
 ]
 
 # 会占用固定端口 / 拉起 sidecar 的模块：并行必抢 8790/9000，单独串行跑。

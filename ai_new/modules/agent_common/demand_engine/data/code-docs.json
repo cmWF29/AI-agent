@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-25T23:06:45",
-  "total": 540,
+  "generated": "2026-11-26T00:01:51",
+  "total": 555,
   "groups": [
     {
       "label": "agent",
@@ -200,7 +200,7 @@
           "doc": "docs/code/ai_new/modules/agent/cloud/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "97a022aaac6a96781cd0c0d6b96c373a8c15e178928324fd9288efb1fc7f5fcb",
+          "hash": "9e3befdfaf6edea23fda989fb81e2ea225d58cab119b1b2d8f12e23e180a1700",
           "symbols": 41,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -1205,7 +1205,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/api/private/_transport.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "8259972994b92f9d4baf372c96799dad143ccd0192c902edbd025728591d1f79",
+          "hash": "1351d9f72e5adf196992daa01fc83ae33f86df42057601177f7cab100c818403",
           "symbols": 16,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3572,7 +3572,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/net/private/_client.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "2ae571034c057e00f23c3db2f654dde10456646772ca3ff58e9dd713dbd135fc",
+          "hash": "3fcb9e030ba920795ace2e272d179ed6794fc41e9fa299d93ee759a866cecb0a",
           "symbols": 13,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3914,7 +3914,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/tools/private/_pure.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "df2fe10c37cf2a6b6fc5d7050040fba017584eeecbe843c10198171fba63390d",
+          "hash": "8976f39c97048bf81e6edf0d8f216a9d5ced0e3262d52401afa35b50f302a8dc",
           "symbols": 13,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 52,
+      "count": 67,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4042,6 +4042,15 @@
           "updated_at": "2026-11-25T23:05:41"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_artifacts_pure_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_artifacts_pure_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "fa3e5c805eeef1310b1a8aab1bca7c6216fc86b1716ab692aeb724016b47cd9f",
+          "symbols": 6,
+          "updated_at": "2026-11-26T00:01:31"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_asr.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_asr.py.md",
           "kind": "py",
@@ -4060,6 +4069,15 @@
           "updated_at": "2026-11-23T04:10:22"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_clock.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_clock.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "115e55b12f6876f7285bbb2288af018a6cb514d8c8fbff71b02be8210612946b",
+          "symbols": 13,
+          "updated_at": "2026-11-26T00:01:31"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_cloud.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_cloud.py.md",
           "kind": "py",
@@ -4067,6 +4085,15 @@
           "hash": "8b88a5c9ac80b05b950075a4e5d9e793ec45a49f7f6053fa436fb76586795b28",
           "symbols": 29,
           "updated_at": "2026-11-23T04:10:22"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_cloud_edges2.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_cloud_edges2.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "c7de110766babaec404e80405b81caf82f1fc1cdfaaa5b8b600eb9d6d697ccf3",
+          "symbols": 18,
+          "updated_at": "2026-11-26T00:01:31"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_cloud_guard.py",
@@ -4213,6 +4240,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_hooks_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_hooks_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "9a0ab3252e0f520a771aa2f7b1bff1d8234f29eda5f487efc8fba701b76fade5",
+          "symbols": 14,
+          "updated_at": "2026-11-26T00:01:32"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_idem.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_idem.py.md",
           "kind": "py",
@@ -4276,6 +4312,24 @@
           "updated_at": "2026-11-23T09:13:18"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_lock_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_lock_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "1b2d8de2e7f139775515320868160ed0a4009ccfe8207bbc0a2b8e667333dcee",
+          "symbols": 7,
+          "updated_at": "2026-11-26T00:01:32"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_net_client.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_net_client.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "38f03e9ca4c950be69dbf2c9ff0bd80db7e9835f7888cb34a326bc0e66ece85c",
+          "symbols": 22,
+          "updated_at": "2026-11-26T00:01:32"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_node_profile.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_node_profile.py.md",
           "kind": "py",
@@ -4292,6 +4346,24 @@
           "hash": "fd3c85a81de4b9cf423a515e2218f99cf629930b0b86e3d79cd580a5b0e9a3bc",
           "symbols": 61,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_nodes_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_nodes_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "e0be5885af13cb50d13fbe1a367619e81ecab203bd07e7561f7c0c810bdf7377",
+          "symbols": 5,
+          "updated_at": "2026-11-26T00:01:32"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_nodes_routes.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_nodes_routes.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "046f5ea4e0bf2f1a9af5e95a0b4dbafe0161d0312dc9f63c826f373964c2db55",
+          "symbols": 17,
+          "updated_at": "2026-11-26T00:01:32"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_plat.py",
@@ -4330,6 +4402,15 @@
           "updated_at": "2026-11-25T00:25:47"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_registry_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_registry_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "e9ac8bd2ecdfb2f3709d2d5a26aa4c83372050446de42d66d1beb320fe55c7a3",
+          "symbols": 29,
+          "updated_at": "2026-11-26T00:01:32"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_role_gates.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_role_gates.py.md",
           "kind": "py",
@@ -4355,6 +4436,15 @@
           "hash": "d0940650be834816ac57afc8943f3cdb620efcb050fe657685e3fc9d38ed90a6",
           "symbols": 41,
           "updated_at": "2026-11-25T04:59:31"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_sessions_pure_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_sessions_pure_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "f462283e26e84c70c751e01f995b046003660caf7339470b5f4fe88346cd8ba6",
+          "symbols": 8,
+          "updated_at": "2026-11-26T00:01:32"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_skill_decompose.py",
@@ -4411,6 +4501,33 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_timer_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_timer_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "4fb0753fb27a453cb3c699845bb0ff479c3bedf9bb2612c390c467eb3b66464e",
+          "symbols": 4,
+          "updated_at": "2026-11-26T00:01:33"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_timer_routes_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_timer_routes_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "ba4e1f83da8fdbb502b7847ed0b3f1830d7412b28549e3366576c2391eee2d3f",
+          "symbols": 17,
+          "updated_at": "2026-11-26T00:01:33"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_tools_pure_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_tools_pure_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "8bf8b812e9cf22c2391aca776424b23659ee7e679321f33db9a45019970e3c2a",
+          "symbols": 10,
+          "updated_at": "2026-11-26T00:01:33"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_trace.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_trace.py.md",
           "kind": "py",
@@ -4427,6 +4544,24 @@
           "hash": "bcdb18dd5807d9fa83d5cea3a0358780e4a6bb5c8e36863b54b6342953ba650d",
           "symbols": 27,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_transport_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_transport_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "0c4cc7335fbc6f4dee266469a048bc85ef5148abf9bf17117b6321a5a29ea148",
+          "symbols": 22,
+          "updated_at": "2026-11-26T00:01:33"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_webdav_client.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_webdav_client.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "b4b8a6415872f0888451f247307d359051b9b6880af139ba659877aca78116c8",
+          "symbols": 24,
+          "updated_at": "2026-11-26T00:01:33"
         }
       ]
     },
@@ -4745,7 +4880,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "98ef87692f9fbf47a79eb5c117493ec8a57dbd409c060ac565b8ab6700b1b5ea",
+          "hash": "f8f70ce2a065074b77f1b3cbd1a96a7b6c051bbecaacc7b010e44d628b366ae8",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },

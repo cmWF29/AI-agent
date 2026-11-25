@@ -187,13 +187,9 @@ def _route_profile_save(ctx, payload):
                     "effects": effects}
         profile["credentials"] = _seal.seal_map(
             ctx, creds, profile["id"], profile["provider"])
-    elif existing:
-        profile["credentials"] = existing.get("credentials") or {}
     else:
-        effects = _audit(ctx, caller, "profile_save", profile["id"], "deny",
-                         "bad_credentials")
-        return {**_err("bad_credentials", 400, tpl.get("bad_credentials") or ""),
-                "effects": effects}
+        # 走到这里只可能是“更新已有 profile 且未传凭证”，沿用旧密封凭证。
+        profile["credentials"] = (existing or {}).get("credentials") or {}
 
     now = ctx.api.call("clock.now", {}, caller=None).get("ts")
     if existing:
@@ -638,8 +634,7 @@ def _route_sync_run(ctx, payload):
                 delay = _pure.backoff_jittered(
                     attempts - 1, base_s, cap_s, ratio=0.25,
                     fraction=_jitter_fraction(ctx))
-                if delay > 0:
-                    ctx.api.call("clock.sleep", {"seconds": delay}, caller=None)
+                ctx.api.call("clock.sleep", {"seconds": delay}, caller=None)
         if not done:
             failed.append({"rel": rel, "attempts": attempts, "reason": last_err})
 
@@ -668,8 +663,7 @@ def _route_sync_run(ctx, payload):
                     delay = _pure.backoff_jittered(
                         attempts - 1, base_s, cap_s, ratio=0.25,
                         fraction=_jitter_fraction(ctx))
-                    if delay > 0:
-                        ctx.api.call("clock.sleep", {"seconds": delay}, caller=None)
+                    ctx.api.call("clock.sleep", {"seconds": delay}, caller=None)
             if not ok_delete:
                 delete_failed.append({"rel": rel, "attempts": attempts,
                                       "reason": last_err})

@@ -146,6 +146,7 @@ class Transport:
                 "通道 unix 在本机退 loopback，但连接文件缺失: %s" % addr,
                 code="bad_transport", status=500)
         host, port = row
+        conn = None
         try:
             conn = plat_net.connect_loopback(host, port, timeout)
             return self._roundtrip(conn, route, body, expect)
@@ -153,7 +154,8 @@ class Transport:
             raise self.ctx.ApiError("本地回退 socket 调用失败: %s (%s)" % (route, exc),
                                     code="remote_error", status=502)
         finally:
-            conn.close()
+            if conn is not None:
+                conn.close()
 
     # ---- tcp socket ----
     def _tcp(self, addr, route, body, expect=True):

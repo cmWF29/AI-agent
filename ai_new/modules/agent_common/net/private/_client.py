@@ -125,7 +125,8 @@ async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None
     limit = float(timeout or 60)
     payload = _build_request(method, host, path, headers, body)
     last = None
-    for attempt in range(max(0, retries) + 1):
+    attempt = 0
+    while True:
         reader = writer = None
         try:
             reader, writer = await _open(scheme, host, port, limit)
@@ -139,7 +140,7 @@ async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None
         except Exception as exc:  # noqa: BLE001 —— 能力层不外抛
             code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
             last = {"ok": False, "status": 0, "error": str(exc), "code": code}
-            if not _retryable(code, 0) or attempt == retries:
+            if not _retryable(code, 0) or attempt >= retries:
                 return last
         finally:
             if writer is not None:
@@ -149,7 +150,7 @@ async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None
                 except Exception:  # noqa: BLE001
                     pass
         await _backoff(attempt)
-    return last
+        attempt += 1
 
 
 async def arequest_stream(ctx, url, method="POST", headers=None, body=None, timeout=None,
@@ -177,7 +178,8 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
     items = []
     raw_lines = []
     last = None
-    for attempt in range(max(0, retries) + 1):
+    attempt = 0
+    while True:
         reader = writer = None
         connected = False
         try:
@@ -214,7 +216,7 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
         except Exception as exc:  # noqa: BLE001 —— 读帧阶段失败不外抛
             code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
             last = {"ok": False, "status": 0, "error": str(exc), "code": code}
-            if connected or attempt == retries or not _retryable(code, 0):
+            if connected or attempt >= retries or not _retryable(code, 0):
                 return last
         finally:
             if writer is not None:
@@ -224,7 +226,7 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
                 except Exception:  # noqa: BLE001
                     pass
         await _backoff(attempt)
-    return last
+        attempt += 1
 
 
 def request(ctx, url, method="GET", headers=None, body=None, timeout=None, retries=2):

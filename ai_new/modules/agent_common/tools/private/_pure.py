@@ -129,13 +129,11 @@ def install_plan(p):
         deps = t.get("deps") or {}
         for m in _missing_for(deps, snap):
             kind, name = m.get("kind"), str(m.get("name") or "")
-            if not name:
-                continue
             if kind == "pip":
                 if name not in seen:
                     seen.add(name)
                     pip.append(name)
-            elif kind in manual:
+            else:
                 entry = {"tool": t.get("name") or "", "name": name}
                 if entry not in manual[kind]:
                     manual[kind].append(entry)
