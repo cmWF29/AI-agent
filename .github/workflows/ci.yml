@@ -165,7 +165,7 @@ jobs:
       - name: 失败模块（注解可见）
         if: failure()
         run: |
-          python -c "import json,pathlib; p=pathlib.Path('windows-run.json'); rows=json.loads(p.read_text(encoding='utf-8')).get('runs',[]) if p.exists() else []; [print('::error::%s %s' % (r['module'], ' | '.join((r.get('tail') or '').splitlines()[-6:]))) for r in rows if not r.get('ok')]"
+          python -c "import json,pathlib; p=pathlib.Path('windows-run.json'); rows=json.loads(p.read_text(encoding='utf-8')).get('runs',[]) if p.exists() else []; [print('::error::%s %s' % (r['module'], ' | '.join([l for l in (r.get('tail') or '').splitlines() if l.startswith(('FAIL:','ERROR:')) or 'AssertionError' in l][:4]))) for r in rows if not r.get('ok')]"
       - name: Skip 门禁（Windows 平台允许集）
         timeout-minutes: 8
         run: python scripts/gate_skips.py
