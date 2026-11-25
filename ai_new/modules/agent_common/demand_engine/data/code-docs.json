@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T18:50:45",
+  "generated": "2026-11-25T19:11:22",
   "total": 531,
   "groups": [
     {
@@ -4727,7 +4727,7 @@
           "doc": "docs/code/scripts/verify_api_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "217f9ea83a0c58ca94195f6e6313d5645ba785c1fa18275477419a5b76345986",
+          "hash": "e9d8697dae76e52c2f6a9e247f42ad8c60a8e3f318cc651307b6433f6ac50fe7",
           "symbols": 34,
           "updated_at": "2026-11-25T12:16:01"
         },
