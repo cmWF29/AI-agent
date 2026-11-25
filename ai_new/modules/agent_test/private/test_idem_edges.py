@@ -42,7 +42,7 @@ class IdemEdgeTest(unittest.TestCase):
 
     def test_register(self):
         ctx = mock.Mock()
-        self.assertTrue(idem.register(ctx))
+        self.assertIsNone(idem.register(ctx))
         self.assertEqual(ctx.api.register.call_count, 4)
 
     def test_sweep_edges(self):
@@ -58,11 +58,13 @@ class IdemEdgeTest(unittest.TestCase):
             recs = {root / "aa" / "k.json": {"status": "done", "lease_until": 0},
                     root / "aa" / "j.json": {"key": "j", "status": "running",
                                              "lease_until": 0},
+                    root / "aa" / "k.json": {"key": "k", "status": "running",
+                                             "lease_until": 9},
                     root / "aa" / "l.json": {"key": "l", "status": "running",
                                              "lease_until": 1e20}}
 
             def read(path):
-                return recs.get(path, {})
+                return dict(recs.get(path) or {})
 
             with mock.patch.object(idem, "_bucket_dir", return_value=root):
                 with mock.patch.object(idem, "_read", side_effect=read):
@@ -71,12 +73,12 @@ class IdemEdgeTest(unittest.TestCase):
                             out = idem._route_sweep(Ctx(), {"module": "m", "bucket": "b",
                                                             "mark": True})
             self.assertEqual(out["checked"], 3)
-            self.assertEqual(out["expired"], ["k"])
-            self.assertEqual(out["marked"], 1)
+            self.assertEqual(out["expired"], ["j", "k"])
+            self.assertEqual(out["marked"], 2)
             with mock.patch.object(idem, "_bucket_dir", return_value=root):
                 with mock.patch.object(idem, "_read", side_effect=read):
                     out = idem._route_sweep(Ctx(), {"module": "m", "bucket": "b"})
-            self.assertEqual(out["expired"], ["k", "j"])
+            self.assertEqual(out["expired"], ["j", "k"])
 
 
 if __name__ == "__main__":
