@@ -16,6 +16,7 @@ import argparse
 import asyncio
 import os
 import sys
+import time
 
 import yaml
 from playwright.async_api import async_playwright
@@ -26,12 +27,19 @@ CONSOLE = ROOT + "/ai_new/modules/agent_common/demand_engine/data/console.yaml"
 BASE = "http://127.0.0.1:8787"
 CHROME = os.environ.get("CHROME", "/usr/local/bin/chromium")
 
+MAX_OCCURRENCES = int(os.environ.get("CTL_MAX_OCCURRENCES", "2"))
+GLOBAL_BUDGET = float(os.environ.get("CTL_BUDGET_SECONDS", "300"))
+
 # 只点不改业务数据的交互：折叠/筛选/展开/缩放/侧栏
 SAFE_KINDS = {
     "nav_group", "tab_config", "drawer_open", "drawer_scrim", "rail_close", "rail_open",
     "tree_group", "filter", "member_chip", "popover_close", "fold_text", "wire_fold",
     "section_fold", "summary_fold", "raw_fold", "deck_toggle", "stack_open", "dag_zoom",
 }
+
+
+def log(msg: str) -> None:
+    print("  · " + msg, flush=True)
 
 
 def load_kinds() -> set[str]:
@@ -91,28 +99,42 @@ async def main() -> int:
     changed = 0
     pages = 0
     async with async_playwright() as p:
+        log("启动 Chromium")
         b = await p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
+        log("Chromium 已启动")
         c = await b.new_context(viewport={"width": 1200, "height": 900})
         pg = await c.new_page()
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
         try:
-            await pg.goto(BASE + "/manage.html?view=projects", wait_until="load", timeout=60000)
+            log("打开初始页")
+            await asyncio.wait_for(
+                pg.goto(BASE + "/manage.html?view=projects", wait_until="load", timeout=30000), 35)
             await pg.wait_for_timeout(1200)
-            views = await pg.evaluate("""async () => {
+            log("探测视图清单")
+            views = await asyncio.wait_for(pg.evaluate("""async () => {
               const r=await run('views-list',{});
               return r.filter(x=>x.view&&x.view.key&&x.view.menu).map(x=>x.view);
-            }""")
+            }"""), 30)
+            log("视图数 %d" % len(views))
+            deadline = time.monotonic() + GLOBAL_BUDGET
             for v in views:
+                if time.monotonic() > deadline:
+                    fails.append("控件巡检超出 %ds 预算，已中止（点击 %d 次）" % (GLOBAL_BUDGET, clicked))
+                    break
                 key = v["key"]
-                await pg.goto(BASE + "/manage.html?view=" + key, wait_until="load", timeout=60000)
+                log("页面 %s 开始" % key)
+                await asyncio.wait_for(
+                    pg.goto(BASE + "/manage.html?view=" + key, wait_until="load", timeout=30000), 35)
                 for _ in range(30):
                     await pg.wait_for_timeout(250)
-                    if await pg.evaluate("() => !document.querySelector('#view-body .loading')"):
+                    if await asyncio.wait_for(
+                            pg.evaluate("() => !document.querySelector('#view-body .loading')"), 15):
                         break
                 pages += 1
                 before_errs = len(errs)
-                controls = await read_controls(pg)
+                controls = await asyncio.wait_for(read_controls(pg), 20)
+                log("页面 %s 控件 %d 个" % (key, len(controls)))
                 bad = [x for x in controls if not x["ctl"]]
                 if bad:
                     fails.append("%s 存在无 data-ctl 的可点元素: %s" % (key, bad[:4]))
@@ -125,15 +147,27 @@ async def main() -> int:
                 if not safe:
                     continue
                 occ = {}
+                log("页面 %s 安全控件 %d 个（同一 ctl 最多抽样 %d 个实例）"
+                    % (key, len(safe), MAX_OCCURRENCES))
                 for item in safe:
-                    occ[item["ctl"]] = occ.get(item["ctl"], 0) + 1
+                    n = occ.get(item["ctl"], 0)
+                    if n >= MAX_OCCURRENCES:
+                        continue
+                    occ[item["ctl"]] = n + 1
+                    if time.monotonic() > deadline:
+                        fails.append("控件巡检超出 %ds 预算，已中止（点击 %d 次）" % (GLOBAL_BUDGET, clicked))
+                        break
                     # 每个控件从干净页开始：前一控件展开/收起不能污染后一控件
-                    await pg.goto(BASE + "/manage.html?view=" + key, wait_until="load", timeout=60000)
-                    await pg.wait_for_timeout(600)
-                    before = await click_one(pg, item["ctl"], occ[item["ctl"]] - 1)
+                    await asyncio.wait_for(
+                        pg.goto(BASE + "/manage.html?view=" + key, wait_until="load", timeout=30000), 35)
+                    await pg.wait_for_timeout(400)
+                    log("点击 %s/%s#%d" % (key, item["ctl"], occ[item["ctl"]] - 1))
+                    before = await asyncio.wait_for(
+                        click_one(pg, item["ctl"], occ[item["ctl"]] - 1), 20)
                     if not before.get("ok"):
                         continue
-                    after = await sample(pg, item["ctl"], occ[item["ctl"]] - 1, before["before"])
+                    after = await asyncio.wait_for(
+                        sample(pg, item["ctl"], occ[item["ctl"]] - 1, before["before"]), 20)
                     clicked += 1
                     if after["changed"]:
                         changed += 1
@@ -145,6 +179,7 @@ async def main() -> int:
                     # 导航类之外的点击不许把人带走
                     if after["url"] != before["before"]["url"]:
                         fails.append("%s 点击 %s 后页面被误导航: %s" % (key, item["ctl"], after["url"]))
+            log("巡检完成 页面 %d 点击 %d" % (pages, clicked))
             if clicked < 10:
                 fails.append("安全控件真实点击数过少（%d），前端状态机没有被端到端看护" % clicked)
             if clicked and not changed:

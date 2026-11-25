@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T19:11:22",
+  "generated": "2026-11-25T19:34:49",
   "total": 531,
   "groups": [
     {
@@ -4736,8 +4736,8 @@
           "doc": "docs/code/scripts/verify_controls.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "b476b380b516a4b87b769d7eeb98af422087a0851328acd54fb4600909272d07",
-          "symbols": 5,
+          "hash": "2a48a1eeed79bf08dc7726b9523492346a253773a7b9733a5f7e4bc062909fb4",
+          "symbols": 6,
           "updated_at": "2026-11-25T00:25:47"
         },
         {

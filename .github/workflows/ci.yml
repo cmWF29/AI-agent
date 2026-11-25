@@ -9,6 +9,8 @@ on:
 jobs:
   gates:
     runs-on: ubuntu-latest
+    # 门禁全量本应 15 分钟左右；30 分钟是硬上限，任何步骤挂死都不会再拖到 6 小时。
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -132,6 +134,7 @@ jobs:
       - name: 全页可达 + 全表单可开
         run: python3 scripts/verify_pages.py
       - name: 安全控件真实点击（逐页重载 + 状态机核对）
+        timeout-minutes: 8
         run: python3 scripts/verify_controls.py
       - name: 可点实例清单签名核对
         run: python3 scripts/ui_inventory.py --check

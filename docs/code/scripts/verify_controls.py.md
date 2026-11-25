@@ -1,7 +1,8 @@
 ---
 source: scripts/verify_controls.py
-hash: b476b380b516a4b87b769d7eeb98af422087a0851328acd54fb4600909272d07
+hash: 2a48a1eeed79bf08dc7726b9523492346a253773a7b9733a5f7e4bc062909fb4
 symbols:
+- log
 - load_kinds
 - read_controls
 - click_one
@@ -21,6 +22,12 @@ updated_at: '2026-11-25T00:25:47'
 前端状态机真实点击门禁：对每个页面上的安全控件做一次真实 DOM 点击。
 
 ## 符号
+
+### `log`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `load_kinds`（function）
 - 职责: （无 docstring）
