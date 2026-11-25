@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 from ai_new.modules.agent.cloud.private import _rsync  # noqa: E402
 from ai_new.modules.agent_common.exec.private import _runner  # noqa: E402
 from ai_new.modules.agent_common.plat.private import _net, _winjob  # noqa: E402
-from ai_new.modules.agent_common.store.private import _isolate  # noqa: E402
+from ai_new.modules.agent_common.store.private import _files, _isolate  # noqa: E402
 
 
 class _Proc:
@@ -272,3 +272,40 @@ class IsolateWindowsBranchesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StoreFileRetryTest(unittest.TestCase):
+    """Windows 原子改名/读取遇到短暂占用必须退避重试，不能把并发放大成失败。"""
+
+    def test_replace_retries_permission_error_on_windows(self):
+        calls = []
+
+        def flaky(src, dst):
+            calls.append(dst)
+            if len(calls) < 3:
+                raise PermissionError(dst)
+
+        with mock.patch.object(_files.os, "replace", side_effect=flaky), \
+                mock.patch.object(_files.os, "name", "nt"):
+            _files.replace_file("a.tmp", "target")
+        self.assertEqual(len(calls), 3)
+
+    def test_replace_does_not_retry_on_posix(self):
+        with mock.patch.object(_files.os, "replace",
+                               side_effect=PermissionError("denied")), \
+                mock.patch.object(_files.os, "name", "posix"):
+            with self.assertRaises(PermissionError):
+                _files.replace_file("a.tmp", "target")
+
+    def test_read_retries_permission_error_on_windows(self):
+        with mock.patch.object(_files.Path, "read_text",
+                               side_effect=[PermissionError("busy"), "body"]), \
+                mock.patch.object(_files.os, "name", "nt"):
+            self.assertEqual(_files.read_text("x"), "body")
+
+    def test_read_raises_on_posix_without_retry(self):
+        with mock.patch.object(_files.Path, "read_text",
+                               side_effect=PermissionError("busy")), \
+                mock.patch.object(_files.os, "name", "posix"):
+            with self.assertRaises(PermissionError):
+                _files.read_text("x")

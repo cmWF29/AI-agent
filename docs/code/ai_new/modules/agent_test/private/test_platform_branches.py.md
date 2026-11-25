@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_platform_branches.py
-hash: 8cdb4ccace71653fc9b6a5cf2da35657ddb90838d32933804ccae180e084445b
+hash: 18f2a918386a65a4e628edce6a238ea774aee905432c468293dfd94787c79ab0
 symbols:
 - __init__
 - test_posix_without_rsync_is_unsupported
@@ -26,6 +26,10 @@ symbols:
 - test_assign_false_kills_proc
 - test_success_path_assigns_and_runs
 - test_cap_nt_and_sandbox_info
+- test_replace_retries_permission_error_on_windows
+- test_replace_does_not_retry_on_posix
+- test_read_retries_permission_error_on_windows
+- test_read_raises_on_posix_without_retry
 generated: gen_docs.py v1
 updated_at: '2026-11-25T17:28:05'
 ---
@@ -180,6 +184,30 @@ updated_at: '2026-11-25T17:28:05'
 - 关联需求/测试: 待人工补充
 
 ### `test_cap_nt_and_sandbox_info`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_replace_retries_permission_error_on_windows`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_replace_does_not_retry_on_posix`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_read_retries_permission_error_on_windows`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_read_raises_on_posix_without_retry`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

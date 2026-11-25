@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_files.py
-hash: ddf5f081d2ef67cbde1cafb6bafe1ea2d7904cb195aa29dc7f7045a511bdd9fc
+hash: f78be11ec6bc4b3438a5f090e8f3e2e9fb0698ae5aedec5b558359583ad8342a
 symbols:
 - replace_file
 - ensure_dir
@@ -54,7 +54,7 @@ updated_at: '2026-11-23T04:10:22'
 - 关联需求/测试: 待人工补充
 
 ### `read_text`（function）
-- 职责: （无 docstring）
+- 职责: 读文本；Windows 上目标正被原子改名/杀软扫描时短暂占用，退避重读。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
