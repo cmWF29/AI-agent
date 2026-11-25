@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_visual.py
-hash: e49c31dcb1cb3ceadb563cc01fb7b0880ce28c1792fcd5139389c419a123b799
+hash: c95f67ae70987cbe2c6a979a89287542985371fd9ef5a3f3fc53ad28451c35d2
 symbols:
 - _seed_data
 - start_server

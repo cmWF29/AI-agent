@@ -68,7 +68,7 @@ def start_server():
 async def shot(pg, url, path):
     await pg.goto(url, wait_until="load", timeout=60000)
     await pg.add_style_tag(content="""
-      *,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}
+      *,*::before,*::after{font-family:"Noto Sans CJK SC",sans-serif!important;animation:none!important;transition:none!important;caret-color:transparent!important}
       .ts,.uptime,[data-dynamic]{visibility:hidden!important}
     """)
     await pg.wait_for_timeout(1200)

@@ -104,6 +104,8 @@ jobs:
       - name: 像素级视觉回归（三视图基线）
         run: |
           set -o pipefail
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
           pip install pillow
           python3 scripts/verify_visual.py 2>&1 | tee /tmp/visual.log
       - name: HTTP 黑盒业务 E2E（改名/知识版本/检索/备注/定时器/租约/岗位会话/云端/边界/并发）
