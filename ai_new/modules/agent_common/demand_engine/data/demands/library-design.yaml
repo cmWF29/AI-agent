@@ -54,6 +54,7 @@ do:
     now:
       get: now.ts
   as: rec
+  required: true
 - call: library.save_record
   with:
     user:

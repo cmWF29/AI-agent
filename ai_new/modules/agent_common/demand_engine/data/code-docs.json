@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T19:34:49",
+  "generated": "2026-11-25T20:19:28",
   "total": 531,
   "groups": [
     {
@@ -11,8 +11,8 @@
           "doc": "docs/code/ai_new/modules/agent/artifacts/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "152caaf6c529f788c81099b1749e8d31b9da2e1669ccb65a8f641199049ef9ba",
-          "symbols": 6,
+          "hash": "ba235435e58d4bc024ecff3948be1c9ade1568245f58af5f341843ba5b92d477",
+          "symbols": 7,
           "updated_at": "2026-11-23T04:10:19"
         },
         {
@@ -20,7 +20,7 @@
           "doc": "docs/code/ai_new/modules/agent/artifacts/data/api.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "61447c529b3df2885ef759b07dfd1dd582d630d9db06b3f3585a76684f641b8d",
+          "hash": "21ebead5f07d21998fb12b6886d749af677300957ec686c6133005593297f9b6",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -1448,7 +1448,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/config/data/config.default.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "64313e178bf9ca84cf77525fdb40988f251f1d04ae9513fea6bc4b008a7b9209",
+          "hash": "7501565dfbf90fd84de1ac64da805690d48e6cd6b59182611b9270e04c0e722f",
           "symbols": 24,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1574,7 +1574,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/artifacts-list.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "c4209ae44ea04f5b45cb1f405f09c8baf131f0abc5b7f17a194e2a2facdb12f9",
+          "hash": "d29a91517ba159860711d068f141e24cb3abf46b17a22be33739d5c08246b16e",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1583,7 +1583,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/artifacts-read.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "11236ed80ba9946ed9440cda4b112f4435dd6389bf9e1ab78da90fe7de65fc2c",
+          "hash": "c320333c524fe9e29cf25d78e5ca9f69a5e59a2c3761c6b1c3d6eac658eb29dd",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -2042,7 +2042,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/library-design.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "8b6d3e3ff6d11d739c6ffb18a088671887cb06967d35502efe364198110182ee",
+          "hash": "a48433572f9af67f6e7a2ca4a3f839ea98c565ac720c0152f2bca7f8c5f63f61",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3338,8 +3338,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/private/_lang.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "5e6382f549b0c539ea04746878dc89be8695d40dd3a113c49fe2c6c0ada5903b",
-          "symbols": 8,
+          "hash": "92951607ea7fb6f3484e4ccadd8192050296c718985e49351081dbdf417ad061",
+          "symbols": 9,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -4109,8 +4109,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_core.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "f6d7470b30beaffd2be01fd83ae387f6f83d96675e1f5924cbadbef3521c56a8",
-          "symbols": 155,
+          "hash": "16e75f4051917f0ca37ca00fa54d122aaa4fd14e5dd043fc7269ad2f93225b94",
+          "symbols": 156,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -4127,8 +4127,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_demand_engine.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "1f33f9f14854164423c3a3b9eb1fa18a6f29358722fe2c0554599ab0ab60d783",
-          "symbols": 29,
+          "hash": "c662f256b09c0a192ce7e95aed594fa414134ba58afd139474a9fd6a5da65c00",
+          "symbols": 31,
           "updated_at": "2026-11-23T04:10:23"
         },
         {
@@ -4727,8 +4727,8 @@
           "doc": "docs/code/scripts/verify_api_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "e9d8697dae76e52c2f6a9e247f42ad8c60a8e3f318cc651307b6433f6ac50fe7",
-          "symbols": 34,
+          "hash": "294a5bfa435f4fff1b44fbb7d1be7948daa455953d6479d72885574c932c4d0b",
+          "symbols": 37,
           "updated_at": "2026-11-25T12:16:01"
         },
         {

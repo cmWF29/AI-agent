@@ -18,11 +18,14 @@ class FakeApi:
     def __init__(self):
         self.calls = []
         self.fail_on = set()
+        self.results = {}
 
     def call(self, name, payload=None, caller=None):
         self.calls.append((name, payload, caller))
         if name in self.fail_on:
             raise RuntimeError("boom")
+        if name in self.results:
+            return dict(self.results[name])
         return {"called": name, "echo": (payload or {}).get("n")}
 
 
@@ -91,20 +94,49 @@ class LanguageTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 _lang.eval_expr({"op": op, "a": {"lit": 1}, "b": {"lit": 2}}, {})
 
-    def test_control_flow_statement_is_recorded_not_interpreted(self):
-        """控制流语句已经不在语法里：引擎记一条失败，然后照常跑后续顺序语句。"""
+    def test_control_flow_statement_stops_sequence(self):
+        """控制流语句已经不在语法里：引擎记一条失败并终止后续顺序语句。"""
         api = FakeApi()
         stmt = [{"when": {"get": "event.x"}, "then": [{"call": "a.b"}]},
                 {"call": "good.route"}]
         results = _lang.run(stmt, {"event": {}}, api, None)
+        self.assertEqual(len(results), 1)
         self.assertFalse(results[0]["ok"])
-        self.assertTrue(results[1]["ok"])
-        self.assertEqual([c[0] for c in api.calls], ["good.route"])
+        self.assertEqual(api.calls, [])
 
-    def test_failure_is_recorded_not_raised(self):
+    def test_failure_is_recorded_not_raised_and_stops_sequence(self):
         api = FakeApi()
         api.fail_on = {"bad.route"}
         results = _lang.run([{"call": "bad.route"}, {"call": "good.route"}], {"event": {}}, api, None)
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0]["ok"])
+        self.assertEqual([c[0] for c in api.calls], ["bad.route"])
+
+    def test_business_failure_stops_before_later_write(self):
+        """能力返回 ok:false 是业务拒绝，后续写步骤绝不能继续执行。"""
+        api = FakeApi()
+        api.results = {"guard.reject": {"ok": False, "code": "denied", "status": 403},
+                       "store.write": {"written": True}}
+        results = _lang.run([{"call": "guard.reject", "required": True}, {"call": "store.write"}],
+                            {"event": {}}, api, None)
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0]["ok"])
+        self.assertEqual(results[0]["code"], "denied")
+        self.assertEqual([c[0] for c in api.calls], ["guard.reject"])
+
+    def test_runtime_apply_runs_after_business_failure_to_persist_audit(self):
+        """失败能力携带的审计 effects 必须由 runtime.apply 落盘，之后不再跑正常步骤。"""
+        api = FakeApi()
+        api.results = {
+            "cloud.profile_save": {"ok": False, "code": "bad_scheme",
+                                   "effects": [{"kind": "write", "module": "m", "path": "audit", "value": {}}]},
+            "runtime.apply": {"ok": True, "applied": [{"written": True}]},
+        }
+        results = _lang.run([
+            {"call": "cloud.profile_save", "as": "out", "required": True},
+            {"call": "runtime.apply", "with": {"effect": {"get": "out.effects"}}},
+            {"call": "store.write"}], {"event": {}}, api, None)
+        self.assertEqual([c[0] for c in api.calls], ["cloud.profile_save", "runtime.apply"])
         self.assertFalse(results[0]["ok"])
         self.assertTrue(results[1]["ok"])
 

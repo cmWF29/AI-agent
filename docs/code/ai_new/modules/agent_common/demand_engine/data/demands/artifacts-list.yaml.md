@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/artifacts-list.yaml
-hash: c4209ae44ea04f5b45cb1f405f09c8baf131f0abc5b7f17a194e2a2facdb12f9
+hash: d29a91517ba159860711d068f141e24cb3abf46b17a22be33739d5c08246b16e
 symbols:
 - id
 - title

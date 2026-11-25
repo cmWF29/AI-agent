@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_demand_engine.py
-hash: 1f33f9f14854164423c3a3b9eb1fa18a6f29358722fe2c0554599ab0ab60d783
+hash: c662f256b09c0a192ce7e95aed594fa414134ba58afd139474a9fd6a5da65c00
 symbols:
 - __init__
 - call
@@ -17,8 +17,10 @@ symbols:
 - _demand
 - test_call_gets_payload_from_event
 - test_rejected_operators_raise
-- test_control_flow_statement_is_recorded_not_interpreted
-- test_failure_is_recorded_not_raised
+- test_control_flow_statement_stops_sequence
+- test_failure_is_recorded_not_raised_and_stops_sequence
+- test_business_failure_stops_before_later_write
+- test_runtime_apply_runs_after_business_failure_to_persist_audit
 - test_routes_of_lists_sequential_calls
 - test_dispatch_only_runs_matching_demands
 - test_on_accepts_single_string
@@ -136,14 +138,26 @@ updated_at: '2026-11-23T04:10:23'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_control_flow_statement_is_recorded_not_interpreted`（method）
-- 职责: 控制流语句已经不在语法里：引擎记一条失败，然后照常跑后续顺序语句。
+### `test_control_flow_statement_stops_sequence`（method）
+- 职责: 控制流语句已经不在语法里：引擎记一条失败并终止后续顺序语句。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `test_failure_is_recorded_not_raised`（method）
+### `test_failure_is_recorded_not_raised_and_stops_sequence`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_business_failure_stops_before_later_write`（method）
+- 职责: 能力返回 ok:false 是业务拒绝，后续写步骤绝不能继续执行。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_runtime_apply_runs_after_business_failure_to_persist_audit`（method）
+- 职责: 失败能力携带的审计 effects 必须由 runtime.apply 落盘，之后不再跑正常步骤。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

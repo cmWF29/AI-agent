@@ -1023,6 +1023,29 @@ class CoreTest(unittest.TestCase):
                                 {"base": "projects/p1/tickets/T-1", "path": "../../escape.md"})
         self.assertFalse(esc.get("ok", True))
 
+    def test_artifacts_ticket_layer_resolves_project_from_ticket(self):
+        """工单层交付件只给 ticket 时，必须从工单档案回查项目；查不到要显式拒绝。"""
+        import time as _time
+        stamp = str(_time.time_ns())
+        project = "art-resolve-" + stamp
+        self._run("projects-create", {"name": project})
+        created = self._run("ticket-create", {"project": project, "title": "交付件归属",
+                                              "goal": "验证 ticket 层读路径"})
+        tid = created["result"]["id"]
+        wrote = self._run("artifacts-write", {
+            "layer": "ticket", "ticket": tid, "path": "docs/only-ticket.md",
+            "content": "只给 ticket 也能读"})
+        self.assertTrue(wrote["ok"], wrote)
+        read = self._run("artifacts-read", {
+            "layer": "ticket", "ticket": tid, "path": "docs/only-ticket.md"})
+        self.assertTrue(read["ok"], read)
+        self.assertIn("只给 ticket 也能读", read["result"]["text"])
+        missing = self._run("artifacts-read", {
+            "layer": "ticket", "ticket": "T-no-such-" + stamp, "path": "x.md"})
+        self.assertFalse(missing["ok"])
+        self.assertEqual((missing.get("failed") or {}).get("result", {}).get("code"),
+                         "missing_project")
+
     def test_artifacts_index_tree_groups_tickets_under_project(self):
         """文档目录树：公共平铺，项目文档与其工单文档按归属归到项目节点下。"""
         rows = [

@@ -18,7 +18,9 @@
     {"send": "module.fn", "with": {"k": 表达式}}                单向通知，不取结果
                                                               （内存通道只认这一种）
 
-解释器对失败零容忍但不外溢：任何一条语句出错只记结果，不影响触发它的模块。
+解释器对外不溢出，对内分两类失败：语句标了 required 的（守卫/路径/权限）
+失败即停，后面的写步骤不得继续；未标 required 的失败只记录，允许编排走
+既定的兜底/收尾路径（例如 react 无回复仍要 finish 落盘）。
 """
 from __future__ import annotations
 
@@ -83,29 +85,65 @@ def routes_of(node):
 
 
 def run(stmts, scope, api, ctx, demand_id="", results=None):
-    """同步轨：跑一段语句树，返回每条服务调用的结果（不抛异常）。"""
+    """同步轨：顺序跑语句树，首个失败立即终止，失败原因留在结果里。"""
     results = [] if results is None else results
+    failed = False
     for stmt in stmts or []:
+        route = stmt.get("call") if isinstance(stmt, dict) else None
+        required = bool(stmt.get("required")) if isinstance(stmt, dict) else False
+        # runtime.apply 是需求唯一的落盘口：失败能力可以携带审计/补偿 effects，
+        # 必须让它落盘后再收口；其余语句首错即停。
+        if failed and route != "runtime.apply":
+            break
         try:
-            _run_one(stmt, scope, api, ctx, demand_id, results)
+            ok = _run_one(stmt, scope, api, ctx, demand_id, results)
         except Exception as exc:  # noqa: BLE001 —— 需求出错不许外溢
             results.append({"demand": demand_id, "ok": False,
-                            "call": stmt.get("call") if isinstance(stmt, dict) else None,
+                            "call": route,
                             "error": "%s: %s" % (type(exc).__name__, exc)})
+            # 语法/执行异常是编排自身坏了，必须停；业务 ok:false 才看 required。
+            failed = True
+            continue
+        if not ok and required:
+            failed = True
     return results
 
 
 async def arun(stmts, scope, api, ctx, demand_id="", results=None):
-    """异步轨：逐条 await 语句服务调用，返回每条结果（不抛异常）。"""
+    """异步轨：顺序 await 语句服务调用，首个失败立即终止。"""
     results = [] if results is None else results
+    failed = False
     for stmt in stmts or []:
+        route = stmt.get("call") if isinstance(stmt, dict) else None
+        required = bool(stmt.get("required")) if isinstance(stmt, dict) else False
+        if failed and route != "runtime.apply":
+            break
         try:
-            await _arun_one(stmt, scope, api, ctx, demand_id, results)
+            ok = await _arun_one(stmt, scope, api, ctx, demand_id, results)
         except Exception as exc:  # noqa: BLE001 —— 需求出错不许外溢
             results.append({"demand": demand_id, "ok": False,
-                            "call": stmt.get("call") if isinstance(stmt, dict) else None,
+                            "call": route,
                             "error": "%s: %s" % (type(exc).__name__, exc)})
+            # 语法/执行异常是编排自身坏了，必须停；业务 ok:false 才看 required。
+            failed = True
+            continue
+        if not ok and required:
+            failed = True
     return results
+
+
+def _mark(results, demand_id, route, result, send=False):
+    """记录一条调用：业务失败（ok:false）必须被识别，后续顺序语句随即终止。"""
+    ok = not (isinstance(result, dict) and result.get("ok") is False)
+    row = {"demand": demand_id, "call": route, "ok": ok, "result": result}
+    if send:
+        row["send"] = True
+    if not ok:
+        row["code"] = str(result.get("code") or "")
+        row["error"] = str(result.get("error") or "")
+        row["status"] = result.get("status")
+    results.append(row)
+    return ok
 
 
 def _run_one(stmt, scope, api, ctx, demand_id, results):
@@ -125,8 +163,7 @@ def _run_one(stmt, scope, api, ctx, demand_id, results):
             result = api.call(route, payload, caller=scope.get("caller"))
         if stmt.get("as"):
             scope[stmt["as"]] = result
-        results.append({"demand": demand_id, "call": route, "ok": True, "result": result})
-        return
+        return _mark(results, demand_id, route, result)
 
     if "send" in stmt:
         route = stmt["send"]
@@ -134,9 +171,7 @@ def _run_one(stmt, scope, api, ctx, demand_id, results):
         for key, expr in (stmt.get("with") or {}).items():
             payload[key] = eval_expr(expr, scope)
         result = api.notify(route, payload, caller=scope.get("caller"))
-        results.append({"demand": demand_id, "call": route, "send": True,
-                        "ok": True, "result": result})
-        return
+        return _mark(results, demand_id, route, result, send=True)
 
     raise ValueError("未知语句: %s" % sorted(stmt.keys()))
 
@@ -157,8 +192,7 @@ async def _arun_one(stmt, scope, api, ctx, demand_id, results):
             result = await api.acall(route, payload, caller=scope.get("caller"))
         if stmt.get("as"):
             scope[stmt["as"]] = result
-        results.append({"demand": demand_id, "call": route, "ok": True, "result": result})
-        return
+        return _mark(results, demand_id, route, result)
 
     if "send" in stmt:
         route = stmt["send"]
@@ -166,8 +200,6 @@ async def _arun_one(stmt, scope, api, ctx, demand_id, results):
         for key, expr in (stmt.get("with") or {}).items():
             payload[key] = eval_expr(expr, scope)
         result = api.notify(route, payload, caller=scope.get("caller"))
-        results.append({"demand": demand_id, "call": route, "send": True,
-                        "ok": True, "result": result})
-        return
+        return _mark(results, demand_id, route, result, send=True)
 
     raise ValueError("未知语句: %s" % sorted(stmt.keys()))

@@ -116,7 +116,7 @@ knowledge:
 library:
   review_max_retries: 2   # 收尾评审最多回催次数，到达即转卡点交上层裁决
   paths:
-    record: '{kind}s.yaml'
+    record: '{kind}.yaml'
     prompt: 'prompts/{file}'
 channel:
   default_limit: 20      # 频道回看默认条数

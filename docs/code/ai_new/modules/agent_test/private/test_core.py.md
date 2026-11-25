@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: f6d7470b30beaffd2be01fd83ae387f6f83d96675e1f5924cbadbef3521c56a8
+hash: 16e75f4051917f0ca37ca00fa54d122aaa4fd14e5dd043fc7269ad2f93225b94
 symbols:
 - __init__
 - __call__
@@ -51,6 +51,7 @@ symbols:
 - test_net_stream_read_timeout_returns_error
 - test_runtime_dispatch_clears_run_slot_after_finish
 - test_artifacts_roundtrip_and_escape
+- test_artifacts_ticket_layer_resolves_project_from_ticket
 - test_artifacts_index_tree_groups_tickets_under_project
 - test_codec_decode_hex_utf8_and_binary
 - test_logs_index_tree_leaf_carries_name_and_type
@@ -462,6 +463,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_artifacts_roundtrip_and_escape`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_artifacts_ticket_layer_resolves_project_from_ticket`（method）
+- 职责: 工单层交付件只给 ticket 时，必须从工单档案回查项目；查不到要显式拒绝。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

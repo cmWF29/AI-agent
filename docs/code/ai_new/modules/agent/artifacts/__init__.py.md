@@ -1,12 +1,13 @@
 ---
 source: ai_new/modules/agent/artifacts/__init__.py
-hash: 152caaf6c529f788c81099b1749e8d31b9da2e1669ccb65a8f641199049ef9ba
+hash: ba235435e58d4bc024ecff3948be1c9ade1568245f58af5f341843ba5b92d477
 symbols:
 - setup
 - _cfg_paths
 - _msg_tpl
 - _as_handler
 - _cfg
+- _route_resolve
 - _route_save
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:19'
@@ -49,6 +50,12 @@ updated_at: '2026-11-23T04:10:19'
 
 ### `_cfg`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_route_resolve`（function）
+- 职责: 交付件归属解析：工单层以工单档案的项目为准；项目层用显式 project。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

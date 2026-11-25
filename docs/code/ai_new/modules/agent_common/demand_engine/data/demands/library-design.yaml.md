@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/library-design.yaml
-hash: 8b6d3e3ff6d11d739c6ffb18a088671887cb06967d35502efe364198110182ee
+hash: a48433572f9af67f6e7a2ca4a3f839ea98c565ac720c0152f2bca7f8c5f63f61
 symbols:
 - id
 - title

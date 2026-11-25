@@ -526,30 +526,47 @@ def scenario_project_create_list():
             delete_project(pid)
 
 
+def config_value(key, default=None):
+    rows = req("runtime-params", {}).get("rows") or []
+    for row in rows:
+        if row.get("key") == key:
+            return row.get("value")
+    return default
+
+
 def scenario_ticket_split_guard():
+    """上限从运行时配置读，不写死 8：配置被调大后用例仍要覆盖真实边界。"""
     name = "e2e-split-%d" % time.time_ns()
     pid = ""
     try:
         pid = project(name)["id"]
         parent = create_ticket(pid, "拆单父单")
-        budget = 8  # config.default tickets.max_children
+        budget = int(config_value("tickets.max_children", 8) or 8)
+        must(budget > 1, "tickets.max_children 配置非法: %r" % budget)
         child = req("ticket-split", {
             "id": parent["id"],
             "children": [{"title": "子单-%d" % i, "goal": "拆分验收"} for i in range(budget)]})
         kids = child.get("children") or []
         must(len(kids) >= budget, "拆单未产生 %d 个子单: %s" % (budget, child))
+        rec = req("ticket-get", {"id": parent["id"]})
+        stored = rec.get("children") or []
+        must(len(stored) >= budget,
+             "拆单结果未完整落盘: 响应 %d 个子单，档案只有 %d 个（budget=%d）"
+             % (len(kids), len(stored), budget))
         # 未结子单时父单结单必须被拒。
         _, code = workspace("ticket-close", {
             "id": parent["id"], "verdict": "accepted", "summary": "子单未结"})
         must(code in ("children_open", "409"), "子单未结时父单结单未被拒: code=%r" % code)
         # 上限守卫：已有子单达到 max_children 后继续拆必须被拒。
-        _, code = workspace("ticket-split", {
+        _, err = outcome("ticket-split", {
             "id": parent["id"],
             "children": [{"title": "超限子单", "goal": "应被拒"}]})
-        must(code in ("too_many_children", "409"),
-             "超过 max_children 未被拒: code=%r" % code)
+        text = str(err)
+        must(("too_many_children" in text) or ("上限" in text) or ("最多" in text),
+             "超过 max_children 未被拒（budget=%d, 已落盘=%d, 响应=%d）: %r"
+             % (budget, len(stored), len(kids), text))
         return {"project": pid, "parent": parent["id"], "children": len(kids),
-                "close_guard": True, "max_guard": True}
+                "budget": budget, "close_guard": True, "max_guard": True}
     finally:
         if pid:
             delete_project(pid)
@@ -769,6 +786,62 @@ def scenario_http_boundary():
     return {"method_405": True, "missing_404": True, "bad_json": True, "etag_304": True}
 
 
+def scenario_artifact_flow():
+    """交付件真实写读：工单层文本写入→读回→覆盖→列表→统计→越界拒绝。"""
+    name = "e2e-art-%d" % time.time_ns()
+    token = "artifact-token-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        tid = create_ticket(pid, "交付件验收")["id"]
+        rel = "e2e/notes.md"
+        got = req("artifacts-write", {
+            "layer": "ticket", "ticket": tid, "path": rel,
+            "content": "# 交付件\n%s\n" % token, "doc_kind": "artifact",
+            "source": "llm"})
+        must((got.get("path") or "").endswith(rel), "写入未回目标路径: %s" % got)
+        read = req("artifacts-read", {"layer": "ticket", "ticket": tid, "path": rel})
+        must(token in (read.get("text") or ""), "读回正文不含写入 token: %s" % read)
+        req("artifacts-write", {
+            "layer": "ticket", "ticket": tid, "path": rel,
+            "content": "覆盖后 %s" % token, "doc_kind": "artifact", "source": "llm"})
+        again = req("artifacts-read", {"layer": "ticket", "ticket": tid, "path": rel})
+        must("覆盖后" in (again.get("text") or ""), "覆盖后未读到新正文: %s" % again)
+        rows = req("artifacts-list", {"layer": "ticket", "ticket": tid}).get("items") or []
+        must(any(rel in (x.get("path") or "") for x in rows), "列表看不到交付件: %s" % rows)
+        stats = req("artifacts-stats", {})
+        must(int(stats.get("files") or 0) >= 1 and int(stats.get("bytes") or 0) > 0,
+             "统计没有计入交付件: %s" % stats)
+        _, code = workspace("artifacts-read", {
+            "layer": "ticket", "ticket": tid, "path": "../escape.txt"})
+        must(bool(code), "交付件路径越界未被拒: code=%r" % code)
+        return {"project": pid, "ticket": tid, "path": rel, "overwrite": True,
+                "listed": True, "stats": True, "traversal_guard": True}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_library_read():
+    """岗位库只读面：列表/详情/摘要一致，内置岗位提示词不可改。"""
+    roles = req("library-list", {"kind": "roles"})
+    items = roles.get("items") or []
+    must(any(x.get("id") == "cloud-configurer" for x in items),
+         "岗位库列表缺少内置岗位: %s" % [x.get("id") for x in items][:10])
+    got = req("library-get", {"kind": "roles", "id": "cloud-configurer"})
+    must((got.get("item") or {}).get("id") == "cloud-configurer", "岗位详情取不到: %s" % got)
+    summary = req("library-summary", {})
+    counts = summary.get("counts") or {}
+    must(int(counts.get("roles") or 0) >= len(items), "岗位摘要数与列表不一致: %s" % summary)
+    _, err = outcome("library-design", {
+        "kind": "roles", "id": "cloud-configurer", "fields": {"prompt": "被改写的提示词"}})
+    must(("builtin" in str(err)) or ("内置" in str(err)),
+         "内置岗位提示词未被拒: %r" % str(err))
+    _, code = workspace("library-get", {"kind": "roles", "id": "no-such-role-%d" % time.time_ns()})
+    must(bool(code), "未知岗位未被拒: code=%r" % code)
+    return {"roles": len(items), "summary": True, "builtin_guard": True, "missing_guard": True}
+
+
 SCENARIOS = {
     "project-rename": scenario_project_rename,
     "knowledge": scenario_knowledge,
@@ -790,6 +863,8 @@ SCENARIOS = {
     "timer-guards": scenario_timer_guards,
     "session-guards": scenario_session_guards,
     "ticket-send-guards": scenario_ticket_send_guards,
+    "artifact": scenario_artifact_flow,
+    "library": scenario_library_read,
     "http-boundary": scenario_http_boundary,
 }
 

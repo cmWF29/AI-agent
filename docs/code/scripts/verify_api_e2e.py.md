@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_api_e2e.py
-hash: e9d8697dae76e52c2f6a9e247f42ad8c60a8e3f318cc651307b6433f6ac50fe7
+hash: 294a5bfa435f4fff1b44fbb7d1be7948daa455953d6479d72885574c932c4d0b
 symbols:
 - req
 - must
@@ -25,6 +25,7 @@ symbols:
 - scenario_cloud_profile
 - scenario_boundary
 - scenario_project_create_list
+- config_value
 - scenario_ticket_split_guard
 - scenario_ticket_close_cascade
 - scenario_knowledge_version_guard
@@ -35,6 +36,8 @@ symbols:
 - scenario_session_guards
 - scenario_ticket_send_guards
 - scenario_http_boundary
+- scenario_artifact_flow
+- scenario_library_read
 - main
 generated: gen_docs.py v1
 updated_at: '2026-11-25T12:16:01'
@@ -189,8 +192,14 @@ HTTP 黑盒业务 E2E：真服务、真 RPC、真并发，不走进程内装配�
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
-### `scenario_ticket_split_guard`（function）
+### `config_value`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_ticket_split_guard`（function）
+- 职责: 上限从运行时配置读，不写死 8：配置被调大后用例仍要覆盖真实边界。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -245,6 +254,18 @@ HTTP 黑盒业务 E2E：真服务、真 RPC、真并发，不走进程内装配�
 
 ### `scenario_http_boundary`（function）
 - 职责: HTTP 壳层：方法/路径/坏正文/静态 304 都必须按协议回，不落 500。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_artifact_flow`（function）
+- 职责: 交付件真实写读：工单层文本写入→读回→覆盖→列表→统计→越界拒绝。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_library_read`（function）
+- 职责: 岗位库只读面：列表/详情/摘要一致，内置岗位提示词不可改。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

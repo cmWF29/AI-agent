@@ -42,6 +42,18 @@ routes:
         type: any
         req: false
     out: {}
+  artifacts.resolve:
+    in:
+      layer:
+        type: any
+        req: false
+      project:
+        type: any
+        req: false
+      ticket:
+        type: any
+        req: false
+    out: {}
   artifacts.save:
     in:
       content:

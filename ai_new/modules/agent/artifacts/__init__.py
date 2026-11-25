@@ -16,6 +16,9 @@ def setup(ctx):
         ctx.api.register(name, lambda payload, fn=fn: fn(payload), module="artifacts")
     ctx.api.register("artifacts.group", _as_handler(_pure.group),
                      "文档清单按公共/项目/工单三级分组成形；纯分组不读正文", module="artifacts")
+    ctx.api.register("artifacts.resolve", _route_resolve,
+                     "交付件归属解析：工单层按工单档案回查项目，避免只给 ticket 时错落 item/",
+                     module="artifacts")
     ctx.api.register("artifacts.save", _route_save, "写交付件：分层→算路径→文本/二进制落盘→回执",
                      module="artifacts")
     for name, desc, demand in [
@@ -57,6 +60,27 @@ def _as_handler(fn):
 def _cfg(ctx, key):
     row = ctx.api.call("config.get", {"key": key}, caller=None)
     return row.get("value")
+
+
+def _route_resolve(ctx, payload):
+    """交付件归属解析：工单层以工单档案的项目为准；项目层用显式 project。"""
+    layer = payload.get("layer") or "ticket"
+    pid_raw = payload.get("project")
+    tid_raw = payload.get("ticket")
+    if layer == "ticket" and not pid_raw:
+        tp = ctx.api.call("tickets.record_path", {"id": tid_raw or ""}, caller=None)
+        row = ctx.api.call("store.read", {
+            "module": "agent/tickets", "path": tp.get("path") or ""}, caller=None)
+        rec = row.get("value") or {}
+        pid_raw = rec.get("project") or ""
+    if layer == "ticket" and not pid_raw:
+        tpl = _msg_tpl(ctx)
+        return {"ok": False, "code": "missing_project", "status": 404,
+                "error": tpl.get("missing_project") or ""}
+    pid = ctx.api.call("store.id", {"value": pid_raw}, caller=None)
+    tid = ctx.api.call("store.id", {"value": tid_raw}, caller=None)
+    return {"layer": layer, "project": pid.get("id") or "",
+            "ticket": tid.get("id") or ""}
 
 
 def _route_save(ctx, payload):

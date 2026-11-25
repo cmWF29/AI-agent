@@ -23,24 +23,23 @@ do:
     path:
       lit: messages.yaml
   as: a_tpl
-- call: store.id
+- call: artifacts.resolve
   with:
-    value:
+    layer:
+      get: input.layer
+    project:
       get: input.project
-  as: pid
-- call: store.id
-  with:
-    value:
+    ticket:
       get: input.ticket
-  as: tid
+  as: own
 - call: artifacts.base
   with:
     layer:
       get: input.layer
     project:
-      get: pid.id
+      get: own.project
     ticket:
-      get: tid.id
+      get: own.ticket
     paths:
       get: cfg_paths.value
     tpl:
@@ -55,6 +54,7 @@ do:
     tpl:
       get: a_tpl.value
   as: rel
+  required: true
 - call: store.read_bytes
   with:
     module:
@@ -91,8 +91,7 @@ expect:
   - config.get
   - config.get
   - store.read
-  - store.id
-  - store.id
+  - artifacts.resolve
   - artifacts.base
   - artifacts.rel
   - store.read_bytes
