@@ -39,7 +39,7 @@ DEFAULT_MODULES = [
     "test_cloud_sync", "test_cloud_s3", "test_cloud_webdav", "test_react_mechanisms",
     "test_gate_diff_coverage", "test_security_boundaries", "test_api",
     "test_deadcode", "test_docsync", "test_levels",
-    "test_asr", "test_platform_branches", "test_pure_edges",
+    "test_asr", "test_platform_branches", "test_pure_edges", "test_tickets_routes", "test_decompose_pure", "test_archive_engine", "test_store_panel", "test_trace", "test_knowledge_pure", "test_decompose_routes",
 ]
 
 # 会占用固定端口 / 拉起 sidecar 的模块：并行必抢 8790/9000，单独串行跑。

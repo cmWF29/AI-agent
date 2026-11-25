@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/decompose/__init__.py
-hash: 847b231a58ae6c1d55d6c2fd7cfd42b00b99e8764a8990fc784785e95588ca55
+hash: 7dcc893951ba3df3e2a9a6c0f91c8be612dd7810c805237dbb152ada350c5ec9
 symbols:
 - setup
 - _msg_tpl

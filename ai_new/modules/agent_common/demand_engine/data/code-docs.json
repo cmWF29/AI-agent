@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-25T22:42:46",
-  "total": 533,
+  "generated": "2026-11-25T23:06:45",
+  "total": 540,
   "groups": [
     {
       "label": "agent",
@@ -308,7 +308,7 @@
           "doc": "docs/code/ai_new/modules/agent/decompose/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "847b231a58ae6c1d55d6c2fd7cfd42b00b99e8764a8990fc784785e95588ca55",
+          "hash": "7dcc893951ba3df3e2a9a6c0f91c8be612dd7810c805237dbb152ada350c5ec9",
           "symbols": 16,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -542,7 +542,7 @@
           "doc": "docs/code/ai_new/modules/agent/logs/data/hook-queue.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "3a7d6f0234be3d96f420fe1a7d77125a315fb94820d9823fe36111761a09f500",
+          "hash": "4f498604f9dd57b4665b62593672e5db4db37e92c60d7a5509a5d13f7bdebb01",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -1268,7 +1268,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/archive/private/_engine.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "1aa71ddb2f2a428641a3bfd5cb3b86a7a3bee023cfa5936b0e4d2efa8cc94799",
+          "hash": "de7e07becfc21ae3c7fba30e9240377f1d5b2db1b12ab3cc808f7fc52529b4d1",
           "symbols": 28,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3842,8 +3842,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_panel.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "01e07b87d2d370222f0572e859623e6b76aa33e6d853522a5460bef87eb4e8bb",
-          "symbols": 61,
+          "hash": "4f23d34b2e9144f3f28fa3268b3afc11197753ca3adc6c4e578df3860b4621fb",
+          "symbols": 60,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 45,
+      "count": 52,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4031,6 +4031,15 @@
           "hash": "9d1a7842085c36b348611d76c4b7215d54502b272fadbfca0e9ff26c74899e75",
           "symbols": 36,
           "updated_at": "2026-11-23T04:10:22"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_archive_engine.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_archive_engine.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "adeaf299d003ce77f3533bd46cfe83fcd89e620348b345a1b3487846b6444c32",
+          "symbols": 23,
+          "updated_at": "2026-11-25T23:05:41"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_asr.py",
@@ -4121,6 +4130,24 @@
           "hash": "152bfc41c87d0bb6801661bf375f460d0108c2fe9b916cb0d118aa3521666a12",
           "symbols": 7,
           "updated_at": "2026-11-23T04:19:50"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_decompose_pure.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_decompose_pure.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "65611242e077c4957a3596df0b0bd9e06ade5977efdc8c2407349abf410d1cde",
+          "symbols": 12,
+          "updated_at": "2026-11-25T23:05:41"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_decompose_routes.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_decompose_routes.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "bc4087dbe7b9a995d673e87670a2c60e9ac93e533f531b6d77107539a8e7ff03",
+          "symbols": 19,
+          "updated_at": "2026-11-25T23:05:41"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_demand_engine.py",
@@ -4231,6 +4258,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_knowledge_pure.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_knowledge_pure.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "b879263f0b36ac3f7d4f2dc745b4f9c84c9f23dfe97072be233ea53714070809",
+          "symbols": 6,
+          "updated_at": "2026-11-25T23:05:42"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_levels.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_levels.py.md",
           "kind": "py",
@@ -4330,6 +4366,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_store_panel.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_store_panel.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "401a33a84149ef2a2e6ff92b699c105eb0662efd070cb13f6ce8a658ae67207e",
+          "symbols": 17,
+          "updated_at": "2026-11-25T23:05:42"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_stub_faults.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_stub_faults.py.md",
           "kind": "py",
@@ -4348,6 +4393,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_tickets_routes.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_tickets_routes.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "30207b5633760d44aeffec4f871f521d228fe2e9ee2819c87b93050f80909960",
+          "symbols": 31,
+          "updated_at": "2026-11-25T23:05:42"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_timer.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_timer.py.md",
           "kind": "py",
@@ -4355,6 +4409,15 @@
           "hash": "4f2717ebb9f1e3937e42b16f3279e519fc795bdc975b4c64b70cad58c714974b",
           "symbols": 28,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_trace.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_trace.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "24fd441cda2593fed54fdddab07647c4cdba0b3a45ef9a125e5147a944a79da4",
+          "symbols": 16,
+          "updated_at": "2026-11-25T23:05:42"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_transport.py",
@@ -4682,7 +4745,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "58f6ade2c5678f2b32c068e3049d5041dc11aa6231d580538b3c3fd32bfa100d",
+          "hash": "98ef87692f9fbf47a79eb5c117493ec8a57dbd409c060ac565b8ab6700b1b5ea",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },

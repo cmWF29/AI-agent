@@ -480,14 +480,6 @@ class Storage:
 
 
 
-    def pack(self, dest_rel, entries):
-
-        """把若干 (目录, 归档前缀) 打成 zip，落在自己数据里的 dest_rel。"""
-
-        return _files.pack(self.root / dest_rel, entries)
-
-
-
     def safe_id(self, text):
 
         return _files.safe_id(text)

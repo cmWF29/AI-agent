@@ -345,9 +345,10 @@ def resolve_abs(ctx, payload):
 
     返回 ``{exists, raw, cached}``；校验和不匹配 / 流损坏抛 ``ArchiveCorrupt``。
     """
-    abs_path = Path(payload.get("abs") or "")
-    if not str(abs_path):
+    raw_abs = payload.get("abs")
+    if not raw_abs:
         return {"exists": False, "raw": b"", "cached": False}
+    abs_path = Path(raw_abs)
     cache = _cache_singleton(_config(ctx))
     key = str(abs_path)
 

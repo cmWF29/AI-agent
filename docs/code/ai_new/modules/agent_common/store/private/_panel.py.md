@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_panel.py
-hash: 01e07b87d2d370222f0572e859623e6b76aa33e6d853522a5460bef87eb4e8bb
+hash: 4f23d34b2e9144f3f28fa3268b3afc11197753ca3adc6c4e578df3860b4621fb
 symbols:
 - module_dir
 - modules_root
@@ -35,7 +35,6 @@ symbols:
 - own
 - repo_text
 - path
-- pack
 - safe_id
 - now_iso
 - _dir_of
@@ -272,12 +271,6 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `path`（method）
 - 职责: 配置里的部署路径（TLS 证书这类），不是模块数据。
-- 入参/出参: 待人工补充
-- 副作用/依赖/不变量: 待人工补充
-- 关联需求/测试: 待人工补充
-
-### `pack`（method）
-- 职责: 把若干 (目录, 归档前缀) 打成 zip，落在自己数据里的 dest_rel。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

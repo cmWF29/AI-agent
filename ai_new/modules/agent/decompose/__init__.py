@@ -37,11 +37,11 @@ def setup(ctx):
     # 拆解循环专用工具：拉文档文本、白名单装 pip 包；shell 已由通用 tools 模块注册为
     # 内置执行工具，这里只补拆解闭环的 schema 名单，不重复注册 fn。
     for tool in _pure.tool_defs():
-        if ctx.tools.has(tool["name"]):
+        fn = _TOOL_FNS.get(tool["name"])
+        if fn is None or ctx.tools.has(tool["name"]):
             continue
-        ctx.tools.register(tool["name"], tool["desc"], tool["params"],
-                           _TOOL_FNS[tool["name"]], module="decompose",
-                           kinds=None, deps={}, builtin=False)
+        ctx.tools.register(tool["name"], tool["desc"], tool["params"], fn,
+                           module="decompose", kinds=None, deps={}, builtin=False)
     return True
 
 
@@ -121,7 +121,11 @@ async def _tool_fetch(ctx, args, session=None):
     resp = await ctx.api.acall("net.request",
                         {"url": url, "method": "GET", "timeout": 30}, caller=None)
     if not isinstance(resp, dict) or resp.get("ok") is False:
-        return resp or {"ok": False, "error": tpl.get("fetch_failed") or "", "code": "fetch_failed"}
+        out = dict(resp or {})
+        out["ok"] = False
+        out.setdefault("code", "fetch_failed")
+        out.setdefault("error", tpl.get("fetch_failed") or "")
+        return out
     return {"ok": True, "url": url, "text": resp.get("text") or ""}
 
 
@@ -239,6 +243,7 @@ async def _route_deps_install(ctx, payload):
     if not task:
         return {"ok": False, "code": "task_not_found", "effects": [],
                 "error": tpl.get("task_not_found") or ""}
+    task.setdefault("audit", [])
     if task.get("status") == "registered":
         # 已登记任务重跑装依赖：不重复装、不降级。
         return {"ok": True, "reused": True, "task_key": key, "status": "registered",
@@ -303,6 +308,7 @@ def _route_register(ctx, payload):
     if not task:
         return {"ok": False, "code": "task_not_found", "effects": [],
                 "error": tpl.get("task_not_found") or ""}
+    task.setdefault("audit", [])
     if task.get("status") == "registered":
         return {"ok": True, "reused": True, "task_key": key,
                 "products": task.get("products") or {}, "audit": task.get("audit") or [],
@@ -439,7 +445,7 @@ def _route_install(ctx, payload):
         "draft": src.get("draft"), "meta": src.get("meta"),
         "source": payload.get("source"), "now": payload.get("now")}, caller=None)
     if not (parts or {}).get("skill"):
-        return {"ok": False, "effects": [],
+        return {"ok": False, "code": "invalid_parts", "effects": [],
                 "error": (parts or {}).get("error")
                          or _msg_tpl(ctx).get("invalid_parts") or ""}
 
@@ -470,8 +476,11 @@ async def _route_run(ctx, payload):
         fetched = await ctx.api.acall("net.request",
                                {"url": url, "method": "GET", "timeout": 30}, caller=None)
         if not isinstance(fetched, dict) or fetched.get("ok") is False:
-            return fetched or {"ok": False, "code": "fetch_failed",
-                               "error": tpl.get("fetch_failed") or ""}
+            out = dict(fetched or {})
+            out["ok"] = False
+            out.setdefault("code", "fetch_failed")
+            out.setdefault("error", tpl.get("fetch_failed") or "")
+            return out
         skill_md = fetched.get("text") or ""
     if not str(skill_md or "").strip() and not url:
         return {"ok": False, "code": "empty_input",
