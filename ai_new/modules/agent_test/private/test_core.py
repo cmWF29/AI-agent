@@ -1518,9 +1518,11 @@ class CoreTest(unittest.TestCase):
             tool_msgs = [m for m in msgs if m.get("role") == "tool"]
             self.assertEqual([m.get("tool_call_id") for m in tool_msgs],
                              ["c1", "c2"], "工具回填应保持模型给出的原顺序")
-            # 串行两条 0.15 ≈0.30；并发 ≈max(单工具)+首轮回包/收口固定开销。
-            # 阈值留足 Windows 线程启动与调度余量，仍明显低于串行总耗时。
-            self.assertLess(elapsed, 0.38, "两条工具应并发执行，总耗时≈max 而非 sum")
+            # 墙钟总耗时含首轮回包/收口固定开销，在慢速 Windows CI 上会漂；
+            # 用两次工具进入的间隔判定重叠：串行第二条要等第一条 sleep 0.15 才进入。
+            self.assertLess(starts[1] - starts[0], 0.10,
+                            "两条工具应重叠执行，而不是串行等待")
+            self.assertLess(elapsed, 0.90, "总耗时不应退化成串行两倍以上")
         finally:
             self.ctx.api.substitute("net.request_stream", self.fake_net)
 
