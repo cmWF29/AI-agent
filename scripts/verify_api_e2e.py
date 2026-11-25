@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import argparse
+import signal
 import http.client
 import json
 import os
@@ -818,8 +819,14 @@ def main(argv=None):
 
     names = list(SCENARIOS) if args.scenario == "all" else [args.scenario]
     failed = 0
+
+    def _timeout(_signum, _frame):
+        raise E2E("场景超时（120s），疑似服务端挂起")
+
     for name in names:
         started = time.time()
+        old = signal.signal(signal.SIGALRM, _timeout)
+        signal.alarm(120)
         try:
             out = SCENARIOS[name]()
             print("  OK  %-16s %s（%.1fs）" % (name, json.dumps(out, ensure_ascii=False),
@@ -827,6 +834,9 @@ def main(argv=None):
         except Exception as exc:  # noqa: BLE001
             failed += 1
             print("  FAIL %-16s %s" % (name, exc))
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old)
     if failed:
         print("E2E 失败 %d/%d" % (failed, len(names)))
         return 1
