@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T00:13:02",
-  "total": 559,
+  "generated": "2026-11-26T00:18:54",
+  "total": 560,
   "groups": [
     {
       "label": "agent",
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 71,
+      "count": 72,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4103,6 +4103,15 @@
           "hash": "9c84ad6a1ba9384b222a2c8e8c7d73a53db05cd1ee912fb15721a972c4ecb058",
           "symbols": 38,
           "updated_at": "2026-11-23T09:50:02"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_cloud_provider_adapters.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_cloud_provider_adapters.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "c5f570dea596dd511f9230fd8ca024507390b09d821025cfeeb93202bf44cbdc",
+          "symbols": 20,
+          "updated_at": "2026-11-26T00:18:10"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_cloud_s3.py",
@@ -4916,7 +4925,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "c15c261b111d53f04b59b4a00e55cc4e6dfefdcabfaaab5e41f803af45b3fba3",
+          "hash": "54f25eb1402df76fac87f5e37b53f8ef7fc275b6ecf5216a5e55dca1e9ad0963",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },
