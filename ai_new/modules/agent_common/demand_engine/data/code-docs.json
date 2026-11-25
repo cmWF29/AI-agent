@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-25T17:45:53",
+  "generated": "2026-11-25T18:09:06",
   "total": 531,
   "groups": [
     {
@@ -4781,8 +4781,8 @@
           "doc": "docs/code/scripts/verify_visual.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "9323ee65a4e8c2b1295709c482e774cbbb9ec49d2713c8c11e2354f2289cfdd0",
-          "symbols": 4,
+          "hash": "e49c31dcb1cb3ceadb563cc01fb7b0880ce28c1792fcd5139389c419a123b799",
+          "symbols": 7,
           "updated_at": "2026-11-25T17:05:19"
         },
         {
