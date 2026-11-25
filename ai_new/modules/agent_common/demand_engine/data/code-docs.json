@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T00:01:51",
-  "total": 555,
+  "generated": "2026-11-26T00:04:46",
+  "total": 557,
   "groups": [
     {
       "label": "agent",
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 67,
+      "count": 69,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4420,6 +4420,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_runtime_core.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_runtime_core.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "b96236448cd6538b2b405a210ce80f37dde28f1ef839d7eccfb773cd1c725325",
+          "symbols": 19,
+          "updated_at": "2026-11-26T00:04:27"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_secretary.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_secretary.py.md",
           "kind": "py",
@@ -4436,6 +4445,15 @@
           "hash": "d0940650be834816ac57afc8943f3cdb620efcb050fe657685e3fc9d38ed90a6",
           "symbols": 41,
           "updated_at": "2026-11-25T04:59:31"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_serve_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_serve_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "88aca205b38cc4b150e17627ee69a8b82fea29f36dab30ca63b573baaabcb3c8",
+          "symbols": 18,
+          "updated_at": "2026-11-26T00:04:27"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_sessions_pure_edges.py",
@@ -4880,7 +4898,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "f8f70ce2a065074b77f1b3cbd1a96a7b6c051bbecaacc7b010e44d628b366ae8",
+          "hash": "c36d0e52971ce0026d920723d776bea104589e78381b5aa5e99cca59632967b9",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },
