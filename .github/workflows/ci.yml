@@ -124,7 +124,8 @@ jobs:
         run: |
           for f in /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-archive.log /tmp/visual.log /tmp/e2e-api.log /tmp/perf-http.log; do
             if [ -f "$f" ]; then
-              tail -n 4 "$f" | sed 's/%/%25/g; s/\r//g' | while IFS= read -r line; do echo "::error::$line"; done
+              { grep -E "FAIL|Traceback|E2E 失败" "$f" | tail -n 6; tail -n 2 "$f"; } | \
+                sed 's/%/%25/g; s/\r//g' | while IFS= read -r line; do echo "::error::$line"; done
             fi
           done
           true
