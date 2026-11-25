@@ -20,6 +20,22 @@ _cache_instance: "_cache.LRUCache | None" = None
 _metrics_instance: "_metrics.LatencyRecorder | None" = None
 
 
+def _unlink_retry(path, attempts=8):
+    """Windows 杀软/索引器短暂持有句柄时退避重试；最终失败仍抛出，不静默丢错。"""
+    delay = 0.005
+    for i in range(attempts):
+        try:
+            Path(path).unlink()
+            return
+        except FileNotFoundError:
+            return
+        except PermissionError:
+            if os.name != "nt" or i + 1 >= attempts:
+                raise
+            time.sleep(delay)
+            delay = min(delay * 2, 0.2)
+
+
 def _cache_singleton(cfg):
     global _cache_instance
     if _cache_instance is None:
@@ -217,7 +233,7 @@ def _compress_one(ctx, abs_path: str, category: str, cfg: dict) -> dict:
                 "orig_mtime": Path(abs_path).stat().st_mtime,
             }
             _index.upsert(md, record)
-            Path(abs_path).unlink()
+            _unlink_retry(abs_path)
             _cleanup_temp(Path(abs_path).parent, Path(abs_path).name)
             return {"status": "compressed", "original": abs_path, "category": category,
                     "orig_size": record["orig_size"], "comp_size": record["comp_size"],

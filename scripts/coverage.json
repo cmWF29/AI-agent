@@ -1,6 +1,6 @@
 {
-  "line": 80.0,
-  "branch": 67.0,
+  "line": 80.5,
+  "branch": 68.5,
   "critical": 80.0,
   "critical_branch": 65.0,
   "critical_modules": [
@@ -9,6 +9,8 @@
     "ai_new/modules/agent/todos/",
     "ai_new/modules/agent/library/"
   ],
-  "note": "阈值是下限：整体行 80.0% / 分支 67.0%（本轮实测 81.0% / 68.6%），关键模块行 80.0% / 分支 65.0%，改动行 90.0%；低于此线阻断 CI。提高阈值前先补用例，不允许为了过线删断言或排除模块。",
-  "changed_line": 90.0
+  "note": "阈值是下限：整体行 80.5% / 分支 68.5%（2026-11-25 Windows 合并实测 82.2% / 70.3%），关键模块行 80.0% / 分支 65.0%，改动行 90.0%；低于此线阻断 CI。100% 是目标值，仍差的模块按 coverage.json 的 missing_lines 逐模块补测，不允许为了过线删断言或排除模块。",
+  "changed_line": 90.0,
+  "target": 100.0,
+  "target_note": "目标值 100%：当前门槛是防回退下限，不是达标线；缺口按 coverage.json 的 missing_lines 逐模块补，平台互斥分支在 Linux/Windows 两端合并计覆盖。"
 }

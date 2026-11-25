@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_guard.py
-hash: 99fe2117c26bd033373db4640af6c8a7952bc9a4c455255ecbde353bc776dfa3
+hash: cba6e81be1bd67356556f415d036e337287ba0517a9fb548b0b0b9d5fa929bb5
 symbols:
 - test_http_rejected_by_default
 - test_https_allowed

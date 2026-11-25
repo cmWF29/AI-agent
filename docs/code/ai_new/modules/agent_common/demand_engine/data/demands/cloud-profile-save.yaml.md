@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/cloud-profile-save.yaml
-hash: 3abba3587cb64518383841a7df5b1fb60f0365d2d99a0f529461bd0702a4966c
+hash: 7ec01170d4ebf950427b586f0d82b16b68328836cb2def3f55a021e6e6caf126
 symbols:
 - id
 - title

@@ -43,10 +43,11 @@ class WorkspaceResolveTest(unittest.TestCase):
             self.assertTrue(Path(dirs[layer]).is_relative_to(Path(self.tmp)), layer)
         self.assertIn("T-20261123-0001", dirs["tickets"])
         # 各层归属模块不同：工单在 tickets，文档在 knowledge，日志在 logs，交付件在 artifacts。
-        self.assertIn("agent/tickets", dirs["tickets"])
-        self.assertIn("agent/knowledge", dirs["documents"])
-        self.assertIn("agent/logs", dirs["logs"])
-        self.assertIn("agent/artifacts", dirs["artifacts"])
+        posix = {k: str(v).replace("\\", "/") for k, v in dirs.items()}
+        self.assertIn("agent/tickets", posix["tickets"])
+        self.assertIn("agent/knowledge", posix["documents"])
+        self.assertIn("agent/logs", posix["logs"])
+        self.assertIn("agent/artifacts", posix["artifacts"])
 
     def test_configured_root_dirs_all_under_root(self):
         root = str(Path(self.tmp) / "proj-root")

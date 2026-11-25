@@ -40,8 +40,8 @@ def source_sig():
     files = sorted(SIG_FILES + sorted(glob.glob(DEMANDS + "/view-*.yaml")))
     for p in files:
         if os.path.exists(p):
-            h.update(os.path.relpath(p, ROOT).encode())  # 相对路径：签名不得随检出目录漂移
-            h.update(open(p, "rb").read())
+            h.update(os.path.relpath(p, ROOT).replace(os.sep, "/").encode())  # 相对路径：签名不得随检出目录漂移
+            h.update(open(p, "rb").read().replace(b"\r\n", b"\n"))
     return {"sha": h.hexdigest()[:16], "files": len(files)}
 
 TOGGLE_KINDS = {"fold_text", "summary_fold", "wire_fold", "raw_fold", "tree_group",
@@ -221,3 +221,5 @@ def asyncio_run(coro):
 
 if __name__ == "__main__":
     sys.exit(main())
+
+

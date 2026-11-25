@@ -80,11 +80,11 @@ def _collect_sources(root: Path, scope: str | None) -> list[tuple[str, str, str]
         return not scope or rel.startswith(scope)
 
     for p in python_scan.collect_python_files(root):
-        rel = str(p.relative_to(root))
+        rel = p.relative_to(root).as_posix()
         if keep(rel):
             out.append((rel, "py", p.read_text(encoding="utf-8")))
     for p in js_scan.collect_js_files(root):
-        rel = str(p.relative_to(root))
+        rel = p.relative_to(root).as_posix()
         if keep(rel):
             out.append((rel, "js", p.read_text(encoding="utf-8")))
 
@@ -241,7 +241,8 @@ def _write_index(root: Path, entries: list[dict], write: bool) -> str:
     payload = {"generated": _now_iso(), "total": len(entries), "groups": groups}
     if write:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8", newline="\n")
         return ""
     if not path.is_file():
         return "索引缺失"
@@ -299,7 +300,7 @@ def generate(root: Path | None = None, write: bool = True,
             rel, kind, str(path.relative_to(root)) if path.is_relative_to(root) else str(path), header))
         if write:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(rendered, encoding="utf-8")
+            path.write_text(rendered, encoding="utf-8", newline="\n")
 
     # 孤儿文档：源码已删/改名，文档残留
     docs_root = root / "docs" / "code"

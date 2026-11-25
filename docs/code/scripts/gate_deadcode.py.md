@@ -1,6 +1,6 @@
 ---
 source: scripts/gate_deadcode.py
-hash: c4970e3e1aa02e10183eb6eb818a578f8b54273297d09dfe85fe016e088799d1
+hash: 388b16667ebc2da44b59c1600541146b1097a58741fee4a4535bc05ff0b1a4bc
 symbols:
 - _load_yaml
 - _session_tool_names

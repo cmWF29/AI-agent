@@ -1,6 +1,6 @@
 ---
 source: scripts/gen_docs.py
-hash: 0eaca6ea7e40695a6bc8460b3b26a83df4be51b4ba6af4b5c970051cd3af8883
+hash: 968f1a49830e6c523d1f7be2b03ae44c1b69ab4a39b84ab465b71ac9bc4ae51e
 symbols:
 - _sha256
 - _py_symbols

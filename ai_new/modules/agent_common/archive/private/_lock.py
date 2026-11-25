@@ -8,8 +8,11 @@ capability 里显式标 verified=false。
 """
 from __future__ import annotations
 
+import hashlib
 import os
+import tempfile
 import threading
+from pathlib import Path
 
 from ai_new.modules.agent_common.plat.private import _lock as plat_lock
 
@@ -30,12 +33,15 @@ class source_lock:
         with _guard:
             self._in = _inproc.setdefault(self._path, threading.Lock())
         self._in.acquire()
-        if plat_lock.PLATFORM == "nt":
-            self._fd = os.open(self._path, os.O_RDWR | os.O_BINARY)
-        else:
-            self._fd = os.open(self._path, os.O_RDONLY)
+        # 锁挂在旁路锁文件上，不打开源文件本身：Windows 下对源文件再开读句柄会被
+        # 排他句柄挡成 PermissionError，压缩逻辑还没开始就失败。
+        key = hashlib.sha256(self._path.encode("utf-8")).hexdigest()[:32]
+        lock_dir = Path(tempfile.gettempdir()) / "hive-archive-locks"
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        lock_path = lock_dir / (key + ".lock")
+        self._fd = os.open(lock_path, os.O_RDWR | os.O_CREAT | (os.O_BINARY if os.name == "nt" else 0))
         try:
-            self._oslock = plat_lock.ExclusiveLock(self._fd, path=self._path)
+            self._oslock = plat_lock.ExclusiveLock(self._fd, path=str(lock_path))
             self._oslock.acquire()
         except OSError:
             os.close(self._fd)

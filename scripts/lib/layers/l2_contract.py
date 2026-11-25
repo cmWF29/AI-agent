@@ -148,15 +148,28 @@ def _traversal(client: _Client, rec: Recorder, root: Path) -> None:
         rec.check("路径穿越 · %s" % label, status in (400, 403, 404) and not leaked,
                   "status=%s" % status)
 
-    # 符号链接：在临时控制台目录里放一条指向 /etc/hosts 的软链，静态读取不得跟出去
+    # 符号链接：在临时控制台目录里放一条指向根外的链接，静态读取不得跟出去。
+    # Windows 普通用户没有 symlink 特权，改用目录 junction + 根外文件，仍验证同一条不逃逸语义。
     console = root / "agent" / "web" / "console"
+    target_root = None
     if console.is_dir():
         link = console / "evil-link"
         try:
             if link.is_symlink() or link.exists():
                 link.unlink()
-            link.symlink_to("/etc/hosts")
-            status, body = client.request("GET", "/evil-link")
+            if os.name == "nt":
+                import subprocess
+                import tempfile
+                target_root = Path(tempfile.mkdtemp(prefix="hive-evil-"))
+                (target_root / "secret.txt").write_text(
+                    "localhost\n127.0.0.1\n", encoding="utf-8")
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target_root)],
+                               check=True, capture_output=True, text=True)
+                probe_path = "/evil-link/secret.txt"
+            else:
+                link.symlink_to("/etc/hosts")
+                probe_path = "/evil-link"
+            status, body = client.request("GET", probe_path)
             text = str(body)
             leaked = "localhost" in text and "127.0.0.1" in text
             rec.check("符号链接不逃逸", status in (400, 403, 404) and not leaked,
@@ -164,8 +177,15 @@ def _traversal(client: _Client, rec: Recorder, root: Path) -> None:
         except OSError as e:
             rec.check("符号链接不逃逸", False, str(e))
         finally:
-            if link.is_symlink():
-                link.unlink()
+            if link.is_symlink() or link.exists():
+                try:
+                    link.unlink()
+                except OSError:
+                    import shutil
+                    shutil.rmtree(link, ignore_errors=True)
+            if target_root is not None:
+                import shutil
+                shutil.rmtree(target_root, ignore_errors=True)
 
 
 def _authorization(ctx, rec: Recorder) -> None:

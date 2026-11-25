@@ -23,8 +23,8 @@ def source_sig():
                    + sorted(glob.glob(ROOT + "/ai_new/modules/agent_common/demand_engine/data/demands/view-*.yaml")))
     for p in files:
         if os.path.exists(p):
-            h.update(os.path.relpath(p, ROOT).encode())  # 相对路径：签名不得随检出目录漂移
-            h.update(open(p, "rb").read())
+            h.update(os.path.relpath(p, ROOT).replace(os.sep, "/").encode())  # 相对路径：签名不得随检出目录漂移
+            h.update(open(p, "rb").read().replace(b"\r\n", b"\n"))
     return {"sha": h.hexdigest()[:16], "files": len(files)}
 
 
@@ -88,3 +88,5 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+

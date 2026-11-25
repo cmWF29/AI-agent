@@ -1,6 +1,6 @@
 ---
 source: scripts/gate_inventory.py
-hash: 9bf22b966596df6145f73a54419dc8695ca82851f9b0e2738298be651455f915
+hash: 08f4a19041e43733b3bc118aa33f38947da8c54536a95795b66c91ee8c07a98d
 symbols:
 - source_sig
 - problems

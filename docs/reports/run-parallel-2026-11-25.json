@@ -1,0 +1,258 @@
+{
+  "jobs": 4,
+  "total_seconds": 101.22,
+  "runs": [
+    {
+      "module": "test_demands",
+      "ok": true,
+      "code": 0,
+      "seconds": 61.28,
+      "tail": "................\n----------------------------------------------------------------------\nRan 16 tests in 61.064s\n\nOK"
+    },
+    {
+      "module": "test_cloud_seal",
+      "ok": true,
+      "code": 0,
+      "seconds": 40.26,
+      "tail": "  _warnings.warn(warn_message, ResourceWarning)\n.\n----------------------------------------------------------------------\nRan 9 tests in 39.905s\n\nOK"
+    },
+    {
+      "module": "test_core",
+      "ok": true,
+      "code": 0,
+      "seconds": 36.56,
+      "tail": "ResourceWarning: Enable tracemalloc to get the object allocation traceback\n....\n----------------------------------------------------------------------\nRan 138 tests in 36.146s\n\nOK"
+    },
+    {
+      "module": "test_distributed",
+      "ok": true,
+      "code": 0,
+      "seconds": 19.98,
+      "tail": "......\n----------------------------------------------------------------------\nRan 6 tests in 19.740s\n\nOK"
+    },
+    {
+      "module": "test_boot_graph",
+      "ok": true,
+      "code": 0,
+      "seconds": 17.88,
+      "tail": "..........\n----------------------------------------------------------------------\nRan 10 tests in 17.649s\n\nOK"
+    },
+    {
+      "module": "test_cloud_s3",
+      "ok": true,
+      "code": 0,
+      "seconds": 14.5,
+      "tail": "[mem] 100MB S3 流式客户端驻留增量: 0.04 MiB\n..............s...\n----------------------------------------------------------------------\nRan 18 tests in 14.174s\n\nOK (skipped=1)"
+    },
+    {
+      "module": "test_secretary",
+      "ok": true,
+      "code": 0,
+      "seconds": 12.59,
+      "tail": "...................\n----------------------------------------------------------------------\nRan 19 tests in 12.260s\n\nOK"
+    },
+    {
+      "module": "test_api",
+      "ok": true,
+      "code": 0,
+      "seconds": 12.15,
+      "tail": ".......................\n----------------------------------------------------------------------\nRan 23 tests in 11.886s\n\nOK"
+    },
+    {
+      "module": "test_cloud_sync",
+      "ok": true,
+      "code": 0,
+      "seconds": 9.97,
+      "tail": ".........\n----------------------------------------------------------------------\nRan 9 tests in 9.669s\n\nOK"
+    },
+    {
+      "module": "test_cloud",
+      "ok": true,
+      "code": 0,
+      "seconds": 9.57,
+      "tail": "..........\n----------------------------------------------------------------------\nRan 10 tests in 9.237s\n\nOK"
+    },
+    {
+      "module": "test_architecture",
+      "ok": true,
+      "code": 0,
+      "seconds": 8.91,
+      "tail": ".............................\n----------------------------------------------------------------------\nRan 29 tests in 8.719s\n\nOK"
+    },
+    {
+      "module": "test_cloud_webdav",
+      "ok": true,
+      "code": 0,
+      "seconds": 8.73,
+      "tail": "[mem] 10MB WebDAV 流式客户端驻留增量: 0.00 MiB（进程总量 0.00 MiB）\n.s.s..............\n----------------------------------------------------------------------\nRan 18 tests in 8.451s\n\nOK (skipped=2)"
+    },
+    {
+      "module": "test_timer",
+      "ok": true,
+      "code": 0,
+      "seconds": 8.36,
+      "tail": "..............\n----------------------------------------------------------------------\nRan 14 tests in 8.119s\n\nOK"
+    },
+    {
+      "module": "test_skill_decompose",
+      "ok": true,
+      "code": 0,
+      "seconds": 6.32,
+      "tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 6.074s\n\nOK"
+    },
+    {
+      "module": "test_transport",
+      "ok": true,
+      "code": 0,
+      "seconds": 5.67,
+      "tail": "..................\n----------------------------------------------------------------------\nRan 18 tests in 5.390s\n\nOK"
+    },
+    {
+      "module": "test_deadcode",
+      "ok": true,
+      "code": 0,
+      "seconds": 3.6,
+      "tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 3.381s\n\nOK"
+    },
+    {
+      "module": "test_stub_proto",
+      "ok": true,
+      "code": 0,
+      "seconds": 2.82,
+      "tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 2.589s\n\nOK"
+    },
+    {
+      "module": "test_plat",
+      "ok": true,
+      "code": 0,
+      "seconds": 2.06,
+      "tail": ".......ss.....s....\n----------------------------------------------------------------------\nRan 19 tests in 1.867s\n\nOK (skipped=3)"
+    },
+    {
+      "module": "test_isolation_windows",
+      "ok": true,
+      "code": 0,
+      "seconds": 2.01,
+      "tail": "...................................\n----------------------------------------------------------------------\nRan 35 tests in 1.835s\n\nOK"
+    },
+    {
+      "module": "test_knowledge_concurrency",
+      "ok": true,
+      "code": 0,
+      "seconds": 2.0,
+      "tail": "..........................\n----------------------------------------------------------------------\nRan 26 tests in 1.748s\n\nOK"
+    },
+    {
+      "module": "test_archive",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.86,
+      "tail": "........................\n----------------------------------------------------------------------\nRan 24 tests in 0.648s\n\nOK"
+    },
+    {
+      "module": "test_idem",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.55,
+      "tail": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.332s\n\nOK"
+    },
+    {
+      "module": "test_docsync",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.43,
+      "tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.201s\n\nOK"
+    },
+    {
+      "module": "test_cloud_guard",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.38,
+      "tail": "....................................\n----------------------------------------------------------------------\nRan 36 tests in 0.157s\n\nOK"
+    },
+    {
+      "module": "test_isolation",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.35,
+      "tail": "....s..........\n----------------------------------------------------------------------\nRan 15 tests in 0.075s\n\nOK (skipped=1)"
+    },
+    {
+      "module": "test_role_gates",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.35,
+      "tail": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.190s\n\nOK"
+    },
+    {
+      "module": "test_security_boundaries",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.32,
+      "tail": "......................................\n----------------------------------------------------------------------\nRan 38 tests in 0.017s\n\nOK"
+    },
+    {
+      "module": "test_node_profile",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.29,
+      "tail": "............\n----------------------------------------------------------------------\nRan 12 tests in 0.035s\n\nOK"
+    },
+    {
+      "module": "test_demand_engine_routes",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.27,
+      "tail": "...............................\n----------------------------------------------------------------------\nRan 31 tests in 0.021s\n\nOK"
+    },
+    {
+      "module": "test_react_mechanisms",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.27,
+      "tail": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.113s\n\nOK"
+    },
+    {
+      "module": "test_levels",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.24,
+      "tail": "............\n----------------------------------------------------------------------\nRan 12 tests in 0.012s\n\nOK"
+    },
+    {
+      "module": "test_nodes",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.22,
+      "tail": ".................................................\n----------------------------------------------------------------------\nRan 49 tests in 0.002s\n\nOK"
+    },
+    {
+      "module": "test_isolation_tiers",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.22,
+      "tail": ".......sss\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK (skipped=3)"
+    },
+    {
+      "module": "test_graph_patterns",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.17,
+      "tail": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.001s\n\nOK"
+    },
+    {
+      "module": "test_gate_diff_coverage",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.16,
+      "tail": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK"
+    },
+    {
+      "module": "test_demand_engine",
+      "ok": true,
+      "code": 0,
+      "seconds": 0.15,
+      "tail": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.001s\n\nOK"
+    }
+  ]
+}

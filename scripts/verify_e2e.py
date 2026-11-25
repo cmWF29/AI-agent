@@ -322,11 +322,34 @@ async def scenario_ticket(pg):
         await cleanup(pg, name)
 
 
+async def scenario_ticket_multi(pg):
+    """同一工单连续两轮追问：每轮都要重新回到 idle 并产生新回复。"""
+    name = "e2e-multi-%d" % int(time.time())
+    try:
+        await create_project(pg, name)
+        await open_project(pg, name)
+        tid = await create_ticket(pg, "E2E 多轮工单",
+                                  "验证同一工单连续两轮追问都能收口，不串轮、不丢消息")
+        if not tid:
+            raise AssertionError("建单后地址里没有 ticket 参数")
+        b1, a1 = await send_and_wait(pg, tid, "第一轮：给出两条验收要点")
+        b2, a2 = await send_and_wait(pg, tid, "第二轮：在上一轮基础上补一条风险")
+        if not (a2["n"] > a1["n"] > b1):
+            raise AssertionError("两轮消息数未单调增长: %s -> %s -> %s" % (b1, a1, a2))
+        closed, ui = await close_ticket(pg, tid)
+        await archive_project(pg, name)
+        await delete_project_ui(pg, name)
+        return {"name": name, "ticket": tid, "rounds": 2,
+                "messages": [b1, a1["n"], b2, a2["n"]], "closed": closed, "ui": ui}
+    finally:
+        await cleanup(pg, name)
+
+
 async def main() -> int:
     global BASE
     ap = argparse.ArgumentParser()
     ap.add_argument("base", nargs="?", default=BASE)
-    ap.add_argument("--scenario", choices=("project", "ticket", "all"), default="all")
+    ap.add_argument("--scenario", choices=("project", "ticket", "ticket-multi", "all"), default="all")
     args = ap.parse_args()
     BASE = args.base.rstrip("/")
     async with async_playwright() as p:
@@ -345,6 +368,10 @@ async def main() -> int:
                       "（消息 %s→%s，会话成员 %s）"
                       % (out["name"], out["ticket"], out["before"], out["after"]["n"],
                          out["after"]["roles"]))
+            if args.scenario in ("ticket-multi", "all"):
+                out = await scenario_ticket_multi(pg)
+                print("  OK  多轮工单 E2E：两轮追问→逐轮收口→结单→归档→删除 %s %s（消息 %s）"
+                      % (out["name"], out["ticket"], out["messages"]))
             if errs:
                 print("  FAIL 页面 JS 异常: %s" % errs)
                 return 1

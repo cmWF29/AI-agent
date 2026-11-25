@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_common/store/private/_files.py
-hash: d64e2a2355154608746bb0868b3fcfded5deba984c317fc46ef60fdebb4245ba
+hash: 1929c58aa790c404982a9a2311aae6ff2fff2642d9e40d60da2dbe8a89fd51fa
 symbols:
+- replace_file
 - ensure_dir
 - write_text_atomic
 - write_bytes_atomic
@@ -27,6 +28,12 @@ updated_at: '2026-11-23T04:10:22'
 纯函数文件工具。
 
 ## 符号
+
+### `replace_file`（function）
+- 职责: 原子改名；Windows 上杀软/读句柄短暂占用目标时退避重试，不把并发放大成写失败。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `ensure_dir`（function）
 - 职责: （无 docstring）

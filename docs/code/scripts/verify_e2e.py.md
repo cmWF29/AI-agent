@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_e2e.py
-hash: c32d683637a3e1086a93b3f9e1eb4b4af5da3d67591266315271f1442ffdcaf3
+hash: 84a1a0e5059df5b0a3935e1ae78e84b88ca19d3c027d81c80bad0fec8b04d2fc
 symbols:
 - new_page
 - open_projects
@@ -18,6 +18,7 @@ symbols:
 - cleanup
 - scenario_project
 - scenario_ticket
+- scenario_ticket_multi
 - main
 generated: gen_docs.py v1
 updated_at: '2026-11-24T12:48:33'
@@ -126,6 +127,12 @@ updated_at: '2026-11-24T12:48:33'
 
 ### `scenario_ticket`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_ticket_multi`（function）
+- 职责: 同一工单连续两轮追问：每轮都要重新回到 idle 并产生新回复。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

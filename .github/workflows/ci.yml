@@ -42,11 +42,11 @@ jobs:
         run: python3 scripts/gate_demand_tests.py
       - name: 接线门禁（表单提交→需求 with→API 入参逐项贯通）
         run: python3 scripts/gate_wiring.py
-      - name: 需求/架构/装配/传输/幂等/桩协议全量用例（coverage）
-        working-directory: ai_new/modules/agent_test/private
+      - name: 需求/架构/装配/传输/幂等/桩协议全量用例（并行分片 + coverage）
         run: |
           set -o pipefail
-          python3 -m coverage run --rcfile="$GITHUB_WORKSPACE/scripts/coverage.ini" --branch --data-file=/tmp/hive.coverage --source="$GITHUB_WORKSPACE/ai_new/modules" -m unittest test_core test_architecture test_demands test_demand_engine test_boot_graph test_transport test_idem test_stub_proto test_graph_patterns test_isolation test_knowledge_concurrency test_node_profile test_nodes test_distributed test_isolation_tiers test_archive test_secretary test_timer test_role_gates test_skill_decompose test_plat test_isolation_windows test_cloud test_cloud_guard test_cloud_seal test_cloud_sync test_cloud_s3 test_cloud_webdav test_react_mechanisms test_gate_diff_coverage test_security_boundaries 2>&1 | tee /tmp/full-tests.log
+          python3 scripts/run_tests.py --jobs 2 --coverage \
+            --coverage-dir /tmp/hivecov --coverage-out /tmp/coverage.json 2>&1 | tee /tmp/full-tests.log
       - name: 失败测试名（注解可见，不必登录下载日志）
         if: failure()
         run: |
@@ -54,11 +54,13 @@ jobs:
             awk '/^(FAIL|ERROR):/{flag=1} flag{print; if(++n>=12) exit}' /tmp/full-tests.log               | sed 's/%/%25/g; s/\r//g'               | while IFS= read -r line; do echo "::error::$line"; done
           fi
       - name: 覆盖率门禁（行/分支/关键机制模块）
-        run: python3 scripts/gate_coverage.py --data-file /tmp/hive.coverage
+        run: python3 scripts/gate_coverage.py --data-file /tmp/hivecov/.coverage
+      - name: Skip 门禁（只允许登记过的平台/外部依赖跳过）
+        run: python3 scripts/gate_skips.py
       - name: 改动行覆盖率门禁（新增/修改产品代码 ≥90%）
         env:
           GITHUB_BASE_SHA: ${{ github.event.before }}
-        run: python3 scripts/gate_diff_coverage.py --data-file /tmp/hive.coverage
+        run: python3 scripts/gate_diff_coverage.py --data-file /tmp/hivecov/.coverage
       - name: 全量用例失败日志
         if: failure()
         uses: actions/upload-artifact@v4
@@ -91,10 +93,25 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/verify_e2e.py --scenario ticket 2>&1 | tee /tmp/e2e-ticket.log
+      - name: E2E 多轮工单（两轮追问→逐轮收口→结单→归档）
+        run: |
+          set -o pipefail
+          python3 scripts/verify_e2e.py --scenario ticket-multi 2>&1 | tee /tmp/e2e-multi.log
+      - name: HTTP 黑盒业务 E2E（改名/知识版本/检索/备注/定时器/租约/岗位会话/云端/边界/并发）
+        run: |
+          set -o pipefail
+          python3 scripts/verify_api_e2e.py --scenario all 2>&1 | tee /tmp/e2e-api.log
+      - name: HTTP 性能门禁（真实网络 + 并发 + 突发 + p95/p99/错误率/RPS）
+        run: |
+          set -o pipefail
+          python3 scripts/perf_http.py --levels 2,4 --duration 6 --warmup 1 \
+            --burst 8 --burst-reqs 2 \
+            --min-rps 5 --max-p95-ms 1200 --max-p99-ms 2500 \
+            --max-error-rate 0.01 2>&1 | tee /tmp/perf-http.log
       - name: E2E 失败原因（注解可见）
         if: failure()
         run: |
-          for f in /tmp/e2e-project.log /tmp/e2e-ticket.log; do
+          for f in /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-api.log /tmp/perf-http.log; do
             [ -f "$f" ] && tail -n 4 "$f" | sed 's/%/%25/g; s/\r//g' | while IFS= read -r line; do echo "::error::$line"; done
           done
       - name: 全页可达 + 全表单可开
@@ -139,3 +156,9 @@ jobs:
         timeout-minutes: 8
         working-directory: ai_new/modules/agent_test/private
         run: python -m unittest test_core -v
+      - name: 全量用例（Windows 真机 36 模块，并行分片）
+        timeout-minutes: 25
+        run: python scripts/run_tests.py --jobs 2
+      - name: Skip 门禁（Windows 平台允许集）
+        timeout-minutes: 8
+        run: python scripts/gate_skips.py

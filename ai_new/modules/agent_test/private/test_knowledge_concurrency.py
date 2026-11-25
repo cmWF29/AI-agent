@@ -111,10 +111,11 @@ class PathValidationTest(unittest.TestCase):
         root_real.mkdir(parents=True, exist_ok=True)
         outside = Path(tempfile.mkdtemp(prefix="koutside-"))
         link = root_real / "link.md"
-        try:
+        if os.name == "nt":
+            subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(outside)],
+                           check=True, capture_output=True)
+        else:
             link.symlink_to(outside)
-        except OSError:
-            self.skipTest("当前环境不支持创建符号链接")
         out = _docpath.resolve(MODULE, "link.md")
         self.assertFalse(out["ok"])
         self.assertEqual(out["code"], "escape")

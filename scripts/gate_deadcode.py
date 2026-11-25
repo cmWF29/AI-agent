@@ -117,7 +117,8 @@ def scan(root: Path | None = None, py_sources: dict[str, str] | None = None,
 
     orphan_routes = sorted(set(py["api_routes"]) - referenced_routes)
     orphan_tools = []
-    for t in sorted(set(py["tool_names"])):
+    # 只看生产代码的注册点：测试里临时注册的桩工具不属于产品工具面。
+    for t in sorted(set(tool_files)):
         if t in tools_names or t in session_tool_names or t in demands:
             continue
         files = tool_string_files.get(t, set()) - tool_files.get(t, set())

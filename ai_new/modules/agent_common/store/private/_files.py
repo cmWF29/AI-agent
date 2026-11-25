@@ -4,7 +4,22 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+import time
 from pathlib import Path
+
+
+def replace_file(src, dst, attempts=8):
+    """原子改名；Windows 上杀软/读句柄短暂占用目标时退避重试，不把并发放大成写失败。"""
+    delay = 0.005
+    for i in range(attempts):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if os.name != "nt" or i + 1 >= attempts:
+                raise
+            time.sleep(delay)
+            delay = min(delay * 2, 0.2)
 
 
 def ensure_dir(path):
@@ -20,7 +35,7 @@ def write_text_atomic(path, text):
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
-        os.replace(tmp, p)
+        replace_file(tmp, p)
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
@@ -35,7 +50,7 @@ def write_bytes_atomic(path, data):
     try:
         with os.fdopen(fd, 'wb') as f:
             f.write(data)
-        os.replace(tmp, p)
+        replace_file(tmp, p)
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
@@ -67,27 +82,27 @@ def write_bytes(path, data):
     return p
 
 
-def append_text_atomic(path, text):
-    """追加写走「读全量 → 临时文件 → 原子改名」：不留半截文件。
-
-    这只防半截落盘，不替代互斥锁；并发写同一文档的临界区要由调用方经
-    文档级锁包住。
-    """
-    p = Path(path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    existing = p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
-    fd, tmp = tempfile.mkstemp(dir=str(p.parent), suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(existing)
-            f.write(text)
-        os.replace(tmp, p)
-    finally:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-    return p
-
-
+def append_text_atomic(path, text):
+    """追加写走「读全量 → 临时文件 → 原子改名」：不留半截文件。
+
+    这只防半截落盘，不替代互斥锁；并发写同一文档的临界区要由调用方经
+    文档级锁包住。
+    """
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    existing = p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
+    fd, tmp = tempfile.mkstemp(dir=str(p.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(existing)
+            f.write(text)
+        replace_file(tmp, p)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    return p
+
+
 def remove_tree(path):
     import shutil
     shutil.rmtree(str(path), ignore_errors=True)

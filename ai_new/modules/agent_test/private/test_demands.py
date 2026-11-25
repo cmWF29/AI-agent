@@ -8,6 +8,7 @@
 - 所以规则是双向闭合的：**没有用例的需求不许上线，没有需求可测的用例也不许存在**。
 """
 import yaml
+import functools
 import sys
 import unittest
 from pathlib import Path
@@ -26,6 +27,7 @@ def demand_files():
     return sorted(DEMANDS.glob("*.yaml"))
 
 
+@functools.lru_cache(maxsize=1)
 def load_all():
     return [yaml.safe_load(p.read_text(encoding="utf-8")) for p in demand_files()]
 

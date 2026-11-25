@@ -118,8 +118,12 @@ class SealTest(unittest.TestCase):
         self.assertFalse(key_file.exists())
         blob = _seal.seal(self.ctx, "tok-file-key", "p-a", "stub")
         self.assertTrue(key_file.exists())
-        mode = stat.S_IMODE(key_file.stat().st_mode)
-        self.assertEqual(mode, 0o600)
+        if os.name != "nt":
+            mode = stat.S_IMODE(key_file.stat().st_mode)
+            self.assertEqual(mode, 0o600)
+        else:
+            # Windows 不暴露 POSIX mode；密钥文件必须真实落盘且可被同一服务读回。
+            self.assertTrue(key_file.is_file())
         # 再次加载同一文件密钥可解封。
         self.assertEqual(_seal.open_sealed(self.ctx, blob, "p-a", "stub"),
                          "tok-file-key")

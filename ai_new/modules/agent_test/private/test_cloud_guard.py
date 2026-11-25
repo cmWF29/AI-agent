@@ -4,6 +4,7 @@
 """
 import os
 import sys
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -139,10 +140,18 @@ class SymlinkEscapeTest(unittest.TestCase):
         self.root = Path(self.tmp.name)
         (self.root / "real").mkdir()
         (self.root / "real" / "note.md").write_text("ok", encoding="utf-8")
+        self.outside = Path(tempfile.mkdtemp(prefix="outside-"))
         self.link = self.root / "link"
-        os.symlink("/etc", str(self.link))
+        if os.name == "nt":
+            # Windows 普通用户建 symlink 需要特权；目录 junction 不需要。
+            subprocess.run(["cmd", "/c", "mklink", "/J", str(self.link), str(self.outside)],
+                           check=True, capture_output=True)
+        else:
+            os.symlink(str(self.outside), str(self.link))
 
     def tearDown(self):
+        if os.name == "nt" and self.link.exists():
+            os.rmdir(self.link)
         self.tmp.cleanup()
 
     def test_symlink_escape_rejected(self):

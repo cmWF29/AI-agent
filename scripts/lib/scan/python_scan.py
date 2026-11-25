@@ -42,7 +42,7 @@ def parse_python(path: Path, src: str) -> dict:
     defs, refs, imports = [], set(), []
     bindings, api_routes, tool_names = [], [], []
     call_routes, getattr_names, strings = [], [], []
-    in_test = "/agent_test/" in str(path)
+    in_test = "/agent_test/" in str(path).replace("\\", "/")
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
