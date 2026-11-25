@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T00:04:46",
-  "total": 557,
+  "generated": "2026-11-26T00:06:56",
+  "total": 558,
   "groups": [
     {
       "label": "agent",
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 69,
+      "count": 70,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4220,6 +4220,15 @@
           "hash": "01925d3ef874b487e53343079f45bcd92a7f858d9fd0d85adfddc2881a1997be",
           "symbols": 7,
           "updated_at": "2026-11-23T04:19:50"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_exec_runner.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_exec_runner.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "0811e3542e0e46160bb3ddd59ffebd369fad29603b899fa65474800032b9ddd3",
+          "symbols": 22,
+          "updated_at": "2026-11-26T00:06:37"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_gate_diff_coverage.py",
@@ -4898,7 +4907,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "c36d0e52971ce0026d920723d776bea104589e78381b5aa5e99cca59632967b9",
+          "hash": "af8d767b22675376fd6c8b6b549201f83d007e5d3fe15c7cf3951d948806b093",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },
