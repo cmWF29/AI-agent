@@ -81,5 +81,30 @@ class IdemEdgeTest(unittest.TestCase):
             self.assertEqual(out["expired"], ["j", "k"])
 
 
+    def test_sweep_mark_skips_when_reread_not_live(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "aa").mkdir(parents=True, exist_ok=True)
+            (root / "aa" / "m.json").write_text(json.dumps(
+                {"key": "m", "status": "running", "lease_until": 0}))
+            calls = {"n": 0}
+
+            def read(path):
+                calls["n"] += 1
+                if calls["n"] == 1:
+                    return {"key": "m", "status": "running", "lease_until": 0}
+                return {"key": "m", "status": "done", "lease_until": 0}
+
+            with mock.patch.object(idem, "_bucket_dir", return_value=root):
+                with mock.patch.object(idem, "_read", side_effect=read):
+                    with mock.patch.object(idem, "_lock",
+                                           return_value=(mock.Mock(), mock.Mock())):
+                        with mock.patch.object(idem, "_write"):
+                            out = idem._route_sweep(Ctx(), {"module": "m", "bucket": "b",
+                                                            "mark": True})
+            self.assertEqual(out["expired"], ["m"])
+            self.assertEqual(out["marked"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

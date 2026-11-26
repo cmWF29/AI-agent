@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent_test/private/test_idem_edges.py
-hash: ad6363e6a95944f1cf7c6697f535e410d15b56ebda027e6e2950d438464b6638
+hash: 9f1520761377b60744a412bf947f03579776a44a99501fcf37059aaa7b23e52c
 symbols:
 - test_helpers
 - test_renew_and_settle_edges
 - test_register
 - test_sweep_edges
+- test_sweep_mark_skips_when_reread_not_live
 generated: gen_docs.py v1
 updated_at: '2026-11-26T02:57:09'
 ---
@@ -40,6 +41,12 @@ updated_at: '2026-11-26T02:57:09'
 - 关联需求/测试: 待人工补充
 
 ### `test_sweep_edges`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_sweep_mark_skips_when_reread_not_live`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

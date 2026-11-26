@@ -503,5 +503,23 @@ class ConfigArchiveTest(unittest.TestCase):
             self.assertIn("zstd", archive.available_algorithms())
 
 
+class ConfigPackageTest(unittest.TestCase):
+    def test_package_wrappers(self):
+        from unittest import mock
+        from ai_new.modules.agent_common import config as pkg
+        from ai_new.modules.agent_common.config.private import _loader
+        ctx = mock.Mock()
+        ctx.cfg = None
+        with mock.patch.object(_loader, "_read", return_value={}):
+            with mock.patch.object(_loader, "_write"):
+                pkg.setup(ctx)
+                self.assertEqual(ctx.cfg["server"], {})
+                self.assertEqual(pkg.get(ctx, "server", {}), {})
+                pkg.set_value(ctx, "a.b", 1)
+                self.assertEqual(pkg.get(ctx, "a.b"), 1)
+                ctx.cfg["server"]["token"] = "t"
+                self.assertEqual(pkg.redacted(ctx)["server"]["token"], "<redacted>")
+
+
 if __name__ == "__main__":
     unittest.main()

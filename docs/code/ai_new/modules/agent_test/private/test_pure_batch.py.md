@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_pure_batch.py
-hash: d26820ad8b3f1edc8495f4446a5147171ccbdc275750d6a4b51c9a3385308d37
+hash: b058371e4a78d35479cf39d59a4b9828a08f224672e0f248ce1f8be73d06b61e
 symbols:
 - test_assemble
 - test_records
@@ -24,6 +24,7 @@ symbols:
 - test_guards
 - test_config
 - test_archive
+- test_package_wrappers
 generated: gen_docs.py v1
 updated_at: '2026-11-26T02:51:40'
 ---
@@ -166,6 +167,12 @@ updated_at: '2026-11-26T02:51:40'
 - 关联需求/测试: 待人工补充
 
 ### `test_archive`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_package_wrappers`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
