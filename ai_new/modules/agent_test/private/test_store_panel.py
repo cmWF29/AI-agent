@@ -89,6 +89,10 @@ class PanelTest(unittest.TestCase):
 
     def test_setup_and_helpers(self):
         self.assertTrue(any(n == "store.cas" for n, _ in self.ctx.registered))
+        other = Ctx(self.root / "preset")
+        other.data_root = self.root / "preset" / "dri"
+        _panel.setup(other)
+        self.assertEqual(other.data_root, self.root / "preset" / "dri")
         self.assertEqual(self.ctx.storage.safe_id("a b"), "a-b")
         self.assertEqual(self.ctx.storage.now_iso(), "T")
         self.assertEqual(self.ctx.storage.next_seq("b", 3), 4)

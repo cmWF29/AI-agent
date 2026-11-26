@@ -121,9 +121,13 @@ def _checkpoint(ctx, session, path, messages, summary, steps):
         return
     try:
         now = ctx.api.call("clock.now", {}, caller=None)
+        # 轮内人可能又发了消息：先读盘上最新记录，让检查点把这些追加保住，
+        # 否则整段覆盖会把「运行中插入的人类发言」抹掉。
+        latest = ctx.api.call("store.read", {
+            "module": "agent/logs", "path": path}, caller=None).get("value")
         ckpt = ctx.api.call("react.checkpoint", {
             "rec": session, "messages": messages, "summary": summary,
-            "steps": steps, "now": now.get("ts")}, caller=None)
+            "steps": steps, "now": now.get("ts"), "latest": latest}, caller=None)
         ctx.runtime.apply({"effect": {"kind": "write", "module": "agent/logs",
                                       "path": path, "value": ckpt}})
     except Exception:  # noqa: BLE001 —— 检查点失败不中断本轮，收尾仍会整段写盘

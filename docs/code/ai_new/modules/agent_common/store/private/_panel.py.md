@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/store/private/_panel.py
-hash: 4f23d34b2e9144f3f28fa3268b3afc11197753ca3adc6c4e578df3860b4621fb
+hash: 6c66347a8f893c961a010b074fd86cccfecffcaeb622fab037907d84f0a8b5c6
 symbols:
 - module_dir
 - modules_root

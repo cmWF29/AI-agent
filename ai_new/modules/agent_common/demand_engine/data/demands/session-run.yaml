@@ -121,10 +121,20 @@ do:
   as: assg_msgs
 - call: clock.now
   as: now
+# 取完快照到标 running 之间可能有人插话：标 running 前再读一次盘，把新追加的接上
+- call: store.read
+  with:
+    module:
+      lit: agent/logs
+    path:
+      get: sp1.path
+  as: fresh
 - call: sessions.mark
   with:
     rec:
       get: row.value
+    latest:
+      get: fresh.value
     status:
       lit: running
     now:
@@ -285,6 +295,7 @@ expect:
   - store.read
   - sessions.inject_assigned_message
   - clock.now
+  - store.read
   - sessions.mark
   - sessions.record_path
   - store.write

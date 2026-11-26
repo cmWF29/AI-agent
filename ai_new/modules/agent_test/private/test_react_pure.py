@@ -273,3 +273,44 @@ class SummarizeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CheckpointKeepAppendedTest(unittest.TestCase):
+    """轮内检查点：把「快照之后人插进来的发言」接住，不整段抹掉。"""
+
+    def _base(self):
+        return [{"role": "system", "content": "s"}, {"role": "user", "content": "开工"}]
+
+    def test_no_latest_keeps_messages(self):
+        base = self._base()
+        got = _pure.checkpoint({"rec": {"messages": base}, "messages": base})
+        self.assertEqual(got["messages"], base)
+
+    def test_appended_message_is_kept(self):
+        base = self._base()
+        run = base + [{"role": "assistant", "content": "做完"}]
+        latest = {"messages": base + [{"role": "user", "content": "再补一句"}]}
+        got = _pure.checkpoint({"rec": {"messages": base}, "messages": run, "latest": latest})
+        self.assertEqual(got["messages"][-2:], [{"role": "assistant", "content": "做完"},
+                                                {"role": "user", "content": "再补一句"}])
+
+    def test_own_checkpoint_message_not_duplicated(self):
+        base = self._base()
+        run = base + [{"role": "assistant", "content": "做完"}]
+        latest = {"messages": base + [{"role": "assistant", "content": "做完"}]}
+        got = _pure.checkpoint({"rec": {"messages": base}, "messages": run, "latest": latest})
+        self.assertEqual(len(got["messages"]), 3)
+
+    def test_tail_dropped_by_rebuild_is_restored(self):
+        base = self._base() + [{"role": "user", "content": "插话"}]
+        run = self._base() + [{"role": "assistant", "content": "做完"}]
+        got = _pure.checkpoint({"rec": {"messages": base}, "messages": run})
+        self.assertEqual(got["messages"][-2:], [{"role": "user", "content": "插话"},
+                                                {"role": "assistant", "content": "做完"}])
+
+    def test_shorter_latest_keeps_messages(self):
+        base = self._base()
+        run = base + [{"role": "assistant", "content": "做完"}]
+        got = _pure.checkpoint({"rec": {"messages": base}, "messages": run,
+                                "latest": {"messages": base[:1]}})
+        self.assertEqual(got["messages"], run)

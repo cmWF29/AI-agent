@@ -107,6 +107,51 @@ def context_view(p):
     return {"messages": view}
 
 
+def _sig(m):
+    """消息同一条判据：只比角色与正文，时间/序号变化不算另起一条。"""
+    m = m or {}
+    return (m.get("role"), str(m.get("content") or ""))
+
+
+def _merge_tail(base, msgs):
+    """把「快照尾部有、本轮消息里丢了」的条目按原位补回去。
+
+    本轮可能是从更早的入参重建消息的：重建时快照末尾新追加的条目就被落下了。
+    只补公共前缀之后的尾部，前缀之前的压缩结果不动。
+    """
+    base = list(base or [])
+    msgs = list(msgs or [])
+    prefix = 0
+    while prefix < len(base) and prefix < len(msgs) \
+            and _sig(base[prefix]) == _sig(msgs[prefix]):
+        prefix += 1
+    seen = {_sig(m) for m in msgs}
+    # 只补对话条目：system 每轮都会重刷，把旧的那条搬回来就变成两份人设
+    tail = [m for m in base[prefix:]
+            if _sig(m) not in seen and (m or {}).get("role") != "system"]
+    return msgs[:prefix] + tail + msgs[prefix:] if tail else msgs
+
+
+def _keep_appended(snap, msgs, latest):
+    """检查点写盘前保住「本轮快照之后才追加的人类消息」。
+
+    本轮跑着的时候人还能往会话里发话：那条消息落在磁盘记录里，不在本轮快照里。
+    检查点若整段覆盖，就把人刚说的话抹掉。这里把盘上新追加的、又不是本轮自己产出的
+    消息接在后面；本轮自己写过的检查点消息按签名抵扣，避免重复落库。
+    """
+    base = list((snap or {}).get("messages") or [])
+    msgs = list(msgs or [])
+    fresh = list((latest or {}).get("messages") or [])
+    extra = fresh[len(base):] if len(fresh) > len(base) else []
+    for run_msg in msgs[len(base):]:
+        sig = _sig(run_msg)
+        for i, extra_msg in enumerate(extra):
+            if _sig(extra_msg) == sig:
+                del extra[i]
+                break
+    return msgs + extra if extra else msgs
+
+
 def checkpoint(p):
     """轮内检查点成形：在会话快照上覆盖本轮累积消息/摘要/步数与时间，供中间落盘。
 
@@ -116,6 +161,8 @@ def checkpoint(p):
     rec = dict(p.get("rec") or {})
     msgs = p.get("messages")
     if msgs is not None:
+        msgs = _merge_tail((p.get("rec") or {}).get("messages"), msgs)
+        msgs = _keep_appended(p.get("rec"), msgs, p.get("latest"))
         rec["messages"] = list(msgs)
     if p.get("summary") is not None:
         rec["summary"] = p.get("summary") or ""

@@ -53,6 +53,26 @@ class RunPureTest(unittest.TestCase):
                          "out": {"failed": {"error": ""}}, "no_reply_text": "none"})
         self.assertEqual(out["result"]["summary"], "non")
 
+    def test_mark_keeps_later_messages(self):
+        rec = {"messages": [{"role": "user", "content": "a"}], "status": "idle"}
+        got = rp.mark({"rec": rec, "latest": {"messages": rec["messages"] +
+                                              [{"role": "user", "content": "插话"}]}})
+        self.assertEqual([m["content"] for m in got["messages"]], ["a", "插话"])
+        self.assertEqual(rp.mark({"rec": rec, "latest": {"messages": rec["messages"]}})
+                         ["messages"], rec["messages"])
+        self.assertEqual(rp.mark({"rec": rec, "latest": {"messages": []}})["messages"],
+                         rec["messages"])
+
+    def test_finish_restores_tail_dropped_by_rebuild(self):
+        base = [{"role": "user", "content": "a"}, {"role": "user", "content": "插话"}]
+        out = rp.finish({"rec": {"messages": base}, "result_chars": 9, "now": "n",
+                         "out": {"messages": [{"role": "user", "content": "a"},
+                                              {"role": "assistant", "content": "ok"}]},
+                         "latest": {"messages": [{"role": "user", "content": "a"},
+                                                 {"role": "assistant", "content": "ok"}]}})
+        self.assertEqual([m["content"] for m in out["messages"]],
+                         ["a", "插话", "ok"])
+
     def test_finish_extra_no_match(self):
         base = [{"role": "user", "content": "a"}]
         out = rp.finish({"rec": {"messages": base}, "result_chars": 9, "now": "n",

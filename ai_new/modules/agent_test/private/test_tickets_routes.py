@@ -443,3 +443,17 @@ class RebindStallTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CollectSessionIdsTest(unittest.TestCase):
+    """结单回收名单：登记 ∪ 目录兜底，别的工单/空 id 不算本单。"""
+
+    def test_collects_registered_and_matched_rows_only(self):
+        from ai_new.modules.agent.tickets.private import _pure as pure
+        rec = {"id": "T-1", "pm": "pm-1",
+               "roles": [{"session": "role-1"}, {"session": ""}, {}]}
+        rows = [{"id": "role-2", "ticket": "T-1"},     # 登记漏挂的异常会话
+                {"id": "role-9", "ticket": "T-2"},     # 别的工单
+                {"id": "pm-1", "ticket": "T-1"}]       # 已登记，不重复
+        got = pure.collect_session_ids({"rec": rec, "rows": rows})
+        self.assertEqual(got["sids"], ["pm-1", "role-1", "role-2"])

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_tickets_routes.py
-hash: 30207b5633760d44aeffec4f871f521d228fe2e9ee2819c87b93050f80909960
+hash: 76d3deba6785f253b237d2bb096b90a0a0fc00a6d8d1b49809daa189069c0106
 symbols:
 - __init__
 - __init__
@@ -33,6 +33,7 @@ symbols:
 - setUp
 - test_rebind_validation_and_rows
 - test_stall_scan_disabled_and_audit
+- test_collects_registered_and_matched_rows_only
 generated: gen_docs.py v1
 updated_at: '2026-11-25T23:05:42'
 ---
@@ -229,6 +230,12 @@ updated_at: '2026-11-25T23:05:42'
 - 关联需求/测试: 待人工补充
 
 ### `test_stall_scan_disabled_and_audit`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_collects_registered_and_matched_rows_only`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -49,7 +49,9 @@ def _tracked_data():
     for line in (out.stdout or "").splitlines():
         if "/data/" not in line or not line.startswith(base):
             continue
-        rows.append(line[len(base):])
+        # 暂存根就是"数据根"，布局里没有 data 这一层：把相对路径的 /data/ 段去掉，
+        # 才能和 stage 出来 dest 里的相对路径对上（否则剔除永远空转）。
+        rows.append(line[len(base):].replace("/data/", "/", 1))
     return rows or None
 
 
@@ -71,7 +73,7 @@ def _prune_untracked_runtime(dest):
         for fn in fns:
             path = Path(dp) / fn
             rel = str(path.relative_to(dest))
-            if "/data/" in rel and rel not in keep:
+            if rel not in keep:
                 try:
                     path.unlink()
                 except OSError:

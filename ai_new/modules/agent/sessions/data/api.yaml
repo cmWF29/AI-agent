@@ -258,6 +258,9 @@ routes:
         req: false
   sessions.mark:
     in:
+      latest:
+        type: any
+        req: false
       now:
         type: any
         req: false

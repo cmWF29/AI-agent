@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_react_pure.py
-hash: 96bbff5c84b69860211faa5e5875e7bffa35710b94652ec8da19d24ee4a7fa93
+hash: 26a33b8dd9ea9b106da0ea9d02cd7a7fb65c94effd031517633c38fc8de79753
 symbols:
 - test_list_type_becomes_array_with_items
 - test_no_tools_yields_empty_object
@@ -49,6 +49,12 @@ symbols:
 - test_no_turns_returns_base
 - test_fallback_compresses_turns
 - test_base_merged_then_truncated
+- _base
+- test_no_latest_keeps_messages
+- test_appended_message_is_kept
+- test_own_checkpoint_message_not_duplicated
+- test_tail_dropped_by_rebuild_is_restored
+- test_shorter_latest_keeps_messages
 generated: gen_docs.py v1
 updated_at: '2026-11-26T09:53:21'
 ---
@@ -341,6 +347,42 @@ ReAct 纯函数单测：形状成形、上下文治理、收口解析与摘要�
 - 关联需求/测试: 待人工补充
 
 ### `test_base_merged_then_truncated`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_base`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_no_latest_keeps_messages`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_appended_message_is_kept`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_own_checkpoint_message_not_duplicated`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_tail_dropped_by_rebuild_is_restored`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_shorter_latest_keeps_messages`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

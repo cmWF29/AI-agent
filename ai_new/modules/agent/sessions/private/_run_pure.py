@@ -37,8 +37,38 @@ def _retrospect_enabled(p):
     return bool(p.get("retrospect_default"))
 
 
+def _sig(m):
+    m = m or {}
+    return (m.get("role"), str(m.get("content") or ""))
+
+
+def _merge_tail(base, msgs):
+    """快照尾部有、本轮消息里丢了的条目按原位补回；公共前缀之前的压缩结果不动。"""
+    base = list(base or [])
+    msgs = list(msgs or [])
+    prefix = 0
+    while prefix < len(base) and prefix < len(msgs) \
+            and _sig(base[prefix]) == _sig(msgs[prefix]):
+        prefix += 1
+    seen = {_sig(m) for m in msgs}
+    # 只补对话条目：system 每轮重刷，补回来会变成两份人设
+    tail = [m for m in base[prefix:]
+            if _sig(m) not in seen and (m or {}).get("role") != "system"]
+    return msgs[:prefix] + tail + msgs[prefix:] if tail else msgs
+
+
+def _with_later(msgs, latest):
+    """盘上比快照多出来的尾部消息：本会话跑着的时候人插进来的发言，必须接着带上。"""
+    msgs = list(msgs or [])
+    fresh = list((latest or {}).get("messages") or [])
+    extra = fresh[len(msgs):] if len(fresh) > len(msgs) else []
+    return msgs + extra if extra else msgs
+
+
 def mark(p):
     rec = dict(p.get("rec") or {})
+    # 取快照到标 running 之间，人可能又发了一条：写 running 前先接上，不能覆盖掉。
+    rec["messages"] = _with_later(rec.get("messages"), p.get("latest"))
     rec["status"] = p.get("status") or "running"
     rec["updated"] = p.get("now") or ""
     return rec
@@ -58,6 +88,8 @@ def finish(p):
     out = p.get("out") or {}
     base = list(rec.get("messages") or [])
     msgs = list(out.get("messages") or base)
+    # 本轮若从更早的入参重建消息，快照尾部（运行中插进来的话）会被落下，先补回去
+    msgs = _merge_tail(base, msgs)
     # 运行期间用户又发了消息：它们在 latest 里，不在本轮快照里，必须接在后面，否则被覆盖丢失。
     # 但轮内检查点也会把本轮 assistant/tool 消息写进 latest；先把 out 已包含的本轮消息
     # 从 latest 尾部一一抵扣，只留下真正新插进来的消息，避免每轮整段消息重复落库。

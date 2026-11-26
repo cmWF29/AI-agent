@@ -168,6 +168,8 @@ def _disk_checks(rec, boot, project, ticket, marker):
         seen = ticket in index.read_text(encoding="utf-8")
         rec.check("落盘·日志索引登记本单", seen,
                   "索引%s %s" % ("含" if seen else "缺", ticket))
+    # 事件队列文件是运行时日志的落脚点：有文件即可（队列会被消费清空，不判内容）
+    rec.check("落盘·事件队列文件", (root / "agent/logs/hook-queue.yaml").is_file())
     kn = root / ("agent/knowledge/public/%s.md" % marker)
     rec.check("落盘·知识正文", kn.is_file(), str(kn))
     if kn.is_file():
@@ -231,12 +233,12 @@ def _persist_and_restart(rec):
             rec.check("恢复·工单还在", (got.get("ticket") or got).get("id") == ticket, str(got)[:200])
             after_msgs = _messages(c2, ticket)
             after = len(after_msgs)
-            after_sig = [(m.get("role"), m.get("session"), m.get("content")) for m in after_msgs]
-            # 重启期间会话续跑可能补一条系统消息，因此判「原有消息逐条还在且不减」，
-            # 而不是拿总条数卡死相等。
-            kept = after_sig[:len(before_sig)] == before_sig and after >= before
-            rec.check("恢复·历史 thread 不丢", kept,
-                      "原 %d 条%s，总 %d 条" % (before, "都在" if kept else "有缺失", after))
+            # 会话有逐轮压缩，重启还可能补一条系统消息：判「条数不减 + 本轮原文仍读得到」，
+            # 不拿压缩前的逐条前缀卡死（那会把压缩当丢历史）。
+            kept = after >= before and any(
+                marker in str(m.get("content") or "") for m in after_msgs)
+            rec.check("恢复·历史对话不丢", kept,
+                      "条数 %d→%d，本轮原文%s" % (before, after, "在读" if kept else "读不到"))
             row = _timer_row(c2, timer.get("id"))
             rec.check("恢复·定时器还在", row is not None and row.get("status") == "active", str(row)[:200])
             kn = _call(c2, "knowledge-read", {"layer": "public", "name": marker})

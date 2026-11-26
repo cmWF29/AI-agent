@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/react/private/_pure.py
-hash: 053f66c2d8ee82ac4447a555b2686e4e5f73d0e66d2b868cad9b5fb53dbc431b
+hash: 26e9d0b96bef77bf0b0a8cc9197f0fb6abed0db9dc070cd61f8490b983087ce6
 symbols:
 - schema
 - schemas
@@ -12,6 +12,9 @@ symbols:
 - result
 - summary_msg
 - context_view
+- _sig
+- _merge_tail
+- _keep_appended
 - checkpoint
 - classify_tool
 - strip_fence
@@ -91,6 +94,24 @@ ReAct 纯函数：把响应切成消息、把工具定义切成模型能吃的�
 
 ### `context_view`（function）
 - 职责: 构造发往上游的上下文视图。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_sig`（function）
+- 职责: 消息同一条判据：只比角色与正文，时间/序号变化不算另起一条。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_merge_tail`（function）
+- 职责: 把「快照尾部有、本轮消息里丢了」的条目按原位补回去。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_keep_appended`（function）
+- 职责: 检查点写盘前保住「本轮快照之后才追加的人类消息」。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

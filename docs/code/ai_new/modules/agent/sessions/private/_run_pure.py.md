@@ -1,9 +1,12 @@
 ---
 source: ai_new/modules/agent/sessions/private/_run_pure.py
-hash: 0fa2ce5822a70d21230d9fa7e60510f033a6565996457f5119be3adf4fe31e3a
+hash: a8a43f7fb4149e0616f8fd07cc9bbcda30594edc1a4a9c6160928ac6cc074771
 symbols:
 - appendmsg
 - _retrospect_enabled
+- _sig
+- _merge_tail
+- _with_later
 - mark
 - _msg_sig
 - finish
@@ -37,6 +40,24 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `_retrospect_enabled`（function）
 - 职责: 复盘开关：工单级标记优先；工单未显式设置时回退全局默认。兜底判定在纯函数内。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_sig`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_merge_tail`（function）
+- 职责: 快照尾部有、本轮消息里丢了的条目按原位补回；公共前缀之前的压缩结果不动。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_with_later`（function）
+- 职责: 盘上比快照多出来的尾部消息：本会话跑着的时候人插进来的发言，必须接着带上。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
