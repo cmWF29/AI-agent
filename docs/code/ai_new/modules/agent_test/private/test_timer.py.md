@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_timer.py
-hash: a0f96891aa32a826838b5a603da131a657ced0197b015819a1ec28e893b240eb
+hash: 732078cf080335dc605a46cbf12de22e92023ea544245a8a0933c87f63ac7a40
 symbols:
 - _future_iso
 - setUpClass
@@ -17,17 +17,23 @@ symbols:
 - _tick
 - test_create_once_next_at_and_view_row
 - test_create_cron_next_at
+- test_cron_next_at_strictly_after_fire
 - test_tick_notify_pushes_to_secretary_queue
 - test_tick_spawn_ticket_creates_ticket_with_meta
 - test_spawn_ticket_uses_payload_title_and_goal
 - test_idempotent_create_returns_original_id
 - test_cross_project_read_write_delete_forbidden
+- test_console_operator_manages_cross_project
 - test_cross_ticket_forbidden_and_same_ticket_rw
 - test_project_secretary_manages_all_timers_in_project
 - test_quota_exceeded
 - test_pause_resume_delete
 - test_bad_cron_bad_tz_rejected
 - test_failure_preserved_visible_and_retryable
+- test_cron_catchup_truncated_and_continuable
+- test_paused_timer_is_not_ticked
+- test_update_reschedules_and_rejects_bad_cron
+- test_spawn_failure_keeps_slot_and_retries
 - test_index_groups_by_project
 - test_history_rejects_cross_scope
 - __call__
@@ -136,6 +142,12 @@ updated_at: '2026-11-23T04:10:23'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `test_cron_next_at_strictly_after_fire`（method）
+- 职责: cron 触发后 next_at 必须严格前移：停在刚触发那一分就是下一拍原地打转。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_tick_notify_pushes_to_secretary_queue`（method）
 - 职责: 到期 notify：秘书队列收到幂等 msg_id，字段带来源 timer/timer_id/slot。
 - 入参/出参: 待人工补充
@@ -162,6 +174,12 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_cross_project_read_write_delete_forbidden`（method）
 - 职责: 项目秘书跨项目：读取/修改/删除一律 forbidden_scope，且各留 deny 审计。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_console_operator_manages_cross_project`（method）
+- 职责: 操作员（global）能跨项目暂停/恢复/删除，审计记到操作员身份。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -198,6 +216,30 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_failure_preserved_visible_and_retryable`（method）
 - 职责: 触发失败：last_run 留可见错误、attempts 累加、槽位保留；恢复后可重试成功。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_cron_catchup_truncated_and_continuable`（method）
+- 职责: 漏跑补触发受 max_catchup 截断：一轮最多补 N 个槽位，剩下的下一轮继续，不丢不重。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_paused_timer_is_not_ticked`（method）
+- 职责: 暂停态不参与扫描：即使到期也不触发，恢复后才补。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_update_reschedules_and_rejects_bad_cron`（method）
+- 职责: 改表达式要重排下次触发；改成坏 cron 必须拒绝且原记录保持可用。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_spawn_failure_keeps_slot_and_retries`（method）
+- 职责: 到点建单失败：last_run 留错、槽位不丢，恢复后同槽位只成功一次。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

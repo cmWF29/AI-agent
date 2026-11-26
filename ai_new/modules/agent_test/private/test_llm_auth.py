@@ -164,6 +164,33 @@ class LlmTest(unittest.TestCase):
         ctx.routes["llm.decode_sse"] = lambda p: "x"
         self.assertEqual(asyncio.run(llm._route_chat(ctx, {})), "x")
 
+    def test_timeout_from_config_and_payload_wins(self):
+        """超时口径：调用方给的最优先，否则读 llm.timeout；都没有才交默认值。"""
+        ctx = self.ctx()
+        ctx.routes["llm.encode"] = lambda p: {"ok": True, "url": "u", "headers": {},
+                                               "payload": {}}
+        seen = {}
+
+        def net(p):
+            seen["timeout"] = p.get("timeout")
+            return {"ok": True, "items": []}
+        ctx.routes["net"] = net
+        ctx.cfg["llm"]["timeout"] = 7
+        asyncio.run(llm._route_chat(ctx, {}))
+        self.assertEqual(seen["timeout"], 7)
+        asyncio.run(llm._route_chat(ctx, {"timeout": 2}))
+        self.assertEqual(seen["timeout"], 2)
+        asyncio.run(llm._route_chat(ctx, {"timeout": ""}))
+        self.assertEqual(seen["timeout"], 7)
+        ctx.cfg["llm"].pop("timeout")
+        asyncio.run(llm._route_chat(ctx, {"timeout": ""}))
+        self.assertIsNone(seen["timeout"])
+        ctx.cfg["llm"]["timeout"] = 5
+        ctx.routes["codec.sse_decode"] = lambda p: {"ok": True, "items": []}
+        asyncio.run(llm._route_chat_stream(ctx, {}))
+        self.assertEqual(seen["timeout"], 5)
+        self.assertEqual(llm._limit(ctx, {"timeout": 3}), 3)
+
     def test_chat_stream(self):
         ctx = self.ctx()
         ctx.routes["llm.encode"] = lambda p: {"ok": False, "code": "enc"}

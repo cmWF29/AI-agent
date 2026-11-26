@@ -1295,8 +1295,10 @@ class CoreTest(unittest.TestCase):
         self.assertIn("sessions/%s.yaml" % pm, removed)
         self.assertIn("sessions/%s.yaml" % role_sid, removed)
         left = self._glob("agent/logs", "sessions/*.yaml")
-        self.assertFalse(any(pm in s for s in left), "PM 会话未被回收")
-        self.assertFalse(any(role_sid in s for s in left), "角色会话未被回收")
+        # 精确到文件名：子串匹配会把 pm-2 撞上 pm-20.yaml 这类别的用例产物，负载下假红
+        left_names = {s.rsplit("/", 1)[-1] for s in left}
+        self.assertNotIn("%s.yaml" % pm, left_names, "PM 会话未被回收")
+        self.assertNotIn("%s.yaml" % role_sid, left_names, "角色会话未被回收")
         post = self.ctx.api.call("store.read", {
             "module": "agent/logs", "path": "index.yaml",
             "fallback": {"entries": []}})["value"]["entries"]

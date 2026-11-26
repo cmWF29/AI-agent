@@ -1,8 +1,8 @@
 """L1 后端单元（UT）层。
 
 不新建一套用例：把 agent_test/private 下 36 个 unittest 模块按单元测试口径转调跑一遍。
-每个模块独立子进程 + 独立 AI_NEW_DATA（jobs=4 分片），既隔离模块间全局状态，也把
-串行 250s 压到 ~85s。既有 ``python test_start.py`` 与本层并行存在，互不吞掉；本层只多一个分层入口。
+每个模块独立子进程 + 独立 AI_NEW_DATA（jobs=3 分片），既隔离模块间全局状态，也把
+串行耗时压下来。既有 ``python test_start.py`` 与本层并行存在，互不吞掉；本层只多一个分层入口。
 """
 from __future__ import annotations
 
@@ -78,7 +78,9 @@ def run(selected: list[str] | None = None, timeout: float = 300.0) -> LayerResul
         with tempfile.TemporaryDirectory(prefix="hive-l1-") as tmp:
             report = Path(tmp) / "run.json"
             cmd = [sys.executable, str(ROOT / "scripts" / "run_tests.py"),
-                   "--jobs", "4", "--modules", ",".join(selected),
+                   # jobs=4 在 4 vCPU 上会把重模块挤到超时/串扰（test_core 曾假红）；
+                   # 与全量回归同档 jobs=3，时间换稳定性。
+                   "--jobs", "3", "--modules", ",".join(selected),
                    "--timeout", str(int(timeout)), "--json-out", str(report)]
             proc = subprocess.run(cmd, cwd=str(ROOT), text=True,
                                   capture_output=True, timeout=timeout)
@@ -97,7 +99,7 @@ def run(selected: list[str] | None = None, timeout: float = 300.0) -> LayerResul
             total_run = sum(1 for r in rows if r.get("ok"))
             if stdout.strip():
                 output_blocks.append("runner 尾部：\n" + "\n".join(stdout.strip().splitlines()[-8:]))
-    note = ("L1 并行转调 %d 个模块（jobs=4，独立 AI_NEW_DATA 分片）；通过 %d。"
+    note = ("L1 并行转调 %d 个模块（jobs=3，独立 AI_NEW_DATA 分片）；通过 %d。"
             "用例仍在 agent_test/private，本层不复制断言。") % (len(selected), total_run)
     return LayerResult(
         layer="L1", title="后端单元（纯函数/状态机/并发/幂等/边界）",

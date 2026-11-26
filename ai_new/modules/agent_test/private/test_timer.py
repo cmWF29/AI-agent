@@ -151,6 +151,26 @@ class TimerTest(unittest.TestCase):
         self.assertTrue(res["ok"], res)
         self.assertIsNotNone(res["next_at"])
 
+    def test_cron_next_at_strictly_after_fire(self):
+        """cron 触发后 next_at 必须严格前移：停在刚触发那一分就是下一拍原地打转。"""
+        res = self._create({"project": "p-cron2", "kind": "cron", "expr": "* * * * *",
+                            "title": "每分钟巡检", "action": "notify"})
+        tid, slot = res["id"], float(res["next_at"])
+        try:
+            out = self._tick(now=slot + 1)
+            fired = [f for f in out["fired"] if f["id"] == tid]
+            self.assertTrue(fired, "到点没触发")
+            self.assertEqual(len({f["slot"] for f in fired}), len(fired), "同槽位重复触发")
+            rec = next(r for r in self._records("p-cron2") if r["id"] == tid)
+            self.assertEqual(float(rec["next_at"]), slot + 60, "next_at 没前移")
+            again = self._tick(now=slot + 1)
+            self.assertEqual([f for f in again["fired"] if f["id"] == tid], [],
+                             "同一时刻重复触发")
+        finally:
+            # 这个 timer 是 active 的，留着会污染后面用例的全量扫描（notify 也进秘书队列）
+            self._apply(self.ctx.api.call("timer.delete",
+                                          {"id": tid, "caller": self._project_caller("p-cron2")}))
+
     def test_tick_notify_pushes_to_secretary_queue(self):
         """到期 notify：秘书队列收到幂等 msg_id，字段带来源 timer/timer_id/slot。"""
         before = len(self.push_calls)
@@ -244,6 +264,44 @@ class TimerTest(unittest.TestCase):
         self.assertGreaterEqual(len(denies), 4)
         for entry in denies:
             self.assertEqual(entry["reason"], "cross_project")
+
+    def test_console_operator_manages_cross_project(self):
+        """操作员（global）能跨项目暂停/恢复/删除，审计记到操作员身份。
+
+        控制台是全项目视图，人点行内动作走的就是这条：守卫判作用域而不是判前端按钮。
+        """
+        project = "p-opa"
+        res = self._create({"project": project, "kind": "once",
+                            "expr": _future_iso(3600), "title": "操作员巡检定时器",
+                            "action": "notify"},
+                           caller=self._project_caller(project, "sa"))
+        tid = res["id"]
+        operator = self._global_caller("console")
+
+        paused = self.ctx.api.call("timer.pause", {"id": tid, "caller": operator})
+        self._apply(paused)
+        self.assertTrue(paused["ok"])
+        rows = self.ctx.api.call("timer.list", {"project": project, "caller": operator})
+        self.assertEqual(rows["items"][0]["status"], "paused")
+
+        resumed = self.ctx.api.call("timer.resume", {"id": tid, "caller": operator})
+        self._apply(resumed)
+        self.assertTrue(resumed["ok"])
+        self.assertEqual(
+            self.ctx.api.call("timer.list", {"project": project, "caller": operator})["items"][0]["status"],
+            "active")
+
+        deleted = self.ctx.api.call("timer.delete", {"id": tid, "caller": operator})
+        self._apply(deleted)
+        self.assertTrue(deleted["ok"])
+        self.assertEqual(
+            self.ctx.api.call("timer.list", {"project": project, "caller": operator})["total"], 0)
+
+        marks = [r for r in self._audit_rows()
+                 if r["target_id"] == tid and r["caller_scope"] == "global"]
+        self.assertGreaterEqual(len(marks), 3, "操作员的每次动作都要留审计")
+        for entry in marks:
+            self.assertEqual(entry["caller_session"], "console")
 
     def test_cross_ticket_forbidden_and_same_ticket_rw(self):
         """工单岗位：同项目其他工单的定时器不可见不可改；本工单可读写。"""
@@ -395,6 +453,122 @@ class TimerTest(unittest.TestCase):
         history2 = self.ctx.api.call("timer.history", {
             "id": tid, "caller": self._project_caller("p-fail")})
         self.assertTrue(history2["last_run"]["ok"])
+
+    def test_cron_catchup_truncated_and_continuable(self):
+        """漏跑补触发受 max_catchup 截断：一轮最多补 N 个槽位，剩下的下一轮继续，不丢不重。"""
+        res = self._create({"project": "p-catch", "kind": "cron", "expr": "* * * * *",
+                            "title": "每分钟补跑", "action": "notify"})
+        tid = res["id"]
+        base = float(res["next_at"])
+        # 跨 12 个分钟槽位再扫描：配置 max_catchup=5，这一轮只许补 5 个
+        far = base + 11 * 60
+        first = self._tick(now=far + 1)
+        fired_first = [f for f in first["fired"] if f["id"] == tid]
+        self.assertEqual(len(fired_first), 5)
+        rec = next(r for r in self._records("p-catch") if r["id"] == tid)
+        self.assertEqual(len(rec["fired"]), 5)
+        pushes = [c for c in self.push_calls if c.get("timer_id") == tid]
+        self.assertEqual(len(pushes), 5)
+        self.assertEqual(len({p["slot"] for p in pushes}), 5, "同一槽位被重复投递")
+
+        # 每轮都按上限截断，跨轮不许出现同一个槽位（幂等的判定标准是 slot 集合无重复）
+        rounds = [len(fired_first)]
+        for _ in range(3):
+            step = self._tick(now=far + 1)
+            rounds.append(len([f for f in step["fired"] if f["id"] == tid]))
+        pushes = [c for c in self.push_calls if c.get("timer_id") == tid]
+        self.assertEqual(len({p["slot"] for p in pushes}), len(pushes), "存在重复投递的槽位")
+        self.assertTrue(all(r <= 5 for r in rounds), "单轮补跑超过 max_catchup: %s" % rounds)
+
+    def test_paused_timer_is_not_ticked(self):
+        """暂停态不参与扫描：即使到期也不触发，恢复后才补。"""
+        res = self._create({"project": "p-paused", "kind": "once",
+                            "expr": _future_iso(120), "title": "暂停的提醒",
+                            "action": "notify"})
+        tid = res["id"]
+        caller = self._project_caller("p-paused", "st")
+        self._apply(self.ctx.api.call("timer.pause", {"id": tid, "caller": caller}))
+        now = datetime.datetime.now(datetime.timezone.utc).timestamp() + 200
+        ticked = self._tick(now=now)
+        self.assertEqual([f for f in ticked["fired"] if f["id"] == tid], [])
+        self.assertEqual([c for c in self.push_calls if c.get("timer_id") == tid], [])
+
+        self._apply(self.ctx.api.call("timer.resume", {"id": tid, "caller": caller}))
+        self._tick(now=now)
+        self.assertEqual(len([c for c in self.push_calls if c.get("timer_id") == tid]), 1)
+
+    def test_update_reschedules_and_rejects_bad_cron(self):
+        """改表达式要重排下次触发；改成坏 cron 必须拒绝且原记录保持可用。"""
+        res = self._create({"project": "p-upd", "kind": "cron",
+                            "expr": "0 9 * * *", "title": "可改期",
+                            "action": "notify"})
+        tid = res["id"]
+        caller = self._project_caller("p-upd", "st")
+        before = next(r for r in self._records("p-upd") if r["id"] == tid)["next_at"]
+        moved = self.ctx.api.call("timer.update", {
+            "id": tid, "caller": caller, "expr": "30 10 * * *",
+            "title": "改期后的标题"})
+        self._apply(moved)
+        self.assertTrue(moved["ok"])
+        # 重排不是「更晚」就算：两条规则谁早谁晚取决于当天时刻，按时区落到 10:30 才是真重排。
+        self.assertNotEqual(moved["next_at"], before, "改表达式没重排")
+        local = datetime.datetime.fromtimestamp(
+            moved["next_at"], datetime.timezone(datetime.timedelta(hours=8)))
+        self.assertEqual((local.hour, local.minute), (10, 30))
+        self.assertGreater(moved["next_at"], datetime.datetime.now(
+            datetime.timezone.utc).timestamp())
+        rec = next(r for r in self._records("p-upd") if r["id"] == tid)
+        self.assertEqual(rec["title"], "改期后的标题")
+        self.assertEqual(rec["next_at"], moved["next_at"])
+
+        bad = self.ctx.api.call("timer.update", {
+            "id": tid, "caller": caller, "expr": "99 99 * *"})
+        self._apply(bad)  # 拒绝要留审计，审计在 effects 里，必须落地
+        self.assertFalse(bad["ok"])
+        self.assertEqual(bad["code"], "bad_cron")
+        kept = next(r for r in self._records("p-upd") if r["id"] == tid)
+        self.assertEqual(kept["expr"], rec["expr"], "坏改动污染了原表达式")
+        deny = [r for r in self._audit_rows() if r["target_id"] == tid
+                and r["decision"] == "deny"]
+        self.assertTrue(any(r["reason"] == "bad_cron" for r in deny), "拒绝没留审计")
+
+    def test_spawn_failure_keeps_slot_and_retries(self):
+        """到点建单失败：last_run 留错、槽位不丢，恢复后同槽位只成功一次。"""
+        res = self._create({"project": "p-spawnfail", "kind": "once",
+                            "expr": _future_iso(120), "title": "会失败的单",
+                            "action": "spawn_ticket"})
+        tid = res["id"]
+        before = len(self.ticket_calls)
+        now = datetime.datetime.now(datetime.timezone.utc).timestamp() + 200
+
+        original = self.ctx.runtime.call
+
+        def boom_call(demand, data=None):
+            if demand == "ticket-create":
+                raise RuntimeError("ticket boom")
+            return original(demand, data)
+
+        self.ctx.runtime.call = boom_call
+        self.addCleanup(setattr, self.ctx.runtime, "call", original)
+        first = self._tick(now=now)
+        self.assertEqual([f for f in first["fired"] if f["id"] == tid], [])
+        self.assertEqual(len(self.ticket_calls), before)
+        history = self.ctx.api.call("timer.history", {
+            "id": tid, "caller": self._project_caller("p-spawnfail")})
+        self.assertFalse(history["last_run"]["ok"])
+        self.assertTrue(history["last_run"]["detail"], "失败没留下可读原因")
+
+        # 故障消失（等价于上游恢复），同槽位重试成功且只建一次
+        self.ctx.runtime.call = original
+        second = self._tick(now=now)
+        self.assertEqual(len([f for f in second["fired"] if f["id"] == tid]), 1)
+        self.assertEqual(len(self.ticket_calls) - before, 1)
+        history2 = self.ctx.api.call("timer.history", {
+            "id": tid, "caller": self._project_caller("p-spawnfail")})
+        self.assertTrue(history2["last_run"]["ok"])
+        # once 成功即终态：再扫也不会二次建单
+        self._tick(now=now)
+        self.assertEqual(len(self.ticket_calls) - before, 1)
 
     def test_index_groups_by_project(self):
         """定时器总览必须按项目分组，而不是只在表格里放一列项目名。"""

@@ -40,6 +40,18 @@ def _route_decode_sse(ctx, payload):
     return _client.decode_sse(payload.get("items") or [])
 
 
+def _limit(ctx, payload):
+    """单次模型调用读超时：调用方显式给的优先，否则读配置 llm.timeout。
+
+    没有这一层，net 会退到 60s 默认值，配置里的 llm.timeout 就是个死参数；
+    上游只接不回时，会话会一直挂在 running 上。
+    """
+    given = payload.get("timeout")
+    if given not in (None, ""):
+        return given
+    return (getattr(ctx, "cfg", None) or {}).get("llm", {}).get("timeout")
+
+
 def _encode_call(ctx, payload, stream):
     # 配置是缺省值，调用方显式给的优先；明文只在能力内部流转，不经 config.get 的脱敏面
     cfgv = dict((getattr(ctx, "cfg", None) or {}).get("llm") or {})
@@ -92,7 +104,7 @@ async def _route_chat(ctx, payload):
     resp = await ctx.api.acall("net.request_stream", {
         "url": enc.get("url"), "method": "POST",
         "headers": enc.get("headers"), "body": body.get("text"),
-        "timeout": payload.get("timeout"), "stream_key": stream_key}, caller=None)
+        "timeout": _limit(ctx, payload), "stream_key": stream_key}, caller=None)
     wire = _wire(ctx, enc, resp, body, True)
     if not resp.get("ok"):
         out = _fail(ctx, resp)
@@ -112,7 +124,7 @@ async def _route_chat_stream(ctx, payload):
     resp = await ctx.api.acall("net.request", {
         "url": enc.get("url"), "method": "POST",
         "headers": enc.get("headers"), "body": body.get("text"),
-        "timeout": payload.get("timeout")}, caller=None)
+        "timeout": _limit(ctx, payload)}, caller=None)
     wire = _wire(ctx, enc, resp, body, True)
     if not resp.get("ok"):
         out = _fail(ctx, resp)

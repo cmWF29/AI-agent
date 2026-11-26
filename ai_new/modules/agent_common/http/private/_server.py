@@ -19,6 +19,9 @@ _PUBLIC_API = {"/api/health", "/api/health/live",
                "/api/auth/login", "/api/auth/status", "/api/auth/verify"}
 _PUBLIC_DEMANDS = {"auth-login", "console-chrome"}
 _DEFAULT_BODY_LIMIT = 8 * 1024 * 1024
+# 控制台需求入口（单条与批处理）与操作员身份：只在鉴权通过后注入，公开入口不享受。
+_CONSOLE_DEMAND_API = {"/api/rpc/demand_engine/run", "/api/rpc/demand_engine/batch"}
+_OPERATOR_CALLER = {"scope": "global", "role": "admin", "session": "console"}
 
 
 class _Server(ThreadingHTTPServer):
@@ -188,6 +191,17 @@ def _make_handler(ctx):
                     self._json_error(ctx.ApiError("未登录或会话已失效",
                                                   code="unauthorized", status=401))
                     return
+
+            # 控制台是人来操作的全项目视图：过了鉴权就把调用方身份注入需求入参，
+            # 各模块的作用域守卫才认得「这是操作员」而不是无主的空作用域。
+            if not public and path in _CONSOLE_DEMAND_API:
+                batches = [body.get("input"), body.get("inputs")]
+                batches += list(body.get("calls") or []) if isinstance(body.get("calls"), list) else []
+                for args in batches:
+                    if not isinstance(args, dict):
+                        continue
+                    slot = args.get("input") if isinstance(args.get("input"), dict) else args
+                    slot.setdefault("caller", dict(_OPERATOR_CALLER))
 
             if path == "/api/modules":
                 self._json_ok({"modules": sorted(ctx.loaded),

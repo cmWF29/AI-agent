@@ -143,7 +143,10 @@ class CloudEdge2Test(unittest.TestCase):
         self.assertTrue(c._collect_entries(self.ctx, profile)[0])
         old = _archive.list_archived
         try:
+            # 先放一条不相关的归档行：合并匹配要能继续往下找，而不是第一条不中就放弃
             _archive.list_archived = lambda ctx: {"seam": "wired", "rows": [{
+                "path": "agent/artifacts/decoy.txt", "status": "archived",
+                "size_comp": 9, "checksum": "d"}, {
                 "path": "agent/knowledge/sync-probe.md", "status": "archived",
                 "size_comp": 1, "checksum": "x"}]}
             local, seam = c._collect_entries(self.ctx, {"categories": ["knowledge"]})

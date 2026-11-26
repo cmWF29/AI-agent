@@ -207,6 +207,10 @@ def schedule_next(p):
         minute0 = after - (after % 60)
         for step in range(366 * 1440):
             ts = minute0 + step * 60
+            # 严格晚于 after：正好等于 after 的整分不算「下一次」，否则触发完
+            # 重排会原地不动（next_at 停在过去，界面显示过期、下一拍又撞同一槽位）。
+            if ts <= after:
+                continue
             dt = datetime.datetime.fromtimestamp(ts, tz)
             if _cron_match(fields, dt):
                 return {"ok": True, "ts": ts, "iso": iso(ts), "slot": _slot_of(ts, tz)}

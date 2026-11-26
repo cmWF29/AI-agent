@@ -1,10 +1,11 @@
 ---
 source: ai_new/modules/agent_common/llm/__init__.py
-hash: 497b78fd3010dd059e5c6e43fcbd96b5645deba92524e893d64d48de4fb76365
+hash: f8d84503f1e33a6230e2116929b9ad085c1e9b4cbd85385a03a6b67e34399864
 symbols:
 - setup
 - _route_encode
 - _route_decode_sse
+- _limit
 - _encode_call
 - _fail
 - _wire
@@ -42,6 +43,12 @@ LLM 语义能力：把"对话"翻译成线上的**载荷**，再把**载荷**翻
 
 ### `_route_decode_sse`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_limit`（function）
+- 职责: 单次模型调用读超时：调用方显式给的优先，否则读配置 llm.timeout。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

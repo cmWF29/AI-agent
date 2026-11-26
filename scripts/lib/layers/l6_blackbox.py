@@ -17,8 +17,11 @@ from __future__ import annotations
 import os
 import re
 import socketserver
+import shutil
 import subprocess
 import sys
+import tempfile
+import datetime
 import threading
 import time
 from http.server import BaseHTTPRequestHandler
@@ -108,15 +111,31 @@ def _rpc(port: int, demand: str, payload=None):
         client.close()
 
 
-def _wait(port: int, tid: str, limit: float = 30.0):
-    """等工单回到 idle：故障演练只认「有限时间内收口」，不接受一直 running。"""
+def _wait(port: int, tid: str, limit: float = 30.0, pm: str = ""):
+    """等这一轮真的跑完：盯 PM 会话的 running → idle，而不是盯工单快照。
+
+    工单刚建出来就是 idle，拿它当「跑完了」会把没起跑算成成功；故障演练里
+    这个差别就是「超时被吞掉」和「超时真发生了」。
+    """
     started = time.time()
     thread = {}
+    run_seen = False
     while time.time() - started < limit:
-        thread = _rpc(port, "ticket-thread", {"id": tid}).get("thread") or {}
-        if thread.get("status") == "idle":
-            return thread, time.time() - started
-        time.sleep(0.5)
+        if pm:
+            status = (_rpc(port, "session-get", {"id": pm}).get("status") or "")
+            if status and status != "idle":
+                run_seen = True
+            if run_seen and status == "idle":
+                thread = _rpc(port, "ticket-thread", {"id": tid}).get("thread") or {}
+                return thread, time.time() - started
+        else:
+            thread = _rpc(port, "ticket-thread", {"id": tid}).get("thread") or {}
+            status = thread.get("status")
+            if status not in (None, "", "idle"):
+                run_seen = True
+            if run_seen and status == "idle":
+                return thread, time.time() - started
+        time.sleep(0.4)
     return None, time.time() - started
 
 
@@ -137,11 +156,12 @@ def _upstream_5xx_checks(rec: Recorder) -> list[str]:
         port = boot.port
         pid = _rpc(port, "projects-create", {"name": "l6-upstream-%d" % time.time_ns()})["id"]
         try:
-            tid = _rpc(port, "ticket-create", {"project": pid, "title": "上游 5xx 演练",
-                                               "goal": "验证上游故障降级"})["id"]
+            ticket = _rpc(port, "ticket-create", {"project": pid, "title": "上游 5xx 演练",
+                                                "goal": "验证上游故障降级"})
+            tid, pm = ticket["id"], ticket.get("pm") or ""
             _rpc(port, "ticket-message", {"id": tid, "text": "在吗"})
-            thread, cost = _wait(port, tid)
-            replies = _assistant(thread or {})
+            thread, cost = _wait(port, tid, pm=pm)
+            replies = _assistant(thread)
             out.append("  上游 500：真实请求 %d 次，%.1fs 内回到 idle，assistant 回复 %d 条"
                        % (upstream.hits, cost, len(replies)))
             rec.check("上游 5xx 时降级不挂死", thread is not None and upstream.hits >= 1,
@@ -152,7 +172,7 @@ def _upstream_5xx_checks(rec: Recorder) -> list[str]:
 
             upstream.fail = False
             _rpc(port, "ticket-message", {"id": tid, "text": "再试一次"})
-            thread2, cost2 = _wait(port, tid)
+            thread2, cost2 = _wait(port, tid, pm=pm)
             replies2 = [r for r in _assistant(thread2 or {}) if r not in replies]
             out.append("  上游恢复：%.1fs 内收到真回复 %r" % (cost2, [r[:20] for r in replies2]))
             rec.check("上游恢复后同一服务自动可用", bool(replies2),
@@ -178,11 +198,12 @@ def _upstream_5xx_checks(rec: Recorder) -> list[str]:
         port = boot2.port
         pid = _rpc(port, "projects-create", {"name": "l6-drop-%d" % time.time_ns()})["id"]
         try:
-            tid = _rpc(port, "ticket-create", {"project": pid, "title": "上游断连演练",
-                                               "goal": "验证断连降级"})["id"]
+            ticket = _rpc(port, "ticket-create", {"project": pid, "title": "上游断连演练",
+                                                "goal": "验证断连降级"})
+            tid, pm = ticket["id"], ticket.get("pm") or ""
             _rpc(port, "ticket-message", {"id": tid, "text": "在吗"})
-            thread, cost = _wait(port, tid)
-            replies = _assistant(thread or {})
+            thread, cost = _wait(port, tid, pm=pm)
+            replies = _assistant(thread)
             out.append("  上游断连：%.1fs 内回到 idle，assistant 回复 %d 条" % (cost, len(replies)))
             rec.check("上游断连时降级不挂死", thread is not None,
                       "idle=%s cost=%.1fs" % (thread is not None, cost))
@@ -239,13 +260,15 @@ def run(timeout: float = 300.0) -> LayerResult:
         finally:
             if boot is not None:
                 boot.cleanup()
-        try:
-            output.extend(_upstream_5xx_checks(rec))
-        except Exception as exc:  # noqa: BLE001 —— 演练整体崩了也要留证据
-            rec.check("真网络降级演练", False, repr(exc))
+        for name, fn in (("真网络上游 5xx/断连", _upstream_5xx_checks),):
+            try:
+                output.extend(fn(rec))
+            except Exception as exc:  # noqa: BLE001 —— 任一段崩了都要留证据，不吞
+                rec.check(name, False, repr(exc))
     return LayerResult(
         layer="L6", title="HTTP 黑盒业务 E2E（真服务 + 真 RPC + 真并发）",
         ok=rec.ok, duration=t.elapsed, checks=rec.checks, output="\n".join(output),
-        note="26 场景：项目/工单/知识/定时到点建单/节点/并发/多岗位串扰/权限/交付件/壳层边界，"
-             "外加真网络上游 5xx 与断连两段降级演练。",
+        note="26 场景：项目/工单/知识/定时到点建单/节点/并发/多岗位串扰/权限/交付件/壳层边界；"
+             "另含真网络上游 5xx/断连两段降级（不挂死、不伪造、恢复后自动可用）。"
+             "落盘/停服恢复/迁移/上游挂起/cron 跨分钟由 L7 运维层负责，这里不重复跑。",
     )

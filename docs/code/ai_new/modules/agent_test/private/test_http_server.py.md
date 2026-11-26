@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_http_server.py
-hash: 4689549ff01a5e93423f7f585a15ef81ad0e545521ef26439a293a2ae9f7504b
+hash: ac1d5ff118e5dcf599b1df5c1b22d18f64f1bd7ab32c43e5c5defa9bb8cc9048
 symbols:
 - yaml_decode
 - yaml_encode_flow
@@ -35,6 +35,7 @@ symbols:
 - test_post_bad_path_shapes
 - test_empty_body_is_empty_dict
 - test_peer_injection_on_login_paths
+- test_console_operator_caller_injection
 - test_cookie_token_and_gzip_json
 - test_static_with_gate_private_but_authorized
 - test_static_gzip_floor_skip
@@ -258,6 +259,12 @@ HTTP 服务真实链路：起 loopback 服务，用 http.client / 裸 socket 打
 
 ### `test_peer_injection_on_login_paths`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_console_operator_caller_injection`（method）
+- 职责: 控制台需求必须带操作员身份：定时器/工单的作用域守卫才认得出是人。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

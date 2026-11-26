@@ -47,16 +47,22 @@ class BootHandle:
     ctx: object
     server: object
     port: int
-    tmp: tempfile.TemporaryDirectory
+    tmp: tempfile.TemporaryDirectory | None
     root: Path
 
-    def cleanup(self) -> None:
+    def stop(self) -> None:
+        """只停服务、留数据目录：重启恢复/迁移这类用例要在同一份根上再装一次。"""
         try:
             self.server.shutdown()
+            self.server.server_close()
         except Exception:  # noqa: BLE001
             pass
         os.environ.pop("AI_NEW_DATA", None)
-        self.tmp.cleanup()
+
+    def cleanup(self) -> None:
+        self.stop()
+        if self.tmp is not None:
+            self.tmp.cleanup()
 
 
 def default_config() -> dict:
@@ -67,11 +73,22 @@ def default_config() -> dict:
     }
 
 
-def boot(overrides: dict | None = None, stub_net: bool = True) -> BootHandle:
-    """装配一份临时系统，返回持有 ctx/server/临时目录的句柄。"""
-    tmp = tempfile.TemporaryDirectory(prefix="ai_new_layer_")
-    root = Path(tmp.name)
-    stage(root)
+def boot(overrides: dict | None = None, stub_net: bool = True,
+         root: str | Path | None = None) -> BootHandle:
+    """装配一份系统。root 为空就新建临时目录并拷贝模块数据；给了就原地复用。
+
+    复用同一份 root 是「服务中断后恢复」与「换机器迁移」的唯一真做法：
+    进程可以重来，数据目录必须还是那一份，否则断言不到任何持久化语义。
+    """
+    tmp = None
+    if root is None:
+        tmp = tempfile.TemporaryDirectory(prefix="ai_new_layer_")
+        root = Path(tmp.name)
+        stage(root)
+    root = Path(root)
+    if not (root / "agent").is_dir():
+        # 给了空目录（如「搬走后的新家」）也要把模块数据铺进去，否则需求全 404。
+        stage(root)
     cfg = default_config()
     if overrides:
         for k, v in overrides.items():

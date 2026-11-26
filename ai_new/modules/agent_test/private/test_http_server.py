@@ -282,6 +282,38 @@ class HttpServerTest(unittest.TestCase):
         rpc2 = self.request("POST", "/api/rpc/auth/login", body="{}")
         self.assertEqual(json.loads(rpc2["body"])["result"]["payload"]["peer"], "127.0.0.1")
 
+    def test_console_operator_caller_injection(self):
+        """控制台需求必须带操作员身份：定时器/工单的作用域守卫才认得出是人。"""
+        got = self.request("POST", "/api/rpc/demand_engine/run",
+                           body='{"id": "timer-update", "input": {"id": "tm-1"}}')
+        payload = json.loads(got["body"])["result"]["payload"]
+        self.assertEqual(payload["input"]["caller"],
+                         {"scope": "global", "role": "admin", "session": "console"})
+        # 调用方自己给了身份就不覆盖：agent 侧语义要保留
+        got = self.request("POST", "/api/rpc/demand_engine/run",
+                           body='{"id": "timer-update", "input": {"caller": {"scope": "project"}}}')
+        payload = json.loads(got["body"])["result"]["payload"]
+        self.assertEqual(payload["input"]["caller"], {"scope": "project"})
+        # 批处理逐条注入（calls 里每条都算一次需求）
+        got = self.request("POST", "/api/rpc/demand_engine/batch",
+                           body='{"calls": [{"id": "timer-toggle", "input": {"id": "x"}},'
+                                ' {"id": "timer-delete", "input": {"id": "y"}}, "oops",'
+                                ' {"id": "noop"}]}')
+        payload = json.loads(got["body"])["result"]["payload"]
+        self.assertEqual(payload["calls"][0]["input"]["caller"]["scope"], "global")
+        self.assertEqual(payload["calls"][1]["input"]["caller"]["scope"], "global")
+        # 非对象入参原样放过：不许因为注入把请求打崩
+        got = self.request("POST", "/api/rpc/demand_engine/run",
+                           body='{"id": "timer-update", "input": "raw"}')
+        self.assertEqual(got["status"], 200)
+        payload = json.loads(got["body"])["result"]["payload"]
+        self.assertEqual(payload["input"], "raw")
+        # 公开入口（未鉴权可直达）不享受操作员身份
+        got = self.request("POST", "/api/rpc/demand_engine/run",
+                           body='{"id": "console-chrome", "input": {}}')
+        payload = json.loads(got["body"])["result"]["payload"]
+        self.assertNotIn("caller", payload["input"])
+
     def test_cookie_token_and_gzip_json(self):
         ok = self.request("GET", "/api/modules", headers={"Cookie": "hive_token=t; x=1"})
         self.assertEqual(ok["status"], 200)

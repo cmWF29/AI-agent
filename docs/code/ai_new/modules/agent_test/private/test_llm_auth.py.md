@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_llm_auth.py
-hash: fd8ea693e29d23e24fcf50b65ac67ea7d7b72c1cdf8e709deb85299fbad8a7e0
+hash: 66544ddf887a1206ca0f1c6b5887f5e6e804617dfbb7b6dfa6b00b5a1aee3362
 symbols:
 - __init__
 - __init__
@@ -10,6 +10,7 @@ symbols:
 - test_encode
 - test_encode_call_fail_wire
 - test_chat
+- test_timeout_from_config_and_payload_wins
 - test_chat_stream
 - test_encode_branches
 - test_decode_branches
@@ -85,6 +86,12 @@ llm 路由与 auth 闸/登录/节流覆盖。
 
 ### `test_chat`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_timeout_from_config_and_payload_wins`（method）
+- 职责: 超时口径：调用方给的最优先，否则读 llm.timeout；都没有才交默认值。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

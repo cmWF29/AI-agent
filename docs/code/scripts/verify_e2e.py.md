@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_e2e.py
-hash: 706a8d7cdc012f3b8399f54f0aca373eac7d8c2b14c910e671c555f14af13c65
+hash: 4147338b66d3c1311810113878f3a5dcf65a354bc3529e6d256a65b127b74b7d
 symbols:
 - new_page
 - open_projects
@@ -19,7 +19,11 @@ symbols:
 - scenario_project
 - scenario_ticket
 - scenario_ticket_multi
+- scenario_roles_dom
 - scenario_archive_guard
+- scenario_ticket_rounds
+- scenario_timer_ui
+- _iso_in
 - main
 generated: gen_docs.py v1
 updated_at: '2026-11-24T12:48:33'
@@ -138,8 +142,32 @@ updated_at: '2026-11-24T12:48:33'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `scenario_roles_dom`（function）
+- 职责: 多岗位协作在真实 DOM 里：PM 发一轮 → 派发 developer → 群聊两路各自署名，不串名。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `scenario_archive_guard`（function）
 - 职责: 归档后的项目：新建工单入口必须不可用，不能靠前端灰按钮后仍能点开弹窗。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_ticket_rounds`（function）
+- 职责: 同一工单在真实 DOM 里连发两轮：每轮都要收口、composer 回可用、消息单调增长。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_timer_ui`（function）
+- 职责: 定时器页面走真实按钮：改表达式弹窗 → 暂停 → 恢复 → 删除，状态与禁用门槛都要对。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_iso_in`（function）
+- 职责: 相对当前 UTC 的 ISO 时刻：浏览器侧定时器表达式要显式给未来时间。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

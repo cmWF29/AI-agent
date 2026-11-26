@@ -190,7 +190,8 @@ class TimerRoutesEdgeTest(unittest.TestCase):
         ctx.records["p"][0]["expr"] = "* * * * *"
         out = apply(ctx, t._route_tick(ctx, {"now": 120}))
         self.assertTrue(out["fired"])
-        self.assertEqual(ctx.records["p"][0]["next_at"], 120)
+        # 触发后 next_at 必须严格晚于触发时刻：停在 120 就是「下次=刚才那一分」
+        self.assertEqual(ctx.records["p"][0]["next_at"], 180)
         ctx.push_raises = True
         ctx.records["p"][0]["last_run"] = {"at": 0}
         ctx.records["p"][0]["fired"] = []

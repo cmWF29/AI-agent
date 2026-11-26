@@ -118,7 +118,10 @@ class ClockTest(unittest.TestCase):
         self.assertEqual(c.schedule_next({"kind": "cron", "expr": "* * * * *",
                                           "tz": "No/Such"})["code"], "bad_tz")
         ok = c.schedule_next({"kind": "cron", "expr": "* * * * *", "after": 0})
-        self.assertEqual(ok["ts"], 0)
+        # 严格晚于 after：0 点这一分已经过去，下一次命中是 60s
+        self.assertEqual(ok["ts"], 60)
+        mid = c.schedule_next({"kind": "cron", "expr": "* * * * *", "after": 90})
+        self.assertEqual(mid["ts"], 120)
         self.assertEqual(c.schedule_next({"kind": "cron", "expr": "0 0 31 2 *",
                                           "after": 0})["code"], "bad_cron")
 
