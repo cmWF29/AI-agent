@@ -108,9 +108,10 @@ class ProviderAdapterTest(unittest.TestCase):
         fake_s3.S3Client.return_value = "s3"
         fake_wd = mock.Mock()
         fake_wd.WebDavClient.return_value = "wd"
-        mods = {"ai_new.modules.agent.cloud.private._s3": fake_s3,
-                "ai_new.modules.agent.cloud.private._webdav": fake_wd}
-        with mock.patch.dict(sys.modules, mods):
+        # 相对导入 ``from . import _s3`` 先命中包属性，必须同时替换包属性才生效。
+        pkg = sys.modules["ai_new.modules.agent.cloud.private"]
+        with mock.patch.object(pkg, "_s3", fake_s3, create=True), \
+                mock.patch.object(pkg, "_webdav", fake_wd, create=True):
             self.assertEqual(p._S3Adapter()._client(None, {}), "s3")
             self.assertEqual(p._WebDavAdapter()._client(None, {}), "wd")
             self.assertIsInstance(p._build_s3(), p._S3Adapter)

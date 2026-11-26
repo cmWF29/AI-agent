@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_common_small_pkgs.py
-hash: 0a27896c7d9767bef1a98767170c24f2f0979093a5c3ac52ac90f87cdf327e75
+hash: 3d67571120f2cfca33f3e56774b8a78c4a7b4338039c2951e615d96084e74351
 symbols:
 - test_wrappers_delegate
 - test_setup_mounts_and_registers
@@ -30,6 +30,7 @@ symbols:
 - root
 - build
 - test_build_default_and_routes
+- test_route_literals_skips_products
 - test_build_rejections
 generated: gen_docs.py v1
 updated_at: '2026-11-26T10:56:28'
@@ -210,6 +211,12 @@ updated_at: '2026-11-26T10:56:28'
 
 ### `test_build_default_and_routes`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_route_literals_skips_products`（method）
+- 职责: 源码字面量扫描：跳过 data/ 与 __pycache__ 产物，只收本仓模块的 模块.函数 串。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

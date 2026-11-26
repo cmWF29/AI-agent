@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_provider_adapters.py
-hash: c5f570dea596dd511f9230fd8ca024507390b09d821025cfeeb93202bf44cbdc
+hash: 25415a128392388b01ca98d726cd8a2b60efec6521948773430ff463085d567d
 symbols:
 - __init__
 - test_connection

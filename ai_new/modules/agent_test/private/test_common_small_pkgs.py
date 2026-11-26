@@ -210,6 +210,23 @@ class GenTest(unittest.TestCase):
         self.assertEqual(out["routes"]["alpha.*"], {"kind": "direct"})
         self.assertEqual(out["routes"]["alpha.run"], {"kind": "unix"})
 
+    def test_route_literals_skips_products(self):
+        """源码字面量扫描：跳过 data/ 与 __pycache__ 产物，只收本仓模块的 模块.函数 串。"""
+        with tempfile.TemporaryDirectory() as d:
+            root = self.root(d)
+            base = root / "ai_new" / "modules" / "agent" / "alpha"
+            (base / "mod.py").write_text(
+                'A = "alpha.run"\nB = "alpha.*"\nC = "alpha."\n'
+                'D = "ghost.x"\nE = 1\n', encoding="utf-8")
+            (base / "data").mkdir()
+            (base / "data" / "artifact.py").write_text('X = "alpha.leak"\n',
+                                                      encoding="utf-8")
+            (base / "__pycache__").mkdir()
+            (base / "__pycache__" / "mod.py").write_text('Y = "alpha.cache"\n',
+                                                        encoding="utf-8")
+            found = _gen.route_literals(root, ["alpha"])
+        self.assertEqual(found, ["alpha.*", "alpha.run"])
+
     def test_build_rejections(self):
         cases = [
             ({"routes": {"alpha.run": {"kind": "tcp"}},
@@ -220,6 +237,7 @@ class GenTest(unittest.TestCase):
             ({"default": "bad"}, "default"),
             ({"modules": {"ghost": {"kind": "direct"}}}, "模块不存在"),
             ({"routes": {"alpha.run": {"kind": "bogus"}}}, "通道非法"),
+            ({"routes": {"alpha.run": {"kind": "unix"}}}, "listen.unix.path"),
         ]
         for deploy, needle in cases:
             with tempfile.TemporaryDirectory() as d:

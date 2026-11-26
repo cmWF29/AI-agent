@@ -129,7 +129,7 @@ def validate_profile(payload, cfg, require_credentials=True):
     errors.extend(guard["errors"])
 
     if root_dir:
-        if sanitize_key(root_dir) is None or root_dir.startswith("/"):
+        if sanitize_key(root_dir) is None:
             errors.append("bad_root_dir")
     else:
         root_dir = ""
