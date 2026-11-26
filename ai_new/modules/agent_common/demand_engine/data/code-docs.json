@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T09:53:36",
-  "total": 579,
+  "generated": "2026-11-26T09:55:58",
+  "total": 580,
   "groups": [
     {
       "label": "agent",
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 91,
+      "count": 92,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4582,6 +4582,15 @@
           "updated_at": "2026-11-26T08:19:13"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_sandbox_host_routes.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_sandbox_host_routes.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "066140fdd704973b4c3f6026d4a97902e7a78b8c3b9eba1a9d5861849bc3a568",
+          "symbols": 22,
+          "updated_at": "2026-11-26T09:55:42"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_secretary.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_secretary.py.md",
           "kind": "py",
@@ -5096,7 +5105,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "2dfce6f45df6797fe256106acbfd292749a89d8e395b121a58357d9ffd87b4da",
+          "hash": "453447f71d0a15fc721de01b89b7ca70d89167f28567fac537b979bb7ae2092e",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },
