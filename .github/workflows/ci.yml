@@ -210,7 +210,6 @@ jobs:
           python -m unittest test_core -v *> test-core.log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
-            Select-String -Path test-core.log -Pattern '^(FAIL|ERROR):|^(AssertionError|[A-Za-z]*Error|OSError|[A-Za-z]*Exception|NotImplementedError)|WinError|Traceback \(most recent' | Select-Object -First 60 | ForEach-Object { "::error::$($_.Line)" }
             Get-Content test-core.log -Tail 120
             Get-Content test-core.log -Tail 120 >> $env:GITHUB_STEP_SUMMARY
           }
@@ -219,10 +218,28 @@ jobs:
         if: always()
         timeout-minutes: 25
         run: python scripts/run_tests.py --jobs 2 --json-out windows-run.json
-      - name: 失败模块（注解可见）
+      - name: Windows 失败摘要（单条注解，避免命中 10 条注解上限）
         if: failure()
         run: |
-          python -c "import json,pathlib; p=pathlib.Path('windows-run.json'); rows=json.loads(p.read_text(encoding='utf-8')).get('runs',[]) if p.exists() else []; [print('::error::%s %s' % (r['module'], ' | '.join((r.get('tail') or '').splitlines()[-4:])))) for r in rows if not r.get('ok')]"
+          $parts = @()
+          if (Test-Path test-core.log) {
+            $lines = Get-Content test-core.log
+            for ($i = 0; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^(FAIL|ERROR):') {
+                $head = $lines[$i]
+                for ($j = $i + 1; $j -lt [Math]::Min($i + 20, $lines.Count); $j++) {
+                  if ($lines[$j] -match '^[A-Za-z_.]+(Error|Exception):') {
+                    $parts += "$head => $($lines[$j])"
+                    break
+                  }
+                }
+              }
+            }
+          }
+          if (Test-Path windows-run.json) {
+            python -c "import json,pathlib; rows=json.loads(pathlib.Path('windows-run.json').read_text(encoding='utf-8')).get('runs',[]); print('\n'.join('%s => %s' % (r['module'], ' / '.join((r.get('tail') or '').splitlines()[-3:])) for r in rows if not r.get('ok')))" | ForEach-Object { if ($_ -ne '') { $parts += $_ } }
+          }
+          "::error::$($parts -join ' || ')"
       - name: Skip 门禁（Windows 平台允许集）
         timeout-minutes: 8
         run: python scripts/gate_skips.py
