@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T10:31:33",
-  "total": 586,
+  "generated": "2026-11-26T10:56:45",
+  "total": 588,
   "groups": [
     {
       "label": "agent",
@@ -3761,8 +3761,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/__init__.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "635a03d543baf725af1666ed2df284c594031eab301609edebbc147be00bcb49",
-          "symbols": 7,
+          "hash": "1f3d5fe1af44be29819d0107f8cc1cc16e89b2c667d3d014ff08da9eb9cbf528",
+          "symbols": 6,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 98,
+      "count": 100,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4211,6 +4211,15 @@
           "hash": "af1f3b43fa200172c092274f811aed945c866d7eda270828350892c1096dc0b7",
           "symbols": 34,
           "updated_at": "2026-11-23T13:04:30"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_common_small_pkgs.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_common_small_pkgs.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "0a27896c7d9767bef1a98767170c24f2f0979093a5c3ac52ac90f87cdf327e75",
+          "symbols": 29,
+          "updated_at": "2026-11-26T10:56:28"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_core.py",
@@ -4717,6 +4726,15 @@
           "updated_at": "2026-11-26T00:12:16"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_store_misc_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_store_misc_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "e336d36e44bc6a444b013366e73b4880acf13aa22617ae7475f95a5de8c213c3",
+          "symbols": 10,
+          "updated_at": "2026-11-26T10:56:29"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_store_panel.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_store_panel.py.md",
           "kind": "py",
@@ -5159,7 +5177,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "139dbab1e3b18b29e7ea70ca91f8d16d312e9f820d482208aa6232bd37f0d01b",
+          "hash": "a3e746a1ddae39854119c9e2abf43be0db73c1d297d063efa0a62fc44046f903",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },

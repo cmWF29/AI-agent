@@ -1,4 +1,4 @@
-"""存储工具模块：目录、原子 JSON 读写、safe_id、时间。无任何业务。
+"""存储工具模块：目录、原子 JSON 读写、safe_id。无任何业务。
 
 每个模块从 `ctx.storage.own(__file__)` 拿自己的数据目录；
 本模块只提供能力，不认识任何模块的名字。
@@ -33,7 +33,3 @@ def write_text(path, text):
 
 def safe_id(text):
     return _files.safe_id(text)
-
-
-def now_iso():
-    return _files.now_iso()
