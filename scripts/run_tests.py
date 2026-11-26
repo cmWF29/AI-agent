@@ -37,7 +37,7 @@ DEFAULT_MODULES = [
     "test_timer", "test_role_gates", "test_skill_decompose", "test_plat",
     "test_isolation_windows", "test_cloud", "test_cloud_guard", "test_cloud_seal",
     "test_cloud_sync", "test_cloud_s3", "test_s3_edges", "test_api_routes",
-    "test_host_probe", "test_cloud_webdav",
+    "test_host_probe", "test_http_server", "test_cloud_webdav",
     "test_react_mechanisms",
     "test_gate_diff_coverage", "test_security_boundaries", "test_api",
     "test_deadcode", "test_docsync", "test_levels",

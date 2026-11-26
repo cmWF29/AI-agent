@@ -36,7 +36,10 @@ def setup(ctx):
     if tls.get("enabled") and tls.get("cert") and tls.get("key"):
         cert = str(ctx.storage.path("server.tls.cert", tls["cert"]))
         key = str(ctx.storage.path("server.tls.key", tls["key"]))
-        server.socket = ssl.wrap_socket(server.socket, certfile=cert, keyfile=key, server_side=True)
+        # 3.12 起 ssl.wrap_socket 已移除，只能自建上下文再包 socket（协议版本显式给 TLS）。
+        tls_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tls_ctx.load_cert_chain(cert, key)
+        server.socket = tls_ctx.wrap_socket(server.socket, server_side=True)
     return server
 
 
@@ -157,19 +160,18 @@ def _make_handler(ctx):
                 body = self._read_json_body()
                 if body is None:
                     return
-                if isinstance(body, dict):
-                    payload.update(body)
+                payload.update(body)
 
             # 登录节流需要真实对端地址：由传输层注入，调用方 body/query 里的 peer
             # 不可信，必须在合并后用连接地址覆盖。登录需求把 peer 透传给 auth.login。
             peer = str(self.client_address[0] or "")
-            if isinstance(body, dict):
-                inp = body.get("input")
-                if path == "/api/rpc/demand_engine/run" and body.get("id") == "auth-login" \
-                        and isinstance(inp, dict):
-                    inp["peer"] = peer
-                elif path in ("/api/auth/login", "/api/rpc/auth/login"):
-                    body["peer"] = peer
+            # body 恒为 dict（_read_json_body 只回 dict），无需再判类型。
+            inp = body.get("input")
+            if path == "/api/rpc/demand_engine/run" and body.get("id") == "auth-login" \
+                    and isinstance(inp, dict):
+                inp["peer"] = peer
+            elif path in ("/api/auth/login", "/api/rpc/auth/login"):
+                body["peer"] = peer
             if path in ("/api/auth/login", "/api/rpc/auth/login"):
                 payload["peer"] = peer
 
