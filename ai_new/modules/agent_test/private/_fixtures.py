@@ -72,7 +72,7 @@ def _prune_untracked_runtime(dest):
             continue
         for fn in fns:
             path = Path(dp) / fn
-            rel = str(path.relative_to(dest))
+            rel = path.relative_to(dest).as_posix()
             if rel not in keep:
                 try:
                     path.unlink()

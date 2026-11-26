@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T03:06:53",
+  "generated": "2026-11-27T03:49:52",
   "total": 591,
   "groups": [
     {
@@ -3983,7 +3983,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/_fixtures.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "1c75cfd13945c567c4b08a0abe539eb390291204a35bb1e8cb2dd525eeb99bfb",
+          "hash": "8d1d653f7bf67c14097827ee26fa523a96487c7efaad5d8efed1b7c7e3f82ea9",
           "symbols": 6,
           "updated_at": "2026-11-23T04:10:22"
         },
