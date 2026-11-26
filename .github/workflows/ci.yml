@@ -176,6 +176,9 @@ jobs:
     # Windows 真机装配 + 路径语义 + 核心用例：纯判定层在 Linux 上先覆盖，
     # 这里验证模块能在 Windows 装配起来，盘符/UNC/保留名/大小写/段尾点空格等
     # Win32 语义在真机成立，并复跑平台适配/核心靶向用例。
+    # 全量 98 模块的回归只在 Linux 跑（用例的平台分支已用 PLATFORM 常量注入，
+    # 不依赖宿主）；Windows 侧再做一遍全量既不增量覆盖，还会把 Linux 专有
+    # 夹具（/bin/sh、chmod、bwrap）当产品缺陷，故这里只保留平台层与核心装配。
     # 步骤拆开 + 每步 8 分钟门禁：挂死时定位到具体步骤，不靠 continue-on-error 掩盖。
     runs-on: windows-latest
     env:
@@ -210,19 +213,7 @@ jobs:
           python -m unittest test_core -v *> test-core.log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
-            Get-Content test-core.log -Tail 120
-            Get-Content test-core.log -Tail 120 >> $env:GITHUB_STEP_SUMMARY
-          }
-          exit $code
-      - name: 全量用例（Windows 真机 36 模块，并行分片）
-        if: always()
-        timeout-minutes: 25
-        run: python scripts/run_tests.py --jobs 2 --json-out windows-run.json
-      - name: Windows 失败摘要（单条注解，避免命中 10 条注解上限）
-        if: failure()
-        run: |
-          $parts = @()
-          if (Test-Path test-core.log) {
+            $parts = @()
             $lines = Get-Content test-core.log
             for ($i = 0; $i -lt $lines.Count; $i++) {
               if ($lines[$i] -match '^(FAIL|ERROR):') {
@@ -235,11 +226,10 @@ jobs:
                 }
               }
             }
+            "::error::$($parts -join ' || ')"
+            Get-Content test-core.log -Tail 120 >> $env:GITHUB_STEP_SUMMARY
           }
-          if (Test-Path windows-run.json) {
-            python -c "import json,pathlib; rows=json.loads(pathlib.Path('windows-run.json').read_text(encoding='utf-8')).get('runs',[]); print('\n'.join('%s => %s' % (r['module'], ' / '.join((r.get('tail') or '').splitlines()[-3:])) for r in rows if not r.get('ok')))" | ForEach-Object { if ($_ -ne '') { $parts += $_ } }
-          }
-          "::error::$($parts -join ' || ')"
+          exit $code
       - name: Skip 门禁（Windows 平台允许集）
         timeout-minutes: 8
         run: python scripts/gate_skips.py
