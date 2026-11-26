@@ -322,21 +322,18 @@ class S3Client:
                                       ratio=0.25, fraction=self._jitter_fraction())
 
     def _send_with_retry(self, method, url, headers, body):
-        attempts = 0
         last_row = {"ok": False, "status": 0, "headers": {}}
-        while attempts < self.max_attempts:
-            row = self.transport(self.ctx, method, url, headers, body, 30)
-            row = row or {}
+        for attempt in range(self.max_attempts):
+            row = self.transport(self.ctx, method, url, headers, body, 30) or {}
             status = int(row.get("status") or 0)
             # 传输层 ``ok`` 只表示链路可达；业务成功须为 2xx，403/404/400 走分类。
             success = bool(row.get("ok")) and 200 <= status < 300
             if success and not _retryable(status, row):
                 return row
             last_row = row
-            attempts += 1
-            if attempts >= self.max_attempts or not _retryable(status, row):
+            if not _retryable(status, row):
                 break
-            delay = self._backoff(attempts - 1, row)
+            delay = self._backoff(attempt, row)
             if delay > 0:
                 self.ctx.api.call("clock.sleep", {"seconds": delay}, caller=None)
         code = _classify(last_row.get("status"), last_row)
@@ -552,8 +549,6 @@ class S3Client:
             if not upload_id:
                 return {"ok": False, "code": row.get("code") or "multipart_error",
                         "offset": 0}
-        elif not isinstance(upload_id, str):
-            upload_id = str(upload_id)
 
         etags = dict(done)
         running = hashlib.sha256()

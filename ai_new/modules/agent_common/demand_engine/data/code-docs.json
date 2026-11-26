@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T03:00:00",
-  "total": 570,
+  "generated": "2026-11-26T08:19:28",
+  "total": 571,
   "groups": [
     {
       "label": "agent",
@@ -281,7 +281,7 @@
           "doc": "docs/code/ai_new/modules/agent/cloud/private/_s3.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "64dd363e445076b84361e69629474dca70b73fea29996484f12389a9af630fad",
+          "hash": "2acad90bcaee31930e6b0bd774df0ef8ddce9badcd299a65ddde852320712357",
           "symbols": 44,
           "updated_at": "2026-11-23T13:04:23"
         },
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 82,
+      "count": 83,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4510,6 +4510,15 @@
           "updated_at": "2026-11-26T00:04:27"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_s3_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_s3_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "6f4b6d8d78183ec40a230bfbdcff5c2b6f44100c768abe59b58aef48bef6189f",
+          "symbols": 24,
+          "updated_at": "2026-11-26T08:19:13"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_secretary.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_secretary.py.md",
           "kind": "py",
@@ -5015,7 +5024,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "9112b15716675bdbd9ec059927f6e20f937d894ac7dd17cc28b80c0fbd4aece7",
+          "hash": "d4aed0b2b1d799c1218e3e3ccce04b348a50266b92de0654ce4dc0807cb73f67",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },
