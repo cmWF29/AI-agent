@@ -210,7 +210,7 @@ jobs:
           python -m unittest test_core -v *> test-core.log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
-            Select-String -Path test-core.log -Pattern '^(FAIL|ERROR):' | ForEach-Object { "::error::$($_.Line)" }
+            Select-String -Path test-core.log -Pattern '^(FAIL|ERROR):|^(AssertionError|[A-Za-z]*Error|OSError|[A-Za-z]*Exception|NotImplementedError)|WinError|Traceback \(most recent' | Select-Object -First 60 | ForEach-Object { "::error::$($_.Line)" }
             Get-Content test-core.log -Tail 120
             Get-Content test-core.log -Tail 120 >> $env:GITHUB_STEP_SUMMARY
           }
@@ -222,7 +222,7 @@ jobs:
       - name: 失败模块（注解可见）
         if: failure()
         run: |
-          python -c "import json,pathlib; p=pathlib.Path('windows-run.json'); rows=json.loads(p.read_text(encoding='utf-8')).get('runs',[]) if p.exists() else []; [print('::error::%s %s' % (r['module'], ' | '.join([l for l in (r.get('tail') or '').splitlines() if l.startswith(('FAIL:','ERROR:')) or 'AssertionError' in l][:4]))) for r in rows if not r.get('ok')]"
+          python -c "import json,pathlib; p=pathlib.Path('windows-run.json'); rows=json.loads(p.read_text(encoding='utf-8')).get('runs',[]) if p.exists() else []; [print('::error::%s %s' % (r['module'], ' | '.join((r.get('tail') or '').splitlines()[-4:])))) for r in rows if not r.get('ok')]"
       - name: Skip 门禁（Windows 平台允许集）
         timeout-minutes: 8
         run: python scripts/gate_skips.py
