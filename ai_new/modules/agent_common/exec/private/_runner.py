@@ -201,7 +201,11 @@ async def _arun(ctx, payload):
                 buf[key].append(line)
                 # 正文逐行吐进运行期草稿；stderr 不算答复，不进缓冲
                 if key == "out" and stream_key and runtime is not None:
-                    runtime.stream_put(stream_key, line)
+                    # 流式草稿是旁路：写失败不能拖垮正文收全，否则进程输出后半段直接丢
+                    try:
+                        runtime.stream_put(stream_key, line)
+                    except Exception:  # noqa: BLE001
+                        pass
         except Exception:  # noqa: BLE001 — 进程被 kill 时泵协程收尾即可
             pass
 
@@ -223,10 +227,8 @@ async def _arun(ctx, payload):
             await asyncio.wait_for(proc.wait(), timeout=0.1)
         except asyncio.TimeoutError:
             pass
-    try:
-        await pump_task
-    except Exception:  # noqa: BLE001
-        pass
+    # 泵协程自己吞掉阅读异常（见 pump），这里不会再有可捕获的 Exception 逃逸。
+    await pump_task
 
     out = "".join(buf["out"])
     err = "".join(buf["err"])
