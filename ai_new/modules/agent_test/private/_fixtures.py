@@ -6,6 +6,8 @@
 import yaml
 import os
 import shutil
+import subprocess
+from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -28,6 +30,54 @@ def module_data(group, name):
     return module / "data"
 
 
+@lru_cache(maxsize=1)
+def _tracked_data():
+    """仓库里被 git 跟踪的数据文件集合（相对 ai_new/modules）。
+
+    运行时会被写进模块 data 的会话/工单/日志不是源码数据，不能跟着暂存走；
+    否则每次测试都继承上一轮的历史会话与工单号，断言会撞上别人的对话。
+    """
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "ls-files", "--", "ai_new/modules"],
+                             text=True, capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    base = "ai_new/modules/"
+    rows = []
+    for line in (out.stdout or "").splitlines():
+        if "/data/" not in line or not line.startswith(base):
+            continue
+        rows.append(line[len(base):])
+    return rows or None
+
+
+def _prune_untracked_runtime(dest):
+    """拷完之后剔掉运行时产物：只保留 git 跟踪的数据文件。
+
+    会话/工单/日志/幂等台账会被测试与门禁写进模块 data；如果原样暂存，下一轮就继承
+    上一轮的历史会话与工单号（断言会撞上别人的对话）。有 git 时按跟踪清单过滤，
+    没有 git（如部署包）就原样保留，不擅自删数据。
+    """
+    tracked = _tracked_data()
+    if tracked is None:
+        return
+    keep = set(tracked)
+    for dp, dns, fns in os.walk(dest):
+        if "__pycache__" in Path(dp).parts:
+            dns[:] = []
+            continue
+        for fn in fns:
+            path = Path(dp) / fn
+            rel = str(path.relative_to(dest))
+            if "/data/" in rel and rel not in keep:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+
+
 def stage(dest):
     """把每个模块自己的数据拷到 dest（布局镜像 modules/），返回 dest。"""
     dest = Path(dest)
@@ -41,6 +91,7 @@ def stage(dest):
                 # "组即模块"（如 agent_test）：镜像时不再多一层同名子目录
                 target = dest / group if module.name == group else dest / group / module.name
                 shutil.copytree(src, target, dirs_exist_ok=True)
+    _prune_untracked_runtime(dest)
     return dest
 
 

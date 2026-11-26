@@ -201,7 +201,9 @@ def _persist_and_restart(rec):
             "caller": {"scope": "global"}})
         rec.check("落盘·定时器已建", bool(timer.get("id")), str(timer)[:200])
         _disk_checks(rec, boot, project, ticket, marker)
-        before = len(_messages(c, ticket))
+        before_msgs = _messages(c, ticket)
+        before = len(before_msgs)
+        before_sig = [(m.get("role"), m.get("session"), m.get("content")) for m in before_msgs]
         before_files = _snapshot(boot.root)
         before_sizes = _log_sizes(boot.root)
         c.close()
@@ -227,8 +229,14 @@ def _persist_and_restart(rec):
             rec.check("恢复·项目还在", project in names, "项目树 %s" % names[:6])
             got = _call(c2, "ticket-get", {"id": ticket})
             rec.check("恢复·工单还在", (got.get("ticket") or got).get("id") == ticket, str(got)[:200])
-            after = len(_messages(c2, ticket))
-            rec.check("恢复·历史 thread 完整", after == before, "%d → %d" % (before, after))
+            after_msgs = _messages(c2, ticket)
+            after = len(after_msgs)
+            after_sig = [(m.get("role"), m.get("session"), m.get("content")) for m in after_msgs]
+            # 重启期间会话续跑可能补一条系统消息，因此判「原有消息逐条还在且不减」，
+            # 而不是拿总条数卡死相等。
+            kept = after_sig[:len(before_sig)] == before_sig and after >= before
+            rec.check("恢复·历史 thread 不丢", kept,
+                      "原 %d 条%s，总 %d 条" % (before, "都在" if kept else "有缺失", after))
             row = _timer_row(c2, timer.get("id"))
             rec.check("恢复·定时器还在", row is not None and row.get("status") == "active", str(row)[:200])
             kn = _call(c2, "knowledge-read", {"layer": "public", "name": marker})

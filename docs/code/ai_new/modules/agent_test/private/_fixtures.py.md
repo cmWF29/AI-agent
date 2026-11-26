@@ -1,9 +1,11 @@
 ---
 source: ai_new/modules/agent_test/private/_fixtures.py
-hash: 4e08a03bf9fd8377f3cdc712386b7beb90f559548167cc6cc1ef825d0f9e2fd8
+hash: 5126d3a81982321075f1b67bb8c9b03fddd6da1ed8bf4be25b0970f4b428d87d
 symbols:
 - module_dir
 - module_data
+- _tracked_data
+- _prune_untracked_runtime
 - stage
 - write_config
 generated: gen_docs.py v1
@@ -29,6 +31,18 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `module_data`（function）
 - 职责: 某个模块自己的数据目录（部署覆盖优先，布局镜像 modules/）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_tracked_data`（function）
+- 职责: 仓库里被 git 跟踪的数据文件集合（相对 ai_new/modules）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_prune_untracked_runtime`（function）
+- 职责: 拷完之后剔掉运行时产物：只保留 git 跟踪的数据文件。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
