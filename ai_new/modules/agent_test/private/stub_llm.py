@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -215,6 +216,13 @@ class _Handler(BaseHTTPRequestHandler):
         if random.random() < policy.close_rate:
             with stats.lock:
                 stats.closed += 1
+            # 必须真发 FIN 并退出请求循环：只 close 本端 socket 时 handler 会回到
+            # keep-alive 的 readline 上继续等下一个请求，客户端则在等状态行，双方互等到超时。
+            self.close_connection = True
+            try:
+                self.connection.shutdown(socket.SHUT_RDWR)
+            except Exception:  # noqa: BLE001
+                pass
             try:
                 self.connection.close()
             except Exception:  # noqa: BLE001

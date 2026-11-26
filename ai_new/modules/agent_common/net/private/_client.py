@@ -22,6 +22,13 @@ def _retryable(code, status):
         return False
 
 
+def _err_text(exc):
+    """故障文案：超时的异常自带空字符串，直接 str() 会得到空 error，日志里查不出原因。"""
+    if isinstance(exc, asyncio.TimeoutError):
+        return "读写超时"
+    return str(exc) or type(exc).__name__
+
+
 def _backoff(attempt):
     return asyncio.sleep(min(2.0, 0.5 * (attempt + 1)))
 
@@ -132,14 +139,15 @@ async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None
             reader, writer = await _open(scheme, host, port, limit)
             writer.write(payload)
             await writer.drain()
-            status, resp_headers = await _read_status(reader)
+            # 状态行/头也必须受总时限约束：只给 body 加 wait_for 时，上游半开连或只连不答会永久挂住。
+            status, resp_headers = await asyncio.wait_for(_read_status(reader), timeout=limit)
             raw = await asyncio.wait_for(_read_body(reader, resp_headers), timeout=limit)
             return {"ok": True, "status": status,
                     "headers": resp_headers,
                     "text": raw.decode("utf-8", "replace"), "body": raw}
         except Exception as exc:  # noqa: BLE001 —— 能力层不外抛
             code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
-            last = {"ok": False, "status": 0, "error": str(exc), "code": code}
+            last = {"ok": False, "status": 0, "error": _err_text(exc), "code": code}
             if not _retryable(code, 0) or attempt >= retries:
                 return last
         finally:
@@ -186,36 +194,47 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
             reader, writer = await _open(scheme, host, port, limit)
             writer.write(payload)
             await writer.drain()
-            status, _ = await _read_status(reader)
+            status, resp_headers = await asyncio.wait_for(_read_status(reader), timeout=limit)
             connected = True
-            while True:
-                raw = await asyncio.wait_for(reader.readline(), timeout=limit)
-                if not raw:
-                    break
-                line = raw.decode("utf-8", "replace").strip()
-                if not line or not line.startswith("data:"):
-                    continue
-                chunk = line[5:].strip()
-                if chunk == "[DONE]":
-                    break
-                dec = ctx.api.call("codec.json_decode", {"text": chunk}, caller=None)
-                if not dec.get("ok"):
-                    continue
-                obj = dec.get("value")
-                if not isinstance(obj, dict):
-                    continue
-                items.append(obj)
-                if line_cap > 0 and len(raw_lines) < line_cap:
-                    raw_lines.append(line)
-                delta = (obj.get("choices") or [{}])[0].get("delta") or {}
-                piece = delta.get("content")
-                if piece and stream_key and runtime is not None:
-                    runtime.stream_put(stream_key, piece)
-            return {"ok": True, "status": status, "items": items,
-                    "raw": "\n".join(raw_lines)}
+            if status >= 400:
+                # 错误体不是 SSE：整段读出来交上层按 error.code 归类。当成“没有 data 帧”
+                # 回成功会把 400 洗成空答复，还会因为不读 body 卡在 keep-alive 上等下一行。
+                raw = await asyncio.wait_for(_read_body(reader, resp_headers), timeout=limit)
+                text = raw.decode("utf-8", "replace")
+                last = {"ok": False, "status": status, "error": text,
+                        "raw": text, "code": "http_%d" % status}
+                # 4xx 是请求本身问题不重试；5xx 值得按 status 退避重试一次
+                if status < 500 or attempt >= retries:
+                    return last
+            else:
+                while True:
+                    raw = await asyncio.wait_for(reader.readline(), timeout=limit)
+                    if not raw:
+                        break
+                    line = raw.decode("utf-8", "replace").strip()
+                    if not line or not line.startswith("data:"):
+                        continue
+                    chunk = line[5:].strip()
+                    if chunk == "[DONE]":
+                        break
+                    dec = ctx.api.call("codec.json_decode", {"text": chunk}, caller=None)
+                    if not dec.get("ok"):
+                        continue
+                    obj = dec.get("value")
+                    if not isinstance(obj, dict):
+                        continue
+                    items.append(obj)
+                    if line_cap > 0 and len(raw_lines) < line_cap:
+                        raw_lines.append(line)
+                    delta = (obj.get("choices") or [{}])[0].get("delta") or {}
+                    piece = delta.get("content")
+                    if piece and stream_key and runtime is not None:
+                        runtime.stream_put(stream_key, piece)
+                return {"ok": True, "status": status, "items": items,
+                        "raw": "\n".join(raw_lines)}
         except Exception as exc:  # noqa: BLE001 —— 读帧阶段失败不外抛
             code = "unreachable" if isinstance(exc, (IOError, OSError, asyncio.TimeoutError)) else "net_error"
-            last = {"ok": False, "status": 0, "error": str(exc), "code": code}
+            last = {"ok": False, "status": 0, "error": _err_text(exc), "code": code}
             if connected or attempt >= retries or not _retryable(code, 0):
                 return last
         finally:

@@ -31,7 +31,7 @@ TESTDIR = ROOT / "ai_new" / "modules" / "agent_test" / "private"
 DEFAULT_MODULES = [
     "test_core", "test_architecture", "test_demands", "test_demand_engine",
     "test_demand_engine_routes", "test_boot_graph", "test_transport", "test_idem",
-    "test_stub_proto", "test_graph_patterns", "test_isolation",
+    "test_stub_proto", "test_stub_faults", "test_graph_patterns", "test_isolation",
     "test_knowledge_concurrency", "test_node_profile", "test_nodes",
     "test_distributed", "test_isolation_tiers", "test_archive", "test_secretary",
     "test_timer", "test_role_gates", "test_skill_decompose", "test_plat",

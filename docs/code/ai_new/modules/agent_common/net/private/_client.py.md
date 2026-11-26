@@ -1,8 +1,9 @@
 ---
 source: ai_new/modules/agent_common/net/private/_client.py
-hash: 3fcb9e030ba920795ace2e272d179ed6794fc41e9fa299d93ee759a866cecb0a
+hash: 8ed048e5ca06a3834a91beea633458fe9dea54b144ea66edc1c677fb0ead65a8
 symbols:
 - _retryable
+- _err_text
 - _backoff
 - _split_url
 - _raw_body
@@ -32,6 +33,12 @@ HTTP(S) 出站实现（纯 stdlib，协程流）。失败是结果、不是异�
 
 ### `_retryable`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_err_text`（function）
+- 职责: 故障文案：超时的异常自带空字符串，直接 str() 会得到空 error，日志里查不出原因。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

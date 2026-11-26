@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_net_client.py
-hash: 38f03e9ca4c950be69dbf2c9ff0bd80db7e9835f7888cb34a326bc0e66ece85c
+hash: a9676e3ed9d6a67d102beeac88f62421b82b78e0f38fc18cdda8cb88ad6e62aa
 symbols:
 - __init__
 - readline
@@ -24,6 +24,13 @@ symbols:
 - test_stream_bad_json_and_retry
 - test_stream_retry_is_suppressed_after_connect
 - test_sync_wrappers
+- test_stream_http_error_body_read_not_sse
+- test_stream_5xx_retried_then_recovers
+- test_stream_5xx_exhausted_returns_http_code
+- test_status_read_timeout_is_bounded
+- test_error_text
+- test_setup_and_routes
+- test_module_wrappers_delegate
 generated: gen_docs.py v1
 updated_at: '2026-11-26T00:01:32'
 ---
@@ -166,6 +173,48 @@ HTTP 出站：URL/报文归一、状态行、chunked、重试与 SSE 增量。
 - 关联需求/测试: 待人工补充
 
 ### `test_sync_wrappers`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_stream_http_error_body_read_not_sse`（method）
+- 职责: 4xx 的 JSON 错误体不是 SSE：整段读出返回失败，不能当空流回成功。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_stream_5xx_retried_then_recovers`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_stream_5xx_exhausted_returns_http_code`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_status_read_timeout_is_bounded`（method）
+- 职责: 上游只连不答：状态行读取必须有总时限，否则整轮永久挂住。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_error_text`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_setup_and_routes`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_module_wrappers_delegate`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

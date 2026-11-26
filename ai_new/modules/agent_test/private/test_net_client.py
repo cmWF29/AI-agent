@@ -236,5 +236,98 @@ class NetClientTest(unittest.TestCase):
             self.assertEqual(run.call_count, 2)
 
 
+    def test_stream_http_error_body_read_not_sse(self):
+        """4xx 的 JSON 错误体不是 SSE：整段读出返回失败，不能当空流回成功。"""
+        ctx = Ctx()
+        body = b'{"error": {"code": "context_length_exceeded"}}'
+        pair = (Reader([], body), Writer())
+        with mock.patch.object(n, "_open", mock.AsyncMock(return_value=pair)), \
+                mock.patch.object(n, "_read_status",
+                                  mock.AsyncMock(return_value=(400, {"content-length": str(len(body))}))):
+            out = asyncio.run(n.arequest_stream(ctx, "http://h"))
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["code"], "http_400")
+        self.assertEqual(out["status"], 400)
+        self.assertIn("context_length_exceeded", out["error"])
+
+    def test_stream_5xx_retried_then_recovers(self):
+        ctx = Ctx()
+        statuses = [(500, {}), (200, {})]
+
+        async def status(_reader):
+            return statuses.pop(0)
+
+        bodies = [(Reader([], b"boom"), Writer()), (Reader([b"data: {}\n", b""]), Writer())]
+
+        async def open_(*a):
+            return bodies.pop(0)
+
+        with mock.patch.object(n, "_open", side_effect=open_), \
+                mock.patch.object(n, "_read_status", side_effect=status), \
+                mock.patch.object(n.asyncio, "sleep", mock.AsyncMock()):
+            out = asyncio.run(n.arequest_stream(ctx, "http://h", retries=1))
+        self.assertTrue(out["ok"])
+
+    def test_stream_5xx_exhausted_returns_http_code(self):
+        ctx = Ctx()
+        pair = (Reader([], b"boom"), Writer())
+        with mock.patch.object(n, "_open", mock.AsyncMock(return_value=pair)), \
+                mock.patch.object(n, "_read_status", mock.AsyncMock(return_value=(503, {}))):
+            out = asyncio.run(n.arequest_stream(ctx, "http://h", retries=0))
+        self.assertEqual(out["code"], "http_503")
+
+    def test_status_read_timeout_is_bounded(self):
+        """上游只连不答：状态行读取必须有总时限，否则整轮永久挂住。"""
+        ctx = Ctx()
+
+        async def silent(_reader):
+            await asyncio.sleep(0)
+            raise asyncio.TimeoutError()
+
+        with mock.patch.object(n, "_open", mock.AsyncMock(return_value=(Reader([]), Writer()))), \
+                mock.patch.object(n, "_read_status", side_effect=silent), \
+                mock.patch.object(n.asyncio, "sleep", mock.AsyncMock()):
+            out = asyncio.run(n.arequest_stream(ctx, "http://h", timeout=0.2, retries=0))
+        self.assertEqual(out["code"], "unreachable")
+        self.assertEqual(out["error"], "读写超时")
+
+    def test_error_text(self):
+        self.assertEqual(n._err_text(asyncio.TimeoutError()), "读写超时")
+        self.assertEqual(n._err_text(ValueError("x")), "x")
+        self.assertEqual(n._err_text(Exception()), "Exception")
+
+class NetRoutesTest(unittest.TestCase):
+    def test_setup_and_routes(self):
+        from ai_new.modules.agent_common import net
+        registered = {}
+
+        class Reg:
+            def register(self, name, fn, desc=None, module=None):
+                registered[name] = fn
+
+        ctx = Ctx()
+        ctx.api = Reg()
+        self.assertTrue(net.setup(ctx))
+        self.assertEqual(sorted(registered), ["net.request", "net.request_stream"])
+        with mock.patch.object(n, "arequest", mock.AsyncMock(return_value={"ok": True})) as areq, \
+                mock.patch.object(n, "arequest_stream", mock.AsyncMock(return_value={"ok": True})) as astream:
+            self.assertTrue(asyncio.run(registered["net.request"](ctx, {"url": "u"}))["ok"])
+            self.assertEqual(areq.call_args.kwargs["method"], "GET")
+            self.assertEqual(areq.call_args.kwargs["headers"], {})
+            self.assertTrue(asyncio.run(registered["net.request_stream"](ctx, {"url": "u"}))["ok"])
+            self.assertEqual(astream.call_args.kwargs["method"], "POST")
+            self.assertEqual(astream.call_args.kwargs["stream_key"], "")
+
+    def test_module_wrappers_delegate(self):
+        from ai_new.modules.agent_common import net
+        ctx = Ctx()
+        with mock.patch.object(n, "request", mock.Mock(return_value="r")) as req, \
+                mock.patch.object(n, "request_stream", mock.Mock(return_value="s")) as stream:
+            self.assertEqual(net.request(ctx, "u", method="POST"), "r")
+            self.assertEqual(req.call_args.kwargs["method"], "POST")
+            self.assertEqual(net.request_stream(ctx, "u"), "s")
+            self.assertEqual(stream.call_args.kwargs["stream_key"], "")
+
+
 if __name__ == "__main__":
     unittest.main()

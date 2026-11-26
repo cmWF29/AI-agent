@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/stub_llm.py
-hash: 671dec8de0014bc2dc69bc8d3be86f2113b09ae40060077b8da4d99baaf829bc
+hash: 6b65a8833a751e755c5a93193630aa891f05a1e50aa882f8c5fb11f8b9cad200
 symbols:
 - __init__
 - bump
