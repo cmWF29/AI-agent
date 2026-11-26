@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-26T10:56:45",
-  "total": 588,
+  "generated": "2026-11-26T10:58:13",
+  "total": 589,
   "groups": [
     {
       "label": "agent",
@@ -3958,7 +3958,7 @@
     },
     {
       "label": "agent_test",
-      "count": 100,
+      "count": 101,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4762,6 +4762,15 @@
           "updated_at": "2026-11-23T04:10:23"
         },
         {
+          "source": "ai_new/modules/agent_test/private/test_tickets_library_edges.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_tickets_library_edges.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "bb53afc1b495c30c4216dc8e62c6691f1851c385f22343d83b72e7ff1b3161b1",
+          "symbols": 10,
+          "updated_at": "2026-11-26T10:57:57"
+        },
+        {
           "source": "ai_new/modules/agent_test/private/test_tickets_routes.py",
           "doc": "docs/code/ai_new/modules/agent_test/private/test_tickets_routes.py.md",
           "kind": "py",
@@ -5177,7 +5186,7 @@
           "doc": "docs/code/scripts/run_tests.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "a3e746a1ddae39854119c9e2abf43be0db73c1d297d063efa0a62fc44046f903",
+          "hash": "36174b49aacdaca8fa6f3b157a5766c03dbd1fb2d31b30c336b22360cff9c6bd",
           "symbols": 2,
           "updated_at": "2026-11-25T13:07:49"
         },
