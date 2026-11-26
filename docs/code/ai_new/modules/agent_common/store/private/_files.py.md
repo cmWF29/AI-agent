@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent_common/store/private/_files.py
-hash: f78be11ec6bc4b3438a5f090e8f3e2e9fb0698ae5aedec5b558359583ad8342a
+hash: e3aa76de4e08987e796a31c6486aefbf4f614cb5513479f986a12fcc82e447cd
 symbols:
 - replace_file
 - ensure_dir
 - write_text_atomic
 - write_bytes_atomic
+- _read_text_once
 - read_text
 - write_text
 - safe_id
@@ -49,6 +50,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `write_bytes_atomic`（function）
 - 职责: 二进制原子写：临时文件 + 原子改名，掉电不留半个文件。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_read_text_once`（function）
+- 职责: 单次读文本；单独成函数，平台分支用例可替换 IO 而不改真实 os.name。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

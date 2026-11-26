@@ -267,12 +267,12 @@ class IsolateWindowsBranchesTest(unittest.TestCase):
                                return_value={"supported": True, "verified": True}):
             self.assertEqual(_isolate._cap_nt()["os"], "nt")
         root = Path("/tmp/root")
-        with mock.patch.object(_isolate.os, "name", "nt"), \
+        with mock.patch.object(_isolate, "PLATFORM", "nt"), \
                 mock.patch.object(_isolate._winjob, "ready", return_value=True):
             out = _isolate._sandbox_info(root, [], "t1", root)
             self.assertEqual(out["engine"], "winjob")
             self.assertEqual(out["limits"]["active_processes"], 64)
-        with mock.patch.object(_isolate.os, "name", "nt"), \
+        with mock.patch.object(_isolate, "PLATFORM", "nt"), \
                 mock.patch.object(_isolate._winjob, "ready", return_value=False):
             self.assertEqual(_isolate._sandbox_info(root, [], "t1", root)["engine"], "path")
 
@@ -293,26 +293,26 @@ class StoreFileRetryTest(unittest.TestCase):
                 raise PermissionError(dst)
 
         with mock.patch.object(_files.os, "replace", side_effect=flaky), \
-                mock.patch.object(_files.os, "name", "nt"):
+                mock.patch.object(_files, "PLATFORM", "nt"):
             _files.replace_file("a.tmp", "target")
         self.assertEqual(len(calls), 3)
 
     def test_replace_does_not_retry_on_posix(self):
         with mock.patch.object(_files.os, "replace",
                                side_effect=PermissionError("denied")), \
-                mock.patch.object(_files.os, "name", "posix"):
+                mock.patch.object(_files, "PLATFORM", "posix"):
             with self.assertRaises(PermissionError):
                 _files.replace_file("a.tmp", "target")
 
     def test_read_retries_permission_error_on_windows(self):
-        with mock.patch.object(_files.Path, "read_text",
+        with mock.patch.object(_files, "_read_text_once",
                                side_effect=[PermissionError("busy"), "body"]), \
-                mock.patch.object(_files.os, "name", "nt"):
+                mock.patch.object(_files, "PLATFORM", "nt"):
             self.assertEqual(_files.read_text("x"), "body")
 
     def test_read_raises_on_posix_without_retry(self):
-        with mock.patch.object(_files.Path, "read_text",
+        with mock.patch.object(_files, "_read_text_once",
                                side_effect=PermissionError("busy")), \
-                mock.patch.object(_files.os, "name", "posix"):
+                mock.patch.object(_files, "PLATFORM", "posix"):
             with self.assertRaises(PermissionError):
                 _files.read_text("x")

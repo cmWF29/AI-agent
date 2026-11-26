@@ -14,10 +14,18 @@ from pathlib import Path
 
 from . import _backend, _cache, _index, _lock, _metrics, _policy
 
+# 平台开关只在这里断言一次：用例改这个常量，不改全局 os.name。
+PLATFORM = "nt" if os.name == "nt" else "posix"
+
 # 进程内单例缓存：跨路由调用复用解压结果；上限由配置给定。
 _cache_instance: "_cache.LRUCache | None" = None
 # 进程内单例时延记录器：解压耗时样本跨路由复用；容量由配置给定。
 _metrics_instance: "_metrics.LatencyRecorder | None" = None
+
+
+def _unlink_once(path):
+    """单次删除；单独成函数，平台分支用例可替换 IO 而不改真实 os.name。"""
+    Path(path).unlink()
 
 
 def _unlink_retry(path, attempts=8):
@@ -25,12 +33,12 @@ def _unlink_retry(path, attempts=8):
     delay = 0.005
     for i in range(attempts):
         try:
-            Path(path).unlink()
+            _unlink_once(path)
             return
         except FileNotFoundError:
             return
         except PermissionError:
-            if os.name != "nt" or i + 1 >= attempts:
+            if PLATFORM != "nt" or i + 1 >= attempts:
                 raise
             time.sleep(delay)
             delay = min(delay * 2, 0.2)

@@ -26,39 +26,45 @@ class IsolateTest(unittest.TestCase):
         self.assertTrue(s._is_within(Path("/a"), Path("/a/b")))
 
     def test_bwrap_ready(self):
-        with mock.patch.object(s.os, "name", "nt"):
+        with mock.patch.object(s, "PLATFORM", "nt"):
             self.assertFalse(s._bwrap_ready())
         s._BWRAP_STATE = None
-        with mock.patch.object(s.shutil, "which", return_value=None):
+        with mock.patch.object(s, "PLATFORM", "posix"), \
+                mock.patch.object(s.shutil, "which", return_value=None):
             self.assertFalse(s._bwrap_ready())
         s._BWRAP_STATE = None
-        with mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
+        with mock.patch.object(s, "PLATFORM", "posix"), \
+                mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
                 mock.patch.object(s.subprocess, "run") as run:
             run.return_value.returncode = 0
             self.assertTrue(s._bwrap_ready())
             self.assertTrue(s._bwrap_ready())
         s._BWRAP_STATE = None
-        with mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
+        with mock.patch.object(s, "PLATFORM", "posix"), \
+                mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
                 mock.patch.object(s.Path, "exists", return_value=False), \
                 mock.patch.object(s.subprocess, "run") as run:
             run.return_value.returncode = 0
             self.assertTrue(s._bwrap_ready())
         s._BWRAP_STATE = None
-        with mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
+        with mock.patch.object(s, "PLATFORM", "posix"), \
+                mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
                 mock.patch.object(s.subprocess, "run", side_effect=OSError("x")):
             self.assertFalse(s._bwrap_ready())
 
     def test_capabilities(self):
-        with mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
+        with mock.patch.object(s, "PLATFORM", "posix"), \
+                mock.patch.object(s.shutil, "which", return_value="/bwrap"), \
                 mock.patch.object(s, "_bwrap_ready", return_value=True):
             self.assertTrue(s.capabilities()["strong"]["verified"])
-        with mock.patch.object(s.shutil, "which", return_value=None), \
+        with mock.patch.object(s, "PLATFORM", "posix"), \
+                mock.patch.object(s.shutil, "which", return_value=None), \
                 mock.patch.object(s, "_bwrap_ready", return_value=False):
             self.assertFalse(s.capabilities()["strong"]["supported"])
-        with mock.patch.object(s.os, "name", "nt"), \
+        with mock.patch.object(s, "PLATFORM", "nt"), \
                 mock.patch.object(s._winjob, "probe", return_value={"verified": True}):
             self.assertTrue(s.capabilities()["strong"]["verified"])
-        with mock.patch.object(s.os, "name", "nt"), \
+        with mock.patch.object(s, "PLATFORM", "nt"), \
                 mock.patch.object(s._winjob, "probe", return_value={}):
             self.assertFalse(s.capabilities()["strong"]["verified"])
 
@@ -82,15 +88,19 @@ class IsolateTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d).resolve()
             dirs = s._configured_dirs(root, "p", "t")
-            with mock.patch.object(s.os, "name", "nt"), \
+            with mock.patch.object(s, "PLATFORM", "nt"), \
                     mock.patch.object(s._winjob, "ready", return_value=False):
                 self.assertEqual(s._sandbox_info(root, dirs, "t", root)["engine"], "path")
-            with mock.patch.object(s.os, "name", "nt"), \
+            with mock.patch.object(s, "PLATFORM", "nt"), \
                     mock.patch.object(s._winjob, "ready", return_value=True):
                 self.assertEqual(s._sandbox_info(root, dirs, "t", root)["engine"], "winjob")
-            with mock.patch.object(s, "_bwrap_ready", return_value=False):
+            with mock.patch.object(s, "PLATFORM", "posix"), \
+                    mock.patch.object(s._winjob, "ready", return_value=False), \
+                    mock.patch.object(s, "_bwrap_ready", return_value=False):
                 self.assertEqual(s._sandbox_info(root, dirs, "t", root)["engine"], "path")
-            with mock.patch.object(s, "_bwrap_ready", return_value=True):
+            with mock.patch.object(s, "PLATFORM", "posix"), \
+                    mock.patch.object(s._winjob, "ready", return_value=False), \
+                    mock.patch.object(s, "_bwrap_ready", return_value=True):
                 self.assertEqual(s._sandbox_info(root, dirs, "t", "/outside")["engine"], "path")
                 out = s._sandbox_info(root, dirs, "t", root)
                 self.assertEqual(out["cwd"], "/workspace")

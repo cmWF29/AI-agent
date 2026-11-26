@@ -35,7 +35,7 @@ class LockEdgesTest(unittest.TestCase):
         with mock.patch.object(l, "PLATFORM", "nt"):
             cap = l.lock_capability()
         self.assertEqual(cap["platform"], "nt")
-        self.assertEqual(l.lock_capability()["platform"], "posix")
+        self.assertEqual(l.lock_capability()["platform"], l.PLATFORM)
 
     def test_posix_acquire_release(self):
         with tempfile.TemporaryDirectory() as d:

@@ -28,8 +28,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: scripts/requirements.txt
       - name: 依赖
-        run: pip install --disable-pip-version-check pyyaml cryptography coverage
+        run: pip install --disable-pip-version-check -r scripts/requirements.txt
       - name: 强隔离依赖（Linux mount namespace）
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
       - name: 代码-文档同步门禁（源码哈希 / 符号清单 / 孤儿文档）
@@ -187,7 +188,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: 依赖
-        run: pip install pyyaml cryptography coverage
+        run: pip install -r scripts/requirements.txt
       - name: platform probe（OS 基本面 + plat 三档能力 + loopback TCP 自检）
         timeout-minutes: 8
         run: python scripts/win_probe.py
@@ -209,11 +210,13 @@ jobs:
           python -m unittest test_core -v *> test-core.log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
+            Select-String -Path test-core.log -Pattern '^(FAIL|ERROR):' | ForEach-Object { "::error::$($_.Line)" }
             Get-Content test-core.log -Tail 120
             Get-Content test-core.log -Tail 120 >> $env:GITHUB_STEP_SUMMARY
           }
           exit $code
       - name: 全量用例（Windows 真机 36 模块，并行分片）
+        if: always()
         timeout-minutes: 25
         run: python scripts/run_tests.py --jobs 2 --json-out windows-run.json
       - name: 失败模块（注解可见）

@@ -186,8 +186,8 @@ class EngineTest(unittest.TestCase):
         _engine._cleanup_temp(self.mod, "a.txt")
         self.assertFalse(tmp.exists())
         self.assertEqual(_engine._unlink_retry("/nonexistent"), None)
-        real_name = os.name
-        real_unlink = Path.unlink
+        real_platform = _engine.PLATFORM
+        real_unlink = _engine._unlink_once
         real_sleep = time.sleep
         state = {"n": 0}
 
@@ -197,8 +197,8 @@ class EngineTest(unittest.TestCase):
                 raise PermissionError("locked")
             return None
 
-        os.name = "nt"
-        Path.unlink = flaky_unlink
+        _engine.PLATFORM = "nt"
+        _engine._unlink_once = flaky_unlink
         time.sleep = lambda _s: None
         try:
             self.assertIsNone(_engine._unlink_retry("/p", attempts=2))
@@ -207,8 +207,8 @@ class EngineTest(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 _engine._unlink_retry("/p", attempts=1)
         finally:
-            os.name = real_name
-            Path.unlink = real_unlink
+            _engine.PLATFORM = real_platform
+            _engine._unlink_once = real_unlink
             time.sleep = real_sleep
 
     def test_original_file_read_and_metrics_ok(self):

@@ -98,7 +98,7 @@ class PanelTest(unittest.TestCase):
         self.assertEqual(self.ctx.storage.next_seq("b", 3), 4)
         self.assertEqual(self.ctx.storage.next_seq("b", 0), 5)
         self.assertEqual(self.ctx.storage.path("k", "rel/x"), Path(self.ctx.root) / "rel/x")
-        self.assertEqual(self.ctx.storage.path("k", "/abs/x"), Path("/abs/x"))
+        self.assertEqual(self.ctx.storage.path("k", "/abs/x"), Path(os.path.abspath("/abs/x")))
         self.assertEqual(_panel._dir_of("agent/knowledge"), self.root / "data" / "agent" / "knowledge")
         self.assertEqual(_panel.ModuleData._meta_rel("a"), "a.meta.yaml")
         with self.assertRaises(ValueError):

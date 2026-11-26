@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_common/archive/private/_engine.py
-hash: de7e07becfc21ae3c7fba30e9240377f1d5b2db1b12ab3cc808f7fc52529b4d1
+hash: c5d5e106ef6cb9c146cf066833e11fc2efdc3ce7961c284d168db85e4510bc45
 symbols:
+- _unlink_once
 - _unlink_retry
 - _cache_singleton
 - _metrics_singleton
@@ -44,6 +45,12 @@ updated_at: '2026-11-23T04:10:21'
 压缩执行引擎：扫描候选 → 策略判定 → 原子压缩 → 校验 → 登记索引 → 清理临时。
 
 ## 符号
+
+### `_unlink_once`（function）
+- 职责: 单次删除；单独成函数，平台分支用例可替换 IO 而不改真实 os.name。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `_unlink_retry`（function）
 - 职责: Windows 杀软/索引器短暂持有句柄时退避重试；最终失败仍抛出，不静默丢错。

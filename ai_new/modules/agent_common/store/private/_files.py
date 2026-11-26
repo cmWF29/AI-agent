@@ -14,6 +14,10 @@ import time
 
 from pathlib import Path
 
+# 平台开关只在这里断言一次：用例改这个常量，不再改全局 os.name（那会让 pathlib 在
+# 异平台真的去实例化 WindowsPath/PosixPath，CI 必炸）。
+PLATFORM = "nt" if os.name == "nt" else "posix"
+
 
 
 
@@ -34,7 +38,7 @@ def replace_file(src, dst, attempts=200):
 
         except PermissionError:
 
-            if os.name != "nt" or i + 1 >= attempts:
+            if PLATFORM != "nt" or i + 1 >= attempts:
 
                 raise
 
@@ -116,14 +120,19 @@ def write_bytes_atomic(path, data):
 
 
 
+def _read_text_once(path):
+    """单次读文本；单独成函数，平台分支用例可替换 IO 而不改真实 os.name。"""
+    return Path(path).read_text(encoding="utf-8")
+
+
 def read_text(path, attempts=100):
     """读文本；Windows 上目标正被原子改名/杀软扫描时短暂占用，退避重读。"""
     delay = 0.002
     for i in range(attempts):
         try:
-            return Path(path).read_text(encoding="utf-8")
+            return _read_text_once(path)
         except PermissionError:
-            if os.name != "nt" or i + 1 >= attempts:
+            if PLATFORM != "nt" or i + 1 >= attempts:
                 raise
             time.sleep(delay)
             delay = min(delay * 2, 0.05)

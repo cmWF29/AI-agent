@@ -44,7 +44,7 @@ class ReplaceFileTest(unittest.TestCase):
             if len(calls) < 3:
                 raise PermissionError("busy")
 
-        with mock.patch.object(f.os, "name", "nt"), \
+        with mock.patch.object(f, "PLATFORM", "nt"), \
                 mock.patch.object(f.os, "replace", side_effect=replace), \
                 mock.patch.object(f.time, "sleep", mock.Mock()) as sleep:
             self.assertIsNone(f.replace_file(self.p("a"), self.p("b"), attempts=5))
@@ -52,7 +52,7 @@ class ReplaceFileTest(unittest.TestCase):
         self.assertEqual([c.args[0] for c in sleep.call_args_list], [0.002, 0.004])
 
     def test_windows_attempts_exhausted_reraises(self):
-        with mock.patch.object(f.os, "name", "nt"), \
+        with mock.patch.object(f, "PLATFORM", "nt"), \
                 mock.patch.object(f.os, "replace", mock.Mock(side_effect=PermissionError("busy"))), \
                 mock.patch.object(f.time, "sleep", mock.Mock()):
             with self.assertRaises(PermissionError):
@@ -111,7 +111,7 @@ class ReadTextTest(unittest.TestCase):
             self.assertIsNone(f.read_text(path, attempts=0))
 
     def test_permission_error_reraises_on_non_windows(self):
-        with mock.patch.object(f.Path, "read_text", mock.Mock(side_effect=PermissionError("busy"))):
+        with mock.patch.object(f, "_read_text_once", mock.Mock(side_effect=PermissionError("busy"))):
             with self.assertRaises(PermissionError):
                 f.read_text("x")
 
@@ -124,15 +124,15 @@ class ReadTextTest(unittest.TestCase):
                 raise PermissionError("busy")
             return "ok"
 
-        with mock.patch.object(f.os, "name", "nt"), \
-                mock.patch.object(f.Path, "read_text", read), \
+        with mock.patch.object(f, "PLATFORM", "nt"), \
+                mock.patch.object(f, "_read_text_once", read), \
                 mock.patch.object(f.time, "sleep", mock.Mock()) as sleep:
             self.assertEqual(f.read_text("x", attempts=3), "ok")
         self.assertEqual(sleep.call_args.args[0], 0.002)
 
     def test_windows_exhausted_reraises(self):
-        with mock.patch.object(f.os, "name", "nt"), \
-                mock.patch.object(f.Path, "read_text", mock.Mock(side_effect=PermissionError("busy"))), \
+        with mock.patch.object(f, "PLATFORM", "nt"), \
+                mock.patch.object(f, "_read_text_once", mock.Mock(side_effect=PermissionError("busy"))), \
                 mock.patch.object(f.time, "sleep", mock.Mock()):
             with self.assertRaises(PermissionError):
                 f.read_text("x", attempts=2)

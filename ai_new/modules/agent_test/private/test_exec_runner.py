@@ -141,10 +141,12 @@ class ExecTest(unittest.TestCase):
 
     def test_arun_real_and_stdin(self):
         ctx = Ctx()
-        out = asyncio.run(r._arun(ctx, {"argv": ["/bin/echo", "hi"]}))
+        out = asyncio.run(r._arun(ctx, {"argv": [sys.executable, "-c",
+                                                 "print('hi')"]}))
         self.assertTrue(out["ok"])
         self.assertEqual(out["out"], "hi\n")
-        out = asyncio.run(r._arun(ctx, {"argv": ["/bin/sh", "-c", "cat"],
+        out = asyncio.run(r._arun(ctx, {"argv": [sys.executable, "-c",
+                                                 "import sys; sys.stdout.write(sys.stdin.read())"],
                                         "stdin": "abc"}))
         self.assertEqual(out["out"], "abc")
 

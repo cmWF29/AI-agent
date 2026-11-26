@@ -109,7 +109,7 @@ class ServeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "a.sock")
             with mock.patch.object(s.plat_net, "supports_unix_socket", return_value=True), \
-                    mock.patch.object(s.os, "chmod"), \
+                    mock.patch.object(s.os, "chmod", create=True), \
                     mock.patch.object(s.socket, "socket") as sock:
                 self.srv._start_unix(path)
                 self.assertEqual(len(self.srv._threads), 1)

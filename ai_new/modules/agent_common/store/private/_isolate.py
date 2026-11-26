@@ -14,6 +14,9 @@
 from __future__ import annotations
 
 import os
+
+# 平台开关只在这里断言一次：用例改这个常量，不改全局 os.name。
+PLATFORM = "nt" if os.name == "nt" else "posix"
 import shutil
 import subprocess
 from pathlib import Path
@@ -62,7 +65,7 @@ def _bwrap_ready():
     if _BWRAP_STATE is not None:
         return _BWRAP_STATE
     _BWRAP_STATE = False
-    if os.name != "posix":
+    if PLATFORM != "posix":
         return False
     bwrap = shutil.which("bwrap")
     if not bwrap:
@@ -138,7 +141,7 @@ def _cap_nt():
 
 def capabilities():
     """当前 OS 的隔离档位报告；跨平台分支只在这里。"""
-    return _cap_nt() if os.name == "nt" else _cap_posix()
+    return _cap_nt() if PLATFORM == "nt" else _cap_posix()
 
 
 def _legacy_dirs(dir_of, pid, tid):
@@ -202,7 +205,7 @@ def _sandbox_info(root_real, dirs, tid, cwd):
     项目会话才把整个项目根挂到 /workspace。这样 mount namespace 内也看不到别的
     ticket 目录，不是只靠 cwd 字符串拦。
     """
-    if os.name == "nt":
+    if PLATFORM == "nt":
         if not _winjob.ready():
             return {"engine": "path"}
         return {"engine": "winjob", "root": str(root_real), "cwd": str(cwd),
