@@ -1,6 +1,6 @@
 ---
 source: scripts/run_tests.py
-hash: 30563223323b93d7456223d9eae340876bc380090709b0651ddc7c2f3bd66b82
+hash: 8418dab3729938326dfd00570415713b8ffa2cd89c55e1ae1bf3644cbd0e01fc
 symbols:
 - run_one
 - main
