@@ -1,0 +1,17 @@
+[Unit]
+Description=Hive AI (ai_new) 常驻服务
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ai_new
+Environment=PYTHONIOENCODING=utf-8
+ExecStart=/usr/bin/python3 -u -X utf8 agent_start.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
