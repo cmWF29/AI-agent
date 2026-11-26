@@ -9,7 +9,6 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 sys.path.insert(0, str(Path(__file__).parent))
 
-import base64
 import os
 import shutil
 import tempfile
@@ -18,7 +17,7 @@ from ai_new.modules.agent_common.boot.private._boot import _build as build  # no
 from ai_new.modules.agent_common.boot.private._context import Context  # noqa: E402
 from ai_new.modules.agent_test.private._fixtures import stage, write_config  # noqa: E402
 from ai_new.modules.agent_test.private.test_cloud import (  # noqa: E402
-    MASTER_KEY, _global_caller, _project_caller)
+    MASTER_KEY, _global_caller)
 from ai_new.modules.agent import cloud as c  # noqa: E402
 from ai_new.modules.agent.cloud.private import (  # noqa: E402
     _archive, _guard, _providers, _seal)

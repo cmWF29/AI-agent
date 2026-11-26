@@ -1,7 +1,6 @@
 """archive 压缩引擎闭环：扫描、压缩、透明读、观测与索引查询，全部落在临时数据根。"""
 from __future__ import annotations
 
-import gzip
 import hashlib
 import json
 import os

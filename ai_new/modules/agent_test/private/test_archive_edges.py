@@ -1,9 +1,7 @@
 """archive 边角：压缩索引容错/查询过滤、源文件锁失败收尾、时延分位与缓存淘汰。"""
-import io
 import os
 import sys
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 from unittest import mock

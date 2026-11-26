@@ -1,7 +1,6 @@
 """decompose 路由闭环：预检、隔离装依赖、登记守卫、状态与 run 短路。"""
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import sys
 import unittest

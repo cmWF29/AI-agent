@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_cloud_edges2.py
-hash: c7de110766babaec404e80405b81caf82f1fc1cdfaaa5b8b600eb9d6d697ccf3
+hash: 618bc258806fcc7506130bd6972dc544c9fcb6156883f8ce0820d88dad508492
 symbols:
 - setUpClass
 - tearDownClass

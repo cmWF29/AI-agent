@@ -15,7 +15,7 @@ from ai_new.modules.agent.nodes import (  # noqa: E402
     _route_pick_node, _route_project_node, _route_push_heartbeat,
     _route_push_register, _route_reassign, _route_register, _route_release,
     _route_renew, _route_snapshot_plan, _route_status, _route_verify_snapshot,
-    setup, _node_secret, _view_state)
+    setup, _node_secret)
 
 
 class Api:

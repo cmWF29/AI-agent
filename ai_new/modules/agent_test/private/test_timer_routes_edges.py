@@ -4,7 +4,6 @@ from __future__ import annotations
 import copy
 import json
 import sys
-import types
 import unittest
 from pathlib import Path
 from unittest import mock

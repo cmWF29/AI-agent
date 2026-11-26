@@ -1,6 +1,5 @@
 """纯函数批测：运维/项目/待办/图/日志/编解码/频道/沙箱/Windows 路径。"""
 import io
-import json
 import os
 import tempfile
 import sys

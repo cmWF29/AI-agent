@@ -3,7 +3,6 @@ import http.client
 import json
 import socket
 import sys
-import threading
 import unittest
 from pathlib import Path
 from unittest import mock

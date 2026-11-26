@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_pure_batch.py
-hash: b058371e4a78d35479cf39d59a4b9828a08f224672e0f248ce1f8be73d06b61e
+hash: 6af0d406bdfe403894e7b74cb4d9cf5207cafd8cbe758b806b8c974d788752f7
 symbols:
 - test_assemble
 - test_records
