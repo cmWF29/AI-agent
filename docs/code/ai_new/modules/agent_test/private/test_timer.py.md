@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_timer.py
-hash: 4f2717ebb9f1e3937e42b16f3279e519fc795bdc975b4c64b70cad58c714974b
+hash: a0f96891aa32a826838b5a603da131a657ced0197b015819a1ec28e893b240eb
 symbols:
 - _future_iso
 - setUpClass
@@ -19,6 +19,7 @@ symbols:
 - test_create_cron_next_at
 - test_tick_notify_pushes_to_secretary_queue
 - test_tick_spawn_ticket_creates_ticket_with_meta
+- test_spawn_ticket_uses_payload_title_and_goal
 - test_idempotent_create_returns_original_id
 - test_cross_project_read_write_delete_forbidden
 - test_cross_ticket_forbidden_and_same_ticket_rw
@@ -143,6 +144,12 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_tick_spawn_ticket_creates_ticket_with_meta`（method）
 - 职责: 到期 spawn_ticket：建工单，meta 记 source=timer/timer_id/slot，同槽位不重复建。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_spawn_ticket_uses_payload_title_and_goal`（method）
+- 职责: payload 里显式声明的 title/goal 要生效：这是入参，不是摆设。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

@@ -195,6 +195,19 @@ class TimerTest(unittest.TestCase):
         self._tick(now=now)
         self.assertEqual(len(self.ticket_calls) - before, 1)
 
+    def test_spawn_ticket_uses_payload_title_and_goal(self):
+        """payload 里显式声明的 title/goal 要生效：这是入参，不是摆设。"""
+        before = len(self.ticket_calls)
+        self._create({"project": "p-payload", "kind": "once", "expr": _future_iso(120),
+                      "title": "记在定时器上的标题", "action": "spawn_ticket",
+                      "payload": {"title": "工单要用的标题", "goal": "工单要用的目标"}})
+        now = datetime.datetime.now(datetime.timezone.utc).timestamp() + 200
+        self._tick(now=now)
+        self.assertEqual(len(self.ticket_calls) - before, 1)
+        ticket = self.ticket_calls[-1]
+        self.assertEqual(ticket["title"], "工单要用的标题")
+        self.assertEqual(ticket["goal"], "工单要用的目标")
+
     def test_idempotent_create_returns_original_id(self):
         """同义重复创建：返回原 id 且 deduped=true，只落一条记录。"""
         payload = {"project": "p-dedup", "kind": "cron", "expr": "0 9 * * *",
