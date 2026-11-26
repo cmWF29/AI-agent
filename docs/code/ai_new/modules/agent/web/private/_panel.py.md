@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/private/_panel.py
-hash: 6985bcc6ed5e42690e024b035f88b9e079053d9951780c771834dd90b1e79cb1
+hash: 05b9c33d4e5fa312cdab73eca348bcf67b09fd748ad65b3cec82ef656bd53917
 symbols:
 - __init__
 - asset

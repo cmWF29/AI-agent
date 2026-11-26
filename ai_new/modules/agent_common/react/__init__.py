@@ -97,13 +97,12 @@ def _stash_tool_output(ctx, session, call_id, text, threshold, stamp=""):
     rec = ctx.api.call("logs.record", {
         "path": rel_path, "kind": "tool", "layer": "ticket",
         "project": project, "ticket": ticket, "name": fid}, caller=None)
+    # body_effect 恒在，效果清单不会为空，无需再判空。
     effects = [body_effect] + (rec.get("effects") or [])
-    applied_ok = True
-    if effects:
-        res = ctx.runtime.apply({"effect": effects}) or {}
-        applied = res.get("applied") or []
-        # 单条写盘失败会被 apply 记成 {ok:false}；任一失败就不能给模型假路径，回退全文回填。
-        applied_ok = not any(isinstance(a, dict) and a.get("ok") is False for a in applied)
+    res = ctx.runtime.apply({"effect": effects}) or {}
+    applied = res.get("applied") or []
+    # 单条写盘失败会被 apply 记成 {ok:false}；任一失败就不能给模型假路径，回退全文回填。
+    applied_ok = not any(isinstance(a, dict) and a.get("ok") is False for a in applied)
     if not applied_ok:
         return {"content": text, "stashed": False, "fallback": "write_failed"}
     tpl = _msg_tpl(ctx).get("stash_note") or ""

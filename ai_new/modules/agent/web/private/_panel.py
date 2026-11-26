@@ -17,9 +17,12 @@ class WebPanel:
         parts = [seg for seg in rel.split("/") if seg not in ("", ".")]
         if any(seg == ".." for seg in parts):
             raise ctx.ApiError("路径越界: %s" % rel, code="path_escape", status=403)
+        t = _cfg_paths(ctx).get("console") or ""
+        target = t.format(rel="/".join(parts)) if t else "/".join(parts)
         # 符号链接逃逸：realpath 后必须仍在本模块数据根之内，不许跟出数据目录。
+        # 判的必须是真正要读的那个路径（console 模板可能把资源放进子目录），判错路径等于没判。
         root_real = ctx.storage.own(__file__).root.resolve(strict=False)
-        real = (root_real / "/".join(parts)).resolve(strict=False)
+        real = (root_real / target).resolve(strict=False)
         try:
             real.relative_to(root_real)
         except ValueError:
@@ -35,8 +38,6 @@ class WebPanel:
                 return {"content": "\n;\n".join(chunks),
                         "content_type": "application/javascript; charset=utf-8",
                         "no_cache": True}
-        t = _cfg_paths(ctx).get("console") or ""
-        target = t.format(rel="/".join(parts)) if t else "/".join(parts)
         out = ctx.api.call("store.read_text",
                            {"module": "agent/web", "path": target, "fallback": ""})
         if not out.get("exists"):

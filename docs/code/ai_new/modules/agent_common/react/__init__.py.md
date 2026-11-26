@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/react/__init__.py
-hash: a48853229a0a6708d7587b45f3ea7b5149cca56f35e49f87a79815c57e4882bb
+hash: f3128579d12291585f2395bbcc84774792840dc1affff846c079fefdc7999063
 symbols:
 - _msg_tpl
 - setup
