@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_api_e2e.py
-hash: 39183019348ce76042985badb5d233f4f629eee8758d738dfc764bbc5eebb8bd
+hash: 06e1b8864358e37632ed2e9afd80d44d3394b462991e3b07b0f6a71645e2e2b4
 symbols:
 - req
 - must
@@ -36,6 +36,11 @@ symbols:
 - scenario_session_guards
 - scenario_ticket_send_guards
 - _page_auth
+- _assistant_msgs
+- _session_text
+- _wait_idle_session
+- scenario_roles_chain
+- scenario_timer_fire
 - scenario_http_boundary
 - scenario_artifact_flow
 - scenario_project_permissions
@@ -257,6 +262,36 @@ HTTP 黑盒业务 E2E：真服务、真 RPC、真并发，不走进程内装配�
 
 ### `_page_auth`（function）
 - 职责: 页面请求的鉴权头：静态页走 web.gate + auth.verify，必须像浏览器一样带令牌。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_assistant_msgs`（function）
+- 职责: 该会话里的 assistant 轮次：并发/故障演练都用「有没有真的回一轮」当推进证据。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_session_text`（function）
+- 职责: 会话侧的全文：消息正文 + 摘要 + 待办，压缩后旧轮次会进摘要，不能只看 messages。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_wait_idle_session`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_roles_chain`（function）
+- 职责: 多岗位长链路：PM 首轮 → 拉 developer 会话 → 并行追问 → 双路各自收口不串扰 → 返工 → 结单回收。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `scenario_timer_fire`（function）
+- 职责: 定时器到点真触发：后台扫描循环按 next_at 建单，并保证同一槽位只触发一次。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

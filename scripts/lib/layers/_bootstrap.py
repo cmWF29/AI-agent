@@ -67,7 +67,7 @@ def default_config() -> dict:
     }
 
 
-def boot(overrides: dict | None = None) -> BootHandle:
+def boot(overrides: dict | None = None, stub_net: bool = True) -> BootHandle:
     """装配一份临时系统，返回持有 ctx/server/临时目录的句柄。"""
     tmp = tempfile.TemporaryDirectory(prefix="ai_new_layer_")
     root = Path(tmp.name)
@@ -84,9 +84,12 @@ def boot(overrides: dict | None = None) -> BootHandle:
 
     ctx = Context(root)
     build(ctx)
-    fake = FakeNet()
-    ctx.api.substitute("net.request", fake)
-    ctx.api.substitute("net.request_stream", fake)
+    if stub_net:
+        # 默认不联网：编排/编解码真跑，出站报文由替身回，快且可控。
+        fake = FakeNet()
+        ctx.api.substitute("net.request", fake)
+        ctx.api.substitute("net.request_stream", fake)
+    # stub_net=False 时保留真实 net：上游故障、断连、超时这类东西只有真网卡能演。
     server = ctx.http
     port = server.server_address[1]
     return BootHandle(ctx=ctx, server=server, port=port, tmp=tmp, root=root)

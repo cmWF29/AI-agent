@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import signal
 import http.client
 import json
@@ -760,6 +761,189 @@ def _page_auth():
     return {"X-Auth-Token": TOKEN, "Cookie": "hive_token=%s" % TOKEN}
 
 
+def _assistant_msgs(view):
+    """该会话里的 assistant 轮次：并发/故障演练都用「有没有真的回一轮」当推进证据。"""
+    return [m for m in (view.get("messages") or [])
+            if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
+
+
+def _session_text(view):
+    """会话侧的全文：消息正文 + 摘要 + 待办，压缩后旧轮次会进摘要，不能只看 messages。"""
+    parts = [str((m or {}).get("content") or "") for m in (view.get("messages") or [])]
+    parts.append(str(view.get("summary") or ""))
+    for row in (view.get("todos") or []):
+        parts.append(str((row or {}).get("text") or ""))
+    return "\n".join(parts)
+
+
+def _wait_idle_session(sid, timeout=25):
+    deadline = time.time() + timeout
+    view = {}
+    while time.time() < deadline:
+        view = req("session-get", {"id": sid})
+        if (view.get("status") or "") in ("idle", "queued", ""):
+            return view
+        time.sleep(0.4)
+    return view
+
+
+def scenario_roles_chain():
+    """多岗位长链路：PM 首轮 → 拉 developer 会话 → 并行追问 → 双路各自收口不串扰 → 返工 → 结单回收。
+
+    这是黑盒里唯一跨“多岗位协作”的闭环：两个会话真并发收发，任何一路的字都不许
+    漏进另一路；结单后 PM/角色会话必须被回收，但往来对话要固化工单 transcript。
+    """
+    name = "e2e-chain-%d" % time.time_ns()
+    pid = ""
+    try:
+        pid = project(name)["id"]
+        ticket = create_ticket(pid, "多岗位协作链路")
+        tid, pm = ticket["id"], ticket.get("pm") or ""
+        must(pm, "建单未拉 PM 会话: %s" % ticket)
+        req("ticket-message", {"id": tid, "text": "先给三步计划，然后分派开发"})
+        thread = wait_reply(tid)
+        pm_msgs = len(thread.get("thread", {}).get("messages") or [])
+        spawned = req("ticket-role-spawn", {"id": tid, "role": "developer",
+                                            "task": "产出 docs/handoff/dev.md 并报验收点"})
+        roles = spawned.get("roles") or []
+        must(roles, "角色派发没回收色行: %s" % spawned)
+        role_sid = (roles[0] or {}).get("session") or ""
+        must(role_sid and role_sid != pm, "角色会话未独立开出: %s" % role_sid)
+
+        # 真并发：两路同时发，一路发给 PM，一路发给角色会话。
+        # 先把两路都收敛到空闲，否则消息会排在上一次运行后面、断言变成看天吃饭。
+        pm_before = len(req("session-get", {"id": pm}).get("messages") or [])
+        role_before = len(req("session-get", {"id": role_sid}).get("messages") or [])
+        _wait_idle_session(pm)
+        _wait_idle_session(role_sid)
+        marks = ("并发标记A-%d" % time.time_ns(), "并发标记B-%d" % time.time_ns())
+        errs = []
+
+        def _send(demand_id, payload):
+            try:
+                req(demand_id, payload)
+            except Exception as exc:  # noqa: BLE001 —— 并发线程里收集，主线程判定
+                errs.append("%s: %s" % (demand_id, exc))
+
+        threads = [threading.Thread(target=_send, args=("ticket-message",
+                                                        {"id": tid, "text": marks[0]})),
+                   threading.Thread(target=_send, args=("role-session-message",
+                                                        {"id": role_sid, "text": marks[1]}))]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(30)
+        must(not errs, "并发发送失败: %s" % errs)
+
+        # 会话记录会被逐轮压缩，原文不保证长期留在 messages 里；能不能证明两路都推进，
+        # 看「各自都长出了新的 assistant 轮次」，串扰看「任一路都不含另一路的字」。
+        deadline = time.time() + 20
+        pm_turns = role_turns = 0
+        while time.time() < deadline:
+            pm_turns = len(_assistant_msgs(req("session-get", {"id": pm})))
+            role_turns = len(_assistant_msgs(req("session-get", {"id": role_sid})))
+            if pm_turns and role_turns:
+                break
+            time.sleep(0.4)
+        must(pm_turns >= 1, "并发后 PM 会话没有新回复（%d 条 assistant）" % pm_turns)
+        must(role_turns >= 1, "并发后角色会话没有新回复（%d 条 assistant）" % role_turns)
+        must(len(req("session-get", {"id": pm}).get("messages") or []) > pm_before,
+             "并发后 PM 会话记录没有增长")
+        must(len(req("session-get", {"id": role_sid}).get("messages") or []) > role_before,
+             "并发后角色会话记录没有增长")
+
+        pm_text = _session_text(req("session-get", {"id": pm}))
+        role_text = _session_text(req("session-get", {"id": role_sid}))
+        must(marks[1] not in pm_text, "角色消息漏进了 PM 会话（串扰）")
+        must(marks[0] not in role_text, "PM 消息漏进了角色会话（串扰）")
+        # PM 那一路的原文有落地处：工单 transcript 是永久留档，压缩不会动它
+        thread_now = req("ticket-thread", {"id": tid}).get("thread", {}).get("messages") or []
+        must(marks[0] in "\n".join(str(m.get("content") or "") for m in thread_now),
+             "PM 并发消息没进工单留档")
+
+        # 返工：给同一角色补缺口，仍然落在同一会话，不新开会话
+        again = req("ticket-role-task", {"id": tid, "role": "developer",
+                                         "text": "补一条失败回滚步骤"})
+        must((again.get("roles") or [{}])[0].get("session") == role_sid,
+             "返工未复用同一角色会话: %s" % again)
+
+        # 结单：会话回收、对话固化留存
+        closed = close_ticket(tid)
+        removed = [e.get("path") or "" for e in (closed.get("effects") or [])
+                   if e.get("kind") == "remove"]
+        must(any(role_sid in p for p in removed), "结单未回收角色会话: %s" % removed[:6])
+        after = req("ticket-thread", {"id": tid})
+        kept = after.get("thread", {}).get("messages") or []
+        must(len(kept) >= pm_msgs, "结单后工单对话被清空: %d 条" % len(kept))
+        must(marks[0] in "\n".join(str(m.get("content") or "") for m in kept),
+             "结单后并发消息未固化进 transcript")
+        delete_project(pid)
+        pid = ""
+        return {"project": name, "ticket": tid, "roles": len(roles),
+                "concurrent": True, "no_crosstalk": True, "rework": True,
+                "recycled": True, "transcript": len(kept)}
+    finally:
+        if pid:
+            delete_project(pid)
+
+
+def scenario_timer_fire():
+    """定时器到点真触发：后台扫描循环按 next_at 建单，并保证同一槽位只触发一次。
+
+    不调 tick 接口作弊：只在旁边等，靠服务自己的定时循环把工单建出来。
+    """
+    name = "e2e-fire-%d" % time.time_ns()
+    pid = ""
+    timer_id = ""
+    try:
+        pid = project(name)["id"]
+        caller = {"scope": "project", "project": pid, "role": "pm"}
+        fire_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=6)
+        created = req("timer-create", {
+            "project": pid, "kind": "once", "expr": fire_at.isoformat(),
+            "tz": "UTC", "title": "到点建单 E2E", "action": "spawn_ticket",
+            "payload": {"title": "定时器建出的工单", "goal": "验证到点真触发一次"},
+            "caller": caller})
+        timer_id = created.get("id") or ""
+        must(timer_id and created.get("next_at"), "定时器未回 id/next_at: %s" % created)
+
+        deadline = fire_at.timestamp() + 12
+        fired = None
+        while time.time() < deadline:
+            listing = req("ticket-list", {"project": pid}).get("items") or []
+            row = next((x for x in listing if (x.get("title") or "") == "定时器建出的工单"), None)
+            if row:
+                fired = row
+                break
+            time.sleep(0.5)
+        must(fired is not None, "到点后 %ss 内没有建出工单（定时器没触发）" % 12)
+
+        # 定时器列表按作用域过滤：读自己项目下那一条必须带 caller，否则只能看到空项目视角
+        view = next((x for x in (req("timer-list", {"caller": caller}).get("items") or [])
+                     if x.get("id") == timer_id), None)
+        must(view is not None, "定时器列表里查不到 %s" % timer_id)
+        must((view.get("status") or "") == "done", "once 触发后状态不是 done: %s" % view)
+        must(bool(view.get("last_run")), "触发后没有 last_run 记录: %s" % view)
+        must(bool(view.get("last_run", {}).get("ok")), "last_run 不是成功: %s" % view["last_run"])
+
+        # 幂等：再等一拍，同一槽位不许再建第二张单（不手动调 tick，靠后台扫描）
+        listing = req("ticket-list", {"project": pid}).get("items") or []
+        same = [x for x in listing if (x.get("title") or "") == "定时器建出的工单"]
+        must(len(same) == 1, "同一槽位重复触发，建了 %d 张单" % len(same))
+        delete_project(pid)
+        pid = ""
+        return {"project": name, "timer": timer_id, "ticket": fired.get("id"),
+                "next_at": created.get("next_at"), "fired_once": True}
+    finally:
+        if timer_id and pid:
+            try:
+                req("timer-delete", {"id": timer_id})
+            except Exception:  # noqa: BLE001 —— 清理失败不掩盖主断言
+                pass
+        if pid:
+            delete_project(pid)
+
+
 def scenario_http_boundary():
     """HTTP 壳层：方法/路径/坏正文/静态 304 都必须按协议回，不落 500。"""
     _host, _port = _split_base()
@@ -912,6 +1096,8 @@ SCENARIOS = {
     "library": scenario_library_read,
     "project-permissions": scenario_project_permissions,
     "http-boundary": scenario_http_boundary,
+    "roles-chain": scenario_roles_chain,
+    "timer-fire": scenario_timer_fire,
 }
 
 

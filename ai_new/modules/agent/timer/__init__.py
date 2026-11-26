@@ -427,10 +427,14 @@ def _trigger(ctx, rec, slot):
             ok = bool(res.get("ok", True))
             return "notify_pushed", ok, "" if ok else tpl.get("trigger_failed") or "notify 入队失败"
         meta = {"source": "timer", "timer_id": rec["id"], "slot": slot}
-        res = ctx.api.call("tickets.create", {
-            "title": rec.get("title"),
+        # 走需求编排而不是直接掉能力：建单还带 PM 会话与首轮派发，这些效果
+        # 只有需求层会落地；直接 api.call 会拿到一堆没人 apply 的 effects，
+        # 表现就是「last_run 绿但工单文件不存在」。
+        res = ctx.runtime.call("ticket-create", {
+            # payload.title 是显式声明过的目标工单标题；不读就等于这个入参是死的。
+            "title": (rec.get("payload") or {}).get("title") or rec.get("title"),
             "goal": (rec.get("payload") or {}).get("goal") or rec.get("title"),
-            "project": rec["project"], "role": rec.get("role"), "meta": meta}, caller=None)
+            "project": rec["project"], "role": rec.get("role"), "meta": meta})
         ok = bool(res.get("ok", True))
         tid = (res or {}).get("id") or ""
         return "ticket_created", ok, tid if ok else (tpl.get("trigger_failed") or "建工单失败")
