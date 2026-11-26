@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_api_e2e.py
-hash: 53dba7c5023f571c093e0c44b98971cfc854c69d77982f6c3a967c3ae1b447e4
+hash: 39183019348ce76042985badb5d233f4f629eee8758d738dfc764bbc5eebb8bd
 symbols:
 - req
 - must
@@ -35,10 +35,12 @@ symbols:
 - scenario_timer_guards
 - scenario_session_guards
 - scenario_ticket_send_guards
+- _page_auth
 - scenario_http_boundary
 - scenario_artifact_flow
 - scenario_project_permissions
 - scenario_library_read
+- _split_base
 - main
 generated: gen_docs.py v1
 updated_at: '2026-11-25T12:16:01'
@@ -253,6 +255,12 @@ HTTP 黑盒业务 E2E：真服务、真 RPC、真并发，不走进程内装配�
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `_page_auth`（function）
+- 职责: 页面请求的鉴权头：静态页走 web.gate + auth.verify，必须像浏览器一样带令牌。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `scenario_http_boundary`（function）
 - 职责: HTTP 壳层：方法/路径/坏正文/静态 304 都必须按协议回，不落 500。
 - 入参/出参: 待人工补充
@@ -273,6 +281,12 @@ HTTP 黑盒业务 E2E：真服务、真 RPC、真并发，不走进程内装配�
 
 ### `scenario_library_read`（function）
 - 职责: 岗位库只读面：列表/详情/摘要一致，内置岗位提示词不可改。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_split_base`（function）
+- 职责: 从 BASE 拆出 host/port：壳层探针必须打同一台服务，不能写死 8787。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

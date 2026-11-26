@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-26T12:06:48",
+  "generated": "2026-11-26T14:20:38",
   "total": 591,
   "groups": [
     {
@@ -5069,7 +5069,7 @@
           "doc": "docs/code/scripts/gates.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "699bba8d9a37ca56b7fb636f912505a3a3b30df032258e5e56e68ffc39202a77",
+          "hash": "bfa4520b62fffb9e188d22f06e384ecdf86cf04ee34ba74f06c87837a1949dd1",
           "symbols": 2,
           "updated_at": "2026-11-23T04:19:50"
         },
@@ -5267,8 +5267,8 @@
           "doc": "docs/code/scripts/verify_api_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "53dba7c5023f571c093e0c44b98971cfc854c69d77982f6c3a967c3ae1b447e4",
-          "symbols": 38,
+          "hash": "39183019348ce76042985badb5d233f4f629eee8758d738dfc764bbc5eebb8bd",
+          "symbols": 40,
           "updated_at": "2026-11-25T12:16:01"
         },
         {

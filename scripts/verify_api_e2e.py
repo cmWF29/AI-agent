@@ -755,31 +755,39 @@ def scenario_ticket_send_guards():
             delete_project(pid)
 
 
+def _page_auth():
+    """页面请求的鉴权头：静态页走 web.gate + auth.verify，必须像浏览器一样带令牌。"""
+    return {"X-Auth-Token": TOKEN, "Cookie": "hive_token=%s" % TOKEN}
+
+
 def scenario_http_boundary():
     """HTTP 壳层：方法/路径/坏正文/静态 304 都必须按协议回，不落 500。"""
-    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    _host, _port = _split_base()
+    conn = http.client.HTTPConnection(_host, _port, timeout=10)
     conn.request("GET", "/api/rpc/clock/now", headers={"X-Auth-Token": TOKEN})
     resp = conn.getresponse(); body = resp.read()
     must(resp.status == 405, "GET 写路由不是 405: %s" % resp.status)
     conn.close()
-    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    conn = http.client.HTTPConnection(_host, _port, timeout=10)
     conn.request("GET", "/api/no-such-route", headers={"X-Auth-Token": TOKEN})
     resp = conn.getresponse(); body = resp.read()
     must(resp.status == 404, "未知 API 路径不是 404: %s" % resp.status)
     conn.close()
-    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
+    conn = http.client.HTTPConnection(_host, _port, timeout=10)
     conn.request("POST", "/api/rpc/clock/now", body=b"{{{not-yaml",
                  headers={"X-Auth-Token": TOKEN, "Content-Type": "application/yaml"})
     resp = conn.getresponse(); body = resp.read()
     must(resp.status == 400 and b"bad_json" in body, "坏正文未结构化拒绝: %s %r" % (resp.status, body[:80]))
     conn.close()
-    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
-    conn.request("GET", "/manage.html")
+    conn = http.client.HTTPConnection(_host, _port, timeout=10)
+    conn.request("GET", "/manage.html", headers=_page_auth())
     resp = conn.getresponse(); etag = resp.getheader("ETag"); resp.read()
     must(resp.status == 200 and etag, "静态页缺 ETag: %s %r" % (resp.status, etag))
     conn.close()
-    conn = http.client.HTTPConnection("127.0.0.1", 8787, timeout=10)
-    conn.request("GET", "/manage.html", headers={"If-None-Match": etag})
+    conn = http.client.HTTPConnection(_host, _port, timeout=10)
+    headers = {"If-None-Match": etag}
+    headers.update(_page_auth())
+    conn.request("GET", "/manage.html", headers=headers)
     resp = conn.getresponse(); resp.read()
     must(resp.status == 304, "条件请求不是 304: %s" % resp.status)
     conn.close()
@@ -872,6 +880,13 @@ def scenario_library_read():
     return {"roles": len(items), "summary": True, "builtin_guard": True, "missing_guard": True}
 
 
+def _split_base():
+    """从 BASE 拆出 host/port：壳层探针必须打同一台服务，不能写死 8787。"""
+    from urllib.parse import urlsplit
+    parts = urlsplit(BASE)
+    return parts.hostname or "127.0.0.1", parts.port or 80
+
+
 SCENARIOS = {
     "project-rename": scenario_project_rename,
     "knowledge": scenario_knowledge,
@@ -908,13 +923,19 @@ def main(argv=None):
                     choices=("all", *SCENARIOS.keys()))
     ap.add_argument("--username", default="")
     ap.add_argument("--password", default="")
+    # 直接给服务端配置的 token（HIVE_TOKEN / gate 引导出的 "t"）：跳过登录，
+    # 便于在鉴权开启但无账号的隔离装配里跑黑盒。
+    ap.add_argument("--token", default=os.environ.get("HIVE_TOKEN", ""))
     args = ap.parse_args(argv)
     BASE = args.base.rstrip("/")
-    try:
-        TOKEN = login(BASE, args.username, args.password)
-    except SystemExit as exc:
-        print("  FAIL 登录: %s" % exc)
-        return 1
+    if args.token:
+        TOKEN = args.token
+    else:
+        try:
+            TOKEN = login(BASE, args.username, args.password)
+        except SystemExit as exc:
+            print("  FAIL 登录: %s" % exc)
+            return 1
 
     c = Client(BASE, TOKEN)
     s, data = c.call("/api/health/live")

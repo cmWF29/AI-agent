@@ -11,8 +11,9 @@
 | L0 | 静态/架构/文档/映射 | 控件未登记状态机、指标取数源失真、可点实例缺去向、页面孤岛、条件表达式失效、只读裸奔、需求↔用例映射过期、表单/需求/API 参数断线、死代码 | 转调 L0 门禁 + 死代码扫描（`scripts/gate_*.py`） |
 | L1 | 后端单元（UT） | 纯函数错误、状态机非法迁移、并发竞争、幂等失效、边界条件 | 转调 `agent_test/private/test_*.py` 下的 39 个 unittest 模块，含 React 流程/清单/逐轮压缩机制专项 |
 | L2 | 接口契约 | 不可信输入打穿、未登录放行、内部路由外泄、越权直调、路径穿越、重复投递双跑 | 真装配 + 真 HTTP 闸，对业务路由跑非法输入矩阵与鉴权/越权/穿越/幂等探针 |
-| L3 | 系统级 E2E（ST） | 前后端接线断裂：点按钮没反应、弹窗/表单没加载、提交后列表不更新 | 真浏览器（Chromium/Playwright）+ 真后端：自动发现并巡检全部视图与弹窗表单；项目跑“建→改名→归档→删除”，工单跑“建→发消息→回复→结单→归档→删除”闭环并清理 |
+| L3 | 系统级 E2E（ST） | 前后端接线断裂：点按钮没反应、弹窗/表单没加载、提交后列表不更新、归档后仍可新建 | 真浏览器（Chromium/Playwright）+ 真后端：自动发现并巡检全部视图与弹窗表单；`verify_e2e.py` 四个场景全进闸：项目建→改名→归档→删除、工单建→发消息→回复→结单、同单两轮追问逐轮收口、归档后新建工单入口不可用 |
 | L4 | 韧性 | 进程被杀、写盘中断、租约过期、节点下线、重复投递、恢复后双跑 | `scripts/resilience_drill.py`：真实 SIGKILL + 6 进程并发 + 真实幂等台账 `store.claim/renew/settle/sweep` |
+| L6 | HTTP 黑盒业务 E2E（ST） | 接口单测绿但真实 HTTP 全链路断：壳层协议、鉴权/越权、并发建删、版本冲突、级联只读 | `scripts/verify_api_e2e.py` 24 个场景经真实 HTTP 打真装配（端口取自引导结果，不写死 8787）：项目改名与工单引用改挂、知识版本/追加作用域、定时器守卫、节点申领、12 路并发、拆单上限、结单级联只读、交付件越界、405/404/坏 YAML/ETag 304 |
 | L5 | 覆盖率 | 用例跑绿但核心机制根本没被执行；只测表层入口 | `coverage run --branch` + `scripts/gate_coverage.py`：整体行/分支 100% + 关键模块（react/sessions/todos/library）单独 100%；另由 `gate_diff_coverage.py` 强制 base..HEAD 改动行 100% |
 
 ## 怎么单独跑
@@ -64,6 +65,7 @@ python3 scripts/gates.py --timeout 180
 - **L2 契约探针**：加在 `scripts/lib/layers/l2_contract.py`，按
   路由类补非法输入/鉴权/越权/穿越/幂等用例；不许只 mock 断言。
 - **L3 E2E**：`scripts/lib/layers/l3_e2e.py` 起临时服务并转调 `scripts/verify_pages.py` 与 `scripts/verify_e2e.py`；页面/表单从后端 `views-list` 动态发现，浏览器业务闭环直接写这里，不 mock 断言。
+- **L6 黑盒 E2E**：`scripts/lib/layers/l6_blackbox.py` 引导真装配后转调 `scripts/verify_api_e2e.py`，逐场景 OK/FAIL 翻成层内检查项；新增业务闭环写进脚本 `SCENARIOS` 即自动进闸，端口一律取引导结果（写死 8787 会在临时端口装配里假红）。
 - **L4 韧性**：`scripts/lib/layers/l4_resilience.py` 转调 `scripts/resilience_drill.py`；真实 SIGKILL、6 进程并发抢键、租约 sweep、恢复不双跑，子进程独立 `AI_NEW_DATA`，不碰源码树。
 
 ## 覆盖率门禁
