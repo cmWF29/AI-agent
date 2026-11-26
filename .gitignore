@@ -47,3 +47,10 @@ __pycache__/
 # 运行期锁目录
 ai_new/modules/agent_common/trace/data/.locks/
 ai_new/modules/**/data/.locks/
+
+# 运行期数据/模型（不进仓库，部署时保留线上原样）
+ai_new/modules/agent/asr/data/models/
+ai_new/modules/agent/channel/data/idem/
+ai_new/modules/agent/nodes/data/registry.json
+ai_new/modules/agent/nodes/data/*.cas.lock
+ai_new/modules/agent/secretary/data/projects/
