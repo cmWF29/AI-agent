@@ -150,12 +150,39 @@ async def open_project(pg, name):
 
 
 async def create_ticket(pg, title, goal):
-    await pg.locator("#view-body .view-head sl-button", has_text="新建工单").first.click()
-    await pg.wait_for_function("""() => {
-      const d=document.querySelector('#modal');
-      return !!(d && d.open && d.label === '新建工单'
-                && document.querySelectorAll('#modal-form [name]').length >= 2);
-    }""", timeout=20000)
+    # 页面刚 reload/切换视图时按钮可能被整页替换掉：按「按钮在且可用 → 点 → 弹窗真开」重试，
+    # 单次 locator.click 会把这种时序抖动直接判成功能失败。
+    opened = False
+    for _ in range(6):
+        try:
+            await pg.wait_for_function("""() => {
+              const b=[...document.querySelectorAll('#view-body .view-head sl-button')]
+                .find(x=>/新建工单/.test(x.textContent || ''));
+              return !!(b && !b.disabled);
+            }""", timeout=8000)
+        except Exception:
+            await pg.wait_for_timeout(500)
+            continue
+        clicked = await pg.evaluate("""() => {
+          const b=[...document.querySelectorAll('#view-body .view-head sl-button')]
+            .find(x=>/新建工单/.test(x.textContent || ''));
+          if(!b || b.disabled) return false; b.click(); return true;
+        }""")
+        if not clicked:
+            await pg.wait_for_timeout(500)
+            continue
+        try:
+            await pg.wait_for_function("""() => {
+              const d=document.querySelector('#modal');
+              return !!(d && d.open && d.label === '新建工单'
+                        && document.querySelectorAll('#modal-form [name]').length >= 2);
+            }""", timeout=6000)
+            opened = True
+            break
+        except Exception:
+            await pg.wait_for_timeout(500)
+    if not opened:
+        raise AssertionError("「新建工单」弹窗未打开（按钮/页面状态未就绪）")
     state = await pg.evaluate("""() => {
       const d=document.querySelector('#modal');
       return {open:!!(d&&d.open), label:(d&&d.label)||''};

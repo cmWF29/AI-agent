@@ -504,7 +504,15 @@ def _route_split(ctx, payload):
         # 需求层会注入配置值；直接调用能力时也必须守住全局上限，不能绕开。
         cfg = ctx.api.call("config.get", {"key": "tickets.max_children"}, caller=None)
         max_children = cfg.get("value") if isinstance(cfg, dict) else None
-    if max_children is not None and len(cur.get("children") or []) >= max_children \
+    # 已拆几个以磁盘实况为准：父单档案里的 children 可能被并发收尾写回旧快照抹掉，
+    # 只看它会把上限守卫放过去。walk 一遍按 parent 计数，取两者大的那个。
+    on_disk = [r for r in (ctx.api.call("store.walk", {
+        "module": "agent/tickets",
+        "root": _cfg_paths(ctx).get("root") or "",
+        "pattern": _cfg_paths(ctx).get("walk_glob") or ""}, caller=None).get("rows") or [])
+        if str((r or {}).get("parent") or "") == str(payload.get("id") or "")]
+    used = max(len(cur.get("children") or []), len(on_disk))
+    if max_children is not None and used >= max_children \
             and payload.get("force") is not True:
         tpl_max = _msg_tpl(ctx).get("too_many_children") or ""
         return {"ok": False, "code": "too_many_children", "status": 409,
@@ -543,11 +551,18 @@ def _route_rebind(ctx, payload):
         if rec.get("project") != payload.get("from"):
             continue
         cur = dict(rec)
+        old_project = str(cur.get("project") or "")
         cur["project"] = payload.get("to")
         cur["updated"] = payload.get("now") or cur.get("updated")
         _TICKET_PROJECT[str(cur.get("id") or "")] = str(cur.get("project") or "")
+        old_path = _ticket_path(ctx, cur.get("id"), old_project)
+        new_path = _ticket_path(ctx, cur.get("id"), cur.get("project"))
         effects.append({"kind": "write", "module": "agent/tickets",
-                        "path": _ticket_path(ctx, cur.get("id"), cur.get("project")), "value": cur})
+                        "path": new_path, "value": cur})
+        # 改挂是搬档：新位置写完后必须删掉旧位置，否则同一张单同时挂在两个项目下，
+        # 后续按目录反查会 ambiguous，归档守卫也会被这份陈档永久判成 open_tickets。
+        # from≠to 是 validate_rebind 的硬前置，新旧路径必然不同，无条件清旧档。
+        effects.append({"kind": "remove", "module": "agent/tickets", "path": old_path})
         moved.append(cur.get("id"))
     return {"from": payload.get("from"), "to": payload.get("to"),
             "tickets": moved, "effects": effects}

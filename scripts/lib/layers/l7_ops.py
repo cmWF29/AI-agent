@@ -235,8 +235,17 @@ def _persist_and_restart(rec):
             after = len(after_msgs)
             # 会话有逐轮压缩，重启还可能补一条系统消息：判「条数不减 + 本轮原文仍读得到」，
             # 不拿压缩前的逐条前缀卡死（那会把压缩当丢历史）。
-            kept = after >= before and any(
-                marker in str(m.get("content") or "") for m in after_msgs)
+            # 重启后后台会话还会继续收尾/压缩，线程窗口可能晚一拍才稳定；
+            # 先按条数不减滚动复查，给 15s 让落盘后的窗口收敛，避免把慢一拍的压缩当丢历史。
+            kept = False
+            for _ in range(15):
+                after_msgs = _messages(c2, ticket)
+                after = len(after_msgs)
+                kept = after >= before and any(
+                    marker in str(m.get("content") or "") for m in after_msgs)
+                if kept:
+                    break
+                time.sleep(1.0)
             rec.check("恢复·历史对话不丢", kept,
                       "条数 %d→%d，本轮原文%s" % (before, after, "在读" if kept else "读不到"))
             row = _timer_row(c2, timer.get("id"))

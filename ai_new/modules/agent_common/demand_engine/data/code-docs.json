@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-26T22:31:49",
+  "generated": "2026-11-27T00:58:43",
   "total": 591,
   "groups": [
     {
@@ -830,7 +830,7 @@
           "doc": "docs/code/ai_new/modules/agent/tickets/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "8805abed8acd9696970c33857541cbd14f29c770085484b444f8005c9677379b",
+          "hash": "bfd0d11338bc68cea1286c731e9cf1a5d9c36930398c6c3dd4c728d8d0686383",
           "symbols": 21,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -1124,7 +1124,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/api/data/gen/bindings.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "ba9e25054686fde223c49ff36dc8e39061f0e7355fef9ab08cd40834f93e4bd0",
+          "hash": "aa54253620214ac3ccd7756b3f3e459d58febf7e32f5ee065ddc0a06a611029e",
           "symbols": 5,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3842,7 +3842,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/store/private/_panel.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "6c66347a8f893c961a010b074fd86cccfecffcaeb622fab037907d84f0a8b5c6",
+          "hash": "e2f40d9891e1ab79c49d33c57029ac5173215aed014c9ef104958882b6d3946a",
           "symbols": 60,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4793,7 +4793,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_tickets_routes.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "76d3deba6785f253b237d2bb096b90a0a0fc00a6d8d1b49809daa189069c0106",
+          "hash": "4ff94f120c4a04f5d6cbebab1119aae3e120f345eb4c15d2cee40ef8219793ef",
           "symbols": 32,
           "updated_at": "2026-11-25T23:05:42"
         },
@@ -5159,7 +5159,7 @@
           "doc": "docs/code/scripts/perf_http.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "a47fe9b8c1ec0ff1ef6960b68fd5c53967b72a69864cfae850eac21026727b92",
+          "hash": "52bc487a9ad624e84a2765b3b0826a9f56f8a14d329aaa7e825e95765ba7f58c",
           "symbols": 19,
           "updated_at": "2026-11-25T12:16:01"
         },
@@ -5267,7 +5267,7 @@
           "doc": "docs/code/scripts/verify_api_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "06e1b8864358e37632ed2e9afd80d44d3394b462991e3b07b0f6a71645e2e2b4",
+          "hash": "176c153f07ecba8bdb9d3aca37ab10cf5f898724a7e675021c58f6cbd8ee7a5f",
           "symbols": 45,
           "updated_at": "2026-11-25T12:16:01"
         },
@@ -5285,7 +5285,7 @@
           "doc": "docs/code/scripts/verify_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "4147338b66d3c1311810113878f3a5dcf65a354bc3529e6d256a65b127b74b7d",
+          "hash": "c7e25dac4251c19f87c846f34c818cc23b25dee98a066b186280a0ee7de4c2b4",
           "symbols": 23,
           "updated_at": "2026-11-24T12:48:33"
         },

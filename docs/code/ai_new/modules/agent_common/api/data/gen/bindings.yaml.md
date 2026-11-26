@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/api/data/gen/bindings.yaml
-hash: ba9e25054686fde223c49ff36dc8e39061f0e7355fef9ab08cd40834f93e4bd0
+hash: aa54253620214ac3ccd7756b3f3e459d58febf7e32f5ee065ddc0a06a611029e
 symbols:
 - default
 - generated_by

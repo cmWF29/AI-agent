@@ -114,8 +114,9 @@ class Stats:
 
 
 class Client:
-    def __init__(self, base, token=""):
+    def __init__(self, base, token="", timeout=20):
         self.base = base.rstrip("/")
+        self.timeout = timeout
         parsed = urllib.parse.urlparse(self.base)
         self.host = parsed.hostname
         self.port = parsed.port or (443 if parsed.scheme == "https" else 80)
@@ -125,7 +126,7 @@ class Client:
 
     def _open(self):
         cls = http.client.HTTPSConnection if self.https else http.client.HTTPConnection
-        self.conn = cls(self.host, self.port, timeout=20)
+        self.conn = cls(self.host, self.port, timeout=self.timeout)
         self.conn.connect()
 
     def close(self):

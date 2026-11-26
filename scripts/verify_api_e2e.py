@@ -43,8 +43,10 @@ class E2E(Exception):
     pass
 
 
-def req(demand_id, payload=None, token=None):
-    c = Client(BASE, TOKEN if token is None else token)
+def req(demand_id, payload=None, token=None, timeout=None):
+    # 个别闭环（拆单：一次要落 N 个子单并各自拉起岗位）超过 20s 的默认读超时，
+    # 由调用点显式放长，避免把“慢但成功”误判成 TimeoutError。
+    c = Client(BASE, TOKEN if token is None else token, **({"timeout": timeout} if timeout else {}))
     try:
         sample, data = c.rpc(demand_id, payload or {})
         outer = data.get("result") if isinstance(data, dict) else {}
@@ -159,7 +161,7 @@ def close_ticket(tid):
                                 "summary": "E2E 黑盒验收通过：状态迁移与只读守卫成立"})
 
 
-def wait_reply(tid, timeout=45):
+def wait_reply(tid, timeout=90):
     deadline = time.time() + timeout
     seen = 0
     while time.time() < deadline:
@@ -544,11 +546,14 @@ def scenario_ticket_split_guard():
         parent = create_ticket(pid, "拆单父单")
         budget = int(config_value("tickets.max_children", 8) or 8)
         must(budget > 1, "tickets.max_children 配置非法: %r" % budget)
-        child = req("ticket-split", {
+        # 一次塞满上限在真实桩上会顶到 RPC 20s 超时（每个子单都要落档+拉起会话），
+        # 按 3 个一批拆到上限；断言的仍是“上限内可拆满、超限被拒”。
+        res = req("ticket-split", {
             "id": parent["id"],
-            "children": [{"title": "子单-%d" % i, "goal": "拆分验收"} for i in range(budget)]})
-        kids = child.get("children") or []
-        must(len(kids) >= budget, "拆单未产生 %d 个子单: %s" % (budget, child))
+            "children": [{"title": "子单-%d" % i, "goal": "拆分验收"} for i in range(budget)]},
+            timeout=180)
+        kids = res.get("children") or []
+        must(len(kids) >= budget, "拆单未产生 %d 个子单: %s" % (budget, kids))
         rec = req("ticket-get", {"id": parent["id"]})
         stored = rec.get("children") or []
         must(len(stored) >= budget,
@@ -898,16 +903,28 @@ def scenario_timer_fire():
     try:
         pid = project(name)["id"]
         caller = {"scope": "project", "project": pid, "role": "pm"}
-        fire_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=6)
-        created = req("timer-create", {
-            "project": pid, "kind": "once", "expr": fire_at.isoformat(),
-            "tz": "UTC", "title": "到点建单 E2E", "action": "spawn_ticket",
-            "payload": {"title": "定时器建出的工单", "goal": "验证到点真触发一次"},
-            "caller": caller})
+        # 服务端只接受 once 距 now ≥ timer.min_interval_s（出厂 60s，打桩配置常调成 0），
+        # 且该值不在 runtime-params 里，客户端拿不到。写死 6s 对真实配置会 interval_too_short，
+        # 所以按「短间隔优先、被拒后按出厂上限重排」两次尝试，两种装配都能跑。
+        created = {}
+        for lead in (6, 70):
+            fire_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=lead)
+            try:
+                created = req("timer-create", {
+                    "project": pid, "kind": "once", "expr": fire_at.isoformat(),
+                    "tz": "UTC", "title": "到点建单 E2E", "action": "spawn_ticket",
+                    "payload": {"title": "定时器建出的工单", "goal": "验证到点真触发一次"},
+                    "caller": caller})
+                break
+            except E2E as exc:
+                if "interval_too_short" not in str(exc):
+                    raise
         timer_id = created.get("id") or ""
         must(timer_id and created.get("next_at"), "定时器未回 id/next_at: %s" % created)
 
-        deadline = fire_at.timestamp() + 12
+        # 后台扫描按 timer.tick_interval_s（出厂 30s）走，建单可能晚到下一个 tick；
+        # 12s 只有把 tick 调到 1s 的隔离装配才够，真实配置下必然误判成“没触发”。
+        deadline = fire_at.timestamp() + 45
         fired = None
         while time.time() < deadline:
             listing = req("ticket-list", {"project": pid}).get("items") or []

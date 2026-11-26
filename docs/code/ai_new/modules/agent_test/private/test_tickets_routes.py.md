@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_tickets_routes.py
-hash: 76d3deba6785f253b237d2bb096b90a0a0fc00a6d8d1b49809daa189069c0106
+hash: 4ff94f120c4a04f5d6cbebab1119aae3e120f345eb4c15d2cee40ef8219793ef
 symbols:
 - __init__
 - __init__

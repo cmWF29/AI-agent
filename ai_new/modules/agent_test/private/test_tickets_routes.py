@@ -423,6 +423,8 @@ class RebindStallTest(unittest.TestCase):
         out = tickets._route_rebind(self.ctx, {"from": "A", "to": "C", "now": "T"})
         self.assertEqual(out["tickets"], ["T-1"])
         self.assertEqual(out["effects"][0]["path"], "projects/C/tickets/T-1/ticket.yaml")
+        self.assertEqual(out["effects"][1]["kind"], "remove")
+        self.assertEqual(out["effects"][1]["path"], "projects/A/tickets/T-1/ticket.yaml")
 
     def test_stall_scan_disabled_and_audit(self):
         self.ctx.since = 120

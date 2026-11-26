@@ -744,7 +744,9 @@ def setup(ctx):
     # 数据根在装配时定死：同一进程里可能同时装多份（测试/迁移），或旧实例的后台线程
     # 还在写，若每次现读环境变量，后起的根会把前面的写入劫持走。
     if getattr(ctx, "data_root", None) is None:
-        root = os.environ.get("AI_NEW_DATA") or getattr(ctx, "root", None)
+        # 只认显式外部数据根（部署/测试暂存）；没有就用自己的 data/ 目录，
+        # 不能拿项目根当数据根（那样 agent/web 之类会指到不存在的位置）。
+        root = os.environ.get("AI_NEW_DATA")
         ctx.data_root = Path(root) if root else None
     ctx.storage = Storage(ctx)
     for name, fn in [

@@ -6,11 +6,20 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
+# 推送连发时取消上一轮：门禁占资源，旧提交的结论没有价值
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gates:
     runs-on: ubuntu-latest
-    # 门禁全量本应 15 分钟左右；30 分钟是硬上限，任何步骤挂死都不会再拖到 6 小时。
-    timeout-minutes: 30
+    # 全量跑实测约 25 分钟（单测 ~12m + 浏览器 7 场景 ~8m + HTTP 黑盒/性能 ~4m），
+    # 45 分钟是硬上限：留出 runner 抖动余量，任何步骤挂死也不拖到 6 小时。
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,8 +27,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
       - name: 依赖
-        run: pip install pyyaml cryptography coverage
+        run: pip install --disable-pip-version-check pyyaml cryptography coverage
       - name: 强隔离依赖（Linux mount namespace）
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
       - name: 代码-文档同步门禁（源码哈希 / 符号清单 / 孤儿文档）
@@ -61,22 +71,29 @@ jobs:
         run: python3 scripts/gate_skips.py
       - name: 改动行覆盖率门禁（新增/修改产品代码 ≥90%）
         env:
-          GITHUB_BASE_SHA: ${{ github.event.before }}
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: python3 scripts/gate_diff_coverage.py --data-file /tmp/hivecov/.coverage
       - name: 全量用例失败日志
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: full-tests-log
-          path: /tmp/full-tests.log
+          path: |
+            /tmp/full-tests.log
+            /tmp/gates-ops.log
+            /tmp/stub.log
       - name: 全量用例失败摘要
         if: failure()
         run: |
           echo "## 全量用例失败尾部" >> "$GITHUB_STEP_SUMMARY"
           tail -n 120 /tmp/full-tests.log >> "$GITHUB_STEP_SUMMARY"
-      - name: 契约与韧性门禁（L2 接口矩阵 + L4 真实 kill -9）
-        run: python3 scripts/gates.py --only L2,L4 --timeout 180
+      - name: 契约/韧性/运维门禁（L2 接口矩阵 + L4 真实 kill -9 + L7 落盘/重启/迁移/cron）
+        timeout-minutes: 10
+        run: |
+          set -o pipefail
+          python3 scripts/gates.py --only L2,L4,L7 --timeout 900 2>&1 | tee /tmp/gates-ops.log
       - name: UI 回归环境（装 Chromium + 起桩）
+        timeout-minutes: 12
         run: |
           pip install playwright
           python3 -m playwright install --with-deps chromium
@@ -103,7 +120,20 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/verify_e2e.py --scenario archive-guard 2>&1 | tee /tmp/e2e-archive.log
+      - name: E2E 逐轮收口（两轮追问→每轮真收口→结单）
+        run: |
+          set -o pipefail
+          python3 scripts/verify_e2e.py --scenario ticket-rounds 2>&1 | tee /tmp/e2e-rounds.log
+      - name: E2E 定时器界面（到点建单在界面可见）
+        run: |
+          set -o pipefail
+          python3 scripts/verify_e2e.py --scenario timer-ui 2>&1 | tee /tmp/e2e-timer.log
+      - name: E2E 浏览器多岗位（PM 派 developer，两路会话各自署名）
+        run: |
+          set -o pipefail
+          python3 scripts/verify_e2e.py --scenario roles-dom 2>&1 | tee /tmp/e2e-roles.log
       - name: 像素级视觉回归（三视图基线）
+        timeout-minutes: 6
         run: |
           set -o pipefail
           sudo apt-get update
@@ -111,6 +141,8 @@ jobs:
           pip install pillow
           python3 scripts/verify_visual.py 2>&1 | tee /tmp/visual.log
       - name: HTTP 黑盒业务 E2E（改名/知识版本/检索/备注/定时器/租约/岗位会话/云端/边界/并发）
+        # 拆单/定时器这类闭环按真实配置要几十秒，单场景上限 12 分钟
+        timeout-minutes: 12
         run: |
           set -o pipefail
           python3 scripts/verify_api_e2e.py --scenario all 2>&1 | tee /tmp/e2e-api.log
@@ -124,7 +156,7 @@ jobs:
       - name: E2E 失败原因（注解可见）
         if: failure()
         run: |
-          for f in /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-archive.log /tmp/visual.log /tmp/e2e-api.log /tmp/perf-http.log; do
+          for f in /tmp/gates-ops.log /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-archive.log /tmp/e2e-rounds.log /tmp/e2e-timer.log /tmp/e2e-roles.log /tmp/visual.log /tmp/e2e-api.log /tmp/perf-http.log; do
             if [ -f "$f" ]; then
               { grep -E "FAIL|Traceback|E2E 失败" "$f" | tail -n 6; tail -n 2 "$f"; } | \
                 sed 's/%/%25/g; s/\r//g' | while IFS= read -r line; do echo "::error::$line"; done

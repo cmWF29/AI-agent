@@ -1,6 +1,6 @@
 ---
 source: scripts/perf_http.py
-hash: a47fe9b8c1ec0ff1ef6960b68fd5c53967b72a69864cfae850eac21026727b92
+hash: 52bc487a9ad624e84a2765b3b0826a9f56f8a14d329aaa7e825e95765ba7f58c
 symbols:
 - reset
 - add
