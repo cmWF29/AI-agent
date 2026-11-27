@@ -185,12 +185,46 @@ async function runBatch(calls) {
   });
 }
 
-function banner(msg, kind) {
+let BANNER_TIMER = null;
+/* 横幅：msg 为空即清空。带 autoMs 时定时自动收起，
+   且上一次的定时器必须先清掉——否则旧定时器会把新横幅提前抹掉（复制成功/失败会连着弹）。 */
+function banner(msg, kind, autoMs) {
   const el = $("banner");
+  if (BANNER_TIMER) { clearTimeout(BANNER_TIMER); BANNER_TIMER = null; }
   if (!msg) { el.style.display = "none"; el.textContent = ""; el.className = ""; return; }
   el.className = kind === "ok" ? "ok" : (kind === "info" ? "info" : "err");
   el.textContent = msg;
   el.style.display = "block";  // 行内样式优先级最高，隐藏后必须显式改回来
+  if (autoMs > 0) BANNER_TIMER = setTimeout(() => banner(""), autoMs);
+}
+
+/* 一键复制的剪贴板出口：优先异步 Clipboard API，不可用/被拒时退回 execCommand 选区复制。
+   两条路都失败就返回 false（调用方负责提示手动选择），这里不抛错、不弹异常。 */
+function copyText(text) {
+  const s = String(text == null ? "" : text);
+  const fallback = () => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = s;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, s.length);
+      const ok = document.execCommand && document.execCommand("copy");
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (e) { return false; }
+  };
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      // 非安全上下文（http 内网）或权限被拒时 writeText 会 reject：接住再走回退
+      return navigator.clipboard.writeText(s).then(() => true, fallback);
+    }
+  } catch (e) { /* 取剪贴板对象本身抛错（老浏览器/被策略拦）也走回退 */ }
+  return Promise.resolve(fallback());
 }
 function gateMessage(err) {
   if (err && (err.status === 401 || err.code === "unauthorized")) return uiText("gate_expired");

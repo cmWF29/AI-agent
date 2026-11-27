@@ -273,6 +273,8 @@ const CLICK_HANDLERS = {
   q_submit(el) { return uiRun(() => submitQuestionCard(el), "q_submit", el); },
   composer_voice(el) { return runAct(el, "composer_voice"); },
   chat_retry(el) { return uiRun(() => retryOutbox(el.dataset.msg || ""), "chat_retry", el); },
+  /* 工单号一键复制：纯本地剪贴板动作，不取数、不换页 */
+  ticket_copy(el) { copyTicketNo(el); },
 };
 
 function handleClick(e) {

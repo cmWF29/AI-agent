@@ -961,6 +961,46 @@ function rawHtml(objs, label, limit) {
   return `<button type="button" class="raw-open" data-clk="raw_fold" data-raw-id="${esc(rid)}" title="${esc(uiText("raw_note"))}">${esc(label)}</button><template id="${esc(rid)}"><pre>${esc(cut)}</pre></template>`;
 }
 
+/* 工单号展示：只认"T-编号"这一种形态，别的 meta 项（项目名/更新时间）保持纯文本。
+   点击走统一的 [data-clk] 入口（ticket_copy），桌面鼠标与移动端触屏都是同一次 click。 */
+const TICKET_NO_RE = /^T-[0-9A-Za-z]+(-[0-9A-Za-z]+)*$/;
+function ticketNoChipHtml(text) {
+  const raw = String(text == null ? "" : text);
+  const no = raw.trim();
+  if (!TICKET_NO_RE.test(no)) return esc(raw);
+  const label = esc(uiText("ticket_copy") || "复制");
+  return `<span class="ticket-no"><span class="ticket-no-val">${esc(no)}</span>` +
+    `<button type="button" class="ticket-copy" data-clk="ticket_copy" data-ctl="ctl.ticket_copy" data-ctl-state="idle" data-ticket-no="${esc(no)}" title="${label}" aria-label="${label}">` +
+    `<span class="ticket-copy-text">${label}</span></button></span>`;
+}
+
+/* 复制结果只改按钮文案 + 顶部横幅，不重渲染页面：轮询随时会重画，2 秒内不打断用户视线。
+   flash=null 时表示复位（清掉定时器，防上一次的 timeout 把这一轮的文案抹掉）。 */
+const TICKET_COPY_MS = 2000;
+const TICKET_COPY_TIMERS = new Map();
+function ticketCopyFlash(btn, flash) {
+  if (!btn) return;
+  const key = btn.dataset.ticketNo || "";
+  const prev = TICKET_COPY_TIMERS.get(key);
+  if (prev) { clearTimeout(prev); TICKET_COPY_TIMERS.delete(key); }
+  btn.dataset.ctlState = flash ? "done" : "idle";
+  btn.classList.toggle("copied", !!flash);
+  const txt = btn.querySelector(".ticket-copy-text");
+  if (txt) txt.textContent = flash ? flash : (uiText("ticket_copy") || "复制");
+}
+function copyTicketNo(el) {
+  const no = String((el && el.dataset && el.dataset.ticketNo) || "").trim();
+  if (!no) return;
+  // 没有剪贴板能力时也报失败，不静默：用户得知道要手动选。
+  const fail = () => banner(uiText("ticket_copy_fail") || "复制失败，请手动选择工单号", "err", TICKET_COPY_MS);
+  Promise.resolve(typeof copyText === "function" ? copyText(no) : false).then((ok) => {
+    if (!ok) { fail(); return; }
+    ticketCopyFlash(el, uiText("ticket_copied") || "已复制");
+    banner(uiText("ticket_copied") || "已复制", "ok", TICKET_COPY_MS);
+    TICKET_COPY_TIMERS.set(no, setTimeout(() => ticketCopyFlash(el, null), TICKET_COPY_MS));
+  }).catch(fail);
+}
+
 function chatHtml(sec, ctx) {
   const src = ref(sec.source, ctx) || {};
   const roles = ref(sec.roles_source, ctx) || [];
@@ -981,8 +1021,9 @@ function chatHtml(sec, ctx) {
   const badge = sec.badge ? badgeHtml(fill(sec.badge, ctx), ctx) : "";
   const title = sec.heading ? `<div class="chat-head-title"><strong>${esc(fill(sec.heading, ctx))}</strong></div>` : "";
   const metaBits = (sec.meta || []).map((x) => fill(x, ctx)).filter((x) => String(x == null ? "" : x).trim());
+  // 工单号（meta 里那个带 T- 前缀的编号）原样展示，旁挂一键复制：编号本身保持可见文本，复制内容就是它。
   const meta = (badge || metaBits.length)
-    ? `<div class="chat-head-meta">${badge}${metaBits.map((x, i) => `<span>${i ? "<i>·</i>" : ""}${esc(x)}</span>`).join("")}</div>` : "";
+    ? `<div class="chat-head-meta">${badge}${metaBits.map((x, i) => `<span>${i ? "<i>·</i>" : ""}${ticketNoChipHtml(x)}</span>`).join("")}</div>` : "";
   const headMain = (title || meta) ? `<div class="chat-head-main">${title}${meta}</div>` : "";
   const chips = arr(roles).map((r, i) => `<sl-button class="av-chip st-${statusKind(r.status)}" variant="default" size="small" data-clk="member_chip" data-member="${i}"
       style="--av:${avatarColor(r.display || r.role)}" title="${esc(r.display || r.role)} · ${statusText(r.status)}">${initial(r.display || r.role)}<i class="dot"></i></sl-button>`).join("");
