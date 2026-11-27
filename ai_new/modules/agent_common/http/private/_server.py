@@ -28,6 +28,17 @@ class _Server(ThreadingHTTPServer):
     """控制台一页会并发拉起几十个静态资源，默认 backlog=5 会把跨公网的突发连接丢进重试。"""
     daemon_threads = True
     request_queue_size = 128
+    tls_ctx = None
+
+    def process_request_thread(self, request, client_address):
+        """TLS 握手放进工作线程：半开连接只能占住自己，不能卡死整个 accept 队列。"""
+        if self.tls_ctx is not None:
+            try:
+                request = self.tls_ctx.wrap_socket(request, server_side=True)
+            except (ssl.SSLError, OSError):
+                self.shutdown_request(request)
+                return
+        super().process_request_thread(request, client_address)
 
 
 def setup(ctx):
@@ -42,7 +53,8 @@ def setup(ctx):
         # 3.12 起 ssl.wrap_socket 已移除，只能自建上下文再包 socket（协议版本显式给 TLS）。
         tls_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         tls_ctx.load_cert_chain(cert, key)
-        server.socket = tls_ctx.wrap_socket(server.socket, server_side=True)
+        # 监听 socket 保持明文；每个连接在 worker 里单独握手（见 process_request_thread）。
+        server.tls_ctx = tls_ctx
     return server
 
 

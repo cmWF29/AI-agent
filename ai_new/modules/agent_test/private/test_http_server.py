@@ -346,7 +346,25 @@ class HttpServerTest(unittest.TestCase):
             server = _server.setup(ctx)
             server.server_close()
         tls_ctx.load_cert_chain.assert_called_once_with("c.pem", "k.pem")
-        tls_ctx.wrap_socket.assert_called_once()
+        self.assertIs(server.tls_ctx, tls_ctx)
+        tls_ctx.wrap_socket.assert_not_called()
+
+    def test_tls_handshake_runs_in_worker_and_half_open_is_isolated(self):
+        srv = _server._Server(("127.0.0.1", 0), _server.BaseHTTPRequestHandler)
+        srv.tls_ctx = mock.Mock()
+        srv.finish_request = mock.Mock()
+        srv.shutdown_request = mock.Mock()
+        good = srv.tls_ctx.wrap_socket.return_value
+        srv.process_request_thread(mock.Mock(), ("1.2.3.4", 1))
+        srv.finish_request.assert_called_once()
+        srv.tls_ctx.wrap_socket.return_value = good
+        srv.tls_ctx.wrap_socket.side_effect = _server.ssl.SSLError("half open")
+        srv.shutdown_request.reset_mock()
+        srv.finish_request.reset_mock()
+        srv.process_request_thread(mock.Mock(), ("1.2.3.4", 2))
+        srv.shutdown_request.assert_called_once()
+        srv.finish_request.assert_not_called()
+        srv.server_close()
 
 
 

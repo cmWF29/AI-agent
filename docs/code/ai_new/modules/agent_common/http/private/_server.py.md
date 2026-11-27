@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_common/http/private/_server.py
-hash: aec1afdbdc3380d7d8d4dce7b71247921f2b08b4f69184edebdc15067f2c0ac0
+hash: baf334533f9258de397250e9527c3669ee082faa18b11375f62611ff5b47c8f1
 symbols:
+- process_request_thread
 - setup
 - start
 - _make_handler
@@ -21,6 +22,12 @@ updated_at: '2026-11-23T04:10:22'
 HTTP 服务实现：stdlib ThreadingHTTPServer。
 
 ## 符号
+
+### `process_request_thread`（method）
+- 职责: TLS 握手放进工作线程：半开连接只能占住自己，不能卡死整个 accept 队列。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `setup`（function）
 - 职责: 只建服务、绑端口，不接请求（接请求发生在 start 阶段）。

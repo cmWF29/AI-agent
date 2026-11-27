@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_http_server.py
-hash: ac1d5ff118e5dcf599b1df5c1b22d18f64f1bd7ab32c43e5c5defa9bb8cc9048
+hash: 9fd7c9367a2d9a3270a9df447c641236fda5f49ae7de2b03d5810dc4c34da00a
 symbols:
 - yaml_decode
 - yaml_encode_flow
@@ -40,6 +40,7 @@ symbols:
 - test_static_with_gate_private_but_authorized
 - test_static_gzip_floor_skip
 - test_setup_skips_tls_without_files
+- test_tls_handshake_runs_in_worker_and_half_open_is_isolated
 - __init__
 - write
 - flush
@@ -288,6 +289,12 @@ HTTP 服务真实链路：起 loopback 服务，用 http.client / 裸 socket 打
 - 关联需求/测试: 待人工补充
 
 ### `test_setup_skips_tls_without_files`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_tls_handshake_runs_in_worker_and_half_open_is_isolated`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
