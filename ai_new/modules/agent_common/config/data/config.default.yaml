@@ -64,7 +64,7 @@ sessions:
   paths:
     prompt: 'prompts/{kind}.md'
   context:
-    tool_output_chars: 1000   # 工具输出正文超此字符数即落盘 ticket 层，上下文只回路径
+    tool_output_chars: 20000  # 工具输出正文超此字符数才截断落盘。控制面结果（派角色/拆单/写文档回执）通常 1–9K，阈值过低会让模型看不到成功失败，进而重复动作
     resume_on_boot: true      # 进程重启后自动把残留 running 会话重新驱动一轮
     resume_max: 5             # 单次启动最多自动续跑的会话数，防止启动风暴
   stuck_check:

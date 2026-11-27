@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_react_routes.py
-hash: 757a79b8fe6678c2ea5325d1fa58706f0a010438a53408e31aa22391d053eb7e
+hash: cea55445f040e05d82bcd715285a6f47b87a323bec252077719fe2a8c2e8b278
 symbols:
 - __init__
 - __init__
@@ -21,6 +21,8 @@ symbols:
 - test_template_without_project_drops_segment
 - test_collapses_double_slash
 - test_empty_template_or_empty_result_falls_back
+- test_default_budget_keeps_control_plane_results_inline
+- test_stash_note_does_not_advertise_artifact_read
 - test_small_output_passes_through
 - test_large_output_stashed_with_note
 - test_large_output_without_ids_uses_stamp
@@ -161,6 +163,18 @@ ReAct 路由单测：装配注册、工具分级落盘、检查点与闭环（�
 - 关联需求/测试: 待人工补充
 
 ### `test_empty_template_or_empty_result_falls_back`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_default_budget_keeps_control_plane_results_inline`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_stash_note_does_not_advertise_artifact_read`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

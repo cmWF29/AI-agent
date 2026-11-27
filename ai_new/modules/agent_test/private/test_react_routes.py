@@ -150,6 +150,25 @@ class RelPathTest(unittest.TestCase):
         self.assertEqual(_rel_path("/{fid}/", "fb", fid=""), "fb")
 
 
+class ToolBudgetDefaultsTest(unittest.TestCase):
+    """默认阈值必须容得下派角色/拆单/写文档回执；截断提示不能诱导模型读日志。"""
+
+    def test_default_budget_keeps_control_plane_results_inline(self):
+        import yaml
+        root = Path(__file__).resolve().parents[4]
+        cfg = yaml.safe_load(
+            (root / "ai_new/modules/agent_common/config/data/config.default.yaml").read_text())
+        self.assertGreaterEqual(cfg["sessions"]["context"]["tool_output_chars"], 20000)
+
+    def test_stash_note_does_not_advertise_artifact_read(self):
+        import yaml
+        root = Path(__file__).resolve().parents[4]
+        tpl = yaml.safe_load(
+            (root / "ai_new/modules/agent_common/react/data/messages.yaml").read_text())
+        self.assertIn("不能用 artifact_read 读取", tpl["stash_note"])
+        self.assertIn("缩小查询范围", tpl["stash_note"])
+
+
 class StashTest(unittest.TestCase):
     def test_small_output_passes_through(self):
         ctx, _, _ = make_ctx([])

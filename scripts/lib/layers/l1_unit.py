@@ -49,6 +49,7 @@ EXTRA_MODULES = [
     "test_skill_decompose",
     "test_levels",
     "test_react_mechanisms",
+    "test_react_routes",
     "test_gate_diff_coverage",
     "test_security_boundaries",
     "test_demand_engine_routes",

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/config/data/config.default.yaml
-hash: 7501565dfbf90fd84de1ac64da805690d48e6cd6b59182611b9270e04c0e722f
+hash: 59d3261d504d27e5b8e94ad947587954ec9c3d0b6bdec26ec6f05efa9145bccd
 symbols:
 - server
 - nodes
