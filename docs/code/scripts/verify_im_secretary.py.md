@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_im_secretary.py
-hash: 696957c43b77cb0634c0bf7a83d3aba0b6c974d001ea44e7b3c6e620863a78d8
+hash: 73350e42918cf7b710b40e73732c94e610c6b3cab703c0cd05eeab9d0249cc60
 symbols:
 - check
 - ensure_login

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T10:36:52",
+  "generated": "2026-11-27T10:43:21",
   "total": 594,
   "groups": [
     {
@@ -5303,7 +5303,7 @@
           "doc": "docs/code/scripts/verify_im_secretary.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "696957c43b77cb0634c0bf7a83d3aba0b6c974d001ea44e7b3c6e620863a78d8",
+          "hash": "73350e42918cf7b710b40e73732c94e610c6b3cab703c0cd05eeab9d0249cc60",
           "symbols": 7,
           "updated_at": "2026-11-27T10:17:57"
         },

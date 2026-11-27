@@ -31,6 +31,12 @@ async def ensure_login(pg):
         await pg.fill("#username input", "admin")
         await pg.fill("#password input", "123456")
         await pg.click("#login-form button[type=submit]")
+        # 登录提交会自己跳到 manage.html：等目标 URL 落定，再等控制台挂载。
+        try:
+            await pg.wait_for_url("**/manage.html**", timeout=15000)
+        except Exception:
+            if await pg.locator("#login-form").count() and await pg.locator("#login-form").is_visible():
+                await pg.goto(BASE + "/", wait_until="domcontentloaded")
         await pg.wait_for_selector("#view-body", timeout=15000)
 
 
@@ -38,7 +44,8 @@ async def api(pg, demand, input_):
     got = await pg.evaluate(
         """async ([demand, input]) => {
             const r = await fetch('/api/rpc/demand_engine/run', {method:'POST',
-              headers: Object.assign({'Content-Type':'application/json'}, headers()),
+              headers: {'Content-Type':'application/json',
+                        'X-Auth-Token': localStorage.getItem('ai_new_token') || ''},
               body: JSON.stringify({id: demand, input})});
             const y = await r.text();
             return y;
