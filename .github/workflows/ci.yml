@@ -55,6 +55,10 @@ jobs:
         run: python3 scripts/gate_demand_tests.py
       - name: 接线门禁（表单提交→需求 with→API 入参逐项贯通）
         run: python3 scripts/gate_wiring.py
+      - name: 需求生命周期门禁（入口写需求收口，异步交接必须有人接）
+        run: python3 scripts/gate_demand_lifecycle.py
+      - name: 死代码门禁（未引用函数/import/孤儿路由）
+        run: python3 scripts/gate_deadcode.py
       - name: 需求/架构/装配/传输/幂等/桩协议全量用例（并行分片 + coverage）
         run: |
           set -o pipefail

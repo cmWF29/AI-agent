@@ -8,6 +8,7 @@ tags:
 touch: [tools-list, tools-deps, project-tools]
 enabled: true
 callable: true
+completion: inline
 'on': []
 do:
 - call: store.read_text

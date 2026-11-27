@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/ops-export.yaml
-hash: d4170d2c739e82387b41b1cefa0130c717d39fc7cef980c8a310ecd43287e716
+hash: 66c88f281ec0d275118e40c08cc6a87bb981534c28b3e275826a00d09c48fa9c
 symbols:
 - id
 - title
@@ -8,6 +8,7 @@ symbols:
 - tags
 - enabled
 - callable
+- completion
 - 'on'
 - do
 - expect
@@ -57,6 +58,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `callable`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `completion`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/ticket-close.yaml
-hash: 3a4ddccf43eb080b2fedf178143ec17494fd9d0cea3b1e7858cd7efb6e04788e
+hash: 360642b2379837d971e52328792f01f520aaad4a929db485cc8d702b21ea1641
 symbols:
 - id
 - title
@@ -9,6 +9,7 @@ symbols:
 - touch
 - enabled
 - callable
+- completion
 - 'on'
 - do
 - expect
@@ -64,6 +65,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `callable`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `completion`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

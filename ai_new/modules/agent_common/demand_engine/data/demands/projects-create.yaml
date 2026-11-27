@@ -7,6 +7,7 @@ tags:
 touch: [project-tree, projects-get]
 enabled: true
 callable: true
+completion: inline
 'on': []
 do:
 - call: projects.create

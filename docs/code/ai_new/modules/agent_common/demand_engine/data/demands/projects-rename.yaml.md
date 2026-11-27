@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/projects-rename.yaml
-hash: 8f8709cb0f098fde7284a3dee88871f1182c559e0926a2b0559b892cd138c435
+hash: bafc276a37f0b0eda5c16e053073b9bfd6c69248f0f92c63c7a809f2e103d756
 symbols:
 - id
 - title
@@ -9,6 +9,7 @@ symbols:
 - touch
 - enabled
 - callable
+- completion
 - 'on'
 - do
 - expect
@@ -64,6 +65,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `callable`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `completion`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

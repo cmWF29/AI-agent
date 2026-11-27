@@ -216,7 +216,7 @@ manifest 是远端权威清单，形状为版本、profile、更新时间、entr
 
 | 层 | 门禁/用例 | 证据 |
 | --- | --- | --- |
-| L0 静态 | controls、screens、inventory、views、card_size、copy、frontend、wiring、docsync、levels、ops、deadcode | 规格与源码双向闭合、活 DOM 清单、文案长度、信息预算、文档哈希 |
+| L0 静态 | controls、screens、inventory、views、card_size、copy、frontend、wiring、lifecycle、docsync、levels、ops、deadcode | 规格与源码双向闭合、活 DOM 清单、文案长度、信息预算、文档哈希 |
 | L1 单元 | 核心、架构、需求、装配、传输、幂等、桩、隔离、节点、分布式、归档、秘书、定时、角色门禁、技能拆解、React 机制、边界 fail-closed、HTTP 入口 | 纯函数断言、状态迁移、并发、边界、GET/匿名/请求体/静态资源闸 |
 | L2 契约 | 非法输入、鉴权、越权、穿越、幂等 | 真装配 + 真 HTTP |
 | L3 E2E | verify_ui、verify_e2e、verify_pages、verify_controls | 真浏览器 + 真后端；业务闭环、全页可达、全表单可开、安全控件真点击 |

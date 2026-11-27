@@ -36,7 +36,7 @@ GATES: list[tuple[str, str, Path, bool]] = [
     ("demand_tests", "需求↔用例映射：每条需求绑到 check 且映射表不过期",
      SCRIPTS / "gate_demand_tests.py", True),
     ("deadcode", "死代码：未引用函数/import/孤儿路由与工具",
-     SCRIPTS / "gate_deadcode.py", False),
+     SCRIPTS / "gate_deadcode.py", True),
     ("docsync", "代码-文档同步：源码哈希 / 符号 / 孤儿文档",
      SCRIPTS / "gate_docsync.py", True),
     ("copy", "界面文案：禁用句式 / 长度上限 / 术语一致 / 字段泄漏",
@@ -47,6 +47,8 @@ GATES: list[tuple[str, str, Path, bool]] = [
      SCRIPTS / "gate_levels.py", True),
     ("wiring", "接线：表单提交→需求 with→API 入参逐项贯通",
      SCRIPTS / "gate_wiring.py", True),
+    ("lifecycle", "需求生命周期：入口写需求声明收口，异步交接有消费者",
+     SCRIPTS / "gate_demand_lifecycle.py", True),
 ]
 
 
@@ -79,7 +81,7 @@ def run(selected: list[str] | None = None, timeout: float = 120.0) -> LayerResul
             rec.check(gid, ok, ("通过" if ok else "退出码 %d" % code))
             if out:
                 output_blocks.append("[%s]\n%s" % (gid, "\n".join("  " + l for l in out.splitlines())))
-    note = "死代码扫描未列入缺省全量；代码-文档同步扫描器接入后在此追加条目。"
+    note = "L0 同时跑引用级死代码与需求生命周期；前者管符号有没有人引用，后者管异步活有没有人接。"
     return LayerResult(
         layer="L0", title="静态/架构/文档/映射", ok=rec.ok, duration=t.elapsed,
         checks=rec.checks, output="\n".join(output_blocks), note=note,

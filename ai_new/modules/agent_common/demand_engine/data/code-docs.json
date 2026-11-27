@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-27T10:43:21",
-  "total": 594,
+  "generated": "2026-11-27T11:01:22",
+  "total": 596,
   "groups": [
     {
       "label": "agent",
@@ -1619,8 +1619,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/auth-change-password.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "042cb39ca3495ab501637484f1ef861ce47180f6c7d5cd52b14484730393fe62",
-          "symbols": 10,
+          "hash": "f75c9b68db7a45920d881ab12ce9cc0c3ab52cbdd5e7b47b341870033b7a7533",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -1898,8 +1898,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/decompose-install.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "c4b32626086a68c73b0bdb3ca7eaeb428f9a106ffe53d73a732eb27056e6df9a",
-          "symbols": 10,
+          "hash": "1912fe852c99a3c7d778e6d3b290ad9362d451dca86d1b311f51c84af4f62d00",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -2267,8 +2267,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/ops-export.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "d4170d2c739e82387b41b1cefa0130c717d39fc7cef980c8a310ecd43287e716",
-          "symbols": 9,
+          "hash": "66c88f281ec0d275118e40c08cc6a87bb981534c28b3e275826a00d09c48fa9c",
+          "symbols": 10,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -2402,8 +2402,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/projects-create.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "87c869f74263375e8fd8f9bf58323b365292ad90f17cc967668fd6450ebca052",
-          "symbols": 10,
+          "hash": "4f9ac49d523021c9f28634a27ca549fe46582aca5a8bb46a5ed08e87d5ccbdd8",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -2438,8 +2438,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/projects-rename.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "8f8709cb0f098fde7284a3dee88871f1182c559e0926a2b0559b892cd138c435",
-          "symbols": 10,
+          "hash": "bafc276a37f0b0eda5c16e053073b9bfd6c69248f0f92c63c7a809f2e103d756",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -2447,8 +2447,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/projects-set-root.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "df418dfc8fd5e4c4aeeb8eaed46da810ea26be4e07352537ced5971baf7317c0",
-          "symbols": 10,
+          "hash": "26cc89804fe76ec492ce34b13687aaa3321ccbd8c4a337f9934d98281c7be1e8",
+          "symbols": 11,
           "updated_at": "2026-11-24T19:50:03"
         },
         {
@@ -2474,8 +2474,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/role-session-message.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "f525440d99c4995e1a166296e24141fb514eea63517afd3e6d671a6b89c5d3ab",
-          "symbols": 9,
+          "hash": "389d450c132e5eff0e2bf22f85a74afb8fa54a8f0ec241d1ad08149721e8b5dc",
+          "symbols": 10,
           "updated_at": "2026-11-24T03:13:41"
         },
         {
@@ -2555,8 +2555,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/secretary-intake.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "ca1ccc1e8f6b61228647f2dc9cbe3c68b72723ab8ae11d30ca2fa35e5df26294",
-          "symbols": 10,
+          "hash": "d7c13bc4ce414e01bc24de2e4049c105ba202451c7d2b06e223ac4f8297f7669",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -2744,8 +2744,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/ticket-close.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "3a4ddccf43eb080b2fedf178143ec17494fd9d0cea3b1e7858cd7efb6e04788e",
-          "symbols": 10,
+          "hash": "360642b2379837d971e52328792f01f520aaad4a929db485cc8d702b21ea1641",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -2753,8 +2753,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/ticket-create.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "bf4d0a26cd7e99ae395b0325de28f2684d3ab44fcae3377f1e29951054130d77",
-          "symbols": 10,
+          "hash": "95dbe1ea95d435814f2b3a01fe62adb0429390008e3bac1ec562b02642d6389f",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -2798,8 +2798,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/ticket-message.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "7dd63427923563b16a59a06371cc0f41b0e43807abe0cd8e145b44965ea598a3",
-          "symbols": 10,
+          "hash": "4a78740291c1c8c04d31730c92b4510676b9de316ae94ede1a855e4afeb6fc07",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -2915,8 +2915,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/timer-update.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "06850678e78ec11d7c14449d2b442b6b7a68f966908939720796fc22e2e22a45",
-          "symbols": 10,
+          "hash": "3d97bcd9ebbdfb3b2d5cede27e955916351070574613b274768fc91ed8d28e65",
+          "symbols": 11,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -3967,7 +3967,7 @@
     },
     {
       "label": "agent_test",
-      "count": 103,
+      "count": 104,
       "docs": [
         {
           "source": "ai_new/modules/agent_test/__init__.py",
@@ -4301,6 +4301,15 @@
           "hash": "2e93f55809b6b4b62140db6287ab7435969b7675cbfa2c71b83211a1c0e4edf2",
           "symbols": 54,
           "updated_at": "2026-11-25T13:07:48"
+        },
+        {
+          "source": "ai_new/modules/agent_test/private/test_demand_lifecycle.py",
+          "doc": "docs/code/ai_new/modules/agent_test/private/test_demand_lifecycle.py.md",
+          "kind": "py",
+          "group": "agent_test",
+          "hash": "99679d6f49db1b7a0b16996ff273dede0de5e8eb1b2fa73a21ada9dfa5e105e7",
+          "symbols": 6,
+          "updated_at": "2026-11-27T11:01:17"
         },
         {
           "source": "ai_new/modules/agent_test/private/test_demands.py",
@@ -4900,7 +4909,7 @@
     },
     {
       "label": "scripts",
-      "count": 52,
+      "count": 53,
       "docs": [
         {
           "source": "scripts/audit_click_machine.py",
@@ -4973,6 +4982,15 @@
           "hash": "388b16667ebc2da44b59c1600541146b1097a58741fee4a4535bc05ff0b1a4bc",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "scripts/gate_demand_lifecycle.py",
+          "doc": "docs/code/scripts/gate_demand_lifecycle.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "bf44641fdc80656e573b6eb6ab1b1ef8344e1db9eb066f222c8b7f0a9562d8ec",
+          "symbols": 7,
+          "updated_at": "2026-11-27T11:01:19"
         },
         {
           "source": "scripts/gate_demand_tests.py",

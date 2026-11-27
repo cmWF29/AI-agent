@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/auth-change-password.yaml
-hash: 042cb39ca3495ab501637484f1ef861ce47180f6c7d5cd52b14484730393fe62
+hash: f75c9b68db7a45920d881ab12ce9cc0c3ab52cbdd5e7b47b341870033b7a7533
 symbols:
 - id
 - title
@@ -9,6 +9,7 @@ symbols:
 - touch
 - enabled
 - callable
+- completion
 - 'on'
 - do
 - expect
@@ -64,6 +65,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `callable`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `completion`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

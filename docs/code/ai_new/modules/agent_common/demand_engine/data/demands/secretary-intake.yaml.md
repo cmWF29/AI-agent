@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/secretary-intake.yaml
-hash: ca1ccc1e8f6b61228647f2dc9cbe3c68b72723ab8ae11d30ca2fa35e5df26294
+hash: d7c13bc4ce414e01bc24de2e4049c105ba202451c7d2b06e223ac4f8297f7669
 symbols:
 - id
 - title
@@ -9,6 +9,7 @@ symbols:
 - touch
 - enabled
 - callable
+- completion
 - 'on'
 - do
 - expect
@@ -64,6 +65,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `callable`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `completion`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

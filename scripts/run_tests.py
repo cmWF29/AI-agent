@@ -40,7 +40,7 @@ DEFAULT_MODULES = [
     "test_host_probe", "test_http_server", "test_react_pure", "test_react_routes", "test_channel_routes", "test_web_panel", "test_sandbox_host_routes", "test_exec_edges", "test_artifacts_routes", "test_cloud_webdav",
     "test_react_mechanisms",
     "test_gate_diff_coverage", "test_security_boundaries", "test_api",
-    "test_deadcode", "test_docsync", "test_levels",
+    "test_deadcode", "test_demand_lifecycle", "test_docsync", "test_levels",
     "test_asr", "test_platform_branches", "test_pure_edges", "test_tickets_routes",
     "test_decompose_pure", "test_archive_engine", "test_archive_backend_routes", "test_archive_edges", "test_store_files_edges", "test_store_panel", "test_common_small_pkgs", "test_store_misc_edges", "test_cloud_pure_edges", "test_library_pure_edges", "test_tickets_library_edges", "test_trace",
     "test_knowledge_pure", "test_knowledge_routes", "test_decompose_routes", "test_webdav_client", "test_clock",

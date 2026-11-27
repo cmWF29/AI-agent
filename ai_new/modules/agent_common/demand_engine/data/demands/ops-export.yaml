@@ -6,6 +6,7 @@ tags:
 - write
 enabled: true
 callable: true
+completion: inline
 'on': []
 do:
 - call: clock.now

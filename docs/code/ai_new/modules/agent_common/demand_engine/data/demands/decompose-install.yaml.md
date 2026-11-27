@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/decompose-install.yaml
-hash: c4b32626086a68c73b0bdb3ca7eaeb428f9a106ffe53d73a732eb27056e6df9a
+hash: 1912fe852c99a3c7d778e6d3b290ad9362d451dca86d1b311f51c84af4f62d00
 symbols:
 - id
 - title
@@ -9,6 +9,7 @@ symbols:
 - touch
 - enabled
 - callable
+- completion
 - 'on'
 - do
 - expect
@@ -64,6 +65,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `callable`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `completion`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

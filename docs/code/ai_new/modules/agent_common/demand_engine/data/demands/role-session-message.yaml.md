@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/role-session-message.yaml
-hash: f525440d99c4995e1a166296e24141fb514eea63517afd3e6d671a6b89c5d3ab
+hash: 389d450c132e5eff0e2bf22f85a74afb8fa54a8f0ec241d1ad08149721e8b5dc
 symbols:
 - id
 - title
@@ -8,6 +8,7 @@ symbols:
 - tags
 - enabled
 - callable
+- completion
 - 'on'
 - do
 - expect
@@ -57,6 +58,12 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `callable`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `completion`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

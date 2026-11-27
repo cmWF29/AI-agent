@@ -7,6 +7,7 @@ tags:
 touch: [project-tree, projects-get, project-workspace]
 enabled: true
 callable: true
+completion: inline
 'on': []
 do:
 - call: projects.set_root

@@ -7,6 +7,7 @@ tags:
 touch: [ticket-list]
 enabled: true
 callable: true
+completion: inline
 'on': []
 do:
 - call: tickets.send
