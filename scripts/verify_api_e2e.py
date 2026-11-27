@@ -907,7 +907,7 @@ def scenario_timer_fire():
         # 且该值不在 runtime-params 里，客户端拿不到。写死 6s 对真实配置会 interval_too_short，
         # 所以按「短间隔优先、被拒后按出厂上限重排」两次尝试，两种装配都能跑。
         created = {}
-        for lead in (6, 70):
+        for lead in (6, 62):
             fire_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=lead)
             try:
                 created = req("timer-create", {
@@ -923,7 +923,7 @@ def scenario_timer_fire():
         must(timer_id and created.get("next_at"), "定时器未回 id/next_at: %s" % created)
 
         # 后台扫描按 timer.tick_interval_s（出厂 30s）走，建单可能晚到下一个 tick；
-        # 12s 只有把 tick 调到 1s 的隔离装配才够，真实配置下必然误判成“没触发”。
+        # 出厂 min_interval=60s 时 lead 取 62s：比下限多 2s，又给 180s 场景上限留足余量。
         deadline = fire_at.timestamp() + 45
         fired = None
         while time.time() < deadline:
@@ -1151,7 +1151,7 @@ def main(argv=None):
     failed = 0
 
     def _timeout(_signum, _frame):
-        raise E2E("场景超时（120s），疑似服务端挂起")
+        raise E2E("场景超时（180s），疑似服务端挂起")
 
     for name in names:
         started = time.time()

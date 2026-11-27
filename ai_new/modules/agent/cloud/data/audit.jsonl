@@ -1,0 +1,5 @@
+{"at": 1795751365.7444656, "caller_scope": "global", "caller_session": "", "role": "cloud-configurer", "action": "profile_save", "target_id": "e2e-cloud-1795751365687170362", "decision": "deny", "reason": "bad_scheme,blocked_host,bad_credentials"}
+{"at": 1795751365.8874612, "caller_scope": "global", "caller_session": "", "role": "cloud-configurer", "action": "profile_save", "target_id": "e2e-cloud-1795751365687170362", "decision": "deny", "reason": "bad_provider"}
+{"at": 1795751365.9953878, "caller_scope": "global", "caller_session": "", "role": "cloud-configurer", "action": "profile_save", "target_id": "e2e-cloud-1795751365687170362", "decision": "allow", "reason": "saved"}
+{"at": 1795751366.1520286, "caller_scope": "global", "caller_session": "", "role": "cloud-configurer", "action": "profile_switch", "target_id": "e2e-cloud-1795751365687170362", "decision": "allow", "reason": "switched"}
+{"at": 1795751366.3499458, "caller_scope": "global", "caller_session": "", "role": "cloud-configurer", "action": "profile_delete", "target_id": "e2e-cloud-1795751365687170362", "decision": "allow", "reason": "deleted"}
