@@ -434,13 +434,17 @@ def threadp(p):
     elif closed:
         reason = (p.get("tpl_lock") or {}).get("closed") or ""
 
+    # 流程契约整份很大、前端又只读 members.machine；主线程里不要再带一份全量 machine。
+    meta = dict(thread.get("meta") or {})
+    meta.pop("machine", None)
     return {
         "locked": locked,
         "lock_reason": reason,
         "ticket": view({"rec": ticket}),
         "thread": {"id": pm_sid, "name": thread.get("name") or "", "status": status,
                    "role": "pm",
-                   "updated": thread.get("updated") or "", "meta": thread.get("meta") or {},
+                   "updated": thread.get("updated") or "", "meta": meta,
+                   "machine": _state_brief(thread),
                    "todos": thread.get("todos") or [], "messages": merged},
         "roles": roles_out,
         "members": members,

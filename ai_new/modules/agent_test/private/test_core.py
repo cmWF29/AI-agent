@@ -3303,6 +3303,8 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(role["stage"], "implement")
         self.assertEqual(role["states"][0]["cn"], "实现")
         self.assertNotIn("tools", role["states"][0])
+        self.assertNotIn("machine", out["thread"]["meta"])
+        self.assertEqual(out["thread"]["machine"]["stage"], "analyze")
 
     def test_thread_does_not_duplicate_pm_session(self):
         """by_ticket 会把 PM 主会话一并归集；线程视图不得把它当角色二次并入成员与消息流。"""
