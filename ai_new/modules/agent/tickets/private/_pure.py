@@ -519,10 +519,29 @@ def note(p):
 
 
 def bindrole(p):
+    """挂角色线：同一会话只留一条记录，重复派活只更新任务书，不并出第二条同岗线。
+
+    之前按调用次数 append，PM 复用同一会话返工时会再写一条 role 记录，
+    角色列表因此出现两条同 session 的岗位、状态机与前端计数都被重复计算。
+    会话级身份才是唯一键；不同会话的同岗并行仍保留各自的记录。
+    """
     rec = dict(p.get("rec") or {})
-    rec.setdefault("roles", []).append({"session": p.get("session"), "role": p.get("role"),
-                                        "display": p.get("display") or p.get("role"),
-                                        "task": p.get("task") or "", "status": "spawned"})
+    sid = p.get("session")
+    roles = list(rec.get("roles") or [])
+    hit = None
+    for row in roles:
+        if str((row or {}).get("session") or "") == str(sid or ""):
+            hit = row
+            break
+    if hit is not None:
+        hit["role"] = p.get("role") or hit.get("role")
+        hit["display"] = p.get("display") or hit.get("display") or p.get("role")
+        hit["task"] = p.get("task") or hit.get("task") or ""
+    else:
+        roles.append({"session": sid, "role": p.get("role"),
+                      "display": p.get("display") or p.get("role"),
+                      "task": p.get("task") or "", "status": "spawned"})
+    rec["roles"] = roles
     rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "role_spawn",
                                           "text": "%s: %s" % (p.get("role"), p.get("task") or ""),
                                           "to": p.get("display") or p.get("role") or "",

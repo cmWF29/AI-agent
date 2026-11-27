@@ -2145,6 +2145,20 @@ class CoreTest(unittest.TestCase):
         role_msgs = arch["transcript"]["roles"][0]["messages"]
         self.assertEqual([m["content"] for m in role_msgs], ["交付完成"])
 
+    def test_bindrole_same_session_keeps_one_line(self):
+        """同一会话返工只更新任务书，不再 append 第二条同岗线；不同会话同岗仍并行保留。"""
+        rec = ticket_pure.build({"id": "T-1", "title": "建单", "now": 1})
+        rec = ticket_pure.bindrole({"rec": rec, "session": "role-1", "role": "developer",
+                                    "display": "开发A", "task": "第一版", "now": 2})
+        rec = ticket_pure.bindrole({"rec": rec, "session": "role-1", "role": "developer",
+                                    "display": "开发A2", "task": "返工", "now": 3})
+        self.assertEqual(len(rec["roles"]), 1)
+        self.assertEqual(rec["roles"][0]["display"], "开发A2")
+        self.assertEqual(rec["roles"][0]["task"], "返工")
+        rec = ticket_pure.bindrole({"rec": rec, "session": "role-2", "role": "developer",
+                                    "display": "开发B", "task": "并行", "now": 4})
+        self.assertEqual([r["session"] for r in rec["roles"]], ["role-1", "role-2"])
+
     def test_history_event_carries_recipient(self):
         """历程事件带接收人 to/to_kind：建单→本单，PM 开工→PM，派角色→岗位，拆子单→子工单，评审/回催→本单。"""
         rec = ticket_pure.build({"id": "T-1", "title": "建单", "now": 1})
