@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/tickets/private/_pure.py
-hash: 8491160711008deda969cc0024113ee051540536ef11a7c91f270f12294d8f72
+hash: 73efd2e498cabb6f443e91de504668cbbb44279a50ac181cf26afa712376a517
 symbols:
 - _glob_one
 - _glob
@@ -251,7 +251,7 @@ updated_at: '2026-11-23T04:10:20'
 - 关联需求/测试: 待人工补充
 
 ### `bindrole`（function）
-- 职责: （无 docstring）
+- 职责: 挂角色线：同一会话只留一条记录，重复派活只更新任务书，不并出第二条同岗线。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

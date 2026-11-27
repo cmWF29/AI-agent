@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sessions/data/session-tools.yaml
-hash: b913ec0d25bb34793877b39a42d29ecfd1fc81840a8b35a07574d33511270a2e
+hash: 77ef78756722cb36544d82b38cef3ca1390e13fbf92273d2586a21d4ef1053a3
 symbols:
 - secretary
 - pm

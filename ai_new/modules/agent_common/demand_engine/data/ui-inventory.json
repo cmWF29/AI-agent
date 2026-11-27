@@ -1,17 +1,17 @@
 {
  "sig": {
-  "sha": "cc98c92d0c8e08ae",
+  "sha": "b2d252d2c1ebe771",
   "files": 37
  },
  "stats": {
-  "instances": 557,
+  "instances": 523,
   "pages": 19,
-  "kinds": 18
+  "kinds": 17
  },
  "pages": [
   {
    "view": "project",
-   "count": 118
+   "count": 124
   },
   {
    "view": "arch",
@@ -22,12 +22,8 @@
    "count": 89
   },
   {
-   "view": "ticket",
-   "count": 46
-  },
-  {
    "view": "tools",
-   "count": 30
+   "count": 32
   },
   {
    "view": "positions",
@@ -83,6 +79,10 @@
   },
   {
    "view": "ops",
+   "count": 4
+  },
+  {
+   "view": "ticket",
    "count": 4
   }
  ],
@@ -8783,6 +8783,60 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
+   "label": "prompt_patchlibrar",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "prompt_readlibrary",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "tools",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
    "label": "role_spawntickets内",
    "states": [
     "idle",
@@ -10900,7 +10954,7 @@
    "ctl": "ctl.deck_toggle",
    "kind": "deck_toggle",
    "tag": "SL-BUTTON",
-   "label": "铺开 19 张",
+   "label": "铺开 21 张",
    "states": [
     "idle",
     "done"
@@ -11265,6 +11319,168 @@
    "kind": "card_open",
    "tag": "ARTICLE",
    "label": "knowledge_write\n  ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.禁用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "禁用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.启用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "启用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "prompt_patch\n     ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.禁用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "禁用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.启用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "启用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "prompt_read\n      ",
    "states": [
     "idle",
     "busy",
@@ -12516,87 +12732,6 @@
   },
   {
    "view": "ticket",
-   "ctl": "ctl.nav_group.工作",
-   "kind": "nav_group",
-   "tag": "SL-BUTTON",
-   "label": "工作4›",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.nav_group.资产",
-   "kind": "nav_group",
-   "tag": "SL-BUTTON",
-   "label": "资产6›",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.nav_group.系统",
-   "kind": "nav_group",
-   "tag": "SL-BUTTON",
-   "label": "系统6›",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
    "ctl": "ctl.shell.tab_config",
    "kind": "tab_config",
    "tag": "SL-BUTTON",
@@ -12614,7 +12749,7 @@
    "ctl": "ctl.shell.logout",
    "kind": "logout",
    "tag": "SL-BUTTON",
-   "label": "登出",
+   "label": "",
    "states": [
     "idle",
     "busy"
@@ -12668,814 +12803,6 @@
     ]
    },
    "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.crumb_up",
-   "kind": "crumb_up",
-   "tag": "BUTTON",
-   "label": "UI表单-1795752592",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "SL-BUTTON",
-   "label": "P",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "SL-BUTTON",
-   "label": "d",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "SL-BUTTON",
-   "label": "t",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "SL-BUTTON",
-   "label": "r",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.card_act.结单",
-   "kind": "card_act",
-   "tag": "SL-BUTTON",
-   "label": "结单",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "PM 当前 · 空闲\n      闭",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "developer拉特性分支",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "tester执行",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "reviewer逐条评审",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "系统上下文 ×8",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "P",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "P",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "P",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "d",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "P",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "d",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "t",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "P",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "t",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "r",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.member_chip",
-   "kind": "member_chip",
-   "tag": "BUTTON",
-   "label": "P",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.raw_fold",
-   "kind": "raw_fold",
-   "tag": "BUTTON",
-   "label": "消息原文",
-   "states": [
-    "idle",
-    "done"
-   ],
-   "transitions": {
-    "idle": [
-     "done"
-    ],
-    "done": [
-     "idle"
-    ]
-   },
-   "effect": "只改本页显示"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.composer_voice.追加备注",
-   "kind": "composer_voice",
-   "tag": "SL-BUTTON",
-   "label": "追加备注",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.composer_voice.语音",
-   "kind": "composer_voice",
-   "tag": "SL-BUTTON",
-   "label": "语音",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.composer_send.发送",
-   "kind": "composer_send",
-   "tag": "SL-BUTTON",
-   "label": "发送",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.nav.项目",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "项目",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
-  },
-  {
-   "view": "ticket",
-   "ctl": "ctl.nav.知识库",
-   "kind": "nav",
-   "tag": "SL-BUTTON",
-   "label": "知识库",
-   "states": [
-    "idle",
-    "busy"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "idle"
-    ]
-   },
-   "effect": "导航（收起侧栏）"
   },
   {
    "view": "position",

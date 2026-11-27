@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_library_pure_edges.py
-hash: 87e82ed176a0352f56e14d5602bd94208ebf5f0d5ecf29a254fc3cd0931b9ab1
+hash: 61cb92f7c07f0f475991b44cd737c3262ec10d97ef2b5254fd17668a4454bb6e
 symbols:
 - _contract
 - test_target_already_active
@@ -117,7 +117,7 @@ updated_at: '2026-11-26T11:20:50'
 - 关联需求/测试: 待人工补充
 
 ### `test_setup_registers_all_routes`（method）
-- 职责: 装配：26 条岗位库路由按名登记到 library 模块。
+- 职责: 装配：27 条岗位库路由按名登记到 library 模块。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

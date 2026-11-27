@@ -3,6 +3,8 @@ secretary:
 - ticket_status
 - knowledge_read
 pm:
+- prompt_read
+- prompt_patch
 - ticket_create
 - ticket_split
 - ticket_status

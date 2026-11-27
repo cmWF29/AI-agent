@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 200 条需求，绑定 19 个检查项。
+共 201 条需求，绑定 19 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -79,6 +79,7 @@
 | library-design | library | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | library-get | library | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | library-list | library | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
+| library-prompt-patch | library | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | library-role-prompt | library | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | library-summary | library | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |
 | llm-chat | llm | isolation | test_isolation.py | 项目/工单工作区路径解析与越界校验 |

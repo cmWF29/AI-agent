@@ -14,6 +14,11 @@ roles:
   - 需求未澄清可验收前，不分单、不派角色
   - 不脑补默认值填补未澄清的缺口
   tools:
+  - artifact_read
+  - knowledge_read
+  - knowledge_write
+  - prompt_read
+  - prompt_patch
   - role_spawn
   - role_task
   - ticket_split
@@ -1326,6 +1331,9 @@ flows:
     - role_task
     - ticket_read_doc
     - ticket_note
+    - prompt_read
+    - prompt_patch
+    - knowledge_read
     - todo
     next:
     - req.split
@@ -1347,6 +1355,8 @@ flows:
     - role_spawn
     - ticket_split
     - ticket_note
+    - prompt_read
+    - prompt_patch
     - todo
     next:
     - req.execute
@@ -1361,8 +1371,15 @@ flows:
     cn: 执行跟踪
     desc: 跟踪各角色执行进度，回收产出与缺口
     tools:
+    - role_spawn
+    - role_task
     - ticket_read_doc
     - ticket_note
+    - artifact_read
+    - knowledge_read
+    - knowledge_write
+    - prompt_read
+    - prompt_patch
     - todo
     next:
     - req.accept
@@ -1381,8 +1398,13 @@ flows:
     cn: 验收核对
     desc: 对照验收标准逐项核对交付件与结论
     tools:
+    - role_task
     - ticket_read_doc
     - ticket_note
+    - artifact_read
+    - knowledge_read
+    - prompt_read
+    - prompt_patch
     - todo
     next:
     - req.close
@@ -1403,6 +1425,8 @@ flows:
     tools:
     - ticket_close
     - ticket_note
+    - knowledge_write
+    - artifact_write
     - todo
     next: []
     terminal: true

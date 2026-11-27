@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/library/private/_pure.py
-hash: aa84bfed2c710622574c1097709800c1e4836b61b33fc6abadde8402931089c0
+hash: 72160d52afebfce6e1b0eca2d0630ad58bed8404c9cd7a246857ddbfd82073e9
 symbols:
 - _glob_one
 - _glob
@@ -35,6 +35,7 @@ symbols:
 - designp
 - summaryp
 - promptp
+- prompt_fold
 - checkp
 - kind_file
 - prompt_path
@@ -252,6 +253,12 @@ updated_at: '2026-11-23T04:10:19'
 
 ### `promptp`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `prompt_fold`（function）
+- 职责: 提示词变更成文：append 追加规则，replace 整段替换；只算文本，不写盘。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

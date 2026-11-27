@@ -100,6 +100,7 @@ checks:
   - library-get
   - library-list
   - library-role-prompt
+  - library-prompt-patch
   - library-summary
   - llm-chat
   - message-wire

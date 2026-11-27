@@ -16,6 +16,11 @@ pm:
   - 需求未澄清可验收前，不分单、不派角色
   - 不脑补默认值填补未澄清的缺口
   tools:
+  - artifact_read
+  - knowledge_read
+  - knowledge_write
+  - prompt_read
+  - prompt_patch
   - role_spawn
   - role_task
   - ticket_split

@@ -3116,6 +3116,20 @@ class CoreTest(unittest.TestCase):
         out = ticket_pure.threadp({"ticket": {"id": "T-1", "roles": []}, "thread": thread})
         self.assertEqual(out["thread"]["meta"], {"tools": []})
 
+    def test_thread_read_budget_trims_long_history(self):
+        """700+ 条线程不能整份回前端：默认限额保留首 3 条 + 最近上下文，并如实报 omitted。"""
+        thread = {"id": "pm-1", "name": "pm", "status": "idle", "role": "", "created": 1,
+                  "updated": 2, "meta": {},
+                  "messages": [{"role": "assistant", "content": str(i)} for i in range(250)]}
+        out = ticket_pure.threadp({"ticket": {"id": "T-1", "roles": []}, "thread": thread,
+                                   "limit": 10})
+        msgs = out["thread"]["messages"]
+        self.assertEqual(len(msgs), 10)
+        self.assertEqual(out["thread"]["total"], 250)
+        self.assertEqual(out["thread"]["omitted"], 240)
+        self.assertEqual([m["content"] for m in msgs[:3]], ["0", "1", "2"])
+        self.assertEqual([m["content"] for m in msgs[-1:]], ["249"])
+
     def test_thread_messages_carry_at(self):
         """群聊按时间穿插表征：历史消息缺时间戳时用会话起始时刻补，且同会话单调递增。"""
         ticket = {"id": "T-1", "roles": [{"session": "role-1", "role": "developer"}],

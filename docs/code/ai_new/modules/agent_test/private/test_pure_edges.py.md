@@ -1,12 +1,18 @@
 ---
 source: ai_new/modules/agent_test/private/test_pure_edges.py
-hash: ee47c1cc3cc9c95669c178e8997dc710d40bda3cb81e269049a8dee381908bf6
+hash: d71e3b508b73b967949673e1219a6a0ea164156d255ff02cac36d55c871cf23d
 symbols:
 - test_glob_one_star_question_literal
 - test_glob_double_star_and_empty_segments
 - test_note_ok_dict_text_and_event
 - test_check_desc_variants
 - test_three_verdicts
+- test_append_keeps_old_and_adds_rule
+- test_replace_replaces_whole_prompt
+- _seed
+- test_pm_execute_has_dispatch_and_prompt_governance
+- test_pm_top_tools_include_knowledge_and_prompt_write
+- test_pm_prompt_declares_authority_and_budget
 - _states
 - test_flatten_children_and_ref
 - test_transition_guards
@@ -65,6 +71,42 @@ updated_at: '2026-11-25T22:42:28'
 - 关联需求/测试: 待人工补充
 
 ### `test_three_verdicts`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_append_keeps_old_and_adds_rule`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_replace_replaces_whole_prompt`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_seed`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_pm_execute_has_dispatch_and_prompt_governance`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_pm_top_tools_include_knowledge_and_prompt_write`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_pm_prompt_declares_authority_and_budget`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

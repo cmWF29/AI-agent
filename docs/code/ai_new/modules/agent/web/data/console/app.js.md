@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/app.js
-hash: ad3237c6fde051ff5bceb22fa86a83788ee070665fa53e40078b03b6aee169b0
+hash: bd134e822bb76f73d7e455a2f1ae95d1aa26356da9382eebadb320f852f7ff6f
 symbols:
 - readYaml
 - yamlBody
@@ -15,6 +15,7 @@ symbols:
 - run
 - runBatch
 - banner
+- copyText
 - gateMessage
 - when
 - viewSpec
@@ -62,6 +63,7 @@ symbols:
 - closeList
 - flushPara
 - inner
+- fallback
 - roles
 - name
 - nexts
@@ -167,6 +169,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `banner`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `copyText`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -449,6 +457,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `inner`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `fallback`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

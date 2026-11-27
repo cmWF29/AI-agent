@@ -384,6 +384,16 @@ def threadp(p):
             or ticket.get("created") or ticket.get("updated"))
     merged = _stamp(pm_messages, pm_sid, "pm", base, "PM")
 
+    # 长会话读取预算：默认只回最近 200 条，保留首条目标 + 最近上下文；其余由前端/接口
+    # 按 omitted 计数提示分页，避免 700+ 条工单线程一次序列化把 1GB 机器拖到超时。
+    limit = int(p.get("limit") or 200)
+    total = len(merged)
+    omitted = 0
+    if limit > 0 and total > limit:
+        keep_head = min(3, limit)
+        merged = merged[:keep_head] + merged[-(limit - keep_head):]
+        omitted = total - limit
+
     reg_by_sid = {(r or {}).get("session"): r for r in ticket.get("roles") or []}
     live_by_sid = {(r or {}).get("id"): r for r in role_threads}
     archived_by_sid = {(r or {}).get("session"): r for r in (transcript.get("roles") or [])}
@@ -445,7 +455,8 @@ def threadp(p):
                    "role": "pm",
                    "updated": thread.get("updated") or "", "meta": meta,
                    "machine": _state_brief(thread),
-                   "todos": thread.get("todos") or [], "messages": merged},
+                   "todos": thread.get("todos") or [], "messages": merged,
+                   "total": total, "omitted": omitted},
         "roles": roles_out,
         "members": members,
     }

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: 804cfe17808033910cfb93474b178675eaf354229882fc409c2ebbb77ccb160d
+hash: e4ef29042dcf8fb763ec029552675e53af8c3cd2297e65b7d3825059e7803669
 symbols:
 - __init__
 - __call__
@@ -102,6 +102,7 @@ symbols:
 - test_rpc_endpoint_returns_raw_result
 - test_auth_pure_functions
 - test_position_pure_functions
+- test_bindrole_same_session_keeps_one_line
 - test_history_event_carries_recipient
 - test_purge_orphan_tickets_script
 - test_stage_state_machine
@@ -129,6 +130,7 @@ symbols:
 - test_finish_keeps_messages_arrived_during_run
 - test_finish_records_stage_and_alert
 - test_thread_exposes_session_meta
+- test_thread_read_budget_trims_long_history
 - test_thread_messages_carry_at
 - test_thread_members_carry_task
 - test_spawn_refuses_role_disabled_by_project
@@ -782,6 +784,12 @@ updated_at: '2026-11-23T04:10:22'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `test_bindrole_same_session_keeps_one_line`（method）
+- 职责: 同一会话返工只更新任务书，不再 append 第二条同岗线；不同会话同岗仍并行保留。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_history_event_carries_recipient`（method）
 - 职责: 历程事件带接收人 to/to_kind：建单→本单，PM 开工→PM，派角色→岗位，拆子单→子工单，评审/回催→本单。
 - 入参/出参: 待人工补充
@@ -940,6 +948,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_thread_exposes_session_meta`（method）
 - 职责: 线程视图要露出主会话 meta，界面才能判断 PM 有无卡点。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_thread_read_budget_trims_long_history`（method）
+- 职责: 700+ 条线程不能整份回前端：默认限额保留首 3 条 + 最近上下文，并如实报 omitted。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

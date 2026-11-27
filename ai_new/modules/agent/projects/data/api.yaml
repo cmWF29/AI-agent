@@ -128,7 +128,4 @@ routes:
       ticket:
         type: any
         req: false
-      cwd:
-        type: any
-        req: false
     out: {}

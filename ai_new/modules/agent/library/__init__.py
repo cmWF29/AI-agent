@@ -27,6 +27,7 @@ def setup(ctx):
         ("library.stage_refs", _pure.stage_refsp),
         ("library.kind_file", _pure.kind_file),
         ("library.prompt_path", _pure.prompt_path),
+        ("library.prompt_fold", _pure.prompt_fold),
         ("library.save_record", _pure.save_record),
         ("library.skills_list", _pure.skills_listp),
         ("library.disabled_skills", _pure.disabled_p),
@@ -35,6 +36,19 @@ def setup(ctx):
     ]
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="library")
+    # PM 的提示词治理权：读提示词、追加/替换提示词规则；只放行 PM，不碰源码目录。
+    if getattr(ctx, "tools", None) is None:
+        return True
+    ctx.tools.register_demand("prompt_read", "读岗位当前提示词（只读）",
+                              [{"name": "role", "type": "string", "desc": "岗位 id（pm/developer/tester/reviewer/...）", "required": True}],
+                              demand="library-role-prompt", module="library", kinds=["pm"])
+    ctx.tools.register_demand("prompt_patch", "改岗位提示词：追加治理规则或整段替换（PM 专用）",
+                              [{"name": "role", "type": "string", "desc": "岗位 id", "required": True},
+                               {"name": "append", "type": "string", "desc": "追加规则；mode=append 时必填", "required": False},
+                               {"name": "reason", "type": "string", "desc": "为什么要改，写清本轮空转/重复动作证据", "required": True},
+                               {"name": "mode", "type": "string", "desc": "append（默认）/replace", "required": False},
+                               {"name": "text", "type": "string", "desc": "mode=replace 时的完整新提示词", "required": False}],
+                              demand="library-prompt-patch", module="library", kinds=["pm"])
     return True
 
 

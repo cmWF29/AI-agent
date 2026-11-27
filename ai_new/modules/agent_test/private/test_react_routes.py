@@ -158,7 +158,7 @@ class ToolBudgetDefaultsTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[4]
         cfg = yaml.safe_load(
             (root / "ai_new/modules/agent_common/config/data/config.default.yaml").read_text())
-        self.assertGreaterEqual(cfg["sessions"]["context"]["tool_output_chars"], 20000)
+        self.assertGreaterEqual(cfg["sessions"]["context"]["tool_output_chars"], 6000)
 
     def test_stash_note_does_not_advertise_artifact_read(self):
         import yaml

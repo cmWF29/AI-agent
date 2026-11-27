@@ -756,6 +756,23 @@ def promptp(p):
     return {"role": role, "prompt": p.get("text") or "", "ref": ref}
 
 
+def prompt_fold(p):
+    """提示词变更成文：append 追加规则，replace 整段替换；只算文本，不写盘。
+
+    PM 在线上发现角色提示词导致空转时，用 prompt_patch 追加一条带日期的约束，
+    下一个会话/下一轮即可生效；不要求 PM 有源码写权限，也不改 roles.yaml。
+    """
+    old = str(p.get("old") or "")
+    add = str(p.get("append") or "").strip()
+    mode = str(p.get("mode") or "append")
+    if mode == "replace":
+        body = str(p.get("text") or "").strip()
+    else:
+        body = old.rstrip() + ("\n\n" + add if add else "")
+    body = body.rstrip() + "\n"
+    return {"old_chars": len(old), "new_chars": len(body),
+            "changed": body != old, "text": body}
+
 def checkp(p):
     """files: [路径]；contents: {路径: 文本}；notes: 本轮结论备注；checks 来自流程记录。"""
     tpl = p.get("tpl") or {}

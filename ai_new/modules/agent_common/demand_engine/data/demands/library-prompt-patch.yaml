@@ -1,0 +1,85 @@
+id: library-prompt-patch
+title: 岗位提示词治理：读→追加/替换→原子写回
+description: PM 专用的提示词变更口。只改 prompts 数据文件，不碰源码；追加规则默认 append，replace 才整段覆盖。改完下一轮会话生效。
+tags:
+- library
+- write
+enabled: true
+callable: true
+'on': []
+do:
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: seed.yaml
+  as: seed
+- call: store.read
+  with:
+    module:
+      lit: agent/library
+    path:
+      lit: roles.yaml
+  as: roles
+- call: library.get
+  with:
+    kind:
+      lit: roles
+    id:
+      get: input.role
+    seed:
+      get: seed.value
+    user:
+      get: roles.value
+  as: rec
+- call: library.prompt_path
+  with:
+    file:
+      get: rec.item.prompt_file
+    rec:
+      get: rec.item
+  as: lp
+- call: store.read_text
+  with:
+    module:
+      get: lp.module
+    path:
+      get: lp.path
+  as: old
+- call: library.prompt_fold
+  with:
+    old:
+      get: old.value
+    append:
+      get: input.append
+    text:
+      get: input.text
+    mode:
+      get: input.mode
+  as: folded
+- call: store.write_text
+  with:
+    module:
+      get: lp.module
+    path:
+      get: lp.path
+    text:
+      get: folded.text
+  as: written
+- call: clock.now
+  as: now
+expect:
+  given:
+    input: {}
+  calls:
+  - store.read
+  - store.read
+  - library.get
+  - library.prompt_path
+  - store.read_text
+  - library.prompt_fold
+  - store.write_text
+  - clock.now
+  payload: {}
+  promise: 提示词是数据文件，PM 只能追加/替换规则，不碰源码

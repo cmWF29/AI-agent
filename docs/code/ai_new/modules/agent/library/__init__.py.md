@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/library/__init__.py
-hash: f24be45ff0e34365355721f79a226133f2b165db9935aa2463cf6829a9e9e36c
+hash: ff0c479f3b769af6db623721c69686389faffe77d6fadb7829f3d37b3deda2af
 symbols:
 - setup
 - _as_handler

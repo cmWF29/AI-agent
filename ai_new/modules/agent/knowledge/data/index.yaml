@@ -9,3 +9,23 @@ entries:
   name: round-note.md
   created: '2026-11-21T18:05:32Z'
   updated: '2026-11-21T18:05:32Z'
+- path: public/multi-role-cost-control.md
+  category: knowledge
+  doc_kind: null
+  source: llm
+  layer: public
+  project: ''
+  ticket: ''
+  name: multi-role-cost-control.md
+  created: '2026-11-27T15:40:00Z'
+  updated: '2026-11-27T15:40:00Z'
+- path: projects/copy-ticket-id-live-1795790093/multi-role-postmortem.md
+  category: knowledge
+  doc_kind: null
+  source: llm
+  layer: project
+  project: copy-ticket-id-live-1795790093
+  ticket: ''
+  name: multi-role-postmortem.md
+  created: '2026-11-27T15:40:00Z'
+  updated: '2026-11-27T15:40:00Z'

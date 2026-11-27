@@ -45,17 +45,17 @@ llm:
 net:
   stream_lines: 4000     # SSE 原文保留行数上限（网络报文回查，0=不保留）
 runtime:
-  session_workers: 8     # 后台会话调度并发上限（有界池复用，不再一会话一裸线程）
-  tool_workers: 8       # 工具调用/子进程执行并发上限（独立于会话调度池）
-  api_workers: 32       # api-loop 桥接同步路由的执行器线程上限（留并发建单+嵌套回投余量，防循环等待）
+  session_workers: 4     # 1GB 机器上会话并发上限，防多个长会话同时驻留
+  tool_workers: 4       # 工具调用/子进程执行并发上限
+  api_workers: 16        # api-loop 桥接同步路由执行器上限
   hook_batch: 10        # 单次认领的待派发事件条数
   future_timeout: 30    # 等后台任务收尾的秒数
   stream_timeout: 15    # 草稿槽长轮询等待秒数
 sessions:
-  max_concurrent: 8
-  max_steps: 60
-  react_cap: 200        # 未指定 max_steps 时 ReAct 单轮步数硬上限
-  summary_keep: 10       # 上下文裁剪保留的最近普通消息条数（system 消息全部保留）
+  max_concurrent: 4
+  max_steps: 30          # 单轮 ReAct 步数硬上限：空转/全仓扫描在 30 步内必须收口或报 blocked
+  react_cap: 30         # 未指定 max_steps 时 ReAct 单轮步数硬上限
+  summary_keep: 8        # 上下文裁剪保留的最近普通消息条数（system 消息全部保留）
   summary_fallback_chars: 600  # 未收口轮次的系统兜底摘要字符上限（0=不兜底）
   result_chars: 500      # 落盘结果摘要（失败原因/回复正文）截断字符数
   secretary_scenario: prompts/secretary.md
@@ -64,17 +64,17 @@ sessions:
   paths:
     prompt: 'prompts/{kind}.md'
   context:
-    tool_output_chars: 20000  # 工具输出正文超此字符数才截断落盘。控制面结果（派角色/拆单/写文档回执）通常 1–9K，阈值过低会让模型看不到成功失败，进而重复动作
+    tool_output_chars: 6000   # 控制面回执 1–9K 仍可见；大输出落盘，避免单步几万 token 把上下文和内存打爆
     resume_on_boot: true      # 进程重启后自动把残留 running 会话重新驱动一轮
     resume_max: 5             # 单次启动最多自动续跑的会话数，防止启动风暴
   stuck_check:
     enabled: true           # 运行期自愈扫描：僵死/停滞超阈值的 running 会话复位 idle
     idle_minutes: 30        # 在途任务距上次更新超过该分钟数判停滞（卡死保守复位）
 tickets:
-  max_roles: 8
+  max_roles: 3          # 一个工单默认最多 3 个角色，超了先拆子单或换实现路径
   max_children: 8
-  pm_max_steps: 0
-  auto_retrospective: false
+  pm_max_steps: 24       # PM 单轮上限，禁止无限催办
+  auto_retrospective: true   # 结单后必须复盘沉淀知识，PM 有 knowledge_write
   stall_check:
     enabled: true          # 是否启用停滞扫描
     idle_minutes: 45       # 空闲超过该分钟数判停滞

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: 667c8547e7c09dce8bc3725a529fced8aa3fdd0eb11de4c98d078e75f4046e37
+hash: c5ddf1347d45449c117d07b5e694ec20ceb93129bbcd811517db17cc8db3ca6e
 symbols:
 - foldLoad
 - foldSet
@@ -67,6 +67,9 @@ symbols:
 - todoBoardHtml
 - wireHtml
 - rawHtml
+- ticketNoChipHtml
+- ticketCopyFlash
+- copyTicketNo
 - chatHtml
 - toolMetaChips
 - toolCollectTexts
@@ -131,6 +134,7 @@ symbols:
 - head
 - w
 - size
+- fail
 - proj
 - metaBits
 - headMain
@@ -569,6 +573,24 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `ticketNoChipHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `ticketCopyFlash`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `copyTicketNo`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `chatHtml`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -948,6 +970,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `size`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `fail`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

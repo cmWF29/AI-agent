@@ -207,7 +207,7 @@ class SkillUninstallResidualTest(unittest.TestCase):
 
 class SetupResidualTest(unittest.TestCase):
     def test_setup_registers_all_routes(self):
-        """装配：26 条岗位库路由按名登记到 library 模块。"""
+        """装配：27 条岗位库路由按名登记到 library 模块。"""
         class Api:
             def __init__(self):
                 self.rows = []
@@ -218,7 +218,7 @@ class SetupResidualTest(unittest.TestCase):
         from ai_new.modules.agent import library
         api = Api()
         self.assertTrue(library.setup(types.SimpleNamespace(api=api)))
-        self.assertEqual(len(api.rows), 26)
+        self.assertEqual(len(api.rows), 27)
         self.assertTrue(all(m == "library" for _, m in api.rows))
 
 

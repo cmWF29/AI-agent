@@ -170,6 +170,23 @@ routes:
         type: any
       path:
         type: any
+  library.prompt_fold:
+    in:
+      append:
+        type: any
+        req: false
+      mode:
+        type: any
+        req: false
+      old:
+        type: any
+        req: false
+      text:
+        type: any
+        req: false
+    out:
+      text:
+        type: any
   library.review:
     in:
       max_retries:

@@ -66,6 +66,50 @@ class ReviewTest(unittest.TestCase):
             self.assertEqual(lib.reviewp({"missing": [gap], "max_retries": 9})["missing_text"], want)
 
 
+class PromptFoldTest(unittest.TestCase):
+    def test_append_keeps_old_and_adds_rule(self):
+        out = lib.prompt_fold({"old": "旧规则\n", "append": "新规则", "mode": "append"})
+        self.assertTrue(out["changed"])
+        self.assertTrue(out["text"].startswith("旧规则"))
+        self.assertEqual(out["text"], "旧规则\n\n新规则\n")
+        self.assertGreater(out["new_chars"], out["old_chars"])
+
+    def test_replace_replaces_whole_prompt(self):
+        out = lib.prompt_fold({"old": "旧规则\n", "text": "新全文", "mode": "replace"})
+        self.assertEqual(out["text"], "新全文\n")
+
+
+class RoleBudgetAndPromptAuthorityTest(unittest.TestCase):
+    def _seed(self):
+        import yaml
+        root = Path(__file__).resolve().parents[4]
+        return yaml.safe_load((root / "ai_new/modules/agent/library/data/seed.yaml").read_text(encoding="utf-8"))
+
+    def test_pm_execute_has_dispatch_and_prompt_governance(self):
+        seed = self._seed()
+        flow = next(f for f in seed["flows"] if f["id"] == "requirement-owner")
+        execute = next(s for s in flow["states"] if s["id"] == "req.execute")
+        tools = set(execute.get("tools") or [])
+        for need in ("role_spawn", "role_task", "prompt_read", "prompt_patch", "knowledge_write"):
+            self.assertIn(need, tools)
+        close = next(s for s in flow["states"] if s["id"] == "req.close")
+        self.assertIn("knowledge_write", set(close.get("tools") or []))
+
+    def test_pm_top_tools_include_knowledge_and_prompt_write(self):
+        seed = self._seed()
+        pm = next(r for r in seed["roles"] if r["id"] == "pm")
+        tools = set(pm.get("tools") or [])
+        for need in ("knowledge_read", "knowledge_write", "prompt_read", "prompt_patch"):
+            self.assertIn(need, tools)
+
+    def test_pm_prompt_declares_authority_and_budget(self):
+        root = Path(__file__).resolve().parents[4]
+        text = (root / "ai_new/modules/agent/sessions/data/prompts/pm.md").read_text(encoding="utf-8")
+        self.assertIn("prompt_patch", text)
+        self.assertIn("2 轮", text)
+        self.assertIn("knowledge_write", text)
+
+
 class ContractTest(unittest.TestCase):
     def _states(self):
         return [
