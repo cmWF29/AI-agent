@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/knowledge/data/index.yaml
-hash: 231428453c388c432eaf2d3c23b387ed458470dd682c15afeb41c2b6a419d84c
+hash: 497bac0883e9d18bb4975a4ff6ca3f7b244f9baff7cc9f197c44baf96f7b9814
 symbols:
 - entries
 generated: gen_docs.py v1

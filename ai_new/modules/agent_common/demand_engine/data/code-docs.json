@@ -1,10 +1,10 @@
 {
-  "generated": "2026-11-27T11:54:25",
-  "total": 596,
+  "generated": "2026-11-27T11:57:59",
+  "total": 597,
   "groups": [
     {
       "label": "agent",
-      "count": 119,
+      "count": 120,
       "docs": [
         {
           "source": "ai_new/modules/agent/artifacts/__init__.py",
@@ -223,6 +223,15 @@
           "updated_at": "2026-11-23T04:10:19"
         },
         {
+          "source": "ai_new/modules/agent/cloud/data/state.yaml",
+          "doc": "docs/code/ai_new/modules/agent/cloud/data/state.yaml.md",
+          "kind": "yaml",
+          "group": "agent",
+          "hash": "dac65f1850357f9e71a849b186a038bb5a5799f1f5e499cbf10c742608290f1c",
+          "symbols": 5,
+          "updated_at": "2026-11-27T11:57:45"
+        },
+        {
           "source": "ai_new/modules/agent/cloud/private/__init__.py",
           "doc": "docs/code/ai_new/modules/agent/cloud/private/__init__.py.md",
           "kind": "py",
@@ -407,7 +416,7 @@
           "doc": "docs/code/ai_new/modules/agent/knowledge/data/index.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "231428453c388c432eaf2d3c23b387ed458470dd682c15afeb41c2b6a419d84c",
+          "hash": "497bac0883e9d18bb4975a4ff6ca3f7b244f9baff7cc9f197c44baf96f7b9814",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -542,7 +551,7 @@
           "doc": "docs/code/ai_new/modules/agent/logs/data/hook-queue.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "09e554af792d117f363cc0c88af0ffe33e734cd44b10d756d94838d557897b77",
+          "hash": "23ac9121cc30ef871d387f3ed51814493d6fa3c539028098af5ea85b4e354cac",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -551,7 +560,7 @@
           "doc": "docs/code/ai_new/modules/agent/logs/data/index.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "cf4356693788c1d1ab412dcee17d4ac5834e44072220d2f4ffef0f4dbf79721d",
+          "hash": "26d1c40ebd685d7627e65fdb4e05faf57c791bb4e7499e17ea12e2b560f40286",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:20"
         },
