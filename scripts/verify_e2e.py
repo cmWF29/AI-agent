@@ -228,11 +228,12 @@ async def send_and_wait(pg, tid, text):
                   now:Date.now()/1000,
                   answered:msgs.some(m=>m.role==='assistant' && (m.content||'').trim())};
         }""", [tid, text])
-        if last.get("n", 0) > before_n and last.get("status") == "idle" and last.get("answered"):
+        # 只认“真人这条消息已落盘且线程回 idle”；不能因为后台轮次先追加了别的消息就提前判定，
+        # 否则会把 race 当成“消息没落线程”。超时仍未落盘才算失败。
+        if (last.get("human_at") and last.get("n", 0) > before_n
+                and last.get("status") == "idle" and last.get("answered")):
             # 最基础的一条：人发的消息必须带真实发生时刻，且不能排到上一轮回复之前。
             # 旧实现不写 at，线程按会话创建时刻补，消息会跑到最前面，页面底部就像“被吞”。
-            if not last.get("human_at"):
-                raise AssertionError("人发消息没有落到线程里: %s" % last)
             if float(last["human_at"]) <= float(before_max):
                 raise AssertionError(
                     "人发消息时间戳没有前进（会排到会话开头）: at=%s, before_max=%s"
@@ -249,7 +250,7 @@ async def send_and_wait(pg, tid, text):
             except Exception:
                 raise AssertionError("发消息成功但右侧用户气泡没有渲染: %r" % needle)
             return before_n, last
-    raise AssertionError("发消息后未在 60s 内收口: %s" % last)
+    raise AssertionError("人发消息没有落到线程里: %s" % last)
 
 
 async def assert_pm_surface(pg):
