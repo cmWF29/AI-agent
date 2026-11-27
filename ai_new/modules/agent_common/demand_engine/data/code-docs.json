@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-27T03:49:52",
-  "total": 591,
+  "generated": "2026-11-27T08:41:25",
+  "total": 592,
   "groups": [
     {
       "label": "agent",
@@ -4891,7 +4891,7 @@
     },
     {
       "label": "scripts",
-      "count": 50,
+      "count": 51,
       "docs": [
         {
           "source": "scripts/audit_click_machine.py",
@@ -5315,6 +5315,15 @@
           "hash": "bf3b2ff5ce6b898d7fe04f1f7a8884c0774675956e41564f551c946284602286",
           "symbols": 4,
           "updated_at": "2026-11-23T04:10:23"
+        },
+        {
+          "source": "scripts/verify_ui_forms.py",
+          "doc": "docs/code/scripts/verify_ui_forms.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "8784dceb63e42b9b03f28fe11467db4106208b7ce9e666d5a448464239fdaebf",
+          "symbols": 3,
+          "updated_at": "2026-11-27T08:41:23"
         },
         {
           "source": "scripts/verify_visual.py",

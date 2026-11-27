@@ -105,6 +105,8 @@ jobs:
           curl -sf http://127.0.0.1:8787/api/health/live
       - name: UI 回归（控件状态机实拉）
         run: python3 scripts/verify_ui.py
+      - name: UI 表单真点闭环（新建项目：按钮→弹窗→提交→卡片）
+        run: python3 scripts/verify_ui_forms.py
       - name: E2E 项目闭环（新建→改名→归档→删除）
         run: |
           set -o pipefail
