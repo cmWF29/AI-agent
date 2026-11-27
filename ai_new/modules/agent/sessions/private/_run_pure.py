@@ -153,7 +153,7 @@ def finish(p):
                              "violations": list(out.get("violations") or [])}
         if active:
             meta["active"] = active
-    if stage_check.get("ticket_status") == "closed":
+    if p.get("ticket_status") == "closed":
         # 工单已经结单，主会话不能还停在“需求受理”。模型收口常常不写 stage，
         # 但结单事实是权威的：直接落到本流程终态，避免 UI 永远显示旧阶段。
         terminals = (meta.get("machine") or {}).get("terminals") or []

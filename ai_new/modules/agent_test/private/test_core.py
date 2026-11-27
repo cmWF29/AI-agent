@@ -3088,7 +3088,8 @@ class CoreTest(unittest.TestCase):
                     "active": ["owner"], "stage_alert": {"code": "x"}}},
             "out": dict(base_out, stage=""),
             "stage_check": {"ok": True, "code": "unset", "stage": "owner",
-                            "active": ["owner"], "ticket_status": "closed"},
+                            "active": ["owner"]},
+            "ticket_status": "closed",
             "latest": {}, "now": 4, "result_chars": 500})
         self.assertEqual(closed["meta"]["stage"], "owner.req.close")
         self.assertEqual(closed["meta"]["active"], ["owner.req.close"])
