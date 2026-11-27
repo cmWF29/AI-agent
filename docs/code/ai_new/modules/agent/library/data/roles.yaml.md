@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/library/data/roles.yaml
-hash: f1a1952fdf99b0b21056aa9e66050f2e707e585545de53377a10371fd787a506
+hash: 6ce2e6c216926ee11d77a2a0bed46655d129da83ae97b804e59c37bf829eaa9e
 symbols:
 - pm
 - architect
@@ -14,6 +14,9 @@ symbols:
 - skill-decomposer
 - cloud-configurer
 - node-configurer
+- tester-ui
+- tester-api
+- tester-e2e
 generated: gen_docs.py v1
 updated_at: '2026-11-23T04:10:19'
 ---
@@ -96,6 +99,24 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `node-configurer`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `tester-ui`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `tester-api`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `tester-e2e`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

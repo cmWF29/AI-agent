@@ -1278,6 +1278,256 @@ roles:
     - todo
     next: []
     terminal: true
+- id: tester-ui
+  cn: 测试-前端
+  prompt_file: roles/tester-ui.md
+  must_dos:
+  - 交付测试-前端用例并跑通，记录通过/失败/阻塞数量与原因
+  - 每条用例可追溯到验收标准，证据路径可查
+  forbidden:
+  - 不改业务实现逻辑
+  - 不隐藏或跳过失败用例
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - ticket_read_doc
+  - ticket_note
+  - shell
+  - todo
+  builtin: true
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*qa*
+    - tests/**/*
+    match: any
+    min_bytes: 80
+  states:
+  - id: design
+    gate:
+      must:
+      - id: qaui.design.m1
+        text: 从验收标准推出用例清单（正常/边界/异常/回归），逐条可追溯到标准条目
+      forbid:
+      - 不照抄开发自测当用例
+      - 不遗漏验收条目
+    cn: 用例设计
+    desc: 依据验收标准设计测试用例或脚本
+    tools:
+    - artifact_read
+    - knowledge_read
+    - ticket_read_doc
+    - artifact_write
+    - todo
+    next:
+    - run
+    when: {}
+  - id: run
+    gate:
+      must:
+      - id: qaui.run.m1
+        text: 逐条执行用例/脚本，记录实际结果（通过/失败/阻塞）与证据路径
+      forbid:
+      - 不修改被测业务代码
+      - 不隐藏或跳过失败用例
+    cn: 执行
+    desc: 跑通用例或脚本，记录通过/失败数量与原因
+    tools:
+    - ticket_note
+    - shell
+    - todo
+    next:
+    - design
+    - report
+    when:
+      design: 用例覆盖不足，回退补用例
+      report: 用例全部执行完
+  - id: report
+    gate:
+      must:
+      - id: qaui.report.m1
+        text: 汇总通过/失败数量、失败原因、复现步骤与证据路径，给出质量结论
+      forbid:
+      - 不隐藏失败用例
+      - 不把未跑用例记为通过
+    cn: 测试报告
+    desc: 汇总结果形成测试报告并交付
+    tools:
+    - artifact_write
+    - ticket_note
+    - todo
+    next: []
+    terminal: true
+    when: {}
+- id: tester-api
+  cn: 测试-接口
+  prompt_file: roles/tester-api.md
+  must_dos:
+  - 交付测试-接口用例并跑通，记录通过/失败/阻塞数量与原因
+  - 每条用例可追溯到验收标准，证据路径可查
+  forbidden:
+  - 不改业务实现逻辑
+  - 不隐藏或跳过失败用例
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - ticket_read_doc
+  - ticket_note
+  - shell
+  - todo
+  builtin: true
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*qa*
+    - tests/**/*
+    match: any
+    min_bytes: 80
+  states:
+  - id: design
+    gate:
+      must:
+      - id: qaapi.design.m1
+        text: 从验收标准推出用例清单（正常/边界/异常/回归），逐条可追溯到标准条目
+      forbid:
+      - 不照抄开发自测当用例
+      - 不遗漏验收条目
+    cn: 用例设计
+    desc: 依据验收标准设计测试用例或脚本
+    tools:
+    - artifact_read
+    - knowledge_read
+    - ticket_read_doc
+    - artifact_write
+    - todo
+    next:
+    - run
+    when: {}
+  - id: run
+    gate:
+      must:
+      - id: qaapi.run.m1
+        text: 逐条执行用例/脚本，记录实际结果（通过/失败/阻塞）与证据路径
+      forbid:
+      - 不修改被测业务代码
+      - 不隐藏或跳过失败用例
+    cn: 执行
+    desc: 跑通用例或脚本，记录通过/失败数量与原因
+    tools:
+    - ticket_note
+    - shell
+    - todo
+    next:
+    - design
+    - report
+    when:
+      design: 用例覆盖不足，回退补用例
+      report: 用例全部执行完
+  - id: report
+    gate:
+      must:
+      - id: qaapi.report.m1
+        text: 汇总通过/失败数量、失败原因、复现步骤与证据路径，给出质量结论
+      forbid:
+      - 不隐藏失败用例
+      - 不把未跑用例记为通过
+    cn: 测试报告
+    desc: 汇总结果形成测试报告并交付
+    tools:
+    - artifact_write
+    - ticket_note
+    - todo
+    next: []
+    terminal: true
+    when: {}
+- id: tester-e2e
+  cn: 测试-端到端
+  prompt_file: roles/tester-e2e.md
+  must_dos:
+  - 交付测试-端到端用例并跑通，记录通过/失败/阻塞数量与原因
+  - 每条用例可追溯到验收标准，证据路径可查
+  forbidden:
+  - 不改业务实现逻辑
+  - 不隐藏或跳过失败用例
+  tools:
+  - artifact_read
+  - artifact_write
+  - knowledge_read
+  - knowledge_write
+  - ticket_read_doc
+  - ticket_note
+  - shell
+  - todo
+  builtin: true
+  checks:
+  - kind: glob
+    paths:
+    - docs/**/*qa*
+    - tests/**/*
+    match: any
+    min_bytes: 80
+  states:
+  - id: design
+    gate:
+      must:
+      - id: qae2e.design.m1
+        text: 从验收标准推出用例清单（正常/边界/异常/回归），逐条可追溯到标准条目
+      forbid:
+      - 不照抄开发自测当用例
+      - 不遗漏验收条目
+    cn: 用例设计
+    desc: 依据验收标准设计测试用例或脚本
+    tools:
+    - artifact_read
+    - knowledge_read
+    - ticket_read_doc
+    - artifact_write
+    - todo
+    next:
+    - run
+    when: {}
+  - id: run
+    gate:
+      must:
+      - id: qae2e.run.m1
+        text: 逐条执行用例/脚本，记录实际结果（通过/失败/阻塞）与证据路径
+      forbid:
+      - 不修改被测业务代码
+      - 不隐藏或跳过失败用例
+    cn: 执行
+    desc: 跑通用例或脚本，记录通过/失败数量与原因
+    tools:
+    - ticket_note
+    - shell
+    - todo
+    next:
+    - design
+    - report
+    when:
+      design: 用例覆盖不足，回退补用例
+      report: 用例全部执行完
+  - id: report
+    gate:
+      must:
+      - id: qae2e.report.m1
+        text: 汇总通过/失败数量、失败原因、复现步骤与证据路径，给出质量结论
+      forbid:
+      - 不隐藏失败用例
+      - 不把未跑用例记为通过
+    cn: 测试报告
+    desc: 汇总结果形成测试报告并交付
+    tools:
+    - artifact_write
+    - ticket_note
+    - todo
+    next: []
+    terminal: true
+    when: {}
+
 flows:
 - id: requirement-owner
   kind: process
