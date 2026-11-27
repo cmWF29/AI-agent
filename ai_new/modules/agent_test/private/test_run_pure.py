@@ -16,6 +16,13 @@ class RunPureTest(unittest.TestCase):
         self.assertEqual(rec["messages"][-1]["kind"], "note")
         self.assertEqual(rec["messages"][-1]["at"], "n")
         self.assertNotIn("kind", rp.appendmsg({"rec": {"status": "running"}})["messages"][-1])
+        rec2 = rp.appendmsg({"rec": {"status": "idle"},
+                             "text": "答", "qid": "q1",
+                             "answers": [{"qid": "q1#0", "values": ["代码"]}, "bad"]})
+        self.assertEqual(rec2["messages"][-1]["qid"], "q1")
+        self.assertEqual(rec2["messages"][-1]["answers"], [{"qid": "q1#0", "values": ["代码"]}])
+        rec3 = rp.appendmsg({"rec": {"status": "idle"}, "text": "答", "answers": []})
+        self.assertNotIn("answers", rec3["messages"][-1])
         self.assertEqual(rp.mark({})["status"], "running")
         self.assertEqual(rp.mark({"status": "idle"})["updated"], "")
         self.assertTrue(rp._retrospect_enabled({"retrospect_enabled": True}))

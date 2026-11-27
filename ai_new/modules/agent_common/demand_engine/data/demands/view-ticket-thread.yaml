@@ -72,6 +72,7 @@ view:
     empty: 还没有消息，PM 正在准备…
     roles_source: thread.members
     roles_label: 岗位状态（每个岗位在自己流程里走到哪一步）
+    clarify_demand: ticket-message
     todos_label: PM 的待办计划（属于 PM 会话）
     wire_demand: message-wire
     wire_chars: 8000

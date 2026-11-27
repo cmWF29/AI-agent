@@ -28,6 +28,10 @@ do:
       get: row.value
     text:
       get: input.text
+    qid:
+      get: input.qid
+    answers:
+      get: input.answers
     now:
       get: now.ts
     # 真人从控制台发出的消息打 human 标：群聊里归右侧绿气泡；

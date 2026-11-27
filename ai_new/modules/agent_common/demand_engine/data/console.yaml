@@ -106,6 +106,23 @@ ui:
   todo_state_pending: 待办
   flow_states: "{} 态"
   role_flow: 流程
+  role_flow_full: 查看完整流程
+  role_next: 下一步
+  role_waiting: 等你回复
+  role_working: 处理中
+  role_idle: 空闲
+  role_pm: PM 当前
+  q_need_title: 需要你确认
+  q_answered_title: 已答复
+  q_answered_note: 答复已作为一条消息发回 PM
+  q_card_note: "共 {} 项 · 点选或补充后统一提交"
+  q_answered_hint: 此卡已锁定，不会重复提交
+  q_free_note: 未选的开放项可留空
+  q_other: 其他补充（可选）
+  q_input: 请输入你的回答
+  q_submit: 提交答复
+  q_missing: 请至少回答一项
+  q_answer_head: 【澄清答复】
   role_current: 当前
   role_active: 活跃
   role_todo: 待办
@@ -203,6 +220,8 @@ click_machine:                          # 点击状态机：前端每一个可�
   - {key: deck_swipe,     label: 滑动堆叠,     allow: [idle],           enter: press, exit: idle, note: 手势由 pointer 驱动，先 press 再判方向}
   - {key: composer_send,  label: 发送消息,     allow: [idle],           enter: busy,  exit: idle, note: 空文本不发}
   - {key: chat_retry,     label: 重发消息,     allow: [idle],           enter: busy,  exit: idle, note: 发送失败气泡上的重发，同 msg_id 幂等}
+  - {key: q_pick,         label: 澄清选项,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改本地选中态，不发送}
+  - {key: q_submit,       label: 提交澄清答复, allow: [idle],           enter: busy,  exit: idle, note: 统一提交后作为一条普通人消息发回 PM}
   - {key: composer_voice, label: 语音输入,     allow: [idle],           enter: busy,  exit: idle, note: 录音期互斥}
   - {key: modal_ok,       label: 弹窗确定,     allow: [modal],          enter: busy,  exit: modal, note: 提交中禁用}
   - {key: modal_cancel,   label: 弹窗取消,     allow: [modal],          enter: "",    exit: "",   note: 关闭由 closeModal 负责}

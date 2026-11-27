@@ -252,6 +252,75 @@ async def send_and_wait(pg, tid, text):
     raise AssertionError("发消息后未在 60s 内收口: %s" % last)
 
 
+async def assert_pm_surface(pg):
+    """工单群聊必须让人一眼看懂 PM 在哪个阶段、下一步做什么，且气泡里没有协议报文。
+
+    再加一张真实渲染的问题卡：选项可点、自由输入可填、提交能把结构化答复写回线程。
+    这里不是接口断言，全部读页面 DOM，避免“后端有、前端看不见”。
+    """
+    await pg.wait_for_selector("#view-body .role-board", timeout=25000)
+    vis = await pg.evaluate(r"""() => {
+      const b=document.querySelector('#view-body .role-board');
+      const p=document.querySelector('#view-body .pm-live');
+      const r=b&&b.getBoundingClientRect(), pr=p&&p.getBoundingClientRect();
+      return {board:r?r.width:0, live:pr?pr.width:0, text:(p&&p.innerText)||''
+              , raw:[...document.querySelectorAll('#view-body .msg .bubble-body')]
+                  .filter(x=>/^\s*\{\s*"reply"/.test((x.innerText||'').trim())).length};
+    }""")
+    if vis["board"] <= 0 or vis["live"] <= 0:
+        raise AssertionError("PM 状态板没有真实占位: %s" % vis)
+    if "PM" not in vis["text"] or not any(k in vis["text"] for k in ("下一步", "等你回复", "处理中", "空闲")):
+        raise AssertionError("PM 状态板没有阶段/下一步: %s" % vis)
+    if vis["raw"]:
+        raise AssertionError("助手气泡仍在显示收口 JSON 原文: %s 条" % vis["raw"])
+    # 手机宽度下也必须可见：旧样式在手机上把整条状态板 display:none，正是这次要修的坑。
+    await pg.set_viewport_size({"width": 390, "height": 844})
+    await pg.wait_for_timeout(300)
+    mob = await pg.evaluate("""() => {
+      const b=document.querySelector('#view-body .role-board');
+      const p=document.querySelector('#view-body .pm-live');
+      const r=b&&b.getBoundingClientRect(), pr=p&&p.getBoundingClientRect();
+      return {board:r?r.height:0, live:pr?pr.height:0, disp:b?getComputedStyle(b).display:''};
+    }""")
+    if mob["board"] <= 0 or mob["live"] <= 0 or mob["disp"] == "none":
+        raise AssertionError("手机宽度下 PM 状态板仍不可见: %s" % mob)
+    await pg.set_viewport_size({"width": 1100, "height": 1000})
+
+
+async def submit_clarify_card(pg, tid):
+    """注入一张真实结构的问题卡，点选项+填自由文本+点提交，验证答案作为 human 消息落盘。"""
+    card_qid = await pg.evaluate("""qid => {
+      const card=questionCardHtml([
+        {id:'q1',text:'交付物类型？',options:['代码','文档'],multi:false,other:true},
+        {id:'q2',text:'补充路径',options:[],multi:false,other:true}
+      ], {at: qid});
+      const host=document.querySelector('#view-body');
+      const box=document.createElement('div');
+      box.id='e2e-qhost'; box.style.cssText='position:fixed;left:10px;bottom:120px;z-index:99;width:360px;background:#fff';
+      box.innerHTML=card; host.appendChild(box);
+      const qcard=document.querySelector('#e2e-qhost .q-card');
+      qcard.dataset.demand='ticket-message';   // 夹具显式给需求名：生产由视图规格下发
+      return qcard.dataset.qid;
+    }""", "e2e-" + str(int(time.time())))
+    await pg.click('#e2e-qhost .q-item[data-qi="0"] .q-opt:nth-child(1)')
+    await pg.fill('#e2e-qhost .q-item[data-qi="1"] .q-other', "/opt/ai_new")
+    await pg.click('#e2e-qhost .q-submit')
+    last = {}
+    for _ in range(60):
+        await pg.wait_for_timeout(1000)
+        last = await pg.evaluate("""async ([id,qid]) => {
+          const r=await run('ticket-thread',{id});
+          const msgs=r.thread.messages||[];
+          const hit=[...msgs].reverse().find(m=>m.kind==='human' && m.qid===qid);
+          return {status:r.thread.status, hit:!!hit, answers:(hit&&hit.answers)||[]};
+        }""", [tid, card_qid])
+        if last.get("status") == "idle" and last.get("hit"):
+            if not last["answers"]:
+                raise AssertionError("问题卡答复没有落结构化 answers: %s" % last)
+            return last
+    raise AssertionError("问题卡提交后未在 60s 内落盘收口: %s" % last)
+
+
 async def close_ticket(pg, tid):
     # 发送/回复后页面会 reload 一轮，控件与页面状态机都可能还没回到 idle；
     # 点击会被吞。这里按控件+页面状态重试，直到结单弹窗真的打开。
@@ -366,11 +435,13 @@ async def scenario_ticket(pg):
         before, after = await send_and_wait(pg, tid, "请给出这次工单的三步执行计划")
         if after["roles"] < 1:
             raise AssertionError("发消息后没有 PM 会话成员: %s" % after)
+        await assert_pm_surface(pg)
+        clarify = await submit_clarify_card(pg, tid)
         closed, ui = await close_ticket(pg, tid)
         await archive_project(pg, name)
         await delete_project_ui(pg, name)
         return {"name": name, "ticket": tid, "before": before, "after": after,
-                "closed": closed, "ui": ui}
+                "clarify": clarify, "closed": closed, "ui": ui}
     finally:
         await cleanup(pg, name)
 

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/actions.js
-hash: 2d0a6248d2d5d0045903b2839b200b14e7f63ea3ebf70d00ba9ce20b17ad3472
+hash: 2638e7b8ad0c3d452d4b72d586c8ee72d6524c30466c7ce2eae09d852e411bfd
 symbols:
 - outboxAll
 - outboxSave
@@ -12,6 +12,9 @@ symbols:
 - newMsgId
 - execute
 - retryOutbox
+- pickQuestionOption
+- collectQuestionAnswers
+- submitQuestionCard
 - voiceBtnLabel
 - resetVoiceBtn
 - executeVoice
@@ -25,6 +28,9 @@ symbols:
 - submitModal
 - casc
 - cnames
+- q
+- text
+- tid
 - opts
 - focus
 generated: gen_docs.py v1
@@ -97,6 +103,24 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `retryOutbox`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `pickQuestionOption`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `collectQuestionAnswers`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `submitQuestionCard`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -175,6 +199,24 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `cnames`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `q`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `text`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `tid`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_e2e.py
-hash: 916cb765c490c7e04b5c9b991adea00e6f128f64e98a031af2d7a60f384a5c3d
+hash: 1f16ace1e0b6a7d19ec53c349b5597b36ffb1e4ea58c32e06663d0430a49a576
 symbols:
 - new_page
 - open_projects
@@ -14,6 +14,8 @@ symbols:
 - open_project
 - create_ticket
 - send_and_wait
+- assert_pm_surface
+- submit_clarify_card
 - close_ticket
 - cleanup
 - scenario_project
@@ -108,6 +110,18 @@ updated_at: '2026-11-24T12:48:33'
 
 ### `send_and_wait`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `assert_pm_surface`（function）
+- 职责: 工单群聊必须让人一眼看懂 PM 在哪个阶段、下一步做什么，且气泡里没有协议报文。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `submit_clarify_card`（function）
+- 职责: 注入一张真实结构的问题卡，点选项+填自由文本+点提交，验证答案作为 human 消息落盘。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

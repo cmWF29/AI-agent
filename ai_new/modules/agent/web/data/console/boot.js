@@ -269,6 +269,8 @@ const CLICK_HANDLERS = {
     deckLayout(d);
   },
   composer_send(el) { return runAct(el, "composer_send"); },
+  q_pick(el) { pickQuestionOption(el); },
+  q_submit(el) { return uiRun(() => submitQuestionCard(el), "q_submit", el); },
   composer_voice(el) { return runAct(el, "composer_voice"); },
   chat_retry(el) { return uiRun(() => retryOutbox(el.dataset.msg || ""), "chat_retry", el); },
 };

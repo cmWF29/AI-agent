@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: 0d2d2f31818937950201cccc7f2d89002f2c7c5b497c1763db0c3ffe60dee23b
+hash: 7fcf163d0a6e90eb0cf7213e8cd56d950cb0f612335c2bd01250e86b67aea6ae
 symbols:
 - foldLoad
 - foldSet
@@ -46,12 +46,23 @@ symbols:
 - toolCardHtml
 - toolCallCard
 - toolBodyHtml
+- parseReplyObject
+- decodeJsonish
+- replyTextOf
+- legacyQuestionsOf
+- questionsOf
+- hashText
+- qidOf
+- normQuestions
+- questionCardHtml
 - itemHtml
 - stampCtl
 - toolGroupHtml
 - groupBody
 - renderBubbles
 - streamHtml
+- roleStageOf
+- awaitingUser
 - roleBoardHtml
 - todoBoardHtml
 - wireHtml
@@ -108,10 +119,15 @@ symbols:
 - startOfDay
 - fn
 - res
+- qs
 - toHtml
 - lastAt
 - daySep
 - flush
+- mc
+- resolveId
+- childOf
+- nextTxt
 - head
 - w
 - size
@@ -427,6 +443,60 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `parseReplyObject`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `decodeJsonish`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `replyTextOf`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `legacyQuestionsOf`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `questionsOf`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `hashText`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `qidOf`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `normQuestions`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `questionCardHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `itemHtml`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -458,6 +528,18 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `streamHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `roleStageOf`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `awaitingUser`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -799,6 +881,12 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `qs`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `toHtml`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -818,6 +906,30 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `flush`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `mc`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `resolveId`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `childOf`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `nextTxt`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

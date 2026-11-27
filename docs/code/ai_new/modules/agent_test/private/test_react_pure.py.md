@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_react_pure.py
-hash: 26a33b8dd9ea9b106da0ea9d02cd7a7fb65c94effd031517633c38fc8de79753
+hash: 59d7c09e094180bc5f62b58ab266a98e252f6df637ba1571954b2fcb849b574e
 symbols:
 - test_list_type_becomes_array_with_items
 - test_no_tools_yields_empty_object
@@ -9,6 +9,7 @@ symbols:
 - test_assistant_minimal
 - test_assistant_full
 - test_assistant_ignores_empty_wire
+- test_assistant_questions
 - test_toolnames_handles_shape_gaps
 - test_args_only_dict
 - test_toolmsg_defaults_and_stamp
@@ -45,6 +46,9 @@ symbols:
 - test_unstructured_falls_back_to_content
 - test_obj_not_dict
 - test_textify_non_str
+- test_questions_shape
+- test_questions_only_structured
+- test_questions_bad_container
 - test_by_model_passthrough
 - test_no_turns_returns_base
 - test_fallback_compresses_turns
@@ -107,6 +111,12 @@ ReAct 纯函数单测：形状成形、上下文治理、收口解析与摘要�
 - 关联需求/测试: 待人工补充
 
 ### `test_assistant_ignores_empty_wire`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_assistant_questions`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -323,6 +333,24 @@ ReAct 纯函数单测：形状成形、上下文治理、收口解析与摘要�
 - 关联需求/测试: 待人工补充
 
 ### `test_textify_non_str`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_questions_shape`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_questions_only_structured`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_questions_bad_container`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

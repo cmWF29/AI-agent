@@ -26,13 +26,19 @@ def schemas(p):
 
 
 def assistant(p):
-    """助手消息成形：正文 + 工具调用 + 时刻；带了上游网络报文就一并挂上，方便回查原文。"""
+    """助手消息成形：正文 + 工具调用 + 时刻；带了上游网络报文就一并挂上，方便回查原文。
+
+    收口轮带 questions 时原样挂到消息上：问题卡是消息的一部分，刷新后仍随历史回放。
+    """
     msg = {"role": "assistant", "content": p.get("content") or ""}
     calls = p.get("tool_calls") or []
     if calls:
         msg["tool_calls"] = calls
     if p.get("at"):
         msg["at"] = p["at"]
+    questions = p.get("questions")
+    if isinstance(questions, (list, tuple)) and questions:
+        msg["questions"] = list(questions)
     wire = p.get("wire")
     if isinstance(wire, dict) and wire:
         msg["wire"] = wire
@@ -216,6 +222,40 @@ def _textify(value):
     return str(value)
 
 
+def _questions(value):
+    """澄清问题卡片定型：只收可被界面直接渲染的问题与选项。
+
+    问题必须有正文；选项允许字符串或 {label,value}，上限 5 个。形状不对的条目丢弃，
+    不让坏数据把整张问题卡带崩。多选/其他输入显式保留；缺省 other=True。
+    """
+    if not isinstance(value, (list, tuple)):
+        return []
+    out = []
+    for i, item in enumerate(value):
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text") or "").strip()
+        if not text:
+            continue
+        opts = []
+        raw_opts = item.get("options")
+        if isinstance(raw_opts, (list, tuple)):
+            for opt in raw_opts[:5]:
+                if isinstance(opt, str):
+                    label, val = opt.strip(), opt.strip()
+                elif isinstance(opt, dict):
+                    label = str(opt.get("label") or opt.get("value") or "").strip()
+                    val = str(opt.get("value") or label).strip()
+                else:
+                    continue
+                if label and val and not any(x["value"] == val for x in opts):
+                    opts.append({"label": label, "value": val})
+        out.append({"id": str(item.get("id") or "q%s" % (i + 1)).strip()[:40],
+                    "text": text[:400], "multi": bool(item.get("multi")),
+                    "options": opts, "other": item.get("other") is not False})
+    return out[:6]
+
+
 def parse_final(p):
     """拆分收口步的结构化输出：reply 进气泡，summary 存滚动摘要。
 
@@ -232,13 +272,15 @@ def parse_final(p):
             return [x.strip() for x in v.replace("，", ",").split(",") if x.strip()]
         return []
 
-    if isinstance(obj, dict) and ("reply" in obj or "summary" in obj or "stage" in obj):
+    if isinstance(obj, dict) and ("reply" in obj or "summary" in obj or "stage" in obj
+                                 or "questions" in obj):
         return {"structured": True,
                 "reply": _textify(obj.get("reply")),
                 "summary": _textify(obj.get("summary")),
                 "stage": _textify(obj.get("stage")),
                 "checklist": _list(obj.get("checklist")),
-                "violations": _list(obj.get("violations"))}
+                "violations": _list(obj.get("violations")),
+                "questions": _questions(obj.get("questions"))}
     return {"structured": False, "reply": content, "summary": "", "stage": "",
             "checklist": [], "violations": []}
 

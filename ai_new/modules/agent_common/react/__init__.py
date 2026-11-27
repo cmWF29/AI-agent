@@ -210,6 +210,7 @@ async def _route_run(ctx, payload):
         amsg = ctx.api.call("react.assistant", {
             "content": parsed["reply"],
             "tool_calls": calls,
+            "questions": parsed.get("questions") or [],
             "wire": answer.get("wire"),
             "at": ctx.api.call("clock.now", {}, caller=None).get("ts")}, caller=None)
         messages = messages + [amsg]

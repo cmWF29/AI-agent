@@ -528,6 +528,29 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 .bubble-body.md code{padding:1px 5px;border-radius:5px;background:rgba(127,127,127,.14);font-size:12.5px}
 .bubble-body.md a{color:inherit;text-decoration:underline}
 .msg.right .bubble-body.md code{background:rgba(255,255,255,.2)}
+.q-card{margin-top:6px;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:0 1px 2px rgba(16,24,40,.06);overflow:hidden;min-width:min(420px,100%);max-width:100%}
+.q-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,var(--accent-weak),transparent)}
+.q-mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:700;font-size:12px;flex:none}
+.q-head b{display:block;font-size:12.5px}
+.q-head em{display:block;font-style:normal;font-size:10.5px;color:var(--muted);margin-top:1px}
+.q-ok{margin-left:auto;color:#00b42a;font-weight:700}
+.q-list{display:flex;flex-direction:column;gap:9px;padding:9px 11px}
+.q-item{display:flex;flex-direction:column;gap:5px}
+.q-title{display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.45;color:var(--fg)}
+.q-no{width:17px;height:17px;border-radius:5px;background:var(--line-2);color:var(--muted);font-size:10px;display:grid;place-items:center;flex:none;margin-top:1px}
+.q-title i{font-style:normal;font-size:9.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 5px;margin-left:auto;white-space:nowrap}
+.q-opts{display:flex;flex-wrap:wrap;gap:5px;padding-left:23px}
+.q-opt{border:1px solid var(--line);background:var(--bg);color:var(--fg-2);border-radius:999px;padding:4px 9px;font:inherit;font-size:11.5px;cursor:pointer}
+.q-opt.on{border-color:var(--accent);background:var(--accent-weak);color:var(--accent);font-weight:600}
+.q-other{margin-left:23px;border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:5px 8px;font:inherit;font-size:11.5px;color:var(--fg)}
+.q-other:focus{outline:none;border-color:var(--accent)}
+.q-foot{display:flex;align-items:center;gap:8px;padding:8px 11px;border-top:1px solid var(--line)}
+.q-hint{font-size:10.5px;color:var(--muted);flex:1}
+.q-submit{border:0;border-radius:8px;background:var(--accent);color:#fff;font:inherit;font-size:11.5px;font-weight:600;padding:6px 12px;cursor:pointer}
+.q-submit:hover{filter:brightness(.96)}
+.q-card.done{border-color:rgba(0,180,42,.4);background:rgba(0,180,42,.04)}
+.q-card.done .q-mark{background:#00b42a}
+.q-card.done .q-opt,.q-card.done .q-other{opacity:.7;pointer-events:none}
 .cursor{display:inline-block;margin-left:1px;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 .msg.system .sys-body{padding:6px 12px;border-radius:10px;width:fit-content;max-width:100%;background:rgba(127,127,127,.16);color:var(--fg-2);font-size:12px;box-shadow:none;border:0;overflow-wrap:anywhere}
@@ -781,7 +804,7 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .vsec[data-kind="chat"]{flex:1 1 auto;min-height:0;display:flex}
   .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .vsec[data-kind="chat"] .chat-card{flex:1 1 auto;min-height:0}
   .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .vsec[data-kind="composer"]{flex:0 0 auto}
-  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .role-board{display:none} /* 手机上成员头像已能点开状态，整条状态板让位给消息区 */
+  .view-scroll>.ticket-grid:has(.vsec[data-kind="chat"]) .role-board{display:flex} /* 手机上也要先看到 PM 在哪个阶段，不能只剩头像 */
   .view-scroll>.vsec,.view-scroll .lane>.vsec{flex:0 0 auto;width:100%;height:auto;min-height:0;margin:0;
     overflow:visible;display:flex;flex-direction:column}
   /* 只有一页时不留堆叠的缺口，直接占满 */
@@ -809,8 +832,17 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   .chat-head-title strong{font-size:13px}
   .chat-head-meta{flex-wrap:nowrap;gap:2px 6px;font-size:11px}
   .chat-head-actions sl-button::part(base){padding:4px 8px;font-size:11px}
-  .role-board{padding:3px 8px;gap:5px}
+  .role-board{padding:4px 8px;gap:5px}
   .role-board .board-lab{display:none}
+  .pm-live{padding:6px 8px;border-radius:9px;flex:1 1 100%;min-width:0}
+  .pm-live .pm-kicker{font-size:10px}
+  .pm-live b{font-size:12.5px}
+  .pm-live em{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pm-live .pm-more{display:none}
+  .role-flow{flex:0 0 auto}
+  .role-flow summary{font-size:10.5px;padding:3px 7px}
+  .rf-rail{padding:6px 8px;gap:4px}
+  .rf-step{font-size:10px;padding:2px 6px}
   .role-mini::part(base){padding:3px 8px;font-size:11px}
   .av-chip::part(base){min-width:28px;height:28px;padding:0}
   .chat-head-meta>span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:150px}
@@ -866,10 +898,31 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
   #banner{margin:0 14px}
 }
 
-/* 角色状态板：一行看全组谁在哪个阶段，破折号换成点互斥；点开复用成员卡 */
-.role-board{display:flex;gap:8px;overflow-x:auto;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--line);scrollbar-width:none}
-.role-board::-webkit-scrollbar{display:none}
+/* 角色状态板：先回答“PM 现在在干什么”，再给完整流程；点开仍是成员卡 */
+.role-board{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--line)}
 .role-board .board-lab{flex:none;font-size:11.5px;color:var(--muted);letter-spacing:.02em;padding-right:2px}
+.pm-live{flex:1 1 260px;min-width:0;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:1px 8px;align-items:center;text-align:left;padding:7px 11px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(90deg,var(--accent-weak),var(--card) 72%);color:var(--fg);font:inherit;cursor:pointer}
+.pm-live:hover{border-color:var(--accent)}
+.pm-kicker{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.pm-kicker .rm-dot{width:6px;height:6px}
+.pm-kicker .rm-dot.busy{background:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+.pm-kicker .rm-dot.done{background:#00b42a}
+.pm-kicker .rm-dot.err{background:#f53f3f}
+.pm-live b{font-size:13px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-live em{grid-column:1/3;font-style:normal;font-size:11.5px;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-more{grid-column:3;grid-row:2;font-size:10.5px;color:var(--accent);white-space:nowrap}
+.pm-other{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--fg-2);font:inherit;font-size:11.5px;cursor:pointer}
+.pm-other em{font-style:normal;color:var(--accent);font-weight:600}
+.role-flow{flex:0 0 auto;font-size:11px}
+.role-flow summary{list-style:none;cursor:pointer;padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);white-space:nowrap}
+.role-flow summary::-webkit-details-marker{display:none}
+.role-flow summary::before{content:"▸ ";font-size:9px}
+.role-flow[open]{flex:1 1 100%}
+.role-flow[open] summary::before{content:"▾ "}
+.rf-rail{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:7px 2px 2px}
+.rf-step{font-size:10.5px;padding:2px 7px;border-radius:999px;background:var(--line-2);color:var(--muted);border:1px solid transparent;white-space:nowrap}
+.rf-step.cur{background:var(--accent-weak);border-color:var(--accent);color:var(--accent);font-weight:600}
+.rf-arrow{font-style:normal;color:var(--line);font-size:9px}
 sl-button.role-mini{flex:none;max-width:100%}
 sl-button.role-mini::part(base){display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;color:var(--fg-2);max-width:100%}
 sl-button.role-mini:hover::part(base){border-color:var(--accent);background:var(--accent-weak)}

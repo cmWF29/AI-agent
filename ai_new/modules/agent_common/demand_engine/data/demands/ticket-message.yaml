@@ -16,6 +16,10 @@ do:
       get: input.id
     text:
       get: input.text
+    qid:
+      get: input.qid
+    answers:
+      get: input.answers
     target:
       lit: pm
   as: out

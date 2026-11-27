@@ -13,6 +13,9 @@ function foldLoad() {
 let FOLDS = foldLoad();
 let LAZY_TREE = {}, LAZY_SEQ = 0;
 let RAW_SEQ = 0;   // 消息原文窗口的 DOM 模板编号：每次渲染自增，避免多气泡撞 id
+let ANSWERED_QIDS = new Set();   // 本次群聊里已被真人答复的问题卡 qid
+let LAST_ASSISTANT_AT = "";      // 兼容旧消息：只把最后一条编号追问转成问题卡，避免历史列表误判
+let CLARIFY_DEMAND = "";         // 问题卡提交走哪条需求：由视图规格下发，前端不内置业务需求名
 function foldSet(key, open) {
   if (!key) return;
   FOLDS.set(key, !!open);
@@ -580,13 +583,138 @@ function toolBodyHtml(m) {
   const key = "tool|" + String(name) + "|" + String(m.at || "") + "|" + raw.length;
   return toolCardHtml(name, "", raw, key);
 }
+/* 收口 JSON 的解包：模型偶发把 \`{"reply":...}\` 原样留在正文里。
+   先按 JSON 解；模型给的坏转义（例如 \1）按字符逐个降级，解不开再从 reply 字段抽。
+   目的只有一个：气泡里只出现人话，不把协议报文当内容展示。 */
+function parseReplyObject(text) {
+  let raw = String(text == null ? "" : text).trim();
+  if (!raw.startsWith("{") || !raw.includes('"reply"')) return null;
+  const candidates = [raw];
+  // 常见坏形态：JSON 字符串里有单反斜杠转义。去掉无名转义再试一次。
+  candidates.push(raw.replace(/\\(?!["\\/bfnrtu])/g, ""));
+  for (const c of candidates) {
+    try {
+      const o = JSON.parse(c);
+      if (o && typeof o === "object") return o;
+    } catch (e) {}
+  }
+  return null;
+}
+function decodeJsonish(v) {
+  let out = "";
+  const src = String(v == null ? "" : v);
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (ch !== "\\") { out += ch; continue; }
+    const nx = src[++i];
+    if (nx === undefined) { out += "\\"; break; }
+    if (nx === "n") out += "\n";
+    else if (nx === "r") out += "\r";
+    else if (nx === "t") out += "\t";
+    else if (nx === "b") out += "\b";
+    else if (nx === "f") out += "\f";
+    else if (nx === '"' || nx === "\\" || nx === "/") out += nx;
+    else if (nx === "u" && /^[0-9a-fA-F]{4}$/.test(src.slice(i + 1, i + 5))) {
+      out += String.fromCharCode(parseInt(src.slice(i + 1, i + 5), 16)); i += 4;
+    } else out += nx;   // 模型写坏的转义：留下原字符，不把整段 JSON 吐给用户
+  }
+  return out;
+}
+function replyTextOf(m) {
+  const raw = String((m && m.content) == null ? "" : m.content);
+  if ((m && m.role) !== "assistant") return raw;
+  const obj = parseReplyObject(raw);
+  if (obj && typeof obj.reply === "string") return obj.reply.trim();
+  const hit = raw.match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/s);
+  if (hit) return decodeJsonish(hit[1]).trim();
+  return raw;
+}
+function legacyQuestionsOf(text) {
+  // 旧版 PM 把澄清写成“请你给一条信息即可推进：1)…2)…3)…”的编号清单。
+  // 新协议已改为 questions 字段；这里只兜底最后一条历史追问，把能枚举的选项拆出来，
+  // 让用户至少能点选，而不是整段手打。普通计划/步骤清单不会命中。
+  const raw = String(text || "");
+  if (!/(推进|确认|补充|回答|选择|给一条)/.test(raw)) return [];
+  const marked = raw.replace(/([：:])\s*\\?(\d+)[).、]/g, "$1\n$2)");
+  const lines = marked.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  const picked = lines.map((line) => {
+    const hit = line.match(/^\??(\d+)[).、]\s*(.+)$/);
+    return hit ? { n: +hit[1], body: hit[2].trim() } : null;
+  }).filter(Boolean);
+  if (picked.length < 2) return [];
+  return picked.slice(0, 6).map((x) => {
+    let text = x.body.replace(/[；;]\s*$/, "").replace(/\s+/g, " ");
+    const tail = text.split(/——|：|:/).pop().trim();
+    const seg = tail.split(/\s+\/\s+/).map((v) => v.replace(/[。？?；;]+$/, "").trim()).filter(Boolean);
+    const opts = seg.length >= 2 && seg.every((v) => v.length <= 14) ? seg : [];
+    return { id: "q" + x.n, text, options: opts, multi: false, other: true };
+  });
+}
+function questionsOf(m) {
+  if (Array.isArray(m && m.questions) && m.questions.length) return m.questions;
+  const obj = parseReplyObject((m && m.content) || "");
+  if (obj && Array.isArray(obj.questions)) return obj.questions;
+  if (m && m.at && LAST_ASSISTANT_AT && String(m.at) === String(LAST_ASSISTANT_AT)) {
+    return legacyQuestionsOf(replyTextOf(m));
+  }
+  return [];
+}
+function hashText(t) {
+  let h = 2166136261;
+  for (const ch of String(t || "")) { h ^= ch.charCodeAt(0); h = (h * 16777619) >>> 0; }
+  return h.toString(36);
+}
+function qidOf(m) {
+  if (!m) return "";
+  if (m.qid) return String(m.qid);
+  return "q" + hashText(String(m.at || "") + "|" + String(m.content || ""));
+}
+function normQuestions(qs) {
+  return arr(qs).map((q, i) => {
+    if (!q || typeof q !== "object") return null;
+    const text = String(q.text || "").trim();
+    if (!text) return null;
+    const options = arr(q.options).map((o) => {
+      if (typeof o === "string") return { label: o, value: o };
+      if (!o || typeof o !== "object") return null;
+      const label = String(o.label || o.value || "").trim();
+      const value = String(o.value || label).trim();
+      return label && value ? { label, value } : null;
+    }).filter(Boolean).slice(0, 5);
+    return { id: String(q.id || "q" + (i + 1)), text, options,
+             multi: !!q.multi, other: q.other !== false };
+  }).filter(Boolean).slice(0, 6);
+}
+function questionCardHtml(qs, m) {
+  const list = normQuestions(qs);
+  if (!list.length) return "";
+  const qid = qidOf(m);
+  const answered = ANSWERED_QIDS.has(qid);
+  const demand = String(CLARIFY_DEMAND || "");
+  const rows = list.map((q, i) => {
+    const opts = q.options.length
+      ? `<div class="q-opts">${q.options.map((o) => `<button type="button" class="q-opt" data-clk="q_pick" data-q="${esc(qid)}" data-qi="${i}" data-qv="${esc(o.value)}" data-multi="${q.multi ? "1" : "0"}" aria-pressed="false">${esc(o.label)}</button>`).join("")}</div>`
+      : "";
+    const field = `<input class="q-other" type="text" data-q="${esc(qid)}" data-qi="${i}" placeholder="${esc(q.options.length ? uiText("q_other") : uiText("q_input"))}"${answered ? " disabled" : ""}>`;
+    return `<div class="q-item" data-qi="${i}"><div class="q-title"><span class="q-no">${i + 1}</span><span>${esc(q.text)}</span><i>${q.multi ? "可多选" : "单选"}</i></div>${opts}${q.other || !q.options.length ? field : ""}</div>`;
+  }).join("");
+  return `<div class="q-card${answered ? " done" : ""}" data-qid="${esc(qid)}" data-demand="${esc(demand)}">
+    <div class="q-head"><span class="q-mark">?</span><div><b>${answered ? esc(uiText("q_answered_title")) : esc(uiText("q_need_title"))}</b><em>${answered ? esc(uiText("q_answered_note")) : esc(uiText("q_card_note", list.length))}</em></div>${answered ? '<span class="q-ok">✓</span>' : ""}</div>
+    <div class="q-list">${rows}</div>
+    <div class="q-foot">${answered ? `<span class="q-hint">${esc(uiText("q_answered_hint"))}</span>` : `<span class="q-hint">${esc(uiText("q_free_note"))}</span><button type="button" class="q-submit" data-clk="q_submit">${esc(uiText("q_submit"))}</button>`}</div>
+  </div>`;
+}
 function itemHtml(it) {
   if (it.kind === "call") return toolCallCard(it);
   if (it.kind === "tool") return toolBodyHtml(it.m);
   const m = it.m;
-  const text = String(m.content == null ? "" : m.content).trim();
-  if (!text) return "";
-  return `<div class="bubble-body md">${renderMarkdown(m.content)}</div>`;
+  const raw = String(m.content == null ? "" : m.content).trim();
+  const text = replyTextOf(m).trim();
+  const qs = (m.role === "assistant") ? questionsOf(m) : [];
+  if (!text && !qs.length) return "";
+  const body = text ? `<div class="bubble-body md">${renderMarkdown(text)}</div>` : "";
+  const card = qs.length ? questionCardHtml(qs, m) : "";
+  return body + card;
 }
 /* 可点位置统一补控件 id：data-clk 就是它的点击种类，没登记的按「ctl.<种类>」兜底。
    目的只有一个——页面上不存在"看不见的可点区域"，清点脚本能逐个点名。 */
@@ -697,25 +825,85 @@ function streamHtml(msgs, events, roles, wireDemand, wireChars, rawChars) {
 }
 
 /* 角色状态条：每个角色当前阶段与活跃状态，点开是同一个人（data-member 复用成员卡） */
-function roleBoardHtml(roles, label) {
+function roleStageOf(r, msgs) {
+  const mc = (r && r.machine) || {};
+  const states = arr(mc.states);
+  const active = arr(mc.active);
+  // 机器契约里根态叫 owner，叶态 id 是 req.intake；next 又写 owner.req.intake。
+  // 三种写法都得认，统一解析到 states 里的真实 id，不能让界面被 id 命名差异卡住。
+  const rootId = String(mc.initial || (states[0] && states[0].id) || "");
+  const resolveId = (raw) => {
+    const want = String(raw || "");
+    if (!want) return "";
+    const exact = states.find((x) => x.id === want);
+    if (exact) return exact.id;
+    // 绝对写法 owner.req.intake 只剥掉根前缀；叶态自己的相对 id 就是 req.intake。
+    const local = rootId && want.startsWith(rootId + ".") ? want.slice(rootId.length + 1) : want;
+    const hit = states.find((x) => x.id === local);
+    return hit ? hit.id : "";
+  };
+  let path = resolveId(mc.stage) || resolveId(active[0]) || String(mc.stage || "");
+  const childOf = (parent) => states.filter((x) =>
+    x.id !== parent && resolveId(parent + "." + x.id) === x.id);
+  let kids = childOf(path);
+  // 容器态（owner）只说明“在整条需求流程里”，不说明走到哪一步：用最近自报的子阶段补细。
+  if (kids.length) {
+    const claimed = arr(msgs).slice().reverse().map((m) => {
+      if (!m || m.role !== "assistant") return "";
+      const o = parseReplyObject(m.content || "");
+      return resolveId((o && o.stage) || "");
+    }).find((id) => id && kids.some((k) => k.id === id));
+    path = claimed || kids[0].id;
+    kids = childOf(path);
+  }
+  const rec = states.find((x) => x.id === path) || {};
+  let next = arr(rec.next).map(resolveId).filter(Boolean);
+  if (kids.length) next = [kids[0].id];
+  return { mc, states, path, rec: rec || {}, next, kids, childOf,
+           nextCn: next.map((id) => (states.find((x) => x.id === id) || {}).cn || id) };
+}
+function awaitingUser(msgs) {
+  const tail = arr(msgs).slice(-4);
+  const last = tail[tail.length - 1] || {};
+  if (last.role !== "assistant" || last.kind) return false;
+  if (questionsOf(last).length) return !ANSWERED_QIDS.has(qidOf(last));
+  const txt = replyTextOf(last);
+  return /[?？]/.test(txt);
+}
+function roleBoardHtml(roles, label, msgs) {
   const rows = arr(roles).filter((r) => r && ((r.machine || {}).states || []).length);
   if (!rows.length) return "";
-  const cells = rows.map((r) => {
-    const mc = r.machine || {};
-    const states = mc.states || [];
-    const cur = states.find((s) => s.id === mc.stage) || {};
-    const acts = (mc.active || []).filter((id) => id !== mc.stage)
-      .map((id) => (states.find((s) => s.id === id) || {}).cn || id);
-    const idx = arr(roles).indexOf(r);
-    return `<sl-button class="role-mini st-${statusKind(r.status)}" variant="default" size="small" data-clk="member_chip" data-member="${idx}" title="${esc((mc.flow || {}).cn || "")}">
-      <i class="rm-dot"></i><b>${esc(r.display || r.role)}</b>
-      <span class="rm-stage">${esc(cur.cn || "—")}</span>
-      ${acts.length ? `<span class="rm-active">${esc(acts.join("/"))}</span>` : ""}
-    </sl-button>`;
+  const titles = arr(roles);
+  const pm = rows.find((r) => String(r.role || "").toLowerCase() === "pm") || rows[0];
+  const idx = titles.indexOf(pm);
+  const st = roleStageOf(pm, msgs);
+  const waiting = awaitingUser(msgs);
+  const stateWord = waiting ? uiText("role_waiting")
+    : (pm.status === "running" || pm.status === "queued" ? uiText("role_working") : uiText("role_idle"));
+  const nextTxt = (st.nextCn.length ? `${uiText("role_next")} · ${st.nextCn.join("/")}` : "") +
+    (waiting ? ` · ${uiText("role_waiting")}` : "");
+  const flow = st.states.filter((x) => !st.childOf(x.id).length);
+  const rail = flow.map((x) => {
+    const cur = x.id === st.path;
+    return `<span class="rf-step${cur ? " cur" : ""}">${esc(x.cn || x.id)}</span>`;
+  }).join('<i class="rf-arrow">→</i>');
+  const others = rows.filter((r) => r !== pm).map((r) => {
+    const s2 = roleStageOf(r, msgs);
+    return `<button class="pm-other st-${statusKind(r.status)}" data-clk="member_chip" data-member="${titles.indexOf(r)}"><i class="rm-dot"></i>${esc(r.display || r.role)}<em>${esc(s2.rec.cn || s2.path || "—")}</em></button>`;
   }).join("");
-  // 标题由 YAML roles_label 传入；缺词表条目时退回 roles_label 词表键，前端不写中文常量
-  const title = label || uiText("roles_label");
-  return `<div class="role-board"><span class="board-lab">${esc(title)}</span>${cells}</div>`;
+  return `<div class="role-board">
+    <button class="pm-live" data-clk="member_chip" data-member="${idx}" title="${esc((st.mc.flow || {}).cn || "")}">
+      <span class="pm-kicker"><i class="rm-dot ${esc(statusKind(pm.status))}"></i>${esc(uiText("role_pm"))} · ${esc(stateWord)}</span>
+      <b>${esc(st.rec.cn || st.path || "—")}</b>
+      <em>${esc(nextTxt)}</em>
+      <span class="pm-more">${esc(uiText("role_flow"))} ›</span>
+    </button>
+    ${others}
+    <details class="role-flow">
+      <summary data-clk="summary_fold">${esc(uiText("role_flow_full"))}</summary>
+      <div class="rf-rail">${rail}</div>
+    </details>
+  </div>`;
 }
 /* 待办板：模型自己排的分步计划，和岗位流程状态机不是一回事，单独一条 */
 function todoBoardHtml(todos, label) {
@@ -780,6 +968,10 @@ function chatHtml(sec, ctx) {
     if (hidden.includes(m.role || "")) return false;
     return true;
   });
+  ANSWERED_QIDS = new Set(msgs.filter((m) => m && m.role === "human" && m.qid).map((m) => String(m.qid)));
+  CLARIFY_DEMAND = String(sec.clarify_demand || "");
+  const lastAssistant = msgs.slice().reverse().find((m) => m && m.role === "assistant" && !m.kind);
+  LAST_ASSISTANT_AT = lastAssistant ? String(lastAssistant.at || "") : "";
   // 服务器已回显的消息不再重复画本地乐观气泡；失败条目保留给用户重发。
   const proj = (ctx.route && ctx.route.project) || "";
   outboxReconcile(state.view, proj, src.messages);
@@ -812,7 +1004,7 @@ function chatHtml(sec, ctx) {
   return `<section class="chat-card card">
     ${headMain || chips || headActions ? `<div class="chat-head">${headMain}<div class="members">${chips}</div><div class="chat-head-actions">${headActions}</div></div>` : ""}
     ${summaryHtml}
-    ${roleBoardHtml(roles, sec.roles_label)}
+    ${roleBoardHtml(roles, sec.roles_label, msgs)}
     <div class="chat">${body}</div>
   </section>`;
 }

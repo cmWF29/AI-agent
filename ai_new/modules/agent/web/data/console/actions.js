@@ -145,6 +145,55 @@ async function retryOutbox(msgId) {
   }
   await render({ keepBanner: true });
 }
+/* ---- 澄清问题卡：选项只改本地选中态，统一提交才发消息 ----
+   业界聊天机器人常用“快捷选项 + 自由输入兜底”：选项把长句压成一次点选，
+   开放项仍保留输入框；提交后答案作为一条普通人消息回给 PM，不另造通道。 */
+function pickQuestionOption(el) {
+  const card = el.closest(".q-card");
+  if (!card || card.classList.contains("done")) return;
+  const item = el.closest(".q-item");
+  if (!item) return;
+  const multi = el.dataset.multi === "1";
+  if (!multi) item.querySelectorAll(".q-opt.on").forEach((b) => {
+    b.classList.remove("on"); b.setAttribute("aria-pressed", "false");
+  });
+  const on = el.classList.toggle("on");
+  el.setAttribute("aria-pressed", on ? "true" : "false");
+}
+function collectQuestionAnswers(card) {
+  const qid = String(card.dataset.qid || "");
+  const out = [];
+  card.querySelectorAll(".q-item").forEach((item) => {
+    const qi = item.dataset.qi;
+    const q = ((item.querySelector(".q-title") || {}).innerText || "").replace(/^\s*\d+\s*/, "").replace(/单选|可多选/, "").trim();
+    const vals = [...item.querySelectorAll(".q-opt.on")].map((b) => String(b.dataset.qv || "").trim()).filter(Boolean);
+    const box = item.querySelector(".q-other");
+    const extra = box ? String(box.value || "").trim() : "";
+    if (extra && !vals.includes(extra)) vals.push(extra);
+    if (vals.length) out.push({ qid: qid + "#" + qi, question: q, values: vals });
+  });
+  return { qid, answers: out };
+}
+async function submitQuestionCard(el) {
+  const card = el.closest(".q-card");
+  if (!card || card.classList.contains("done")) return;
+  const { qid, answers } = collectQuestionAnswers(card);
+  if (!answers.length) {
+    banner(uiText("q_missing") || "请至少回答一项", "err");
+    return;
+  }
+  const lines = answers.map((a, i) => `${i + 1}. ${a.question || "问题"}\n   答：${a.values.join("；")}`);
+  const text = (uiText("q_answer_head") || "【澄清答复】") + "\n" + lines.join("\n");
+  const tid = (typeof state !== "undefined" && state.ticket) || "";
+  const demand = String(card.dataset.demand || "");
+  if (!tid || !demand) {
+    banner(uiText("need_param") || "缺少工单", "err");
+    return;
+  }
+  await run(demand, { id: tid, text, qid, answers });
+  banner(uiText("msg_sent") || "已发送", "ok");
+  await render({ keepBanner: true });
+}
 /* ---- 语音录音：开始/停止 → 识别 → 回填输入框，不自动发送 ---- */
 function voiceBtnLabel(binding) {
   return String((binding.act && binding.act.label) || uiText("voice"));

@@ -207,7 +207,9 @@ def _route_send(ctx, payload):
     if not sid:
         return _err(ctx, "no_session", 409, tpl.get("pm_started") or "")
     ctx.demand_engine.run_callable("session-send", {
-        "id": sid, "text": text})
+        "id": sid, "text": text,
+        "qid": payload.get("qid") or "",
+        "answers": payload.get("answers") or []})
     ctx.runtime.dispatch({"demand": "session-run", "key": sid, "input": {"id": sid}})
     return ctx.api.call("tickets.view", {"rec": rec}, caller=None)
 

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/react/private/_pure.py
-hash: 26e9d0b96bef77bf0b0a8cc9197f0fb6abed0db9dc070cd61f8490b983087ce6
+hash: 99d5272ab7128383871d695b91ef66eae0509629d7b39e7ffd25fe51b192f14e
 symbols:
 - schema
 - schemas
@@ -20,6 +20,7 @@ symbols:
 - strip_fence
 - extract_json
 - _textify
+- _questions
 - parse_final
 - summarize
 - attach_protocol
@@ -142,6 +143,12 @@ ReAct 纯函数：把响应切成消息、把工具定义切成模型能吃的�
 
 ### `_textify`（function）
 - 职责: 收口字段定型为字符串：None 为空，其余类型转文本；不做结构化序列化（归 codec）。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_questions`（function）
+- 职责: 澄清问题卡片定型：只收可被界面直接渲染的问题与选项。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

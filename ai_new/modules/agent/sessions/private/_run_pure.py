@@ -25,6 +25,12 @@ def appendmsg(p):
     # role 仍留 user，作为下一轮给模型的指令输入。标记只供展示，不进 LLM 载荷。
     if p.get("kind"):
         msg["kind"] = p["kind"]
+    # 问题卡的答复随真人消息一起落盘：qid 指回哪一张卡，answers 是结构化选择。
+    # 前端据此把卡片锁成“已答复”；PM 侧仍只读正文 text，不靠这份展示元数据工作。
+    if p.get("qid"):
+        msg["qid"] = str(p["qid"])[:80]
+    if isinstance(p.get("answers"), (list, tuple)) and p.get("answers"):
+        msg["answers"] = [x for x in p["answers"] if isinstance(x, dict)][:8]
     msgs.append(msg)
     rec["messages"] = msgs
     rec["updated"] = p.get("now") or ""

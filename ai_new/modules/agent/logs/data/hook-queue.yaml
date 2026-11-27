@@ -1,15 +1,1 @@
-items:
-- hook: sessions.finished
-  level: info
-  data:
-    id: pm-65
-    kind: pm
-    role: pm
-    ticket: T-20261125-0006
-- hook: sessions.finished
-  level: info
-  data:
-    id: pm-71
-    kind: pm
-    role: pm
-    ticket: T-20261125-0006
+items: []

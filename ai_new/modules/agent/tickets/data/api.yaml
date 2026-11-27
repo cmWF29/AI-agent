@@ -315,7 +315,13 @@ routes:
   tickets.send:
     doc: 发消息：结单/归档守卫→解析目标→追加→派发
     in:
+      answers:
+        type: any
+        req: false
       id:
+        type: any
+        req: false
+      qid:
         type: any
         req: false
       text:

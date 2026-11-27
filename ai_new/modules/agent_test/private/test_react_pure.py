@@ -60,6 +60,11 @@ class MessageShapeTest(unittest.TestCase):
         self.assertNotIn("wire", _pure.assistant({"wire": {}}))
         self.assertNotIn("wire", _pure.assistant({"wire": "text"}))
 
+    def test_assistant_questions(self):
+        got = _pure.assistant({"content": "问", "questions": [{"text": "选？"}]})
+        self.assertEqual(got["questions"], [{"text": "选？"}])
+        self.assertNotIn("questions", _pure.assistant({"questions": []}))
+
     def test_toolnames_handles_shape_gaps(self):
         got = _pure.toolnames({"tool_calls": [{"function": {"name": "a"}}, {}, {"function": None}]})
         self.assertEqual(got, ["a", None, None])
@@ -239,6 +244,35 @@ class ParseFinalTest(unittest.TestCase):
 
     def test_textify_non_str(self):
         self.assertEqual(_pure.parse_final({"obj": {"summary": 12}})["summary"], "12")
+
+    def test_questions_shape(self):
+        got = _pure.parse_final({"obj": {"questions": [
+            {"text": " 产物？ ", "options": ["代码", {"label": "文档", "value": "doc"}],
+             "multi": 1},
+            {"text": "", "options": ["x"]},
+            "bad",
+            {"text": "自由填", "other": False},
+            {"text": "重复", "options": [{"label": "代码", "value": "代码"}, "代码", 3]},
+            {"text": "一"}, {"text": "二"}, {"text": "三"}, {"text": "四"}, {"text": "五"},
+        ]}, "content": "x"})
+        self.assertEqual(got["questions"][0]["text"], "产物？")
+        self.assertEqual(got["questions"][0]["options"],
+                         [{"label": "代码", "value": "代码"}, {"label": "文档", "value": "doc"}])
+        self.assertTrue(got["questions"][0]["multi"])
+        self.assertTrue(got["questions"][0]["other"])
+        self.assertEqual(got["questions"][1]["text"], "自由填")
+        self.assertFalse(got["questions"][1]["other"])
+        self.assertEqual(got["questions"][2]["options"], [{"label": "代码", "value": "代码"}])
+        self.assertEqual(len(got["questions"]), 6)
+
+    def test_questions_only_structured(self):
+        got = _pure.parse_final({"obj": {"questions": [{"text": "问"}]}})
+        self.assertTrue(got["structured"])
+        self.assertEqual(got["reply"], "")
+
+    def test_questions_bad_container(self):
+        got = _pure.parse_final({"obj": {"questions": "x"}})
+        self.assertEqual(got["questions"], [])
 
 
 class SummarizeTest(unittest.TestCase):
