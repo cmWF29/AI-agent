@@ -55,6 +55,11 @@ async def main():
         await page.wait_for_selector("#modal[open]", timeout=8000)
         check("弹窗出现且字段可输入", await page.locator("#modal sl-input[name=name]").count() == 1)
         await page.fill("#modal sl-input[name=name] input", name)
+        # Web Component 的 value 同步是异步的：填完立刻点提交，慢机/快机都可能读到旧空值。
+        # 等控件自己的 value 真的等于输入值再提交，避免把“输入传播竞态”误判成业务失败。
+        await page.wait_for_function(
+            "(name) => document.querySelector('#modal sl-input[name=name]')?.value === name",
+            arg=name, timeout=5000)
         ok_btn = page.locator("#modal-ok")
         check("弹窗「创建项目」按钮可用", await ok_btn.is_visible() and not await ok_btn.is_disabled())
         await ok_btn.tap()
