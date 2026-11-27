@@ -1,7 +1,9 @@
 ---
 source: ai_new/modules/agent/secretary/__init__.py
-hash: eac764817f7403d46ed0ae23c62b8d5bf26854652fca038fdd54fd5dba63f11b
+hash: 781d3026220d487254026295b538fde43562085e5ab0a614f1a4a7cd4e7f3306
 symbols:
+- _flush_lock
+- _serialized
 - setup
 - _session_caller
 - _timer_tool
@@ -36,6 +38,18 @@ updated_at: '2026-11-23T04:10:20'
 项目秘书模块：项目级自然语言路由与消息队列。
 
 ## 符号
+
+### `_flush_lock`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_serialized`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `setup`（function）
 - 职责: （无 docstring）

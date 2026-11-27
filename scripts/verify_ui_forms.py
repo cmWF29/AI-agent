@@ -35,14 +35,22 @@ async def ensure_login(pg):
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
-        page = await browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+        ctx = await browser.new_context(ignore_https_errors=True, viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+        page = await ctx.new_page()
         await page.goto(BASE + "/", wait_until="networkidle")
         await ensure_login(page)
         await page.wait_for_selector("#view-body .pcard, #view-body .empty", timeout=15000)
 
         name = "UI表单-%d" % int(time.time())
-        head = page.get_by_text("新建项目", exact=False).first
+        head = page.get_by_text("＋ 新建项目", exact=False).first
         check("头部有「新建项目」入口", await head.count() == 1 and await head.is_visible())
+        # 用户实际会反复打开又取消：状态机在 modal/idle 之间来回切，必须每次都能再开。
+        for i in range(5):
+            await head.tap()
+            await page.wait_for_selector("#modal[open]", timeout=5000)
+            await page.get_by_text("取消", exact=True).last.tap()
+            await page.wait_for_selector("#modal:not([open])", timeout=5000)
+        check("连续 5 次「打开→取消」后入口仍可点", await head.is_visible() and not await head.is_disabled())
         await head.tap()
         await page.wait_for_selector("#modal[open]", timeout=8000)
         check("弹窗出现且字段可输入", await page.locator("#modal sl-input[name=name]").count() == 1)

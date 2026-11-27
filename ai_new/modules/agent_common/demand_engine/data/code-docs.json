@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-27T08:41:25",
-  "total": 592,
+  "generated": "2026-11-27T10:36:52",
+  "total": 594,
   "groups": [
     {
       "label": "agent",
@@ -722,8 +722,8 @@
           "doc": "docs/code/ai_new/modules/agent/secretary/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "eac764817f7403d46ed0ae23c62b8d5bf26854652fca038fdd54fd5dba63f11b",
-          "symbols": 20,
+          "hash": "781d3026220d487254026295b538fde43562085e5ab0a614f1a4a7cd4e7f3306",
+          "symbols": 22,
           "updated_at": "2026-11-23T04:10:20"
         },
         {
@@ -974,8 +974,8 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/actions.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "379dffdeb8f67c1e3967bbe9edf8bd8f9ac7289e68cfff62ba9b4b477295dec3",
-          "symbols": 16,
+          "hash": "2d0a6248d2d5d0045903b2839b200b14e7f63ea3ebf70d00ba9ce20b17ad3472",
+          "symbols": 25,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -992,7 +992,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/boot.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "39e53a08e0c35d10f9293bf378ac7a5c18114d29b4aa6a452f149c27b7bf4f93",
+          "hash": "37d1e71825aaa6b18c5b5c70b3f5cc48c837b6203478ea349da32ca1c618e763",
           "symbols": 62,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1037,8 +1037,8 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/render.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "af3a5513ec732fc3087be4d7e838abb49a259ad3c1506cf6783563d45e7801af",
-          "symbols": 143,
+          "hash": "0d2d2f31818937950201cccc7f2d89002f2c7c5b497c1763db0c3ffe60dee23b",
+          "symbols": 146,
           "updated_at": "2026-11-23T04:10:21"
         },
         {
@@ -1081,7 +1081,7 @@
     },
     {
       "label": "agent_common",
-      "count": 319,
+      "count": 320,
       "docs": [
         {
           "source": "ai_new/modules/agent_common/api/__init__.py",
@@ -1124,7 +1124,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/api/data/gen/bindings.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "aa54253620214ac3ccd7756b3f3e459d58febf7e32f5ee065ddc0a06a611029e",
+          "hash": "d6ad47d94ab07cc9e4641bf74abb6ebd0bf2d1c52bf7379f9273ba86ceb973f1",
           "symbols": 5,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1511,7 +1511,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/console.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "dc827ded8decec18eaa2fe1440fd8e99e529192711d6e53779b9ad8ace2c5108",
+          "hash": "22d1e6a4c9e8bf070ab26e8b0f16d59f6be87843d98c8562ad434b4e988cd303",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -2515,6 +2515,15 @@
           "updated_at": "2026-11-23T04:10:21"
         },
         {
+          "source": "ai_new/modules/agent_common/demand_engine/data/demands/secretary-autoflush.yaml",
+          "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/secretary-autoflush.yaml.md",
+          "kind": "yaml",
+          "group": "agent_common",
+          "hash": "8bb57587c2f3af4f9bdfa8a63e8e6fb5117e81da532e72cd17842012cc5cf151",
+          "symbols": 9,
+          "updated_at": "2026-11-27T10:17:49"
+        },
+        {
           "source": "ai_new/modules/agent_common/demand_engine/data/demands/secretary-discard.yaml",
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/secretary-discard.yaml.md",
           "kind": "yaml",
@@ -3167,7 +3176,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-secretary.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "747600671efcf55dc40c3cf74818a295f807f566a309b93e00f9d2403048984b",
+          "hash": "82d158569cecd33bbd45366a8b5120d36d6c36cf3ae38298bb0b60a37e7127a5",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -3974,7 +3983,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/data/checks.yaml.md",
           "kind": "yaml",
           "group": "agent_test",
-          "hash": "6cd6d6e8ea0ede01c309c4f3d55946f181b09913f077bea5d562f64e942b8e09",
+          "hash": "ca59f62e03768eb4f2f3c2a6ceacb3a121bc02e367f6a623d309bdc609022aee",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4667,8 +4676,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_secretary.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "30400c830e8344ff96f2e1134d8f0a918b39cf6f0f404724348656fe5ec5c2e1",
-          "symbols": 31,
+          "hash": "ef3a91a25a086b6c8e4acf417000c5fafb7299e8d10cf8f9f78e5da000fc9ab2",
+          "symbols": 33,
           "updated_at": "2026-11-23T04:10:23"
         },
         {
@@ -4676,8 +4685,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_secretary_routes.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "a8901f213f1043768ea234ecae3422fd8f7728fdf1f107cb1c3dbe95d9b17071",
-          "symbols": 25,
+          "hash": "08ab6040aaa6a52d46f56268803d22c8c6054f1a307c458280fdf43f13fe204f",
+          "symbols": 28,
           "updated_at": "2026-11-26T01:31:07"
         },
         {
@@ -4891,7 +4900,7 @@
     },
     {
       "label": "scripts",
-      "count": 51,
+      "count": 52,
       "docs": [
         {
           "source": "scripts/audit_click_machine.py",
@@ -5290,6 +5299,15 @@
           "updated_at": "2026-11-24T12:48:33"
         },
         {
+          "source": "scripts/verify_im_secretary.py",
+          "doc": "docs/code/scripts/verify_im_secretary.py.md",
+          "kind": "py",
+          "group": "scripts",
+          "hash": "696957c43b77cb0634c0bf7a83d3aba0b6c974d001ea44e7b3c6e620863a78d8",
+          "symbols": 7,
+          "updated_at": "2026-11-27T10:17:57"
+        },
+        {
           "source": "scripts/verify_ops_page.py",
           "doc": "docs/code/scripts/verify_ops_page.py.md",
           "kind": "py",
@@ -5321,7 +5339,7 @@
           "doc": "docs/code/scripts/verify_ui_forms.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "8784dceb63e42b9b03f28fe11467db4106208b7ce9e666d5a448464239fdaebf",
+          "hash": "a7ba15facdb9abb5d315ab49c78bb11901f16d5994a074c8256ccd54b20785a9",
           "symbols": 3,
           "updated_at": "2026-11-27T08:41:23"
         },

@@ -1,5 +1,54 @@
 /* actions：唯一动作出口（view / modal / demand 三态）
 */
+/* ---- 本地发件箱：IM 式乐观消息 ----
+   发出的瞬间先落一条 pending 气泡（转圈）；成功转成已发送，失败标红并留下重发入口。
+   消息 id 由前端生成并随需求带给后端，重发用同一个 id —— 后端按 (project,msg_id) 幂等，
+   所以"点了重发其实已入队"不会变成两条。服务器回显同 msg_id 后本地条目自动清掉。 */
+const OUTBOX_KEY = "ai_new_outbox_v1";
+function outboxAll() {
+  try {
+    const arr0 = JSON.parse(localStorage.getItem(OUTBOX_KEY) || "[]");
+    return Array.isArray(arr0) ? arr0 : [];
+  } catch (_) { return []; }
+}
+function outboxSave(list) {
+  try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(list)); } catch (_) {}
+}
+function outboxFor(view, project) {
+  return outboxAll().filter((e) => e && e.view === view && e.project === project);
+}
+function outboxAdd(entry) {
+  const list = outboxAll().filter((e) => e.msg_id !== entry.msg_id);
+  list.push(entry);
+  outboxSave(list);
+  return entry;
+}
+function outboxMark(msgId, status, error) {
+  const list = outboxAll();
+  const hit = list.find((e) => e.msg_id === msgId);
+  if (!hit) return;
+  hit.status = status;
+  hit.error = error || "";
+  hit.at = hit.at || Date.now() / 1000;
+  outboxSave(list);
+}
+function outboxDrop(msgId) {
+  outboxSave(outboxAll().filter((e) => e.msg_id !== msgId));
+}
+function outboxReconcile(view, project, msgs) {
+  const ids = new Set(arr(msgs).map((m) => m && m.msg_id).filter(Boolean));
+  const list = outboxAll();
+  const keep = list.filter((e) => {
+    if (!e || e.view !== view || e.project !== project) return true;
+    // 失败的不因服务器已回显而丢掉：红条留着等用户自己重发或忽略
+    return e.status === "failed" || !ids.has(e.msg_id);
+  });
+  if (keep.length !== list.length) outboxSave(keep);
+}
+function newMsgId() {
+  return "c-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+}
+
 async function execute(binding, fields) {
   const { act, ctx, composer } = binding;
   const c = { ...ctx, fields: fields || ctx.fields || {}, composer };
@@ -21,10 +70,31 @@ async function execute(binding, fields) {
   const params = fill(act.params || {}, c);
   if (act.confirm && !confirm(String(fill(act.confirm, c)))) return;
   const flashText = act.flash ? String(fill(act.flash, c)) : "";
+  // 乐观发送：只对声明了 outbox 的 composer 生效，其他表单/动作照旧等结果再刷新。
+  let outMsgId = "";
+  if (act.outbox) {
+    outMsgId = newMsgId();
+    params.msg_id = outMsgId;
+    outboxAdd({ msg_id: outMsgId, view: state.view, project: params.project || state.project,
+                demand: act.demand, text: String(params.text || ""),
+                at: Date.now() / 1000, status: "sending", error: "" });
+    const ta = document.querySelector("#view-body .composer textarea");
+    if (ta && act.clear) ta.value = "";
+    await render({ keepBanner: true });
+  }
   try {
     // 拆解这类长动作可能跑几十秒，先给一条"加载中"，成功/失败再被下面的提示覆盖。
     banner(uiText("loading") || "加载中…", "info");
     const res = await run(act.demand, params);
+    if (outMsgId) {
+      outboxMark(outMsgId, "sent", "");
+      const at = res && res.entry && res.entry.at;
+      if (at) {
+        const list = outboxAll();
+        const hit = list.find((e) => e.msg_id === outMsgId);
+        if (hit) { hit.at = at; outboxSave(list); }
+      }
+    }
     if (act.clear) {
       const ta = document.querySelector("#view-body .composer textarea");
       if (ta) ta.value = "";   // 成功即清空，避免残留文本把轮询挡在门外
@@ -43,8 +113,37 @@ async function execute(binding, fields) {
     }
     await render({ keepBanner: true });
   } catch (err) {
+    const msg = gateMessage(err);
+    if (outMsgId) {
+      outboxMark(outMsgId, "failed", msg);
+      await render({ keepBanner: true });
+    }
+    banner(msg, "err");
+  }
+}
+/* 点击失败气泡上的「重发」：同 msg_id 再打一次，后端幂等保证不会重复入队。 */
+async function retryOutbox(msgId) {
+  const hit = outboxAll().find((e) => e.msg_id === msgId);
+  if (!hit) return;
+  outboxMark(msgId, "sending", "");
+  await render({ keepBanner: true });
+  try {
+    if (!hit.demand) throw new Error(uiText("msg_no_demand"));
+    const params = { project: hit.project, text: hit.text, msg_id: hit.msg_id };
+    const res = await run(hit.demand, params);
+    outboxMark(msgId, "sent", "");
+    const at = res && res.entry && res.entry.at;
+    if (at) {
+      const list = outboxAll();
+      const it = list.find((e) => e.msg_id === msgId);
+      if (it) { it.at = at; outboxSave(list); }
+    }
+    banner(uiText("msg_sent") || "已发送", "ok");
+  } catch (err) {
+    outboxMark(msgId, "failed", gateMessage(err));
     banner(gateMessage(err), "err");
   }
+  await render({ keepBanner: true });
 }
 /* ---- 语音录音：开始/停止 → 识别 → 回填输入框，不自动发送 ---- */
 function voiceBtnLabel(binding) {

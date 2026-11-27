@@ -98,6 +98,46 @@ class SecretaryTest(unittest.TestCase):
 
     # ---- 用例 ----
 
+    def test_concurrent_flush_on_same_project_creates_one_ticket(self):
+        """同一项目两条消息同时触发 flush：必须串行，只建一张单，消息不丢。"""
+        import threading
+        project = self._project("秘书并发处理项目")
+        self._push(project, "c1", "并发消息一")
+        self._push(project, "c2", "并发消息二")
+        box = []
+
+        def run():
+            box.append(self._flush(project))
+
+        threads = [threading.Thread(target=run) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(len(box), 2)
+        self.assertTrue(all(x["result"]["ok"] for x in box))
+        queue = self._queue(project)
+        self.assertEqual(queue["counts"]["pending"], 0)
+        self.assertEqual(queue["counts"]["merged"], 2)
+        self.assertEqual(len(self._project_ticket_ids(project)), 1)
+
+    def test_autoflush_demand_processes_queue_without_manual_flush(self):
+        """入队触发的自动处理需求：派发 secretary.queued 就能建单，不需要有人手点。"""
+        project = self._project("秘书自动处理项目")
+        pushed = self._push(project, "auto1", "第一个工单：扫描项目源码并整理架构")
+        self.assertTrue(pushed["result"]["created"], pushed)
+        got = self.ctx.demand_engine.dispatch("secretary.queued", {
+            "hook": "secretary.queued",
+            "level": "info",
+            "data": {"project": project, "msg_id": "auto1"},
+        })
+        self.assertTrue(got)
+        self.assertEqual(got[0]["demand"], "secretary-autoflush")
+        queue = self._queue(project)
+        self.assertEqual(queue["counts"]["pending"], 0)
+        self.assertEqual(queue["counts"]["merged"], 1)
+        self.assertTrue(self._project_ticket_ids(project))
+
     def test_batch_merge_three_into_one_ticket(self):
         """3 条消息合并成 1 张工单；后发修正覆盖同字段，来源可追溯。"""
         project = self._project("秘书批次合并项目")

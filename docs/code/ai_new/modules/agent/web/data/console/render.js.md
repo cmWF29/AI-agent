@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/render.js
-hash: af3a5513ec732fc3087be4d7e838abb49a259ad3c1506cf6783563d45e7801af
+hash: 0d2d2f31818937950201cccc7f2d89002f2c7c5b497c1763db0c3ffe60dee23b
 symbols:
 - foldLoad
 - foldSet
@@ -27,6 +27,7 @@ symbols:
 - memberIndexOf
 - msgAvatarHtml
 - draftBubbleHtml
+- outboxHtml
 - roleOf
 - taskOf
 - eventText
@@ -102,6 +103,7 @@ symbols:
 - metaVal
 - meta
 - pav
+- me
 - hit
 - startOfDay
 - fn
@@ -113,6 +115,7 @@ symbols:
 - head
 - w
 - size
+- proj
 - metaBits
 - headMain
 - draft
@@ -305,6 +308,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `draftBubbleHtml`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `outboxHtml`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -760,6 +769,12 @@ updated_at: '2026-11-23T04:10:21'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `me`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `hit`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -821,6 +836,12 @@ updated_at: '2026-11-23T04:10:21'
 - 关联需求/测试: 待人工补充
 
 ### `size`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `proj`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

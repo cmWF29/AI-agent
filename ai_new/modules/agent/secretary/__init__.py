@@ -8,10 +8,34 @@ ticket-create 需求（项目守卫与 PM 拉起都在 tickets.create 能力内�
 """
 from __future__ import annotations
 
+import functools
+import threading
+
 from .private import _pure
+
+# 同一项目的批量处理必须串行：两条消息同时入队会各自触发一次 flush，并发读同一份
+# pending 状态就会各建一张工单。锁在进程内按项目分段，不同项目照常并行。
+_FLUSH_LOCKS = {}
+_FLUSH_GUARD = threading.Lock()
+
+
+def _flush_lock(project):
+    with _FLUSH_GUARD:
+        return _FLUSH_LOCKS.setdefault(project, threading.Lock())
+
+
+def _serialized(fn):
+    @functools.wraps(fn)
+    def wrapped(ctx, payload):
+        project = str((payload or {}).get("project") or "").strip()
+        with _flush_lock(project):
+            return fn(ctx, payload)
+    return wrapped
 
 
 def setup(ctx):
+    # 入队即触发的延迟点：不阻塞发送请求，等响应写完再批量处理，避免用户发完没人管。
+    ctx.hooks.point("secretary.queued", ("project", "msg_id"), defer=True)
     ctx.api.register("secretary.push", _route_push,
                      "消息入队：项目守卫→幂等入队→回队列视图与落盘效果", module="secretary")
     ctx.api.register("secretary.flush", _route_flush,
@@ -195,6 +219,9 @@ def _route_push(ctx, payload):
         tip = tpl.get("msg_id_missing") if res["code"] == "msg_id_missing" else tpl.get("empty_text")
         return _err(res["code"], 400, tip or "")
     view = _pure.queue_view({"state": state})
+    if res["created"]:
+        # 只有新入队才触发；重复投递（msg_id 相同）不会被再处理一次。
+        ctx.hooks.emit("secretary.queued", {"project": project, "msg_id": msg_id})
     return {"ok": True, "created": res["created"], "entry": res["entry"],
             "counts": view["counts"], "effects": [_write_effect(ctx, project, state)]}
 
@@ -214,6 +241,7 @@ def _assemble_goal(brief_b, tpl):
     return "\n".join(x for x in lines if x) or tpl.get("fallback_goal") or ""
 
 
+@_serialized
 def _route_flush(ctx, payload):
     tpl = _msg_tpl(ctx)
     project = str(payload.get("project") or "").strip()

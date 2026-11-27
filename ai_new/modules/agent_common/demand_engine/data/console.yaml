@@ -56,6 +56,12 @@ ui:
   collapse: 收起侧栏
   expand: 展开侧栏
   composer_empty: 先输入内容
+  msg_sending: 发送中
+  msg_sent: 已发送
+  msg_failed: 发送失败，点击重发
+  msg_retry: 重发
+  msg_no_demand: 这条消息缺少提交需求
+  send_wait: 上一条还在处理，稍后再发
   boot_fail: "控制台没起来：{}"
   no_views: 没有视图规格，页面起不来
   unknown_kind: "未知区块: {}"
@@ -196,6 +202,7 @@ click_machine:                          # 点击状态机：前端每一个可�
   - {key: deck_toggle,    label: 展开堆叠,     allow: [idle, swallow],  enter: "",    exit: "",   note: 只改布局}
   - {key: deck_swipe,     label: 滑动堆叠,     allow: [idle],           enter: press, exit: idle, note: 手势由 pointer 驱动，先 press 再判方向}
   - {key: composer_send,  label: 发送消息,     allow: [idle],           enter: busy,  exit: idle, note: 空文本不发}
+  - {key: chat_retry,     label: 重发消息,     allow: [idle],           enter: busy,  exit: idle, note: 发送失败气泡上的重发，同 msg_id 幂等}
   - {key: composer_voice, label: 语音输入,     allow: [idle],           enter: busy,  exit: idle, note: 录音期互斥}
   - {key: modal_ok,       label: 弹窗确定,     allow: [modal],          enter: busy,  exit: modal, note: 提交中禁用}
   - {key: modal_cancel,   label: 弹窗取消,     allow: [modal],          enter: "",    exit: "",   note: 关闭由 closeModal 负责}

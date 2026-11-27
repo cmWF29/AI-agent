@@ -107,6 +107,8 @@ jobs:
         run: python3 scripts/verify_ui.py
       - name: UI 表单真点闭环（新建项目：按钮→弹窗→提交→卡片）
         run: python3 scripts/verify_ui_forms.py
+      - name: 群聊秘书 IM 发送态（乐观气泡/转圈/头像一致/失败重发/自动处理）
+        run: python3 scripts/verify_im_secretary.py
       - name: E2E 项目闭环（新建→改名→归档→删除）
         run: |
           set -o pipefail

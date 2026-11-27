@@ -509,6 +509,15 @@ sl-button.av-chip.st-offline .dot{background:var(--muted)}
 .msg-time{font-size:11px;line-height:1;color:var(--muted);opacity:.8;user-select:none;flex:none}
 .msg.right .msg-time{color:var(--muted)}
 .msg-ts{font-size:11px;color:var(--muted);margin-top:2px;text-align:right;user-select:none}
+/* 发送态：本地气泡在服务器回显前就显示；转圈/已发送/失败重发都在气泡下方 */
+.out-state{display:flex;align-items:center;gap:6px;justify-content:flex-end;font-size:11px;line-height:1.4;margin-top:3px;color:var(--muted)}
+.out-state.sent{color:var(--ok)}
+.out-state.failed{color:var(--danger)}
+.out-spin{width:9px;height:9px;border:2px solid rgba(127,127,127,.28);border-top-color:currentColor;border-radius:50%;animation:out-spin .8s linear infinite;flex:none}
+@keyframes out-spin{to{transform:rotate(360deg)}}
+.msg.outbox .bubble-body{box-shadow:0 1px 2px rgba(16,24,40,.14)}
+.msg.outbox.failed .bubble-body{border-color:var(--danger);background:rgba(245,63,63,.10);color:var(--danger)}
+.out-retry{padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .bubble-body.draft{color:var(--muted)}
 .bubble-body.md{white-space:normal;line-height:1.55}
 .bubble-body.md p{margin:0}

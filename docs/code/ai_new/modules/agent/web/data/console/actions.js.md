@@ -1,8 +1,17 @@
 ---
 source: ai_new/modules/agent/web/data/console/actions.js
-hash: 379dffdeb8f67c1e3967bbe9edf8bd8f9ac7289e68cfff62ba9b4b477295dec3
+hash: 2d0a6248d2d5d0045903b2839b200b14e7f63ea3ebf70d00ba9ce20b17ad3472
 symbols:
+- outboxAll
+- outboxSave
+- outboxFor
+- outboxAdd
+- outboxMark
+- outboxDrop
+- outboxReconcile
+- newMsgId
 - execute
+- retryOutbox
 - voiceBtnLabel
 - resetVoiceBtn
 - executeVoice
@@ -33,7 +42,61 @@ updated_at: '2026-11-23T04:10:21'
 
 ## 符号
 
+### `outboxAll`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `outboxSave`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `outboxFor`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `outboxAdd`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `outboxMark`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `outboxDrop`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `outboxReconcile`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `newMsgId`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `execute`（js-function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `retryOutbox`（js-function）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

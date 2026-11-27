@@ -2,7 +2,7 @@
 
 # 需求 → 用例映射
 
-共 199 条需求，绑定 19 个检查项。
+共 200 条需求，绑定 19 个检查项。
 
 | 需求 | 业务域 | 检查项 | 用例模块 | 检查项范围 |
 | --- | --- | --- | --- | --- |
@@ -131,6 +131,7 @@
 | sandbox-capability | sandbox | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
 | sandbox-plan | sandbox | sandbox | test_isolation_tiers.py | 隔离执行：两档策略、执行计划、跨进程锁互斥与能力上报 |
 | sandbox-plan | sandbox | boundaries | test_security_boundaries.py | 边界 fail-closed：鉴权会话、沙箱虚拟路径、ASR 分块与静态资源门槛 |
+| secretary-autoflush | secretary | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |
 | secretary-discard | secretary | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |
 | secretary-flush | secretary | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |
 | secretary-index | secretary | secretary | test_secretary.py | 项目秘书：队列、批量合并、后发修正、幂等与失败保留 |

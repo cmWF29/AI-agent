@@ -200,6 +200,7 @@ checks:
   enabled: true
   demands:
   - secretary-intake
+  - secretary-autoflush
   - secretary-flush
   - secretary-discard
   - secretary-index

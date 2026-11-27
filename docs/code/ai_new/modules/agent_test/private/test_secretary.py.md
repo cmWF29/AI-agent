@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_secretary.py
-hash: 30400c830e8344ff96f2e1134d8f0a918b39cf6f0f404724348656fe5ec5c2e1
+hash: ef3a91a25a086b6c8e4acf417000c5fafb7299e8d10cf8f9f78e5da000fc9ab2
 symbols:
 - __call__
 - setUpClass
@@ -14,6 +14,8 @@ symbols:
 - _timer
 - _caller
 - _project_ticket_ids
+- test_concurrent_flush_on_same_project_creates_one_ticket
+- test_autoflush_demand_processes_queue_without_manual_flush
 - test_batch_merge_three_into_one_ticket
 - test_idempotent_repush_and_reflush
 - test_failure_preserves_queue_and_shows_error
@@ -116,6 +118,18 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `_project_ticket_ids`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_concurrent_flush_on_same_project_creates_one_ticket`（method）
+- 职责: 同一项目两条消息同时触发 flush：必须串行，只建一张单，消息不丢。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_autoflush_demand_processes_queue_without_manual_flush`（method）
+- 职责: 入队触发的自动处理需求：派发 secretary.queued 就能建单，不需要有人手点。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

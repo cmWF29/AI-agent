@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/boot.js
-hash: 39e53a08e0c35d10f9293bf378ac7a5c18114d29b4aa6a452f149c27b7bf4f93
+hash: 37d1e71825aaa6b18c5b5c70b3f5cc48c837b6203478ea349da32ca1c618e763
 symbols:
 - setClickMachine
 - machineKind

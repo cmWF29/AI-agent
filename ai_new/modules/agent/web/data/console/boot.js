@@ -270,6 +270,7 @@ const CLICK_HANDLERS = {
   },
   composer_send(el) { return runAct(el, "composer_send"); },
   composer_voice(el) { return runAct(el, "composer_voice"); },
+  chat_retry(el) { return uiRun(() => retryOutbox(el.dataset.msg || ""), "chat_retry", el); },
 };
 
 function handleClick(e) {
@@ -287,7 +288,12 @@ function handleClick(e) {
     }
     return;
   }
-  if (!uiAllowed(hit.kind)) return;           // 门禁拒绝：不猜、不排队
+  if (!uiAllowed(hit.kind)) {           // 门禁拒绝：不猜、不排队
+    if (hit.kind === "composer_send" || hit.kind === "chat_retry") {
+      banner(uiText("send_wait") || "上一条还在处理，稍后再发", "err");
+    }
+    return;
+  }
   if (AUDIT) {                                 // 审计：走一遍进入/回落，证明迁移合法
     uiEnter(hit.kind);
     setTimeout(() => {

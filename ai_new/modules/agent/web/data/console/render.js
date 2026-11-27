@@ -255,8 +255,12 @@ function tableHtml(sec, ctx) {
 function paletteOf() { return ROLE_PALETTE.length ? ROLE_PALETTE : ["#2f6bff"]; }
 function speakerOf(msg, roles) {
   if (msg.kind === "note") return roleLabel("system");
-  // 真人发言（session-send 打 human 标）：显示"用户"，不借会话主人的名字
-  if (msg.kind === "human") return roleLabel("user");
+  // 真人发言也要走群成员表：顶部头像与消息头像必须同一份身份（同名字、同配色）。
+  // 以前这里直接返回角色词表里的"用户"，才会在群聊里出现顶部"我"、气泡"用"两套头像。
+  if (msg.kind === "human") {
+    const me = (roles || []).find((r) => r.role === "user");
+    return (me && (me.display || me.role)) || roleLabel("user");
+  }
   const actor = msg.actor || msg.role || "assistant";
   if (actor === "tool") return msg.name ? (roleLabel("tool") + " · " + msg.name) : roleLabel("tool");
   const hit = (roles || []).find((r) => r.role === actor || r.session === actor);
@@ -311,6 +315,26 @@ function draftBubbleHtml(draft, roles) {
   return `<div class="msg left draft-bubble">${msgAvatarHtml(who, roles)}
         <div class="msg-main"><div class="msg-name">${esc(who)}</div>
         <div class="bubble-stack"><div class="bubble-body draft">${esc(draftTxt)}<span class="cursor">▍</span></div></div></div></div>`;
+}
+/* 本地发件箱气泡：发出的那一刻就出现在右侧，不靠轮询。
+   sending = 转圈；sent = 已落地；failed = 红边 + 可点的「重发」。 */
+function outboxHtml(items, roles) {
+  const who = speakerOf({ role: "user", kind: "human" }, roles);
+  const av = msgAvatarHtml(who, roles);
+  return arr(items).map((e) => {
+    const st = String(e.status || "sending");
+    const tm = timeText(e.at);
+    const full = clockText(e.at);
+    const ts = tm ? `<span class="msg-time"${full ? ` title="${esc(full)}"` : ""}>${esc(tm)}</span>` : "";
+    const state = st === "failed"
+      ? `<div class="out-state failed"><span>${esc(uiText("msg_failed") || "发送失败")}</span><button type="button" class="out-retry" data-clk="chat_retry" data-msg="${esc(e.msg_id)}" data-ctl="ctl.chat_retry.重发" data-ctl-state="idle">${esc(uiText("msg_retry") || "重发")}</button></div>`
+      : st === "sent"
+        ? `<div class="out-state sent"><span class="out-tick">✓</span>${esc(uiText("msg_sent") || "已发送")}</div>`
+        : `<div class="out-state sending"><span class="out-spin" aria-hidden="true"></span>${esc(uiText("msg_sending") || "发送中")}</div>`;
+    return `<div class="msg right outbox ${esc(st)}">
+      <div class="msg-main"><div class="msg-head">${ts}</div>
+      <div class="bubble-stack"><div class="bubble-body">${esc(e.text)}</div>${state}</div></div>${av}</div>`;
+  }).join("");
 }
 /* 工单历程 → 系统事件气泡：连续同类事件合并计数，长文本折行折叠 */
 /* role_spawn 的事件正文是「角色: 任务」，合并后只报角色名，任务统一在一句里 */
@@ -756,6 +780,10 @@ function chatHtml(sec, ctx) {
     if (hidden.includes(m.role || "")) return false;
     return true;
   });
+  // 服务器已回显的消息不再重复画本地乐观气泡；失败条目保留给用户重发。
+  const proj = (ctx.route && ctx.route.project) || "";
+  outboxReconcile(state.view, proj, src.messages);
+  const outbox = outboxFor(state.view, proj);
   const badge = sec.badge ? badgeHtml(fill(sec.badge, ctx), ctx) : "";
   const title = sec.heading ? `<div class="chat-head-title"><strong>${esc(fill(sec.heading, ctx))}</strong></div>` : "";
   const metaBits = (sec.meta || []).map((x) => fill(x, ctx)).filter((x) => String(x == null ? "" : x).trim());
@@ -779,7 +807,8 @@ function chatHtml(sec, ctx) {
   const headActions = arr(sec.actions || [])
     .map((a) => buttonHtml(a, ctx, { clk: a.clk || "card_act" })).join("");
   const body = inject + todoBoardHtml(src.todos, sec.todos_label) +
-    (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) + draftHtml;
+    (stream || `<div class="chat-empty">${esc(fill(sec.empty || "", ctx))}</div>`) +
+    outboxHtml(outbox, roles) + draftHtml;
   return `<section class="chat-card card">
     ${headMain || chips || headActions ? `<div class="chat-head">${headMain}<div class="members">${chips}</div><div class="chat-head-actions">${headActions}</div></div>` : ""}
     ${summaryHtml}

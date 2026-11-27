@@ -49,6 +49,22 @@ class Engine:
         return self.result
 
 
+class Hooks:
+    """秘书触发点的轻量替身：只记录声明与投递，不跑需求层。"""
+
+    def __init__(self):
+        self.points = []
+        self.emitted = []
+
+    def point(self, name, params=(), defer=False):
+        self.points.append((name, tuple(params), bool(defer)))
+        return name
+
+    def emit(self, name, payload=None, level="info"):
+        self.emitted.append((name, payload or {}))
+        return [{"hook": name, "ok": True, "deferred": True}]
+
+
 class Ctx:
     ApiError = ApiError
 
@@ -56,6 +72,7 @@ class Ctx:
         self.api = Api()
         self.demand_engine = Engine()
         self.tools = _registry.ToolRegistry(self)
+        self.hooks = Hooks()
 
 
 TPL = {
