@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T22:32:34",
+  "generated": "2026-11-27T22:41:50",
   "total": 596,
   "groups": [
     {
@@ -2825,7 +2825,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/ticket-role-task.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "e23a46de3db4df34be24fcf7cc397d011583020fcfbbd36d343a1bad725d2e68",
+          "hash": "44adc3ade2898963199ba1cab4c89cb10ab93a05c07d4fe2ee83677b3179623b",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
         },

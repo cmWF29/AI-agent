@@ -38,6 +38,16 @@ do:
       text:
         get: input.text
   as: sent
+- call: runtime.dispatch
+  with:
+    demand:
+      lit: session-run
+    key:
+      get: sent.result.id
+    input:
+      id:
+        get: sent.result.id
+  as: run
 - call: tickets.view
   with:
     rec:
@@ -51,6 +61,7 @@ expect:
   - store.read
   - tickets.pick
   - demand_engine.run
+  - runtime.dispatch
   - tickets.view
   payload: {}
   promise: 找人归模块，发消息归需求
