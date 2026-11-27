@@ -58,9 +58,21 @@ async def main():
         ok_btn = page.locator("#modal-ok")
         check("弹窗「创建项目」按钮可用", await ok_btn.is_visible() and not await ok_btn.is_disabled())
         await ok_btn.tap()
-        await page.wait_for_timeout(2500)
-        check("提交后弹窗关闭", await page.locator("#modal[open]").count() == 0)
-        check("新项目卡片出现在列表", await page.get_by_text(name, exact=True).count() >= 1)
+        # 创建是真实 HTTP + 落盘 + 列表刷新；慢机不能拿固定 2.5 秒赌，等条件成立。
+        closed = False
+        for _ in range(30):
+            if await page.locator("#modal[open]").count() == 0:
+                closed = True
+                break
+            await page.wait_for_timeout(500)
+        check("提交后弹窗关闭", closed)
+        listed = False
+        for _ in range(30):
+            if await page.get_by_text(name, exact=True).count() >= 1:
+                listed = True
+                break
+            await page.wait_for_timeout(500)
+        check("新项目卡片出现在列表", listed)
         await browser.close()
     if FAILS:
         print("UI 表单闭环失败：%s" % " | ".join(FAILS))

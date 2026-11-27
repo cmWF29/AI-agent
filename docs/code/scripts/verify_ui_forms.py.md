@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_ui_forms.py
-hash: a7ba15facdb9abb5d315ab49c78bb11901f16d5994a074c8256ccd54b20785a9
+hash: 2c9e16bd1c8c0fbad9471a87245d9266f7e7721d59c1b93261cc4173f5803431
 symbols:
 - check
 - ensure_login
