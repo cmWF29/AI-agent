@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/web/data/console/actions.js
-hash: 2638e7b8ad0c3d452d4b72d586c8ee72d6524c30466c7ce2eae09d852e411bfd
+hash: 5006f95e062b55dbe591886cb57290946995e6bb61c3e5c3ff3779af071af1fc
 symbols:
 - outboxAll
 - outboxSave

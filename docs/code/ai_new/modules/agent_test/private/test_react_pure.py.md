@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_react_pure.py
-hash: 59d7c09e094180bc5f62b58ab266a98e252f6df637ba1571954b2fcb849b574e
+hash: 1d3329f1d417ec78b028e3b8d08fb9355dc10f888f937f42b8d19355074dbf71
 symbols:
 - test_list_type_becomes_array_with_items
 - test_no_tools_yields_empty_object
@@ -49,6 +49,9 @@ symbols:
 - test_questions_shape
 - test_questions_only_structured
 - test_questions_bad_container
+- test_salvage_missing_quote_and_arrays
+- test_salvage_bad_escape_and_plain_text
+- test_salvage_string_edges
 - test_by_model_passthrough
 - test_no_turns_returns_base
 - test_fallback_compresses_turns
@@ -351,6 +354,24 @@ ReAct 纯函数单测：形状成形、上下文治理、收口解析与摘要�
 - 关联需求/测试: 待人工补充
 
 ### `test_questions_bad_container`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_salvage_missing_quote_and_arrays`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_salvage_bad_escape_and_plain_text`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_salvage_string_edges`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

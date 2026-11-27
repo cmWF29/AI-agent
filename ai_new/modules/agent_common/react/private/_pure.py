@@ -259,7 +259,7 @@ def _questions(value):
 def parse_final(p):
     """拆分收口步的结构化输出：reply 进气泡，summary 存滚动摘要。
 
-    obj 为 codec 已解码结果；解析失败/非 dict 时整段作答复正文，摘要留空由调用方回退。
+    obj 为 codec 已解码/抢救结果；解析失败/非 dict 时整段作答复正文，摘要留空由调用方回退。
     纯计算，不碰盘、不做 JSON 解码。
     """
     content = p.get("content") or ""
@@ -274,13 +274,17 @@ def parse_final(p):
 
     if isinstance(obj, dict) and ("reply" in obj or "summary" in obj or "stage" in obj
                                  or "questions" in obj):
+        raw = obj
+    else:
+        raw = {}
+    if raw:
         return {"structured": True,
-                "reply": _textify(obj.get("reply")),
-                "summary": _textify(obj.get("summary")),
-                "stage": _textify(obj.get("stage")),
-                "checklist": _list(obj.get("checklist")),
-                "violations": _list(obj.get("violations")),
-                "questions": _questions(obj.get("questions"))}
+                "reply": _textify(raw.get("reply")),
+                "summary": _textify(raw.get("summary")).strip(),
+                "stage": _textify(raw.get("stage")).strip(),
+                "checklist": _list(raw.get("checklist")),
+                "violations": _list(raw.get("violations")),
+                "questions": _questions(raw.get("questions"))}
     return {"structured": False, "reply": content, "summary": "", "stage": "",
             "checklist": [], "violations": []}
 

@@ -1,6 +1,6 @@
 ---
 source: scripts/verify_e2e.py
-hash: 37bbe5f31f9807191ddec83539aabe09a1cc93437245db3897e2a284c2602765
+hash: fe61b062227c8a417bd3e770765553c1e554866de845f9602c857972262629c3
 symbols:
 - new_page
 - open_projects

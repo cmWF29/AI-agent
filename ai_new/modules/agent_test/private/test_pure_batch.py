@@ -291,6 +291,35 @@ class CodecTest(unittest.TestCase):
         self.assertFalse(codec.yaml_decode("{")["ok"])
         self.assertEqual(codec.json_decode(None)["value"], None)
 
+    def test_json_salvage(self):
+        # 真实 DeepSeek 曾把 stage 后引号/逗号写坏；整段解不开时逐字段救回。
+        bad = ('{"reply": "已收到澄清", "summary": "规格确定", "stage": '
+               '"owner.req.structure "checklist": [], "violations": [], '
+               '"questions": [{"text": "交付形态？", "options": [{"label": "只要文档", '
+               '"value": "doc_only"}], "multi": false, "other": true}]}')
+        got = codec.json_salvage(bad)
+        self.assertTrue(got["ok"])
+        self.assertEqual(got["value"]["reply"], "已收到澄清")
+        self.assertEqual(got["value"]["stage"], "owner.req.structure")
+        self.assertEqual(got["value"]["questions"][0]["options"][0]["value"], "doc_only")
+        bad_escape = codec.json_salvage('{"reply": "ok \\1)", "summary": "s"}')
+        self.assertTrue(bad_escape["ok"])
+        self.assertEqual(bad_escape["value"]["reply"], "ok 1)")
+        self.assertFalse(codec.json_salvage("普通正文")["ok"])
+        self.assertFalse(codec.json_salvage(None)["ok"])
+
+    def test_json_salvage_string_edges(self):
+        got = codec.json_salvage('{"reply": "a\\"b\\nc", "summary": }')["value"]
+        self.assertEqual(got["reply"], 'a"b\nc')
+        self.assertNotIn("summary", got)
+        self.assertIsNone(codec._json_field("{}", "reply"))
+        self.assertIsNone(codec._json_field('{"summary": }', "summary"))
+        self.assertIsNone(codec._json_array('{"questions": [1}', "questions"))
+        self.assertIsNone(codec._jsonish("{bad"))
+        self.assertEqual(codec._json_field('{"reply": "tail', "reply"), "tail")
+        self.assertEqual(codec._json_array(r'{"questions": ["a\\b", "c"]}', "questions"),
+                         ["a\\b", "c"])
+
     def test_sse_base64_digest(self):
         self.assertFalse(codec.sse_decode(1)["ok"])
         self.assertEqual(codec.sse_decode(b'data: {"a":1}\n')["items"], [{"a": 1}])

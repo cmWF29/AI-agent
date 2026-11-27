@@ -695,7 +695,7 @@ function questionCardHtml(qs, m) {
   const demand = String(CLARIFY_DEMAND || "");
   const rows = list.map((q, i) => {
     const opts = q.options.length
-      ? `<div class="q-opts">${q.options.map((o) => `<button type="button" class="q-opt" data-clk="q_pick" data-q="${esc(qid)}" data-qi="${i}" data-qv="${esc(o.value)}" data-multi="${q.multi ? "1" : "0"}" aria-pressed="false">${esc(o.label)}</button>`).join("")}</div>`
+      ? `<div class="q-opts">${q.options.map((o) => `<button type="button" class="q-opt" data-clk="q_pick" data-q="${esc(qid)}" data-qi="${i}" data-qv="${esc(o.value)}" data-ql="${esc(o.label)}" data-multi="${q.multi ? "1" : "0"}" aria-pressed="false">${esc(o.label)}</button>`).join("")}</div>`
       : "";
     const field = `<input class="q-other" type="text" data-q="${esc(qid)}" data-qi="${i}" placeholder="${esc(q.options.length ? uiText("q_other") : uiText("q_input"))}"${answered ? " disabled" : ""}>`;
     return `<div class="q-item" data-qi="${i}"><div class="q-title"><span class="q-no">${i + 1}</span><span>${esc(q.text)}</span><i>${q.multi ? "可多选" : "单选"}</i></div>${opts}${q.other || !q.options.length ? field : ""}</div>`;

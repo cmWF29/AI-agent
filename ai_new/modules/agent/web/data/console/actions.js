@@ -166,11 +166,16 @@ function collectQuestionAnswers(card) {
   card.querySelectorAll(".q-item").forEach((item) => {
     const qi = item.dataset.qi;
     const q = ((item.querySelector(".q-title") || {}).innerText || "").replace(/^\s*\d+\s*/, "").replace(/单选|可多选/, "").trim();
-    const vals = [...item.querySelectorAll(".q-opt.on")].map((b) => String(b.dataset.qv || "").trim()).filter(Boolean);
+    const picked = [...item.querySelectorAll(".q-opt.on")].map((b) => ({
+      value: String(b.dataset.qv || "").trim(),
+      label: String(b.dataset.ql || b.dataset.qv || "").trim(),
+    })).filter((x) => x.value);
+    const vals = picked.map((x) => x.value);
+    const labels = picked.map((x) => x.label);
     const box = item.querySelector(".q-other");
     const extra = box ? String(box.value || "").trim() : "";
-    if (extra && !vals.includes(extra)) vals.push(extra);
-    if (vals.length) out.push({ qid: qid + "#" + qi, question: q, values: vals });
+    if (extra && !vals.includes(extra)) { vals.push(extra); labels.push(extra); }
+    if (vals.length) out.push({ qid: qid + "#" + qi, question: q, values: vals, labels });
   });
   return { qid, answers: out };
 }
@@ -182,7 +187,8 @@ async function submitQuestionCard(el) {
     banner(uiText("q_missing") || "请至少回答一项", "err");
     return;
   }
-  const lines = answers.map((a, i) => `${i + 1}. ${a.question || "问题"}\n   答：${a.values.join("；")}`);
+  // 回给 PM 的正文用人话标签；values 仍保留机器值供后续系统消费。
+  const lines = answers.map((a, i) => `${i + 1}. ${a.question || "问题"}\n   答：${(a.labels || a.values).join("；")}`);
   const text = (uiText("q_answer_head") || "【澄清答复】") + "\n" + lines.join("\n");
   const tid = (typeof state !== "undefined" && state.ticket) || "";
   const demand = String(card.dataset.demand || "");

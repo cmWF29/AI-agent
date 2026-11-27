@@ -223,4 +223,5 @@ def throttle_update(p):
                          if isinstance(e, dict)),
                         key=lambda kv: float(kv[1].get("last") or 0), reverse=True)
         entries = dict(ranked[:max_entries])
-    return throttle_check({"entries": entries, "keys": keys, "now": now}) | {"entries": entries}
+    return {**throttle_check({"entries": entries, "keys": keys, "now": now}),
+            "entries": entries}

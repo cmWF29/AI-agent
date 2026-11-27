@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/react/private/_pure.py
-hash: 99d5272ab7128383871d695b91ef66eae0509629d7b39e7ffd25fe51b192f14e
+hash: ec4192673745d96f8b11f0e1bff616649df829d4b2e426ccafd870524a8eb3fc
 symbols:
 - schema
 - schemas
@@ -21,6 +21,10 @@ symbols:
 - extract_json
 - _textify
 - _questions
+- _jsonish
+- _json_field
+- _json_array
+- salvage_final
 - parse_final
 - summarize
 - attach_protocol
@@ -149,6 +153,30 @@ ReAct 纯函数：把响应切成消息、把工具定义切成模型能吃的�
 
 ### `_questions`（function）
 - 职责: 澄清问题卡片定型：只收可被界面直接渲染的问题与选项。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_jsonish`（function）
+- 职责: 把一段 JSON 字面量尽量解出来：先严格，再把模型写坏的反斜杠去掉重试。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_json_field`（function）
+- 职责: 从坏 JSON 里抽一个字符串字段：只认开引号后的原文，按 JSON 字符串规则收口。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_json_array`（function）
+- 职责: 从坏 JSON 里抽数组字段：按括号深度和字符串状态截取，再走同一套容错解码。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `salvage_final`（function）
+- 职责: 坏收口报文的最小抢救：逐字段抽字符串/数组，抽到任何一项就算结构化。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

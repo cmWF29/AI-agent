@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T16:31:23",
+  "generated": "2026-11-27T17:14:36",
   "total": 596,
   "groups": [
     {
@@ -146,7 +146,7 @@
           "doc": "docs/code/ai_new/modules/agent/auth/private/_pure.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "8c247a073868c07af4cb833eed33a7b74cb269f0ff7fb285bdc4cc5b7ceadb18",
+          "hash": "2faf5e6ed693ccaf506a61b46d3e5206ce0f047ea052e431f3314db3b05acccb",
           "symbols": 11,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -974,7 +974,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/actions.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "2638e7b8ad0c3d452d4b72d586c8ee72d6524c30466c7ce2eae09d852e411bfd",
+          "hash": "5006f95e062b55dbe591886cb57290946995e6bb61c3e5c3ff3779af071af1fc",
           "symbols": 31,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -1037,7 +1037,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/render.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "0292e95ffa42029121ed9cc3f5b71c390f6b09ea5a3529caa0b38e8949d9159d",
+          "hash": "667c8547e7c09dce8bc3725a529fced8aa3fdd0eb11de4c98d078e75f4046e37",
           "symbols": 162,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3725,8 +3725,8 @@
           "doc": "docs/code/ai_new/modules/agent_common/react/private/_pure.py.md",
           "kind": "py",
           "group": "agent_common",
-          "hash": "99d5272ab7128383871d695b91ef66eae0509629d7b39e7ffd25fe51b192f14e",
-          "symbols": 22,
+          "hash": "ec4192673745d96f8b11f0e1bff616649df829d4b2e426ccafd870524a8eb3fc",
+          "symbols": 26,
           "updated_at": "2026-11-23T04:10:22"
         },
         {
@@ -4613,8 +4613,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_react_pure.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "59d7c09e094180bc5f62b58ab266a98e252f6df637ba1571954b2fcb849b574e",
-          "symbols": 57,
+          "hash": "1d3329f1d417ec78b028e3b8d08fb9355dc10f888f937f42b8d19355074dbf71",
+          "symbols": 60,
           "updated_at": "2026-11-26T09:53:21"
         },
         {
@@ -5312,7 +5312,7 @@
           "doc": "docs/code/scripts/verify_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "37bbe5f31f9807191ddec83539aabe09a1cc93437245db3897e2a284c2602765",
+          "hash": "fe61b062227c8a417bd3e770765553c1e554866de845f9602c857972262629c3",
           "symbols": 25,
           "updated_at": "2026-11-24T12:48:33"
         },

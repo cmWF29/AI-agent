@@ -292,7 +292,7 @@ async def submit_clarify_card(pg, tid):
     """注入一张真实结构的问题卡，点选项+填自由文本+点提交，验证答案作为 human 消息落盘。"""
     card_qid = await pg.evaluate("""qid => {
       const card=questionCardHtml([
-        {id:'q1',text:'交付物类型？',options:['代码','文档'],multi:false,other:true},
+        {id:'q1',text:'交付物类型？',options:[{label:'只出代码',value:'code'},{label:'只出文档',value:'doc'}],multi:false,other:true},
         {id:'q2',text:'补充路径',options:[],multi:false,other:true}
       ], {at: qid});
       const host=document.querySelector('#view-body');
@@ -313,11 +313,14 @@ async def submit_clarify_card(pg, tid):
           const r=await run('ticket-thread',{id});
           const msgs=r.thread.messages||[];
           const hit=[...msgs].reverse().find(m=>m.kind==='human' && m.qid===qid);
-          return {status:r.thread.status, hit:!!hit, answers:(hit&&hit.answers)||[]};
+          return {status:r.thread.status, hit:!!hit, answers:(hit&&hit.answers)||[],
+                  content:(hit&&hit.content)||''};
         }""", [tid, card_qid])
         if last.get("status") == "idle" and last.get("hit"):
             if not last["answers"]:
                 raise AssertionError("问题卡答复没有落结构化 answers: %s" % last)
+            if "只出文档" not in last.get("content", ""):
+                raise AssertionError("问题卡答复正文没有写人话选项标签: %s" % last.get("content"))
             return last
     raise AssertionError("问题卡提交后未在 60s 内落盘收口: %s" % last)
 

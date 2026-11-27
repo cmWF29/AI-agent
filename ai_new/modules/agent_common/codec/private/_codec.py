@@ -5,6 +5,7 @@ import base64
 import hashlib
 import io
 import json
+import re
 import secrets
 import wave
 
@@ -28,6 +29,91 @@ def json_decode(text):
         return {"ok": True, "value": json.loads(text or "null")}
     except (TypeError, ValueError) as exc:
         return {"ok": False, "error": str(exc), "code": "decode_failed"}
+
+def _jsonish(raw):
+    """尽量解一段 JSON 字面量：先严格，再把模型写坏的反斜杠去掉重试。"""
+    for candidate in (raw, re.sub(r'\\(?!["\\/bfnrtu])', "", raw)):
+        try:
+            return json.loads(candidate, strict=False)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _json_field(text, key):
+    """从坏 JSON 里抽一个字符串字段：只认开引号后的原文，按 JSON 字符串规则收口。
+
+    返回 None 表示没有这个字段；空串是合法值。
+    """
+    hit = re.search(r'"%s"\s*:\s*"' % re.escape(key), text or "")
+    if not hit:
+        return None
+    body, escaped = [], False
+    for ch in text[hit.end():]:
+        if escaped:
+            body.append("\\")
+            body.append(ch)
+            escaped = False
+        elif ch == "\\":
+            escaped = True
+        elif ch == '"':
+            break
+        else:
+            body.append(ch)
+    raw = "".join(body)
+    out = _jsonish('"' + raw + '"')
+    return out if isinstance(out, str) else raw
+
+
+def _json_array(text, key):
+    """从坏 JSON 里抽数组字段：按括号深度和字符串状态截取，再走同一套容错解码。"""
+    hit = re.search(r'"%s"\s*:\s*\[' % re.escape(key), text or "")
+    if not hit:
+        return None
+    depth, in_str, escaped = 1, False, False
+    raw = ["["]
+    for ch in text[hit.end():]:
+        raw.append(ch)
+        if in_str:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                out = _jsonish("".join(raw))
+                return out if isinstance(out, list) else None
+    return None
+
+
+def json_salvage(text):
+    """坏收口报文的最小抢救：逐字段抽字符串/数组，抽到任何一项就算结构化。
+
+    只在整段 JSON 解码失败时兜底，避免把普通正文误当协议报文。
+    """
+    out, found = {}, False
+    for key in ("reply", "summary", "stage"):
+        value = _json_field(text, key)
+        if value is not None:
+            out[key] = value.strip() if key in ("summary", "stage") else value
+            found = True
+    for key in ("checklist", "violations", "questions"):
+        value = _json_array(text, key)
+        if value is not None:
+            out[key] = value
+            found = True
+    if not found:
+        return {"ok": False, "error": "no protocol fields", "code": "decode_failed"}
+    return {"ok": True, "value": out}
+
 
 def yaml_encode(value):
     try:
