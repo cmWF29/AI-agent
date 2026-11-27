@@ -1,11 +1,14 @@
 ---
 source: ai_new/modules/agent_test/private/test_net_client.py
-hash: a9676e3ed9d6a67d102beeac88f62421b82b78e0f38fc18cdda8cb88ad6e62aa
+hash: 2b527ea72b9a270c8ac31ba370b11b2543ad9c1b3e9ff069732b33112801d4da
 symbols:
 - __init__
 - readline
 - readexactly
 - read
+- __init__
+- readline
+- readexactly
 - __init__
 - write
 - drain
@@ -21,6 +24,7 @@ symbols:
 - test_arequest_validation_and_success
 - test_arequest_retry_and_close_error
 - test_stream
+- test_stream_chunked_boundary
 - test_stream_bad_json_and_retry
 - test_stream_retry_is_suppressed_after_connect
 - test_sync_wrappers
@@ -65,6 +69,24 @@ HTTP 出站：URL/报文归一、状态行、chunked、重试与 SSE 增量。
 - 关联需求/测试: 待人工补充
 
 ### `read`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `__init__`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `readline`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `readexactly`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
@@ -155,6 +177,12 @@ HTTP 出站：URL/报文归一、状态行、chunked、重试与 SSE 增量。
 - 关联需求/测试: 待人工补充
 
 ### `test_stream`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_stream_chunked_boundary`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

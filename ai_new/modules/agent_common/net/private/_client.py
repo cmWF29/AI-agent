@@ -161,6 +161,43 @@ async def arequest(ctx, url, method="GET", headers=None, body=None, timeout=None
         attempt += 1
 
 
+async def _iter_stream_lines(reader, headers, timeout):
+    """按 HTTP 传输编码切出 SSE 逻辑行。
+
+    chunked 的块边界与 SSE 行边界无关：直接对原始 socket 逐行读，会把一条 data 帧
+    从块边界截断，JSON 解码失败后整帧丢弃，表现为模型输出随机缺字。这里先按
+    HTTP chunk 解码并拼回连续字节，再按换行切逻辑行；非 chunked 保持逐行透传。
+    """
+    te = (headers.get("transfer-encoding") or "").lower()
+    if "chunked" not in te:
+        while True:
+            line = await asyncio.wait_for(reader.readline(), timeout=timeout)
+            if not line:
+                break
+            yield line
+        return
+    buf = b""
+    while True:
+        line = await asyncio.wait_for(reader.readline(), timeout=timeout)
+        if not line:
+            break
+        size_text = line.decode("utf-8", "replace").strip().split(";")[0].strip()
+        try:
+            size = int(size_text, 16)
+        except ValueError:
+            break
+        if size == 0:
+            break
+        data = await asyncio.wait_for(reader.readexactly(size), timeout=timeout)
+        await asyncio.wait_for(reader.readline(), timeout=timeout)  # 块尾 CRLF
+        buf += data
+        while b"\n" in buf:
+            out, buf = buf.split(b"\n", 1)
+            yield out + b"\n"
+    if buf:
+        yield buf
+
+
 async def arequest_stream(ctx, url, method="POST", headers=None, body=None, timeout=None,
                           stream_key="", retries=2):
     """SSE 流式出站：逐帧读响应，正文增量推入运行期草稿槽，事件对象汇总后返回。
@@ -207,10 +244,7 @@ async def arequest_stream(ctx, url, method="POST", headers=None, body=None, time
                 if status < 500 or attempt >= retries:
                     return last
             else:
-                while True:
-                    raw = await asyncio.wait_for(reader.readline(), timeout=limit)
-                    if not raw:
-                        break
+                async for raw in _iter_stream_lines(reader, resp_headers, limit):
                     line = raw.decode("utf-8", "replace").strip()
                     if not line or not line.startswith("data:"):
                         continue

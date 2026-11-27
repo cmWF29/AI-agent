@@ -29,6 +29,22 @@ class Reader:
         return out
 
 
+class ChunkReader:
+    """按 HTTP chunk 喂数据：readline 出块长/CRLF，readexactly 出块体。"""
+    def __init__(self, lines, chunks):
+        self.lines = list(lines)
+        self.chunks = list(chunks)
+
+    async def readline(self):
+        return self.lines.pop(0) if self.lines else b""
+
+    async def readexactly(self, size):
+        data = self.chunks.pop(0)
+        if len(data) != size:
+            raise IOError("chunk size mismatch")
+        return data
+
+
 class Writer:
     def __init__(self, close_error=None):
         self.data = b""
@@ -181,6 +197,25 @@ class NetClientTest(unittest.TestCase):
                                   mock.AsyncMock(return_value=(200, {}))):
             out = asyncio.run(n.arequest_stream(ctx, "http://h"))
         self.assertEqual(out["items"][0]["choices"][0]["delta"]["content"], "y")
+
+    def test_stream_chunked_boundary(self):
+        c1 = b'data: {"choices": '
+        c2 = b'[{"delta": {}}]}\n'
+        r = ChunkReader([
+            ("%x\r\n" % len(c1)).encode(), b"\r\n",
+            ("%x\r\n" % len(c2)).encode(), b"\r\n", b"0\r\n"], [c1, c2])
+
+        async def collect():
+            return [x async for x in n._iter_stream_lines(
+                r, {"transfer-encoding": "chunked"}, 1)]
+
+        self.assertEqual(asyncio.run(collect()), [c1 + c2])
+        # 尾部没有换行也必须吐出，不能把最后一截丢掉。
+        r = ChunkReader([b"2\r\n", b"\r\n", b"0\r\n"], [b"ab"])
+        self.assertEqual(asyncio.run(collect()), [b"ab"])
+        # 坏块长：停止读取，不把后续当正文。
+        r = ChunkReader([b"zz\r\n"], [])
+        self.assertEqual(asyncio.run(collect()), [])
 
     def test_stream_bad_json_and_retry(self):
         ctx = Ctx()

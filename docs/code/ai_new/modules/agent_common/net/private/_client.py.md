@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/net/private/_client.py
-hash: 8ed048e5ca06a3834a91beea633458fe9dea54b144ea66edc1c677fb0ead65a8
+hash: b73b69d154834bedddb72a87596404974141f5b23881b0d804870ca4cab8472e
 symbols:
 - _retryable
 - _err_text
@@ -13,6 +13,7 @@ symbols:
 - _read_chunked
 - _read_body
 - arequest
+- _iter_stream_lines
 - arequest_stream
 - request
 - request_stream
@@ -93,6 +94,12 @@ HTTP(S) 出站实现（纯 stdlib，协程流）。失败是结果、不是异�
 
 ### `arequest`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_iter_stream_lines`（function）
+- 职责: 按 HTTP 传输编码切出 SSE 逻辑行。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
