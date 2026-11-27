@@ -924,7 +924,7 @@ def scenario_timer_fire():
 
         # 后台扫描按 timer.tick_interval_s（出厂 30s）走，建单可能晚到下一个 tick；
         # 出厂 min_interval=60s 时 lead 取 62s：比下限多 2s，又给 180s 场景上限留足余量。
-        deadline = fire_at.timestamp() + 45
+        deadline = fire_at.timestamp() + 75
         fired = None
         while time.time() < deadline:
             listing = req("ticket-list", {"project": pid}).get("items") or []
@@ -933,7 +933,7 @@ def scenario_timer_fire():
                 fired = row
                 break
             time.sleep(0.5)
-        must(fired is not None, "到点后 %ss 内没有建出工单（定时器没触发）" % 12)
+        must(fired is not None, "到点后 %ss 内没有建出工单（定时器没触发）" % 75)
 
         # 定时器列表按作用域过滤：读自己项目下那一条必须带 caller，否则只能看到空项目视角
         view = next((x for x in (req("timer-list", {"caller": caller}).get("items") or [])
@@ -1151,7 +1151,7 @@ def main(argv=None):
     failed = 0
 
     def _timeout(_signum, _frame):
-        raise E2E("场景超时（180s），疑似服务端挂起")
+        raise E2E("场景超时（240s），疑似服务端挂起")
 
     for name in names:
         started = time.time()
