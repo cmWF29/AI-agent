@@ -3082,6 +3082,17 @@ class CoreTest(unittest.TestCase):
                                  "out": dict(base_out, stage="a"),
                                  "latest": {}, "now": 3, "result_chars": 500})
         self.assertEqual(plain["meta"]["stage"], "a")
+        closed = sess_run.finish({
+            "rec": {"id": "pm-1", "meta": {"stage": "owner",
+                    "machine": {"terminals": ["owner.req.close"]},
+                    "active": ["owner"], "stage_alert": {"code": "x"}}},
+            "out": dict(base_out, stage=""),
+            "stage_check": {"ok": True, "code": "unset", "stage": "owner",
+                            "active": ["owner"], "ticket_status": "closed"},
+            "latest": {}, "now": 4, "result_chars": 500})
+        self.assertEqual(closed["meta"]["stage"], "owner.req.close")
+        self.assertEqual(closed["meta"]["active"], ["owner.req.close"])
+        self.assertNotIn("stage_alert", closed["meta"])
 
     def test_thread_exposes_session_meta(self):
         """线程视图要露出主会话 meta，界面才能判断 PM 有无卡点。"""

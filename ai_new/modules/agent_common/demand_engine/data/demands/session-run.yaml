@@ -230,6 +230,8 @@ do:
       lit: {}
     notes:
       get: trow.value.history
+    ticket_status:
+      get: trow.value.status
   as: check
 - call: sessions.finish
   with:

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_pure_batch.py
-hash: 6af0d406bdfe403894e7b74cb4d9cf5207cafd8cbe758b806b8c974d788752f7
+hash: 8545cc77c1658c4edd58e899bf1e91c1b0da97fc88ccee27355413c69b6e4a9b
 symbols:
 - test_assemble
 - test_records
@@ -16,6 +16,8 @@ symbols:
 - test_entries
 - test_group
 - test_json_yaml
+- test_json_salvage
+- test_json_salvage_string_edges
 - test_sse_base64_digest
 - test_hex_wave
 - test_channel
@@ -119,6 +121,18 @@ updated_at: '2026-11-26T02:51:40'
 - 关联需求/测试: 待人工补充
 
 ### `test_json_yaml`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_json_salvage`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_json_salvage_string_edges`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

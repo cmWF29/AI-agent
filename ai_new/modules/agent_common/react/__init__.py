@@ -207,8 +207,7 @@ async def _route_run(ctx, payload):
                                {"text": extracted.get("text")}, caller=None)
             if raw.get("ok") is False:
                 # 真实模型会把逗号/引号写坏：先让 codec 逐字段抢救，救不回来才整段当正文。
-                raw = ctx.api.call("codec.json_salvage",
-                                   {"text": extracted.get("text")}, caller=None)
+                raw = ctx.codec.json_salvage(extracted.get("text"))
             parsed = ctx.api.call("react.parse_final", {
                 "obj": raw.get("value"), "content": answer.get("content")}, caller=None)
         amsg = ctx.api.call("react.assistant", {

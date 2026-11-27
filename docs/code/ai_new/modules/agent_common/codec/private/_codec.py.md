@@ -1,9 +1,13 @@
 ---
 source: ai_new/modules/agent_common/codec/private/_codec.py
-hash: 23396dd89194f136328df588c251396cf3280f9fa635ca918f45aec415df38d7
+hash: 67ccc1461e3517c9a677ab31f130e262cdf993a3b343b511fb182caf3fa834de
 symbols:
 - json_encode
 - json_decode
+- _jsonish
+- _json_field
+- _json_array
+- json_salvage
 - yaml_encode
 - yaml_encode_flow
 - yaml_decode
@@ -38,6 +42,30 @@ JSON / SSE 编解码实现。失败是结果：{ok: False, error}。
 
 ### `json_decode`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_jsonish`（function）
+- 职责: 尽量解一段 JSON 字面量：先严格，再把模型写坏的反斜杠去掉重试。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_json_field`（function）
+- 职责: 从坏 JSON 里抽一个字符串字段：只认开引号后的原文，按 JSON 字符串规则收口。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_json_array`（function）
+- 职责: 从坏 JSON 里抽数组字段：按括号深度和字符串状态截取，再走同一套容错解码。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `json_salvage`（function）
+- 职责: 坏收口报文的最小抢救：逐字段抽字符串/数组，抽到任何一项就算结构化。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

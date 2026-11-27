@@ -14,8 +14,6 @@ def setup(ctx):
                      "对象 → JSON 文本", module="codec")
     ctx.api.register("codec.json_decode", lambda c, p: _codec.json_decode(p.get("text")),
                      "JSON 文本 → 对象", module="codec")
-    ctx.api.register("codec.json_salvage", lambda c, p: _codec.json_salvage(p.get("text")),
-                     "坏 JSON 逐字段抢救", module="codec")
     ctx.api.register("codec.sse_decode", lambda c, p: _codec.sse_decode(p.get("text")),
                      "SSE 文本 → 事件对象列表", module="codec")
     ctx.api.register("codec.digest", lambda c, p: _codec.digest(p.get("text"), p.get("algorithm") or "sha256"),
@@ -42,10 +40,6 @@ def json_encode(ctx, value):
 
 def json_decode(ctx, text):
     return _codec.json_decode(text)
-
-
-def json_salvage(ctx, text):
-    return _codec.json_salvage(text)
 
 
 def sse_decode(ctx, text):
