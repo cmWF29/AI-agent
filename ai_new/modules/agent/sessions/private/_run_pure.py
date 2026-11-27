@@ -17,6 +17,10 @@ def appendmsg(p):
     rec = dict(p.get("rec") or {})
     msgs = list(rec.get("messages") or [])
     msg = {"role": p.get("role") or "user", "content": p.get("text") or ""}
+    # 每条消息必须带自己的发生时刻。缺了 at，群聊只能拿会话创建时刻按序位补，
+    # 后发的人类消息会被排到会话最前面，页面停在底部时就像“消息被吞了”。
+    if p.get("now"):
+        msg["at"] = p["now"]
     # 闭环注入的回催/复盘提示不是真实用户发言：打 note 标记，前端归系统条展示；
     # role 仍留 user，作为下一轮给模型的指令输入。标记只供展示，不进 LLM 载荷。
     if p.get("kind"):

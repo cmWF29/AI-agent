@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/tickets/private/_pure.py
-hash: adf4090846e7891a7993b532806218be18162f169ebbde4a23d092f02bfcd2f6
+hash: f643f5edad19febf772fa8b14e4d4c0a97ac3bfdd2a71228089de07522009614
 symbols:
 - _glob_one
 - _glob
@@ -197,7 +197,7 @@ updated_at: '2026-11-23T04:10:20'
 - 关联需求/测试: 待人工补充
 
 ### `_stamp`（function）
-- 职责: 给合并进群聊的消息打发言者与时间：缺 at 的用会话起始时刻加序位偏移兜底。
+- 职责: 给合并进群聊的消息打发言者与时间：缺 at 的历史消息贴着相邻真实时间补齐。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

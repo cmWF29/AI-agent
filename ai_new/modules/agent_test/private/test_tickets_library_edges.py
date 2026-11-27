@@ -52,6 +52,20 @@ class TicketLockTest(unittest.TestCase):
         self.assertEqual(msgs[0]["actor"], "system")
         self.assertEqual(msgs[0]["at"], 100.0)
 
+    def test_stamp_uses_neighbor_time_for_missing_human_message(self):
+        # 人类消息落盘没有 at，前后 assistant 有真实时间：必须贴着后一条排，
+        # 不能按会话创建时刻铺到最前面，否则页面底部看不到新消息。
+        msgs = tickets_pure._stamp([
+            {"role": "assistant", "content": "a", "at": 100.0},
+            {"role": "user", "content": "human", "kind": "human"},
+            {"role": "assistant", "content": "b", "at": 200.0},
+            {"role": "user", "content": "tail", "kind": "human"},
+        ], "s1", "pm", 50.0)
+        self.assertAlmostEqual(msgs[1]["at"], 199.9999)
+        self.assertAlmostEqual(msgs[3]["at"], 200.0001)
+        self.assertLess(msgs[1]["at"], 200.0)
+        self.assertGreater(msgs[3]["at"], 200.0)
+
 
 class LibraryHandlerTest(unittest.TestCase):
     def _handler(self):

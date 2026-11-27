@@ -312,13 +312,23 @@ def _wire_brief(w, seq):
 
 
 def _stamp(msgs, sid, actor, base, display=None):
-    """给合并进群聊的消息打发言者与时间：缺 at 的用会话起始时刻加序位偏移兜底。
+    """给合并进群聊的消息打发言者与时间：缺 at 的历史消息贴着相邻真实时间补齐。
 
     会话开局的原始需求 role 仍是 user（喂模型），但它不是 PM 说的话：
     首个 user 且此前没有 assistant 的，补 kind=note，展示侧归“系统 → 岗位”。
+    历史会话里 assistant/tool 有真实 at、人类消息却没有；这类缺口不能统一按
+    会话创建时刻铺，否则后发的人类消息会跑到最前面。缺 at 的消息排到最近一条
+    有 at 的消息之前（尾部则排到最后一条之后），保证顺序和时间都贴近真实。
     """
     out = []
     start = float(base or 0)
+    stamps = []
+    for m in msgs:
+        try:
+            stamps.append(float((m or {}).get("at")) if (m or {}).get("at") else None)
+        except (TypeError, ValueError):
+            stamps.append(None)
+    known = [i for i, t in enumerate(stamps) if t is not None]
     seen_assistant = False
     for i, m in enumerate(msgs):
         mm = dict(m, session=sid, actor=actor)
@@ -331,7 +341,15 @@ def _stamp(msgs, sid, actor, base, display=None):
         if mm.get("role") == "assistant":
             seen_assistant = True
         if not mm.get("at"):
-            mm["at"] = start + i * 1e-4
+            nxt = next((j for j in known if j > i), None)
+            prev = next((j for j in reversed(known) if j < i), None)
+            if nxt is not None:
+                # 贴着下一个真实时刻，连续缺口按距它几条消息依次让开，保序不撞时间
+                mm["at"] = stamps[nxt] - (nxt - i) * 1e-4
+            elif prev is not None:
+                mm["at"] = stamps[prev] + (i - prev) * 1e-4
+            else:
+                mm["at"] = start + i * 1e-4
         brief = _wire_brief(mm.get("wire"), i)
         if brief is None:
             mm.pop("wire", None)

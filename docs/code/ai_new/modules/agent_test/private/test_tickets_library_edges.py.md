@@ -1,12 +1,13 @@
 ---
 source: ai_new/modules/agent_test/private/test_tickets_library_edges.py
-hash: bb53afc1b495c30c4216dc8e62c6691f1851c385f22343d83b72e7ff1b3161b1
+hash: 84bd72d64fbcbf44cda8df00c1d0be0ce350998584b52b148d1bfdfa79f04412
 symbols:
 - test_archived_reason_from_template
 - test_closed_reason_from_template
 - test_roles_view
 - test_resolve_target
 - test_stamp_note_keeps_existing_to
+- test_stamp_uses_neighbor_time_for_missing_human_message
 - _handler
 - test_supplied_paths_kept
 - test_paths_from_config_when_absent
@@ -52,6 +53,12 @@ updated_at: '2026-11-26T10:57:57'
 - 关联需求/测试: 待人工补充
 
 ### `test_stamp_note_keeps_existing_to`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_stamp_uses_neighbor_time_for_missing_human_message`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

@@ -14,6 +14,7 @@ class RunPureTest(unittest.TestCase):
                             "kind": "note", "text": "t", "now": "n"})
         self.assertEqual(rec["status"], "queued")
         self.assertEqual(rec["messages"][-1]["kind"], "note")
+        self.assertEqual(rec["messages"][-1]["at"], "n")
         self.assertNotIn("kind", rp.appendmsg({"rec": {"status": "running"}})["messages"][-1])
         self.assertEqual(rp.mark({})["status"], "running")
         self.assertEqual(rp.mark({"status": "idle"})["updated"], "")
