@@ -66,6 +66,14 @@ class TicketLockTest(unittest.TestCase):
         self.assertLess(msgs[1]["at"], 200.0)
         self.assertGreater(msgs[3]["at"], 200.0)
 
+    def test_stamp_bad_at_string_falls_back(self):
+        # 历史字段可能是脏字符串：不能抛异常，按缺失处理并回落到会话起始时刻。
+        msgs = tickets_pure._stamp([
+            {"role": "assistant", "content": "a", "at": "bad-time"},
+            {"role": "user", "content": "human", "kind": "human"},
+        ], "s1", "pm", 50.0)
+        self.assertAlmostEqual(msgs[1]["at"], 50.0001)
+
 
 class LibraryHandlerTest(unittest.TestCase):
     def _handler(self):
