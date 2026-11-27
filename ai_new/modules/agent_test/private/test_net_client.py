@@ -216,6 +216,8 @@ class NetClientTest(unittest.TestCase):
         # 坏块长：停止读取，不把后续当正文。
         r = ChunkReader([b"zz\r\n"], [])
         self.assertEqual(asyncio.run(collect()), [])
+        r = ChunkReader([], [])
+        self.assertEqual(asyncio.run(collect()), [])
 
     def test_stream_bad_json_and_retry(self):
         ctx = Ctx()
