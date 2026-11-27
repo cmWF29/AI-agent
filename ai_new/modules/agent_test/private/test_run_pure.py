@@ -109,6 +109,22 @@ class RunPureTest(unittest.TestCase):
                          "stage_check": {"ok": False, "code": "x", "active": ["a"]}})
         self.assertNotIn("gate_alert", out["meta"])
         self.assertEqual(out["meta"]["active"], ["a"])
+        # 已结单但流程未声明终态：保留模型给的阶段，不能凭空造一个终态。
+        out = rp.finish({"rec": {"meta": {"machine": {"terminals": []}}},
+                         "result_chars": 9, "now": "n",
+                         "out": {"stage": "owner.req.structure"},
+                         "ticket_status": "closed"})
+        self.assertEqual(out["meta"]["stage"], "owner.req.structure")
+        self.assertNotIn("active", out["meta"])
+        out = rp.finish({"rec": {"meta": {"machine": {"terminals": ["owner.req.close"]},
+                                        "stage_alert": 1, "gate_alert": 2}},
+                         "result_chars": 9, "now": "n",
+                         "out": {"stage": "owner.req.structure"},
+                         "ticket_status": "closed"})
+        self.assertEqual(out["meta"]["stage"], "owner.req.close")
+        self.assertEqual(out["meta"]["active"], ["owner.req.close"])
+        self.assertNotIn("stage_alert", out["meta"])
+        self.assertNotIn("gate_alert", out["meta"])
 
     def test_resume(self):
         rows = [{"path": "p", "rec": {"id": "a", "status": "idle"}},
