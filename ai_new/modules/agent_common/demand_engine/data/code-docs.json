@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T19:39:18",
+  "generated": "2026-11-27T19:45:25",
   "total": 596,
   "groups": [
     {
@@ -47,7 +47,7 @@
           "doc": "docs/code/ai_new/modules/agent/artifacts/private/_pure.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "b20aeb73a34b35ed9ffa2cc6628a3ab711e03f2f13b2abb068bceca39d0708f5",
+          "hash": "fec6129f4c19e9c8a38a9edd027cff167596b57d349e98efe4dc32638dd3e975",
           "symbols": 12,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -4082,7 +4082,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_artifacts_pure_edges.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "fa3e5c805eeef1310b1a8aab1bca7c6216fc86b1716ab692aeb724016b47cd9f",
+          "hash": "9a025cfb3f09d928c7cbd827a1be657696f25ad3405ca7df70ca92f8accc22fc",
           "symbols": 6,
           "updated_at": "2026-11-26T00:01:31"
         },

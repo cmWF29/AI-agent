@@ -54,7 +54,8 @@ def screen(p):
     items = []
     for row in p.get("rows") or []:
         if isinstance(row, dict):
-            items.append({"path": row.get("path"), "size": len(row.get("text") or "")})
+            items.append({"path": row.get("path"),
+                          "size": len((row.get("text") or "").encode("utf-8"))})
         else:
             items.append({"path": row[0], "size": int(row[1] or 0)})
     return {"layer": p.get("layer") or "ticket", "items": items}

@@ -39,9 +39,9 @@ class ArtifactsPureTest(unittest.TestCase):
     def test_views(self):
         self.assertEqual(a.written({}), {"path": None, "size": 0, "layer": None})
         self.assertEqual(a.viewed({"text": "t"})["encoding"], "utf8")
-        rows = [{"path": "a", "text": "abc"}, ["b", "2"]]
+        rows = [{"path": "a", "text": "abc"}, {"path": "a2", "text": "é"}, ["b", "2"]]
         out = a.screen({"rows": rows})
-        self.assertEqual([i["size"] for i in out["items"]], [3, 2])
+        self.assertEqual([i["size"] for i in out["items"]], [3, 2, 2])
         self.assertEqual(a.screen({})["layer"], "ticket")
         stats = a.statsp({"rows": [{"size": 4, "text": "é"}, {"text": "abc"}]})
         self.assertEqual(stats, {"files": 2, "bytes": 4 + 3, "chars": 1 + 3})
