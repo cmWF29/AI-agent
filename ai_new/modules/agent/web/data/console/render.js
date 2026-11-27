@@ -1095,12 +1095,14 @@ function treeDocHtml(doc, sec, ctx) {
   const c = { ...ctx, row: doc };
   const src = fill("row.source", c);
   const dpath = fill("row.doc", c);
-  // 只有登记了镜像文档的叶子才可点；目录由 details 折叠，不参与正文跳转。
-  const click = (sec.on_click && dpath) ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
+  const rel = fill("row.path", c);
+  // 知识文档没有 docs/code 镜像字段，path 本身就是正文目标；代码文档仍以 doc 为准。
+  const target = dpath || (fill("row.layer", c) ? rel : "");
+  const click = (sec.on_click && target) ? actIndex({ view: sec.on_click.view, params: sec.on_click.params || {} }, c) : "";
   // 文件行必须把“源码”和“docs/code 镜像”分开写；只给一行文件名，用户会以为没有文档。
   const meta = dpath
     ? `<span class="tree-doc-src">源码 ${esc(src || fill("row.name", c))}</span><span class="tree-doc-doc">文档 ${esc(dpath)}</span>`
-    : `<span class="tree-doc-path">${esc(fill("row.path", c) || "")}</span>`;
+    : `<span class="tree-doc-path">${esc(rel || "")}</span>`;
   const body = `<span class="tree-doc-name">${esc(fill("row.name", c))}</span>${meta}`;
   // 没有跳转目标的叶子就是纯展示行：不注册点击种类，点了也不算违规
   if (!click) return `<div class="tree-doc${sec.wrap ? " wrap" : ""}">${body}</div>`;

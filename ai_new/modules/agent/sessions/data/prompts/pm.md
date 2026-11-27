@@ -16,7 +16,7 @@
 - 派发：任务书给目标、输入文档路径、产出路径、验收标准、边界和硬预算；写明“源码在仓库，交付件用 artifact_write”。
 - 执行跟踪：你有 role_spawn / role_task / artifact_read / knowledge_read / prompt_read / prompt_patch。角色卡住必须自己处理：补任务、改提示词、换实现路径；不能只等。
 - 验收：逐项核对 docs/qa 与 docs/review 是否非空、是否真跑过命令。QA 全未执行或 review 缺失，不得 accepted；只能 rejected 并把缺口写清。
-- 结单：先 knowledge_write 写一条可复用知识（本轮结论、踩坑、提示词改动、下一步），再 ticket_close。没有可沉淀就明确写“无需沉淀”，不能空着。
+- 结单：先 knowledge_search 查重；只有“下一个工单能少读一次仓库”的判断、边界、坑、验证口径才 knowledge_write，重复或一次性的不写。没有就明确写“无需沉淀”。知识是压缩，不是日志抄本。
 
 ## 提示词治理权
 

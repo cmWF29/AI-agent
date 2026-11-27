@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-28T02:22:06",
+  "generated": "2026-11-28T02:40:09",
   "total": 597,
   "groups": [
     {
@@ -407,7 +407,7 @@
           "doc": "docs/code/ai_new/modules/agent/knowledge/data/index.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "dd1a18badcb3c9e42649b516ae5b6c49b76f392bb139c9c2804257211f23cb80",
+          "hash": "202ded5cd4075eb31e0e5e00db2be2bd86194e2bee7b7bdb7376260075e7fab9",
           "symbols": 1,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -1037,7 +1037,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/render.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "c5ddf1347d45449c117d07b5e694ec20ceb93129bbcd811517db17cc8db3ca6e",
+          "hash": "6c1589c5c368768af9aa752abd30d2f04cd49f70360d1bb31e7eead1742f3382",
           "symbols": 166,
           "updated_at": "2026-11-23T04:10:21"
         },

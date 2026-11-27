@@ -1,17 +1,17 @@
 {
  "sig": {
-  "sha": "b2d252d2c1ebe771",
+  "sha": "503c640202851089",
   "files": 37
  },
  "stats": {
-  "instances": 523,
+  "instances": 538,
   "pages": 19,
-  "kinds": 17
+  "kinds": 18
  },
  "pages": [
   {
    "view": "project",
-   "count": 124
+   "count": 133
   },
   {
    "view": "arch",
@@ -27,7 +27,7 @@
   },
   {
    "view": "positions",
-   "count": 24
+   "count": 27
   },
   {
    "view": "cloud",
@@ -36,6 +36,10 @@
   {
    "view": "projects",
    "count": 15
+  },
+  {
+   "view": "knowledge",
+   "count": 13
   },
   {
    "view": "nodes",
@@ -59,10 +63,6 @@
   },
   {
    "view": "artifacts",
-   "count": 10
-  },
-  {
-   "view": "knowledge",
    "count": 10
   },
   {
@@ -3558,7 +3558,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "project118",
+   "label": "project124",
    "states": [
     "idle",
     "busy",
@@ -3639,34 +3639,7 @@
    "ctl": "ctl.row_open",
    "kind": "row_open",
    "tag": "TR",
-   "label": "ticket46",
-   "states": [
-    "idle",
-    "busy",
-    "done",
-    "disabled"
-   ],
-   "transitions": {
-    "idle": [
-     "busy"
-    ],
-    "busy": [
-     "done",
-     "idle"
-    ],
-    "done": [
-     "idle"
-    ],
-    "disabled": []
-   },
-   "effect": "本页刷新"
-  },
-  {
-   "view": "click-machine",
-   "ctl": "ctl.row_open",
-   "kind": "row_open",
-   "tag": "TR",
-   "label": "tools30",
+   "label": "tools32",
    "states": [
     "idle",
     "busy",
@@ -4045,6 +4018,33 @@
    "kind": "row_open",
    "tag": "TR",
    "label": "ops4",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "click-machine",
+   "ctl": "ctl.row_open",
+   "kind": "row_open",
+   "tag": "TR",
+   "label": "ticket4",
    "states": [
     "idle",
     "busy",
@@ -6190,6 +6190,87 @@
   },
   {
    "view": "knowledge",
+   "ctl": "ctl.tree_doc",
+   "kind": "tree_doc",
+   "tag": "DIV",
+   "label": "multi-role-cost-co",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.tree_doc",
+   "kind": "tree_doc",
+   "tag": "DIV",
+   "label": "repo-contextpublic",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "knowledge",
+   "ctl": "ctl.tree_doc",
+   "kind": "tree_doc",
+   "tag": "DIV",
+   "label": "multi-role-postmor",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "knowledge",
    "ctl": "ctl.nav.项目",
    "kind": "nav",
    "tag": "SL-BUTTON",
@@ -6993,7 +7074,7 @@
    "ctl": "ctl.deck_toggle",
    "kind": "deck_toggle",
    "tag": "SL-BUTTON",
-   "label": "铺开 12 张",
+   "label": "铺开 15 张",
    "states": [
     "idle",
     "done"
@@ -7331,6 +7412,87 @@
    "kind": "card_open",
    "tag": "ARTICLE",
    "label": "节点配置者\n        \n   ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "测试-前端\n        \n   ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "测试-接口\n        \n   ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "positions",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "测试-端到端\n        \n  ",
    "states": [
     "idle",
     "busy",
@@ -9942,7 +10104,7 @@
    "ctl": "ctl.deck_toggle",
    "kind": "deck_toggle",
    "tag": "SL-BUTTON",
-   "label": "铺开 12 张",
+   "label": "铺开 15 张",
    "states": [
     "idle",
     "done"
@@ -10874,6 +11036,249 @@
    "kind": "card_open",
    "tag": "ARTICLE",
    "label": "节点配置者\n        \n   ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.禁用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "禁用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.启用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "启用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "测试-前端\n        \n   ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.禁用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "禁用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.启用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "启用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "测试-接口\n        \n   ",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.禁用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "禁用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_act.启用",
+   "kind": "card_act",
+   "tag": "SL-BUTTON",
+   "label": "启用",
+   "states": [
+    "idle",
+    "busy",
+    "done",
+    "disabled"
+   ],
+   "transitions": {
+    "idle": [
+     "busy"
+    ],
+    "busy": [
+     "done",
+     "idle"
+    ],
+    "done": [
+     "idle"
+    ],
+    "disabled": []
+   },
+   "effect": "本页刷新"
+  },
+  {
+   "view": "project",
+   "ctl": "ctl.card_open",
+   "kind": "card_open",
+   "tag": "ARTICLE",
+   "label": "测试-端到端\n        \n  ",
    "states": [
     "idle",
     "busy",

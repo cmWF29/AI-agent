@@ -221,6 +221,22 @@ async def main():
             pct = await pg.evaluate("() => document.querySelector('.dag-pct').textContent")
             check("DAG 缩放生效", pct.strip() != "100%", pct)
 
+        # 7. 知识树叶子必须能点进正文：知识节点只有 path/layer，没有 doc 镜像字段
+        await open_view(pg, "view=knowledge")
+        doc = await pg.evaluate("""() => {
+          document.querySelectorAll('details').forEach((d) => { d.open = true; });
+          const leaves = [...document.querySelectorAll('.tree-doc')];
+          return {total: leaves.length,
+                  clickable: leaves.filter((e) => e.dataset.clk === 'tree_doc' && e.dataset.go).length};
+        }""")
+        check("知识文档叶子可点", doc["clickable"] > 0 and doc["clickable"] <= doc["total"], doc)
+        if doc["clickable"]:
+            await pg.locator('.tree-doc[data-clk="tree_doc"]').first.click()
+            await pg.wait_for_timeout(900)
+            body = await pg.locator("#view-body").inner_text()
+            check("点开知识文档看到正文", "knowledge-doc" in pg.url or "/repo-context" in pg.url, pg.url)
+            check("知识正文非空", len(body.strip()) > 80, len(body))
+
         check("页面无 JS 异常", not errors, errors[:4])
         await b.close()
     if FAILS:

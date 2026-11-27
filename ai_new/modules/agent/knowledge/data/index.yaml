@@ -29,3 +29,13 @@ entries:
   name: multi-role-postmortem.md
   created: '2026-11-27T15:40:00Z'
   updated: '2026-11-27T15:40:00Z'
+- path: public/repo-context.md
+  category: knowledge
+  doc_kind: null
+  source: llm
+  layer: public
+  project: ''
+  ticket: ''
+  name: repo-context.md
+  created: '2026-11-28T01:30:00Z'
+  updated: '2026-11-28T01:30:00Z'
