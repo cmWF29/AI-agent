@@ -73,6 +73,15 @@ async def main():
                 break
             await page.wait_for_timeout(500)
         check("新项目卡片出现在列表", listed)
+        if FAILS:
+            try:
+                await page.screenshot(path="/tmp/ui-forms-failure.png", full_page=True)
+                modal = await page.locator("#modal").inner_text()
+                print("DEBUG modal_open=%d cards=%d text=%r"
+                      % (await page.locator("#modal[open]").count(),
+                         await page.get_by_text(name, exact=True).count(), modal[-200:]))
+            except Exception as exc:  # noqa: BLE001 —— 诊断失败不覆盖主断言
+                print("DEBUG 截图失败: %s" % exc)
         await browser.close()
     if FAILS:
         print("UI 表单闭环失败：%s" % " | ".join(FAILS))

@@ -110,7 +110,18 @@ jobs:
       - name: UI 回归（控件状态机实拉）
         run: python3 scripts/verify_ui.py
       - name: UI 表单真点闭环（新建项目：按钮→弹窗→提交→卡片）
-        run: python3 scripts/verify_ui_forms.py
+        run: |
+          set -o pipefail
+          python3 scripts/verify_ui_forms.py 2>&1 | tee /tmp/ui-forms.log
+      - name: UI 表单失败截图（仅失败时上传）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-forms-failure
+          path: |
+            /tmp/ui-forms.log
+            /tmp/ui-forms-failure.png
+          if-no-files-found: ignore
       - name: 群聊秘书 IM 发送态（乐观气泡/转圈/头像一致/失败重发/自动处理）
         run: python3 scripts/verify_im_secretary.py
       - name: E2E 项目闭环（新建→改名→归档→删除）
@@ -165,7 +176,7 @@ jobs:
       - name: E2E 失败原因（注解可见）
         if: failure()
         run: |
-          for f in /tmp/gates-ops.log /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-archive.log /tmp/e2e-rounds.log /tmp/e2e-timer.log /tmp/e2e-roles.log /tmp/visual.log /tmp/e2e-api.log /tmp/perf-http.log; do
+          for f in /tmp/gates-ops.log /tmp/ui-forms.log /tmp/e2e-project.log /tmp/e2e-ticket.log /tmp/e2e-multi.log /tmp/e2e-archive.log /tmp/e2e-rounds.log /tmp/e2e-timer.log /tmp/e2e-roles.log /tmp/visual.log /tmp/e2e-api.log /tmp/perf-http.log; do
             if [ -f "$f" ]; then
               { grep -E "FAIL|Traceback|E2E 失败" "$f" | tail -n 6; tail -n 2 "$f"; } | \
                 sed 's/%/%25/g; s/\r//g' | while IFS= read -r line; do echo "::error::$line"; done
