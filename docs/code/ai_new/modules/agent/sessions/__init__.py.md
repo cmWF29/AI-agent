@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sessions/__init__.py
-hash: 98b38f462b27ce9192252f0f7c68be7313bcc06e03754d6ee0fc452e2353a5b8
+hash: 7286b9021f2706c58e6b40511d0d948fd404d5c92a4db60df6598e4172299050
 symbols:
 - setup
 - start
@@ -71,7 +71,7 @@ updated_at: '2026-11-23T04:10:20'
 - 关联需求/测试: 待人工补充
 
 ### `_route_by_ticket`（function）
-- 职责: 按工单 id 归集本工单全部会话视图；遍历与读盘在闭环内，成形交 sessions.view。
+- 职责: 按工单归集会话视图：有工单档案就只读已知的 PM/角色会话，不再扫全库日志。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

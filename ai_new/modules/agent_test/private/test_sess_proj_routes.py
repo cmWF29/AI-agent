@@ -202,6 +202,15 @@ class SessionsRoutesTest(unittest.TestCase):
         ctx.reads.update({"s/a.yaml": {"id": "a", "ticket": "t"},
                           "s/b.yaml": None})
         self.assertEqual(len(sess._route_by_ticket(ctx, {"ticket": "t"})["items"]), 1)
+        # 有工单档案时只读 PM/角色已知会话，不再 glob 整个日志库。
+        ctx.globs["agent/logs"] = []
+        ctx.reads.update({"s/pm.yaml": {"id": "pm", "ticket": "t"},
+                          "s/r1.yaml": {"id": "r1", "ticket": "t"},
+                          "s/r2.yaml": {"id": "r2", "ticket": "other"}})
+        fast = sess._route_by_ticket(ctx, {"ticket": {
+            "id": "t", "pm": "pm", "roles": [{"session": "r1"}, {"session": "r2"},
+                                             {"session": "pm"}]}})
+        self.assertEqual([x["id"] for x in fast["items"]], ["pm", "r1"])
 
     def test_emit_guard_spawn(self):
         ctx = self.ctx()

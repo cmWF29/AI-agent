@@ -65,7 +65,7 @@ do:
 - call: sessions.by_ticket
   with:
     ticket:
-      get: input.id
+      get: row.value
   as: roles_sessions
 - call: tickets.thread
   with:

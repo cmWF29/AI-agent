@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T17:55:04",
+  "generated": "2026-11-27T18:00:52",
   "total": 596,
   "groups": [
     {
@@ -767,7 +767,7 @@
           "doc": "docs/code/ai_new/modules/agent/sessions/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "98b38f462b27ce9192252f0f7c68be7313bcc06e03754d6ee0fc452e2353a5b8",
+          "hash": "7286b9021f2706c58e6b40511d0d948fd404d5c92a4db60df6598e4172299050",
           "symbols": 17,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -2861,7 +2861,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/ticket-thread.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "82ebd7780072daae0afa964de181bc6f4721b30625391f87d2142fedd9f6d648",
+          "hash": "3edbd005cbcabc2de0a04be33bdf299cf3ab50dc267e351f7272672632905964",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4721,7 +4721,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_sess_proj_routes.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "5c1bb652f4543667862843c2f575dcdb9edacfc9e96cfbb3a14b313b79db2fc5",
+          "hash": "1b18112673920b63438fb541aee05397f714ddac4193e85558191876d91c1be8",
           "symbols": 15,
           "updated_at": "2026-11-26T02:51:41"
         },

@@ -174,12 +174,33 @@ def _route_talk(ctx, payload):
 
 
 def _route_by_ticket(ctx, payload):
-    """按工单 id 归集本工单全部会话视图；遍历与读盘在闭环内，成形交 sessions.view。"""
-    tid = payload.get("ticket") or ""
+    """按工单归集会话视图：有工单档案就只读已知的 PM/角色会话，不再扫全库日志。"""
+    raw = payload.get("ticket")
+    ticket = raw if isinstance(raw, dict) else {}
+    tid = str(ticket.get("id") or ("" if ticket else raw) or "")
+    known = []
+    if ticket:
+        known.append(ticket.get("pm"))
+        known.extend((r or {}).get("session") or (r or {}).get("id")
+                     for r in ticket.get("roles") or [])
+        known = [str(x) for x in known if x]
+    items, seen = [], set()
+    if known:
+        tpl = _cfg_logs(ctx).get("session") or "s/{id}.yaml"
+        for sid in known:
+            if sid in seen:
+                continue
+            seen.add(sid)
+            row = ctx.api.call("store.read", {"module": "agent/logs",
+                                              "path": tpl.format(id=sid)}, caller=None)
+            rec = row.get("value")
+            if not rec or (tid and rec.get("ticket") != tid):
+                continue
+            items.append(ctx.api.call("sessions.view", {"rec": rec}, caller=None))
+        return {"items": items}
     listed = ctx.api.call("store.glob", {
         "module": "agent/logs",
         "pattern": _cfg_logs(ctx).get("session_glob") or ""}, caller=None)
-    items = []
     for rel in listed.get("items") or []:
         row = ctx.api.call("store.read", {"module": "agent/logs",
                                           "path": rel}, caller=None)
