@@ -1,10 +1,10 @@
 {
  "sig": {
-  "sha": "b1b25ec8dccf1c6e",
+  "sha": "74cc3dcd67a84013",
   "files": 37
  },
  "stats": {
-  "instances": 554,
+  "instances": 557,
   "pages": 19,
   "kinds": 18
  },
@@ -23,7 +23,7 @@
   },
   {
    "view": "ticket",
-   "count": 43
+   "count": 46
   },
   {
    "view": "tools",
@@ -13262,6 +13262,66 @@
    "kind": "member_chip",
    "tag": "BUTTON",
    "label": "r",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "ticket",
+   "ctl": "ctl.raw_fold",
+   "kind": "raw_fold",
+   "tag": "BUTTON",
+   "label": "消息原文",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "ticket",
+   "ctl": "ctl.raw_fold",
+   "kind": "raw_fold",
+   "tag": "BUTTON",
+   "label": "消息原文",
+   "states": [
+    "idle",
+    "done"
+   ],
+   "transitions": {
+    "idle": [
+     "done"
+    ],
+    "done": [
+     "idle"
+    ]
+   },
+   "effect": "只改本页显示"
+  },
+  {
+   "view": "ticket",
+   "ctl": "ctl.member_chip",
+   "kind": "member_chip",
+   "tag": "BUTTON",
+   "label": "P",
    "states": [
     "idle",
     "done"

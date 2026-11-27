@@ -681,7 +681,9 @@ function normQuestions(qs) {
       const value = String(o.value || label).trim();
       return label && value ? { label, value } : null;
     }).filter(Boolean).slice(0, 5);
-    return { id: String(q.id || "q" + (i + 1)), text, options,
+    // 问题正文可能带 Markdown 反引号/加粗标记；卡片里按纯文本排，去掉标记不露源码。
+    const plain = String(text).replace(/`/g, "").replace(/\*\*/g, "");
+    return { id: String(q.id || "q" + (i + 1)), text: plain, options,
              multi: !!q.multi, other: q.other !== false };
   }).filter(Boolean).slice(0, 6);
 }

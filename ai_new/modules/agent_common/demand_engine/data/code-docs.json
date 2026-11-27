@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T16:13:26",
+  "generated": "2026-11-27T16:19:33",
   "total": 596,
   "groups": [
     {
@@ -1037,7 +1037,7 @@
           "doc": "docs/code/ai_new/modules/agent/web/data/console/render.js.md",
           "kind": "js",
           "group": "agent",
-          "hash": "7fcf163d0a6e90eb0cf7213e8cd56d950cb0f612335c2bd01250e86b67aea6ae",
+          "hash": "0292e95ffa42029121ed9cc3f5b71c390f6b09ea5a3529caa0b38e8949d9159d",
           "symbols": 162,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3221,7 +3221,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/view-ticket-thread.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "0e8cc7c67ac1fd18b3e56755e4eaf3cd7a6d75f736dce6216ef395a048cf5269",
+          "hash": "2fde67c2b816d22ee58cacf1f8770bc569baa53e404f1559caf98840578b9836",
           "symbols": 10,
           "updated_at": "2026-11-23T04:10:22"
         },

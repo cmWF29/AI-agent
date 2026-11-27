@@ -23,7 +23,7 @@ view:
     exhausted: 卡点
     note: 备注
     closed: 已结单
-    queued: 排队中
+    queued: 进行中
     running: 进行中
     doing: 进行中
     idle: 等待
