@@ -202,8 +202,12 @@ async def create_ticket(pg, title, goal):
 
 async def send_and_wait(pg, tid, text):
     before = await pg.evaluate("""async id => {
-      const r=await run('ticket-thread',{id}); return (r.thread.messages||[]).length;
+      const r=await run('ticket-thread',{id});
+      const msgs=r.thread.messages||[];
+      return {n:msgs.length, max_at:Math.max(0,...msgs.map(m=>Number(m.at)||0))};
     }""", tid)
+    before_n = before["n"]
+    before_max = before["max_at"]
     await pg.evaluate("""text => {
       const ta=document.querySelector('#view-body .composer textarea');
       ta.value=text; ta.dispatchEvent(new Event('input', {bubbles:true}));
@@ -214,15 +218,32 @@ async def send_and_wait(pg, tid, text):
     last = {}
     for _ in range(60):
         await pg.wait_for_timeout(1000)
-        last = await pg.evaluate("""async id => {
+        last = await pg.evaluate("""async ([id,text]) => {
           const r=await run('ticket-thread',{id});
           const msgs=r.thread.messages||[];
+          const hit=[...msgs].reverse().find(m=>m.kind==='human' && (m.content||'')===text);
           return {n:msgs.length, status:r.thread.status,
                   roles:(r.members||[]).length,
+                  human_at:hit ? Number(hit.at)||0 : 0,
                   answered:msgs.some(m=>m.role==='assistant' && (m.content||'').trim())};
-        }""", tid)
-        if last.get("n", 0) > before and last.get("status") == "idle" and last.get("answered"):
-            return before, last
+        }""", [tid, text])
+        if last.get("n", 0) > before_n and last.get("status") == "idle" and last.get("answered"):
+            # 最基础的一条：人发的消息必须带真实发生时刻，且不能排到上一轮回复之前。
+            # 旧实现不写 at，线程按会话创建时刻补，消息会跑到最前面，页面底部就像“被吞”。
+            if not last.get("human_at"):
+                raise AssertionError("人发消息没有落到线程里: %s" % last)
+            if float(last["human_at"]) <= float(before_max):
+                raise AssertionError(
+                    "人发消息时间戳没有前进（会排到会话开头）: at=%s, before_max=%s"
+                    % (last["human_at"], before_max))
+            # 不只看接口：右侧用户气泡必须真的进 DOM，不能“后端有、页面没渲染”。
+            needle = text.strip()[:18]
+            try:
+                await pg.wait_for_function("""n => [...document.querySelectorAll('#view-body .msg.right')]
+                  .some(m => (m.innerText || '').includes(n))""", arg=needle, timeout=25000)
+            except Exception:
+                raise AssertionError("发消息成功但右侧用户气泡没有渲染: %r" % needle)
+            return before_n, last
     raise AssertionError("发消息后未在 60s 内收口: %s" % last)
 
 
@@ -749,6 +770,9 @@ async def main() -> int:
             return 0
         except Exception as exc:
             print("  FAIL %s" % exc)
+            if os.environ.get("E2E_TRACE"):
+                import traceback
+                traceback.print_exc()
             if args.scenario in ("ticket-rounds", "all"):
                 out = await scenario_ticket_rounds(pg)
                 print("  OK  两轮追问 E2E：同单连发两轮→逐轮收口→composer 回可用→结单只读 %s %s（消息 %s）"
