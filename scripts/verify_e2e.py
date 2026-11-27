@@ -225,6 +225,7 @@ async def send_and_wait(pg, tid, text):
           return {n:msgs.length, status:r.thread.status,
                   roles:(r.members||[]).length,
                   human_at:hit ? Number(hit.at)||0 : 0,
+                  now:Date.now()/1000,
                   answered:msgs.some(m=>m.role==='assistant' && (m.content||'').trim())};
         }""", [tid, text])
         if last.get("n", 0) > before_n and last.get("status") == "idle" and last.get("answered"):
@@ -236,6 +237,10 @@ async def send_and_wait(pg, tid, text):
                 raise AssertionError(
                     "人发消息时间戳没有前进（会排到会话开头）: at=%s, before_max=%s"
                     % (last["human_at"], before_max))
+            if abs(float(last["now"]) - float(last["human_at"])) > 120:
+                raise AssertionError(
+                    "人发消息时间戳不是发送时刻（疑似会话起始时间兜底）: at=%s, now=%s"
+                    % (last["human_at"], last["now"]))
             # 不只看接口：右侧用户气泡必须真的进 DOM，不能“后端有、页面没渲染”。
             needle = text.strip()[:18]
             try:
