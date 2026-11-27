@@ -319,7 +319,7 @@ async def submit_clarify_card(pg, tid):
         if last.get("status") == "idle" and last.get("hit"):
             if not last["answers"]:
                 raise AssertionError("问题卡答复没有落结构化 answers: %s" % last)
-            if "只出文档" not in last.get("content", ""):
+            if "只出代码" not in last.get("content", ""):
                 raise AssertionError("问题卡答复正文没有写人话选项标签: %s" % last.get("content"))
             return last
     raise AssertionError("问题卡提交后未在 60s 内落盘收口: %s" % last)

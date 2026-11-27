@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T18:18:20",
+  "generated": "2026-11-27T19:34:42",
   "total": 596,
   "groups": [
     {
@@ -776,7 +776,7 @@
           "doc": "docs/code/ai_new/modules/agent/sessions/data/api.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "12854ed6265d309eb9aa8afb47f9a55a3083b172b72e23b5993cf870323c0ff0",
+          "hash": "7b0c1b460b176c2a3f15906e1b4c8ab2d40930a1206c24a1bf54f96551d63cf5",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:20"
         },
@@ -5312,7 +5312,7 @@
           "doc": "docs/code/scripts/verify_e2e.py.md",
           "kind": "py",
           "group": "scripts",
-          "hash": "fe61b062227c8a417bd3e770765553c1e554866de845f9602c857972262629c3",
+          "hash": "f2f5055536e52f9acb036ab9dd57fbc2ae34d0d93310f771530c0450530c391c",
           "symbols": 25,
           "updated_at": "2026-11-24T12:48:33"
         },

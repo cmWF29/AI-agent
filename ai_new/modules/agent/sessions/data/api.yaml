@@ -194,6 +194,9 @@ routes:
       stage_check:
         type: any
         req: false
+      ticket_status:
+        type: any
+        req: false
       tools:
         type: any
         req: false
