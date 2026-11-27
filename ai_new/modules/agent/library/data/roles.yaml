@@ -194,6 +194,7 @@ developer:
     - knowledge_read
     - knowledge_search
     - ticket_read_doc
+    - shell
     - todo
     next:
     - branch

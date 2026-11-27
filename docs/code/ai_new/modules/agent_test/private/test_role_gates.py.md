@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_role_gates.py
-hash: 258b23146ad81b6c9fd73185af33efb89db3f2c389158870fe21140f09200d5b
+hash: e66007a1c94dbc6a0bbfac715402fa724ad1012999d57951bf7928272d80947f
 symbols:
 - _load_seed
 - yaml_safe_load
@@ -16,6 +16,7 @@ symbols:
 - test_rendered_checklist_matches_gate_data
 - _enforce
 - test_developer_transition_gate
+- test_developer_understand_can_inspect_repo
 - test_requirement_owner_transition_gate
 - test_skill_decomposer_contract_and_transitions
 - test_prompts_are_prose_without_duplicated_checklist
@@ -116,6 +117,12 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_developer_transition_gate`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_developer_understand_can_inspect_repo`（method）
+- 职责: 理解阶段必须能读真实仓库，否则只能对着交付件空转。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

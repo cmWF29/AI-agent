@@ -177,6 +177,11 @@ class RoleGatesTest(unittest.TestCase):
     def test_developer_transition_gate(self):
         self._enforce(self.roles["developer"], "understand", "branch")
 
+    def test_developer_understand_can_inspect_repo(self):
+        """理解阶段必须能读真实仓库，否则只能对着交付件空转。"""
+        states = {s["id"]: s for s in _iter_states(self.roles["developer"]["states"])}
+        self.assertIn("shell", states["understand"].get("tools") or [])
+
     def test_requirement_owner_transition_gate(self):
         self._enforce(self.flows["requirement-owner"], "req.intake", "req.structure")
 

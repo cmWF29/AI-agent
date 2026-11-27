@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T22:26:46",
+  "generated": "2026-11-27T22:32:34",
   "total": 596,
   "groups": [
     {
@@ -479,7 +479,7 @@
           "doc": "docs/code/ai_new/modules/agent/library/data/roles.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "b993d68b72db0e36aad46101666d0d825cf00df313e51411e71add9586273482",
+          "hash": "8395cbd22bba1a00308aa395a6d8797a5896c1cb532ad799d8b42e7bff32f1ac",
           "symbols": 12,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -488,7 +488,7 @@
           "doc": "docs/code/ai_new/modules/agent/library/data/seed.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "8080dedc74ad929691b5a40d7f3dbc6caf6ac8dd6f3d5d19142741f719ce0495",
+          "hash": "70d17192fe6a3da044ec626335a34d62a3dc1ba21c3022304abe30e1e6e1c9ec",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -4640,8 +4640,8 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_role_gates.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "258b23146ad81b6c9fd73185af33efb89db3f2c389158870fe21140f09200d5b",
-          "symbols": 19,
+          "hash": "e66007a1c94dbc6a0bbfac715402fa724ad1012999d57951bf7928272d80947f",
+          "symbols": 20,
           "updated_at": "2026-11-23T04:10:23"
         },
         {
