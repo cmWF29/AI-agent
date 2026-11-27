@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_knowledge_routes.py
-hash: 2154a94848da6ef554ee5ea288471ef1ce0f9be4968ddb11d8cfdd5d4d35c88a
+hash: 5864b8cf5461014db947896bc6b0adc0428ff6bbb4b82a70bc2f1d50a5c7ea96
 symbols:
 - __init__
 - register_demand

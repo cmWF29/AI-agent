@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/knowledge/__init__.py
-hash: 69f5c266941bd6d6d2e0e3d28a5aad2c8608687e93f7c068c6e4a87d34785a44
+hash: 457a8a929c2604948af48018435fa9817dcb230a8f24797b310dee8f4d1817b9
 symbols:
 - setup
 - _cfg

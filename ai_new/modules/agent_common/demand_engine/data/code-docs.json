@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T22:41:50",
+  "generated": "2026-11-27T22:49:35",
   "total": 596,
   "groups": [
     {
@@ -11,7 +11,7 @@
           "doc": "docs/code/ai_new/modules/agent/artifacts/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "ba235435e58d4bc024ecff3948be1c9ade1568245f58af5f341843ba5b92d477",
+          "hash": "81028eef5f2313b06631c8ba89ac3d2fa5a7212fa9a562a1347e9c64e3749fa3",
           "symbols": 7,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -389,7 +389,7 @@
           "doc": "docs/code/ai_new/modules/agent/knowledge/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "69f5c266941bd6d6d2e0e3d28a5aad2c8608687e93f7c068c6e4a87d34785a44",
+          "hash": "457a8a929c2604948af48018435fa9817dcb230a8f24797b310dee8f4d1817b9",
           "symbols": 7,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -4091,7 +4091,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_artifacts_routes.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "d4440397541eb866a310d59ea84304a279fa6b559ae509bbdfd752feb834c6b5",
+          "hash": "20a7526c05b2035518e48c0d17a7a78d5f33c9e2573d41714c43ac145f08dcb1",
           "symbols": 25,
           "updated_at": "2026-11-26T10:00:59"
         },
@@ -4469,7 +4469,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_knowledge_routes.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "2154a94848da6ef554ee5ea288471ef1ce0f9be4968ddb11d8cfdd5d4d35c88a",
+          "hash": "5864b8cf5461014db947896bc6b0adc0428ff6bbb4b82a70bc2f1d50a5c7ea96",
           "symbols": 14,
           "updated_at": "2026-11-26T08:29:48"
         },

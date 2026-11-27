@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/artifacts/__init__.py
-hash: ba235435e58d4bc024ecff3948be1c9ade1568245f58af5f341843ba5b92d477
+hash: 81028eef5f2313b06631c8ba89ac3d2fa5a7212fa9a562a1347e9c64e3749fa3
 symbols:
 - setup
 - _cfg_paths

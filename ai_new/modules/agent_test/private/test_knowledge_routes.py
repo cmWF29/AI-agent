@@ -84,6 +84,10 @@ class KnowledgeRoutesTest(unittest.TestCase):
             self.assertIn(name, ctx.registered)
         self.assertEqual([d["demand"] for d in ctx.demands],
                          ["knowledge-read", "knowledge-write", "knowledge-search"])
+        by_demand = {d["demand"]: [a["name"] for a in d["args"] if isinstance(a, dict)] for d in ctx.demands}
+        self.assertNotIn("content", by_demand["knowledge-read"])
+        self.assertNotIn("content", by_demand["knowledge-search"])
+        self.assertIn("content", by_demand["knowledge-write"])
 
     def test_handler_injects_tpl_only_when_missing(self):
         ctx = _Ctx()

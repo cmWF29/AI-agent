@@ -29,19 +29,25 @@ def setup(ctx):
     for name, fn in pairs:
         ctx.api.register(name, _as_handler(fn), module="knowledge")
     ctx.api.register("knowledge.save", _route_save, "写知识：归一→算路径→append/覆盖→回执", module="knowledge")
-    for name, desc, demand in [
-        ("knowledge_read", "读一层知识文档", "knowledge-read"),
-        ("knowledge_write", "写知识总结（不是交付件）", "knowledge-write"),
-        ("knowledge_search", "按关键词搜知识", "knowledge-search"),
-    ]:
-        ctx.tools.register_demand(name, desc, [
-            {"name": "layer", "type": "string", "desc": "public/project/ticket", "required": False},
-            {"name": "name", "type": "string", "desc": "文档名（不含 .md）", "required": False},
-            {"name": "project", "type": "string", "desc": "project 层必填", "required": False},
-            {"name": "ticket", "type": "string", "desc": "ticket 层必填", "required": False},
-            {"name": "content", "type": "string", "desc": "写入内容", "required": False},
-            {"name": "query", "type": "string", "desc": "检索词", "required": False},
-        ], demand=demand, module="knowledge")
+    # 读写分参：读/搜不暴露 content，避免模型误把只读工具当写口。
+    read_params = [
+        {"name": "layer", "type": "string", "desc": "public/project/ticket", "required": False},
+        {"name": "name", "type": "string", "desc": "文档名（不含 .md）", "required": False},
+        {"name": "project", "type": "string", "desc": "project 层必填", "required": False},
+        {"name": "ticket", "type": "string", "desc": "ticket 层必填", "required": False},
+    ]
+    write_params = read_params + [
+        {"name": "content", "type": "string", "desc": "写入内容", "required": True},
+    ]
+    search_params = read_params + [
+        {"name": "query", "type": "string", "desc": "检索词", "required": False},
+    ]
+    ctx.tools.register_demand("knowledge_read", "读一层知识文档",
+                              read_params, demand="knowledge-read", module="knowledge")
+    ctx.tools.register_demand("knowledge_write", "写知识总结（不是交付件）",
+                              write_params, demand="knowledge-write", module="knowledge")
+    ctx.tools.register_demand("knowledge_search", "按关键词搜知识",
+                              search_params, demand="knowledge-search", module="knowledge")
     return True
 
 
