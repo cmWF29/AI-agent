@@ -9,7 +9,7 @@
 - `ai_new/modules/agent_common/`：公共能力（config、store、api、demand_engine、react、boot、ops、llm、auth、channel）。
 - `ai_new/modules/agent/`：业务能力（knowledge、artifacts、library、sessions、tickets、projects、web、logs、auth、cloud、nodes）。
 - `ai_new/modules/agent_test/`：评审者模块，和系统同构；有 `data/checks.yaml`、自己的 private 实现。
-- 没有 `tests/`、`tools/`、根级 `data/`、根级 `web/`、kernel 包。组只是装配单位，`boot/data/profiles.yaml` 决定哪个入口装哪些组。
+- 源码仓库根没有 `tests/`、`tools/`、根级 `web/`、kernel 包和根级 `data/`；线上部署根可能另有运行态 `data/`。组只是装配单位，`boot/data/profiles.yaml` 决定哪个入口装哪些组。
 
 每个模块自带 `data/`：config 的 data 是配置，demand_engine 的 data 是需求，library 的 data 是岗位库和提示词，web 的 data 是控制台，agent_test 的 data 是验收清单。语义归拥有它的模块，不能共用语义不明的桶。
 
@@ -66,7 +66,7 @@
 
 - 快验：`python3 test_start.py --only structure`（结构契约）、`--only language`（文案/提示词语料）、`--only behaviour`（业务与前端静态门禁）。
 - 门禁：`python3 scripts/gates.py --only L0,L2`；改渲染/页面再加 `python3 scripts/verify_ui.py`，它真开浏览器点知识树、岗位 DAG 和表单。
-- 文档：改任何源码后跑 `python3 scripts/gen_docs.py` 两次；第一次刷新，第二次必须输出“代码-文档同步通过”。
+- 文档：改任何源码后跑 `python3 scripts/gen_docs.py` 两次；第一次刷新，第二次必须输出“代码-文档同步通过”；CI 用 `--check`，漂移即非零退出。
 - 前端清单：改 `render.js` 或页面规格后跑 `python3 scripts/ui_inventory.py`，否则 L0 的 inventory 会因签名过期直接红。
 - 部署：仓库推到 GitHub 后，VPS `/opt/ai_new` 拉取并 `systemctl restart hive-ai`；健康看 `https://127.0.0.1:8788/api/health/live`，不要只看进程活着。
 

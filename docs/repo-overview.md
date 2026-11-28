@@ -9,7 +9,7 @@
 - `ai_new/modules/agent_common/`：公共能力，21 个模块：`api archive boot clock codec config demand_engine exec graph hooks host http llm net ops plat react runtime store tools trace`。
 - `ai_new/modules/agent/`：业务能力，19 个模块：`artifacts asr auth channel cloud decompose health knowledge library logs nodes projects sandbox secretary sessions tickets timer todos web`。
 - `ai_new/modules/agent_test/`：评审者模块，可 import 运行时模块；运行时不能反向 import 它。
-- 根目录只有两个入口；没有 `tests/`、`tools/`、根级 `data/`、根级 `web/`、kernel 包。
+- 源码仓库根只有两个入口；没有 `tests/`、`tools/`、根级 `web/`、kernel 包和根级 `data/`。线上部署根可能另有运行态 `data/`，那不是源码。
 - 装配由 `ai_new/modules/agent_common/boot/data/profiles.yaml` 决定，不按目录自动全装。
 
 ## 2. 一条需求怎么跑
@@ -42,9 +42,9 @@
 
 ## 5. 验证与部署
 
-- 快验：`python3 test_start.py --only structure|language|behaviour`。
+- 快验：`python3 test_start.py --only <check-id>`，一次只选一个；id 见 `ai_new/modules/agent_test/data/checks.yaml`（如 `structure`、`language`、`behaviour`）。
 - 分层门禁：`python3 scripts/gates.py --only L0,L1,L2 --timeout 900`；默认 120 秒不够。
-- 文档同步：`python3 scripts/gen_docs.py` 连跑两次，第二次须输出「代码-文档同步通过」。
+- 文档同步：改源码后 `python3 scripts/gen_docs.py` 连跑两次，第二次须输出「代码-文档同步通过」；CI 用 `python3 scripts/gen_docs.py --check`，漂移即非零退出。
 - UI：`python3 scripts/verify_ui.py` 是唯一浏览器验收入口；`verify_ui_forms.py` 是表单用例子集。
 - UI 清单：改页面规格/`render.js` 后跑 `python3 scripts/ui_inventory.py`。
 - 部署：`/opt/ai_new` 上 `bash scripts/deploy.sh`，重启 `hive-ai.service`，探活 `/api/health/live`。
