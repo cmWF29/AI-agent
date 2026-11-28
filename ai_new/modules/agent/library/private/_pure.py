@@ -438,10 +438,25 @@ def stage_blockp(p):
     if not by:
         return {"system": ""}
     active = _active_list(p) or [str(contract.get("initial") or "")]
+    checked = p.get("checked") or []
+    if isinstance(checked, dict):
+        checked = checked.get("checked") or []
+    checked = {str(x.get("id") if isinstance(x, dict) else x)
+               for x in checked if (x.get("id") if isinstance(x, dict) else x)}
     lines = []
     head = tpl.get("heading_stage") or ""
     if head:
         lines.append(head)
+    alert = p.get("alert") or p.get("stage_alert") or {}
+    gate_alert = p.get("gate_alert") or {}
+    if alert.get("code"):
+        lines.append((tpl.get("stage_alert") or "").format(code=alert.get("code") or ""))
+        for m in gate_alert.get("missing") or alert.get("missing") or []:
+            text = m.get("text") if isinstance(m, dict) else str(m)
+            lines.append((tpl.get("gate_alert_item") or "- {text}").format(text=text))
+        for v in gate_alert.get("violations") or alert.get("violations") or []:
+            text = v.get("text") if isinstance(v, dict) else str(v)
+            lines.append((tpl.get("gate_violation_item") or "- {text}").format(text=text))
     for path in active:
         rec = by.get(path) or {}
         if not rec:
@@ -464,9 +479,11 @@ def stage_blockp(p):
         rec = by.get(path) or {}
         gate = rec.get("gate") or {}
         for it in gate.get("must") or []:
-            gt = tpl.get("gate_must") or ""
+            mid = (it or {}).get("id") or ""
+            done = mid and mid in checked
+            gt = (tpl.get("gate_must_done") if done else tpl.get("gate_must")) or ""
             if gt:
-                gate_lines.append(gt.format(id=(it or {}).get("id") or "",
+                gate_lines.append(gt.format(id=mid,
                                             text=(it or {}).get("text") or ""))
         for f in gate.get("forbid") or []:
             gt = tpl.get("gate_forbid") or ""
@@ -477,6 +494,8 @@ def stage_blockp(p):
         lines.extend(gate_lines)
         if tpl.get("gate_rule"):
             lines.append(tpl["gate_rule"])
+    if tpl.get("stage_rule"):
+        lines.append(tpl["stage_rule"])
     return {"system": "\n".join(lines)}
 
 

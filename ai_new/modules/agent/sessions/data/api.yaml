@@ -318,6 +318,17 @@ routes:
     out:
       messages:
         type: any
+  sessions.refresh_stage_message:
+    in:
+      messages:
+        type: any
+        req: false
+      stage:
+        type: any
+        req: false
+    out:
+      messages:
+        type: any
   sessions.reply:
     in:
       id:

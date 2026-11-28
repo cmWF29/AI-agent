@@ -58,6 +58,43 @@ class StageBlockResidualTest(unittest.TestCase):
         self.assertNotIn("抄答案", text)
         self.assertIn("清单未清不得转移", text)
 
+    def test_checked_and_alert_rendered(self):
+        """上轮已打勾项显示 [x]；上轮校验告警与缺项在下一轮卡片顶部可见。"""
+        out = _pure.stage_blockp({
+            "contract": _contract({
+                "a": {"cn": "甲", "desc": "", "next": [], "terminal": False,
+                      "gate": {"must": [{"id": "m1", "text": "交件"},
+                                       {"id": "m2", "text": "留证据"}],
+                               "forbid": ["抄答案"]}},
+            }),
+            "active": ["a"],
+            "checked": ["m1"],
+            "stage_alert": {"code": "checklist_unmet", "nxt": "b"},
+            "gate_alert": {"missing": [{"text": "留证据"}], "violations": ["抄答案"]},
+            "tpl": {
+                "heading_stage": "## 流程阶段",
+                "stage_current": "当前阶段：{cn}（{id}）",
+                "stage_alert": "阶段跳转未通过校验（{code}），请回到当前阶段继续推进",
+                "gate_alert_item": "- 未通过：{text}",
+                "gate_violation_item": "- 红线：{text}",
+                "heading_gate": "## 本步自检清单",
+                "gate_must": "- [ ] {id} {text}",
+                "gate_must_done": "- [x] {id} {text}",
+                "gate_forbid": "- 禁止：{text}",
+                "gate_rule": "缺项会被拒绝",
+                "stage_rule": "不报 stage 视为空转",
+            },
+        })
+        text = out["system"]
+        self.assertTrue(text.startswith("## 流程阶段"))
+        self.assertIn("- [x] m1 交件", text)
+        self.assertIn("- [ ] m2 留证据", text)
+        self.assertIn("checklist_unmet", text)
+        self.assertIn("未通过：留证据", text)
+        self.assertIn("红线：抄答案", text)
+        self.assertIn("缺项会被拒绝", text)
+        self.assertIn("不报 stage 视为空转", text)
+
     def test_missing_must_template_skips_line(self):
         """模板无 must 句式：打勾项不生成空行，只有红线行，也不带总则。"""
         out = _pure.stage_blockp(self._payload({
@@ -207,7 +244,7 @@ class SkillUninstallResidualTest(unittest.TestCase):
 
 class SetupResidualTest(unittest.TestCase):
     def test_setup_registers_all_routes(self):
-        """装配：27 条岗位库路由按名登记到 library 模块。"""
+        """装配：28 条岗位库路由按名登记到 library 模块。"""
         class Api:
             def __init__(self):
                 self.rows = []
@@ -218,7 +255,7 @@ class SetupResidualTest(unittest.TestCase):
         from ai_new.modules.agent import library
         api = Api()
         self.assertTrue(library.setup(types.SimpleNamespace(api=api)))
-        self.assertEqual(len(api.rows), 27)
+        self.assertEqual(len(api.rows), 28)
         self.assertTrue(all(m == "library" for _, m in api.rows))
 
 

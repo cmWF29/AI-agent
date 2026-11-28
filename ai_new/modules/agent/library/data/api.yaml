@@ -70,6 +70,29 @@ routes:
     out:
       flow:
         type: any
+  library.stage_block:
+    in:
+      active:
+        type: any
+        req: false
+      alert:
+        type: any
+        req: false
+      checked:
+        type: any
+        req: false
+      contract:
+        type: any
+        req: false
+      gate_alert:
+        type: any
+        req: false
+      stage_alert:
+        type: any
+        req: false
+    out:
+      system:
+        type: any
   library.get:
     in:
       id:

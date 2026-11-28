@@ -37,6 +37,18 @@ class SessionsPureTest(unittest.TestCase):
                                                        "content": "s"}], "stage": ""})
         self.assertEqual(quiet["messages"][0]["content"], "s")
 
+    def test_refresh_stage_keeps_single_block(self):
+        """连续两轮刷新只替换首条 system 里的阶段段，不把旧段叠成多份。"""
+        msgs = [{"role": "system", "content": "人设\n\n## 流程阶段\n当前阶段：甲（a）\n旧清单"},
+                {"role": "system", "kind": "flow-context", "content": "约束"}]
+        out = s.refresh_stage_message({"messages": msgs,
+                                       "stage": "## 流程阶段\n当前阶段：乙（b）\n新清单"})
+        content = out["messages"][0]["content"]
+        self.assertEqual(content.count("## 流程阶段"), 1)
+        self.assertIn("当前阶段：乙（b）", content)
+        self.assertNotIn("当前阶段：甲（a）", content)
+        self.assertEqual(out["messages"][1]["content"], "约束")
+
     def test_inject_assigned(self):
         msgs = [{"role": "user"}, {"role": "system", "content": "head\nold"}]
         out = s.inject_assigned_message({"messages": msgs, "heading": "head",

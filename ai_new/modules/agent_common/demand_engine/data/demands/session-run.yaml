@@ -84,13 +84,6 @@ do:
     active:
       get: row.value.meta.active
   as: fctx
-- call: sessions.refresh_constraint_message
-  with:
-    messages:
-      get: row.value.messages
-    constraint:
-      get: fctx
-  as: fresh_msgs
 - call: store.read
   with:
     module:
@@ -110,15 +103,6 @@ do:
     path:
       get: tp.path
   as: trow
-- call: sessions.inject_assigned_message
-  with:
-    messages:
-      get: fresh_msgs.messages
-    roles:
-      get: trow.value.roles
-    heading:
-      get: libtpl.value.heading_assigned
-  as: assg_msgs
 - call: clock.now
   as: now
 # 取完快照到标 running 之间可能有人插话：标 running 前再读一次盘，把新追加的接上
@@ -140,6 +124,43 @@ do:
     now:
       get: now.ts
   as: running
+# 状态卡必须压在本轮最新快照上：标 running 时已把“取快照后插进来的话”接上，避免旧快照把新任务顶掉
+- call: sessions.refresh_constraint_message
+  with:
+    messages:
+      get: running.messages
+    constraint:
+      get: fctx
+  as: constraint_msgs
+- call: sessions.inject_assigned_message
+  with:
+    messages:
+      get: constraint_msgs.messages
+    roles:
+      get: trow.value.roles
+    heading:
+      get: libtpl.value.heading_assigned
+  as: assg_msgs
+- call: library.stage_block
+  with:
+    contract:
+      get: contract
+    active:
+      get: running.meta.active
+    checked:
+      get: running.meta.checklist.checked
+    stage_alert:
+      get: running.meta.stage_alert
+    gate_alert:
+      get: running.meta.gate_alert
+  as: stage_block
+- call: sessions.refresh_stage_message
+  with:
+    messages:
+      get: assg_msgs.messages
+    stage:
+      get: stage_block.system
+  as: stage_msgs
 - call: sessions.record_path
   with:
     id:
@@ -162,7 +183,7 @@ do:
       session:
         get: running
       messages:
-        get: assg_msgs.messages
+        get: stage_msgs.messages
       tools:
         get: run_tools.items
       max_steps:
@@ -188,15 +209,6 @@ do:
     id:
       get: input.id
   as: sp3
-- call: store.read
-  with:
-    module:
-      lit: agent/logs
-    path:
-      get: sp3.path
-  as: latest
-- call: clock.now
-  as: done_at
 - call: demand_engine.run
   with:
     id:
@@ -231,6 +243,16 @@ do:
     notes:
       get: trow.value.history
   as: check
+# 收尾前再读一次盘：react 与状态校验期间可能有人插话/复用派任务，宁可晚读也不拿旧快照覆盖
+- call: store.read
+  with:
+    module:
+      lit: agent/logs
+    path:
+      get: sp3.path
+  as: latest
+- call: clock.now
+  as: done_at
 - call: sessions.finish
   with:
     rec:
@@ -291,23 +313,25 @@ expect:
   - library.stage_tools
   - todos.context
   - library.flow_context
-  - sessions.refresh_constraint_message
   - store.read
   - tickets.record_path
   - store.read
-  - sessions.inject_assigned_message
   - clock.now
   - store.read
   - sessions.mark
+  - sessions.refresh_constraint_message
+  - sessions.inject_assigned_message
+  - library.stage_block
+  - sessions.refresh_stage_message
   - sessions.record_path
   - store.write
   - demand_engine.run
   - sessions.record_path
-  - store.read
-  - clock.now
   - demand_engine.run
   - tickets.paths
   - library.stage_transition
+  - store.read
+  - clock.now
   - sessions.finish
   - sessions.record_path
   - store.write

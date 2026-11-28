@@ -1,9 +1,10 @@
 ---
 source: ai_new/modules/agent_test/private/test_sessions_pure_edges.py
-hash: f462283e26e84c70c751e01f995b046003660caf7339470b5f4fe88346cd8ba6
+hash: 60238b300b441fb23ce4da20e387c195ce8f48c7212d2f43cc13c7cbdf947afe
 symbols:
 - test_seed_and_refresh
 - test_refresh_stage
+- test_refresh_stage_keeps_single_block
 - test_inject_assigned
 - test_build
 - test_machine_brief_and_view
@@ -33,6 +34,12 @@ updated_at: '2026-11-26T00:01:32'
 
 ### `test_refresh_stage`（method）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_refresh_stage_keeps_single_block`（method）
+- 职责: 连续两轮刷新只替换首条 system 里的阶段段，不把旧段叠成多份。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

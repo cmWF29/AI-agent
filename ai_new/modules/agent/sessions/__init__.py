@@ -14,6 +14,7 @@ def setup(ctx):
     pairs = [
         ("sessions.build", _pure.build),
         ("sessions.refresh_constraint_message", _pure.refresh_constraint_message),
+        ("sessions.refresh_stage_message", _pure.refresh_stage_message),
         ("sessions.inject_assigned_message", _pure.inject_assigned_message),
         ("sessions.view", _pure.view),
         ("sessions.members", _pure.members),

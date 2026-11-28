@@ -1276,6 +1276,8 @@ class CoreTest(unittest.TestCase):
         r1 = self._run("ticket-role-spawn", {"id": t["id"], "role": "developer",
                                              "task": "第一条任务"})["result"]
         sid1 = r1["roles"][0]["session"]
+        # 首次 spawn 已派后台轮次；先收口，避免手工置 idle 与在途轮次互相覆盖
+        self.ctx.runtime.stop(sid1)
         path = "sessions/%s.yaml" % sid1
         rec = self.ctx.api.call("store.read", {"module": "agent/logs",
                                                "path": path}).get("value") or {}
@@ -1428,6 +1430,12 @@ class CoreTest(unittest.TestCase):
                                     "path": "sessions/%s.yaml" % sid}).get("value") or {}
             self.assertEqual(rec.get("summary"), "本轮结论：验证通过")
             self.assertTrue(any(m["role"] == "assistant" for m in rec.get("messages") or []))
+            # 状态机卡片和工具清单同级：每轮都压进首条 system，收口后随会话存档
+            head = next(m for m in rec["messages"] if m["role"] == "system")["content"]
+            self.assertIn("## 流程阶段", head)
+            self.assertIn("当前阶段", head)
+            self.assertIn("understand", head)
+            self.assertEqual(head.count("## 流程阶段"), 1)
             # 存档气泡只存 reply，不夹带摘要 JSON
             self.assertNotIn("summary", done["content"])
         finally:

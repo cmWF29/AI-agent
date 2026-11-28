@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/library/data/messages.yaml
-hash: b9183d8086338c35ee9a6a2cf64548df203360c9da0b2aac2cbd93558f4df837
+hash: 82c3e06aae62d885b45a7d860e35f932276518881e4f325577956698beb13d9e
 symbols:
 - position_missing
 - kind_missing
@@ -36,6 +36,7 @@ symbols:
 - stage_terminal
 - stage_not_terminal
 - stage_alert
+- stage_rule
 - heading_state_machine
 - machine_state_cur
 - machine_state
@@ -43,6 +44,9 @@ symbols:
 - machine_edge_plain
 - heading_gate
 - gate_must
+- gate_must_done
+- gate_alert_item
+- gate_violation_item
 - gate_forbid
 - gate_rule
 generated: gen_docs.py v1
@@ -264,6 +268,12 @@ YAML 配置：按键/段登记摘要。
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `stage_rule`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `heading_state_machine`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
@@ -301,6 +311,24 @@ YAML 配置：按键/段登记摘要。
 - 关联需求/测试: 待人工补充
 
 ### `gate_must`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `gate_must_done`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `gate_alert_item`（key）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `gate_violation_item`（key）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

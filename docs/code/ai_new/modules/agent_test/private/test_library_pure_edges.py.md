@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent_test/private/test_library_pure_edges.py
-hash: 61cb92f7c07f0f475991b44cd737c3262ec10d97ef2b5254fd17668a4454bb6e
+hash: 925595d4bcd803d8e8fc97ea3f4a2db307fc22233cff825168db1ad30dce6104
 symbols:
 - _contract
 - test_target_already_active
 - _payload
 - test_missing_forbid_template_skips_line
+- test_checked_and_alert_rendered
 - test_missing_must_template_skips_line
 - test_gate_rule_after_gate_lines
 - test_note_check_satisfied
@@ -52,6 +53,12 @@ updated_at: '2026-11-26T11:20:50'
 
 ### `test_missing_forbid_template_skips_line`（method）
 - 职责: 模板无 forbid 句式：红线项不生成空行，must 清单照常输出并带总则。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_checked_and_alert_rendered`（method）
+- 职责: 上轮已打勾项显示 [x]；上轮校验告警与缺项在下一轮卡片顶部可见。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
@@ -117,7 +124,7 @@ updated_at: '2026-11-26T11:20:50'
 - 关联需求/测试: 待人工补充
 
 ### `test_setup_registers_all_routes`（method）
-- 职责: 装配：27 条岗位库路由按名登记到 library 模块。
+- 职责: 装配：28 条岗位库路由按名登记到 library 模块。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
