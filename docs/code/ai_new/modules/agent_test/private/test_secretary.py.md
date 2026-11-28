@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_secretary.py
-hash: ef3a91a25a086b6c8e4acf417000c5fafb7299e8d10cf8f9f78e5da000fc9ab2
+hash: 8e53c9e67bcdbdf3c8256d5cfb2be27c6426e63a82c1824af96ef46baadfedf6
 symbols:
 - __call__
 - setUpClass
@@ -15,6 +15,7 @@ symbols:
 - _caller
 - _project_ticket_ids
 - test_concurrent_flush_on_same_project_creates_one_ticket
+- test_batch_number_continues_after_restart
 - test_autoflush_demand_processes_queue_without_manual_flush
 - test_batch_merge_three_into_one_ticket
 - test_idempotent_repush_and_reflush
@@ -124,6 +125,12 @@ updated_at: '2026-11-23T04:10:23'
 
 ### `test_concurrent_flush_on_same_project_creates_one_ticket`（method）
 - 职责: 同一项目两条消息同时触发 flush：必须串行，只建一张单，消息不丢。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_batch_number_continues_after_restart`（method）
+- 职责: 进程重启后批次号必须从磁盘最大号续，不能从 B-0001 重来撞旧幂等键。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

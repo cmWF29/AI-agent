@@ -68,6 +68,16 @@ def enqueue(p):
     return {"ok": True, "created": True, "entry": entry, "state": state}
 
 
+def last_batch_no(p):
+    """已有批次里的最大编号：进程重启后序号从这里续，不能从 0 重来。"""
+    nums = []
+    for b in (p.get("state") or {}).get("batches") or []:
+        bid = str(b.get("batch_id") or "")
+        if bid.startswith("B-") and bid[2:].isdigit():
+            nums.append(int(bid[2:]))
+    return max(nums or [0])
+
+
 def claim_batch(p):
     """原子取整批：全部 pending -> processing，挂同一个 batch_id。
 

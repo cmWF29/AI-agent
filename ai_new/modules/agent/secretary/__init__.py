@@ -249,7 +249,8 @@ def _route_flush(ctx, payload):
     state = _read_state(ctx, project)
     now = ctx.api.call("clock.now", {}, caller=None)
     seq = ctx.api.call("store.next_seq", {
-        "bucket": "secretary-batch:" + project, "baseline": 0}, caller=None).get("seq")
+        "bucket": "secretary-batch:" + project,
+        "baseline": _pure.last_batch_no({"state": state})}, caller=None).get("seq")
     batch_id = "B-%04d" % int(seq or 1)
     claimed = _pure.claim_batch({
         "state": state, "batch_id": batch_id, "claimed_at": now.get("ts"),

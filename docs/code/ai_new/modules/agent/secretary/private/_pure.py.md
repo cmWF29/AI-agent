@@ -1,10 +1,11 @@
 ---
 source: ai_new/modules/agent/secretary/private/_pure.py
-hash: 26b006bcf250315f5208c366455ff8256b4bb8cf9566b007451abeaaa64eaac4
+hash: 8f1557ff688cd519ea8ddb05329dfee9c3579ec9150ddd2ef3440ad611fdefa7
 symbols:
 - empty_state
 - _find
 - enqueue
+- last_batch_no
 - claim_batch
 - merge
 - to_brief
@@ -42,6 +43,12 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `enqueue`（function）
 - 职责: 入队（幂等）：同一 (project, msg_id) 重复投递回原条目，不新建、不二次建单。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `last_batch_no`（function）
+- 职责: 已有批次里的最大编号：进程重启后序号从这里续，不能从 0 重来。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

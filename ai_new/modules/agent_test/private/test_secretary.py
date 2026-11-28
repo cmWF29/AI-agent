@@ -121,6 +121,17 @@ class SecretaryTest(unittest.TestCase):
         self.assertEqual(queue["counts"]["merged"], 2)
         self.assertEqual(len(self._project_ticket_ids(project)), 1)
 
+    def test_batch_number_continues_after_restart(self):
+        """进程重启后批次号必须从磁盘最大号续，不能从 B-0001 重来撞旧幂等键。"""
+        project = self._project("restart-seq")
+        self._push(project, "r1", "第一条")
+        first = self._flush(project)["result"]["batch"]["batch_id"]
+        # 模拟重启：进程内发号器清空；磁盘批次还在。
+        self.ctx.storage._counters.clear()
+        self._push(project, "r2", "第二条")
+        second = self._flush(project)["result"]["batch"]["batch_id"]
+        self.assertNotEqual(first, second, "重启后批次号复用了 %s" % first)
+
     def test_autoflush_demand_processes_queue_without_manual_flush(self):
         """入队触发的自动处理需求：派发 secretary.queued 就能建单，不需要有人手点。"""
         project = self._project("秘书自动处理项目")
