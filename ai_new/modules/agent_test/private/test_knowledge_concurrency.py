@@ -20,6 +20,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    """Py3.8 兼容：Path.is_relative_to 到 3.9 才有，门禁必须能在 3.8 跑。"""
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
 from ai_new.modules.agent_common.store.private import _docpath  # noqa: E402
 from ai_new.modules.agent_common.store.private import _doclock  # noqa: E402
 from ai_new.modules.agent_common.store.private import _files  # noqa: E402
@@ -93,7 +102,7 @@ class PathValidationTest(unittest.TestCase):
     def test_relative_doc_resolves_under_root(self):
         out = _docpath.resolve(MODULE, "public/note.md")
         self.assertTrue(out["ok"])
-        self.assertTrue(Path(out["real"]).is_relative_to(Path(out["root"])))
+        self.assertTrue(_is_relative_to(Path(out["real"]), Path(out["root"])))
 
     def test_traversal_segment_rejected(self):
         for rel in ("../etc/passwd", "public/../../etc", "a/../../../b"):
@@ -146,7 +155,7 @@ class LayerIsolationTest(unittest.TestCase):
         # B 的文档路径不在 A 的项目目录之下。
         a = Path(_docpath.resolve(MODULE, "projects/proj-a/note.md")["real"])
         b = Path(_docpath.resolve(MODULE, "projects/proj-b/note.md")["real"])
-        self.assertFalse(b.is_relative_to(a.parent))
+        self.assertFalse(_is_relative_to(b, a.parent))
 
     def test_ticket_layer_isolated_per_ticket(self):
         self._write("tickets/T-1/note.md", "工单 T-1 备注")
@@ -161,7 +170,7 @@ class LayerIsolationTest(unittest.TestCase):
         # 项目层文档不会出现在公共层路径下。
         pub = Path(_docpath.resolve(MODULE, "public/common.md")["real"])
         priv = Path(_docpath.resolve(MODULE, "projects/proj-a/secret.md")["real"])
-        self.assertFalse(priv.is_relative_to(pub.parent))
+        self.assertFalse(_is_relative_to(priv, pub.parent))
 
 
 class AtomicAppendConcurrencyTest(unittest.TestCase):

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/api/data/capability-routes.yaml
-hash: 7760a9a772bcb54f5b6b3aada377b8886b6f629dafa43d40b3acfe7b22142333
+hash: 4e15394463c1df0939b8334e96ae50fef4b807d348a2e3b9daab0386a5587bae
 symbols:
 - comment
 - capabilities

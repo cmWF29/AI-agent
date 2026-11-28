@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_test/private/test_knowledge_concurrency.py
-hash: 3e2e2a85ef53c850eb7467462f7d44e2d8312eccbc26b03ea95e64cf23219931
+hash: 1088bac7f8dd8005eeafbd269d18f1cd53169ae57a63673e0ae7a0ee205c0f5b
 symbols:
+- _is_relative_to
 - call
 - _stub_ctx
 - _spawn
@@ -57,6 +58,12 @@ updated_at: '2026-11-23T04:10:23'
 知识文档并发写保护与路径可见性契约。
 
 ## 符号
+
+### `_is_relative_to`（function）
+- 职责: Py3.8 兼容：Path.is_relative_to 到 3.9 才有，门禁必须能在 3.8 跑。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `call`（method）
 - 职责: （无 docstring）

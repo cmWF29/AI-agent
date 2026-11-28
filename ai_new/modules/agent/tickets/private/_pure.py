@@ -535,25 +535,34 @@ def bindrole(p):
     之前按调用次数 append，PM 复用同一会话返工时会再写一条 role 记录，
     角色列表因此出现两条同 session 的岗位、状态机与前端计数都被重复计算。
     会话级身份才是唯一键；不同会话的同岗并行仍保留各自的记录。
+
+    `reuse` 只由会话层幂等判定给出，记录行的 `reused` 与回执字段一起
+    作为「复用/新建」的可审计标记（AC6），调用方不用再猜。
     """
     rec = dict(p.get("rec") or {})
     sid = p.get("session")
-    roles = list(rec.get("roles") or [])
+    reuse = bool(p.get("reuse"))
+    # 逐行复制：命中行是原地改字段的，浅拷贝 list 会改到调用方传进来的 rec 上，
+    # 同一份 rec 被判定多次时后一次会覆盖前一次的回执（脏数据就是这样长出来的）。
+    roles = [dict(r or {}) for r in (rec.get("roles") or [])]
     hit = None
     for row in roles:
-        if str((row or {}).get("session") or "") == str(sid or ""):
+        if str(row.get("session") or "") == str(sid or ""):
             hit = row
             break
     if hit is not None:
         hit["role"] = p.get("role") or hit.get("role")
         hit["display"] = p.get("display") or hit.get("display") or p.get("role")
         hit["task"] = p.get("task") or hit.get("task") or ""
+        hit["reused"] = True
     else:
         roles.append({"session": sid, "role": p.get("role"),
                       "display": p.get("display") or p.get("role"),
-                      "task": p.get("task") or "", "status": "spawned"})
+                      "task": p.get("task") or "", "status": "spawned",
+                      "reused": reuse})
     rec["roles"] = roles
-    rec.setdefault("history", []).append({"at": p.get("now") or "", "event": "role_spawn",
+    event = "role_reuse" if hit is not None else "role_spawn"
+    rec.setdefault("history", []).append({"at": p.get("now") or "", "event": event,
                                           "text": "%s: %s" % (p.get("role"), p.get("task") or ""),
                                           "to": p.get("display") or p.get("role") or "",
                                           "to_kind": "role"})

@@ -271,6 +271,61 @@ def statsp(p):
             "max_concurrent": int(p.get("max") or 0), "statuses": statuses}
 
 
+# 复用态：除 gone（已注销）外都算“该岗位在本工单还有会话”。
+# 真实数据里工单角色行是 spawned、空闲会话是 idle，只认 queued/running/stalled
+# 会把闲置会话判成不存在，于是重复 spawn 又造一条，同岗并发互相覆盖。
+REUSE_EXCLUDED_STATUSES = {"gone"}
+# 活跃态优先：有在途会话就先交给它，其次才轮到空闲/已派生的历史会话。
+REUSE_ACTIVE_STATUSES = {"queued", "running", "stalled"}
+# 脏数据兜底：状态相同时按 id 定序，保证同一输入每次选中的是同一条。
+REUSE_FALLBACK_STATUSES = {"spawned", "idle"}
+
+
+def _reuse_rank(rec):
+    status = str(rec.get("status") or "")
+    if status in REUSE_ACTIVE_STATUSES:
+        return 0
+    if status in REUSE_FALLBACK_STATUSES:
+        return 1
+    return 2
+
+
+def _reuse_order(rec):
+    # 新的在前：created 越大越新，updated 作次序，id 兜底保证全序。
+    try:
+        created = float(rec.get("created") or 0)
+    except (TypeError, ValueError):
+        created = 0.0
+    try:
+        updated = float(rec.get("updated") or 0)
+    except (TypeError, ValueError):
+        updated = 0.0
+    return (_reuse_rank(rec), -created, -updated, str(rec.get("id") or ""))
+
+
+def reuse_target(p):
+    """复用目标：同 ticket、同 role、未 gone 的会话里做确定性选择。
+
+    纯形状判定，不读盘、不取时钟。选择规则（同一输入结果恒定）：
+    1) 活跃（queued/running/stalled）优先，其次 spawned/idle 等非 gone 态；
+    2) 同档内 created 新者优先，再 updated，最后按 id 升序兜底。
+    历史脏数据里有多条同岗会话时只选一条，不合并也不删除（清理另开工单）。
+    """
+    ticket = str(p.get("ticket") or "")
+    role = str(p.get("role") or "")
+    if not ticket or not role:
+        return {"item": None}
+    dups = [rec for rec in (p.get("records") or [])
+            if isinstance(rec, dict)
+            and str(rec.get("ticket") or "") == ticket
+            and str(rec.get("role") or "") == role
+            and str(rec.get("status") or "") not in REUSE_EXCLUDED_STATUSES]
+    if not dups:
+        return {"item": None}
+    dups.sort(key=_reuse_order)
+    return {"item": dups[0]}
+
+
 def active_same_role(p):
     """同工单同岗在途查重：筛出同 ticket、同 role 且状态在途的已有会话。
 

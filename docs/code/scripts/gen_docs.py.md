@@ -1,7 +1,8 @@
 ---
 source: scripts/gen_docs.py
-hash: 968f1a49830e6c523d1f7be2b03ae44c1b69ab4a39b84ab465b71ac9bc4ae51e
+hash: 0fc619e0ec1106bb4a23abe4b4ed411aa149d5dd662229fd2354bf764c30e84a
 symbols:
+- _is_relative_to
 - _sha256
 - _py_symbols
 - _js_symbols
@@ -33,6 +34,12 @@ updated_at: '2026-11-23T04:10:23'
 源码文档幂等生成器：每个源码文件一份 `docs/code/<镜像路径>.md`，拆到函数/类级别。
 
 ## 符号
+
+### `_is_relative_to`（function）
+- 职责: Py3.8 兼容：Path.is_relative_to 到 3.9 才有，gen_docs 在 3.8 也要能跑。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `_sha256`（function）
 - 职责: （无 docstring）

@@ -17,6 +17,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    """Py3.8 兼容：Path.is_relative_to 到 3.9 才有，门禁必须能在 3.8 跑。"""
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
 from ai_new.modules.agent_common.store.private import _isolate  # noqa: E402
 from ai_new.modules.agent_common.exec.private import _runner  # noqa: E402
 from ai_new.modules.agent.projects.private import _pure as projects_pure  # noqa: E402
@@ -40,7 +49,7 @@ class WorkspaceResolveTest(unittest.TestCase):
         dirs = out["dirs"]
         for layer in ("documents", "tickets", "logs", "artifacts"):
             self.assertTrue(Path(dirs[layer]).is_absolute(), layer)
-            self.assertTrue(Path(dirs[layer]).is_relative_to(Path(self.tmp)), layer)
+            self.assertTrue(_is_relative_to(Path(dirs[layer]), Path(self.tmp)), layer)
         self.assertIn("T-20261123-0001", dirs["tickets"])
         # 各层归属模块不同：工单在 tickets，文档在 knowledge，日志在 logs，交付件在 artifacts。
         posix = {k: str(v).replace("\\", "/") for k, v in dirs.items()}

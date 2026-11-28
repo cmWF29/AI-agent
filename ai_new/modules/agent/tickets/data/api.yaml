@@ -67,6 +67,9 @@ routes:
       role:
         type: any
         req: false
+      reuse:
+        type: any
+        req: false
       session:
         type: any
         req: false

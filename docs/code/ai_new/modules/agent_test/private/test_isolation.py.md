@@ -1,7 +1,8 @@
 ---
 source: ai_new/modules/agent_test/private/test_isolation.py
-hash: 5ce449aa1f8fcee1be8d8f38a3a31b86149998a9f5a21438e1f4468b08995f37
+hash: 33b9665ca5f5aaa378fcbedf282969be201775313af1a8c7b973c89c8b1983bc
 symbols:
+- _is_relative_to
 - setUp
 - _dir_of
 - test_legacy_dirs_under_owning_module_data
@@ -34,6 +35,12 @@ updated_at: '2026-11-23T04:10:23'
 项目/工单工作区隔离：路径解析、越界校验与 capability 上报契约。
 
 ## 符号
+
+### `_is_relative_to`（function）
+- 职责: Py3.8 兼容：Path.is_relative_to 到 3.9 才有，门禁必须能在 3.8 跑。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
 
 ### `setUp`（method）
 - 职责: （无 docstring）

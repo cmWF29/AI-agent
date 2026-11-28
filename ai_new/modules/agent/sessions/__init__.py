@@ -33,6 +33,7 @@ def setup(ctx):
         ("sessions.resume_plan", _run_pure.resume_plan),
         ("sessions.stuck_plan", _run_pure.stuck_plan),
         ("sessions.active_same_role", _run_pure.active_same_role),
+        ("sessions.reuse_target", _run_pure.reuse_target),
         ("sessions.wire_at", _pure.wire_at),
     ]
     for name, fn in pairs:
@@ -295,17 +296,13 @@ def _spawn(ctx, payload):
                                           "path": rel}, caller=None)
         if row.get("value"):
             records.append(row["value"])
-    dups = ctx.api.call("sessions.active_same_role", {
+    # 复用判定覆盖除 gone 以外的全部状态：只认 queued/running/stalled 会把
+    # 空闲/已派生的历史会话漏掉，重复 role_spawn 于是又造一条同岗会话。
+    pick = ctx.api.call("sessions.reuse_target", {
         "ticket": payload.get("ticket"), "role": payload.get("role"),
-        "records": records}, caller=None).get("items") or []
-    if dups:
-        rec = dups[0]
-        view = ctx.api.call("sessions.view", {"rec": rec}, caller=None)
-        view["rec"] = rec
-        view["reused"] = True
-        view["duplicate"] = True
-        view["effects"] = []
-        return view
+        "records": records}, caller=None).get("item")
+    if pick:
+        return _reuse(ctx, payload, pick)
     nid = ctx.api.call("store.id", {"value": payload.get("name")}, caller=None)
     tid = ctx.api.call("store.id", {"value": payload.get("ticket")}, caller=None)
     role_prompt = payload.get("role_prompt") or None
@@ -353,6 +350,35 @@ def _spawn(ctx, payload):
         "project": rec.get("project") or "", "ticket": rec.get("ticket") or "",
         "name": rec.get("id") or ""}, caller=None)
     view["effects"] = [body_effect] + (log_rec.get("effects") or [])
+    return view
+
+
+def _reuse(ctx, payload, rec):
+    """复用已有会话并派任务：等价 role_task 语义（不新建、不另起记录）。
+
+    回执带 reused=True 与 reused_session=会话 id，调用方可据此区分复用/新建；
+    任务文本按 user 消息追加进该会话（与 session-send 同一纯函数），状态由 idle 回到 queued，
+    由需求侧原有的派发链路驱动它继续跑，避免同岗多条线并发覆盖结论。
+    """
+    view = ctx.api.call("sessions.view", {"rec": rec}, caller=None)
+    sid = rec.get("id") or view.get("id") or ""
+    effects = []
+    task = str(payload.get("task") or "").strip()
+    if task:
+        now = ctx.api.call("clock.now", {}, caller=None)
+        fresh = ctx.api.call("sessions.appendmsg", {
+            "rec": rec, "role": "user", "text": task,
+            "now": now.get("ts")}, caller=None)
+        rel = _record_path(_cfg_logs(ctx), sid)
+        effects.append({"kind": "write", "module": "agent/logs",
+                        "path": rel, "value": fresh})
+        view = ctx.api.call("sessions.view", {"rec": fresh}, caller=None)
+    view["rec"] = view.get("rec") or rec
+    view["id"] = sid
+    view["reused"] = True
+    view["reused_session"] = sid
+    view["delivered"] = bool(task)
+    view["effects"] = effects
     return view
 
 

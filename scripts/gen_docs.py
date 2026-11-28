@@ -32,6 +32,15 @@ DOCS_ROOT = ROOT / "docs" / "code"
 GENERATOR = "gen_docs.py v1"
 
 
+def _is_relative_to(path: Path, root: Path) -> bool:
+    """Py3.8 兼容：Path.is_relative_to 到 3.9 才有，gen_docs 在 3.8 也要能跑。"""
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -241,8 +250,8 @@ def _write_index(root: Path, entries: list[dict], write: bool) -> str:
     payload = {"generated": _now_iso(), "total": len(entries), "groups": groups}
     if write:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-                        encoding="utf-8", newline="\n")
+        with path.open("w", encoding="utf-8", newline="\n") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
         return ""
     if not path.is_file():
         return "索引缺失"
@@ -297,10 +306,11 @@ def generate(root: Path | None = None, write: bool = True,
         rendered = render_doc(rel, kind, src, prev)
         header = parse_doc(rendered) or {}
         index_entries.append(_index_entry(
-            rel, kind, str(path.relative_to(root)) if path.is_relative_to(root) else str(path), header))
+            rel, kind, str(path.relative_to(root)) if _is_relative_to(path, root) else str(path), header))
         if write:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(rendered, encoding="utf-8", newline="\n")
+            with path.open("w", encoding="utf-8", newline="\n") as fh:
+                fh.write(rendered)
 
     # 孤儿文档：源码已删/改名，文档残留
     docs_root = root / "docs" / "code"

@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_core.py
-hash: e4ef29042dcf8fb763ec029552675e53af8c3cd2297e65b7d3825059e7803669
+hash: 0890038a1695626dad1c5bcbf0bef362d235fc6b5b4321b34bba7f32355db91b
 symbols:
 - __init__
 - __call__
@@ -60,12 +60,14 @@ symbols:
 - test_project_lifecycle
 - test_project_purge_cascades_children
 - test_ticket_lifecycle_and_role_tool
+- test_ticket_role_spawn_reuses_same_role_on_second_call
 - test_ticket_close_archives_transcript_and_recycles_sessions
 - test_project_tree_thread_and_positions
 - test_ticket_requires_existing_project
 - test_stall_audit_ticket_skips_pm_and_dispatch
 - test_session_spawn_send_run_wait
 - test_spawn_reuses_active_same_role_no_duplicate
+- test_spawn_reuses_idle_same_role_and_delivers_task
 - test_react_stash_tool_output_branches
 - test_react_checkpoint_writes_session_record
 - test_react_tool_calls_run_concurrently
@@ -532,6 +534,12 @@ updated_at: '2026-11-23T04:10:22'
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充
 
+### `test_ticket_role_spawn_reuses_same_role_on_second_call`（method）
+- 职责: AC1/AC3 端到端：同工单同岗位第二次 role_spawn 复用旧会话并追加任务。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
 ### `test_ticket_close_archives_transcript_and_recycles_sessions`（method）
 - 职责: 结单：往来对话固化进工单 transcript，随后 PM/角色会话文件被回收。
 - 入参/出参: 待人工补充
@@ -564,6 +572,12 @@ updated_at: '2026-11-23T04:10:22'
 
 ### `test_spawn_reuses_active_same_role_no_duplicate`（method）
 - 职责: 重复触发同岗：已有在途会话时复用，不并出第二条同岗线。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_spawn_reuses_idle_same_role_and_delivers_task`（method）
+- 职责: 重复 role_spawn：已有 idle 同岗会话时复用，并把新任务作为 user 消息追加。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

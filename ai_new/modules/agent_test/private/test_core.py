@@ -1269,6 +1269,29 @@ class CoreTest(unittest.TestCase):
         got = self._run("ticket-get", {"id": t["id"]})
         self.assertEqual(got["result"]["status"], "closed")
 
+    def test_ticket_role_spawn_reuses_same_role_on_second_call(self):
+        """AC1/AC3 端到端：同工单同岗位第二次 role_spawn 复用旧会话并追加任务。"""
+        proj = self._run("projects-create", {"name": "同岗复用项目"})["result"]
+        t = self._run("ticket-create", {"title": "同岗复用", "project": proj["id"]})["result"]
+        r1 = self._run("ticket-role-spawn", {"id": t["id"], "role": "developer",
+                                             "task": "第一条任务"})["result"]
+        sid1 = r1["roles"][0]["session"]
+        path = "sessions/%s.yaml" % sid1
+        rec = self.ctx.api.call("store.read", {"module": "agent/logs",
+                                               "path": path}).get("value") or {}
+        rec = self.ctx.api.call("sessions.mark", {"rec": rec, "status": "idle"})
+        self.ctx.api.call("store.write", {"module": "agent/logs", "path": path, "value": rec})
+        r2 = self._run("ticket-role-spawn", {"id": t["id"], "role": "developer",
+                                             "task": "第二条任务"})["result"]
+        self.assertEqual([x["session"] for x in r2["roles"]], [sid1], "同岗不得新建第二条")
+        self.assertTrue(r2["roles"][0].get("reused"), "工单回执应标重复用")
+        fresh = self.ctx.api.call("store.read", {"module": "agent/logs",
+                                                 "path": path}).get("value") or {}
+        self.assertIn("第二条任务", [m.get("content") for m in fresh.get("messages") or []])
+        self.assertIn(fresh.get("status"), ("queued", "running", "idle"))
+        got = self._run("ticket-get", {"id": t["id"]})["result"]
+        self.assertTrue(any(h.get("event") == "role_reuse" for h in got["history"]))
+
     def test_ticket_close_archives_transcript_and_recycles_sessions(self):
         """结单：往来对话固化进工单 transcript，随后 PM/角色会话文件被回收。"""
         proj = self._run("projects-create", {"name": "结单回收项目"})["result"]
@@ -1431,6 +1454,33 @@ class CoreTest(unittest.TestCase):
         rows = [self.ctx.api.call("store.read", {"module": "agent/logs", "path": p}).get("value") or {}
                 for p in self._glob("agent/logs", "sessions/*.yaml")]
         dev = [r for r in rows if r.get("ticket") == "T-IDEM" and r.get("role") == "developer"]
+        self.assertEqual(len(dev), 1)
+        self.ctx.api.call("store.remove", {"module": "agent/logs",
+                                           "path": "sessions/%s.yaml" % sid1})
+
+    def test_spawn_reuses_idle_same_role_and_delivers_task(self):
+        """重复 role_spawn：已有 idle 同岗会话时复用，并把新任务作为 user 消息追加。"""
+        sp1 = self._run("session-spawn", {"kind": "role", "role": "developer",
+                                          "name": "dev", "ticket": "T-IDLE"})["result"]
+        sid1 = sp1["id"]
+        path = "sessions/%s.yaml" % sid1
+        rec = self.ctx.api.call("store.read", {"module": "agent/logs",
+                                               "path": path}).get("value") or {}
+        rec = self.ctx.api.call("sessions.mark", {"rec": rec, "status": "idle"})
+        self.ctx.api.call("store.write", {"module": "agent/logs", "path": path, "value": rec})
+        sp2 = self._run("session-spawn", {"kind": "role", "role": "developer",
+                                          "name": "dev", "ticket": "T-IDLE",
+                                          "task": "补充任务：沿同一会话继续"})["result"]
+        self.assertEqual(sp2["id"], sid1, "idle 同岗会话应被复用，不新建")
+        self.assertTrue(sp2.get("reused"), "复用分支应带 reused 标记")
+        fresh = self.ctx.api.call("store.read", {"module": "agent/logs",
+                                                 "path": path}).get("value") or {}
+        self.assertEqual(fresh.get("status"), "queued", "复用后应回到 queued 等派发")
+        self.assertEqual((fresh.get("messages") or [])[-1].get("content"),
+                         "补充任务：沿同一会话继续")
+        rows = [self.ctx.api.call("store.read", {"module": "agent/logs", "path": p}).get("value") or {}
+                for p in self._glob("agent/logs", "sessions/*.yaml")]
+        dev = [r for r in rows if r.get("ticket") == "T-IDLE" and r.get("role") == "developer"]
         self.assertEqual(len(dev), 1)
         self.ctx.api.call("store.remove", {"module": "agent/logs",
                                            "path": "sessions/%s.yaml" % sid1})

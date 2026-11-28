@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sessions/__init__.py
-hash: 7286b9021f2706c58e6b40511d0d948fd404d5c92a4db60df6598e4172299050
+hash: f473dc73dacd006709fd9e0b4404176ceef612fe06284b06175b49cc85e670f4
 symbols:
 - setup
 - start
@@ -14,6 +14,7 @@ symbols:
 - _role_guard
 - _route_spawn
 - _spawn
+- _reuse
 - _as_handler
 - _msg_tpl
 - _cfg_logs
@@ -102,6 +103,12 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `_spawn`（function）
 - 职责: 造会话：人设两路来源（岗位提示词 / 内置提示词文件）在这里选，知识注入由需求给。
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_reuse`（function）
+- 职责: 复用已有会话并派任务：等价 role_task 语义（不新建、不另起记录）。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

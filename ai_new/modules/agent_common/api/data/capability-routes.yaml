@@ -148,6 +148,7 @@ capabilities:
     - store.glob
     - store.read
     - sessions.active_same_role
+    - sessions.reuse_target
     - sessions.build
     - store.write
     - logs.record

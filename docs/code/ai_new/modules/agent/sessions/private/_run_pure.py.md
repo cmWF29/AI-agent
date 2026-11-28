@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/sessions/private/_run_pure.py
-hash: 7985392b874990b76acbbf79ed0bd3c8e4e083890ed44e9c82391ddcfa99492b
+hash: 77f1aa834d1180a60b1d21343d376684359f3f30315526c296088d3805f0ab15
 symbols:
 - appendmsg
 - _retrospect_enabled
@@ -14,6 +14,9 @@ symbols:
 - stuck_plan
 - reply
 - statsp
+- _reuse_rank
+- _reuse_order
+- reuse_target
 - active_same_role
 - waitingp
 - flow_plan
@@ -100,6 +103,24 @@ updated_at: '2026-11-23T04:10:20'
 
 ### `statsp`（function）
 - 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_reuse_rank`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `_reuse_order`（function）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `reuse_target`（function）
+- 职责: 复用目标：同 ticket、同 role、未 gone 的会话里做确定性选择。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

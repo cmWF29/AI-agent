@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/ticket-role-spawn.yaml
-hash: 6578b78694f508f362c3b9b7e273e9a0c777bf131cd58e1dc1f931a113d09422
+hash: 0cc18bc5560ad56342077a548a1bfed31357f2d8ec5ca7c0991ef86b85d082de
 symbols:
 - id
 - title

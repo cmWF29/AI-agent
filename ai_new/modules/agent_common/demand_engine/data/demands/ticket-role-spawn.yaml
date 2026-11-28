@@ -1,6 +1,6 @@
 id: ticket-role-spawn
 title: 拉岗位会话：spawn 需求 → 挂到 roles → 落盘
-description: 拉岗位会话：spawn 需求 → 挂到 roles → 落盘。会话由需求拉，工单只记账
+description: 拉岗位会话：spawn 需求（内部幂等复用）→ 挂到 roles → 落盘。会话由需求拉，工单只记账
 tags:
 - ticket
 - write
@@ -48,12 +48,17 @@ do:
       task:
         get: input.task
   as: sp
+# 复用分支已在 sessions.spawn 内把 task 追加进已有会话（等价 role_task），
+# 这里不能再无条件跑 session-send，否则复用时任务会落两遍。新建分支的
+# task 由 sessions.build 写进会话初始消息，也不缺这一步。
 - call: tickets.bindrole
   with:
     rec:
       get: row.value
     session:
       get: sp.result.id
+    reuse:
+      get: sp.result.reused
     role:
       get: input.role
     display:
@@ -107,4 +112,4 @@ expect:
   - runtime.dispatch
   - tickets.view
   payload: {}
-  promise: 会话由需求拉，工单只记账
+  promise: 同工单同岗位只留一条会话线；复用则派任务，新建则记账
