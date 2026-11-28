@@ -151,6 +151,9 @@ routes:
       rec:
         type: any
         req: false
+      stage:
+        type: string
+        req: false
       text:
         type: any
         req: false

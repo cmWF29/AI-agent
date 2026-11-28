@@ -34,6 +34,12 @@ def appendmsg(p):
     msgs.append(msg)
     rec["messages"] = msgs
     rec["updated"] = p.get("now") or ""
+    stage = str(p.get("stage") or "").strip()
+    if stage:
+        meta = dict(rec.get("meta") or {})
+        meta["stage"] = stage
+        meta["active"] = [stage]
+        rec["meta"] = meta
     if rec.get("status") in ("idle", "gone", None):
         rec["status"] = "queued"
     return rec

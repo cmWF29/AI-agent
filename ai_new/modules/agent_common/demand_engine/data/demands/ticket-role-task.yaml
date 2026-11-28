@@ -37,6 +37,8 @@ do:
         get: tgt.session
       text:
         get: input.text
+      stage:
+        get: input.stage
   as: sent
 - call: runtime.dispatch
   with:

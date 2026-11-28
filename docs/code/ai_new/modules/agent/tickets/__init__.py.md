@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/tickets/__init__.py
-hash: 1fbf6c9212bf5b91989ba2564d26286e635a8a20eed186bec623ca47ce1434ec
+hash: f205fb25548f6412065b23c4aba70a7b3ce18d0ae62f5b0a75dfab00e514fe9e
 symbols:
 - setup
 - _register_tools

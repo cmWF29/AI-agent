@@ -38,6 +38,8 @@ do:
     # 闭环注入的回催/复盘提示走 appendmsg 的 kind:note，两条路不混
     kind:
       lit: human
+    stage:
+      get: input.stage
   as: rec
 - call: sessions.record_path
   with:

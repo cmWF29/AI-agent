@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/demand_engine/data/demands/session-send.yaml
-hash: 72f8467ad83f3a6f3e3fd20108f13207fd5d987082196938dc987c779094bcb4
+hash: 642b5a8dc62f8611a01ea22c939c08f323a9e0cee00ef1b7fabf54ccdde5ba0c
 symbols:
 - id
 - title
