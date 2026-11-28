@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-28T14:05:50",
+  "generated": "2026-11-28T15:24:28",
   "total": 597,
   "groups": [
     {
@@ -479,7 +479,7 @@
           "doc": "docs/code/ai_new/modules/agent/library/data/roles.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "e6464cba3d5758482739e808cbefe0fdf0c09af9e22f5e32b1083e69ead82ef8",
+          "hash": "b1be28dc9f38767b501f91409fbc2259988f2da88d61949b795c4de6524260c1",
           "symbols": 15,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -488,7 +488,7 @@
           "doc": "docs/code/ai_new/modules/agent/library/data/seed.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "1d314658d5bc79d2e0cb542de4deafff2f40cd353d7773d1e170e4ede0567070",
+          "hash": "4ee816687e527570a00e8077c3493a4b6cd77b73f3f5589222d176495fff7a2e",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:19"
         },

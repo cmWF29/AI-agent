@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/library/data/roles.yaml
-hash: e6464cba3d5758482739e808cbefe0fdf0c09af9e22f5e32b1083e69ead82ef8
+hash: b1be28dc9f38767b501f91409fbc2259988f2da88d61949b795c4de6524260c1
 symbols:
 - pm
 - architect

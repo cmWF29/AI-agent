@@ -433,6 +433,7 @@ tester:
     - knowledge_read
     - ticket_read_doc
     - artifact_write
+    - shell
     - todo
     next:
     - run
