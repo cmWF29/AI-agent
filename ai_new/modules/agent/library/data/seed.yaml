@@ -229,6 +229,7 @@ roles:
     cn: 实现
     desc: 按验收标准写代码并落盘产物
     tools:
+    - artifact_read
     - artifact_write
     - knowledge_write
     - ticket_note
@@ -461,8 +462,10 @@ roles:
     cn: 测试报告
     desc: 汇总结果形成测试报告并交付
     tools:
+    - artifact_read
     - artifact_write
     - ticket_note
+    - shell
     - todo
     next: []
     terminal: true
