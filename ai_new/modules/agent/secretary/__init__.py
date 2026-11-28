@@ -219,9 +219,7 @@ def _route_push(ctx, payload):
         tip = tpl.get("msg_id_missing") if res["code"] == "msg_id_missing" else tpl.get("empty_text")
         return _err(res["code"], 400, tip or "")
     view = _pure.queue_view({"state": state})
-    if res["created"]:
-        # 只有新入队才触发；重复投递（msg_id 相同）不会被再处理一次。
-        ctx.hooks.emit("secretary.queued", {"project": project, "msg_id": msg_id})
+    # 入队只回写 effect；触发由需求在写盘之后调 hooks.emit，避免模块在 apply 前抢跑。
     return {"ok": True, "created": res["created"], "entry": res["entry"],
             "counts": view["counts"], "effects": [_write_effect(ctx, project, state)]}
 

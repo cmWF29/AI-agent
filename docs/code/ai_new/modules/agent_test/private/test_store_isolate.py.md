@@ -1,11 +1,12 @@
 ---
 source: ai_new/modules/agent_test/private/test_store_isolate.py
-hash: 2cb82a41776891329c44fc3dc145f5c56558f0f31a6a38206128457f1fdd5c75
+hash: ded414c708a8d3cc02ac29e9b4a9c022194349bb0d2868f6d942c04586a75c31
 symbols:
 - setUp
 - test_seg_and_real
 - test_bwrap_ready
 - test_capabilities
+- test_root_path_rejected
 - test_cwd_info
 - test_sandbox_info
 - test_resolve
@@ -44,6 +45,12 @@ updated_at: '2026-11-26T00:12:16'
 - 关联需求/测试: 待人工补充
 
 ### `test_capabilities`（method）
+- 职责: （无 docstring）
+- 入参/出参: 待人工补充
+- 副作用/依赖/不变量: 待人工补充
+- 关联需求/测试: 待人工补充
+
+### `test_root_path_rejected`（method）
 - 职责: （无 docstring）
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充

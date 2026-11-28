@@ -68,6 +68,10 @@ class IsolateTest(unittest.TestCase):
                 mock.patch.object(s._winjob, "probe", return_value={}):
             self.assertFalse(s.capabilities()["strong"]["verified"])
 
+    def test_root_path_rejected(self):
+        out = s.resolve_workspace({"project": "p", "root": "/"})
+        self.assertEqual(out["code"], "root_unsafe")
+
     def test_cwd_info(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d).resolve()

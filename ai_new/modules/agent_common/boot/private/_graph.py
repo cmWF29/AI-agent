@@ -297,7 +297,7 @@ def _demand_routes(node):
 def _demand_emit_points(node, out):
     """需求里经 hooks.emit 触发的点（模块不自己 emit，触发由需求编排）。"""
     if isinstance(node, dict):
-        if node.get("call") == "hooks.emit":
+        if node.get("call") == "hooks.emit" or node.get("send") == "hooks.emit":
             args = node.get("with") or {}
             name = (((args.get("point") or args.get("name")) or {}).get("lit"))
             if isinstance(name, str):

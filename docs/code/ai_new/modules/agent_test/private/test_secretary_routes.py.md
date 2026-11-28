@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_secretary_routes.py
-hash: 08ab6040aaa6a52d46f56268803d22c8c6054f1a307c458280fdf43f13fe204f
+hash: c5f6428886a4811606470611496be5781d6b8d11f8cc52504ff0b3511f11f28c
 symbols:
 - __init__
 - __init__

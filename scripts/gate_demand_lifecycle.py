@@ -73,6 +73,24 @@ def _hook_evidence(root):
             continue
         for kind, event in pat.findall(Path(path).read_text(encoding="utf-8")):
             seen.setdefault(event, {"point": [], "emit": []})[kind].append(rel)
+    # 需求 YAML 里的 send: hooks.emit 也是生产发射点：事件由编排层在 apply 之后发，
+    # 不该逼模块为了过门禁再写一段 Python 抢跑。
+    for path in sorted((root / "ai_new/modules/agent_common/demand_engine/data/demands").glob("*.yaml")):
+        rec = _load(path)
+        rel = os.path.relpath(path, root)
+
+        def walk(node):
+            if isinstance(node, dict):
+                if node.get("send") == "hooks.emit":
+                    event = str(((node.get("with") or {}).get("name") or {}).get("lit") or "")
+                    if event:
+                        seen.setdefault(event, {"point": [], "emit": []})["emit"].append(rel)
+                for value in node.values():
+                    walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+        walk(rec)
     return seen
 
 

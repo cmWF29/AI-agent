@@ -5,3 +5,15 @@ module: hooks
 routes:
   hooks.points:
     doc: 已声明的 hook 点
+  hooks.emit:
+    doc: 触发已声明的 hook 点；延迟点只入队，响应写完后由 http 收尾统一 drain
+    in:
+      name:
+        type: str
+        req: true
+      payload:
+        type: any
+        req: false
+      level:
+        type: str
+        req: false

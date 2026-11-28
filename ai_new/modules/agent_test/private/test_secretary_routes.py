@@ -169,7 +169,8 @@ class GuardAndPushTest(unittest.TestCase):
         out = sm._route_push(ctx, {"project": "P", "text": "x"})
         self.assertTrue(out["created"])
         self.assertEqual(out["entry"]["msg_id"], "m-0002")
-        self.assertTrue(out["effects"])
+        # 模块只回写队列；触发由 secretary-intake 在写盘之后调 hooks.emit
+        self.assertEqual([e["kind"] for e in out["effects"]], ["write"])
         out = sm._route_push(ctx, {"project": "P", "text": "y", "msg_id": "m-1"})
         self.assertEqual(out["entry"]["msg_id"], "m-1")
         out = sm._route_push(ctx, {"project": "P", "text": "", "msg_id": "m-2"})

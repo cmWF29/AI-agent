@@ -252,6 +252,11 @@ def resolve_workspace(payload, dir_of=None):
     root_raw = str(payload.get("root") or "").strip()
     if root_raw:
         root_path = Path(root_raw)
+        # 文件系统根会被当成“项目根 + 固定子目录”，cwd 永远进不了真实仓库，
+        # 且 bwrap 也拒绝 root=/；在落档前就拒，避免建出“看着配了、实际跑不了”的项目。
+        if root_path == root_path.parent:
+            return {"ok": False, "code": "root_unsafe", "status": 400,
+                    "error": "项目根不能是文件系统根目录", "capability": cap}
         if not root_path.is_absolute():
             return {"ok": False, "code": "root_not_absolute", "status": 400,
                     "error": "项目根路径必须是绝对路径", "capability": cap}

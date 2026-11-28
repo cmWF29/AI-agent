@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_common/hooks/__init__.py
-hash: 4bdcd96e7c762d2ba98b1edc1a275a113c39234c56e9547dccc987a8549f6f5e
+hash: c30b315108db5c877129414ac9eb62dcf6fa897908da4a054c7cef5ea2b83ca7
 symbols:
 - setup
 - point
