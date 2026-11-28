@@ -80,7 +80,7 @@ class SetupTest(unittest.TestCase):
             self.assertIn(name, api.registered)
         self.assertEqual(ctx.tools.demands,
                          [("artifact_write", "artifacts-write", 7),
-                          ("artifact_read", "artifacts-read", 4)])
+                          ("artifact_read", "artifacts-read", 6)])
 
     def test_cfg_helpers(self):
         ctx, api = make_ctx()

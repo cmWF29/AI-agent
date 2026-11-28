@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent/artifacts/private/_pure.py
-hash: fec6129f4c19e9c8a38a9edd027cff167596b57d349e98efe4dc32638dd3e975
+hash: c394d38ac6568ed701a25905dd5acf13f64f23b6526c6fd0f15e5e24fd17c43a
 symbols:
 - _bad
 - base
@@ -54,7 +54,7 @@ updated_at: '2026-11-23T04:10:19'
 - 关联需求/测试: 待人工补充
 
 ### `viewed`（function）
-- 职责: （无 docstring）
+- 职责: 读取视图：可按字符分页，长文让调用方 offset/limit 分页核验。
 - 入参/出参: 待人工补充
 - 副作用/依赖/不变量: 待人工补充
 - 关联需求/测试: 待人工补充

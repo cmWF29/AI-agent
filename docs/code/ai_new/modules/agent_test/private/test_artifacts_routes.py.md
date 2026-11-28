@@ -1,6 +1,6 @@
 ---
 source: ai_new/modules/agent_test/private/test_artifacts_routes.py
-hash: 20a7526c05b2035518e48c0d17a7a78d5f33c9e2573d41714c43ac145f08dcb1
+hash: a7eb1e757b3c83d2268f73d03940397d38c81d78501b2a9e13687055c402fadd
 symbols:
 - __init__
 - register

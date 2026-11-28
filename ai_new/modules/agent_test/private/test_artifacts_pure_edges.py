@@ -39,6 +39,11 @@ class ArtifactsPureTest(unittest.TestCase):
     def test_views(self):
         self.assertEqual(a.written({}), {"path": None, "size": 0, "layer": None})
         self.assertEqual(a.viewed({"text": "t"})["encoding"], "utf8")
+        page = a.viewed({"text": "abcdef", "offset": 1, "limit": 2})
+        self.assertEqual((page["text"], page["has_more"], page["next_offset"]), ("bc", True, 3))
+        tail = a.viewed({"text": "abcdef", "offset": 4, "limit": 2})
+        self.assertEqual((tail["text"], tail["has_more"], tail["truncated"]), ("ef", False, False))
+        self.assertEqual(a.viewed({"text": "abcdef", "offset": 9})["text"], "")
         rows = [{"path": "a", "text": "abc"}, {"path": "a2", "text": "é"}, ["b", "2"]]
         out = a.screen({"rows": rows})
         self.assertEqual([i["size"] for i in out["items"]], [3, 2, 2])

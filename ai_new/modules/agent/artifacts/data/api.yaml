@@ -107,6 +107,12 @@ routes:
       truncated:
         type: any
         req: false
+      offset:
+        type: any
+        req: false
+      limit:
+        type: any
+        req: false
     out: {}
   artifacts.written:
     in: {}

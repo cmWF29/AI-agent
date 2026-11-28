@@ -44,10 +44,19 @@ def written(p):
 
 
 def viewed(p):
+    """读取视图：可按字符分页，长文让调用方 offset/limit 分页核验。"""
+    text = p.get("text") or ""
+    total = len(text)
+    offset = max(0, int(p.get("offset") or 0))
+    raw_limit = p.get("limit")
+    end = total if raw_limit in (None, "") else min(total, offset + max(0, int(raw_limit)))
+    body = text[offset:end]
+    more = end < total
     return {"path": p.get("path"), "size": int(p.get("size") or 0),
-            "truncated": bool(p.get("truncated")),
+            "truncated": bool(p.get("truncated")) or more,
             "encoding": p.get("encoding") or "utf8",
-            "text": p.get("text") or ""}
+            "text": body, "offset": offset, "total": total,
+            "has_more": more, "next_offset": end if more else 0}
 
 
 def screen(p):

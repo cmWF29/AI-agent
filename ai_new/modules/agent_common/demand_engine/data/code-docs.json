@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-28T09:47:44",
+  "generated": "2026-11-28T10:12:45",
   "total": 597,
   "groups": [
     {
@@ -11,7 +11,7 @@
           "doc": "docs/code/ai_new/modules/agent/artifacts/__init__.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "81028eef5f2313b06631c8ba89ac3d2fa5a7212fa9a562a1347e9c64e3749fa3",
+          "hash": "c9fda59335d82ab628316a3f209ade95d5d461c61f6e8959dec60c96e10de856",
           "symbols": 7,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -20,7 +20,7 @@
           "doc": "docs/code/ai_new/modules/agent/artifacts/data/api.yaml.md",
           "kind": "yaml",
           "group": "agent",
-          "hash": "21ebead5f07d21998fb12b6886d749af677300957ec686c6133005593297f9b6",
+          "hash": "44611ae795edd4eb476da9587c0122cb21825d87f8c98ffb02923205096d0a88",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -47,7 +47,7 @@
           "doc": "docs/code/ai_new/modules/agent/artifacts/private/_pure.py.md",
           "kind": "py",
           "group": "agent",
-          "hash": "fec6129f4c19e9c8a38a9edd027cff167596b57d349e98efe4dc32638dd3e975",
+          "hash": "c394d38ac6568ed701a25905dd5acf13f64f23b6526c6fd0f15e5e24fd17c43a",
           "symbols": 12,
           "updated_at": "2026-11-23T04:10:19"
         },
@@ -1583,7 +1583,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/demand_engine/data/demands/artifacts-read.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "c320333c524fe9e29cf25d78e5ca9f69a5e59a2c3761c6b1c3d6eac658eb29dd",
+          "hash": "e9dbe3d2e021aed4c879c1d98f538cd1e1ae7492dbabf9f0caf9fb1b05f52498",
           "symbols": 9,
           "updated_at": "2026-11-23T04:10:21"
         },
@@ -3716,7 +3716,7 @@
           "doc": "docs/code/ai_new/modules/agent_common/react/data/messages.yaml.md",
           "kind": "yaml",
           "group": "agent_common",
-          "hash": "435b4efebdedcf85ff78aa39bdb988af9ab754cd6051300e82a7d682d71bba9e",
+          "hash": "6c8aac16ddb625eda9f8942b22895d30f81d9a66e60bd8a63e2649ed00151707",
           "symbols": 2,
           "updated_at": "2026-11-23T04:10:22"
         },
@@ -4091,7 +4091,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_artifacts_pure_edges.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "9a025cfb3f09d928c7cbd827a1be657696f25ad3405ca7df70ca92f8accc22fc",
+          "hash": "36b8733d184102ee8fc14eb232f3c12016653def000e3df3829e731107efd57a",
           "symbols": 6,
           "updated_at": "2026-11-26T00:01:31"
         },
@@ -4100,7 +4100,7 @@
           "doc": "docs/code/ai_new/modules/agent_test/private/test_artifacts_routes.py.md",
           "kind": "py",
           "group": "agent_test",
-          "hash": "20a7526c05b2035518e48c0d17a7a78d5f33c9e2573d41714c43ac145f08dcb1",
+          "hash": "a7eb1e757b3c83d2268f73d03940397d38c81d78501b2a9e13687055c402fadd",
           "symbols": 25,
           "updated_at": "2026-11-26T10:00:59"
         },

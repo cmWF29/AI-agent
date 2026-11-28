@@ -83,6 +83,10 @@ do:
       get: d.encoding
     text:
       get: d.text
+    offset:
+      get: input.offset
+    limit:
+      get: input.limit
   as: out
 expect:
   given:

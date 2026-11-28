@@ -22,13 +22,17 @@ def setup(ctx):
     ctx.api.register("artifacts.save", _route_save, "写交付件：分层→算路径→文本/二进制落盘→回执",
                      module="artifacts")
     # 读写分参：读工具不暴露 content，避免模型把 artifact_read 当写盘口用。
-    read_params = [
+    base_params = [
         {"name": "layer", "type": "string", "desc": "public/project/ticket", "required": False},
         {"name": "path", "type": "string", "desc": "相对路径", "required": True},
         {"name": "project", "type": "string", "desc": "project/ticket 层必填", "required": False},
         {"name": "ticket", "type": "string", "desc": "ticket 层必填", "required": False},
     ]
-    write_params = read_params + [
+    read_params = base_params + [
+        {"name": "offset", "type": "integer", "desc": "长文分页起点（字符）", "required": False},
+        {"name": "limit", "type": "integer", "desc": "本页最多字符数；留空返回全文", "required": False},
+    ]
+    write_params = base_params + [
         {"name": "content", "type": "string", "desc": "写入内容", "required": True},
         {"name": "doc_kind", "type": "string", "desc": "artifact=交付件 / non_artifact=非交付件", "required": False},
         {"name": "source", "type": "string", "desc": "llm / system / script", "required": False},
